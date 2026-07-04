@@ -1,0 +1,1648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Climbing Logbook</title>
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#ff2727">
+  <style>
+    /* ── Base (standalone — no shared theme engine) ─────────────────── */
+    :root {
+      --color-bg:          #0f0f0f;
+      --color-surface:     #1a1a1a;
+      --color-text:        #f0f0f0;
+      --color-text-muted:  #a0a0a0;
+      --color-accent:      #ff2727;
+      --color-accent-text: #ffffff;
+      --color-border:      #2e2e2e;
+      --r: 8px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    /* ── Grade colours — semantic ─────────────────────────────────── */
+    :root {
+      --grade-easy:  #94a3b8;
+      --grade-6a:    #22d3ee;
+      --grade-6b:    #4ade80;
+      --grade-6c:    #a3e635;
+      --grade-7a:    #facc15;
+      --grade-7b:    #fb923c;
+      --grade-7c:    #f87171;
+      --grade-8a:    #c084fc;
+      --field-h:     2.25rem;
+    }
+
+    /* ── Layout ──────────────────────────────────────────────────── */
+    body { background: var(--color-bg); color: var(--color-text); padding: 1.5rem 1rem 4rem; }
+    #logbook-app { max-width: 960px; margin: 0 auto; }
+
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: .75rem; margin-bottom: 1.5rem;
+    }
+    a.back-link {
+      display: inline-flex; align-items: center; gap: .4rem;
+      color: var(--color-accent); text-decoration: none;
+      font-size: .9rem;
+    }
+    a.back-link:hover { opacity: .75; }
+
+    h1 { font-size: 2rem; font-weight: 700; color: var(--color-accent); margin-bottom: .2rem; }
+    .subtitle { color: var(--color-text-muted); font-size: .9rem; margin-bottom: 1rem; }
+
+    /* ── Admin bar ───────────────────────────────────────────────── */
+    .admin-bar { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.25rem; }
+    .admin-btn {
+      display: inline-flex; align-items: center; gap: .35rem;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--r);
+      padding: .4rem .8rem;
+      font-size: .82rem; font-weight: 600;
+      color: var(--color-text);
+      cursor: pointer;
+    }
+    .admin-btn:hover { border-color: var(--color-accent); }
+    #add-btn, #sync-btn { min-width: 6rem; justify-content: center; }
+    .admin-btn.primary { background: var(--color-accent); color: var(--color-accent-text); border-color: var(--color-accent); }
+    .admin-btn.ghost { color: var(--color-text-muted); }
+    .admin-btn svg { width: 1rem; height: 1rem; stroke: currentColor; fill: none; flex: 0 0 auto; }
+
+    /* ── Controls ────────────────────────────────────────────────── */
+    .controls {
+      display: flex; flex-wrap: wrap; gap: .75rem; align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    .type-toggle {
+      display: flex; flex-direction: column;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--r);
+      overflow: hidden;
+    }
+    .type-btn {
+      width: 100%;
+      padding: .55rem .7rem;
+      font-size: .82rem;
+      border: none; border-bottom: 1px solid var(--color-border);
+      background: none;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      text-align: left;
+      transition: background .15s, color .15s;
+    }
+    .type-btn:last-child { border-bottom: none; }
+    .type-btn.active { background: var(--color-accent); color: var(--color-accent-text); }
+
+    .search-box {
+      flex: 0 1 220px; min-width: 140px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--r);
+      padding: .4rem .85rem;
+      color: var(--color-text);
+      font-size: .9rem;
+      outline: none;
+    }
+    .search-box::placeholder { color: var(--color-text-muted); }
+    .search-box:focus { border-color: var(--color-accent); }
+
+    /* ── Filter popover ──────────────────────────────────────────── */
+    .filter-wrap { position: relative; }
+    .filter-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 2.25rem; height: 2.25rem;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--r);
+      color: var(--color-text);
+      cursor: pointer;
+    }
+    .filter-btn:hover { border-color: var(--color-accent); }
+    .filter-btn.active { border-color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface)); color: var(--color-accent); }
+    .filter-btn svg { width: 1.1rem; height: 1.1rem; stroke: currentColor; fill: none; }
+
+    .filter-panel {
+      position: absolute; top: calc(100% + .4rem); left: 0; z-index: 20;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--r);
+      padding: .9rem;
+      width: 320px;
+      box-shadow: 0 8px 24px color-mix(in srgb, black 35%, transparent);
+    }
+    .filter-panel[hidden] { display: none; }
+    .filter-section-label {
+      font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+      color: var(--color-text-muted);
+      margin: 0 0 .4rem;
+    }
+    .filter-section-label:not(:first-child) { margin-top: .9rem; }
+    #filter-status-group {
+      display: flex; flex-direction: column;
+      width: 100%; margin-bottom: 0;
+    }
+    #filter-status-group .toggle-btn {
+      width: 100%;
+      display: flex; flex-direction: row; align-items: center; justify-content: flex-start;
+      gap: .6rem;
+      padding: .55rem .7rem;
+      border-right: none; border-bottom: 1px solid var(--color-border);
+      text-align: left;
+    }
+    #filter-status-group .toggle-btn:last-child { border-bottom: none; }
+    #filter-status-group .status-label { white-space: nowrap; }
+    .filter-clear-btn {
+      display: block; width: 100%; margin-top: .9rem;
+      background: none; border: none;
+      color: var(--color-text-muted); font-size: .78rem; text-decoration: underline;
+      cursor: pointer; text-align: center;
+    }
+    .filter-clear-btn:hover { color: var(--color-text); }
+
+    /* ── List toolbar ────────────────────────────────────────────── */
+    .list-toolbar { display: flex; justify-content: flex-end; margin-bottom: .5rem; }
+    .collapse-all-btn {
+      background: none; border: none;
+      color: var(--color-text-muted); font-size: .8rem; font-weight: 600;
+      cursor: pointer; padding: .2rem .3rem;
+    }
+    .collapse-all-btn:hover { color: var(--color-accent); }
+
+    /* ── Place sections ──────────────────────────────────────────── */
+    .place-section {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--r);
+      margin-bottom: .75rem;
+      overflow: hidden;
+    }
+    .place-header {
+      display: flex; align-items: center; gap: .6rem;
+      padding: .6rem .9rem;
+      border-bottom: 1px solid var(--color-border);
+      background: color-mix(in srgb, var(--color-surface) 60%, var(--color-bg));
+      cursor: pointer;
+      user-select: none;
+    }
+    .place-header:hover { background: color-mix(in srgb, var(--color-accent) 6%, var(--color-surface)); }
+    .place-num {
+      background: var(--color-accent); color: var(--color-accent-text);
+      font-size: .72rem; font-weight: 700;
+      padding: .15rem .45rem; border-radius: calc(var(--r) * .5);
+    }
+    .place-name { font-weight: 600; font-size: 1rem; flex: 1; }
+    .place-meta { color: var(--color-text-muted); font-size: .8rem; display: flex; gap: .75rem; }
+    .place-chevron { color: var(--color-text-muted); font-size: .8rem; transition: transform .2s; }
+    .place-section.collapsed .place-chevron { transform: rotate(-90deg); }
+    .place-section.collapsed .place-body { display: none; }
+
+    .place-body { overflow-x: auto; }
+
+    /* ── Table ───────────────────────────────────────────────────── */
+    table {
+      width: 100%; border-collapse: collapse;
+      font-size: .88rem; min-width: 520px;
+    }
+    thead th {
+      text-align: left;
+      padding: .35rem .65rem;
+      color: var(--color-text-muted);
+      font-weight: 500; font-size: .72rem;
+      text-transform: uppercase; letter-spacing: .05em;
+      border-bottom: 1px solid var(--color-border);
+      white-space: nowrap;
+    }
+    th.sortable { cursor: pointer; }
+    th.sortable:hover { color: var(--color-text); }
+    th .sort-icon { margin-left: .3rem; opacity: .4; font-style: normal; }
+    th.sort-asc .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--color-accent); }
+    th.sort-asc .sort-icon::after  { content: "↑"; }
+    th.sort-desc .sort-icon::after { content: "↓"; }
+    th:not(.sort-asc):not(.sort-desc) .sort-icon::after { content: "↕"; }
+
+    tbody tr { border-bottom: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: color-mix(in srgb, var(--color-accent) 4%, var(--color-surface)); }
+    tbody tr.pending-row { background: color-mix(in srgb, var(--color-accent) 6%, var(--color-surface)); }
+    td { padding: .35rem .65rem; vertical-align: middle; }
+
+    /* ── Grade badge ─────────────────────────────────────────────── */
+    .grade-badge {
+      font-family: monospace; font-weight: 700; font-size: .85rem;
+      padding: .15rem .45rem;
+      border-radius: calc(var(--r) * .5);
+      background: color-mix(in srgb, currentColor 12%, transparent);
+      white-space: nowrap;
+    }
+
+    /* ── Status icon ─────────────────────────────────────────────── */
+    .status-icon { display: inline-flex; vertical-align: middle; cursor: default; }
+    .status-icon svg { width: 1.4rem; height: 1.4rem; }
+    .pending-badge {
+      font-size: .68rem; font-weight: 700; color: var(--color-accent);
+      white-space: nowrap;
+    }
+
+    /* ── Type text ───────────────────────────────────────────────── */
+    .type-text { font-size: .82rem; color: var(--color-text-muted); }
+
+    /* ── Area tag ────────────────────────────────────────────────── */
+    .area-tag { color: var(--color-text-muted); font-size: .82rem; }
+
+    /* ── Video link ──────────────────────────────────────────────── */
+    .video-link {
+      color: var(--color-accent); font-size: .8rem;
+      text-decoration: none; display: inline-flex; align-items: center; gap: .2rem;
+    }
+    .video-link:hover { opacity: .75; }
+
+    /* ── Notes tooltip ───────────────────────────────────────────── */
+    .notes-icon { cursor: help; color: var(--color-text-muted); font-size: .9rem; }
+
+    /* ── Edit button ─────────────────────────────────────────────── */
+    .edit-btn {
+      border: none; background: none; cursor: pointer;
+      color: var(--color-text-muted); display: inline-flex; padding: .2rem;
+    }
+    .edit-btn:hover { color: var(--color-accent); }
+    .edit-btn svg { width: .95rem; height: .95rem; stroke: currentColor; fill: none; }
+
+    /* ── Empty state ─────────────────────────────────────────────── */
+    .empty-row td {
+      text-align: center; color: var(--color-text-muted);
+      padding: 2rem; font-size: .9rem;
+    }
+
+    /* ── Loading / error ─────────────────────────────────────────── */
+    #loading {
+      display: flex; align-items: center; justify-content: center;
+      height: 60vh; color: var(--color-text-muted); flex-direction: column; gap: .75rem;
+    }
+    .spinner {
+      width: 32px; height: 32px; border: 2px solid var(--color-border);
+      border-top-color: var(--color-accent); border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-box {
+      background: color-mix(in srgb, #f87171 10%, var(--color-bg));
+      border: 1px solid color-mix(in srgb, #f87171 40%, transparent);
+      border-radius: var(--r); padding: 1rem 1.25rem; color: var(--color-text);
+    }
+    .empty-box {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--r); padding: 1rem 1.25rem; color: var(--color-text-muted);
+      text-align: center;
+    }
+
+    /* ── Footer ──────────────────────────────────────────────────── */
+    .footer { text-align: center; color: var(--color-text-muted); font-size: .78rem; margin-top: 2rem; }
+
+    /* ── Responsive ──────────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      h1 { font-size: 1.5rem; }
+      .place-meta { display: none; }
+    }
+
+    /* ══ Modal ══════════════════════════════════════════════════════ */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 100;
+      background: color-mix(in srgb, black 60%, transparent);
+      display: flex; align-items: flex-start; justify-content: center;
+      padding: 1.5rem 1rem; overflow-y: auto;
+    }
+    .modal-overlay[hidden] { display: none; }
+    .modal-panel {
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--r);
+      padding: 1.25rem; width: 100%; max-width: 460px;
+    }
+    .modal-panel-sm { max-width: 320px; }
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    .modal-header h2 { font-size: 1.15rem; font-weight: 700; color: var(--color-accent); }
+    .modal-close {
+      border: none; background: none; cursor: pointer;
+      color: var(--color-text-muted); font-size: 1.1rem; line-height: 1; padding: .2rem;
+    }
+    .modal-close:hover { color: var(--color-text); }
+
+    /* ── Section labels ────────────────────────────────────────────────── */
+    .section-label {
+      font-size: .72rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .07em; color: var(--color-text-muted);
+      margin: 1.1rem 0 .5rem;
+    }
+    .section-label:first-child { margin-top: 0; }
+    .sub-label {
+      font-size: .72rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .07em; color: var(--color-text-muted);
+      margin-bottom: .5rem;
+    }
+
+    /* ── Form fields ───────────────────────────────────────────────────── */
+    .field { margin-bottom: .75rem; }
+    .form-row { display: flex; flex-wrap: wrap; gap: .6rem; margin-bottom: .75rem; }
+    .form-row .field { flex: 1; min-width: 0; margin-bottom: 0; }
+
+    #entry-form input[type="text"], #entry-form input[type="url"] {
+      width: 100%; box-sizing: border-box;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--r);
+      padding: .65rem .85rem;
+      color: var(--color-text);
+      font-size: 1rem;
+      outline: none;
+    }
+    #entry-form input[type="text"]:focus, #entry-form input[type="url"]:focus { border-color: var(--color-accent); }
+
+    #entry-form textarea {
+      width: 100%; box-sizing: border-box;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--r);
+      padding: .65rem .85rem;
+      color: var(--color-text);
+      font-size: 1rem;
+      outline: none; resize: vertical; min-height: 72px;
+    }
+    #entry-form textarea:focus { border-color: var(--color-accent); }
+
+    #login-key {
+      width: 100%; box-sizing: border-box;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--r);
+      padding: .65rem .85rem;
+      color: var(--color-text);
+      font-size: 1rem;
+      outline: none;
+    }
+    #login-key:focus { border-color: var(--color-accent); }
+
+    /* ── Segmented toggle bar (type, status) ────────────────────────────── */
+    .toggle-bar {
+      display: flex; flex-wrap: wrap;
+      border: 1px solid var(--color-border);
+      border-radius: var(--r);
+      overflow: hidden;
+      margin-bottom: .75rem;
+    }
+    .toggle-btn {
+      flex: 1 0 auto;
+      box-sizing: border-box;
+      border: none;
+      border-right: 1px solid var(--color-border);
+      background: var(--color-surface);
+      color: var(--color-text-muted);
+      font-size: .78rem; font-weight: 600;
+      padding: .5rem .6rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .12s, color .12s;
+    }
+    .toggle-btn:last-child { border-right: none; }
+    .toggle-btn:hover { color: var(--color-text); }
+    .toggle-btn.active {
+      background: var(--color-accent);
+      color: var(--color-accent-text);
+    }
+
+    #type-group {
+      flex: 1 1 9rem;
+      min-width: 0;
+      height: var(--field-h);
+      margin-bottom: 0;
+    }
+    #type-group .toggle-btn {
+      flex: 1 1 0;
+      min-width: 4rem;
+      height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      text-align: center;
+    }
+
+    #status-group { display: inline-flex; flex-wrap: nowrap; width: auto; }
+    #status-group .toggle-btn {
+      flex: 0 0 auto;
+      min-width: 4.5rem;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: .15rem;
+      padding: .45rem .3rem;
+    }
+    .form-status-icon { display: flex; }
+    .form-status-icon svg { width: 1.5rem; height: 1.5rem; }
+    .status-label {
+      font-size: .58rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .03em;
+    }
+
+    /* ── Grade picker ──────────────────────────────────────────────────── */
+    .grade-picker {
+      flex: 1 1 9rem;
+      min-width: 0;
+      height: var(--field-h);
+      display: flex; align-items: stretch; gap: .5rem;
+    }
+    .grade-step {
+      flex: 0 0 var(--field-h);
+      box-sizing: border-box;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid var(--color-border);
+      border-radius: var(--r);
+      background: var(--color-surface);
+      color: var(--color-text);
+      cursor: pointer;
+    }
+    .grade-step svg { width: .8rem; height: .8rem; fill: currentColor; }
+    .grade-step:hover { border-color: var(--color-accent); }
+    .grade-step:active { transform: scale(.94); }
+
+    #grade-select {
+      box-sizing: border-box;
+      flex: 1;
+      min-width: 0;
+      height: var(--field-h);
+      border: 1px solid currentColor;
+      border-radius: var(--r);
+      background: color-mix(in srgb, currentColor 25%, var(--color-surface));
+      color: var(--color-text);
+      font-size: .85rem; font-weight: 700; font-family: monospace;
+      text-align: center; text-align-last: center;
+      padding: 0 .4rem;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    #grade-select option {
+      font-family: monospace; font-weight: 700;
+      background: var(--color-surface); color: var(--color-text);
+    }
+
+    /* ── Date input ────────────────────────────────────────────────────── */
+    .date-row { display: flex; align-items: stretch; gap: .5rem; }
+    #entry-form .date-row input#entry-date { width: 8.5rem; flex: 0 0 auto; }
+    .date-picker-btn {
+      flex: 0 0 2.75rem;
+      box-sizing: border-box;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid var(--color-border);
+      border-radius: var(--r);
+      background: var(--color-surface);
+      color: var(--color-text);
+      cursor: pointer;
+    }
+    .date-picker-btn svg { width: 1.1rem; height: 1.1rem; stroke: currentColor; }
+    .date-picker-btn:hover { border-color: var(--color-accent); }
+    .date-native {
+      position: absolute; width: 1px; height: 1px;
+      opacity: 0; pointer-events: none;
+    }
+    .date-hint { font-size: .75rem; color: var(--color-text-muted); margin-top: .3rem; }
+
+    /* ── Submit ────────────────────────────────────────────────────────── */
+    .submit-btn {
+      width: 100%; margin-top: 1rem;
+      background: var(--color-accent); color: var(--color-accent-text);
+      border: none; border-radius: var(--r);
+      padding: .9rem; font-size: 1rem; font-weight: 700;
+      cursor: pointer;
+    }
+    .submit-btn:disabled { opacity: .45; cursor: not-allowed; }
+    .delete-btn {
+      width: 100%; margin-top: .6rem;
+      background: none; color: #f87171;
+      border: 1px solid color-mix(in srgb, #f87171 40%, transparent);
+      border-radius: var(--r);
+      padding: .7rem; font-size: .9rem; font-weight: 600;
+      cursor: pointer;
+    }
+    .delete-btn:hover { background: color-mix(in srgb, #f87171 10%, transparent); }
+    .delete-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+    /* ── Message ───────────────────────────────────────────────────────── */
+    .msg {
+      margin-top: .85rem; padding: .75rem 1rem;
+      border-radius: var(--r); font-size: .9rem; display: none;
+    }
+    .msg.success {
+      background: color-mix(in srgb, #4ade80 12%, var(--color-surface));
+      border: 1px solid color-mix(in srgb, #4ade80 40%, transparent);
+      display: block;
+    }
+    .msg.error {
+      background: color-mix(in srgb, #f87171 12%, var(--color-surface));
+      border: 1px solid color-mix(in srgb, #f87171 40%, transparent);
+      display: block;
+    }
+  </style>
+</head>
+<body>
+<div id="logbook-app">
+  <div id="loading"><div class="spinner"></div><span>Loading logbook…</span></div>
+  <div id="app" style="display:none">
+
+    <div class="page-header">
+      <a href="https://ravendarque.com/" class="back-link">← Back</a>
+      <button type="button" class="admin-btn" id="login-toggle-btn">Log in</button>
+    </div>
+    <h1>Climbing Logbook</h1>
+    <p class="subtitle" id="subtitle"></p>
+
+    <div class="admin-bar" id="admin-bar">
+      <button type="button" class="admin-btn primary" id="add-btn" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M8 12h8"></path><path d="M12 8v8"></path></svg>
+        <span>Add</span>
+      </button>
+      <button type="button" class="admin-btn" id="sync-btn" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 9 3-3 3 3"></path><path d="M13 18H7a2 2 0 0 1-2-2V6"></path><path d="m22 15-3 3-3-3"></path><path d="M11 6h6a2 2 0 0 1 2 2v10"></path></svg>
+        <span id="sync-btn-label">Sync</span>
+      </button>
+    </div>
+
+    <div class="controls">
+      <input class="search-box" id="search" placeholder="Search problems…" autocomplete="off">
+      <div class="filter-wrap">
+        <button type="button" class="filter-btn" id="filter-btn" aria-label="Filter" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"></path></svg>
+        </button>
+        <div class="filter-panel" id="filter-panel" hidden>
+          <div class="filter-section-label">Type</div>
+          <div class="type-toggle" id="type-toggle">
+            <button class="type-btn active" data-type="all">All</button>
+            <button class="type-btn" data-type="boulder">Boulder</button>
+            <button class="type-btn" data-type="lead">Lead</button>
+          </div>
+          <div class="filter-section-label">Status</div>
+          <div class="toggle-bar" id="filter-status-group">
+            <button type="button" class="toggle-btn" data-filter="flash">
+              <span class="form-status-icon" data-icon="flash"></span><span class="status-label">Flash</span>
+            </button>
+            <button type="button" class="toggle-btn" data-filter="send">
+              <span class="form-status-icon" data-icon="send"></span><span class="status-label">Send</span>
+            </button>
+            <button type="button" class="toggle-btn" data-filter="project">
+              <span class="form-status-icon" data-icon="project"></span><span class="status-label">Project</span>
+            </button>
+            <button type="button" class="toggle-btn" data-filter="wishlist">
+              <span class="form-status-icon" data-icon="wishlist"></span><span class="status-label">Check out</span>
+            </button>
+            <button type="button" class="toggle-btn" data-filter="abandoned">
+              <span class="form-status-icon" data-icon="abandoned"></span><span class="status-label">Abandoned</span>
+            </button>
+          </div>
+          <button type="button" class="filter-clear-btn" id="filter-clear-btn">Clear filters</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="list-toolbar">
+      <button type="button" class="collapse-all-btn" id="collapse-all-btn">Collapse all</button>
+    </div>
+
+    <div id="sections"></div>
+
+    <div class="footer" id="footer"></div>
+  </div>
+</div>
+
+<!-- ══ Login modal ═══════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="login-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
+  <div class="modal-panel modal-panel-sm">
+    <div class="modal-header">
+      <h2 id="login-modal-title">Log in</h2>
+      <button type="button" class="modal-close" id="login-close" aria-label="Close">✕</button>
+    </div>
+    <form id="login-form" autocomplete="off">
+      <div class="field">
+        <input type="password" id="login-key" placeholder="Admin key" autocomplete="current-password">
+      </div>
+      <button type="submit" class="submit-btn" id="login-submit">Log in</button>
+      <div class="msg" id="login-msg"></div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ Add / edit entry modal ════════════════════════════════════════ -->
+<div class="modal-overlay" id="entry-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="entry-modal-title">
+  <div class="modal-panel">
+    <div class="modal-header">
+      <h2 id="entry-modal-title">Add entry</h2>
+      <button type="button" class="modal-close" id="entry-close" aria-label="Close">✕</button>
+    </div>
+
+    <form id="entry-form" autocomplete="off">
+      <div class="section-label">Problem/route name</div>
+      <div class="field">
+        <input type="text" id="entry-name" required>
+      </div>
+
+      <div class="form-row">
+        <div class="field">
+          <div class="sub-label">Location</div>
+          <input type="text" id="entry-place" list="entry-places-list" required>
+          <datalist id="entry-places-list"></datalist>
+        </div>
+        <div class="field">
+          <div class="sub-label">Area</div>
+          <input type="text" id="entry-area" list="entry-areas-list">
+          <datalist id="entry-areas-list"></datalist>
+        </div>
+      </div>
+
+      <div class="section-label">Grade</div>
+      <div class="form-row">
+        <div class="grade-picker">
+          <button type="button" class="grade-step" id="grade-prev" aria-label="Previous grade">
+            <svg viewBox="0 0 24 24"><polygon points="16 5 6 12 16 19"></polygon></svg>
+          </button>
+          <select id="grade-select"></select>
+          <button type="button" class="grade-step" id="grade-next" aria-label="Next grade">
+            <svg viewBox="0 0 24 24"><polygon points="8 5 18 12 8 19"></polygon></svg>
+          </button>
+        </div>
+        <div class="toggle-bar" id="type-group">
+          <button type="button" class="toggle-btn active" data-value="boulder">Boulder</button>
+          <button type="button" class="toggle-btn" data-value="lead">Lead</button>
+        </div>
+      </div>
+
+      <div class="section-label">Status</div>
+      <div class="toggle-bar" id="status-group">
+        <button type="button" class="toggle-btn" data-value="flash">
+          <span class="form-status-icon" data-icon="flash"></span><span class="status-label">Flash</span>
+        </button>
+        <button type="button" class="toggle-btn active" data-value="send">
+          <span class="form-status-icon" data-icon="send"></span><span class="status-label">Send</span>
+        </button>
+        <button type="button" class="toggle-btn" data-value="project">
+          <span class="form-status-icon" data-icon="project"></span><span class="status-label">Project</span>
+        </button>
+        <button type="button" class="toggle-btn" data-value="wishlist">
+          <span class="form-status-icon" data-icon="wishlist"></span><span class="status-label">Check out</span>
+        </button>
+        <button type="button" class="toggle-btn" data-value="abandoned">
+          <span class="form-status-icon" data-icon="abandoned"></span><span class="status-label">Abandoned</span>
+        </button>
+      </div>
+
+      <div class="section-label">When</div>
+      <div class="field">
+        <div class="date-row">
+          <input type="text" id="entry-date">
+          <button type="button" class="date-picker-btn" id="date-picker-btn" aria-label="Pick a date">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+              <line x1="8" y1="3" x2="8" y2="7"></line>
+              <line x1="16" y1="3" x2="16" y2="7"></line>
+            </svg>
+          </button>
+          <input type="date" id="date-native" class="date-native" tabindex="-1" aria-hidden="true">
+        </div>
+        <div class="date-hint">YYYY-MM or YYYY-MM-DD</div>
+      </div>
+
+      <div class="section-label">Notes</div>
+      <div class="field">
+        <textarea id="entry-notes"></textarea>
+      </div>
+
+      <div class="section-label">Video URL</div>
+      <div class="field">
+        <input type="url" id="entry-video">
+      </div>
+
+      <button type="submit" class="submit-btn" id="entry-submit-btn">Add to logbook</button>
+      <button type="button" class="delete-btn" id="entry-delete-btn" hidden>Delete entry</button>
+      <div class="msg" id="entry-msg"></div>
+    </form>
+  </div>
+</div>
+
+<script type="module">
+  import { STATUS_ICONS } from "./status-icons.js";
+  import { escapeHtml } from "./escape-html.js";
+
+  // ── Config ───────────────────────────────────────────────────────────
+  const DATA_URL = "/logbook/api/logbook";
+  const LOGIN_URL = "/logbook/api/login";
+  const SESSION_URL = "/logbook/api/session";
+  const ENTRIES_CACHE_KEY = "logbook_entries_cache";
+  const LOGIN_HINT_KEY    = "logbook_logged_in_hint";
+  const QUEUE_KEY         = "logbook_pending_queue";
+
+  // ── Place → country map ──────────────────────────────────────────────
+  const PLACE_COUNTRY = {
+    "Magic Wood":          "🇨🇭 Switzerland",
+    "Fontainebleau":       "🇫🇷 France",
+    "Albarracín":          "🇪🇸 Spain",
+    "Bosco Scorace":       "🇮🇹 Italy",
+    "San Vito Lo Capo":    "🇮🇹 Italy",
+    "Southern Sandstone":  "🏴󠁧󠁢󠁥󠁮󠁧󠁿 England",
+    "Portland":            "🏴󠁧󠁢󠁥󠁮󠁧󠁿 England",
+    "Tintagel":            "🏴󠁧󠁢󠁥󠁮󠁧󠁿 England",
+    "Culm Coast":          "🏴󠁧󠁢󠁥󠁮󠁧󠁿 England",
+    "Eryri":               "🏴󠁧󠁢󠁷󠁬󠁳󠁿 Wales",
+    "Lake District":       "🏴󠁧󠁢󠁥󠁮󠁧󠁿 England",
+    "Northumberland":      "🏴󠁧󠁢󠁥󠁮󠁧󠁿 England",
+    "Cairngorms":          "🏴󠁧󠁢󠁳󠁣󠁴󠁿 Scotland",
+    "Peak District":       "🏴󠁧󠁢󠁥󠁮󠁧󠁿 England",
+    "Rocklands":           "🇿🇦 South Africa",
+  };
+
+  // ── Grade ordering (display) ─────────────────────────────────────────
+  const GRADE_ORDER = [
+    "3","3+","4","4+","5","5+","5A","5A+","5B","5B+","5C",
+    "6A","6A+","6B","6B+","6C","6C+",
+    "7A","7A+","7B","7B+","7C","7C+",
+    "8A","8A+","8B","8B+","8C","8C+",
+    "9A","9A+"
+  ];
+  const GRADE_RANK = Object.fromEntries(GRADE_ORDER.map((g, i) => [g.toUpperCase(), i]));
+  function gradeRank(g) { return GRADE_RANK[g.toUpperCase()] ?? 99; }
+
+  function gradeColor(g) {
+    const r = gradeRank(g);
+    if (r < 5)  return "var(--grade-easy)";
+    if (r < 8)  return "var(--grade-6a)";
+    if (r < 10) return "var(--grade-6b)";
+    if (r < 12) return "var(--grade-6c)";
+    if (r < 14) return "var(--grade-7a)";
+    if (r < 16) return "var(--grade-7b)";
+    if (r < 18) return "var(--grade-7c)";
+    return "var(--grade-8a)";
+  }
+
+  // ── Grade data (entry form) ───────────────────────────────────────────
+  const BOULDER_GRADES = [
+    { g: "5+",  v: "V0",  c: "var(--grade-easy)" },
+    { g: "5A",  v: "V0",  c: "var(--grade-easy)" },
+    { g: "5B",  v: "V1",  c: "var(--grade-easy)" },
+    { g: "5C",  v: "V2",  c: "var(--grade-easy)" },
+    { g: "6A",  v: "V3",  c: "var(--grade-6a)"   },
+    { g: "6A+", v: "V3",  c: "var(--grade-6a)"   },
+    { g: "6B",  v: "V4",  c: "var(--grade-6b)"   },
+    { g: "6B+", v: "V4",  c: "var(--grade-6b)"   },
+    { g: "6C",  v: "V5",  c: "var(--grade-6c)"   },
+    { g: "6C+", v: "V5",  c: "var(--grade-6c)"   },
+    { g: "7A",  v: "V6",  c: "var(--grade-7a)"   },
+    { g: "7A+", v: "V7",  c: "var(--grade-7a)"   },
+    { g: "7B",  v: "V8",  c: "var(--grade-7b)"   },
+    { g: "7B+", v: "V8",  c: "var(--grade-7b)"   },
+    { g: "7C",  v: "V9",  c: "var(--grade-7c)"   },
+    { g: "7C+", v: "V10", c: "var(--grade-7c)"   },
+    { g: "8A",  v: "V11", c: "var(--grade-8a)"   },
+    { g: "8A+", v: "V12", c: "var(--grade-8a)"   },
+    { g: "8B",  v: "V13", c: "var(--grade-8a)"   },
+    { g: "8B+", v: "V14", c: "var(--grade-8a)"   },
+  ];
+  const LEAD_GRADES = [
+    { g: "5c",  c: "var(--grade-easy)" },
+    { g: "6a",  c: "var(--grade-6a)"   },
+    { g: "6a+", c: "var(--grade-6a)"   },
+    { g: "6b",  c: "var(--grade-6b)"   },
+    { g: "6b+", c: "var(--grade-6b)"   },
+    { g: "6c",  c: "var(--grade-6c)"   },
+    { g: "6c+", c: "var(--grade-6c)"   },
+    { g: "7a",  c: "var(--grade-7a)"   },
+    { g: "7a+", c: "var(--grade-7a)"   },
+    { g: "7b",  c: "var(--grade-7b)"   },
+    { g: "7b+", c: "var(--grade-7b)"   },
+    { g: "7c",  c: "var(--grade-7c)"   },
+    { g: "7c+", c: "var(--grade-7c)"   },
+    { g: "8a",  c: "var(--grade-8a)"   },
+  ];
+
+  // ── Date helpers ─────────────────────────────────────────────────────
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function formatDate(d) {
+    if (!d) return "—";
+    const p = d.split("-");
+    if (p.length === 1) return p[0];
+    if (p.length === 2) return `${MONTHS[+p[1]-1]} ${p[0]}`;
+    return `${+p[2]} ${MONTHS[+p[1]-1]} ${p[0]}`;
+  }
+  function dateRank(d) {
+    if (!d) return -1;
+    return new Date(d).getTime();
+  }
+
+  // ── Status ───────────────────────────────────────────────────────────
+  function statusBadge(entry) {
+    if (entry.status === "send" && entry.flash)
+      return `<span class="status-icon" title="Flash">${STATUS_ICONS.flash}</span>`;
+    if (entry.status === "send")
+      return `<span class="status-icon" title="Send">${STATUS_ICONS.send}</span>`;
+    if (entry.status === "project")
+      return `<span class="status-icon" title="Project">${STATUS_ICONS.project}</span>`;
+    if (entry.status === "abandoned")
+      return `<span class="status-icon" title="Abandoned">${STATUS_ICONS.abandoned}</span>`;
+    return `<span class="status-icon" title="Check out">${STATUS_ICONS.wishlist}</span>`;
+  }
+
+  // ── State ────────────────────────────────────────────────────────────
+  const state = {
+    statusFilters: new Set(), // empty = "all"
+    typeFilter: "all",
+    search: "",
+    sortByPlace: {},  // { placeName: { col: "grade", dir: "asc" } }
+    collapsed: new Set(),
+  };
+
+  function getSort(place) {
+    return state.sortByPlace[place] ?? { col: "grade", dir: "asc" };
+  }
+
+  let ALL_ENTRIES  = [];
+  let isLoggedIn   = false;
+  let editingId    = null; // null = add mode
+
+  // ── Offline queue ──────────────────────────────────────────────────
+  function getQueue() {
+    try { return JSON.parse(localStorage.getItem(QUEUE_KEY)) ?? []; }
+    catch { return []; }
+  }
+  function setQueue(queue) {
+    localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+    updateSyncButton();
+  }
+  function applyPendingToEntries() {
+    for (const item of getQueue()) {
+      if (item.op === "add") {
+        if (!ALL_ENTRIES.some(e => e.id === item.entry.id)) {
+          ALL_ENTRIES.push({ ...item.entry, _pending: true });
+        }
+      } else if (item.op === "delete") {
+        ALL_ENTRIES = ALL_ENTRIES.filter(e => e.id !== item.entry.id);
+      } else {
+        const idx = ALL_ENTRIES.findIndex(e => e.id === item.entry.id);
+        if (idx !== -1) ALL_ENTRIES[idx] = { ...item.entry, _pending: true };
+      }
+    }
+  }
+  function updateSyncButton() {
+    const n = getQueue().length;
+    syncBtn.hidden = n === 0;
+    syncBtnLabel.textContent = n ? `Sync (${n})` : "Sync";
+  }
+
+  async function syncPending() {
+    const queue = getQueue();
+    if (!queue.length) return;
+    syncBtn.disabled = true;
+
+    const remaining = [];
+    let lastEntries = null;
+    for (const item of queue) {
+      try {
+        const res = item.op === "delete"
+          ? await fetch(`${DATA_URL}?id=${encodeURIComponent(item.entry.id)}`, { method: "DELETE" })
+          : await fetch(DATA_URL, {
+              method: item.op === "edit" ? "PUT" : "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(item.entry),
+            });
+        if (res.status === 401) {
+          remaining.push(item);
+          isLoggedIn = false;
+          updateAdminBar();
+          break;
+        }
+        if (!res.ok) { remaining.push(item); continue; }
+        const data = await res.json();
+        lastEntries = data.entries;
+      } catch {
+        remaining.push(item);
+        break; // still offline — stop, preserve order for next attempt
+      }
+    }
+
+    setQueue(remaining);
+    if (lastEntries) {
+      ALL_ENTRIES = lastEntries;
+      localStorage.setItem(ENTRIES_CACHE_KEY, JSON.stringify(ALL_ENTRIES));
+      applyPendingToEntries();
+    }
+    syncBtn.disabled = false;
+    render();
+  }
+
+  // ── Data ─────────────────────────────────────────────────────────────
+  function entryMatchesStatusFilter(entry, filter) {
+    if (filter === "flash") return entry.status === "send" && entry.flash;
+    if (filter === "send")  return entry.status === "send" && !entry.flash;
+    return entry.status === filter;
+  }
+
+  function filteredEntries() {
+    const q = state.search.toLowerCase();
+    return ALL_ENTRIES.filter(e => {
+      if (state.statusFilters.size > 0 &&
+          ![...state.statusFilters].some(f => entryMatchesStatusFilter(e, f))) return false;
+      if (state.typeFilter !== "all" && e.type !== state.typeFilter) return false;
+      if (q && !e.name.toLowerCase().includes(q) && !(e.area||"").toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }
+
+  function groupByPlace(entries) {
+    const map = new Map();
+    for (const e of entries) {
+      if (!map.has(e.place)) map.set(e.place, []);
+      map.get(e.place).push(e);
+    }
+    // Preserve order from original data
+    const placeOrder = [...new Set(ALL_ENTRIES.map(e => e.place))];
+    return placeOrder
+      .filter(p => map.has(p))
+      .map(p => [p, map.get(p)]);
+  }
+
+  function sortEntries(entries, place) {
+    const { col, dir } = getSort(place);
+    const m = dir === "asc" ? 1 : -1;
+    return [...entries].sort((a, b) => {
+      if (col === "grade")  return m * (gradeRank(a.grade) - gradeRank(b.grade));
+      if (col === "date")   return m * (dateRank(a.date) - dateRank(b.date));
+      if (col === "name")   return m * a.name.localeCompare(b.name);
+      return 0;
+    });
+  }
+
+  // ── Render ───────────────────────────────────────────────────────────
+  function updateFilterUI() {
+    document.querySelectorAll("#type-toggle .type-btn").forEach(b => {
+      const active = b.dataset.type === state.typeFilter;
+      b.classList.toggle("active", active);
+      b.setAttribute("aria-pressed", String(active));
+    });
+    document.querySelectorAll("#filter-status-group .toggle-btn").forEach(b => {
+      const active = state.statusFilters.has(b.dataset.filter);
+      b.classList.toggle("active", active);
+      b.setAttribute("aria-pressed", String(active));
+    });
+    const hasFilters = state.typeFilter !== "all" || state.statusFilters.size > 0;
+    filterBtn.classList.toggle("active", hasFilters);
+  }
+
+  const EDIT_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"></path></svg>`;
+
+  function renderSections(entries) {
+    const container = document.getElementById("sections");
+    const groups = groupByPlace(entries);
+
+    if (groups.length === 0) {
+      container.innerHTML = `<div class="empty-box">No problems match your filters.</div>`;
+      return;
+    }
+
+    let idx = 0;
+    container.innerHTML = groups.map(([place, items]) => {
+      idx++;
+      const sorted = sortEntries(items, place);
+      const { col, dir } = getSort(place);
+      const isCollapsed = state.collapsed.has(place);
+
+      const thClass = (c) => c !== col ? `sortable` : `sortable sort-${dir}`;
+      const sortAria = (c) => c !== col ? "none" : (dir === "asc" ? "ascending" : "descending");
+
+      const rows = sorted.map(e => `
+        <tr${e._pending ? ` class="pending-row"` : ""}>
+          <td style="text-align:center;width:2rem">${statusBadge(e)}</td>
+          <td><span class="grade-badge" style="color:${gradeColor(e.grade)}">${escapeHtml(e.grade)}</span></td>
+          <td>
+            <span style="font-weight:500">${escapeHtml(e.name)}</span>
+            ${e.notes ? `<span class="notes-icon" title="${escapeHtml(e.notes)}"> ℹ</span>` : ""}
+            ${e._pending ? `<span class="pending-badge"> · pending sync</span>` : ""}
+          </td>
+          <td class="area-tag">${escapeHtml(e.area)}</td>
+          <td class="type-text">${escapeHtml(e.type)}</td>
+          <td style="color:var(--color-text-muted);font-size:.82rem;white-space:nowrap">${formatDate(e.date)}</td>
+          <td style="text-align:center;width:2rem">${e.video ? `<a class="video-link" href="${escapeHtml(e.video)}" target="_blank" rel="noopener" title="Watch video">▶</a>` : ""}</td>
+          <td style="text-align:center;width:2rem">${isLoggedIn ? `<button type="button" class="edit-btn" data-edit-id="${escapeHtml(e.id)}" aria-label="Edit">${EDIT_ICON}</button>` : ""}</td>
+        </tr>
+      `).join("");
+
+      return `
+        <div class="place-section${isCollapsed ? " collapsed" : ""}" data-place="${escapeHtml(place)}">
+          <div class="place-header" data-place="${escapeHtml(place)}" role="button" tabindex="0" aria-expanded="${!isCollapsed}">
+            <span class="place-name">${escapeHtml(place)}</span>
+            ${PLACE_COUNTRY[place] ? `<span style="color:var(--color-text-muted);font-size:.82rem">${escapeHtml(PLACE_COUNTRY[place])}</span>` : ""}
+            <span class="place-chevron">▾</span>
+          </div>
+          <div class="place-body">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:2rem"></th>
+                  <th class="${thClass("grade")}" data-sort="grade" data-place="${escapeHtml(place)}" role="button" tabindex="0" aria-sort="${sortAria("grade")}">
+                    Grade <i class="sort-icon"></i>
+                  </th>
+                  <th class="${thClass("name")}" data-sort="name" data-place="${escapeHtml(place)}" role="button" tabindex="0" aria-sort="${sortAria("name")}">
+                    Name <i class="sort-icon"></i>
+                  </th>
+                  <th>Area</th>
+                  <th>Type</th>
+                  <th class="${thClass("date")}" data-sort="date" data-place="${escapeHtml(place)}" role="button" tabindex="0" aria-sort="${sortAria("date")}">
+                    Date <i class="sort-icon"></i>
+                  </th>
+                  <th style="width:2rem"></th>
+                  <th style="width:2rem"></th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows || `<tr class="empty-row"><td colspan="8">No problems match.</td></tr>`}
+              </tbody>
+            </table>
+          </div>
+        </div>`;
+    }).join("");
+  }
+
+  function render() {
+    const entries = filteredEntries();
+    updateFilterUI();
+    renderSections(entries);
+    updateSubtitle(entries);
+    updateAdminBar();
+    updateCollapseAllBtn(entries);
+  }
+
+  function updateCollapseAllBtn(entries) {
+    const places = groupByPlace(entries).map(([place]) => place);
+    const allCollapsed = places.length > 0 && places.every(p => state.collapsed.has(p));
+    collapseAllBtn.textContent = allCollapsed ? "Expand all" : "Collapse all";
+  }
+
+  function updateSubtitle(entries) {
+    const sends  = ALL_ENTRIES.filter(e => e.status === "send").length;
+    const places = new Set(ALL_ENTRIES.map(e => e.place)).size;
+    document.getElementById("subtitle").textContent =
+      `${ALL_ENTRIES.length} problems · ${sends} sent · ${places} destinations`;
+    document.getElementById("footer").textContent = "";
+  }
+
+  // ── DOM refs ─────────────────────────────────────────────────────────
+  const loginToggleBtn = document.getElementById("login-toggle-btn");
+  const addBtn      = document.getElementById("add-btn");
+  const syncBtn     = document.getElementById("sync-btn");
+  const syncBtnLabel = document.getElementById("sync-btn-label");
+  const filterBtn    = document.getElementById("filter-btn");
+  const filterPanel  = document.getElementById("filter-panel");
+  const filterClearBtn = document.getElementById("filter-clear-btn");
+  const collapseAllBtn = document.getElementById("collapse-all-btn");
+
+  const loginOverlay = document.getElementById("login-overlay");
+  const loginForm     = document.getElementById("login-form");
+  const loginKeyInput = document.getElementById("login-key");
+  const loginMsg       = document.getElementById("login-msg");
+  const loginSubmitBtn = document.getElementById("login-submit");
+
+  const entryOverlay   = document.getElementById("entry-overlay");
+  const entryForm      = document.getElementById("entry-form");
+  const entryModalTitle= document.getElementById("entry-modal-title");
+  const nameInput  = document.getElementById("entry-name");
+  const placeInput = document.getElementById("entry-place");
+  const areaInput  = document.getElementById("entry-area");
+  const notesInput = document.getElementById("entry-notes");
+  const videoInput = document.getElementById("entry-video");
+  const gradeSelect = document.getElementById("grade-select");
+  const gradePrev   = document.getElementById("grade-prev");
+  const gradeNext   = document.getElementById("grade-next");
+  const dateInput  = document.getElementById("entry-date");
+  const dateNative = document.getElementById("date-native");
+  const datePickerBtn = document.getElementById("date-picker-btn");
+  const entrySubmitBtn = document.getElementById("entry-submit-btn");
+  const entryDeleteBtn = document.getElementById("entry-delete-btn");
+  const entryMsg      = document.getElementById("entry-msg");
+
+  // ── Admin bar ────────────────────────────────────────────────────────
+  function updateAdminBar() {
+    loginToggleBtn.textContent = isLoggedIn ? "Log out" : "Log in";
+    addBtn.hidden = !isLoggedIn;
+    updateSyncButton();
+  }
+
+  async function checkSession() {
+    try {
+      const res = await fetch(SESSION_URL);
+      const data = await res.json();
+      isLoggedIn = !!data.loggedIn;
+      localStorage.setItem(LOGIN_HINT_KEY, isLoggedIn ? "1" : "0");
+    } catch {
+      // Offline — fall back to the last known login state so the UI
+      // still shows edit affordances; writes still get verified for
+      // real by the session cookie once synced.
+      isLoggedIn = localStorage.getItem(LOGIN_HINT_KEY) === "1";
+    }
+  }
+
+  loginToggleBtn.addEventListener("click", async () => {
+    if (isLoggedIn) {
+      try { await fetch(LOGIN_URL, { method: "DELETE" }); } catch {}
+      isLoggedIn = false;
+      localStorage.setItem(LOGIN_HINT_KEY, "0");
+      render();
+      return;
+    }
+    loginKeyInput.value = "";
+    loginMsg.className = "msg";
+    openModal(loginOverlay);
+    loginKeyInput.focus();
+  });
+  document.getElementById("login-close").addEventListener("click", () => closeModal(loginOverlay));
+  loginOverlay.addEventListener("click", e => { if (e.target === loginOverlay) closeModal(loginOverlay); });
+
+  loginForm.addEventListener("submit", async e => {
+    e.preventDefault();
+    loginSubmitBtn.disabled = true;
+    loginMsg.className = "msg";
+    try {
+      const res = await fetch(LOGIN_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: loginKeyInput.value }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        loginMsg.textContent = data.error ?? "Login failed";
+        loginMsg.className = "msg error";
+      } else {
+        isLoggedIn = true;
+        localStorage.setItem(LOGIN_HINT_KEY, "1");
+        closeModal(loginOverlay);
+        render();
+        syncPending();
+      }
+    } catch (err) {
+      loginMsg.textContent = `Network error: ${err.message}`;
+      loginMsg.className = "msg error";
+    }
+    loginSubmitBtn.disabled = false;
+  });
+
+  syncBtn.addEventListener("click", syncPending);
+  window.addEventListener("online", () => { if (isLoggedIn) syncPending(); });
+
+  // ── Entry form: place/area lookup ───────────────────────────────────
+  function populatePlaces() {
+    const places = [...new Set(ALL_ENTRIES.map(e => e.place))].sort();
+    document.getElementById("entry-places-list").innerHTML =
+      places.map(p => `<option value="${escapeHtml(p)}">`).join("");
+  }
+  function populateAreas(place) {
+    const areas = [...new Set(
+      ALL_ENTRIES.filter(e => (!place || e.place === place) && e.area).map(e => e.area)
+    )].sort();
+    document.getElementById("entry-areas-list").innerHTML =
+      areas.map(a => `<option value="${escapeHtml(a)}">`).join("");
+  }
+  // A known area implies its place — auto-fill Location from Area when
+  // it exactly matches an area we've already logged somewhere.
+  function findPlaceForArea(area) {
+    const match = ALL_ENTRIES.find(e => (e.area || "").toLowerCase() === area.toLowerCase());
+    return match?.place ?? null;
+  }
+  placeInput.addEventListener("input", () => populateAreas(placeInput.value.trim()));
+  areaInput.addEventListener("focus", () => populateAreas(placeInput.value.trim()));
+  areaInput.addEventListener("input", () => {
+    const area = areaInput.value.trim();
+    populateAreas(placeInput.value.trim());
+    if (!placeInput.value.trim() && area) {
+      const place = findPlaceForArea(area);
+      if (place) placeInput.value = place;
+    }
+  });
+
+  // ── Entry form: type toggle ─────────────────────────────────────────
+  let selectedType = "boulder";
+  document.getElementById("type-group").addEventListener("click", e => {
+    const btn = e.target.closest(".toggle-btn");
+    if (!btn) return;
+    selectedType = btn.dataset.value;
+    document.querySelectorAll("#type-group .toggle-btn").forEach(b =>
+      b.classList.toggle("active", b === btn));
+    renderGradeOptions();
+    selectGradeByIndex(0);
+  });
+
+  // ── Entry form: grade picker (dropdown + prev/next) ──────────────────
+  let selectedGrade = "";
+  function currentGrades() {
+    return selectedType === "boulder" ? BOULDER_GRADES : LEAD_GRADES;
+  }
+  function renderGradeOptions() {
+    const boulder = selectedType === "boulder";
+    gradeSelect.innerHTML = currentGrades()
+      .map(({ g, v }) => `<option value="${g}">${boulder ? `${g}/${v}` : g}</option>`)
+      .join("");
+  }
+  function selectGradeByIndex(index) {
+    const grades = currentGrades();
+    const wrapped = ((index % grades.length) + grades.length) % grades.length;
+    const { g, c } = grades[wrapped];
+    selectedGrade = g;
+    gradeSelect.value = g;
+    gradeSelect.style.color = c;
+  }
+  function selectGradeByValue(value, type) {
+    const grades = type === "boulder" ? BOULDER_GRADES : LEAD_GRADES;
+    const idx = grades.findIndex(({ g }) => g.toUpperCase() === String(value).toUpperCase());
+    selectGradeByIndex(idx === -1 ? 0 : idx);
+  }
+  function currentGradeIndex() {
+    const idx = currentGrades().findIndex(({ g }) => g === selectedGrade);
+    return idx === -1 ? 0 : idx;
+  }
+  gradeSelect.addEventListener("change", () => selectGradeByIndex(
+    currentGrades().findIndex(({ g }) => g === gradeSelect.value)
+  ));
+  gradePrev.addEventListener("click", () => selectGradeByIndex(currentGradeIndex() - 1));
+  gradeNext.addEventListener("click", () => selectGradeByIndex(currentGradeIndex() + 1));
+
+  // ── Entry form: status toggle (Flash = status send, flash=true) ─────
+  let selectedStatus = "send";
+  let isFlash = false;
+  document.getElementById("status-group").addEventListener("click", e => {
+    const btn = e.target.closest(".toggle-btn");
+    if (!btn) return;
+    const value = btn.dataset.value;
+    selectedStatus = value === "flash" ? "send" : value;
+    isFlash = value === "flash";
+    document.querySelectorAll("#status-group .toggle-btn").forEach(b =>
+      b.classList.toggle("active", b === btn));
+  });
+  document.querySelectorAll(".form-status-icon[data-icon]").forEach(el => {
+    el.innerHTML = STATUS_ICONS[el.dataset.icon];
+  });
+
+  function setStatusToggle(status, flash) {
+    const value = flash ? "flash" : status;
+    document.querySelectorAll("#status-group .toggle-btn").forEach(b =>
+      b.classList.toggle("active", b.dataset.value === value));
+    selectedStatus = status;
+    isFlash = flash;
+  }
+  function setTypeToggle(type) {
+    selectedType = type;
+    document.querySelectorAll("#type-group .toggle-btn").forEach(b =>
+      b.classList.toggle("active", b.dataset.value === type));
+    renderGradeOptions();
+  }
+
+  // ── Entry form: date picker ──────────────────────────────────────────
+  datePickerBtn.addEventListener("click", () => {
+    const current = dateInput.value.trim();
+    dateNative.value = /^\d{4}-\d{2}-\d{2}$/.test(current)
+      ? current
+      : /^\d{4}-\d{2}$/.test(current)
+        ? `${current}-01`
+        : new Date().toISOString().slice(0, 10);
+    if (dateNative.showPicker) dateNative.showPicker();
+    else dateNative.focus();
+  });
+  dateNative.addEventListener("change", () => {
+    if (dateNative.value) dateInput.value = dateNative.value;
+  });
+
+  // ── Modal helpers: focus trap + Escape-to-close ──────────────────────
+  let lastFocusedEl = null;
+  function focusableEls(overlay) {
+    return [...overlay.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+      .filter(el => !el.disabled && el.offsetParent !== null);
+  }
+  function openModal(overlay) {
+    lastFocusedEl = document.activeElement;
+    overlay.hidden = false;
+    overlay.scrollTop = 0;
+  }
+  function closeModal(overlay) {
+    overlay.hidden = true;
+    if (lastFocusedEl) lastFocusedEl.focus();
+  }
+  document.addEventListener("keydown", e => {
+    const openOverlay = [entryOverlay, loginOverlay].find(o => !o.hidden);
+    if (!openOverlay) return;
+
+    if (e.key === "Escape") {
+      closeModal(openOverlay);
+      return;
+    }
+
+    if (e.key === "Tab") {
+      const focusable = focusableEls(openOverlay);
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  });
+
+  // ── Entry modal: open/close ──────────────────────────────────────────
+  function openEntryModal(entry) {
+    editingId = entry?.id ?? null;
+    entryModalTitle.textContent = editingId ? "Edit entry" : "Add entry";
+    entrySubmitBtn.textContent = editingId ? "Save changes" : "Add to logbook";
+    entryDeleteBtn.hidden = !editingId;
+    entryMsg.className = "msg";
+
+    nameInput.value  = entry?.name  ?? "";
+    placeInput.value = entry?.place ?? "";
+    areaInput.value  = entry?.area  ?? "";
+    notesInput.value = entry?.notes ?? "";
+    videoInput.value = entry?.video ?? "";
+    dateInput.value  = entry?.date  ?? new Date().toISOString().slice(0, 10);
+
+    setTypeToggle(entry?.type ?? "boulder");
+    if (entry) selectGradeByValue(entry.grade, entry.type);
+    else selectGradeByIndex(0);
+    setStatusToggle(entry?.status ?? "send", Boolean(entry?.flash));
+
+    populatePlaces();
+    populateAreas(placeInput.value.trim());
+
+    openModal(entryOverlay);
+    nameInput.focus();
+  }
+  addBtn.addEventListener("click", () => openEntryModal(null));
+  document.getElementById("entry-close").addEventListener("click", () => closeModal(entryOverlay));
+  entryOverlay.addEventListener("click", e => { if (e.target === entryOverlay) closeModal(entryOverlay); });
+
+  document.addEventListener("click", e => {
+    const editBtn = e.target.closest(".edit-btn");
+    if (!editBtn) return;
+    const entry = ALL_ENTRIES.find(x => x.id === editBtn.dataset.editId);
+    if (entry) openEntryModal(entry);
+  });
+
+  // ── Entry form: submit (online → API, offline → queue) ──────────────
+  entryForm.addEventListener("submit", async e => {
+    e.preventDefault();
+    entrySubmitBtn.disabled = true;
+    entryMsg.className = "msg";
+
+    const place = placeInput.value.trim();
+    const name  = nameInput.value.trim();
+    const entry = {
+      id:     editingId ?? crypto.randomUUID(),
+      place,
+      area:   areaInput.value.trim(),
+      name,
+      grade:  selectedGrade,
+      type:   selectedType,
+      status: selectedStatus,
+      flash:  isFlash,
+      date:   dateInput.value.trim() || null,
+      notes:  notesInput.value.trim() || null,
+      video:  videoInput.value.trim() || null,
+    };
+    const op = editingId ? "edit" : "add";
+
+    try {
+      const res = await fetch(DATA_URL, {
+        method: editingId ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(entry),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        entryMsg.textContent = data.error ?? `Error ${res.status}`;
+        entryMsg.className = "msg error";
+        entrySubmitBtn.disabled = false;
+        return;
+      }
+      ALL_ENTRIES = data.entries;
+      localStorage.setItem(ENTRIES_CACHE_KEY, JSON.stringify(ALL_ENTRIES));
+      applyPendingToEntries();
+      closeModal(entryOverlay);
+      render();
+    } catch (err) {
+      // Offline (or server unreachable) — queue for later sync, and
+      // reflect the change locally so it shows up right away.
+      const queue = getQueue();
+      const existingIdx = queue.findIndex(item => item.entry.id === entry.id);
+      if (existingIdx !== -1) queue[existingIdx] = { op: queue[existingIdx].op, entry };
+      else queue.push({ op, entry });
+      setQueue(queue);
+      applyPendingToEntries();
+      closeModal(entryOverlay);
+      render();
+    }
+
+    entrySubmitBtn.disabled = false;
+  });
+
+  // ── Entry form: delete (online → API, offline → queue) ───────────────
+  entryDeleteBtn.addEventListener("click", async () => {
+    if (!editingId) return;
+    if (!confirm(`Delete "${nameInput.value.trim()}"? This can't be undone.`)) return;
+
+    entryDeleteBtn.disabled = true;
+    entryMsg.className = "msg";
+    const id = editingId;
+
+    // If this entry only ever existed as a queued, unsynced "add", there's
+    // nothing on the server to delete — just drop it from the queue.
+    const queuedAdd = getQueue().find(item => item.entry.id === id && item.op === "add");
+    if (queuedAdd) {
+      setQueue(getQueue().filter(item => item.entry.id !== id));
+      ALL_ENTRIES = ALL_ENTRIES.filter(e => e.id !== id);
+      closeModal(entryOverlay);
+      entryDeleteBtn.disabled = false;
+      render();
+      return;
+    }
+
+    try {
+      const res = await fetch(`${DATA_URL}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        entryMsg.textContent = data.error ?? `Error ${res.status}`;
+        entryMsg.className = "msg error";
+        entryDeleteBtn.disabled = false;
+        return;
+      }
+      ALL_ENTRIES = data.entries;
+      localStorage.setItem(ENTRIES_CACHE_KEY, JSON.stringify(ALL_ENTRIES));
+      applyPendingToEntries();
+      closeModal(entryOverlay);
+      render();
+    } catch (err) {
+      // Offline (or server unreachable) — queue for later sync, and
+      // remove it locally so it disappears from the list right away.
+      const queue = getQueue().filter(item => item.entry.id !== id);
+      queue.push({ op: "delete", entry: { id } });
+      setQueue(queue);
+      ALL_ENTRIES = ALL_ENTRIES.filter(e => e.id !== id);
+      closeModal(entryOverlay);
+      render();
+    }
+
+    entryDeleteBtn.disabled = false;
+  });
+
+  // ── Event delegation (list controls) ─────────────────────────────────
+  document.addEventListener("click", e => {
+    // Filter popover toggle
+    if (e.target.closest("#filter-btn")) {
+      const willOpen = filterPanel.hidden;
+      filterPanel.hidden = !willOpen;
+      filterBtn.setAttribute("aria-expanded", String(willOpen));
+      return;
+    }
+
+    // Click away closes the filter popover
+    if (!filterPanel.hidden && !e.target.closest(".filter-wrap")) {
+      filterPanel.hidden = true;
+      filterBtn.setAttribute("aria-expanded", "false");
+    }
+
+    // Clear filters
+    if (e.target.closest("#filter-clear-btn")) {
+      state.statusFilters.clear();
+      state.typeFilter = "all";
+      render();
+      return;
+    }
+
+    // Collapse/expand all place sections
+    if (e.target.closest("#collapse-all-btn")) {
+      const places = groupByPlace(filteredEntries()).map(([place]) => place);
+      const allCollapsed = places.length > 0 && places.every(p => state.collapsed.has(p));
+      if (allCollapsed) places.forEach(p => state.collapsed.delete(p));
+      else places.forEach(p => state.collapsed.add(p));
+      render();
+      return;
+    }
+
+    // Status filter (multi-select)
+    const statusFilterBtn = e.target.closest("#filter-status-group .toggle-btn");
+    if (statusFilterBtn) {
+      const filter = statusFilterBtn.dataset.filter;
+      if (state.statusFilters.has(filter)) state.statusFilters.delete(filter);
+      else state.statusFilters.add(filter);
+      render();
+      return;
+    }
+
+    // Type toggle (filter, not entry form)
+    const typeBtn = e.target.closest("#type-toggle .type-btn");
+    if (typeBtn) {
+      state.typeFilter = typeBtn.dataset.type;
+      render();
+      return;
+    }
+
+    // Sort header
+    const sortTh = e.target.closest("th[data-sort]");
+    if (sortTh) {
+      toggleSort(sortTh);
+      return;
+    }
+
+    // Collapse toggle
+    const header = e.target.closest(".place-header");
+    if (header) {
+      toggleCollapse(header);
+      return;
+    }
+  });
+
+  document.addEventListener("keydown", e => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+
+    const sortTh = e.target.closest?.("th[data-sort]");
+    if (sortTh) {
+      e.preventDefault();
+      toggleSort(sortTh);
+      return;
+    }
+
+    const header = e.target.closest?.(".place-header");
+    if (header) {
+      e.preventDefault();
+      toggleCollapse(header);
+    }
+  });
+
+  function toggleSort(sortTh) {
+    const place = sortTh.dataset.place;
+    const col   = sortTh.dataset.sort;
+    const cur   = getSort(place);
+    const dir   = cur.col === col && cur.dir === "asc" ? "desc" : "asc";
+    state.sortByPlace[place] = { col, dir };
+    render();
+  }
+
+  function toggleCollapse(header) {
+    const place = header.dataset.place;
+    if (state.collapsed.has(place)) state.collapsed.delete(place);
+    else state.collapsed.add(place);
+    render();
+  }
+
+  document.getElementById("search").addEventListener("input", e => {
+    state.search = e.target.value;
+    render();
+  });
+
+  // ── PWA: service worker ──────────────────────────────────────────────
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
+  }
+
+  // ── Boot ─────────────────────────────────────────────────────────────
+  async function boot() {
+    renderGradeOptions();
+    selectGradeByIndex(0);
+
+    const sessionPromise = checkSession();
+
+    // Load data (fall back to last-cached entries when offline)
+    try {
+      const res = await fetch(DATA_URL);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      ALL_ENTRIES = data.entries ?? [];
+      localStorage.setItem(ENTRIES_CACHE_KEY, JSON.stringify(ALL_ENTRIES));
+    } catch (err) {
+      const cached = localStorage.getItem(ENTRIES_CACHE_KEY);
+      if (cached) {
+        try { ALL_ENTRIES = JSON.parse(cached); } catch { ALL_ENTRIES = []; }
+      } else {
+        document.getElementById("loading").innerHTML =
+          `<div class="error-box"><strong>Failed to load logbook data</strong><br>${escapeHtml(err.message)}</div>`;
+        return;
+      }
+    }
+    applyPendingToEntries();
+
+    await sessionPromise;
+
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("app").style.display = "";
+    render();
+  }
+
+  boot();
+</script>
+</body>
+</html>

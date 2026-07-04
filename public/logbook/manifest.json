@@ -1,0 +1,13 @@
+{
+  "name": "Climbing Logbook",
+  "short_name": "Logbook",
+  "description": "Nix's climbing logbook — add, edit, and browse sends offline.",
+  "start_url": "/logbook/",
+  "scope": "/logbook/",
+  "display": "standalone",
+  "background_color": "#0f0f0f",
+  "theme_color": "#ff2727",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
