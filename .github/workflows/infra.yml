@@ -6,6 +6,7 @@ on:
   push:
     branches: [main]
     paths: ["infra/**"]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -37,11 +38,11 @@ jobs:
         run: terraform plan -no-color
 
       - name: Apply (main only)
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: terraform apply -auto-approve -no-color
 
       - name: Sync wrangler.jsonc KV namespace id
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         working-directory: .
         run: |
           KV_ID=$(cd infra && terraform output -raw kv_namespace_id)
@@ -62,7 +63,7 @@ jobs:
           "
 
       - name: Commit generated files if changed
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         working-directory: .
         run: |
           git config user.name "github-actions[bot]"
