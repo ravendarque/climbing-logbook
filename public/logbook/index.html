@@ -379,18 +379,6 @@
     }
     #entry-form textarea:focus { border-color: var(--color-accent); }
 
-    #login-key {
-      width: 100%; box-sizing: border-box;
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--r);
-      padding: .65rem .85rem;
-      color: var(--color-text);
-      font-size: 1rem;
-      outline: none;
-    }
-    #login-key:focus { border-color: var(--color-accent); }
-
     /* ── Segmented toggle bar (type, status) ────────────────────────────── */
     .toggle-bar {
       display: flex; flex-wrap: wrap;
@@ -617,23 +605,6 @@
   </div>
 </div>
 
-<!-- ══ Login modal ═══════════════════════════════════════════════════ -->
-<div class="modal-overlay" id="login-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
-  <div class="modal-panel modal-panel-sm">
-    <div class="modal-header">
-      <h2 id="login-modal-title">Log in</h2>
-      <button type="button" class="modal-close" id="login-close" aria-label="Close">✕</button>
-    </div>
-    <form id="login-form" autocomplete="off">
-      <div class="field">
-        <input type="password" id="login-key" placeholder="Admin key" autocomplete="current-password">
-      </div>
-      <button type="submit" class="submit-btn" id="login-submit">Log in</button>
-      <div class="msg" id="login-msg"></div>
-    </form>
-  </div>
-</div>
-
 <!-- ══ Add / edit entry modal ════════════════════════════════════════ -->
 <div class="modal-overlay" id="entry-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="entry-modal-title">
   <div class="modal-panel">
@@ -737,8 +708,10 @@
 
   // ── Config ───────────────────────────────────────────────────────────
   const DATA_URL = "/logbook/api/logbook";
-  const LOGIN_URL = "/logbook/api/login";
-  const SESSION_URL = "/logbook/api/session";
+  const ADMIN_DATA_URL = "/logbook/api/admin/logbook";
+  const ADMIN_SESSION_URL = "/logbook/api/admin/session";
+  const ADMIN_LOGIN_URL = "/logbook/api/admin/login";
+  const ACCESS_LOGOUT_URL = "https://ravendarque.com/cdn-cgi/access/logout";
   const ENTRIES_CACHE_KEY = "logbook_entries_cache";
   const LOGIN_HINT_KEY    = "logbook_logged_in_hint";
   const QUEUE_KEY         = "logbook_pending_queue";
@@ -908,8 +881,8 @@
     for (const item of queue) {
       try {
         const res = item.op === "delete"
-          ? await fetch(`${DATA_URL}?id=${encodeURIComponent(item.entry.id)}`, { method: "DELETE" })
-          : await fetch(DATA_URL, {
+          ? await fetch(`${ADMIN_DATA_URL}?id=${encodeURIComponent(item.entry.id)}`, { method: "DELETE" })
+          : await fetch(ADMIN_DATA_URL, {
               method: item.op === "edit" ? "PUT" : "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(item.entry),
@@ -1104,12 +1077,6 @@
   const filterClearBtn = document.getElementById("filter-clear-btn");
   const collapseAllBtn = document.getElementById("collapse-all-btn");
 
-  const loginOverlay = document.getElementById("login-overlay");
-  const loginForm     = document.getElementById("login-form");
-  const loginKeyInput = document.getElementById("login-key");
-  const loginMsg       = document.getElementById("login-msg");
-  const loginSubmitBtn = document.getElementById("login-submit");
-
   const entryOverlay   = document.getElementById("entry-overlay");
   const entryForm      = document.getElementById("entry-form");
   const entryModalTitle= document.getElementById("entry-modal-title");
@@ -1135,62 +1102,42 @@
     updateSyncButton();
   }
 
+  // Cloudflare Access gates /logbook/api/admin/* at Cloudflare's edge, so
+  // "logged in" just means "the session fetch below wasn't intercepted by
+  // Access's own hosted login page." A genuine network failure (offline)
+  // is distinguished from "not authenticated" so the offline-queue hint
+  // doesn't get mistaken for a real session.
   async function checkSession() {
+    let res;
     try {
-      const res = await fetch(SESSION_URL);
-      const data = await res.json();
-      isLoggedIn = !!data.loggedIn;
-      localStorage.setItem(LOGIN_HINT_KEY, isLoggedIn ? "1" : "0");
+      res = await fetch(ADMIN_SESSION_URL);
     } catch {
       // Offline — fall back to the last known login state so the UI
       // still shows edit affordances; writes still get verified for
-      // real by the session cookie once synced.
+      // real by Access once synced.
       isLoggedIn = localStorage.getItem(LOGIN_HINT_KEY) === "1";
-    }
-  }
-
-  loginToggleBtn.addEventListener("click", async () => {
-    if (isLoggedIn) {
-      try { await fetch(LOGIN_URL, { method: "DELETE" }); } catch {}
-      isLoggedIn = false;
-      localStorage.setItem(LOGIN_HINT_KEY, "0");
-      render();
       return;
     }
-    loginKeyInput.value = "";
-    loginMsg.className = "msg";
-    openModal(loginOverlay);
-    loginKeyInput.focus();
-  });
-  document.getElementById("login-close").addEventListener("click", () => closeModal(loginOverlay));
-  loginOverlay.addEventListener("click", e => { if (e.target === loginOverlay) closeModal(loginOverlay); });
-
-  loginForm.addEventListener("submit", async e => {
-    e.preventDefault();
-    loginSubmitBtn.disabled = true;
-    loginMsg.className = "msg";
     try {
-      const res = await fetch(LOGIN_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: loginKeyInput.value }),
-      });
       const data = await res.json();
-      if (!res.ok) {
-        loginMsg.textContent = data.error ?? "Login failed";
-        loginMsg.className = "msg error";
-      } else {
-        isLoggedIn = true;
-        localStorage.setItem(LOGIN_HINT_KEY, "1");
-        closeModal(loginOverlay);
-        render();
-        syncPending();
-      }
-    } catch (err) {
-      loginMsg.textContent = `Network error: ${err.message}`;
-      loginMsg.className = "msg error";
+      isLoggedIn = res.ok && !!data.loggedIn;
+    } catch {
+      // Access intercepted with its own hosted login page (non-JSON) —
+      // not logged in.
+      isLoggedIn = false;
     }
-    loginSubmitBtn.disabled = false;
+    localStorage.setItem(LOGIN_HINT_KEY, isLoggedIn ? "1" : "0");
+  }
+
+  loginToggleBtn.addEventListener("click", () => {
+    if (isLoggedIn) {
+      window.location.href = ACCESS_LOGOUT_URL;
+    } else {
+      // Full-page navigation (not fetch) so Cloudflare Access's hosted
+      // login redirect can actually complete; it bounces back to the app
+      // once you're authenticated.
+      window.location.href = ADMIN_LOGIN_URL;
+    }
   });
 
   syncBtn.addEventListener("click", syncPending);
@@ -1333,7 +1280,7 @@
     if (lastFocusedEl) lastFocusedEl.focus();
   }
   document.addEventListener("keydown", e => {
-    const openOverlay = [entryOverlay, loginOverlay].find(o => !o.hidden);
+    const openOverlay = [entryOverlay].find(o => !o.hidden);
     if (!openOverlay) return;
 
     if (e.key === "Escape") {
@@ -1417,7 +1364,7 @@
     const op = editingId ? "edit" : "add";
 
     try {
-      const res = await fetch(DATA_URL, {
+      const res = await fetch(ADMIN_DATA_URL, {
         method: editingId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(entry),
@@ -1472,7 +1419,7 @@
     }
 
     try {
-      const res = await fetch(`${DATA_URL}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      const res = await fetch(`${ADMIN_DATA_URL}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) {
         entryMsg.textContent = data.error ?? `Error ${res.status}`;
