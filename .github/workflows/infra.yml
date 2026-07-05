@@ -1,0 +1,77 @@
+name: Infra
+
+on:
+  pull_request:
+    paths: ["infra/**"]
+  push:
+    branches: [main]
+    paths: ["infra/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      TF_VAR_cloudflare_account_id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      TF_VAR_admin_email: ${{ secrets.ADMIN_EMAIL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.9"
+
+      - run: terraform init
+
+      - name: Plan (PRs only)
+        if: github.event_name == 'pull_request'
+        run: terraform plan -no-color
+
+      - name: Apply (main only)
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        run: terraform apply -auto-approve -no-color
+
+      - name: Sync wrangler.jsonc KV namespace id
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        working-directory: .
+        run: |
+          KV_ID=$(cd infra && terraform output -raw kv_namespace_id)
+          node -e "
+            const fs = require('node:fs');
+            const path = 'wrangler.jsonc';
+            const current = fs.readFileSync(path, 'utf8');
+            const updated = current.replace(
+              /(\"binding\":\s*\"LOGBOOK_KV\",\s*\"id\":\s*\")[^\"]*(\")/,
+              \`\$1${KV_ID}\$2\`
+            );
+            if (updated !== current) {
+              fs.writeFileSync(path, updated);
+              console.log('wrangler.jsonc updated with KV id ' + '${KV_ID}');
+            } else {
+              console.log('wrangler.jsonc already up to date');
+            }
+          "
+
+      - name: Commit generated files if changed
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        working-directory: .
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add wrangler.jsonc infra/.terraform.lock.hcl
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: sync generated infra config [skip ci]"
+            git push
+          else
+            echo "Nothing to commit."
+          fi

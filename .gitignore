@@ -4,3 +4,10 @@ node_modules/
 .env
 .claude/
 .wrangler-dev.log
+
+# Terraform
+infra/.terraform/
+infra/terraform.tfvars
+infra/*.tfplan
+infra/*.tfstate
+infra/*.tfstate.*

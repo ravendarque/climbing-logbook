@@ -1,0 +1,6 @@
+# Copy to terraform.tfvars for local runs (gitignored — never commit the
+# real values). In CI, these are supplied as -var flags from repo secrets
+# instead of a committed tfvars file.
+
+cloudflare_account_id = "4f63d74beb21402b8622361525ab4868"
+admin_email            = "you@example.com"

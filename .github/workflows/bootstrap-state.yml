@@ -1,0 +1,20 @@
+name: Bootstrap Terraform state bucket
+
+# Manual only — this creates the R2 bucket that Terraform's remote state
+# lives in. Never runs automatically. Safe to re-run any time, including
+# full disaster recovery: it's a no-op if the bucket already exists.
+on:
+  workflow_dispatch:
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/bootstrap-state.mjs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
