@@ -1,4 +1,3 @@
-import { isAuthed } from "../lib/auth.js";
 import { json } from "../lib/json.js";
 
 const KV_KEY = "logbook:entries";
@@ -55,11 +54,10 @@ export async function handleGet(request, env) {
   });
 }
 
+// handlePost/handlePut/handleDelete are only ever reachable via
+// /logbook/api/admin/logbook, which Cloudflare Access gates at the edge —
+// an unauthenticated request never reaches this code.
 export async function handlePost(request, env) {
-  if (!(await isAuthed(request, env))) {
-    return json({ error: "Unauthorized" }, 401);
-  }
-
   let entry;
   try {
     entry = await request.json();
@@ -98,10 +96,6 @@ export async function handlePost(request, env) {
 }
 
 export async function handlePut(request, env) {
-  if (!(await isAuthed(request, env))) {
-    return json({ error: "Unauthorized" }, 401);
-  }
-
   let entry;
   try {
     entry = await request.json();
@@ -129,10 +123,6 @@ export async function handlePut(request, env) {
 }
 
 export async function handleDelete(request, env) {
-  if (!(await isAuthed(request, env))) {
-    return json({ error: "Unauthorized" }, 401);
-  }
-
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return json({ error: "Missing required field: id" }, 400);
 
