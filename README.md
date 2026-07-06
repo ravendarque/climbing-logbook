@@ -47,5 +47,7 @@ anything there, since ordering matters (state bucket → apply → deploy).
 - [`docs/climbing-analytics-research.md`](docs/climbing-analytics-research.md) —
   sourced research grounding a future reporting/insights feature (grade
   pyramid methodology, schema recommendations)
+- [`docs/versioning.md`](docs/versioning.md) — what counts as a version
+  bump, and how to cut a release
 - [`infra/README.md`](infra/README.md) — one-time setup steps for
   provisioning this project's infrastructure from scratch
