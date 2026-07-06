@@ -49,18 +49,29 @@ will hit.
 
 ## Cutting a release
 
-Manually triggered — releases are deliberate, not automatic on every merge
-(this project doesn't use a commit-message convention like Conventional
-Commits that would make automatic bump-detection reliable, and given how
-infrequently a real behavior change lands, a human deciding "yes, this is a
-minor" is simpler and more accurate than parsing commit messages for it).
+Automatic on merge, driven by a label — not a separate step to remember
+after the fact. This project doesn't use a commit-message convention like
+Conventional Commits (auto-detecting bump type from commit messages isn't
+reliable without one), so the bump type is instead decided once, at review
+time, by applying one of three labels to the PR:
 
-1. Actions tab → "Release" workflow → Run workflow.
-2. Choose the bump type (`patch`/`minor`/`major`) based on the criteria
-   above.
-3. The workflow bumps `package.json`, commits it to `main`, creates and
-   pushes the `vX.Y.Z` tag, and creates a GitHub Release with
-   auto-generated notes.
+- `release: major`
+- `release: minor`
+- `release: patch`
+
+**No release label → no release.** A PR with none of these three labels
+just merges normally with no version bump — this is how docs-only/
+infra-only/refactor changes ride along without triggering anything. Apply
+the label based on the criteria above before merging.
+
+When a labelled PR merges, `.github/workflows/release.yml` reads the label,
+calculates the new version with the `semver` package, bumps `package.json`,
+commits it to `main`, creates and pushes the `vX.Y.Z` tag, and creates a
+GitHub Release with auto-generated notes — no manual step required.
+
+`workflow_dispatch` (Actions tab → "Release" → Run workflow) still exists
+as a manual override, for a corrective release or anything unusual that
+doesn't fit the normal PR-merge flow.
 
 ## This project's version history bootstrap
 

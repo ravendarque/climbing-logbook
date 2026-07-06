@@ -9,9 +9,14 @@
     "deploy": "wrangler deploy"
   },
   "devDependencies": {
+    "semver": "^7.8.5",
     "wrangler": "^4.107.0"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "sharp", "workerd"]
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "workerd"
+    ]
   }
 }
