@@ -56,6 +56,29 @@
 
     .header-controls { display: flex; align-items: center; gap: .5rem; }
 
+    .switch {
+      display: inline-flex; align-items: center; gap: .5rem;
+      background: none; border: none; padding: 0; cursor: pointer;
+      font-size: .82rem; font-weight: 600; color: var(--color-text);
+    }
+    .switch-track {
+      position: relative; flex: 0 0 auto;
+      width: 2.25rem; height: 1.25rem;
+      background: var(--color-border);
+      border-radius: 999px;
+      transition: background .15s ease;
+    }
+    .switch[aria-checked="true"] .switch-track { background: var(--color-accent); }
+    .switch-thumb {
+      position: absolute; top: .15rem; left: .15rem;
+      width: .95rem; height: .95rem;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform .15s ease;
+    }
+    .switch[aria-checked="true"] .switch-thumb { transform: translateX(1rem); }
+    .switch:disabled { opacity: .6; cursor: not-allowed; }
+
     /* ── Admin bar ───────────────────────────────────────────────── */
     .admin-bar { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.25rem; }
     .admin-btn {
@@ -548,7 +571,10 @@
     <div class="page-header">
       <a href="https://ravendarque.com/" class="back-link">← Back</a>
       <div class="header-controls">
-        <button type="button" class="admin-btn" id="athlete-mode-btn" aria-pressed="false" hidden>Athlete Mode: Off</button>
+        <button type="button" class="switch" id="athlete-mode-btn" role="switch" aria-checked="false" hidden>
+          <span class="switch-label">Athlete Mode</span>
+          <span class="switch-track"><span class="switch-thumb"></span></span>
+        </button>
         <button type="button" class="admin-btn" id="login-toggle-btn">Log in</button>
       </div>
     </div>
@@ -1114,8 +1140,7 @@
     loginToggleBtn.textContent = isLoggedIn ? "Log out" : "Log in";
     addBtn.hidden = !isLoggedIn;
     athleteModeBtn.hidden = !isLoggedIn;
-    athleteModeBtn.textContent = `Athlete Mode: ${athleteMode ? "On" : "Off"}`;
-    athleteModeBtn.setAttribute("aria-pressed", String(athleteMode));
+    athleteModeBtn.setAttribute("aria-checked", String(athleteMode));
     updateSyncButton();
   }
 
