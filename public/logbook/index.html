@@ -597,7 +597,7 @@
     </div>
 
     <div class="list-toolbar">
-      <button type="button" class="collapse-all-btn" id="collapse-all-btn">Collapse all</button>
+      <button type="button" class="collapse-all-btn" id="collapse-all-btn">Expand all</button>
     </div>
 
     <div id="sections"></div>
@@ -1582,6 +1582,11 @@
       }
     }
     applyPendingToEntries();
+
+    // Sections default to collapsed on first load.
+    for (const place of new Set(ALL_ENTRIES.map(e => e.place))) {
+      state.collapsed.add(place);
+    }
 
     await sessionPromise;
 
