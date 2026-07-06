@@ -1,4 +1,5 @@
 import { handleGet, handlePost, handlePut, handleDelete } from "./api/logbook.js";
+import { handleGetSettings, handlePutSettings } from "./api/settings.js";
 import { handleAdminSession } from "./api/admin-session.js";
 import { handleAdminLogin } from "./api/admin-login.js";
 
@@ -23,6 +24,14 @@ export default {
       if (method === "POST")   return handlePost(request, env);
       if (method === "PUT")    return handlePut(request, env);
       if (method === "DELETE") return handleDelete(request, env);
+    }
+
+    if (pathname === "/logbook/api/settings" && method === "GET") {
+      return handleGetSettings(request, env);
+    }
+
+    if (pathname === "/logbook/api/admin/settings" && method === "PUT") {
+      return handlePutSettings(request, env);
     }
 
     if (pathname === "/logbook/api/admin/session" && method === "GET") {
