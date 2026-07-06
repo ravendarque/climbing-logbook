@@ -134,7 +134,7 @@ rebuild (the id doesn't otherwise change), and `deploy.yml` has
 This one token also covers my-limn's Pages project, since both live on the
 same account/zone.
 
-Account-scoped (Nix@ravendarque.com's Account):
+Account-scoped (the Cloudflare account above):
 - Workers Scripts: Edit
 - Workers KV Storage: Edit
 - Workers R2 Storage: Edit
