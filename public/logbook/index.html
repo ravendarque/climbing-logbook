@@ -197,6 +197,7 @@
       padding: .15rem .45rem; border-radius: calc(var(--r) * .5);
     }
     .place-name { font-weight: 600; font-size: 1rem; flex: 1; }
+    .place-count { color: var(--color-text-muted); font-size: .8rem; white-space: nowrap; }
     .place-meta { color: var(--color-text-muted); font-size: .8rem; display: flex; gap: .75rem; }
     .place-chevron { color: var(--color-text-muted); font-size: .8rem; transition: transform .2s; }
     .place-section.collapsed .place-chevron { transform: rotate(-90deg); }
@@ -1013,7 +1014,10 @@
         <div class="place-section${isCollapsed ? " collapsed" : ""}" data-place="${escapeHtml(place)}">
           <div class="place-header" data-place="${escapeHtml(place)}" role="button" tabindex="0" aria-expanded="${!isCollapsed}">
             <span class="place-name">${escapeHtml(place)}</span>
-            ${PLACE_COUNTRY[place] ? `<span style="color:var(--color-text-muted);font-size:.82rem">${escapeHtml(PLACE_COUNTRY[place])}</span>` : ""}
+            <span class="place-count">${sorted.length} ${sorted.length === 1 ? "entry" : "entries"}</span>
+            <span class="place-meta">
+              ${PLACE_COUNTRY[place] ? `<span>${escapeHtml(PLACE_COUNTRY[place])}</span>` : ""}
+            </span>
             <span class="place-chevron">▾</span>
           </div>
           <div class="place-body">
