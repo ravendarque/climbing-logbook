@@ -37,6 +37,8 @@ sees requests that *don't* match a static file — in practice, exactly the
 |---|---|---|---|
 | `/logbook/api/logbook` | GET | public | `handleGet` |
 | `/logbook/api/admin/logbook` | POST/PUT/DELETE | Access-gated | `handlePost`/`handlePut`/`handleDelete` |
+| `/logbook/api/settings` | GET | public | `handleGetSettings` |
+| `/logbook/api/admin/settings` | PUT | Access-gated | `handlePutSettings` |
 | `/logbook/api/admin/session` | GET | Access-gated | `handleAdminSession` |
 | `/logbook/api/admin/login` | GET | Access-gated | `handleAdminLogin` (redirect) |
 
@@ -73,6 +75,15 @@ climber's logbook is nowhere near KV's per-value size limit, and a single
 `get`/`put` avoids pagination or multi-key consistency concerns entirely.
 Revisit if this ever needs to support many concurrent writers or a much
 larger dataset — not preemptively.
+
+A second KV key, `logbook:settings`, holds a small settings blob separate
+from the entries data: `{ athleteMode: boolean }`, defaulting to `{
+athleteMode: false }` when the key is absent (so existing behavior is
+unchanged until an admin explicitly opts in). It follows the same
+public-read/admin-write split as the entries API, gated the same way.
+Toggling it off hides (not deletes) the coaching-mode UI it will
+eventually gate — the underlying data, once other fields land, is
+unaffected by the toggle.
 
 **ID generation:** the client mints the ID (`crypto.randomUUID()`), not the
 server. This matters for the offline-queue design below — a queued write's

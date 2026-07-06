@@ -54,6 +54,8 @@
     h1 { font-size: 2rem; font-weight: 700; color: var(--color-accent); margin-bottom: .2rem; }
     .subtitle { color: var(--color-text-muted); font-size: .9rem; margin-bottom: 1rem; }
 
+    .header-controls { display: flex; align-items: center; gap: .5rem; }
+
     /* ── Admin bar ───────────────────────────────────────────────── */
     .admin-bar { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.25rem; }
     .admin-btn {
@@ -545,7 +547,10 @@
 
     <div class="page-header">
       <a href="https://ravendarque.com/" class="back-link">← Back</a>
-      <button type="button" class="admin-btn" id="login-toggle-btn">Log in</button>
+      <div class="header-controls">
+        <button type="button" class="admin-btn" id="athlete-mode-btn" aria-pressed="false" hidden>Athlete Mode: Off</button>
+        <button type="button" class="admin-btn" id="login-toggle-btn">Log in</button>
+      </div>
     </div>
     <h1>Climbing Logbook</h1>
     <p class="subtitle" id="subtitle"></p>
@@ -713,6 +718,8 @@
   const ADMIN_DATA_URL = "/logbook/api/admin/logbook";
   const ADMIN_SESSION_URL = "/logbook/api/admin/session";
   const ADMIN_LOGIN_URL = "/logbook/api/admin/login";
+  const SETTINGS_URL = "/logbook/api/settings";
+  const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
   const ACCESS_LOGOUT_URL = "https://ravendarque.com/cdn-cgi/access/logout";
   const ENTRIES_CACHE_KEY = "logbook_entries_cache";
   const LOGIN_HINT_KEY    = "logbook_logged_in_hint";
@@ -842,6 +849,7 @@
 
   let ALL_ENTRIES  = [];
   let isLoggedIn   = false;
+  let athleteMode  = false;
   let editingId    = null; // null = add mode
 
   // ── Offline queue ──────────────────────────────────────────────────
@@ -1074,6 +1082,7 @@
 
   // ── DOM refs ─────────────────────────────────────────────────────────
   const loginToggleBtn = document.getElementById("login-toggle-btn");
+  const athleteModeBtn = document.getElementById("athlete-mode-btn");
   const addBtn      = document.getElementById("add-btn");
   const syncBtn     = document.getElementById("sync-btn");
   const syncBtnLabel = document.getElementById("sync-btn-label");
@@ -1104,8 +1113,44 @@
   function updateAdminBar() {
     loginToggleBtn.textContent = isLoggedIn ? "Log out" : "Log in";
     addBtn.hidden = !isLoggedIn;
+    athleteModeBtn.hidden = !isLoggedIn;
+    athleteModeBtn.textContent = `Athlete Mode: ${athleteMode ? "On" : "Off"}`;
+    athleteModeBtn.setAttribute("aria-pressed", String(athleteMode));
     updateSyncButton();
   }
+
+  // Public visitors always see the effective setting (Off by default,
+  // absent KV key); only the logged-in admin sees a control to change it.
+  async function fetchAthleteMode() {
+    try {
+      const res = await fetch(SETTINGS_URL);
+      const data = await res.json();
+      athleteMode = res.ok && !!data.athleteMode;
+    } catch {
+      // Offline — keep the last-known in-memory default (false) rather
+      // than guessing; the toggle itself is only interactive when logged
+      // in, so a stale value here can't be acted on incorrectly.
+    }
+  }
+
+  athleteModeBtn.addEventListener("click", async () => {
+    const next = !athleteMode;
+    athleteModeBtn.disabled = true;
+    try {
+      const res = await fetch(ADMIN_SETTINGS_URL, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ athleteMode: next }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        athleteMode = !!data.athleteMode;
+      }
+    } finally {
+      athleteModeBtn.disabled = false;
+      updateAdminBar();
+    }
+  });
 
   // Cloudflare Access gates /logbook/api/admin/* at Cloudflare's edge, so
   // "logged in" just means "the session fetch below wasn't intercepted by
@@ -1567,6 +1612,7 @@
     selectGradeByIndex(0);
 
     const sessionPromise = checkSession();
+    const athleteModePromise = fetchAthleteMode();
 
     // Load data (fall back to last-cached entries when offline)
     try {
@@ -1592,7 +1638,7 @@
       state.collapsed.add(place);
     }
 
-    await sessionPromise;
+    await Promise.all([sessionPromise, athleteModePromise]);
 
     document.getElementById("loading").style.display = "none";
     document.getElementById("app").style.display = "";
