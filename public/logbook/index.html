@@ -58,12 +58,15 @@
 
     .switch {
       display: inline-flex; align-items: center; gap: .5rem;
-      background: none; border: none; padding: 0; cursor: pointer;
+      background: none; border: 1px solid transparent; padding: .4rem .8rem;
+      cursor: pointer;
       font-size: .82rem; font-weight: 600; color: var(--color-text);
     }
+    .switch-label { transition: color .15s ease; }
+    .switch[aria-checked="false"] .switch-label { color: var(--color-text-muted); }
     .switch-track {
       position: relative; flex: 0 0 auto;
-      width: 2.25rem; height: 1.25rem;
+      width: 1.75rem; height: 1rem;
       background: var(--color-border);
       border-radius: var(--r);
       transition: background .15s ease;
@@ -71,12 +74,12 @@
     .switch[aria-checked="true"] .switch-track { background: var(--color-accent); }
     .switch-thumb {
       position: absolute; top: .15rem; left: .15rem;
-      width: .95rem; height: .95rem;
+      width: .7rem; height: .7rem;
       background: #fff;
       border-radius: calc(var(--r) - 3px);
       transition: transform .15s ease;
     }
-    .switch[aria-checked="true"] .switch-thumb { transform: translateX(1rem); }
+    .switch[aria-checked="true"] .switch-thumb { transform: translateX(.75rem); }
     .switch:disabled { opacity: .6; cursor: not-allowed; }
 
     /* ── Admin bar ───────────────────────────────────────────────── */
