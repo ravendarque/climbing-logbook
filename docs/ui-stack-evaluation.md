@@ -17,96 +17,109 @@ spike. Should the project adopt a component/styling stack (Radix primitives
 + Tailwind was suggested as a starting candidate) before that work lands, or
 keep hand-rolling markup/CSS per component as it has so far?
 
+`docs/app-architecture.md`'s "no framework, no build step, no client-side
+bundler" line describes the current state of the app, not a fixed mandate —
+this spike is exactly the place to reconsider it if there's a good reason
+to. The two halves of "Radix + Tailwind" turn out to have very different
+costs, so they get separate answers below rather than an up-or-down vote on
+the pairing.
+
 ## Decision
 
-**Do not adopt Radix + Tailwind. Add one narrowly-scoped dependency
-(Floating UI) for anchored-positioning only, formalize a small set of design
-tokens in the existing inline stylesheet, and keep hand-rolling everything
-else.**
+**Adopt Tailwind. Reject Radix. Also add Floating UI for anchored
+positioning, which neither of those two actually solves.**
 
-## Why Radix + Tailwind doesn't fit
+## Tailwind: adopt
 
-`docs/app-architecture.md` documents no-framework, no-build-step as a
-deliberate choice, not an oversight. Radix + Tailwind conflicts with both
-halves of that at once, not just the build-step half the issue called out:
+Tailwind needs a build step to be production-appropriate — Tailwind's own
+docs describe the no-build Play CDN as unsuitable for production (no
+purging, full utility-class runtime shipped to every visitor), so using it
+"for real" means a CSS build step (Tailwind CLI or PostCSS) generating a
+compiled stylesheet.
 
-- **Radix Primitives are React components.** There's no framework-agnostic
-  Radix — adopting it means adopting React, JSX, and a bundler underneath
-  it. That's a framework decision wearing a styling decision's clothes; it's
-  a far bigger shift than the UI work itself requires, and it isn't
-  reversible the way swapping a CSS approach is.
-- **Tailwind needs a build step to be production-appropriate.** Tailwind's
-  own docs describe the no-build Play CDN as unsuitable for production (no
-  purging, full runtime cost shipped to every visitor). Using it "for real"
-  means PostCSS or the Tailwind CLI in the build pipeline — exactly the
-  build step `docs/app-architecture.md` opted out of.
-- **The bundle-size/cold-start framing in the issue doesn't quite apply as
-  written.** Per `docs/app-architecture.md`'s routing section, Workers
-  Static Assets serves `public/` files directly without invoking the Worker
-  at all — so a heavier frontend bundle doesn't touch Worker cold starts.
-  The real cost is client download/parse size on every visit (this app is
-  offline-first and PWA-installed, so that cost is paid once per app-shell
-  update, not per page load) — worth naming precisely rather than
-  conflating with Worker cold start.
+That build step is real but narrowly scoped: it only touches CSS. Nothing
+about it requires a JS bundler, a framework, or changes to how `index.html`
+loads its `<script type="module">` — it's an isolated, additive step
+(compile a stylesheet, write it to `public/logbook/`) alongside the existing
+`wrangler dev`/`wrangler deploy` scripts, not a replacement for the current
+no-JS-bundler approach.
 
-Given that, the accessibility-primitive benefit Radix would bring is real
-but not free: the project's existing hand-rolled a11y patterns
-(`docs/coding-standards.md`'s Accessibility section — `role="button"` +
-`tabindex="0"` + keydown handling, `role="dialog"` + focus trap, correct
-`aria-pressed` usage) already work and are enforced by review. They compose
-fine with plain markup; there's no evidence yet that Epic A's UI needs more
-than what those patterns already cover.
+Weighed against that modest, isolated cost:
 
-## What Epic A/the map actually need
+- It directly targets the actual pain point that triggered this spike —
+  PR #44's back-and-forth was CSS styling churn on a single toggle, not a
+  missing accessibility primitive (the toggle already had correct
+  `aria-pressed`). Epic A adds several more one-off UI surfaces (chips,
+  drill-downs, chart containers); without a shared utility vocabulary, that
+  churn scales with the number of components instead of getting cheaper.
+- Utility classes enforce a consistent spacing/color/type scale by
+  construction (values come from `tailwind.config`, not ad hoc numbers typed
+  per component), which is exactly the kind of consistency-across-surfaces
+  problem a growing UI benefits from.
+- It's widely known tooling, which lowers ramp-up cost for anyone (human or
+  agent) touching styling later, versus a bespoke hand-rolled convention
+  only this codebase uses.
 
-Looking past the "adopt a stack" framing to the concrete upcoming surfaces:
+**Migration cost:** add `tailwindcss` as a devDependency, a `tailwind.config`
+scoped to `public/logbook/index.html`, a small input stylesheet compiled to
+`public/logbook/styles.css`, and a `build:css` script wired into `dev`/
+`deploy`. Existing hand-written CSS in `index.html` doesn't need a big-bang
+rewrite — it can convert incrementally as components are touched, same as
+any other refactor-as-you-go change.
 
-- **Evidence-tiering chips, drill-down views, charts:** markup and layout
-  problems, not accessibility or positioning problems. Hand-rolled markup +
-  CSS handles these the same way it handles today's UI.
-- **Map marker popovers, tooltips, any dropdown/menu:** these need
-  *anchored positioning* — placing an element relative to a trigger, flipping
-  side when it would overflow the viewport, tracking scroll/resize. This is
-  the one genuinely hard-to-hand-roll piece (viewport collision math,
-  scroll/resize listeners cleaned up correctly), and it's exactly what
-  Radix, Base UI, and most other component kits use
-  [Floating UI](https://floating-ui.com/) internally for rather than solving
-  themselves.
+## Radix: reject
 
-That narrows the actual gap to one thing: positioning logic, not a
-component framework.
+Radix Primitives are React components — there's no framework-agnostic
+Radix. Adopting it means adopting React, JSX, and a JS bundler underneath
+it, which is a much bigger, much less reversible commitment than a CSS
+build step: it changes what "frontend code" means for every file in
+`public/logbook/`, not just how styles are authored.
 
-## Recommendation
+That cost isn't justified by an actual gap. The project's existing
+hand-rolled a11y patterns (`docs/coding-standards.md`'s Accessibility
+section — `role="button"` + `tabindex="0"` + keydown handling,
+`role="dialog"` + focus trap, correct `aria-pressed` usage) already work and
+are enforced by review. They compose fine with plain markup, and nothing in
+Epic A's or the map's requirements needs an accessible-primitive library to
+do it — the actual gap (below) is positioning, not interaction semantics.
 
-1. **Add `@floating-ui/dom`** as a targeted dependency for anchor-positioned
-   UI (map marker popovers, any tooltip/dropdown Epic A introduces).
-   Framework-agnostic, ships as plain ESM — imports directly into
-   `index.html`'s existing `<script type="module">` the same way
-   `escape-html.js` and `status-icons.js` do today. No bundler, no build
-   step, no framework required to use it. Core package is a few KB.
-2. **Formalize design tokens** (spacing scale, color palette, type scale) as
-   CSS custom properties in the existing inline `<style>` block, plus a
-   small hand-authored set of reusable utility classes for the patterns that
-   actually recur (the kind of thing PR #44's toggle churn was really
-   about). This captures most of Tailwind's day-to-day ergonomic win without
-   its build step or purging machinery.
-3. **Keep hand-rolling accessibility per `docs/coding-standards.md`'s
-   existing patterns** for everything Floating UI doesn't cover (toggles,
-   dialogs, sortable headers). They already compose correctly; there's no
-   concrete pain point here to justify a framework.
-4. **Chart library is explicitly out of scope for this decision** — defer
-   until #12/#15 land and there's a concrete rendering requirement (e.g.
-   whether SVG hand-rolled charts stay sufficient) to evaluate against.
+## What Radix would have covered, but Tailwind doesn't: anchored positioning
 
-**Migration cost: zero.** Nothing existing changes; this is purely additive
-for new surfaces as they're built.
+Map marker popovers, tooltips, and any dropdown/menu Epic A introduces need
+*anchored positioning* — placing an element relative to a trigger, flipping
+side when it would overflow the viewport, tracking scroll/resize. This is
+the one genuinely hard-to-hand-roll piece (viewport collision math,
+scroll/resize listeners cleaned up correctly), and it's exactly what Radix,
+Base UI, and most other component kits use
+[Floating UI](https://floating-ui.com/) internally for rather than solving
+themselves.
 
-**Revisit when:** markup *duplication* (not styling churn) becomes the
-actual bottleneck — e.g. the same tab/accordion/menu pattern gets
-hand-rolled slightly differently three or four times across Epic A's
-increments. At that point it's a framework decision on its own merits, not
-a styling one, and should be scoped as its own spike rather than smuggled
-in via a CSS utility library.
+**Add `@floating-ui/dom`** as a targeted dependency for this specific need.
+Framework-agnostic, ships as plain ESM — imports directly into
+`index.html`'s existing `<script type="module">` the same way
+`escape-html.js` and `status-icons.js` do today. No bundler, no framework
+required to use it; core package is a few KB. This is unaffected by the
+Tailwind decision — it solves a different problem (positioning logic, not
+styling) and stacks fine alongside a Tailwind-compiled stylesheet.
+
+## Recommendation summary
+
+1. Adopt Tailwind: add the CSS build step described above, migrate styling
+   incrementally as components are touched rather than in one rewrite.
+2. Reject Radix: keep hand-rolling accessibility per
+   `docs/coding-standards.md`'s existing, working patterns.
+3. Add `@floating-ui/dom` for anchor-positioned UI (map popovers, tooltips,
+   dropdowns) — the one real gap neither Tailwind nor the status quo covers.
+4. Chart library is explicitly out of scope for this decision — defer until
+   #12/#15 land and there's a concrete rendering requirement to evaluate
+   against.
+
+**Revisit Radix specifically when:** markup/interaction-logic *duplication*
+(not styling churn — Tailwind now addresses that) becomes the actual
+bottleneck, e.g. the same tab/accordion/menu pattern gets hand-rolled
+slightly differently three or four times across Epic A's increments. At
+that point it's a framework decision on its own merits and should be scoped
+as its own spike.
 
 ## Ethical/supply-chain check
 
@@ -118,9 +131,9 @@ campaign](https://bdsmovement.net/no-tech-oppression-apartheid-or-genocide)
 
 | Dependency | Maintainer | On either list? |
 |---|---|---|
-| `@floating-ui/dom` (new) | Floating UI org (ex-Popper.js team) | No |
+| Tailwind CSS (adopted) | Tailwind Labs | No |
+| `@floating-ui/dom` (adopted) | Floating UI org (ex-Popper.js team) | No |
 | Radix Primitives (rejected) | WorkOS | No |
-| Tailwind CSS (rejected) | Tailwind Labs | No |
 | `wrangler` (existing) | Cloudflare | No |
 | `semver` (existing) | npm/open source | No |
 
@@ -128,5 +141,5 @@ None of the stacks evaluated here, nor the project's existing dependencies,
 appear on either list. Noted for future reference: **Microsoft** does
 appear on both BDS lists — irrelevant to this decision since nothing
 proposed here is Microsoft-authored, but worth re-checking if a future
-dependency choice (e.g. TypeScript tooling, should this project ever adopt
-a build step for other reasons) pulls one in.
+dependency choice (e.g. TypeScript tooling, or React itself if Radix is
+ever revisited) pulls one in.
