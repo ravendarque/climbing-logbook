@@ -65,7 +65,7 @@
       position: relative; flex: 0 0 auto;
       width: 2.25rem; height: 1.25rem;
       background: var(--color-border);
-      border-radius: 999px;
+      border-radius: var(--r);
       transition: background .15s ease;
     }
     .switch[aria-checked="true"] .switch-track { background: var(--color-accent); }
@@ -73,7 +73,7 @@
       position: absolute; top: .15rem; left: .15rem;
       width: .95rem; height: .95rem;
       background: #fff;
-      border-radius: 50%;
+      border-radius: calc(var(--r) - 3px);
       transition: transform .15s ease;
     }
     .switch[aria-checked="true"] .switch-thumb { transform: translateX(1rem); }
