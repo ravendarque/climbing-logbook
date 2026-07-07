@@ -1048,10 +1048,19 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ athleteMode: next }),
       });
-      if (res.ok) {
+      if (res.status === 401) {
+        // Access session lapsed since page load — same handling as
+        // syncPending()'s 401 case: drop back to the logged-out view.
+        isLoggedIn = false;
+      } else if (res.ok) {
         const data = await res.json();
         athleteMode = !!data.athleteMode;
+        athleteModeBtn.title = "";
+      } else {
+        athleteModeBtn.title = `Failed to update Athlete Mode (${res.status})`;
       }
+    } catch (err) {
+      athleteModeBtn.title = `Failed to update Athlete Mode: ${err.message}`;
     } finally {
       athleteModeBtn.disabled = false;
       updateAdminBar();
