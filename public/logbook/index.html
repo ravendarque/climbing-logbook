@@ -29,6 +29,20 @@
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
+    /* Deliberately unlayered (not in styles/tailwind.css's @layer base),
+       same reasoning as the :root tokens above: the browser's UA
+       stylesheet sets `[hidden] { display: none }`, but any normal-origin
+       author declaration beats a normal-origin UA declaration regardless
+       of specificity — so a plain `flex`/`inline-flex` utility class (or
+       admin-btn's own `display: inline-flex`) silently wins over `hidden`
+       on its own. Putting the override in @layer base wouldn't fix this
+       either, since utilities is a later layer and always beats base
+       regardless of specificity (the same bug class #51 hit with
+       `margin: 0`) — it has to be unlayered to beat both. This is the one
+       piece of Tailwind's preflight (which this app doesn't import) that
+       every hidden-attribute element actually needs. */
+    [hidden] { display: none; }
+
     /* ── Grade colours — semantic ─────────────────────────────────── */
     :root {
       --grade-easy:  #94a3b8;
