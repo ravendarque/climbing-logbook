@@ -5,18 +5,27 @@
   "type": "module",
   "packageManager": "pnpm@10.30.0",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "dev": "concurrently -n wrangler,tailwind -c blue,magenta \"wrangler dev\" \"pnpm run tailwind:watch\"",
+    "deploy": "pnpm run tailwind:build && wrangler deploy",
+    "tailwind:build": "tailwindcss -i ./styles/tailwind.css -o ./public/logbook/tailwind.css --minify",
+    "tailwind:watch": "tailwindcss -i ./styles/tailwind.css -o ./public/logbook/tailwind.css --watch"
   },
   "devDependencies": {
+    "@tailwindcss/cli": "^4.3.2",
+    "concurrently": "^10.0.3",
     "semver": "^7.8.5",
+    "tailwindcss": "^4.3.2",
     "wrangler": "^4.107.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "@parcel/watcher",
       "esbuild",
       "sharp",
       "workerd"
     ]
+  },
+  "dependencies": {
+    "@floating-ui/dom": "^1.7.6"
   }
 }
