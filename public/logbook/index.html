@@ -80,112 +80,6 @@
     #filter-status-group .toggle-btn:last-child { border-bottom: none; }
     #filter-status-group .status-label { white-space: nowrap; }
 
-    /* ── Place sections ──────────────────────────────────────────── */
-    .place-section {
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--r);
-      margin-bottom: .75rem;
-      overflow: hidden;
-    }
-    .place-header {
-      display: flex; align-items: center; gap: .6rem;
-      padding: .6rem .9rem;
-      border-bottom: 1px solid var(--color-border);
-      background: color-mix(in srgb, var(--color-surface) 60%, var(--color-bg));
-      cursor: pointer;
-      user-select: none;
-    }
-    .place-header:hover { background: color-mix(in srgb, var(--color-accent) 6%, var(--color-surface)); }
-    .place-num {
-      background: var(--color-accent); color: var(--color-accent-text);
-      font-size: .72rem; font-weight: 700;
-      padding: .15rem .45rem; border-radius: calc(var(--r) * .5);
-    }
-    .place-name { font-weight: 600; font-size: 1rem; flex: 1; }
-    .place-count { color: var(--color-text-muted); font-size: .8rem; white-space: nowrap; }
-    .place-meta { color: var(--color-text-muted); font-size: .8rem; display: flex; gap: .75rem; }
-    .place-chevron { color: var(--color-text-muted); font-size: .8rem; transition: transform .2s; }
-    .place-section.collapsed .place-chevron { transform: rotate(-90deg); }
-    .place-section.collapsed .place-body { display: none; }
-
-    .place-body { overflow-x: auto; }
-
-    /* ── Table ───────────────────────────────────────────────────── */
-    table {
-      width: 100%; border-collapse: collapse;
-      font-size: .88rem; min-width: 520px;
-    }
-    thead th {
-      text-align: left;
-      padding: .35rem .65rem;
-      color: var(--color-text-muted);
-      font-weight: 500; font-size: .72rem;
-      text-transform: uppercase; letter-spacing: .05em;
-      border-bottom: 1px solid var(--color-border);
-      white-space: nowrap;
-    }
-    th.sortable { cursor: pointer; }
-    th.sortable:hover { color: var(--color-text); }
-    th .sort-icon { margin-left: .3rem; opacity: .4; font-style: normal; }
-    th.sort-asc .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--color-accent); }
-    th.sort-asc .sort-icon::after  { content: "↑"; }
-    th.sort-desc .sort-icon::after { content: "↓"; }
-    th:not(.sort-asc):not(.sort-desc) .sort-icon::after { content: "↕"; }
-
-    tbody tr { border-bottom: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent); }
-    tbody tr:last-child { border-bottom: none; }
-    tbody tr:hover { background: color-mix(in srgb, var(--color-accent) 4%, var(--color-surface)); }
-    tbody tr.pending-row { background: color-mix(in srgb, var(--color-accent) 6%, var(--color-surface)); }
-    td { padding: .35rem .65rem; vertical-align: middle; }
-
-    /* ── Grade badge ─────────────────────────────────────────────── */
-    .grade-badge {
-      font-family: monospace; font-weight: 700; font-size: .85rem;
-      padding: .15rem .45rem;
-      border-radius: calc(var(--r) * .5);
-      background: color-mix(in srgb, currentColor 12%, transparent);
-      white-space: nowrap;
-    }
-
-    /* ── Status icon ─────────────────────────────────────────────── */
-    .status-icon { display: inline-flex; vertical-align: middle; cursor: default; }
-    .status-icon svg { width: 1.4rem; height: 1.4rem; }
-    .pending-badge {
-      font-size: .68rem; font-weight: 700; color: var(--color-accent);
-      white-space: nowrap;
-    }
-
-    /* ── Type text ───────────────────────────────────────────────── */
-    .type-text { font-size: .82rem; color: var(--color-text-muted); }
-
-    /* ── Area tag ────────────────────────────────────────────────── */
-    .area-tag { color: var(--color-text-muted); font-size: .82rem; }
-
-    /* ── Video link ──────────────────────────────────────────────── */
-    .video-link {
-      color: var(--color-accent); font-size: .8rem;
-      text-decoration: none; display: inline-flex; align-items: center; gap: .2rem;
-    }
-    .video-link:hover { opacity: .75; }
-
-    /* ── Notes tooltip ───────────────────────────────────────────── */
-    .notes-icon { cursor: help; color: var(--color-text-muted); font-size: .9rem; }
-
-    /* ── Edit button ─────────────────────────────────────────────── */
-    .edit-btn {
-      border: none; background: none; cursor: pointer;
-      color: var(--color-text-muted); display: inline-flex; padding: .2rem;
-    }
-    .edit-btn:hover { color: var(--color-accent); }
-    .edit-btn svg { width: .95rem; height: .95rem; stroke: currentColor; fill: none; }
-
-    /* ── Empty state ─────────────────────────────────────────────── */
-    .empty-row td {
-      text-align: center; color: var(--color-text-muted);
-      padding: 2rem; font-size: .9rem;
-    }
-
     /* ── Loading / error ─────────────────────────────────────────── */
     #loading {
       display: flex; align-items: center; justify-content: center;
@@ -212,12 +106,6 @@
 
     /* ── Footer ──────────────────────────────────────────────────── */
     .footer { text-align: center; color: var(--color-text-muted); font-size: .78rem; margin-top: 2rem; }
-
-    /* ── Responsive ──────────────────────────────────────────────── */
-    @media (max-width: 600px) {
-      h1 { font-size: 1.5rem; }
-      .place-meta { display: none; }
-    }
 
     /* ══ Modal ══════════════════════════════════════════════════════ */
     .modal-overlay {
@@ -729,16 +617,17 @@
   }
 
   // ── Status ───────────────────────────────────────────────────────────
+  const STATUS_ICON_CLASS = "inline-flex align-middle cursor-default [&_svg]:w-[1.4rem] [&_svg]:h-[1.4rem]";
   function statusBadge(entry) {
     if (entry.status === "send" && entry.flash)
-      return `<span class="status-icon" title="Flash">${STATUS_ICONS.flash}</span>`;
+      return `<span class="${STATUS_ICON_CLASS}" title="Flash">${STATUS_ICONS.flash}</span>`;
     if (entry.status === "send")
-      return `<span class="status-icon" title="Send">${STATUS_ICONS.send}</span>`;
+      return `<span class="${STATUS_ICON_CLASS}" title="Send">${STATUS_ICONS.send}</span>`;
     if (entry.status === "project")
-      return `<span class="status-icon" title="Project">${STATUS_ICONS.project}</span>`;
+      return `<span class="${STATUS_ICON_CLASS}" title="Project">${STATUS_ICONS.project}</span>`;
     if (entry.status === "abandoned")
-      return `<span class="status-icon" title="Abandoned">${STATUS_ICONS.abandoned}</span>`;
-    return `<span class="status-icon" title="Check out">${STATUS_ICONS.wishlist}</span>`;
+      return `<span class="${STATUS_ICON_CLASS}" title="Abandoned">${STATUS_ICONS.abandoned}</span>`;
+    return `<span class="${STATUS_ICON_CLASS}" title="Check out">${STATUS_ICONS.wishlist}</span>`;
   }
 
   // ── State ────────────────────────────────────────────────────────────
@@ -889,6 +778,12 @@
 
   const EDIT_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"></path></svg>`;
 
+  // ── Table cell/header base styles — shared across every place-section's
+  // table, so defined once rather than repeated per column ──────────────
+  const TH_BASE = "text-left px-[.65rem] py-[.35rem] text-muted font-medium text-[.72rem] uppercase tracking-wider border-b border-border whitespace-nowrap";
+  const TH_SORTABLE = "cursor-pointer hover:text-foreground";
+  const TD_BASE = "px-[.65rem] py-[.35rem] align-middle";
+
   function renderSections(entries) {
     const container = document.getElementById("sections");
     const groups = groupByPlace(entries);
@@ -905,58 +800,65 @@
       const { col, dir } = getSort(place);
       const isCollapsed = state.collapsed.has(place);
 
-      const thClass = (c) => c !== col ? `sortable` : `sortable sort-${dir}`;
+      const sortIcon = (c) => c !== col
+        ? `<i class="ml-[.3rem] not-italic opacity-40">↕</i>`
+        : `<i class="ml-[.3rem] not-italic opacity-100 text-accent">${dir === "asc" ? "↑" : "↓"}</i>`;
       const sortAria = (c) => c !== col ? "none" : (dir === "asc" ? "ascending" : "descending");
 
-      const rows = sorted.map(e => `
-        <tr${e._pending ? ` class="pending-row"` : ""}>
-          <td style="text-align:center;width:2rem">${statusBadge(e)}</td>
-          <td><span class="grade-badge" style="color:${gradeColor(e.grade)}">${escapeHtml(e.grade)}</span></td>
-          <td>
-            <span style="font-weight:500">${escapeHtml(e.name)}</span>
-            ${e.notes ? `<span class="notes-icon" title="${escapeHtml(e.notes)}"> ℹ</span>` : ""}
-            ${e._pending ? `<span class="pending-badge"> · pending sync</span>` : ""}
+      const rows = sorted.map(e => {
+        const rowBg = e._pending
+          ? "bg-[color-mix(in_srgb,var(--color-accent)_6%,var(--color-surface))]"
+          : "hover:bg-[color-mix(in_srgb,var(--color-accent)_4%,var(--color-surface))]";
+        return `
+        <tr class="border-b border-[color-mix(in_srgb,var(--color-border)_40%,transparent)] last:border-b-0 ${rowBg}">
+          <td class="${TD_BASE} text-center w-8">${statusBadge(e)}</td>
+          <td class="${TD_BASE}"><span class="grade-badge" style="color:${gradeColor(e.grade)}">${escapeHtml(e.grade)}</span></td>
+          <td class="${TD_BASE}">
+            <span class="font-medium">${escapeHtml(e.name)}</span>
+            ${e.notes ? `<span class="cursor-help text-muted text-[.9rem]" title="${escapeHtml(e.notes)}"> ℹ</span>` : ""}
+            ${e._pending ? `<span class="text-[.68rem] font-bold text-accent whitespace-nowrap"> · pending sync</span>` : ""}
           </td>
-          <td class="area-tag">${escapeHtml(e.area)}</td>
-          <td class="type-text">${escapeHtml(e.type)}</td>
-          <td style="color:var(--color-text-muted);font-size:.82rem;white-space:nowrap">${formatDate(e.date)}</td>
-          <td style="text-align:center;width:2rem">${e.video ? `<a class="video-link" href="${escapeHtml(e.video)}" target="_blank" rel="noopener" title="Watch video">▶</a>` : ""}</td>
-          <td style="text-align:center;width:2rem">${isLoggedIn ? `<button type="button" class="edit-btn" data-edit-id="${escapeHtml(e.id)}" aria-label="Edit">${EDIT_ICON}</button>` : ""}</td>
+          <td class="${TD_BASE} text-muted text-[.82rem]">${escapeHtml(e.area)}</td>
+          <td class="${TD_BASE} text-muted text-[.82rem]">${escapeHtml(e.type)}</td>
+          <td class="${TD_BASE} text-muted text-[.82rem] whitespace-nowrap">${formatDate(e.date)}</td>
+          <td class="${TD_BASE} text-center w-8">${e.video ? `<a class="inline-flex items-center gap-[.2rem] text-accent text-[.8rem] no-underline hover:opacity-75" href="${escapeHtml(e.video)}" target="_blank" rel="noopener" title="Watch video">▶</a>` : ""}</td>
+          <td class="${TD_BASE} text-center w-8">${isLoggedIn ? `<button type="button" class="edit-btn border-0 bg-transparent cursor-pointer text-muted inline-flex p-[.2rem] hover:text-accent [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:stroke-current [&_svg]:fill-none" data-edit-id="${escapeHtml(e.id)}" aria-label="Edit">${EDIT_ICON}</button>` : ""}</td>
         </tr>
-      `).join("");
+      `;
+      }).join("");
 
       return `
-        <div class="place-section${isCollapsed ? " collapsed" : ""}" data-place="${escapeHtml(place)}">
-          <div class="place-header" data-place="${escapeHtml(place)}" role="button" tabindex="0" aria-expanded="${!isCollapsed}">
-            <span class="place-name">${escapeHtml(place)}</span>
-            <span class="place-count">${sorted.length} ${sorted.length === 1 ? "entry" : "entries"}</span>
-            <span class="place-meta">
+        <div class="bg-surface border border-border rounded-app mb-3 overflow-hidden" data-place="${escapeHtml(place)}">
+          <div class="place-header flex items-center gap-[.6rem] px-[.9rem] py-[.6rem] border-b border-border bg-[color-mix(in_srgb,var(--color-surface)_60%,var(--color-bg))] cursor-pointer select-none hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,var(--color-surface))]" data-place="${escapeHtml(place)}" role="button" tabindex="0" aria-expanded="${!isCollapsed}">
+            <span class="font-semibold text-base flex-1">${escapeHtml(place)}</span>
+            <span class="text-muted text-[.8rem] whitespace-nowrap">${sorted.length} ${sorted.length === 1 ? "entry" : "entries"}</span>
+            <span class="text-muted text-[.8rem] flex gap-3 max-[600px]:hidden">
               ${PLACE_COUNTRY[place] ? `<span>${escapeHtml(PLACE_COUNTRY[place])}</span>` : ""}
             </span>
-            <span class="place-chevron">▾</span>
+            <span class="text-muted text-[.8rem] transition-transform duration-200 ${isCollapsed ? "-rotate-90" : ""}">▾</span>
           </div>
-          <div class="place-body">
-            <table>
+          <div class="overflow-x-auto ${isCollapsed ? "hidden" : ""}">
+            <table class="w-full border-collapse text-[.88rem] min-w-[520px]">
               <thead>
                 <tr>
-                  <th style="width:2rem"></th>
-                  <th class="${thClass("grade")}" data-sort="grade" data-place="${escapeHtml(place)}" role="button" tabindex="0" aria-sort="${sortAria("grade")}">
-                    Grade <i class="sort-icon"></i>
+                  <th class="${TH_BASE} w-8"></th>
+                  <th class="${TH_BASE} ${TH_SORTABLE}" data-sort="grade" data-place="${escapeHtml(place)}" role="button" tabindex="0" aria-sort="${sortAria("grade")}">
+                    Grade ${sortIcon("grade")}
                   </th>
-                  <th class="${thClass("name")}" data-sort="name" data-place="${escapeHtml(place)}" role="button" tabindex="0" aria-sort="${sortAria("name")}">
-                    Name <i class="sort-icon"></i>
+                  <th class="${TH_BASE} ${TH_SORTABLE}" data-sort="name" data-place="${escapeHtml(place)}" role="button" tabindex="0" aria-sort="${sortAria("name")}">
+                    Name ${sortIcon("name")}
                   </th>
-                  <th>Area</th>
-                  <th>Type</th>
-                  <th class="${thClass("date")}" data-sort="date" data-place="${escapeHtml(place)}" role="button" tabindex="0" aria-sort="${sortAria("date")}">
-                    Date <i class="sort-icon"></i>
+                  <th class="${TH_BASE}">Area</th>
+                  <th class="${TH_BASE}">Type</th>
+                  <th class="${TH_BASE} ${TH_SORTABLE}" data-sort="date" data-place="${escapeHtml(place)}" role="button" tabindex="0" aria-sort="${sortAria("date")}">
+                    Date ${sortIcon("date")}
                   </th>
-                  <th style="width:2rem"></th>
-                  <th style="width:2rem"></th>
+                  <th class="${TH_BASE} w-8"></th>
+                  <th class="${TH_BASE} w-8"></th>
                 </tr>
               </thead>
               <tbody>
-                ${rows || `<tr class="empty-row"><td colspan="8">No problems match.</td></tr>`}
+                ${rows || `<tr><td class="text-center text-muted p-8 text-[.9rem]" colspan="8">No problems match.</td></tr>`}
               </tbody>
             </table>
           </div>
