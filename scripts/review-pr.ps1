@@ -1,14 +1,16 @@
 <#
 .SYNOPSIS
-  Checks out a PR, installs dependencies, starts the dev server, and
-  opens the app in the browser once it's actually ready.
+  Checks out a PR, installs dependencies, starts the dev server, seeds
+  some test data, and opens the app in the browser once it's ready.
 
 .DESCRIPTION
   Runs `gh pr checkout <number>` and `pnpm install`, then starts `pnpm dev`
   in its own PowerShell window (so you keep a normal interactive dev
   terminal -- Ctrl+C there stops the server same as always) while this
   script tails its output for wrangler's "Ready on http://..." line.
-  Once that appears, it opens <that url>/logbook in your default browser.
+  Once that appears, it seeds a handful of realistic logbook entries
+  (scripts/seed-dev-data.mjs -- safe to re-run, it no-ops on entries that
+  already exist) and opens <that url>/logbook in your default browser.
   The port isn't hardcoded on purpose -- wrangler bumps to the next free
   port (8788, 8789, ...) if 8787 is already in use, so we read whatever
   it actually printed rather than guessing.
@@ -16,12 +18,20 @@
 .PARAMETER PrNumber
   The PR number to check out (e.g. 56).
 
+.PARAMETER NoSeed
+  Skip seeding test data -- just start the server and open the browser.
+
 .EXAMPLE
   scripts\review-pr.ps1 56
+
+.EXAMPLE
+  scripts\review-pr.ps1 56 -NoSeed
 #>
 param(
   [Parameter(Mandatory = $true, Position = 0)]
-  [string]$PrNumber
+  [string]$PrNumber,
+
+  [switch]$NoSeed
 )
 
 $ErrorActionPreference = "Stop"
@@ -64,5 +74,14 @@ if (-not $url) {
   exit 1
 }
 
-Write-Host "==> Dev server ready at $url -- opening $url/logbook"
+Write-Host "==> Dev server ready at $url"
+
+if (-not $NoSeed) {
+  Write-Host "==> Seeding test data"
+  pnpm run seed $url
+  # A seeding failure shouldn't stop you from opening the app -- the log
+  # above is enough to notice and rerun manually if it matters.
+}
+
+Write-Host "==> Opening $url/logbook"
 Start-Process "$url/logbook"
