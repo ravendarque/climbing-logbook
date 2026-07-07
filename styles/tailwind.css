@@ -1,15 +1,28 @@
 /* Deliberately importing only the theme and utilities layers, not
-   tailwindcss/preflight. The app already has its own hand-tuned reset
-   (`public/logbook/index.html`'s `*, *::before, *::after { box-sizing:
-   border-box; margin: 0; padding: 0; }` plus explicit styling on every
-   element) — preflight's global normalization would change the
-   rendered app before a single utility class is even used, which this
-   pure-tooling PR (#47) is explicitly scoped not to do. Revisit if a
-   future component genuinely needs it. */
+   tailwindcss/preflight's full normalization set (form-element resets,
+   heading sizes, etc.) — the app already has its own explicit styling
+   for every element, and preflight would change things beyond just the
+   box-sizing/margin/padding reset (see @layer base below), which is
+   the one piece of preflight this app actually depends on. */
+@layer theme, base, utilities;
+
 @import "tailwindcss/theme" layer(theme);
 @import "tailwindcss/utilities" layer(utilities);
 
 @source "../public/logbook/**/*.html";
+
+/* This has to live in a layer, not a plain unlayered rule (which is
+   where it lived before #51) — unlayered CSS always wins the cascade
+   over ANY layered CSS regardless of specificity or source order, so
+   an unlayered `margin: 0` silently nullifies every margin/padding
+   utility Tailwind generates, app-wide. Confirmed empirically (#51):
+   removing the unlayered version made a `mb-6` utility start working.
+   `base` is declared between `theme` and `utilities` above so utility
+   classes still win over this reset when both apply to the same
+   element, same as Tailwind's own preflight would behave. */
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+}
 
 /* ── Theme tokens ──────────────────────────────────────────────────
    Aliases to the app's actual design tokens, defined once in
@@ -53,14 +66,7 @@
    (stacked gradients/shadows, currentColor-driven color-mix). Authored
    via @utility (Tailwind v4's custom-utility mechanism) rather than a
    separate hand-rolled stylesheet, so they still live in Tailwind's
-   layer system and compose with variants normally.
-
-   Base/default state only for now — the interactive-state rules
-   (`[aria-checked="true"]`) depend on a `group` class on the parent
-   switch element that doesn't exist until #51 actually migrates that
-   component (out of scope for this no-markup-change foundation slice),
-   and are easier to get right verified against the live component
-   than guessed here in isolation. */
+   layer system and compose with variants normally. */
 @utility grade-badge {
   font-family: monospace;
   font-weight: 700;
@@ -73,6 +79,9 @@
 
 @utility switch-track {
   position: relative;
+  flex: 0 0 auto;
+  width: 1.75rem;
+  height: 1rem;
   background: linear-gradient(to bottom, #151515, #2e2e2e 45%, #383838);
   box-shadow: inset 0 2px 3px rgba(0, 0, 0, .7), inset 0 -1px 0 rgba(255, 255, 255, .05);
   border-radius: 999px;
@@ -83,6 +92,8 @@
   position: absolute;
   top: 50%;
   left: -.05rem;
+  width: 1.1rem;
+  height: 1.1rem;
   background: linear-gradient(to bottom, #fff, #d8d8d8);
   border-radius: 50%;
   box-shadow:
@@ -92,4 +103,51 @@
     inset 0 -1px 1px rgba(0, 0, 0, .1);
   transform: translateY(-50%);
   transition: transform .15s ease;
+}
+
+/* "On" (aria-checked="true") states for the switch, applied via
+   Tailwind's group-aria-checked: variant on a `.switch.group` parent
+   (see #51). Authored as @utility (not Tailwind's built-in translate-x-*
+   etc.) because switch-thumb's base transform is a single hard-coded
+   translateY(-50%), not composed via Tailwind's own --tw-translate-*
+   variables — mixing the two would just have one clobber the other in
+   the cascade rather than combine. Keeping the "on" transform as one
+   complete value here avoids that pitfall entirely. */
+@utility switch-track-on {
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--color-accent) 70%, black), var(--color-accent));
+  box-shadow: inset 0 2px 3px rgba(0, 0, 0, .5);
+}
+
+@utility switch-thumb-on {
+  transform: translate(.75rem, -50%);
+}
+
+/* ── Reusable component utilities ──────────────────────────────────
+   Unlike the composite utilities above, nothing here is beyond plain
+   Tailwind utilities individually — these exist purely to avoid
+   repeating the same ~10 utility classes across every button instance
+   in a template-string-based app with no component/framework layer to
+   extract them into otherwise. */
+@utility admin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-app);
+  padding: .4rem .8rem;
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--color-foreground);
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--color-accent);
+  }
+}
+
+@utility admin-btn-primary {
+  background: var(--color-accent);
+  color: var(--color-accent-foreground);
+  border-color: var(--color-accent);
 }
