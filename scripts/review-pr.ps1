@@ -6,10 +6,10 @@
 .DESCRIPTION
   Runs `gh pr checkout <number>` and `pnpm install`, then starts `pnpm dev`
   in its own PowerShell window (so you keep a normal interactive dev
-  terminal — Ctrl+C there stops the server same as always) while this
+  terminal -- Ctrl+C there stops the server same as always) while this
   script tails its output for wrangler's "Ready on http://..." line.
   Once that appears, it opens <that url>/logbook in your default browser.
-  The port isn't hardcoded on purpose — wrangler bumps to the next free
+  The port isn't hardcoded on purpose -- wrangler bumps to the next free
   port (8788, 8789, ...) if 8787 is already in use, so we read whatever
   it actually printed rather than guessing.
 
@@ -64,5 +64,5 @@ if (-not $url) {
   exit 1
 }
 
-Write-Host "==> Dev server ready at $url — opening $url/logbook"
+Write-Host "==> Dev server ready at $url -- opening $url/logbook"
 Start-Process "$url/logbook"
