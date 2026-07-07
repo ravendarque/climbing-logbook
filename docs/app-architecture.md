@@ -4,14 +4,26 @@
 
 A single Cloudflare Worker serving a static PWA frontend (`public/logbook/`)
 and a small JSON API (`src/`), backed by one Workers KV namespace. No
-framework, no build step, no client-side bundler — plain ES modules on both
-sides.
+framework, no client-side bundler — plain ES modules on both sides.
+
+The one exception: a CSS-only build step for Tailwind (adopted per the
+design decision in issue #45/PR #46, see `styles/tailwind.css`), which
+compiles to `public/logbook/tailwind.css` via `pnpm run tailwind:build`
+(one-shot) or `tailwind:watch` (used by `pnpm dev` alongside `wrangler
+dev`). The compiled file isn't committed — CI regenerates it before every
+deploy (`.github/workflows/deploy.yml`). This is a CSS build only; there's
+still no JS bundler or framework.
 
 ```
+styles/
+└── tailwind.css        Tailwind entry point (utilities only, no preflight —
+                          see file for why); compiles to public/logbook/tailwind.css
+
 src/
 ├── index.js           Router — matches pathname+method, dispatches
 ├── api/
 │   ├── logbook.js      GET (public) / POST,PUT,DELETE (admin) — CRUD on entries
+│   ├── settings.js      GET (public) / PUT (admin) — Athlete Mode setting
 │   ├── admin-session.js  GET — "am I authenticated" check for the frontend
 │   └── admin-login.js    GET — redirect target that kicks off Access's login flow
 └── lib/
@@ -19,6 +31,7 @@ src/
 
 public/logbook/
 ├── index.html          Entire app: markup + inline CSS + inline <script type="module">
+├── tailwind.css         Generated — not committed, see .gitignore
 ├── sw.js               Service worker — offline app-shell + API caching
 ├── status-icons.js      SVG icon constants
 ├── escape-html.js       Shared HTML-escaping helper

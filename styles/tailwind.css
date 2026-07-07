@@ -1,0 +1,12 @@
+/* Deliberately importing only the theme and utilities layers, not
+   tailwindcss/preflight. The app already has its own hand-tuned reset
+   (`public/logbook/index.html`'s `*, *::before, *::after { box-sizing:
+   border-box; margin: 0; padding: 0; }` plus explicit styling on every
+   element) — preflight's global normalization would change the
+   rendered app before a single utility class is even used, which this
+   pure-tooling PR (#47) is explicitly scoped not to do. Revisit if a
+   future component genuinely needs it. */
+@import "tailwindcss/theme" layer(theme);
+@import "tailwindcss/utilities" layer(utilities);
+
+@source "../public/logbook/**/*.html";
