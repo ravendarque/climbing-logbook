@@ -858,7 +858,23 @@
   // ── Entry form: status toggle (Flash = status send, flash=true) ─────
   let selectedStatus = "send";
   let isFlash = false;
-  document.getElementById("status-group").addEventListener("click", e => {
+  const statusGroup = document.getElementById("status-group");
+
+  // Fades the edges of #status-group's horizontal scroll to hint there's
+  // more content past them -- only on whichever side actually has more to
+  // scroll to, so a screen wide enough to show every button gets no fade
+  // at all (both edges read as "at start" and "at end" simultaneously).
+  function updateStatusScrollFade() {
+    const atStart = statusGroup.scrollLeft <= 1;
+    const atEnd = statusGroup.scrollLeft + statusGroup.clientWidth >= statusGroup.scrollWidth - 1;
+    const mask = `linear-gradient(to right, ${atStart ? "black" : "transparent"}, black 24px, black calc(100% - 24px), ${atEnd ? "black" : "transparent"})`;
+    statusGroup.style.maskImage = mask;
+    statusGroup.style.webkitMaskImage = mask;
+  }
+  statusGroup.addEventListener("scroll", updateStatusScrollFade);
+  window.addEventListener("resize", updateStatusScrollFade);
+
+  statusGroup.addEventListener("click", e => {
     const btn = e.target.closest(".toggle-btn");
     if (!btn) return;
     const value = btn.dataset.value;
@@ -964,6 +980,9 @@
 
     openModal(entryOverlay);
     nameInput.focus();
+    // scrollWidth/clientWidth both read as 0 while the modal is still
+    // hidden -- wait a frame for it to actually paint before measuring.
+    requestAnimationFrame(updateStatusScrollFade);
   }
   addBtn.addEventListener("click", () => openEntryModal(null));
   document.getElementById("entry-close").addEventListener("click", () => closeModal(entryOverlay));
