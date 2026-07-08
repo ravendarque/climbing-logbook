@@ -9,7 +9,8 @@
     "deploy": "pnpm run tailwind:build && wrangler deploy",
     "tailwind:build": "tailwindcss -i ./styles/tailwind.css -o ./public/logbook/tailwind.css --minify",
     "tailwind:watch": "tailwindcss -i ./styles/tailwind.css -o ./public/logbook/tailwind.css --watch",
-    "seed": "node scripts/seed-dev-data.mjs"
+    "seed": "node scripts/seed-dev-data.mjs",
+    "review": "node scripts/review-pr.mjs"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.2",
