@@ -829,7 +829,7 @@
   function renderGradeOptions() {
     const boulder = selectedType === "boulder";
     gradeSelect.innerHTML = currentGrades()
-      .map(({ g, v }) => `<option class="font-mono font-bold bg-surface text-foreground" value="${g}">${boulder ? `${g}/${v}` : g}</option>`)
+      .map(({ g, v }) => `<option class="font-bold bg-surface text-foreground" value="${g}">${boulder ? `${g}/${v}` : g}</option>`)
       .join("");
   }
   function selectGradeByIndex(index) {
