@@ -645,14 +645,14 @@
     const sends     = ALL_ENTRIES.filter(e => e.status === "send" && !e.flash).length;
     const projects  = ALL_ENTRIES.filter(e => e.status === "project").length;
 
-    const stat = (n, label, color) =>
-      `<span class="${color} font-semibold">${n}</span> <span class="text-muted">${label}</span>`;
+    const stat = (n, singular, plural) =>
+      `<span class="text-foreground font-semibold">${n}</span> <span class="text-muted">${n === 1 ? singular : plural}</span>`;
 
     document.getElementById("subtitle").innerHTML = [
-      stat(countries, "Countries", "text-foreground"),
-      stat(flashes, "Flashes", "text-[#f4b400]"),
-      stat(sends, "Sends", "text-foreground"),
-      stat(projects, "Projects", "text-foreground"),
+      stat(countries, "Country", "Countries"),
+      stat(flashes, "Flash", "Flashes"),
+      stat(sends, "Send", "Sends"),
+      stat(projects, "Project", "Projects"),
     ].join(`<span class="text-muted"> · </span>`);
     document.getElementById("footer").textContent = "";
   }
