@@ -188,20 +188,20 @@
       </div>
 
       <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]">Status</div>
-      <div class="border border-border rounded-app overflow-hidden inline-flex flex-nowrap w-auto mb-3" id="status-group">
-        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-none min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] border-r border-border last:border-r-0" data-value="flash">
+      <div class="border border-border rounded-app overflow-x-auto flex flex-nowrap w-full mb-3" id="status-group">
+        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] border-r border-border last:border-r-0" data-value="flash">
           <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="flash"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Flash</span>
         </button>
-        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-none min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] border-r border-border last:border-r-0 active" data-value="send">
+        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] border-r border-border last:border-r-0 active" data-value="send">
           <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="send"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Send</span>
         </button>
-        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-none min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] border-r border-border last:border-r-0" data-value="project">
+        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] border-r border-border last:border-r-0" data-value="project">
           <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="project"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Project</span>
         </button>
-        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-none min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] border-r border-border last:border-r-0" data-value="wishlist">
+        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] border-r border-border last:border-r-0" data-value="wishlist">
           <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="wishlist"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Check out</span>
         </button>
-        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-none min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] border-r border-border last:border-r-0" data-value="abandoned">
+        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] border-r border-border last:border-r-0" data-value="abandoned">
           <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="abandoned"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Abandoned</span>
         </button>
       </div>
@@ -872,7 +872,23 @@
   // ── Entry form: status toggle (Flash = status send, flash=true) ─────
   let selectedStatus = "send";
   let isFlash = false;
-  document.getElementById("status-group").addEventListener("click", e => {
+  const statusGroup = document.getElementById("status-group");
+
+  // Fades the edges of #status-group's horizontal scroll to hint there's
+  // more content past them -- only on whichever side actually has more to
+  // scroll to, so a screen wide enough to show every button gets no fade
+  // at all (both edges read as "at start" and "at end" simultaneously).
+  function updateStatusScrollFade() {
+    const atStart = statusGroup.scrollLeft <= 1;
+    const atEnd = statusGroup.scrollLeft + statusGroup.clientWidth >= statusGroup.scrollWidth - 1;
+    const mask = `linear-gradient(to right, ${atStart ? "black" : "transparent"}, black 24px, black calc(100% - 24px), ${atEnd ? "black" : "transparent"})`;
+    statusGroup.style.maskImage = mask;
+    statusGroup.style.webkitMaskImage = mask;
+  }
+  statusGroup.addEventListener("scroll", updateStatusScrollFade);
+  window.addEventListener("resize", updateStatusScrollFade);
+
+  statusGroup.addEventListener("click", e => {
     const btn = e.target.closest(".toggle-btn");
     if (!btn) return;
     const value = btn.dataset.value;
@@ -978,6 +994,9 @@
 
     openModal(entryOverlay);
     nameInput.focus();
+    // scrollWidth/clientWidth both read as 0 while the modal is still
+    // hidden -- wait a frame for it to actually paint before measuring.
+    requestAnimationFrame(updateStatusScrollFade);
   }
   addBtn.addEventListener("click", () => openEntryModal(null));
   document.getElementById("entry-close").addEventListener("click", () => closeModal(entryOverlay));
