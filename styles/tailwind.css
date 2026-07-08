@@ -90,7 +90,12 @@
 
 /* Same currentColor-driven background as grade-badge above, but for the
    entry form's grade <select> — its color comes from an inline style set
-   in JS (selectGradeByIndex), same as grade-badge's does from render(). */
+   in JS (selectGradeByIndex), same as grade-badge's does from render().
+   Not monospace: that was inherited from the original hand-rolled CSS,
+   not an actual design choice, and <select> doesn't inherit font-family
+   from its ancestors by default in any browser (same as every other
+   form control) -- inherit explicitly rather than relying on landing in
+   the same layer-cascade order as the app-wide form-control fix. */
 @utility grade-select {
   border: 1px solid currentColor;
   border-radius: var(--radius-app);
@@ -98,7 +103,7 @@
   color: var(--color-foreground);
   font-size: .85rem;
   font-weight: 700;
-  font-family: monospace;
+  font-family: inherit;
   text-align: center;
   text-align-last: center;
   padding: 0 .4rem;
