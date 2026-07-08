@@ -188,20 +188,20 @@
       </div>
 
       <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]">Status</div>
-      <div class="border border-border rounded-app overflow-hidden inline-flex flex-nowrap w-auto mb-3" id="status-group">
-        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-none min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] border-r border-border last:border-r-0" data-value="flash">
+      <div class="border border-border rounded-app overflow-x-auto flex flex-nowrap w-full mb-3" id="status-group">
+        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] border-r border-border last:border-r-0" data-value="flash">
           <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="flash"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Flash</span>
         </button>
-        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-none min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] border-r border-border last:border-r-0 active" data-value="send">
+        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] border-r border-border last:border-r-0 active" data-value="send">
           <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="send"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Send</span>
         </button>
-        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-none min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] border-r border-border last:border-r-0" data-value="project">
+        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] border-r border-border last:border-r-0" data-value="project">
           <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="project"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Project</span>
         </button>
-        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-none min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] border-r border-border last:border-r-0" data-value="wishlist">
+        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] border-r border-border last:border-r-0" data-value="wishlist">
           <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="wishlist"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Check out</span>
         </button>
-        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-none min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] border-r border-border last:border-r-0" data-value="abandoned">
+        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] border-r border-border last:border-r-0" data-value="abandoned">
           <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="abandoned"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Abandoned</span>
         </button>
       </div>
@@ -225,7 +225,7 @@
 
       <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]">Notes</div>
       <div class="mb-3">
-        <textarea class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full resize-y min-h-[72px]" id="entry-notes"></textarea>
+        <textarea class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground font-sans text-[1rem] outline-none focus:border-accent w-full resize-y min-h-[72px]" id="entry-notes"></textarea>
       </div>
 
       <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]">Video URL</div>
@@ -237,6 +237,17 @@
       <button type="button" class="w-full mt-[.6rem] bg-transparent text-red-400 border border-red-400/40 rounded-app py-[.7rem] text-[.9rem] font-semibold cursor-pointer hover:bg-red-400/10 disabled:opacity-[.45] disabled:cursor-not-allowed" id="entry-delete-btn" hidden>Delete entry</button>
       <div class="hidden" id="entry-msg"></div>
     </form>
+  </div>
+</div>
+
+<!-- ══ Notes view modal ═══════════════════════════════════════════════ -->
+<div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-center justify-center px-4 py-6 overflow-y-auto" id="notes-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="notes-modal-title">
+  <div class="bg-background border border-border rounded-app p-5 w-full max-w-[380px]">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-[1.15rem] font-bold text-accent" id="notes-modal-title">Notes</h2>
+      <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-[1.1rem] leading-none p-[.2rem] hover:text-foreground" id="notes-close" aria-label="Close">✕</button>
+    </div>
+    <p class="text-foreground text-[.95rem] whitespace-pre-wrap" id="notes-modal-text"></p>
   </div>
 </div>
 
@@ -573,7 +584,7 @@
           <td class="${TD_BASE}"><span class="grade-badge" style="color:${gradeColor(e.grade)}">${escapeHtml(e.grade)}</span></td>
           <td class="${TD_BASE}">
             <span class="font-medium ${e._pendingDelete ? "line-through text-muted" : ""}">${escapeHtml(e.name)}</span>
-            ${e.notes ? `<span class="cursor-help text-muted text-[.9rem]" title="${escapeHtml(e.notes)}"> ℹ</span>` : ""}
+            ${e.notes ? `<button type="button" class="notes-btn border-0 bg-transparent cursor-pointer text-muted inline-flex align-middle p-[.1rem] hover:text-accent" data-notes-id="${escapeHtml(e.id)}" aria-label="View notes"><svg class="w-[.85rem] h-[.85rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg></button>` : ""}
             ${pendingBadge}
           </td>
           <td class="${TD_BASE} text-muted text-[.82rem]">${escapeHtml(e.area)}</td>
@@ -686,6 +697,9 @@
   const entrySubmitBtn = document.getElementById("entry-submit-btn");
   const entryDeleteBtn = document.getElementById("entry-delete-btn");
   const entryMsg      = document.getElementById("entry-msg");
+
+  const notesOverlay  = document.getElementById("notes-overlay");
+  const notesModalText = document.getElementById("notes-modal-text");
 
   // ── Admin bar ────────────────────────────────────────────────────────
   function updateAdminBar() {
@@ -858,7 +872,23 @@
   // ── Entry form: status toggle (Flash = status send, flash=true) ─────
   let selectedStatus = "send";
   let isFlash = false;
-  document.getElementById("status-group").addEventListener("click", e => {
+  const statusGroup = document.getElementById("status-group");
+
+  // Fades the edges of #status-group's horizontal scroll to hint there's
+  // more content past them -- only on whichever side actually has more to
+  // scroll to, so a screen wide enough to show every button gets no fade
+  // at all (both edges read as "at start" and "at end" simultaneously).
+  function updateStatusScrollFade() {
+    const atStart = statusGroup.scrollLeft <= 1;
+    const atEnd = statusGroup.scrollLeft + statusGroup.clientWidth >= statusGroup.scrollWidth - 1;
+    const mask = `linear-gradient(to right, ${atStart ? "black" : "transparent"}, black 24px, black calc(100% - 24px), ${atEnd ? "black" : "transparent"})`;
+    statusGroup.style.maskImage = mask;
+    statusGroup.style.webkitMaskImage = mask;
+  }
+  statusGroup.addEventListener("scroll", updateStatusScrollFade);
+  window.addEventListener("resize", updateStatusScrollFade);
+
+  statusGroup.addEventListener("click", e => {
     const btn = e.target.closest(".toggle-btn");
     if (!btn) return;
     const value = btn.dataset.value;
@@ -916,7 +946,7 @@
     if (lastFocusedEl) lastFocusedEl.focus();
   }
   document.addEventListener("keydown", e => {
-    const openOverlay = [entryOverlay].find(o => !o.hidden);
+    const openOverlay = [entryOverlay, notesOverlay].find(o => !o.hidden);
     if (!openOverlay) return;
 
     if (e.key === "Escape") {
@@ -964,16 +994,33 @@
 
     openModal(entryOverlay);
     nameInput.focus();
+    // scrollWidth/clientWidth both read as 0 while the modal is still
+    // hidden -- wait a frame for it to actually paint before measuring.
+    requestAnimationFrame(updateStatusScrollFade);
   }
   addBtn.addEventListener("click", () => openEntryModal(null));
   document.getElementById("entry-close").addEventListener("click", () => closeModal(entryOverlay));
   entryOverlay.addEventListener("click", e => { if (e.target === entryOverlay) closeModal(entryOverlay); });
 
+  document.getElementById("notes-close").addEventListener("click", () => closeModal(notesOverlay));
+  notesOverlay.addEventListener("click", e => { if (e.target === notesOverlay) closeModal(notesOverlay); });
+
   document.addEventListener("click", e => {
     const editBtn = e.target.closest(".edit-btn");
-    if (!editBtn) return;
-    const entry = ALL_ENTRIES.find(x => x.id === editBtn.dataset.editId);
-    if (entry) openEntryModal(entry);
+    if (editBtn) {
+      const entry = ALL_ENTRIES.find(x => x.id === editBtn.dataset.editId);
+      if (entry) openEntryModal(entry);
+      return;
+    }
+
+    const notesBtn = e.target.closest(".notes-btn");
+    if (notesBtn) {
+      const entry = ALL_ENTRIES.find(x => x.id === notesBtn.dataset.notesId);
+      if (entry) {
+        notesModalText.textContent = entry.notes;
+        openModal(notesOverlay);
+      }
+    }
   });
 
   // ── Entry form: submit (online → API, offline → queue) ──────────────
