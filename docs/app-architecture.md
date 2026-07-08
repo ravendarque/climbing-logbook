@@ -14,6 +14,20 @@ dev`). The compiled file isn't committed — CI regenerates it before every
 deploy (`.github/workflows/deploy.yml`). This is a CSS build only; there's
 still no JS bundler or framework.
 
+Styling itself is Tailwind utility classes directly in `index.html`'s
+markup — not a utilities layer sitting alongside a separate hand-rolled
+stylesheet. The only CSS left in `index.html`'s own `<style>` block is the
+`:root` design tokens (colors, radius, font stack) that `styles/
+tailwind.css`'s `@theme` aliases read from, plus one narrow, documented
+exception (`[hidden] { display: none }`, needed because a normal-origin
+author `display` utility always beats the browser's own `[hidden]` rule
+regardless of layers or specificity — see the comment in `index.html` for
+why it can't move into Tailwind's layer system). Composite patterns
+Tailwind's utility set has no direct equivalent for (stacked gradients/
+shadows, currentColor-driven `color-mix`) are authored as `@utility`
+blocks in `styles/tailwind.css` itself, still inside Tailwind's layer
+system, rather than as plain CSS.
+
 ```
 styles/
 └── tailwind.css        Tailwind entry point (utilities only, no preflight —
@@ -30,7 +44,9 @@ src/
     └── json.js         Tiny JSON Response helper
 
 public/logbook/
-├── index.html          Entire app: markup + inline CSS + inline <script type="module">
+├── index.html          Entire app: markup (styled via Tailwind utility
+│                         classes) + a small inline <style> block for
+│                         :root design tokens + inline <script type="module">
 ├── tailwind.css         Generated — not committed, see .gitignore
 ├── sw.js               Service worker — offline app-shell + API caching
 ├── status-icons.js      SVG icon constants

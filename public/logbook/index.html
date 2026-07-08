@@ -24,9 +24,7 @@
       --color-accent-text: #ffffff;
       --color-border:      #2e2e2e;
       --r: 8px;
-    }
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
     /* Deliberately unlayered (not in styles/tailwind.css's @layer base),
@@ -55,30 +53,10 @@
       --grade-8a:    #c084fc;
       --field-h:     2.25rem;
     }
-
-    /* ── Layout ──────────────────────────────────────────────────── */
-    body { background: var(--color-bg); color: var(--color-text); padding: 1.5rem 1rem 4rem; }
-    #logbook-app { max-width: 960px; margin: 0 auto; }
-
-    .search-box {
-      flex: 0 1 220px; min-width: 140px;
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--r);
-      padding: .4rem .85rem;
-      color: var(--color-text);
-      font-size: .9rem;
-      outline: none;
-    }
-    .search-box::placeholder { color: var(--color-text-muted); }
-    .search-box:focus { border-color: var(--color-accent); }
-
-    /* ── Footer ──────────────────────────────────────────────────── */
-    .footer { text-align: center; color: var(--color-text-muted); font-size: .78rem; margin-top: 2rem; }
   </style>
 </head>
-<body>
-<div id="logbook-app">
+<body class="bg-background text-foreground font-sans px-4 pt-6 pb-16">
+<div class="max-w-[960px] mx-auto" id="logbook-app">
   <div class="flex items-center justify-center h-[60vh] text-muted flex-col gap-3" id="loading"><div class="w-8 h-8 border-2 border-border border-t-accent rounded-full animate-spin"></div><span>Loading logbook…</span></div>
   <div id="app" style="display:none">
 
@@ -107,7 +85,7 @@
     </div>
 
     <div class="flex flex-wrap items-center gap-3 mb-6">
-      <input class="search-box" id="search" placeholder="Search problems…" autocomplete="off">
+      <input class="flex-[0_1_220px] min-w-[140px] bg-surface border border-border rounded-app px-[.85rem] py-[.4rem] text-foreground text-[.9rem] outline-none placeholder:text-muted focus:border-accent" id="search" placeholder="Search problems…" autocomplete="off">
       <div class="filter-wrap relative ml-auto">
         <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&.active]:border-accent [&.active]:text-accent [&.active]:bg-[color-mix(in_srgb,var(--color-accent)_12%,var(--color-surface))]" id="filter-btn" aria-label="Filter" aria-expanded="false">
           <svg class="w-[1.1rem] h-[1.1rem] stroke-current fill-none" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"></path></svg>
@@ -148,7 +126,7 @@
 
     <div id="sections"></div>
 
-    <div class="footer" id="footer"></div>
+    <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>
   </div>
 </div>
 
