@@ -92,10 +92,9 @@
         </button>
         <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 bg-background border border-border rounded-app p-[.9rem] w-80 max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="filter-panel" hidden>
           <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mb-[.4rem]">Type</div>
-          <div class="flex flex-col bg-surface border border-border rounded-app overflow-hidden" id="type-toggle">
-            <button class="type-btn w-full px-[.7rem] py-[.55rem] text-[.82rem] border-0 border-b border-border bg-transparent text-muted cursor-pointer text-left transition-colors duration-150 last:border-b-0 [&.active]:bg-accent [&.active]:text-accent-foreground active" data-type="all">All</button>
-            <button class="type-btn w-full px-[.7rem] py-[.55rem] text-[.82rem] border-0 border-b border-border bg-transparent text-muted cursor-pointer text-left transition-colors duration-150 last:border-b-0 [&.active]:bg-accent [&.active]:text-accent-foreground" data-type="boulder">Boulder</button>
-            <button class="type-btn w-full px-[.7rem] py-[.55rem] text-[.82rem] border-0 border-b border-border bg-transparent text-muted cursor-pointer text-left transition-colors duration-150 last:border-b-0 [&.active]:bg-accent [&.active]:text-accent-foreground" data-type="lead">Lead</button>
+          <div class="border border-border rounded-app overflow-hidden flex flex-col w-full" id="type-toggle">
+            <button class="type-btn toggle-btn bg-surface text-muted text-[.58rem] font-bold uppercase tracking-[.03em] cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left border-b border-border last:border-b-0" data-type="boulder">Boulder</button>
+            <button class="type-btn toggle-btn bg-surface text-muted text-[.58rem] font-bold uppercase tracking-[.03em] cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left border-b border-border last:border-b-0" data-type="lead">Lead</button>
           </div>
           <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mb-[.4rem] mt-[.9rem]">Status</div>
           <div class="border border-border rounded-app overflow-hidden flex flex-col w-full" id="filter-status-group">
@@ -357,7 +356,7 @@
   // ── State ────────────────────────────────────────────────────────────
   const state = {
     statusFilters: new Set(), // empty = "all"
-    typeFilter: "all",
+    typeFilters: new Set(),   // empty = "all"
     search: "",
     sortByPlace: {},  // { placeName: { col: "grade", dir: "asc" } }
     collapsed: new Set(),
@@ -454,7 +453,7 @@
     return ALL_ENTRIES.filter(e => {
       if (state.statusFilters.size > 0 &&
           ![...state.statusFilters].some(f => entryMatchesStatusFilter(e, f))) return false;
-      if (state.typeFilter !== "all" && e.type !== state.typeFilter) return false;
+      if (state.typeFilters.size > 0 && !state.typeFilters.has(e.type)) return false;
       if (q && !e.name.toLowerCase().includes(q) && !(e.area||"").toLowerCase().includes(q)) return false;
       return true;
     });
@@ -487,7 +486,7 @@
   // ── Render ───────────────────────────────────────────────────────────
   function updateFilterUI() {
     document.querySelectorAll("#type-toggle .type-btn").forEach(b => {
-      const active = b.dataset.type === state.typeFilter;
+      const active = state.typeFilters.has(b.dataset.type);
       b.classList.toggle("active", active);
       b.setAttribute("aria-pressed", String(active));
     });
@@ -496,7 +495,7 @@
       b.classList.toggle("active", active);
       b.setAttribute("aria-pressed", String(active));
     });
-    const hasFilters = state.typeFilter !== "all" || state.statusFilters.size > 0;
+    const hasFilters = state.typeFilters.size > 0 || state.statusFilters.size > 0;
     filterBtn.classList.toggle("active", hasFilters);
   }
 
@@ -1056,7 +1055,7 @@
     // Clear filters
     if (e.target.closest("#filter-clear-btn")) {
       state.statusFilters.clear();
-      state.typeFilter = "all";
+      state.typeFilters.clear();
       render();
       return;
     }
@@ -1084,7 +1083,9 @@
     // Type toggle (filter, not entry form)
     const typeBtn = e.target.closest("#type-toggle .type-btn");
     if (typeBtn) {
-      state.typeFilter = typeBtn.dataset.type;
+      const type = typeBtn.dataset.type;
+      if (state.typeFilters.has(type)) state.typeFilters.delete(type);
+      else state.typeFilters.add(type);
       render();
       return;
     }
