@@ -256,6 +256,24 @@
   const LOGIN_HINT_KEY    = "logbook_logged_in_hint";
   const QUEUE_KEY         = "logbook_pending_queue";
 
+  // Cloudflare Access gates every /logbook/api/admin/* route at the edge --
+  // an unauthenticated request never reaches this app's own Worker code at
+  // all (see src/index.js). Instead Access responds with a redirect to its
+  // own hosted login page on a *different* origin (<team>.cloudflareaccess.com).
+  // A normal fetch() tries to follow that redirect and gets blocked by CORS
+  // (Access's login domain doesn't grant this origin access), which throws
+  // a generic network error -- indistinguishable from actually being
+  // offline. redirect: "manual" stops fetch from following it at all: the
+  // response comes back as an opaque, unreadable "opaqueredirect" instead
+  // of throwing, which is how every admin-authenticated fetch below tells
+  // "the Access session expired" apart from "genuinely offline".
+  function adminFetch(url, options) {
+    return fetch(url, { ...options, redirect: "manual" });
+  }
+  function isAuthRedirect(res) {
+    return res.type === "opaqueredirect";
+  }
+
   // ── Place → country map ──────────────────────────────────────────────
   const PLACE_COUNTRY = {
     "Magic Wood":          "🇨🇭 Switzerland",
@@ -431,13 +449,13 @@
         const item = queue[i];
         try {
           const res = item.op === "delete"
-            ? await fetch(`${ADMIN_DATA_URL}?id=${encodeURIComponent(item.entry.id)}`, { method: "DELETE" })
-            : await fetch(ADMIN_DATA_URL, {
+            ? await adminFetch(`${ADMIN_DATA_URL}?id=${encodeURIComponent(item.entry.id)}`, { method: "DELETE" })
+            : await adminFetch(ADMIN_DATA_URL, {
                 method: item.op === "edit" ? "PUT" : "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(item.entry),
               });
-          if (res.status === 401) {
+          if (res.status === 401 || isAuthRedirect(res)) {
             // queue.slice(i), not [item] -- every item from here on was
             // never attempted and must be preserved too, or a mid-sync
             // 401/network failure silently drops the rest of the queue.
@@ -714,12 +732,12 @@
     const next = !athleteMode;
     athleteModeBtn.disabled = true;
     try {
-      const res = await fetch(ADMIN_SETTINGS_URL, {
+      const res = await adminFetch(ADMIN_SETTINGS_URL, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ athleteMode: next }),
       });
-      if (res.status === 401) {
+      if (res.status === 401 || isAuthRedirect(res)) {
         // Access session lapsed since page load — same handling as
         // syncPending()'s 401 case: drop back to the logged-out view.
         isLoggedIn = false;
@@ -746,7 +764,7 @@
   async function checkSession() {
     let res;
     try {
-      res = await fetch(ADMIN_SESSION_URL);
+      res = await adminFetch(ADMIN_SESSION_URL);
     } catch {
       // Offline — fall back to the last known login state so the UI
       // still shows edit affordances; writes still get verified for
@@ -1000,11 +1018,12 @@
     const op = editingId ? "edit" : "add";
 
     try {
-      const res = await fetch(ADMIN_DATA_URL, {
+      const res = await adminFetch(ADMIN_DATA_URL, {
         method: editingId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(entry),
       });
+      if (isAuthRedirect(res)) throw new Error("not-authenticated");
       const data = await res.json();
       if (!res.ok) {
         entryMsg.textContent = data.error ?? `Error ${res.status}`;
@@ -1018,8 +1037,13 @@
       closeModal(entryOverlay);
       render();
     } catch (err) {
-      // Offline (or server unreachable) — queue for later sync, and
-      // reflect the change locally so it shows up right away.
+      // Offline, server unreachable, or the Access session lapsed (see
+      // adminFetch above) — queue for later sync either way, and reflect
+      // the change locally so it shows up right away.
+      if (err.message === "not-authenticated") {
+        isLoggedIn = false;
+        updateAdminBar();
+      }
       const queue = getQueue();
       const existingIdx = queue.findIndex(item => item.entry.id === entry.id);
       if (existingIdx !== -1) queue[existingIdx] = { op: queue[existingIdx].op, entry };
@@ -1056,7 +1080,8 @@
     }
 
     try {
-      const res = await fetch(`${ADMIN_DATA_URL}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      const res = await adminFetch(`${ADMIN_DATA_URL}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      if (isAuthRedirect(res)) throw new Error("not-authenticated");
       const data = await res.json();
       if (!res.ok) {
         entryMsg.textContent = data.error ?? `Error ${res.status}`;
@@ -1070,10 +1095,15 @@
       closeModal(entryOverlay);
       render();
     } catch (err) {
-      // Offline (or server unreachable) — queue for later sync. Keep the
+      // Offline, server unreachable, or the Access session lapsed (see
+      // adminFetch above) — queue for later sync either way. Keep the
       // entry visible (marked pending-delete via applyPendingToEntries)
       // rather than removing it locally; it only disappears once the
       // delete actually syncs.
+      if (err.message === "not-authenticated") {
+        isLoggedIn = false;
+        updateAdminBar();
+      }
       const queue = getQueue().filter(item => item.entry.id !== id);
       queue.push({ op: "delete", entry: entrySnapshot ?? { id } });
       setQueue(queue);
