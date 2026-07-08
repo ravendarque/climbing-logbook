@@ -240,6 +240,17 @@
   </div>
 </div>
 
+<!-- ══ Notes view modal ═══════════════════════════════════════════════ -->
+<div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-center justify-center px-4 py-6 overflow-y-auto" id="notes-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="notes-modal-title">
+  <div class="bg-background border border-border rounded-app p-5 w-full max-w-[380px]">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-[1.15rem] font-bold text-accent" id="notes-modal-title">Notes</h2>
+      <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-[1.1rem] leading-none p-[.2rem] hover:text-foreground" id="notes-close" aria-label="Close">✕</button>
+    </div>
+    <p class="text-foreground text-[.95rem] whitespace-pre-wrap" id="notes-modal-text"></p>
+  </div>
+</div>
+
 <script type="module">
   import { STATUS_ICONS } from "./status-icons.js";
   import { escapeHtml } from "./escape-html.js";
@@ -573,7 +584,7 @@
           <td class="${TD_BASE}"><span class="grade-badge" style="color:${gradeColor(e.grade)}">${escapeHtml(e.grade)}</span></td>
           <td class="${TD_BASE}">
             <span class="font-medium ${e._pendingDelete ? "line-through text-muted" : ""}">${escapeHtml(e.name)}</span>
-            ${e.notes ? `<span class="cursor-help text-muted text-[.9rem]" title="${escapeHtml(e.notes)}"> ℹ</span>` : ""}
+            ${e.notes ? `<button type="button" class="notes-btn border-0 bg-transparent cursor-pointer text-muted inline-flex align-middle p-[.1rem] hover:text-accent" data-notes-id="${escapeHtml(e.id)}" aria-label="View notes"><svg class="w-[.85rem] h-[.85rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg></button>` : ""}
             ${pendingBadge}
           </td>
           <td class="${TD_BASE} text-muted text-[.82rem]">${escapeHtml(e.area)}</td>
@@ -686,6 +697,9 @@
   const entrySubmitBtn = document.getElementById("entry-submit-btn");
   const entryDeleteBtn = document.getElementById("entry-delete-btn");
   const entryMsg      = document.getElementById("entry-msg");
+
+  const notesOverlay  = document.getElementById("notes-overlay");
+  const notesModalText = document.getElementById("notes-modal-text");
 
   // ── Admin bar ────────────────────────────────────────────────────────
   function updateAdminBar() {
@@ -916,7 +930,7 @@
     if (lastFocusedEl) lastFocusedEl.focus();
   }
   document.addEventListener("keydown", e => {
-    const openOverlay = [entryOverlay].find(o => !o.hidden);
+    const openOverlay = [entryOverlay, notesOverlay].find(o => !o.hidden);
     if (!openOverlay) return;
 
     if (e.key === "Escape") {
@@ -969,11 +983,25 @@
   document.getElementById("entry-close").addEventListener("click", () => closeModal(entryOverlay));
   entryOverlay.addEventListener("click", e => { if (e.target === entryOverlay) closeModal(entryOverlay); });
 
+  document.getElementById("notes-close").addEventListener("click", () => closeModal(notesOverlay));
+  notesOverlay.addEventListener("click", e => { if (e.target === notesOverlay) closeModal(notesOverlay); });
+
   document.addEventListener("click", e => {
     const editBtn = e.target.closest(".edit-btn");
-    if (!editBtn) return;
-    const entry = ALL_ENTRIES.find(x => x.id === editBtn.dataset.editId);
-    if (entry) openEntryModal(entry);
+    if (editBtn) {
+      const entry = ALL_ENTRIES.find(x => x.id === editBtn.dataset.editId);
+      if (entry) openEntryModal(entry);
+      return;
+    }
+
+    const notesBtn = e.target.closest(".notes-btn");
+    if (notesBtn) {
+      const entry = ALL_ENTRIES.find(x => x.id === notesBtn.dataset.notesId);
+      if (entry) {
+        notesModalText.textContent = entry.notes;
+        openModal(notesOverlay);
+      }
+    }
   });
 
   // ── Entry form: submit (online → API, offline → queue) ──────────────
