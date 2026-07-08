@@ -77,6 +77,24 @@
   white-space: nowrap;
 }
 
+/* Same currentColor-driven background as grade-badge above, but for the
+   entry form's grade <select> — its color comes from an inline style set
+   in JS (selectGradeByIndex), same as grade-badge's does from render(). */
+@utility grade-select {
+  border: 1px solid currentColor;
+  border-radius: var(--radius-app);
+  background: color-mix(in srgb, currentColor 25%, var(--color-surface));
+  color: var(--color-foreground);
+  font-size: .85rem;
+  font-weight: 700;
+  font-family: monospace;
+  text-align: center;
+  text-align-last: center;
+  padding: 0 .4rem;
+  outline: none;
+  appearance: none;
+}
+
 @utility switch-track {
   position: relative;
   flex: 0 0 auto;

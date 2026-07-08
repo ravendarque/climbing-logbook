@@ -73,282 +73,13 @@
     .search-box::placeholder { color: var(--color-text-muted); }
     .search-box:focus { border-color: var(--color-accent); }
 
-    /* ── Filter popover ──────────────────────────────────────────────────
-       #filter-status-group/.toggle-btn deliberately not migrated here —
-       it's the same shared component #type-group/#status-group use in
-       the entry form (#53's scope), and migrating it piecemeal across
-       two PRs would split a single component's definition across two
-       places worse than migrating it once where all its usages live. */
-    #filter-status-group {
-      display: flex; flex-direction: column;
-      width: 100%; margin-bottom: 0;
-    }
-    #filter-status-group .toggle-btn {
-      width: 100%;
-      display: flex; flex-direction: row; align-items: center; justify-content: flex-start;
-      gap: .6rem;
-      padding: .55rem .7rem;
-      border-right: none; border-bottom: 1px solid var(--color-border);
-      text-align: left;
-    }
-    #filter-status-group .toggle-btn:last-child { border-bottom: none; }
-    #filter-status-group .status-label { white-space: nowrap; }
-
-    /* ── Loading / error ─────────────────────────────────────────── */
-    #loading {
-      display: flex; align-items: center; justify-content: center;
-      height: 60vh; color: var(--color-text-muted); flex-direction: column; gap: .75rem;
-    }
-    .spinner {
-      width: 32px; height: 32px; border: 2px solid var(--color-border);
-      border-top-color: var(--color-accent); border-radius: 50%;
-      animation: spin .7s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .error-box {
-      background: color-mix(in srgb, #f87171 10%, var(--color-bg));
-      border: 1px solid color-mix(in srgb, #f87171 40%, transparent);
-      border-radius: var(--r); padding: 1rem 1.25rem; color: var(--color-text);
-    }
-    .empty-box {
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--r); padding: 1rem 1.25rem; color: var(--color-text-muted);
-      text-align: center;
-    }
-
     /* ── Footer ──────────────────────────────────────────────────── */
     .footer { text-align: center; color: var(--color-text-muted); font-size: .78rem; margin-top: 2rem; }
-
-    /* ══ Modal ══════════════════════════════════════════════════════ */
-    .modal-overlay {
-      position: fixed; inset: 0; z-index: 100;
-      background: color-mix(in srgb, black 60%, transparent);
-      display: flex; align-items: flex-start; justify-content: center;
-      padding: 1.5rem 1rem; overflow-y: auto;
-    }
-    .modal-overlay[hidden] { display: none; }
-    .modal-panel {
-      background: var(--color-bg);
-      border: 1px solid var(--color-border);
-      border-radius: var(--r);
-      padding: 1.25rem; width: 100%; max-width: 460px;
-    }
-    .modal-panel-sm { max-width: 320px; }
-    .modal-header {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 1rem;
-    }
-    .modal-header h2 { font-size: 1.15rem; font-weight: 700; color: var(--color-accent); }
-    .modal-close {
-      border: none; background: none; cursor: pointer;
-      color: var(--color-text-muted); font-size: 1.1rem; line-height: 1; padding: .2rem;
-    }
-    .modal-close:hover { color: var(--color-text); }
-
-    /* ── Section labels ────────────────────────────────────────────────── */
-    .section-label {
-      font-size: .72rem; font-weight: 600; text-transform: uppercase;
-      letter-spacing: .07em; color: var(--color-text-muted);
-      margin: 1.1rem 0 .5rem;
-    }
-    .section-label:first-child { margin-top: 0; }
-    .sub-label {
-      font-size: .72rem; font-weight: 600; text-transform: uppercase;
-      letter-spacing: .07em; color: var(--color-text-muted);
-      margin-bottom: .5rem;
-    }
-
-    /* ── Form fields ───────────────────────────────────────────────────── */
-    .field { margin-bottom: .75rem; }
-    .form-row { display: flex; flex-wrap: wrap; gap: .6rem; margin-bottom: .75rem; }
-    .form-row .field { flex: 1; min-width: 0; margin-bottom: 0; }
-
-    #entry-form input[type="text"], #entry-form input[type="url"] {
-      width: 100%; box-sizing: border-box;
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--r);
-      padding: .65rem .85rem;
-      color: var(--color-text);
-      font-size: 1rem;
-      outline: none;
-    }
-    #entry-form input[type="text"]:focus, #entry-form input[type="url"]:focus { border-color: var(--color-accent); }
-
-    #entry-form textarea {
-      width: 100%; box-sizing: border-box;
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--r);
-      padding: .65rem .85rem;
-      color: var(--color-text);
-      font-size: 1rem;
-      outline: none; resize: vertical; min-height: 72px;
-    }
-    #entry-form textarea:focus { border-color: var(--color-accent); }
-
-    /* ── Segmented toggle bar (type, status) ────────────────────────────── */
-    .toggle-bar {
-      display: flex; flex-wrap: wrap;
-      border: 1px solid var(--color-border);
-      border-radius: var(--r);
-      overflow: hidden;
-      margin-bottom: .75rem;
-    }
-    .toggle-btn {
-      flex: 1 0 auto;
-      box-sizing: border-box;
-      border: none;
-      border-right: 1px solid var(--color-border);
-      background: var(--color-surface);
-      color: var(--color-text-muted);
-      font-size: .78rem; font-weight: 600;
-      padding: .5rem .6rem;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: background .12s, color .12s;
-    }
-    .toggle-btn:last-child { border-right: none; }
-    .toggle-btn:hover { color: var(--color-text); }
-    .toggle-btn.active {
-      background: var(--color-accent);
-      color: var(--color-accent-text);
-    }
-
-    #type-group {
-      flex: 1 1 9rem;
-      min-width: 0;
-      height: var(--field-h);
-      margin-bottom: 0;
-    }
-    #type-group .toggle-btn {
-      flex: 1 1 0;
-      min-width: 4rem;
-      height: 100%;
-      display: flex; align-items: center; justify-content: center;
-      text-align: center;
-    }
-
-    #status-group { display: inline-flex; flex-wrap: nowrap; width: auto; }
-    #status-group .toggle-btn {
-      flex: 0 0 auto;
-      min-width: 4.5rem;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: .15rem;
-      padding: .45rem .3rem;
-    }
-    .form-status-icon { display: flex; }
-    .form-status-icon svg { width: 1.5rem; height: 1.5rem; }
-    .status-label {
-      font-size: .58rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .03em;
-    }
-
-    /* ── Grade picker ──────────────────────────────────────────────────── */
-    .grade-picker {
-      flex: 1 1 9rem;
-      min-width: 0;
-      height: var(--field-h);
-      display: flex; align-items: stretch; gap: .5rem;
-    }
-    .grade-step {
-      flex: 0 0 var(--field-h);
-      box-sizing: border-box;
-      display: flex; align-items: center; justify-content: center;
-      border: 1px solid var(--color-border);
-      border-radius: var(--r);
-      background: var(--color-surface);
-      color: var(--color-text);
-      cursor: pointer;
-    }
-    .grade-step svg { width: .8rem; height: .8rem; fill: currentColor; }
-    .grade-step:hover { border-color: var(--color-accent); }
-    .grade-step:active { transform: scale(.94); }
-
-    #grade-select {
-      box-sizing: border-box;
-      flex: 1;
-      min-width: 0;
-      height: var(--field-h);
-      border: 1px solid currentColor;
-      border-radius: var(--r);
-      background: color-mix(in srgb, currentColor 25%, var(--color-surface));
-      color: var(--color-text);
-      font-size: .85rem; font-weight: 700; font-family: monospace;
-      text-align: center; text-align-last: center;
-      padding: 0 .4rem;
-      outline: none;
-      appearance: none;
-      -webkit-appearance: none;
-    }
-    #grade-select option {
-      font-family: monospace; font-weight: 700;
-      background: var(--color-surface); color: var(--color-text);
-    }
-
-    /* ── Date input ────────────────────────────────────────────────────── */
-    .date-row { display: flex; align-items: stretch; gap: .5rem; }
-    #entry-form .date-row input#entry-date { width: 8.5rem; flex: 0 0 auto; }
-    .date-picker-btn {
-      flex: 0 0 2.75rem;
-      box-sizing: border-box;
-      display: flex; align-items: center; justify-content: center;
-      border: 1px solid var(--color-border);
-      border-radius: var(--r);
-      background: var(--color-surface);
-      color: var(--color-text);
-      cursor: pointer;
-    }
-    .date-picker-btn svg { width: 1.1rem; height: 1.1rem; stroke: currentColor; }
-    .date-picker-btn:hover { border-color: var(--color-accent); }
-    .date-native {
-      position: absolute; width: 1px; height: 1px;
-      opacity: 0; pointer-events: none;
-    }
-    .date-hint { font-size: .75rem; color: var(--color-text-muted); margin-top: .3rem; }
-
-    /* ── Submit ────────────────────────────────────────────────────────── */
-    .submit-btn {
-      width: 100%; margin-top: 1rem;
-      background: var(--color-accent); color: var(--color-accent-text);
-      border: none; border-radius: var(--r);
-      padding: .9rem; font-size: 1rem; font-weight: 700;
-      cursor: pointer;
-    }
-    .submit-btn:disabled { opacity: .45; cursor: not-allowed; }
-    .delete-btn {
-      width: 100%; margin-top: .6rem;
-      background: none; color: #f87171;
-      border: 1px solid color-mix(in srgb, #f87171 40%, transparent);
-      border-radius: var(--r);
-      padding: .7rem; font-size: .9rem; font-weight: 600;
-      cursor: pointer;
-    }
-    .delete-btn:hover { background: color-mix(in srgb, #f87171 10%, transparent); }
-    .delete-btn:disabled { opacity: .45; cursor: not-allowed; }
-
-    /* ── Message ───────────────────────────────────────────────────────── */
-    .msg {
-      margin-top: .85rem; padding: .75rem 1rem;
-      border-radius: var(--r); font-size: .9rem; display: none;
-    }
-    .msg.success {
-      background: color-mix(in srgb, #4ade80 12%, var(--color-surface));
-      border: 1px solid color-mix(in srgb, #4ade80 40%, transparent);
-      display: block;
-    }
-    .msg.error {
-      background: color-mix(in srgb, #f87171 12%, var(--color-surface));
-      border: 1px solid color-mix(in srgb, #f87171 40%, transparent);
-      display: block;
-    }
   </style>
 </head>
 <body>
 <div id="logbook-app">
-  <div id="loading"><div class="spinner"></div><span>Loading logbook…</span></div>
+  <div class="flex items-center justify-center h-[60vh] text-muted flex-col gap-3" id="loading"><div class="w-8 h-8 border-2 border-border border-t-accent rounded-full animate-spin"></div><span>Loading logbook…</span></div>
   <div id="app" style="display:none">
 
     <div class="flex items-center justify-between gap-3 mb-6">
@@ -389,21 +120,21 @@
             <button class="type-btn w-full px-[.7rem] py-[.55rem] text-[.82rem] border-0 border-b border-border bg-transparent text-muted cursor-pointer text-left transition-colors duration-150 last:border-b-0 [&.active]:bg-accent [&.active]:text-accent-foreground" data-type="lead">Lead</button>
           </div>
           <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mb-[.4rem] mt-[.9rem]">Status</div>
-          <div class="toggle-bar" id="filter-status-group">
-            <button type="button" class="toggle-btn" data-filter="flash">
-              <span class="form-status-icon" data-icon="flash"></span><span class="status-label">Flash</span>
+          <div class="border border-border rounded-app overflow-hidden flex flex-col w-full" id="filter-status-group">
+            <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left border-b border-border last:border-b-0" data-filter="flash">
+              <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="flash"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em] whitespace-nowrap">Flash</span>
             </button>
-            <button type="button" class="toggle-btn" data-filter="send">
-              <span class="form-status-icon" data-icon="send"></span><span class="status-label">Send</span>
+            <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left border-b border-border last:border-b-0" data-filter="send">
+              <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="send"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em] whitespace-nowrap">Send</span>
             </button>
-            <button type="button" class="toggle-btn" data-filter="project">
-              <span class="form-status-icon" data-icon="project"></span><span class="status-label">Project</span>
+            <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left border-b border-border last:border-b-0" data-filter="project">
+              <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="project"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em] whitespace-nowrap">Project</span>
             </button>
-            <button type="button" class="toggle-btn" data-filter="wishlist">
-              <span class="form-status-icon" data-icon="wishlist"></span><span class="status-label">Check out</span>
+            <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left border-b border-border last:border-b-0" data-filter="wishlist">
+              <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="wishlist"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em] whitespace-nowrap">Check out</span>
             </button>
-            <button type="button" class="toggle-btn" data-filter="abandoned">
-              <span class="form-status-icon" data-icon="abandoned"></span><span class="status-label">Abandoned</span>
+            <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left border-b border-border last:border-b-0" data-filter="abandoned">
+              <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="abandoned"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em] whitespace-nowrap">Abandoned</span>
             </button>
           </div>
           <button type="button" class="block w-full mt-[.9rem] bg-transparent border-0 text-muted text-[.78rem] underline cursor-pointer text-center hover:text-foreground" id="filter-clear-btn">Clear filters</button>
@@ -422,98 +153,98 @@
 </div>
 
 <!-- ══ Add / edit entry modal ════════════════════════════════════════ -->
-<div class="modal-overlay" id="entry-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="entry-modal-title">
-  <div class="modal-panel">
-    <div class="modal-header">
-      <h2 id="entry-modal-title">Add entry</h2>
-      <button type="button" class="modal-close" id="entry-close" aria-label="Close">✕</button>
+<div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-start justify-center px-4 py-6 overflow-y-auto" id="entry-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="entry-modal-title">
+  <div class="bg-background border border-border rounded-app p-5 w-full max-w-[460px]">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-[1.15rem] font-bold text-accent" id="entry-modal-title">Add entry</h2>
+      <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-[1.1rem] leading-none p-[.2rem] hover:text-foreground" id="entry-close" aria-label="Close">✕</button>
     </div>
 
     <form id="entry-form" autocomplete="off">
-      <div class="section-label">Problem/route name</div>
-      <div class="field">
-        <input type="text" id="entry-name" required>
+      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 first:mt-0 mt-[1.1rem]">Problem/route name</div>
+      <div class="mb-3">
+        <input type="text" class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full" id="entry-name" required>
       </div>
 
-      <div class="form-row">
-        <div class="field">
-          <div class="sub-label">Location</div>
-          <input type="text" id="entry-place" list="entry-places-list" required>
+      <div class="flex flex-wrap gap-[.6rem] mb-3">
+        <div class="flex-1 min-w-0">
+          <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Location</div>
+          <input type="text" class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full" id="entry-place" list="entry-places-list" required>
           <datalist id="entry-places-list"></datalist>
         </div>
-        <div class="field">
-          <div class="sub-label">Area</div>
-          <input type="text" id="entry-area" list="entry-areas-list">
+        <div class="flex-1 min-w-0">
+          <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Area</div>
+          <input type="text" class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full" id="entry-area" list="entry-areas-list">
           <datalist id="entry-areas-list"></datalist>
         </div>
       </div>
 
-      <div class="section-label">Grade</div>
-      <div class="form-row">
-        <div class="grade-picker">
-          <button type="button" class="grade-step" id="grade-prev" aria-label="Previous grade">
-            <svg viewBox="0 0 24 24"><polygon points="16 5 6 12 16 19"></polygon></svg>
+      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]">Grade</div>
+      <div class="flex flex-wrap gap-[.6rem] mb-3">
+        <div class="flex-[1_1_9rem] min-w-0 h-[var(--field-h)] flex items-stretch gap-2">
+          <button type="button" class="flex-[0_0_var(--field-h)] flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent active:scale-[.94]" id="grade-prev" aria-label="Previous grade">
+            <svg class="w-[.8rem] h-[.8rem] fill-current" viewBox="0 0 24 24"><polygon points="16 5 6 12 16 19"></polygon></svg>
           </button>
-          <select id="grade-select"></select>
-          <button type="button" class="grade-step" id="grade-next" aria-label="Next grade">
-            <svg viewBox="0 0 24 24"><polygon points="8 5 18 12 8 19"></polygon></svg>
+          <select class="grade-select flex-1 min-w-0 h-[var(--field-h)]" id="grade-select"></select>
+          <button type="button" class="flex-[0_0_var(--field-h)] flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent active:scale-[.94]" id="grade-next" aria-label="Next grade">
+            <svg class="w-[.8rem] h-[.8rem] fill-current" viewBox="0 0 24 24"><polygon points="8 5 18 12 8 19"></polygon></svg>
           </button>
         </div>
-        <div class="toggle-bar" id="type-group">
-          <button type="button" class="toggle-btn active" data-value="boulder">Boulder</button>
-          <button type="button" class="toggle-btn" data-value="lead">Lead</button>
+        <div class="border border-border rounded-app overflow-hidden flex flex-[1_1_9rem] min-w-0 h-[var(--field-h)]" id="type-group">
+          <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-1 min-w-16 h-full flex items-center justify-center text-center px-[.6rem] py-2 border-r border-border last:border-r-0 active" data-value="boulder">Boulder</button>
+          <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-1 min-w-16 h-full flex items-center justify-center text-center px-[.6rem] py-2 border-r border-border last:border-r-0" data-value="lead">Lead</button>
         </div>
       </div>
 
-      <div class="section-label">Status</div>
-      <div class="toggle-bar" id="status-group">
-        <button type="button" class="toggle-btn" data-value="flash">
-          <span class="form-status-icon" data-icon="flash"></span><span class="status-label">Flash</span>
+      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]">Status</div>
+      <div class="border border-border rounded-app overflow-hidden inline-flex flex-nowrap w-auto mb-3" id="status-group">
+        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-none min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] border-r border-border last:border-r-0" data-value="flash">
+          <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="flash"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Flash</span>
         </button>
-        <button type="button" class="toggle-btn active" data-value="send">
-          <span class="form-status-icon" data-icon="send"></span><span class="status-label">Send</span>
+        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-none min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] border-r border-border last:border-r-0 active" data-value="send">
+          <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="send"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Send</span>
         </button>
-        <button type="button" class="toggle-btn" data-value="project">
-          <span class="form-status-icon" data-icon="project"></span><span class="status-label">Project</span>
+        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-none min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] border-r border-border last:border-r-0" data-value="project">
+          <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="project"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Project</span>
         </button>
-        <button type="button" class="toggle-btn" data-value="wishlist">
-          <span class="form-status-icon" data-icon="wishlist"></span><span class="status-label">Check out</span>
+        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-none min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] border-r border-border last:border-r-0" data-value="wishlist">
+          <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="wishlist"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Check out</span>
         </button>
-        <button type="button" class="toggle-btn" data-value="abandoned">
-          <span class="form-status-icon" data-icon="abandoned"></span><span class="status-label">Abandoned</span>
+        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-none min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] border-r border-border last:border-r-0" data-value="abandoned">
+          <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="abandoned"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Abandoned</span>
         </button>
       </div>
 
-      <div class="section-label">When</div>
-      <div class="field">
-        <div class="date-row">
-          <input type="text" id="entry-date">
-          <button type="button" class="date-picker-btn" id="date-picker-btn" aria-label="Pick a date">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]">When</div>
+      <div class="mb-3">
+        <div class="flex items-stretch gap-2">
+          <input type="text" class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-[8.5rem] flex-none" id="entry-date">
+          <button type="button" class="flex-[0_0_2.75rem] flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent" id="date-picker-btn" aria-label="Pick a date">
+            <svg class="w-[1.1rem] h-[1.1rem] stroke-current" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="5" width="18" height="16" rx="2"></rect>
               <line x1="3" y1="10" x2="21" y2="10"></line>
               <line x1="8" y1="3" x2="8" y2="7"></line>
               <line x1="16" y1="3" x2="16" y2="7"></line>
             </svg>
           </button>
-          <input type="date" id="date-native" class="date-native" tabindex="-1" aria-hidden="true">
+          <input type="date" id="date-native" class="absolute w-px h-px opacity-0 pointer-events-none" tabindex="-1" aria-hidden="true">
         </div>
-        <div class="date-hint">YYYY-MM or YYYY-MM-DD</div>
+        <div class="text-[.75rem] text-muted mt-[.3rem]">YYYY-MM or YYYY-MM-DD</div>
       </div>
 
-      <div class="section-label">Notes</div>
-      <div class="field">
-        <textarea id="entry-notes"></textarea>
+      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]">Notes</div>
+      <div class="mb-3">
+        <textarea class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full resize-y min-h-[72px]" id="entry-notes"></textarea>
       </div>
 
-      <div class="section-label">Video URL</div>
-      <div class="field">
-        <input type="url" id="entry-video">
+      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]">Video URL</div>
+      <div class="mb-3">
+        <input type="url" class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full" id="entry-video">
       </div>
 
-      <button type="submit" class="submit-btn" id="entry-submit-btn">Add to logbook</button>
-      <button type="button" class="delete-btn" id="entry-delete-btn" hidden>Delete entry</button>
-      <div class="msg" id="entry-msg"></div>
+      <button type="submit" class="w-full mt-4 bg-accent text-accent-foreground border-none rounded-app py-[.9rem] text-[1rem] font-bold cursor-pointer disabled:opacity-[.45] disabled:cursor-not-allowed" id="entry-submit-btn">Add to logbook</button>
+      <button type="button" class="w-full mt-[.6rem] bg-transparent text-red-400 border border-red-400/40 rounded-app py-[.7rem] text-[.9rem] font-semibold cursor-pointer hover:bg-red-400/10 disabled:opacity-[.45] disabled:cursor-not-allowed" id="entry-delete-btn" hidden>Delete entry</button>
+      <div class="hidden" id="entry-msg"></div>
     </form>
   </div>
 </div>
@@ -803,7 +534,7 @@
     const groups = groupByPlace(entries);
 
     if (groups.length === 0) {
-      container.innerHTML = `<div class="empty-box">No problems match your filters.</div>`;
+      container.innerHTML = `<div class="bg-surface border border-border rounded-app px-5 py-4 text-muted text-center">No problems match your filters.</div>`;
       return;
     }
 
@@ -1074,7 +805,7 @@
   function renderGradeOptions() {
     const boulder = selectedType === "boulder";
     gradeSelect.innerHTML = currentGrades()
-      .map(({ g, v }) => `<option value="${g}">${boulder ? `${g}/${v}` : g}</option>`)
+      .map(({ g, v }) => `<option class="font-mono font-bold bg-surface text-foreground" value="${g}">${boulder ? `${g}/${v}` : g}</option>`)
       .join("");
   }
   function selectGradeByIndex(index) {
@@ -1112,7 +843,7 @@
     document.querySelectorAll("#status-group .toggle-btn").forEach(b =>
       b.classList.toggle("active", b === btn));
   });
-  document.querySelectorAll(".form-status-icon[data-icon]").forEach(el => {
+  document.querySelectorAll("[data-icon]").forEach(el => {
     el.innerHTML = STATUS_ICONS[el.dataset.icon];
   });
 
@@ -1190,7 +921,7 @@
     entryModalTitle.textContent = editingId ? "Edit entry" : "Add entry";
     entrySubmitBtn.textContent = editingId ? "Save changes" : "Add to logbook";
     entryDeleteBtn.hidden = !editingId;
-    entryMsg.className = "msg";
+    entryMsg.className = "hidden";
 
     nameInput.value  = entry?.name  ?? "";
     placeInput.value = entry?.place ?? "";
@@ -1225,7 +956,7 @@
   entryForm.addEventListener("submit", async e => {
     e.preventDefault();
     entrySubmitBtn.disabled = true;
-    entryMsg.className = "msg";
+    entryMsg.className = "hidden";
 
     const place = placeInput.value.trim();
     const name  = nameInput.value.trim();
@@ -1253,7 +984,7 @@
       const data = await res.json();
       if (!res.ok) {
         entryMsg.textContent = data.error ?? `Error ${res.status}`;
-        entryMsg.className = "msg error";
+        entryMsg.className = "mt-[.85rem] px-4 py-3 rounded-app text-[.9rem] bg-[color-mix(in_srgb,#f87171_12%,var(--color-surface))] border border-[color-mix(in_srgb,#f87171_40%,transparent)] text-red-400";
         entrySubmitBtn.disabled = false;
         return;
       }
@@ -1284,7 +1015,7 @@
     if (!confirm(`Delete "${nameInput.value.trim()}"? This can't be undone.`)) return;
 
     entryDeleteBtn.disabled = true;
-    entryMsg.className = "msg";
+    entryMsg.className = "hidden";
     const id = editingId;
 
     // If this entry only ever existed as a queued, unsynced "add", there's
@@ -1304,7 +1035,7 @@
       const data = await res.json();
       if (!res.ok) {
         entryMsg.textContent = data.error ?? `Error ${res.status}`;
-        entryMsg.className = "msg error";
+        entryMsg.className = "mt-[.85rem] px-4 py-3 rounded-app text-[.9rem] bg-[color-mix(in_srgb,#f87171_12%,var(--color-surface))] border border-[color-mix(in_srgb,#f87171_40%,transparent)] text-red-400";
         entryDeleteBtn.disabled = false;
         return;
       }
@@ -1458,7 +1189,7 @@
         try { ALL_ENTRIES = JSON.parse(cached); } catch { ALL_ENTRIES = []; }
       } else {
         document.getElementById("loading").innerHTML =
-          `<div class="error-box"><strong>Failed to load logbook data</strong><br>${escapeHtml(err.message)}</div>`;
+          `<div class="bg-[color-mix(in_srgb,#f87171_10%,var(--color-bg))] border border-[color-mix(in_srgb,#f87171_40%,transparent)] rounded-app px-5 py-4 text-foreground"><strong>Failed to load logbook data</strong><br>${escapeHtml(err.message)}</div>`;
         return;
       }
     }
