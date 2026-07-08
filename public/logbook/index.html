@@ -85,7 +85,7 @@
       </div>
     </div>
     <h1 class="font-display font-normal uppercase tracking-wide text-[3rem] leading-none mb-[.3rem] max-[600px]:text-[2.25rem]"><span class="text-accent">Climbing</span> <span class="text-foreground">Logbook</span></h1>
-    <p class="text-muted text-[.9rem] mb-4" id="subtitle"></p>
+    <p class="text-[.95rem] mb-4" id="subtitle"></p>
 
     <div class="flex flex-wrap gap-2 mb-5" id="admin-bar">
       <button type="button" class="admin-btn admin-btn-primary min-w-24 justify-center" id="add-btn" hidden>
@@ -640,10 +640,20 @@
   }
 
   function updateSubtitle(entries) {
-    const sends  = ALL_ENTRIES.filter(e => e.status === "send").length;
-    const places = new Set(ALL_ENTRIES.map(e => e.place)).size;
-    document.getElementById("subtitle").textContent =
-      `${ALL_ENTRIES.length} problems · ${sends} sent · ${places} destinations`;
+    const countries = new Set(ALL_ENTRIES.map(e => PLACE_COUNTRY[e.place]).filter(Boolean)).size;
+    const flashes   = ALL_ENTRIES.filter(e => e.status === "send" && e.flash).length;
+    const sends     = ALL_ENTRIES.filter(e => e.status === "send" && !e.flash).length;
+    const projects  = ALL_ENTRIES.filter(e => e.status === "project").length;
+
+    const stat = (n, label, color) =>
+      `<span class="${color} font-semibold">${n}</span> <span class="text-muted">${label}</span>`;
+
+    document.getElementById("subtitle").innerHTML = [
+      stat(countries, "Countries", "text-foreground"),
+      stat(flashes, "Flashes", "text-[#f4b400]"),
+      stat(sends, "Sends", "text-foreground"),
+      stat(projects, "Projects", "text-foreground"),
+    ].join(`<span class="text-muted"> · </span>`);
     document.getElementById("footer").textContent = "";
   }
 
