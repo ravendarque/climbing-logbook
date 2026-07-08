@@ -2,8 +2,7 @@
    tailwindcss/preflight's full normalization set (form-element resets,
    heading sizes, etc.) — the app already has its own explicit styling
    for every element, and preflight would change things beyond just the
-   box-sizing/margin/padding reset (see @layer base below), which is
-   the one piece of preflight this app actually depends on. */
+   handful of specific resets below that this app actually depends on. */
 @layer theme, base, utilities;
 
 @import "tailwindcss/theme" layer(theme);
@@ -22,6 +21,16 @@
    element, same as Tailwind's own preflight would behave. */
 @layer base {
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* button/input/select/textarea don't inherit font-family from their
+     ancestors by default in any browser's UA stylesheet -- they fall
+     back to the browser's own form-control font (Arial, in Chromium)
+     instead of picking up font-sans from <body> the way every other
+     element does. Explicitly setting font-sans on every single control
+     would work too, but this is the same fix in one place instead of
+     N -- and utility classes like grade-select's font-mono still win
+     over it when both apply, same as the box-sizing reset above. */
+  button, input, select, textarea { font-family: inherit; }
 }
 
 /* ── Theme tokens ──────────────────────────────────────────────────
