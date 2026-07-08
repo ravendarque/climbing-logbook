@@ -25,6 +25,20 @@
       --color-border:      #2e2e2e;
       --r: 8px;
       --font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --font-display: "Bebas Neue", sans-serif;
+    }
+
+    /* Bebas Neue, SIL OFL 1.1, (c) Dharma Type -- sourced directly from
+       https://github.com/dharmatype/Bebas-Neue, not Google Fonts. Single
+       weight only (no bold face shipped), so font-weight must stay 400
+       wherever this is used or the browser synthesizes a faux-bold that
+       renders visibly different from the real face. */
+    @font-face {
+      font-family: "Bebas Neue";
+      src: url("./fonts/BebasNeue-Regular.woff2") format("woff2");
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
     }
 
     /* Deliberately unlayered (not in styles/tailwind.css's @layer base),
@@ -70,7 +84,7 @@
         <button type="button" class="admin-btn" id="login-toggle-btn">Log in</button>
       </div>
     </div>
-    <h1 class="text-[2rem] font-bold text-accent mb-[.2rem] max-[600px]:text-[1.5rem]">Climbing Logbook</h1>
+    <h1 class="font-display font-normal uppercase tracking-wide text-[3rem] leading-none mb-[.3rem] max-[600px]:text-[2.25rem]"><span class="text-accent">Climbing</span> <span class="text-foreground">Logbook</span></h1>
     <p class="text-muted text-[.9rem] mb-4" id="subtitle"></p>
 
     <div class="flex flex-wrap gap-2 mb-5" id="admin-bar">
