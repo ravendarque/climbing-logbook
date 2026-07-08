@@ -413,7 +413,8 @@
     try {
       const remaining = [];
       let lastEntries = null;
-      for (const item of queue) {
+      for (let i = 0; i < queue.length; i++) {
+        const item = queue[i];
         try {
           const res = item.op === "delete"
             ? await fetch(`${ADMIN_DATA_URL}?id=${encodeURIComponent(item.entry.id)}`, { method: "DELETE" })
@@ -423,7 +424,10 @@
                 body: JSON.stringify(item.entry),
               });
           if (res.status === 401) {
-            remaining.push(item);
+            // queue.slice(i), not [item] -- every item from here on was
+            // never attempted and must be preserved too, or a mid-sync
+            // 401/network failure silently drops the rest of the queue.
+            remaining.push(...queue.slice(i));
             isLoggedIn = false;
             updateAdminBar();
             break;
@@ -432,7 +436,7 @@
           const data = await res.json();
           lastEntries = data.entries;
         } catch {
-          remaining.push(item);
+          remaining.push(...queue.slice(i));
           break; // still offline — stop, preserve order for next attempt
         }
       }
