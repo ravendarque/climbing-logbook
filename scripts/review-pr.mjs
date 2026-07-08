@@ -9,7 +9,7 @@
  * together, and it works on macOS/Linux for free.
  *
  * Usage:
- *   pnpm run review <pr-number> [--no-seed]
+ *   pnpm run review <pr-number> [--no-seed] [--no-pull]
  */
 
 import { spawn, spawnSync } from "node:child_process";
@@ -23,9 +23,10 @@ const stripAnsi = s => s.replace(ANSI_RE, "");
 
 const prNumber = process.argv[2];
 const noSeed = process.argv.includes("--no-seed");
+const noPull = process.argv.includes("--no-pull");
 
 if (!prNumber || prNumber.startsWith("-")) {
-  console.error("Usage: pnpm run review <pr-number> [--no-seed]");
+  console.error("Usage: pnpm run review <pr-number> [--no-seed] [--no-pull]");
   process.exit(1);
 }
 
@@ -51,8 +52,12 @@ function openBrowser(url) {
   opener.unref();
 }
 
-console.log(`==> Checking out PR #${prNumber}`);
-run("gh", ["pr", "checkout", prNumber]);
+if (noPull) {
+  console.log(`==> Skipping checkout (--no-pull) -- reviewing whatever's currently checked out`);
+} else {
+  console.log(`==> Checking out PR #${prNumber}`);
+  run("gh", ["pr", "checkout", prNumber]);
+}
 
 console.log("==> Installing dependencies");
 run("pnpm", ["install"]);
