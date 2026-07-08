@@ -59,6 +59,7 @@
   --color-grade-8a:          var(--grade-8a);
 
   --radius-app:              var(--r);
+  --font-sans:               var(--font-body);
 }
 
 /* ── Composite utilities ───────────────────────────────────────────
