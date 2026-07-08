@@ -79,7 +79,7 @@
         <span>Add</span>
       </button>
       <button type="button" class="admin-btn min-w-24 justify-center" id="sync-btn" hidden>
-        <svg class="w-4 h-4 stroke-current fill-none shrink-0" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 9 3-3 3 3"></path><path d="M13 18H7a2 2 0 0 1-2-2V6"></path><path d="m22 15-3 3-3-3"></path><path d="M11 6h6a2 2 0 0 1 2 2v10"></path></svg>
+        <svg class="w-4 h-4 stroke-current fill-none shrink-0" id="sync-btn-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 9 3-3 3 3"></path><path d="M13 18H7a2 2 0 0 1-2-2V6"></path><path d="m22 15-3 3-3-3"></path><path d="M11 6h6a2 2 0 0 1 2 2v10"></path></svg>
         <span id="sync-btn-label">Sync</span>
       </button>
     </div>
@@ -387,7 +387,11 @@
           ALL_ENTRIES.push({ ...item.entry, _pending: true });
         }
       } else if (item.op === "delete") {
-        ALL_ENTRIES = ALL_ENTRIES.filter(e => e.id !== item.entry.id);
+        // Stays visible (marked pending) until the delete actually syncs —
+        // removing it here early is what made offline-queued deletes
+        // vanish instead of showing as pending (see #61).
+        const idx = ALL_ENTRIES.findIndex(e => e.id === item.entry.id);
+        if (idx !== -1) ALL_ENTRIES[idx] = { ...item.entry, _pending: true, _pendingDelete: true };
       } else {
         const idx = ALL_ENTRIES.findIndex(e => e.id === item.entry.id);
         if (idx !== -1) ALL_ENTRIES[idx] = { ...item.entry, _pending: true };
@@ -404,41 +408,46 @@
     const queue = getQueue();
     if (!queue.length) return;
     syncBtn.disabled = true;
+    syncBtnIcon.classList.add("animate-spin");
 
-    const remaining = [];
-    let lastEntries = null;
-    for (const item of queue) {
-      try {
-        const res = item.op === "delete"
-          ? await fetch(`${ADMIN_DATA_URL}?id=${encodeURIComponent(item.entry.id)}`, { method: "DELETE" })
-          : await fetch(ADMIN_DATA_URL, {
-              method: item.op === "edit" ? "PUT" : "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(item.entry),
-            });
-        if (res.status === 401) {
+    try {
+      const remaining = [];
+      let lastEntries = null;
+      for (const item of queue) {
+        try {
+          const res = item.op === "delete"
+            ? await fetch(`${ADMIN_DATA_URL}?id=${encodeURIComponent(item.entry.id)}`, { method: "DELETE" })
+            : await fetch(ADMIN_DATA_URL, {
+                method: item.op === "edit" ? "PUT" : "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(item.entry),
+              });
+          if (res.status === 401) {
+            remaining.push(item);
+            isLoggedIn = false;
+            updateAdminBar();
+            break;
+          }
+          if (!res.ok) { remaining.push(item); continue; }
+          const data = await res.json();
+          lastEntries = data.entries;
+        } catch {
           remaining.push(item);
-          isLoggedIn = false;
-          updateAdminBar();
-          break;
+          break; // still offline — stop, preserve order for next attempt
         }
-        if (!res.ok) { remaining.push(item); continue; }
-        const data = await res.json();
-        lastEntries = data.entries;
-      } catch {
-        remaining.push(item);
-        break; // still offline — stop, preserve order for next attempt
       }
-    }
 
-    setQueue(remaining);
-    if (lastEntries) {
-      ALL_ENTRIES = lastEntries;
-      localStorage.setItem(ENTRIES_CACHE_KEY, JSON.stringify(ALL_ENTRIES));
-      applyPendingToEntries();
+      setQueue(remaining);
+      if (lastEntries) {
+        ALL_ENTRIES = lastEntries;
+        localStorage.setItem(ENTRIES_CACHE_KEY, JSON.stringify(ALL_ENTRIES));
+        applyPendingToEntries();
+      }
+    } finally {
+      syncBtn.disabled = false;
+      syncBtnIcon.classList.remove("animate-spin");
+      render();
     }
-    syncBtn.disabled = false;
-    render();
   }
 
   // ── Data ─────────────────────────────────────────────────────────────
@@ -500,6 +509,7 @@
   }
 
   const EDIT_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"></path></svg>`;
+  const PENDING_ICON = `<svg class="inline-block w-[.8rem] h-[.8rem] align-[-1px] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
 
   // ── Table cell/header base styles — shared across every place-section's
   // table, so defined once rather than repeated per column ──────────────
@@ -529,17 +539,24 @@
       const sortAria = (c) => c !== col ? "none" : (dir === "asc" ? "ascending" : "descending");
 
       const rows = sorted.map(e => {
-        const rowBg = e._pending
+        const rowBg = e._pendingDelete
+          ? "bg-[color-mix(in_srgb,#f87171_8%,var(--color-surface))]"
+          : e._pending
           ? "bg-[color-mix(in_srgb,var(--color-accent)_6%,var(--color-surface))]"
           : "hover:bg-[color-mix(in_srgb,var(--color-accent)_4%,var(--color-surface))]";
+        const pendingBadge = e._pendingDelete
+          ? `<span class="text-[.68rem] font-bold text-red-400 whitespace-nowrap"> ${PENDING_ICON} pending delete</span>`
+          : e._pending
+          ? `<span class="text-[.68rem] font-bold text-accent whitespace-nowrap"> ${PENDING_ICON} pending sync</span>`
+          : "";
         return `
         <tr class="border-b border-[color-mix(in_srgb,var(--color-border)_40%,transparent)] last:border-b-0 ${rowBg}">
           <td class="${TD_BASE} text-center w-8">${statusBadge(e)}</td>
           <td class="${TD_BASE}"><span class="grade-badge" style="color:${gradeColor(e.grade)}">${escapeHtml(e.grade)}</span></td>
           <td class="${TD_BASE}">
-            <span class="font-medium">${escapeHtml(e.name)}</span>
+            <span class="font-medium ${e._pendingDelete ? "line-through text-muted" : ""}">${escapeHtml(e.name)}</span>
             ${e.notes ? `<span class="cursor-help text-muted text-[.9rem]" title="${escapeHtml(e.notes)}"> ℹ</span>` : ""}
-            ${e._pending ? `<span class="text-[.68rem] font-bold text-accent whitespace-nowrap"> · pending sync</span>` : ""}
+            ${pendingBadge}
           </td>
           <td class="${TD_BASE} text-muted text-[.82rem]">${escapeHtml(e.area)}</td>
           <td class="${TD_BASE} text-muted text-[.82rem]">${escapeHtml(e.type)}</td>
@@ -618,6 +635,7 @@
   const addBtn      = document.getElementById("add-btn");
   const syncBtn     = document.getElementById("sync-btn");
   const syncBtnLabel = document.getElementById("sync-btn-label");
+  const syncBtnIcon  = document.getElementById("sync-btn-icon");
   const filterBtn    = document.getElementById("filter-btn");
   const filterPanel  = document.getElementById("filter-panel");
   const filterClearBtn = document.getElementById("filter-clear-btn");
@@ -995,6 +1013,7 @@
     entryDeleteBtn.disabled = true;
     entryMsg.className = "hidden";
     const id = editingId;
+    const entrySnapshot = ALL_ENTRIES.find(e => e.id === id);
 
     // If this entry only ever existed as a queued, unsynced "add", there's
     // nothing on the server to delete — just drop it from the queue.
@@ -1023,12 +1042,14 @@
       closeModal(entryOverlay);
       render();
     } catch (err) {
-      // Offline (or server unreachable) — queue for later sync, and
-      // remove it locally so it disappears from the list right away.
+      // Offline (or server unreachable) — queue for later sync. Keep the
+      // entry visible (marked pending-delete via applyPendingToEntries)
+      // rather than removing it locally; it only disappears once the
+      // delete actually syncs.
       const queue = getQueue().filter(item => item.entry.id !== id);
-      queue.push({ op: "delete", entry: { id } });
+      queue.push({ op: "delete", entry: entrySnapshot ?? { id } });
       setQueue(queue);
-      ALL_ENTRIES = ALL_ENTRIES.filter(e => e.id !== id);
+      applyPendingToEntries();
       closeModal(entryOverlay);
       render();
     }
