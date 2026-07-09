@@ -31,6 +31,19 @@
      N -- and utility classes like grade-select's font-mono still win
      over it when both apply, same as the box-sizing reset above. */
   button, input, select, textarea { font-family: inherit; }
+
+  /* <button> defaults to appearance: auto (native OS chrome) in every
+     browser's UA stylesheet -- Firefox renders that native theming far
+     more visibly than Chromium does (a 3D bevel border, a background that
+     can ignore an ancestor's border-radius/overflow: hidden clip, and a
+     slightly larger native min-size), which is exactly what #87 turned
+     out to be: toggle-btn's first button showing square corners despite
+     its container's rounded-app + overflow-hidden, a bevel seam between
+     buttons, and the row overflowing its container. grade-select already
+     sets this explicitly for the same reason (native <select> chrome) --
+     this is that same fix, generalized to every button instead of
+     leaving it as a one-off. */
+  button { appearance: none; }
 }
 
 /* ── Theme tokens ──────────────────────────────────────────────────
