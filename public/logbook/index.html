@@ -120,7 +120,7 @@
       <button type="button" class="admin-btn" id="login-toggle-btn">Log in</button>
     </div>
     <h1 class="font-display font-normal uppercase tracking-wide text-[3rem] leading-none mb-[.3rem] max-[600px]:text-[2.25rem]"><span class="text-accent">Climbing</span> <span class="text-foreground">Logbook</span></h1>
-    <p class="text-[1.05rem] text-muted mb-4">Log your climbs, visualise your progress (<a href="#tagline-footnote" class="text-accent no-underline hover:underline">or not</a>).</p>
+    <p class="text-[1.05rem] text-muted mb-4">Log your climbs, visualise your progress (<button type="button" class="inline bg-transparent border-0 p-0 cursor-pointer text-accent no-underline hover:underline" id="footnote-trigger">or not</button>).</p>
 
     <!-- Populated by renderTypeTabs() -- hidden entirely (not just empty)
          when fewer than two types have any entries, since there's nothing
@@ -180,11 +180,6 @@
     <div id="sections"></div>
 
     <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>
-
-    <p class="text-muted text-[.78rem] mt-10 pt-4 border-t border-border" id="tagline-footnote">
-      <a href="#app" class="text-accent no-underline hover:underline">↩</a>
-      or just keep a list because who can remember All The Stuffs™️ these days? Share it with friends, rivals, concerned family members, or internet strangers. See it on a map. Celebrate your success whether it's pulling on the first moves scared or sending your big proj. Just get out there and have fun climbing rocks &lt;3.
-    </p>
   </div>
 </div>
 
@@ -298,6 +293,17 @@
       <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-[1.1rem] leading-none p-[.2rem] hover:text-foreground" id="notes-close" aria-label="Close">✕</button>
     </div>
     <p class="text-foreground text-[.95rem] whitespace-pre-wrap" id="notes-modal-text"></p>
+  </div>
+</div>
+
+<!-- ══ "Or not" footnote modal ═══════════════════════════════════════ -->
+<div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-center justify-center px-4 py-6 overflow-y-auto" id="footnote-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="footnote-modal-title">
+  <div class="bg-background border border-border rounded-app p-5 w-full max-w-[380px]">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-[1.15rem] font-bold text-accent" id="footnote-modal-title">Or not</h2>
+      <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-[1.1rem] leading-none p-[.2rem] hover:text-foreground" id="footnote-close" aria-label="Close">✕</button>
+    </div>
+    <p class="text-foreground text-[.95rem]">or just keep a list because who can remember All The Stuffs™️ these days? Share it with friends, rivals, concerned family members, or internet strangers. See it on a map. Celebrate your success whether it's pulling on the first moves scared or sending your big proj. Just get out there and have fun climbing rocks &lt;3.</p>
   </div>
 </div>
 
@@ -847,6 +853,7 @@
 
   const notesOverlay  = document.getElementById("notes-overlay");
   const notesModalText = document.getElementById("notes-modal-text");
+  const footnoteOverlay = document.getElementById("footnote-overlay");
 
   // ── Admin bar ────────────────────────────────────────────────────────
   function updateAdminBar() {
@@ -1095,7 +1102,7 @@
     if (lastFocusedEl) lastFocusedEl.focus();
   }
   document.addEventListener("keydown", e => {
-    const openOverlay = [entryOverlay, notesOverlay].find(o => !o.hidden);
+    const openOverlay = [entryOverlay, notesOverlay, footnoteOverlay].find(o => !o.hidden);
     if (!openOverlay) return;
 
     if (e.key === "Escape") {
@@ -1153,6 +1160,10 @@
 
   document.getElementById("notes-close").addEventListener("click", () => closeModal(notesOverlay));
   notesOverlay.addEventListener("click", e => { if (e.target === notesOverlay) closeModal(notesOverlay); });
+
+  document.getElementById("footnote-trigger").addEventListener("click", () => openModal(footnoteOverlay));
+  document.getElementById("footnote-close").addEventListener("click", () => closeModal(footnoteOverlay));
+  footnoteOverlay.addEventListener("click", e => { if (e.target === footnoteOverlay) closeModal(footnoteOverlay); });
 
   document.addEventListener("click", e => {
     const editBtn = e.target.closest(".edit-btn");
