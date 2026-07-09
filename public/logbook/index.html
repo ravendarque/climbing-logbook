@@ -67,7 +67,44 @@
       --grade-8a:    #c084fc;
       --field-h:     2.25rem;
     }
+
+    /* ── Light theme override (#93) ───────────────────────────────────
+       Same token names as the dark defaults above, just re-pointed --
+       everything downstream (Tailwind's @theme aliases, every color-mix()
+       using currentColor/these tokens) picks this up automatically once
+       [data-theme="light"] is set, no separate light-mode logic needed
+       anywhere else. Grade colors are darker/more saturated shades of the
+       same hues (not identical to the dark-mode values) since the pastel
+       tones chosen for a near-black background read as too washed-out
+       against a light one. */
+    :root[data-theme="light"] {
+      --color-bg:          #f5f5f5;
+      --color-surface:     #ffffff;
+      --color-text:        #1a1a1a;
+      --color-text-muted:  #6b6b6b;
+      --color-accent:      #ff2727;
+      --color-accent-text: #ffffff;
+      --color-border:      #dcdcdc;
+      --grade-easy:  #64748b;
+      --grade-6a:    #0891b2;
+      --grade-6b:    #16a34a;
+      --grade-6c:    #65a30d;
+      --grade-7a:    #ca8a04;
+      --grade-7b:    #ea580c;
+      --grade-7c:    #b91c1c;
+      --grade-8a:    #9333ea;
+    }
   </style>
+  <script>
+    // Sets data-theme before first paint to avoid a flash of the wrong
+    // theme -- must run synchronously here (not deferred/async/module,
+    // which all run after the browser has already started painting).
+    (function () {
+      var stored = localStorage.getItem("logbook_theme");
+      var theme = stored || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
 </head>
 <body class="bg-background text-foreground font-sans px-4 pt-6 pb-16">
 <div class="max-w-[960px] mx-auto" id="logbook-app">
@@ -77,6 +114,7 @@
     <div class="flex items-center justify-between gap-3 mb-6">
       <a href="https://ravendarque.com/" class="inline-flex items-center gap-[.4rem] text-accent no-underline text-[.9rem] hover:opacity-75">← Back</a>
       <div class="flex items-center gap-2">
+        <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="theme-toggle-btn" aria-label="Switch to light theme"></button>
         <button type="button" class="group inline-flex items-center gap-2 bg-transparent border border-transparent px-[.8rem] py-[.4rem] cursor-pointer text-[.82rem] font-semibold text-foreground disabled:opacity-60 disabled:cursor-not-allowed" id="athlete-mode-btn" role="switch" aria-checked="false" hidden>
           <span class="transition-colors duration-150 group-aria-[checked=false]:text-muted">Athlete Mode</span>
           <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
@@ -698,6 +736,26 @@
     ].join(`<span class="text-muted"> · </span>`);
     document.getElementById("footer").textContent = "";
   }
+
+  // ── Theme toggle (light/dark) ─────────────────────────────────────────
+  // The actual theme is already set on <html> by the blocking inline
+  // script in <head> (before first paint) -- this just wires up the
+  // button to flip it and keeps the icon/label in sync.
+  const SUN_ICON = `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>`;
+  const MOON_ICON = `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>`;
+  const themeToggleBtn = document.getElementById("theme-toggle-btn");
+  function updateThemeToggleButton() {
+    const theme = document.documentElement.dataset.theme;
+    themeToggleBtn.innerHTML = theme === "light" ? MOON_ICON : SUN_ICON;
+    themeToggleBtn.setAttribute("aria-label", theme === "light" ? "Switch to dark theme" : "Switch to light theme");
+  }
+  updateThemeToggleButton();
+  themeToggleBtn.addEventListener("click", () => {
+    const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+    document.documentElement.dataset.theme = next;
+    localStorage.setItem("logbook_theme", next);
+    updateThemeToggleButton();
+  });
 
   // ── DOM refs ─────────────────────────────────────────────────────────
   const loginToggleBtn = document.getElementById("login-toggle-btn");
