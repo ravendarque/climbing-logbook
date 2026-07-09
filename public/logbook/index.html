@@ -125,6 +125,11 @@
     <h1 class="font-display font-normal uppercase tracking-wide text-[3rem] leading-none mb-[.3rem] max-[600px]:text-[2.25rem]"><span class="text-accent">Climbing</span> <span class="text-foreground">Logbook</span></h1>
     <p class="text-[.95rem] mb-4" id="subtitle"></p>
 
+    <!-- Populated by renderTypeTabs() -- hidden entirely (not just empty)
+         when fewer than two types have any entries, since there's nothing
+         to switch between (see #95). -->
+    <div class="inline-flex border border-border rounded-app h-9 mb-5" id="type-tabs" hidden></div>
+
     <div class="flex flex-wrap gap-2 mb-5" id="admin-bar">
       <button type="button" class="admin-btn admin-btn-primary min-w-24 justify-center" id="add-btn" hidden>
         <svg class="w-4 h-4 stroke-current fill-none shrink-0" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M8 12h8"></path><path d="M12 8v8"></path></svg>
@@ -143,14 +148,7 @@
           <svg class="w-[1.1rem] h-[1.1rem] stroke-current fill-none" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"></path></svg>
         </button>
         <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 bg-background border border-border rounded-app p-[.9rem] w-80 max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="filter-panel" hidden>
-          <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mb-[.4rem]" id="filter-type-label">Type</div>
-          <fieldset class="border border-border rounded-app flex flex-col w-full min-w-0" id="type-toggle" aria-labelledby="filter-type-label">
-            <label class="type-btn toggle-btn bg-surface text-muted text-[.58rem] font-bold uppercase tracking-[.03em] cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left first:rounded-t-app last:rounded-b-app shadow-[inset_0_-1px_0_var(--color-border)] last:shadow-none">
-              <input type="checkbox" class="sr-only" data-type="boulder">Boulder</label>
-            <label class="type-btn toggle-btn bg-surface text-muted text-[.58rem] font-bold uppercase tracking-[.03em] cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left first:rounded-t-app last:rounded-b-app shadow-[inset_0_-1px_0_var(--color-border)] last:shadow-none">
-              <input type="checkbox" class="sr-only" data-type="lead">Lead</label>
-          </fieldset>
-          <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mb-[.4rem] mt-[.9rem]" id="filter-status-label">Status</div>
+          <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mb-[.4rem]" id="filter-status-label">Status</div>
           <fieldset class="border border-border rounded-app flex flex-col w-full min-w-0" id="filter-status-group" aria-labelledby="filter-status-label">
             <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left first:rounded-t-app last:rounded-b-app shadow-[inset_0_-1px_0_var(--color-border)] last:shadow-none">
               <input type="checkbox" class="sr-only" data-filter="flash">
@@ -449,7 +447,9 @@
   // ── State ────────────────────────────────────────────────────────────
   const state = {
     statusFilters: new Set(), // empty = "all"
-    typeFilters: new Set(),   // empty = "all"
+    activeType: "boulder",    // which type-tab is showing -- set for real once
+                               // ALL_ENTRIES loads (see boot()); "boulder" here
+                               // is just a placeholder before that.
     search: "",
     sortByPlace: {},  // { placeName: { col: "grade", dir: "asc" } }
     collapsed: new Set(),
@@ -562,9 +562,9 @@
   function filteredEntries() {
     const q = state.search.toLowerCase();
     return ALL_ENTRIES.filter(e => {
+      if (e.type !== state.activeType) return false;
       if (state.statusFilters.size > 0 &&
           ![...state.statusFilters].some(f => entryMatchesStatusFilter(e, f))) return false;
-      if (state.typeFilters.size > 0 && !state.typeFilters.has(e.type)) return false;
       if (q && !e.name.toLowerCase().includes(q) && !(e.area||"").toLowerCase().includes(q)) return false;
       return true;
     });
@@ -596,14 +596,10 @@
 
   // ── Render ───────────────────────────────────────────────────────────
   function updateFilterUI() {
-    document.querySelectorAll("#type-toggle input[data-type]").forEach(input => {
-      input.checked = state.typeFilters.has(input.dataset.type);
-    });
     document.querySelectorAll("#filter-status-group input[data-filter]").forEach(input => {
       input.checked = state.statusFilters.has(input.dataset.filter);
     });
-    const hasFilters = state.typeFilters.size > 0 || state.statusFilters.size > 0;
-    filterBtn.classList.toggle("active", hasFilters);
+    filterBtn.classList.toggle("active", state.statusFilters.size > 0);
   }
 
   const EDIT_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"></path></svg>`;
@@ -657,7 +653,6 @@
             ${pendingBadge}
           </td>
           <td class="${TD_BASE} text-muted text-[.82rem]">${escapeHtml(e.area)}</td>
-          <td class="${TD_BASE} text-muted text-[.82rem]">${escapeHtml(e.type)}</td>
           <td class="${TD_BASE} text-muted text-[.82rem] whitespace-nowrap">${formatDate(e.date)}</td>
           <td class="${TD_BASE} text-center w-8">${e.video ? `<a class="inline-flex items-center gap-[.2rem] text-accent text-[.8rem] no-underline hover:opacity-75" href="${escapeHtml(e.video)}" target="_blank" rel="noopener" title="Watch video">▶</a>` : ""}</td>
           <td class="${TD_BASE} text-center w-8">${isLoggedIn ? `<button type="button" class="edit-btn border-0 bg-transparent cursor-pointer text-muted inline-flex p-[.2rem] hover:text-accent [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:stroke-current [&_svg]:fill-none" data-edit-id="${escapeHtml(e.id)}" aria-label="Edit">${EDIT_ICON}</button>` : ""}</td>
@@ -687,7 +682,6 @@
                     Name ${sortIcon("name")}
                   </th>
                   <th class="${TH_BASE}">Area</th>
-                  <th class="${TH_BASE}">Type</th>
                   <th class="${TH_BASE} ${TH_SORTABLE}" data-sort="date" data-place="${escapeHtml(place)}" role="button" tabindex="0" aria-sort="${sortAria("date")}">
                     Date ${sortIcon("date")}
                   </th>
@@ -696,7 +690,7 @@
                 </tr>
               </thead>
               <tbody>
-                ${rows || `<tr><td class="text-center text-muted p-8 text-[.9rem]" colspan="8">No problems match.</td></tr>`}
+                ${rows || `<tr><td class="text-center text-muted p-8 text-[.9rem]" colspan="7">No problems match.</td></tr>`}
               </tbody>
             </table>
           </div>
@@ -704,7 +698,50 @@
     }).join("");
   }
 
+  const TYPE_TAB_LABELS = { boulder: "Boulder", lead: "Lead" };
+  function renderTypeTabs() {
+    const container = document.getElementById("type-tabs");
+    const counts = { boulder: 0, lead: 0 };
+    for (const e of ALL_ENTRIES) if (counts[e.type] !== undefined) counts[e.type]++;
+    const types = Object.keys(TYPE_TAB_LABELS).filter(t => counts[t] > 0);
+
+    // Nothing to switch between (a fresh/empty logbook, or one where only
+    // one discipline has ever been logged) -- hide the tab bar entirely
+    // rather than show a single, permanently-active, unclickable tab.
+    if (types.length < 2) {
+      container.hidden = true;
+      container.innerHTML = "";
+      return;
+    }
+
+    container.hidden = false;
+
+    // Only rebuild the DOM when the set of tabs has actually changed
+    // (gaining/losing a second discipline) -- rebuilding via innerHTML on
+    // every render() (e.g. right after a tab switch) would destroy and
+    // recreate the just-focused input, dropping keyboard focus on every
+    // click. Same pattern updateFilterUI() already uses for the status
+    // checkboxes: update .checked on the existing elements, don't touch
+    // the DOM, when nothing structural changed.
+    const existingTypes = [...container.querySelectorAll("input")].map(el => el.value);
+    const needsRebuild = existingTypes.length !== types.length ||
+      existingTypes.some((t, i) => t !== types[i]);
+
+    if (needsRebuild) {
+      container.innerHTML = types.map(t => `
+        <label class="toggle-btn bg-surface text-muted text-[.82rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex items-center justify-center text-center px-4 h-full first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
+          <input type="radio" name="active-type" value="${t}" class="sr-only" ${state.activeType === t ? "checked" : ""}>${TYPE_TAB_LABELS[t]}
+        </label>
+      `).join("");
+    } else {
+      container.querySelectorAll("input").forEach(input => {
+        input.checked = input.value === state.activeType;
+      });
+    }
+  }
+
   function render() {
+    renderTypeTabs();
     const entries = filteredEntries();
     updateFilterUI();
     renderSections(entries);
@@ -1241,10 +1278,10 @@
       filterBtn.setAttribute("aria-expanded", "false");
     }
 
-    // Clear filters
+    // Clear filters (status only -- the active type-tab isn't a "filter"
+    // to clear, it's the current view)
     if (e.target.closest("#filter-clear-btn")) {
       state.statusFilters.clear();
-      state.typeFilters.clear();
       render();
       return;
     }
@@ -1274,9 +1311,9 @@
     }
   });
 
-  // Status/Type filters (multi-select checkboxes, not the entry form's
-  // radio-based toggles) -- change, not click, since they're now native
-  // <input type="checkbox"> rather than <button>.
+  // Status filter (multi-select checkboxes) and the type-tab switcher
+  // (single-select radios, see #95) -- change, not click, since they're
+  // native <input> elements rather than <button>.
   document.addEventListener("change", e => {
     const statusInput = e.target.closest("#filter-status-group input[data-filter]");
     if (statusInput) {
@@ -1287,11 +1324,8 @@
       return;
     }
 
-    const typeInput = e.target.closest("#type-toggle input[data-type]");
-    if (typeInput) {
-      const type = typeInput.dataset.type;
-      if (typeInput.checked) state.typeFilters.add(type);
-      else state.typeFilters.delete(type);
+    if (e.target.name === "active-type") {
+      state.activeType = e.target.value;
       render();
       return;
     }
@@ -1366,6 +1400,12 @@
       }
     }
     applyPendingToEntries();
+
+    // Default to whichever type actually has entries -- boulder wins if
+    // both/neither do, matching the entry form's own default type.
+    const hasBoulder = ALL_ENTRIES.some(e => e.type === "boulder");
+    const hasLead = ALL_ENTRIES.some(e => e.type === "lead");
+    state.activeType = hasBoulder || !hasLead ? "boulder" : "lead";
 
     // Sections default to collapsed on first load.
     for (const place of new Set(ALL_ENTRIES.map(e => e.place))) {
