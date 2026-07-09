@@ -105,29 +105,36 @@
           <svg class="w-[1.1rem] h-[1.1rem] stroke-current fill-none" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"></path></svg>
         </button>
         <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 bg-background border border-border rounded-app p-[.9rem] w-80 max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="filter-panel" hidden>
-          <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mb-[.4rem]">Type</div>
-          <div class="border border-border rounded-app overflow-hidden flex flex-col w-full" id="type-toggle">
-            <button class="type-btn toggle-btn bg-surface text-muted text-[.58rem] font-bold uppercase tracking-[.03em] cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left first:rounded-t-app last:rounded-b-app border-b border-border last:border-b-0" data-type="boulder">Boulder</button>
-            <button class="type-btn toggle-btn bg-surface text-muted text-[.58rem] font-bold uppercase tracking-[.03em] cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left first:rounded-t-app last:rounded-b-app border-b border-border last:border-b-0" data-type="lead">Lead</button>
-          </div>
-          <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mb-[.4rem] mt-[.9rem]">Status</div>
-          <div class="border border-border rounded-app overflow-hidden flex flex-col w-full" id="filter-status-group">
-            <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left first:rounded-t-app last:rounded-b-app border-b border-border last:border-b-0" data-filter="flash">
+          <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mb-[.4rem]" id="filter-type-label">Type</div>
+          <fieldset class="border border-border rounded-app flex flex-col w-full min-w-0" id="type-toggle" aria-labelledby="filter-type-label">
+            <label class="type-btn toggle-btn bg-surface text-muted text-[.58rem] font-bold uppercase tracking-[.03em] cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left first:rounded-t-app last:rounded-b-app shadow-[inset_0_-1px_0_var(--color-border)] last:shadow-none">
+              <input type="checkbox" class="sr-only" data-type="boulder">Boulder</label>
+            <label class="type-btn toggle-btn bg-surface text-muted text-[.58rem] font-bold uppercase tracking-[.03em] cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left first:rounded-t-app last:rounded-b-app shadow-[inset_0_-1px_0_var(--color-border)] last:shadow-none">
+              <input type="checkbox" class="sr-only" data-type="lead">Lead</label>
+          </fieldset>
+          <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mb-[.4rem] mt-[.9rem]" id="filter-status-label">Status</div>
+          <fieldset class="border border-border rounded-app flex flex-col w-full min-w-0" id="filter-status-group" aria-labelledby="filter-status-label">
+            <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left first:rounded-t-app last:rounded-b-app shadow-[inset_0_-1px_0_var(--color-border)] last:shadow-none">
+              <input type="checkbox" class="sr-only" data-filter="flash">
               <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="flash"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em] whitespace-nowrap">Flash</span>
-            </button>
-            <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left first:rounded-t-app last:rounded-b-app border-b border-border last:border-b-0" data-filter="send">
+            </label>
+            <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left first:rounded-t-app last:rounded-b-app shadow-[inset_0_-1px_0_var(--color-border)] last:shadow-none">
+              <input type="checkbox" class="sr-only" data-filter="send">
               <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="send"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em] whitespace-nowrap">Send</span>
-            </button>
-            <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left first:rounded-t-app last:rounded-b-app border-b border-border last:border-b-0" data-filter="project">
+            </label>
+            <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left first:rounded-t-app last:rounded-b-app shadow-[inset_0_-1px_0_var(--color-border)] last:shadow-none">
+              <input type="checkbox" class="sr-only" data-filter="project">
               <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="project"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em] whitespace-nowrap">Project</span>
-            </button>
-            <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left first:rounded-t-app last:rounded-b-app border-b border-border last:border-b-0" data-filter="wishlist">
+            </label>
+            <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left first:rounded-t-app last:rounded-b-app shadow-[inset_0_-1px_0_var(--color-border)] last:shadow-none">
+              <input type="checkbox" class="sr-only" data-filter="wishlist">
               <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="wishlist"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em] whitespace-nowrap">Check out</span>
-            </button>
-            <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left first:rounded-t-app last:rounded-b-app border-b border-border last:border-b-0" data-filter="abandoned">
+            </label>
+            <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left first:rounded-t-app last:rounded-b-app shadow-[inset_0_-1px_0_var(--color-border)] last:shadow-none">
+              <input type="checkbox" class="sr-only" data-filter="abandoned">
               <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="abandoned"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em] whitespace-nowrap">Abandoned</span>
-            </button>
-          </div>
+            </label>
+          </fieldset>
           <button type="button" class="block w-full mt-[.9rem] bg-transparent border-0 text-muted text-[.78rem] underline cursor-pointer text-center hover:text-foreground" id="filter-clear-btn">Clear filters</button>
         </div>
       </div>
@@ -181,30 +188,35 @@
             <svg class="w-[.8rem] h-[.8rem] fill-current" viewBox="0 0 24 24"><polygon points="8 5 18 12 8 19"></polygon></svg>
           </button>
         </div>
-        <div class="border border-border rounded-app overflow-hidden flex flex-[1_1_9rem] min-w-0 h-[var(--field-h)]" id="type-group">
-          <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-1 min-w-16 h-full flex items-center justify-center text-center px-[.6rem] py-2 first:rounded-l-app last:rounded-r-app border-r border-border last:border-r-0 active" data-value="boulder">Boulder</button>
-          <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-1 min-w-16 h-full flex items-center justify-center text-center px-[.6rem] py-2 first:rounded-l-app last:rounded-r-app border-r border-border last:border-r-0" data-value="lead">Lead</button>
-        </div>
+        <fieldset class="border border-border rounded-app flex flex-[1_1_9rem] min-w-0 h-[var(--field-h)]" id="type-group" aria-label="Type">
+          <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-16 flex items-center justify-center text-center px-[.6rem] py-2 first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none"><input type="radio" name="entry-type" value="boulder" class="sr-only" checked>Boulder</label>
+          <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-16 flex items-center justify-center text-center px-[.6rem] py-2 first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none"><input type="radio" name="entry-type" value="lead" class="sr-only">Lead</label>
+        </fieldset>
       </div>
 
-      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]">Status</div>
-      <div class="border border-border rounded-app overflow-x-auto flex flex-nowrap w-full mb-3" id="status-group">
-        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app border-r border-border last:border-r-0" data-value="flash">
+      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]" id="status-group-label">Status</div>
+      <fieldset class="border border-border rounded-app overflow-x-auto flex flex-nowrap w-full mb-3 min-w-0" id="status-group" aria-labelledby="status-group-label">
+        <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
+          <input type="radio" name="entry-status" value="flash" class="sr-only">
           <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="flash"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Flash</span>
-        </button>
-        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app border-r border-border last:border-r-0 active" data-value="send">
+        </label>
+        <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
+          <input type="radio" name="entry-status" value="send" class="sr-only" checked>
           <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="send"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Send</span>
-        </button>
-        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app border-r border-border last:border-r-0" data-value="project">
+        </label>
+        <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
+          <input type="radio" name="entry-status" value="project" class="sr-only">
           <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="project"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Project</span>
-        </button>
-        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app border-r border-border last:border-r-0" data-value="wishlist">
+        </label>
+        <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
+          <input type="radio" name="entry-status" value="wishlist" class="sr-only">
           <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="wishlist"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Check out</span>
-        </button>
-        <button type="button" class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app border-r border-border last:border-r-0" data-value="abandoned">
+        </label>
+        <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
+          <input type="radio" name="entry-status" value="abandoned" class="sr-only">
           <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="abandoned"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Abandoned</span>
-        </button>
-      </div>
+        </label>
+      </fieldset>
 
       <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]">When</div>
       <div class="mb-3">
@@ -541,15 +553,11 @@
 
   // ── Render ───────────────────────────────────────────────────────────
   function updateFilterUI() {
-    document.querySelectorAll("#type-toggle .type-btn").forEach(b => {
-      const active = state.typeFilters.has(b.dataset.type);
-      b.classList.toggle("active", active);
-      b.setAttribute("aria-pressed", String(active));
+    document.querySelectorAll("#type-toggle input[data-type]").forEach(input => {
+      input.checked = state.typeFilters.has(input.dataset.type);
     });
-    document.querySelectorAll("#filter-status-group .toggle-btn").forEach(b => {
-      const active = state.statusFilters.has(b.dataset.filter);
-      b.classList.toggle("active", active);
-      b.setAttribute("aria-pressed", String(active));
+    document.querySelectorAll("#filter-status-group input[data-filter]").forEach(input => {
+      input.checked = state.statusFilters.has(input.dataset.filter);
     });
     const hasFilters = state.typeFilters.size > 0 || state.statusFilters.size > 0;
     filterBtn.classList.toggle("active", hasFilters);
@@ -843,12 +851,9 @@
 
   // ── Entry form: type toggle ─────────────────────────────────────────
   let selectedType = "boulder";
-  document.getElementById("type-group").addEventListener("click", e => {
-    const btn = e.target.closest(".toggle-btn");
-    if (!btn) return;
-    selectedType = btn.dataset.value;
-    document.querySelectorAll("#type-group .toggle-btn").forEach(b =>
-      b.classList.toggle("active", b === btn));
+  document.getElementById("type-group").addEventListener("change", e => {
+    if (e.target.name !== "entry-type") return;
+    selectedType = e.target.value;
     renderGradeOptions();
     selectGradeByIndex(0);
   });
@@ -906,14 +911,11 @@
   statusGroup.addEventListener("scroll", updateStatusScrollFade);
   window.addEventListener("resize", updateStatusScrollFade);
 
-  statusGroup.addEventListener("click", e => {
-    const btn = e.target.closest(".toggle-btn");
-    if (!btn) return;
-    const value = btn.dataset.value;
+  statusGroup.addEventListener("change", e => {
+    if (e.target.name !== "entry-status") return;
+    const value = e.target.value;
     selectedStatus = value === "flash" ? "send" : value;
     isFlash = value === "flash";
-    document.querySelectorAll("#status-group .toggle-btn").forEach(b =>
-      b.classList.toggle("active", b === btn));
   });
   document.querySelectorAll("[data-icon]").forEach(el => {
     el.innerHTML = STATUS_ICONS[el.dataset.icon];
@@ -921,15 +923,13 @@
 
   function setStatusToggle(status, flash) {
     const value = flash ? "flash" : status;
-    document.querySelectorAll("#status-group .toggle-btn").forEach(b =>
-      b.classList.toggle("active", b.dataset.value === value));
+    document.querySelector(`#status-group input[value="${value}"]`).checked = true;
     selectedStatus = status;
     isFlash = flash;
   }
   function setTypeToggle(type) {
     selectedType = type;
-    document.querySelectorAll("#type-group .toggle-btn").forEach(b =>
-      b.classList.toggle("active", b.dataset.value === type));
+    document.querySelector(`#type-group input[value="${type}"]`).checked = true;
     renderGradeOptions();
   }
 
@@ -1196,26 +1196,6 @@
       return;
     }
 
-    // Status filter (multi-select)
-    const statusFilterBtn = e.target.closest("#filter-status-group .toggle-btn");
-    if (statusFilterBtn) {
-      const filter = statusFilterBtn.dataset.filter;
-      if (state.statusFilters.has(filter)) state.statusFilters.delete(filter);
-      else state.statusFilters.add(filter);
-      render();
-      return;
-    }
-
-    // Type toggle (filter, not entry form)
-    const typeBtn = e.target.closest("#type-toggle .type-btn");
-    if (typeBtn) {
-      const type = typeBtn.dataset.type;
-      if (state.typeFilters.has(type)) state.typeFilters.delete(type);
-      else state.typeFilters.add(type);
-      render();
-      return;
-    }
-
     // Sort header
     const sortTh = e.target.closest("th[data-sort]");
     if (sortTh) {
@@ -1227,6 +1207,29 @@
     const header = e.target.closest(".place-header");
     if (header) {
       toggleCollapse(header);
+      return;
+    }
+  });
+
+  // Status/Type filters (multi-select checkboxes, not the entry form's
+  // radio-based toggles) -- change, not click, since they're now native
+  // <input type="checkbox"> rather than <button>.
+  document.addEventListener("change", e => {
+    const statusInput = e.target.closest("#filter-status-group input[data-filter]");
+    if (statusInput) {
+      const filter = statusInput.dataset.filter;
+      if (statusInput.checked) state.statusFilters.add(filter);
+      else state.statusFilters.delete(filter);
+      render();
+      return;
+    }
+
+    const typeInput = e.target.closest("#type-toggle input[data-type]");
+    if (typeInput) {
+      const type = typeInput.dataset.type;
+      if (typeInput.checked) state.typeFilters.add(type);
+      else state.typeFilters.delete(type);
+      render();
       return;
     }
   });
