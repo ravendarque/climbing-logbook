@@ -128,7 +128,7 @@
     <!-- Populated by renderTypeTabs() -- hidden entirely (not just empty)
          when fewer than two types have any entries, since there's nothing
          to switch between (see #95). -->
-    <div class="inline-flex border border-border rounded-app h-9 mb-5" id="type-tabs" hidden></div>
+    <div class="flex gap-5 mb-5" id="type-tabs" hidden></div>
 
     <div class="flex flex-wrap gap-2 mb-5" id="admin-bar">
       <button type="button" class="admin-btn admin-btn-primary min-w-24 justify-center" id="add-btn" hidden>
@@ -728,8 +728,13 @@
       existingTypes.some((t, i) => t !== types[i]);
 
     if (needsRebuild) {
+      // Underline tabs, not the toggle-btn pill/segmented look used for
+      // Status filters and the entry form's own type/status toggles --
+      // those mean "toggle a setting"; this means "switch which content
+      // you're looking at," and reusing the filled-pill treatment for
+      // both read as the same kind of control when they aren't.
       container.innerHTML = types.map(t => `
-        <label class="toggle-btn bg-surface text-muted text-[.82rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex items-center justify-center text-center px-4 h-full first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
+        <label class="cursor-pointer whitespace-nowrap text-[.95rem] font-semibold text-muted pb-2 border-b-2 border-transparent transition-colors duration-150 hover:text-foreground has-checked:text-foreground has-checked:border-accent has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-2">
           <input type="radio" name="active-type" value="${t}" class="sr-only" ${state.activeType === t ? "checked" : ""}>${TYPE_TAB_LABELS[t]}
         </label>
       `).join("");
