@@ -443,7 +443,12 @@
   }
   function updateSyncButton() {
     const n = getQueue().length;
-    syncBtn.hidden = n === 0;
+    // A sync while logged out is a guaranteed no-op (Access rejects it) --
+    // same rule as addBtn/athleteModeBtn in updateAdminBar(). The pending
+    // entries themselves still show their own badges, so this doesn't hide
+    // the fact that changes are queued, just the button that can't act on
+    // them yet.
+    syncBtn.hidden = n === 0 || !isLoggedIn;
     syncBtnLabel.textContent = n ? `Sync (${n})` : "Sync";
   }
 
