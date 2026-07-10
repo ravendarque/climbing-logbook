@@ -36,7 +36,7 @@ function buildEntry(entry, id) {
     area:   entry.area   ?? "",
     type:   entry.type,
     status: entry.status,
-    flash:  entry.status === "send" ? Boolean(entry.flash) : false,
+    firstAttempt: entry.status === "send" ? Boolean(entry.firstAttempt) : false,
     date:   entry.date   || null,
     video:  entry.video  || null,
     notes:  entry.notes  || null,

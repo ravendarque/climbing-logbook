@@ -450,7 +450,7 @@
 
   const STATUS_ICON_CLASS = "inline-flex align-middle cursor-default [&_svg]:w-[1.4rem] [&_svg]:h-[1.4rem]";
   function statusBadge(entry) {
-    if (entry.status === "send" && entry.flash)
+    if (entry.status === "send" && entry.firstAttempt)
       return `<span class="${STATUS_ICON_CLASS}" title="${flashLabel(entry.type)}">${STATUS_ICONS.flash}</span>`;
     if (entry.status === "send")
       return `<span class="${STATUS_ICON_CLASS}" title="${sendLabel(entry.type)}">${STATUS_ICONS.send}</span>`;
@@ -571,8 +571,8 @@
 
   // ── Data ─────────────────────────────────────────────────────────────
   function entryMatchesStatusFilter(entry, filter) {
-    if (filter === "flash") return entry.status === "send" && entry.flash;
-    if (filter === "send")  return entry.status === "send" && !entry.flash;
+    if (filter === "flash") return entry.status === "send" && entry.firstAttempt;
+    if (filter === "send")  return entry.status === "send" && !entry.firstAttempt;
     return entry.status === filter;
   }
 
@@ -786,8 +786,8 @@
     // the two disciplines have their own separate views.
     const typeEntries = ALL_ENTRIES.filter(e => e.type === state.activeType);
     const countries = new Set(typeEntries.map(e => PLACE_COUNTRY[e.place]).filter(Boolean)).size;
-    const flashes   = typeEntries.filter(e => e.status === "send" && e.flash).length;
-    const sends     = typeEntries.filter(e => e.status === "send" && !e.flash).length;
+    const flashes   = typeEntries.filter(e => e.status === "send" && e.firstAttempt).length;
+    const sends     = typeEntries.filter(e => e.status === "send" && !e.firstAttempt).length;
     const projects  = typeEntries.filter(e => e.status === "project").length;
 
     const stat = (n, singular, plural) =>
@@ -1148,7 +1148,7 @@
     setTypeToggle(entry?.type ?? state.activeType);
     if (entry) selectGradeByValue(entry.grade, entry.type);
     else selectGradeByIndex(0);
-    setStatusToggle(entry?.status ?? "send", Boolean(entry?.flash));
+    setStatusToggle(entry?.status ?? "send", Boolean(entry?.firstAttempt));
 
     populatePlaces();
     populateAreas(placeInput.value.trim());
@@ -1204,7 +1204,7 @@
       grade:  selectedGrade,
       type:   selectedType,
       status: selectedStatus,
-      flash:  isFlash,
+      firstAttempt: isFlash,
       date:   dateInput.value.trim() || null,
       notes:  notesInput.value.trim() || null,
       video:  videoInput.value.trim() || null,

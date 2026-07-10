@@ -87,7 +87,7 @@ blob: `{ entries: Entry[] }`. Each entry:
   area: string,     // "" if unset, never null
   type: "boulder" | "lead",
   status: "send" | "project" | "abandoned" | "wishlist",
-  flash: boolean,   // only meaningful when status === "send"
+  firstAttempt: boolean,   // only meaningful when status === "send" -- discipline-neutral name for flash/onsight
   date: string | null,   // "YYYY", "YYYY-MM", or "YYYY-MM-DD"
   video: string | null,  // http(s) URL, validated server-side
   notes: string | null,
