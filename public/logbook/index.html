@@ -211,20 +211,14 @@
       </div>
 
       <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]">Grade</div>
-      <div class="flex flex-wrap gap-[.6rem] mb-3">
-        <div class="flex-[1_1_9rem] min-w-0 h-[var(--field-h)] flex items-stretch gap-2">
-          <button type="button" class="flex-[0_0_var(--field-h)] flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent active:scale-[.94]" id="grade-prev" aria-label="Previous grade">
-            <svg class="w-[.8rem] h-[.8rem] fill-current" viewBox="0 0 24 24"><polygon points="16 5 6 12 16 19"></polygon></svg>
-          </button>
-          <select class="grade-select flex-1 min-w-0 h-[var(--field-h)]" id="grade-select"></select>
-          <button type="button" class="flex-[0_0_var(--field-h)] flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent active:scale-[.94]" id="grade-next" aria-label="Next grade">
-            <svg class="w-[.8rem] h-[.8rem] fill-current" viewBox="0 0 24 24"><polygon points="8 5 18 12 8 19"></polygon></svg>
-          </button>
-        </div>
-        <fieldset class="border border-border rounded-app flex flex-[1_1_9rem] min-w-0 h-[var(--field-h)]" id="type-group" aria-label="Type">
-          <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-16 flex items-center justify-center text-center px-[.6rem] py-2 first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none"><input type="radio" name="entry-type" value="boulder" class="sr-only" checked>Boulder</label>
-          <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-16 flex items-center justify-center text-center px-[.6rem] py-2 first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none"><input type="radio" name="entry-type" value="lead" class="sr-only">Lead</label>
-        </fieldset>
+      <div class="h-[var(--field-h)] flex items-stretch gap-2 mb-3">
+        <button type="button" class="flex-[0_0_var(--field-h)] flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent active:scale-[.94]" id="grade-prev" aria-label="Previous grade">
+          <svg class="w-[.8rem] h-[.8rem] fill-current" viewBox="0 0 24 24"><polygon points="16 5 6 12 16 19"></polygon></svg>
+        </button>
+        <select class="grade-select flex-1 min-w-0 h-[var(--field-h)]" id="grade-select"></select>
+        <button type="button" class="flex-[0_0_var(--field-h)] flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent active:scale-[.94]" id="grade-next" aria-label="Next grade">
+          <svg class="w-[.8rem] h-[.8rem] fill-current" viewBox="0 0 24 24"><polygon points="8 5 18 12 8 19"></polygon></svg>
+        </button>
       </div>
 
       <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]" id="status-group-label">Status</div>
@@ -978,32 +972,24 @@
     }
   });
 
-  // ── Entry form: type toggle ─────────────────────────────────────────
-  let selectedType = "boulder";
-  // Tracks the form's own selected type (Boulder/Lead in the Add/Edit
-  // modal itself), not state.activeType (the page's active view tab) --
-  // these can differ, e.g. editing a Lead entry while viewing the
-  // Boulder tab.
+  // ── Entry form: labels (Problem/Route name, Flash/Onsight, Send/Redpoint) ──
+  // The form no longer has its own type toggle -- an entry's type is
+  // whichever tab was active when the form opened (state.activeType),
+  // since the table it was added/edited from is already scoped to that
+  // type by construction.
   function updateFormStatusLabels() {
-    document.getElementById("form-flash-label").textContent = flashLabel(selectedType);
-    document.getElementById("form-send-label").textContent = sendLabel(selectedType);
-    document.getElementById("form-name-label").textContent = nameLabel(selectedType);
+    document.getElementById("form-flash-label").textContent = flashLabel(state.activeType);
+    document.getElementById("form-send-label").textContent = sendLabel(state.activeType);
+    document.getElementById("form-name-label").textContent = nameLabel(state.activeType);
   }
-  document.getElementById("type-group").addEventListener("change", e => {
-    if (e.target.name !== "entry-type") return;
-    selectedType = e.target.value;
-    renderGradeOptions();
-    selectGradeByIndex(0);
-    updateFormStatusLabels();
-  });
 
   // ── Entry form: grade picker (dropdown + prev/next) ──────────────────
   let selectedGrade = "";
   function currentGrades() {
-    return selectedType === "boulder" ? BOULDER_GRADES : LEAD_GRADES;
+    return state.activeType === "boulder" ? BOULDER_GRADES : LEAD_GRADES;
   }
   function renderGradeOptions() {
-    const boulder = selectedType === "boulder";
+    const boulder = state.activeType === "boulder";
     gradeSelect.innerHTML = currentGrades()
       .map(({ g, v }) => `<option class="font-bold bg-surface text-foreground" value="${g}">${boulder ? `${g}/${v}` : g}</option>`)
       .join("");
@@ -1065,12 +1051,6 @@
     document.querySelector(`#status-group input[value="${value}"]`).checked = true;
     selectedStatus = status;
     isFlash = flash;
-  }
-  function setTypeToggle(type) {
-    selectedType = type;
-    document.querySelector(`#type-group input[value="${type}"]`).checked = true;
-    renderGradeOptions();
-    updateFormStatusLabels();
   }
 
   // ── Entry form: date picker ──────────────────────────────────────────
@@ -1142,12 +1122,10 @@
     videoInput.value = entry?.video ?? "";
     dateInput.value  = entry?.date  ?? new Date().toISOString().slice(0, 10);
 
-    // New entries default to whichever tab you're currently viewing, not
-    // always boulder -- adding from the Lead tab should open the form
-    // already on Lead, not require an extra click to fix it.
-    setTypeToggle(entry?.type ?? state.activeType);
+    renderGradeOptions();
     if (entry) selectGradeByValue(entry.grade, entry.type);
     else selectGradeByIndex(0);
+    updateFormStatusLabels();
     setStatusToggle(entry?.status ?? "send", Boolean(entry?.firstAttempt));
 
     populatePlaces();
@@ -1202,7 +1180,7 @@
       area:   areaInput.value.trim(),
       name,
       grade:  selectedGrade,
-      type:   selectedType,
+      type:   state.activeType,
       status: selectedStatus,
       firstAttempt: isFlash,
       date:   dateInput.value.trim() || null,
