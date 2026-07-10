@@ -184,7 +184,7 @@
 </div>
 
 <!-- ══ Add / edit entry modal ════════════════════════════════════════ -->
-<div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-start justify-center px-4 py-6 overflow-y-auto" id="entry-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="entry-modal-title">
+<div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-start justify-center px-4 py-6 overflow-y-auto" id="entry-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="entry-modal-title" tabindex="-1">
   <div class="bg-background border border-border rounded-app p-5 w-full max-w-[460px]">
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-[1.15rem] font-bold text-accent" id="entry-modal-title">Add entry</h2>
@@ -283,7 +283,7 @@
 </div>
 
 <!-- ══ Notes view modal ═══════════════════════════════════════════════ -->
-<div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-center justify-center px-4 py-6 overflow-y-auto" id="notes-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="notes-modal-title">
+<div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-center justify-center px-4 py-6 overflow-y-auto" id="notes-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="notes-modal-title" tabindex="-1">
   <div class="bg-background border border-border rounded-app p-5 w-full max-w-[380px]">
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-[1.15rem] font-bold text-accent" id="notes-modal-title">Notes</h2>
@@ -294,7 +294,7 @@
 </div>
 
 <!-- ══ "Or not" footnote modal ═══════════════════════════════════════ -->
-<div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-center justify-center px-4 py-6 overflow-y-auto" id="footnote-overlay" hidden role="dialog" aria-modal="true" aria-label="Or not">
+<div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-center justify-center px-4 py-6 overflow-y-auto" id="footnote-overlay" hidden role="dialog" aria-modal="true" aria-label="Or not" tabindex="-1">
   <div class="bg-background border border-border rounded-app p-5 w-full max-w-[380px]">
     <div class="flex justify-end mb-1">
       <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-[1.1rem] leading-none p-[.2rem] hover:text-foreground" id="footnote-close" aria-label="Close">✕</button>
@@ -669,7 +669,7 @@
             ${pendingBadge}
           </td>
           <td class="${TD_BASE} text-muted text-[.82rem]">${escapeHtml(e.area)}</td>
-          <td class="${TD_BASE} text-muted text-[.82rem] whitespace-nowrap">${formatDate(e.date)}</td>
+          <td class="${TD_BASE} text-muted text-[.82rem] whitespace-nowrap">${escapeHtml(formatDate(e.date))}</td>
           <td class="${TD_BASE} text-center w-8">${e.video ? `<a class="inline-flex items-center gap-[.2rem] text-accent text-[.8rem] no-underline hover:opacity-75" href="${escapeHtml(e.video)}" target="_blank" rel="noopener" title="Watch video">▶</a>` : ""}</td>
           <td class="${TD_BASE} text-center w-8">${isLoggedIn ? `<button type="button" class="edit-btn border-0 bg-transparent cursor-pointer text-muted inline-flex p-[.2rem] hover:text-accent [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:stroke-current [&_svg]:fill-none" data-edit-id="${escapeHtml(e.id)}" aria-label="Edit">${EDIT_ICON}</button>` : ""}</td>
         </tr>
@@ -1081,6 +1081,7 @@
     lastFocusedEl = document.activeElement;
     overlay.hidden = false;
     overlay.scrollTop = 0;
+    (focusableEls(overlay)[0] ?? overlay).focus();
   }
   function closeModal(overlay) {
     overlay.hidden = true;

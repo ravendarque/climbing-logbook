@@ -24,16 +24,28 @@ self.addEventListener("activate", event => {
   self.clients.claim();
 });
 
+// Paths whose GET responses must never be cached, even though res.ok is
+// true. /logbook/api/logbook also sets Cache-Control: no-store, but that
+// header is about preventing HTTP-level caching upstream, not about this
+// SW's own Cache Storage fallback -- that endpoint is deliberately cached
+// here for offline reads. Session/login checks are different: caching them
+// lets a stale "logged in" response get served back after the real Access
+// session has ended, so they're excluded by path instead.
+const NEVER_CACHE_PREFIXES = ["/logbook/api/admin/", "/logbook/api/settings"];
+
 // Network-first, cache-fallback for GETs (app shell and /logbook/api/logbook).
 // Non-GET requests (writes) pass through untouched so the page's own
 // offline-queue logic can detect the failure.
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
 
+  const { pathname } = new URL(event.request.url);
+  const skipCache = NEVER_CACHE_PREFIXES.some(p => pathname.startsWith(p));
+
   event.respondWith(
     fetch(event.request)
       .then(res => {
-        if (res.ok) {
+        if (res.ok && !skipCache) {
           const copy = res.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
         }
