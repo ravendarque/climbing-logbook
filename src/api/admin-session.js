@@ -4,6 +4,9 @@
 export async function handleAdminSession(request) {
   const email = request.headers.get("Cf-Access-Authenticated-User-Email");
   return new Response(JSON.stringify({ loggedIn: true, email }), {
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": "no-store",
+    },
   });
 }

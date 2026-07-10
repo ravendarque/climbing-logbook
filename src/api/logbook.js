@@ -5,6 +5,19 @@ const KV_KEY = "logbook:entries";
 const VALID_TYPES    = ["boulder", "lead"];
 const VALID_STATUSES = ["send", "project", "abandoned", "wishlist"];
 
+// Mirrors BOULDER_GRADES/LEAD_GRADES in public/logbook/index.html -- the
+// client only ever offers a closed set via a dropdown, so any other value
+// reaching here is a malformed write (bad client state, a hand-crafted API
+// call, or a stale offline-queue replay), not a legitimate grade.
+const VALID_GRADES = {
+  boulder: ["5", "5+", "5A", "5B", "5C", "6A", "6A+", "6B", "6B+", "6C", "6C+", "7A", "7A+", "7B", "7B+", "7C", "7C+", "8A", "8A+", "8B", "8B+"],
+  lead:    ["5c", "6a", "6a+", "6b", "6b+", "6c", "6c+", "7a", "7a+", "7b", "7b+", "7c", "7c+", "8a"],
+};
+
+// "YYYY", "YYYY-MM", or "YYYY-MM-DD" -- matches the shape documented in
+// docs/app-architecture.md. date is optional (null when unset).
+const DATE_SHAPE = /^\d{4}(-\d{2}(-\d{2})?)?$/;
+
 function validateFields(entry) {
   for (const field of ["place", "name", "grade", "type", "status"]) {
     if (!entry[field]) return `Missing required field: ${field}`;
@@ -12,8 +25,14 @@ function validateFields(entry) {
   if (!VALID_TYPES.includes(entry.type)) {
     return `type must be one of: ${VALID_TYPES.join(", ")}`;
   }
+  if (!VALID_GRADES[entry.type].includes(entry.grade)) {
+    return `grade must be one of: ${VALID_GRADES[entry.type].join(", ")}`;
+  }
   if (!VALID_STATUSES.includes(entry.status)) {
     return `status must be one of: ${VALID_STATUSES.join(", ")}`;
+  }
+  if (entry.date && !DATE_SHAPE.test(entry.date)) {
+    return "date must be YYYY, YYYY-MM, or YYYY-MM-DD";
   }
   if (entry.video) {
     try {
