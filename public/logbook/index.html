@@ -192,7 +192,7 @@
     </div>
 
     <form id="entry-form" autocomplete="off">
-      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 first:mt-0 mt-[1.1rem]">Problem/route name</div>
+      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 first:mt-0 mt-[1.1rem]" id="form-name-label">Problem name</div>
       <div class="mb-3">
         <input type="text" class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full" id="entry-name" required>
       </div>
@@ -443,8 +443,10 @@
   // way, see #98) -- icons stay the same, only the label text differs.
   const FLASH_LABEL = { boulder: ["Flash", "Flashes"], lead: ["Onsight", "Onsights"] };
   const SEND_LABEL  = { boulder: ["Send", "Sends"],    lead: ["Redpoint", "Redpoints"] };
+  const NAME_LABEL  = { boulder: "Problem name", lead: "Route name" };
   const flashLabel = (type, plural) => FLASH_LABEL[type ?? "boulder"][plural ? 1 : 0];
   const sendLabel  = (type, plural) => SEND_LABEL[type ?? "boulder"][plural ? 1 : 0];
+  const nameLabel  = type => NAME_LABEL[type ?? "boulder"];
 
   const STATUS_ICON_CLASS = "inline-flex align-middle cursor-default [&_svg]:w-[1.4rem] [&_svg]:h-[1.4rem]";
   function statusBadge(entry) {
@@ -985,6 +987,7 @@
   function updateFormStatusLabels() {
     document.getElementById("form-flash-label").textContent = flashLabel(selectedType);
     document.getElementById("form-send-label").textContent = sendLabel(selectedType);
+    document.getElementById("form-name-label").textContent = nameLabel(selectedType);
   }
   document.getElementById("type-group").addEventListener("change", e => {
     if (e.target.name !== "entry-type") return;
@@ -1139,7 +1142,10 @@
     videoInput.value = entry?.video ?? "";
     dateInput.value  = entry?.date  ?? new Date().toISOString().slice(0, 10);
 
-    setTypeToggle(entry?.type ?? "boulder");
+    // New entries default to whichever tab you're currently viewing, not
+    // always boulder -- adding from the Lead tab should open the form
+    // already on Lead, not require an extra click to fix it.
+    setTypeToggle(entry?.type ?? state.activeType);
     if (entry) selectGradeByValue(entry.grade, entry.type);
     else selectGradeByIndex(0);
     setStatusToggle(entry?.status ?? "send", Boolean(entry?.flash));
