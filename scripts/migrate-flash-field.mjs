@@ -20,6 +20,9 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { writeFileSync, unlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const NAMESPACE_ID = "47bd45146334450f82ca7dcb69c34b15";
 const KEY = "logbook:entries";
@@ -53,11 +56,20 @@ if (migrated === 0) {
   process.exit(0);
 }
 
+// Passed via --path (a temp file) rather than as a positional argument --
+// the full blob is tens of KB, well past the ~32KB command-line length
+// limit Windows enforces (CreateProcess), which a positional arg would hit.
 const updated = JSON.stringify({ entries });
-execFileSync(
-  "pnpm",
-  ["exec", "wrangler", "kv", "key", "put", KEY, updated, "--remote", "--namespace-id", NAMESPACE_ID],
-  { stdio: "inherit" },
-);
+const tmpFile = join(tmpdir(), `logbook-entries-migrated-${Date.now()}.json`);
+writeFileSync(tmpFile, updated);
+try {
+  execFileSync(
+    "pnpm",
+    ["exec", "wrangler", "kv", "key", "put", KEY, "--path", tmpFile, "--remote", "--namespace-id", NAMESPACE_ID],
+    { stdio: "inherit" },
+  );
+} finally {
+  unlinkSync(tmpFile);
+}
 
 console.log("Done.");
