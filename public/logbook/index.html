@@ -111,30 +111,22 @@
   <div class="flex items-center justify-center h-[60vh] text-muted flex-col gap-3" id="loading"><div class="w-8 h-8 border-2 border-border border-t-accent rounded-full animate-spin"></div><span>Loading logbook…</span></div>
   <div id="app" style="display:none">
 
-    <div class="flex items-center justify-between gap-3 mb-6">
-      <a href="https://ravendarque.com/" class="inline-flex items-center gap-[.4rem] text-accent no-underline text-[.9rem] hover:opacity-75">← Back</a>
-      <div class="flex items-center gap-2">
-        <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="theme-toggle-btn" aria-label="Switch to light theme"></button>
-        <button type="button" class="group inline-flex items-center gap-2 bg-transparent border border-transparent px-[.8rem] py-[.4rem] cursor-pointer text-[.82rem] font-semibold text-foreground disabled:opacity-60 disabled:cursor-not-allowed" id="athlete-mode-btn" role="switch" aria-checked="false" hidden>
-          <span class="transition-colors duration-150 group-aria-[checked=false]:text-muted">Athlete Mode</span>
-          <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
-        </button>
-        <button type="button" class="admin-btn" id="login-toggle-btn">Log in</button>
-      </div>
+    <div class="flex items-center justify-end gap-2 mb-6">
+      <button type="button" class="group inline-flex items-center gap-2 bg-transparent border border-transparent px-[.8rem] py-[.4rem] cursor-pointer text-[.82rem] font-semibold text-foreground disabled:opacity-60 disabled:cursor-not-allowed" id="athlete-mode-btn" role="switch" aria-checked="false" hidden>
+        <span class="transition-colors duration-150 group-aria-[checked=false]:text-muted">Athlete Mode</span>
+        <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
+      </button>
+      <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="theme-toggle-btn" aria-label="Switch to light theme"></button>
+      <button type="button" class="admin-btn" id="login-toggle-btn">Log in</button>
     </div>
     <h1 class="font-display font-normal uppercase tracking-wide text-[3rem] leading-none mb-[.3rem] max-[600px]:text-[2.25rem]"><span class="text-accent">Climbing</span> <span class="text-foreground">Logbook</span></h1>
-    <p class="text-[.95rem] mb-4" id="subtitle"></p>
+    <p class="text-[1.05rem] text-muted mb-4">Log your climbs, visualise your progress (<button type="button" class="inline bg-transparent border-0 p-0 cursor-pointer text-accent no-underline hover:underline" id="footnote-trigger">or not</button>).</p>
 
-    <div class="flex flex-wrap gap-2 mb-5" id="admin-bar">
-      <button type="button" class="admin-btn admin-btn-primary min-w-24 justify-center" id="add-btn" hidden>
-        <svg class="w-4 h-4 stroke-current fill-none shrink-0" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M8 12h8"></path><path d="M12 8v8"></path></svg>
-        <span>Add</span>
-      </button>
-      <button type="button" class="admin-btn min-w-24 justify-center" id="sync-btn" hidden>
-        <svg class="w-4 h-4 stroke-current fill-none shrink-0" id="sync-btn-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 9 3-3 3 3"></path><path d="M13 18H7a2 2 0 0 1-2-2V6"></path><path d="m22 15-3 3-3-3"></path><path d="M11 6h6a2 2 0 0 1 2 2v10"></path></svg>
-        <span id="sync-btn-label">Sync</span>
-      </button>
-    </div>
+    <!-- Populated by renderTypeTabs() -- hidden entirely (not just empty)
+         when fewer than two types have any entries, since there's nothing
+         to switch between (see #95). -->
+    <div class="flex gap-5 mb-5" id="type-tabs" hidden></div>
+    <p class="text-[.95rem] mb-4" id="subtitle"></p>
 
     <div class="flex flex-wrap items-center gap-3 mb-6">
       <input class="flex-[0_1_220px] min-w-[140px] bg-surface border border-border rounded-app px-[.85rem] py-[.4rem] text-foreground text-[.9rem] outline-none placeholder:text-muted focus:border-accent" id="search" placeholder="Search problems…" autocomplete="off">
@@ -143,22 +135,15 @@
           <svg class="w-[1.1rem] h-[1.1rem] stroke-current fill-none" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"></path></svg>
         </button>
         <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 bg-background border border-border rounded-app p-[.9rem] w-80 max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="filter-panel" hidden>
-          <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mb-[.4rem]" id="filter-type-label">Type</div>
-          <fieldset class="border border-border rounded-app flex flex-col w-full min-w-0" id="type-toggle" aria-labelledby="filter-type-label">
-            <label class="type-btn toggle-btn bg-surface text-muted text-[.58rem] font-bold uppercase tracking-[.03em] cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left first:rounded-t-app last:rounded-b-app shadow-[inset_0_-1px_0_var(--color-border)] last:shadow-none">
-              <input type="checkbox" class="sr-only" data-type="boulder">Boulder</label>
-            <label class="type-btn toggle-btn bg-surface text-muted text-[.58rem] font-bold uppercase tracking-[.03em] cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left first:rounded-t-app last:rounded-b-app shadow-[inset_0_-1px_0_var(--color-border)] last:shadow-none">
-              <input type="checkbox" class="sr-only" data-type="lead">Lead</label>
-          </fieldset>
-          <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mb-[.4rem] mt-[.9rem]" id="filter-status-label">Status</div>
+          <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mb-[.4rem]" id="filter-status-label">Status</div>
           <fieldset class="border border-border rounded-app flex flex-col w-full min-w-0" id="filter-status-group" aria-labelledby="filter-status-label">
             <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left first:rounded-t-app last:rounded-b-app shadow-[inset_0_-1px_0_var(--color-border)] last:shadow-none">
               <input type="checkbox" class="sr-only" data-filter="flash">
-              <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="flash"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em] whitespace-nowrap">Flash</span>
+              <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="flash"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em] whitespace-nowrap" id="filter-flash-label">Flash</span>
             </label>
             <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left first:rounded-t-app last:rounded-b-app shadow-[inset_0_-1px_0_var(--color-border)] last:shadow-none">
               <input type="checkbox" class="sr-only" data-filter="send">
-              <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="send"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em] whitespace-nowrap">Send</span>
+              <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="send"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em] whitespace-nowrap" id="filter-send-label">Send</span>
             </label>
             <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left first:rounded-t-app last:rounded-b-app shadow-[inset_0_-1px_0_var(--color-border)] last:shadow-none">
               <input type="checkbox" class="sr-only" data-filter="project">
@@ -178,7 +163,17 @@
       </div>
     </div>
 
-    <div class="flex justify-end mb-2">
+    <div class="flex items-center justify-between mb-2">
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button" class="admin-btn admin-btn-primary min-w-24 justify-center" id="add-btn" hidden>
+          <svg class="w-4 h-4 stroke-current fill-none shrink-0" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M8 12h8"></path><path d="M12 8v8"></path></svg>
+          <span>Add</span>
+        </button>
+        <button type="button" class="admin-btn min-w-24 justify-center" id="sync-btn" hidden>
+          <svg class="w-4 h-4 stroke-current fill-none shrink-0" id="sync-btn-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 9 3-3 3 3"></path><path d="M13 18H7a2 2 0 0 1-2-2V6"></path><path d="m22 15-3 3-3-3"></path><path d="M11 6h6a2 2 0 0 1 2 2v10"></path></svg>
+          <span id="sync-btn-label">Sync</span>
+        </button>
+      </div>
       <button type="button" class="bg-transparent border-0 text-muted text-[.8rem] font-semibold cursor-pointer px-[.3rem] py-[.2rem] hover:text-accent" id="collapse-all-btn">Expand all</button>
     </div>
 
@@ -197,7 +192,7 @@
     </div>
 
     <form id="entry-form" autocomplete="off">
-      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 first:mt-0 mt-[1.1rem]">Problem/route name</div>
+      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 first:mt-0 mt-[1.1rem]" id="form-name-label">Problem name</div>
       <div class="mb-3">
         <input type="text" class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full" id="entry-name" required>
       </div>
@@ -215,32 +210,46 @@
         </div>
       </div>
 
-      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]">Grade</div>
-      <div class="flex flex-wrap gap-[.6rem] mb-3">
-        <div class="flex-[1_1_9rem] min-w-0 h-[var(--field-h)] flex items-stretch gap-2">
-          <button type="button" class="flex-[0_0_var(--field-h)] flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent active:scale-[.94]" id="grade-prev" aria-label="Previous grade">
-            <svg class="w-[.8rem] h-[.8rem] fill-current" viewBox="0 0 24 24"><polygon points="16 5 6 12 16 19"></polygon></svg>
-          </button>
-          <select class="grade-select flex-1 min-w-0 h-[var(--field-h)]" id="grade-select"></select>
-          <button type="button" class="flex-[0_0_var(--field-h)] flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent active:scale-[.94]" id="grade-next" aria-label="Next grade">
-            <svg class="w-[.8rem] h-[.8rem] fill-current" viewBox="0 0 24 24"><polygon points="8 5 18 12 8 19"></polygon></svg>
-          </button>
+      <div class="flex flex-wrap gap-[.6rem] mb-3 mt-[1.1rem]">
+        <div class="flex-1 min-w-[9rem]">
+          <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Grade</div>
+          <div class="h-[var(--field-h)] flex items-stretch gap-2">
+            <button type="button" class="flex-[0_0_var(--field-h)] flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent active:scale-[.94]" id="grade-prev" aria-label="Previous grade">
+              <svg class="w-[.8rem] h-[.8rem] fill-current" viewBox="0 0 24 24"><polygon points="16 5 6 12 16 19"></polygon></svg>
+            </button>
+            <select class="grade-select flex-1 min-w-0 h-[var(--field-h)]" id="grade-select"></select>
+            <button type="button" class="flex-[0_0_var(--field-h)] flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent active:scale-[.94]" id="grade-next" aria-label="Next grade">
+              <svg class="w-[.8rem] h-[.8rem] fill-current" viewBox="0 0 24 24"><polygon points="8 5 18 12 8 19"></polygon></svg>
+            </button>
+          </div>
         </div>
-        <fieldset class="border border-border rounded-app flex flex-[1_1_9rem] min-w-0 h-[var(--field-h)]" id="type-group" aria-label="Type">
-          <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-16 flex items-center justify-center text-center px-[.6rem] py-2 first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none"><input type="radio" name="entry-type" value="boulder" class="sr-only" checked>Boulder</label>
-          <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-16 flex items-center justify-center text-center px-[.6rem] py-2 first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none"><input type="radio" name="entry-type" value="lead" class="sr-only">Lead</label>
-        </fieldset>
+        <div class="flex-1 min-w-[9rem]">
+          <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Date</div>
+          <div class="flex items-stretch gap-2">
+            <input type="text" class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent flex-1 min-w-0" id="entry-date">
+            <button type="button" class="flex-[0_0_2.75rem] flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent" id="date-picker-btn" aria-label="Pick a date">
+              <svg class="w-[1.1rem] h-[1.1rem] stroke-current" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+                <line x1="8" y1="3" x2="8" y2="7"></line>
+                <line x1="16" y1="3" x2="16" y2="7"></line>
+              </svg>
+            </button>
+            <input type="date" id="date-native" class="absolute w-px h-px opacity-0 pointer-events-none" tabindex="-1" aria-hidden="true">
+          </div>
+          <div class="text-[.75rem] text-muted mt-[.3rem]">YYYY-MM or YYYY-MM-DD</div>
+        </div>
       </div>
 
       <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]" id="status-group-label">Status</div>
       <fieldset class="border border-border rounded-app overflow-x-auto flex flex-nowrap w-full mb-3 min-w-0" id="status-group" aria-labelledby="status-group-label">
         <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
           <input type="radio" name="entry-status" value="flash" class="sr-only">
-          <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="flash"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Flash</span>
+          <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="flash"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]" id="form-flash-label">Flash</span>
         </label>
         <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
           <input type="radio" name="entry-status" value="send" class="sr-only" checked>
-          <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="send"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Send</span>
+          <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="send"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]" id="form-send-label">Send</span>
         </label>
         <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
           <input type="radio" name="entry-status" value="project" class="sr-only">
@@ -255,23 +264,6 @@
           <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="abandoned"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Abandoned</span>
         </label>
       </fieldset>
-
-      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]">When</div>
-      <div class="mb-3">
-        <div class="flex items-stretch gap-2">
-          <input type="text" class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-[8.5rem] flex-none" id="entry-date">
-          <button type="button" class="flex-[0_0_2.75rem] flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent" id="date-picker-btn" aria-label="Pick a date">
-            <svg class="w-[1.1rem] h-[1.1rem] stroke-current" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="5" width="18" height="16" rx="2"></rect>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-              <line x1="8" y1="3" x2="8" y2="7"></line>
-              <line x1="16" y1="3" x2="16" y2="7"></line>
-            </svg>
-          </button>
-          <input type="date" id="date-native" class="absolute w-px h-px opacity-0 pointer-events-none" tabindex="-1" aria-hidden="true">
-        </div>
-        <div class="text-[.75rem] text-muted mt-[.3rem]">YYYY-MM or YYYY-MM-DD</div>
-      </div>
 
       <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]">Notes</div>
       <div class="mb-3">
@@ -298,6 +290,16 @@
       <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-[1.1rem] leading-none p-[.2rem] hover:text-foreground" id="notes-close" aria-label="Close">✕</button>
     </div>
     <p class="text-foreground text-[.95rem] whitespace-pre-wrap" id="notes-modal-text"></p>
+  </div>
+</div>
+
+<!-- ══ "Or not" footnote modal ═══════════════════════════════════════ -->
+<div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-center justify-center px-4 py-6 overflow-y-auto" id="footnote-overlay" hidden role="dialog" aria-modal="true" aria-label="Or not">
+  <div class="bg-background border border-border rounded-app p-5 w-full max-w-[380px]">
+    <div class="flex justify-end mb-1">
+      <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-[1.1rem] leading-none p-[.2rem] hover:text-foreground" id="footnote-close" aria-label="Close">✕</button>
+    </div>
+    <p class="text-foreground text-[.95rem]">...or just keep a list because who can remember All The Stuffs™️ these days? Share it with friends, rivals, concerned family members, or internet strangers. See it on a map. Celebrate your success whether it's pulling on the first moves scared or sending your big proj. Just get out there and have fun climbing rocks &lt;3.</p>
   </div>
 </div>
 
@@ -433,12 +435,22 @@
   }
 
   // ── Status ───────────────────────────────────────────────────────────
+  // "Flash"/"Send" are bouldering terms; the equivalent sport/lead terms
+  // are "Onsight"/"Redpoint" (same underlying status/flash data either
+  // way, see #98) -- icons stay the same, only the label text differs.
+  const FLASH_LABEL = { boulder: ["Flash", "Flashes"], lead: ["Onsight", "Onsights"] };
+  const SEND_LABEL  = { boulder: ["Send", "Sends"],    lead: ["Redpoint", "Redpoints"] };
+  const NAME_LABEL  = { boulder: "Problem name", lead: "Route name" };
+  const flashLabel = (type, plural) => FLASH_LABEL[type ?? "boulder"][plural ? 1 : 0];
+  const sendLabel  = (type, plural) => SEND_LABEL[type ?? "boulder"][plural ? 1 : 0];
+  const nameLabel  = type => NAME_LABEL[type ?? "boulder"];
+
   const STATUS_ICON_CLASS = "inline-flex align-middle cursor-default [&_svg]:w-[1.4rem] [&_svg]:h-[1.4rem]";
   function statusBadge(entry) {
-    if (entry.status === "send" && entry.flash)
-      return `<span class="${STATUS_ICON_CLASS}" title="Flash">${STATUS_ICONS.flash}</span>`;
+    if (entry.status === "send" && entry.firstAttempt)
+      return `<span class="${STATUS_ICON_CLASS}" title="${flashLabel(entry.type)}">${STATUS_ICONS.flash}</span>`;
     if (entry.status === "send")
-      return `<span class="${STATUS_ICON_CLASS}" title="Send">${STATUS_ICONS.send}</span>`;
+      return `<span class="${STATUS_ICON_CLASS}" title="${sendLabel(entry.type)}">${STATUS_ICONS.send}</span>`;
     if (entry.status === "project")
       return `<span class="${STATUS_ICON_CLASS}" title="Project">${STATUS_ICONS.project}</span>`;
     if (entry.status === "abandoned")
@@ -449,7 +461,9 @@
   // ── State ────────────────────────────────────────────────────────────
   const state = {
     statusFilters: new Set(), // empty = "all"
-    typeFilters: new Set(),   // empty = "all"
+    activeType: "boulder",    // which type-tab is showing -- set for real once
+                               // ALL_ENTRIES loads (see boot()); "boulder" here
+                               // is just a placeholder before that.
     search: "",
     sortByPlace: {},  // { placeName: { col: "grade", dir: "asc" } }
     collapsed: new Set(),
@@ -554,17 +568,17 @@
 
   // ── Data ─────────────────────────────────────────────────────────────
   function entryMatchesStatusFilter(entry, filter) {
-    if (filter === "flash") return entry.status === "send" && entry.flash;
-    if (filter === "send")  return entry.status === "send" && !entry.flash;
+    if (filter === "flash") return entry.status === "send" && entry.firstAttempt;
+    if (filter === "send")  return entry.status === "send" && !entry.firstAttempt;
     return entry.status === filter;
   }
 
   function filteredEntries() {
     const q = state.search.toLowerCase();
     return ALL_ENTRIES.filter(e => {
+      if (e.type !== state.activeType) return false;
       if (state.statusFilters.size > 0 &&
           ![...state.statusFilters].some(f => entryMatchesStatusFilter(e, f))) return false;
-      if (state.typeFilters.size > 0 && !state.typeFilters.has(e.type)) return false;
       if (q && !e.name.toLowerCase().includes(q) && !(e.area||"").toLowerCase().includes(q)) return false;
       return true;
     });
@@ -596,14 +610,12 @@
 
   // ── Render ───────────────────────────────────────────────────────────
   function updateFilterUI() {
-    document.querySelectorAll("#type-toggle input[data-type]").forEach(input => {
-      input.checked = state.typeFilters.has(input.dataset.type);
-    });
     document.querySelectorAll("#filter-status-group input[data-filter]").forEach(input => {
       input.checked = state.statusFilters.has(input.dataset.filter);
     });
-    const hasFilters = state.typeFilters.size > 0 || state.statusFilters.size > 0;
-    filterBtn.classList.toggle("active", hasFilters);
+    document.getElementById("filter-flash-label").textContent = flashLabel(state.activeType);
+    document.getElementById("filter-send-label").textContent = sendLabel(state.activeType);
+    filterBtn.classList.toggle("active", state.statusFilters.size > 0);
   }
 
   const EDIT_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"></path></svg>`;
@@ -657,7 +669,6 @@
             ${pendingBadge}
           </td>
           <td class="${TD_BASE} text-muted text-[.82rem]">${escapeHtml(e.area)}</td>
-          <td class="${TD_BASE} text-muted text-[.82rem]">${escapeHtml(e.type)}</td>
           <td class="${TD_BASE} text-muted text-[.82rem] whitespace-nowrap">${formatDate(e.date)}</td>
           <td class="${TD_BASE} text-center w-8">${e.video ? `<a class="inline-flex items-center gap-[.2rem] text-accent text-[.8rem] no-underline hover:opacity-75" href="${escapeHtml(e.video)}" target="_blank" rel="noopener" title="Watch video">▶</a>` : ""}</td>
           <td class="${TD_BASE} text-center w-8">${isLoggedIn ? `<button type="button" class="edit-btn border-0 bg-transparent cursor-pointer text-muted inline-flex p-[.2rem] hover:text-accent [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:stroke-current [&_svg]:fill-none" data-edit-id="${escapeHtml(e.id)}" aria-label="Edit">${EDIT_ICON}</button>` : ""}</td>
@@ -687,7 +698,6 @@
                     Name ${sortIcon("name")}
                   </th>
                   <th class="${TH_BASE}">Area</th>
-                  <th class="${TH_BASE}">Type</th>
                   <th class="${TH_BASE} ${TH_SORTABLE}" data-sort="date" data-place="${escapeHtml(place)}" role="button" tabindex="0" aria-sort="${sortAria("date")}">
                     Date ${sortIcon("date")}
                   </th>
@@ -696,7 +706,7 @@
                 </tr>
               </thead>
               <tbody>
-                ${rows || `<tr><td class="text-center text-muted p-8 text-[.9rem]" colspan="8">No problems match.</td></tr>`}
+                ${rows || `<tr><td class="text-center text-muted p-8 text-[.9rem]" colspan="7">No problems match.</td></tr>`}
               </tbody>
             </table>
           </div>
@@ -704,7 +714,55 @@
     }).join("");
   }
 
+  const TYPE_TAB_LABELS = { boulder: "Boulder", lead: "Lead" };
+  function renderTypeTabs() {
+    const container = document.getElementById("type-tabs");
+    const counts = { boulder: 0, lead: 0 };
+    for (const e of ALL_ENTRIES) if (counts[e.type] !== undefined) counts[e.type]++;
+    const types = Object.keys(TYPE_TAB_LABELS).filter(t => counts[t] > 0);
+
+    // Nothing to switch between (a fresh/empty logbook, or one where only
+    // one discipline has ever been logged) -- hide the tab bar entirely
+    // rather than show a single, permanently-active, unclickable tab.
+    if (types.length < 2) {
+      container.hidden = true;
+      container.innerHTML = "";
+      return;
+    }
+
+    container.hidden = false;
+
+    // Only rebuild the DOM when the set of tabs has actually changed
+    // (gaining/losing a second discipline) -- rebuilding via innerHTML on
+    // every render() (e.g. right after a tab switch) would destroy and
+    // recreate the just-focused input, dropping keyboard focus on every
+    // click. Same pattern updateFilterUI() already uses for the status
+    // checkboxes: update .checked on the existing elements, don't touch
+    // the DOM, when nothing structural changed.
+    const existingTypes = [...container.querySelectorAll("input")].map(el => el.value);
+    const needsRebuild = existingTypes.length !== types.length ||
+      existingTypes.some((t, i) => t !== types[i]);
+
+    if (needsRebuild) {
+      // Underline tabs, not the toggle-btn pill/segmented look used for
+      // Status filters and the entry form's own type/status toggles --
+      // those mean "toggle a setting"; this means "switch which content
+      // you're looking at," and reusing the filled-pill treatment for
+      // both read as the same kind of control when they aren't.
+      container.innerHTML = types.map(t => `
+        <label class="cursor-pointer whitespace-nowrap text-[.95rem] font-semibold text-muted pb-2 border-b-2 border-transparent transition-colors duration-150 hover:text-foreground has-checked:text-foreground has-checked:border-accent has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-2">
+          <input type="radio" name="active-type" value="${t}" class="sr-only" ${state.activeType === t ? "checked" : ""}>${TYPE_TAB_LABELS[t]}
+        </label>
+      `).join("");
+    } else {
+      container.querySelectorAll("input").forEach(input => {
+        input.checked = input.value === state.activeType;
+      });
+    }
+  }
+
   function render() {
+    renderTypeTabs();
     const entries = filteredEntries();
     updateFilterUI();
     renderSections(entries);
@@ -720,18 +778,22 @@
   }
 
   function updateSubtitle(entries) {
-    const countries = new Set(ALL_ENTRIES.map(e => PLACE_COUNTRY[e.place]).filter(Boolean)).size;
-    const flashes   = ALL_ENTRIES.filter(e => e.status === "send" && e.flash).length;
-    const sends     = ALL_ENTRIES.filter(e => e.status === "send" && !e.flash).length;
-    const projects  = ALL_ENTRIES.filter(e => e.status === "project").length;
+    // Scoped to the active tab's type only (see #97) -- these are "your
+    // Boulder stats" / "your Lead stats", not a global summary, now that
+    // the two disciplines have their own separate views.
+    const typeEntries = ALL_ENTRIES.filter(e => e.type === state.activeType);
+    const countries = new Set(typeEntries.map(e => PLACE_COUNTRY[e.place]).filter(Boolean)).size;
+    const flashes   = typeEntries.filter(e => e.status === "send" && e.firstAttempt).length;
+    const sends     = typeEntries.filter(e => e.status === "send" && !e.firstAttempt).length;
+    const projects  = typeEntries.filter(e => e.status === "project").length;
 
     const stat = (n, singular, plural) =>
       `<span class="text-foreground font-semibold">${n}</span> <span class="text-muted">${n === 1 ? singular : plural}</span>`;
 
     document.getElementById("subtitle").innerHTML = [
       stat(countries, "Country", "Countries"),
-      stat(flashes, "Flash", "Flashes"),
-      stat(sends, "Send", "Sends"),
+      stat(flashes, flashLabel(state.activeType), flashLabel(state.activeType, true)),
+      stat(sends, sendLabel(state.activeType), sendLabel(state.activeType, true)),
       stat(projects, "Project", "Projects"),
     ].join(`<span class="text-muted"> · </span>`);
     document.getElementById("footer").textContent = "";
@@ -789,6 +851,7 @@
 
   const notesOverlay  = document.getElementById("notes-overlay");
   const notesModalText = document.getElementById("notes-modal-text");
+  const footnoteOverlay = document.getElementById("footnote-overlay");
 
   // ── Admin bar ────────────────────────────────────────────────────────
   function updateAdminBar() {
@@ -912,22 +975,24 @@
     }
   });
 
-  // ── Entry form: type toggle ─────────────────────────────────────────
-  let selectedType = "boulder";
-  document.getElementById("type-group").addEventListener("change", e => {
-    if (e.target.name !== "entry-type") return;
-    selectedType = e.target.value;
-    renderGradeOptions();
-    selectGradeByIndex(0);
-  });
+  // ── Entry form: labels (Problem/Route name, Flash/Onsight, Send/Redpoint) ──
+  // The form no longer has its own type toggle -- an entry's type is
+  // whichever tab was active when the form opened (state.activeType),
+  // since the table it was added/edited from is already scoped to that
+  // type by construction.
+  function updateFormStatusLabels() {
+    document.getElementById("form-flash-label").textContent = flashLabel(state.activeType);
+    document.getElementById("form-send-label").textContent = sendLabel(state.activeType);
+    document.getElementById("form-name-label").textContent = nameLabel(state.activeType);
+  }
 
   // ── Entry form: grade picker (dropdown + prev/next) ──────────────────
   let selectedGrade = "";
   function currentGrades() {
-    return selectedType === "boulder" ? BOULDER_GRADES : LEAD_GRADES;
+    return state.activeType === "boulder" ? BOULDER_GRADES : LEAD_GRADES;
   }
   function renderGradeOptions() {
-    const boulder = selectedType === "boulder";
+    const boulder = state.activeType === "boulder";
     gradeSelect.innerHTML = currentGrades()
       .map(({ g, v }) => `<option class="font-bold bg-surface text-foreground" value="${g}">${boulder ? `${g}/${v}` : g}</option>`)
       .join("");
@@ -990,11 +1055,6 @@
     selectedStatus = status;
     isFlash = flash;
   }
-  function setTypeToggle(type) {
-    selectedType = type;
-    document.querySelector(`#type-group input[value="${type}"]`).checked = true;
-    renderGradeOptions();
-  }
 
   // ── Entry form: date picker ──────────────────────────────────────────
   datePickerBtn.addEventListener("click", () => {
@@ -1027,7 +1087,7 @@
     if (lastFocusedEl) lastFocusedEl.focus();
   }
   document.addEventListener("keydown", e => {
-    const openOverlay = [entryOverlay, notesOverlay].find(o => !o.hidden);
+    const openOverlay = [entryOverlay, notesOverlay, footnoteOverlay].find(o => !o.hidden);
     if (!openOverlay) return;
 
     if (e.key === "Escape") {
@@ -1065,10 +1125,11 @@
     videoInput.value = entry?.video ?? "";
     dateInput.value  = entry?.date  ?? new Date().toISOString().slice(0, 10);
 
-    setTypeToggle(entry?.type ?? "boulder");
+    renderGradeOptions();
     if (entry) selectGradeByValue(entry.grade, entry.type);
     else selectGradeByIndex(0);
-    setStatusToggle(entry?.status ?? "send", Boolean(entry?.flash));
+    updateFormStatusLabels();
+    setStatusToggle(entry?.status ?? "send", Boolean(entry?.firstAttempt));
 
     populatePlaces();
     populateAreas(placeInput.value.trim());
@@ -1085,6 +1146,10 @@
 
   document.getElementById("notes-close").addEventListener("click", () => closeModal(notesOverlay));
   notesOverlay.addEventListener("click", e => { if (e.target === notesOverlay) closeModal(notesOverlay); });
+
+  document.getElementById("footnote-trigger").addEventListener("click", () => openModal(footnoteOverlay));
+  document.getElementById("footnote-close").addEventListener("click", () => closeModal(footnoteOverlay));
+  footnoteOverlay.addEventListener("click", e => { if (e.target === footnoteOverlay) closeModal(footnoteOverlay); });
 
   document.addEventListener("click", e => {
     const editBtn = e.target.closest(".edit-btn");
@@ -1118,9 +1183,9 @@
       area:   areaInput.value.trim(),
       name,
       grade:  selectedGrade,
-      type:   selectedType,
+      type:   state.activeType,
       status: selectedStatus,
-      flash:  isFlash,
+      firstAttempt: isFlash,
       date:   dateInput.value.trim() || null,
       notes:  notesInput.value.trim() || null,
       video:  videoInput.value.trim() || null,
@@ -1241,10 +1306,10 @@
       filterBtn.setAttribute("aria-expanded", "false");
     }
 
-    // Clear filters
+    // Clear filters (status only -- the active type-tab isn't a "filter"
+    // to clear, it's the current view)
     if (e.target.closest("#filter-clear-btn")) {
       state.statusFilters.clear();
-      state.typeFilters.clear();
       render();
       return;
     }
@@ -1274,9 +1339,9 @@
     }
   });
 
-  // Status/Type filters (multi-select checkboxes, not the entry form's
-  // radio-based toggles) -- change, not click, since they're now native
-  // <input type="checkbox"> rather than <button>.
+  // Status filter (multi-select checkboxes) and the type-tab switcher
+  // (single-select radios, see #95) -- change, not click, since they're
+  // native <input> elements rather than <button>.
   document.addEventListener("change", e => {
     const statusInput = e.target.closest("#filter-status-group input[data-filter]");
     if (statusInput) {
@@ -1287,11 +1352,8 @@
       return;
     }
 
-    const typeInput = e.target.closest("#type-toggle input[data-type]");
-    if (typeInput) {
-      const type = typeInput.dataset.type;
-      if (typeInput.checked) state.typeFilters.add(type);
-      else state.typeFilters.delete(type);
+    if (e.target.name === "active-type") {
+      state.activeType = e.target.value;
       render();
       return;
     }
@@ -1366,6 +1428,12 @@
       }
     }
     applyPendingToEntries();
+
+    // Default to whichever type actually has entries -- boulder wins if
+    // both/neither do, matching the entry form's own default type.
+    const hasBoulder = ALL_ENTRIES.some(e => e.type === "boulder");
+    const hasLead = ALL_ENTRIES.some(e => e.type === "lead");
+    state.activeType = hasBoulder || !hasLead ? "boulder" : "lead";
 
     // Sections default to collapsed on first load.
     for (const place of new Set(ALL_ENTRIES.map(e => e.place))) {
