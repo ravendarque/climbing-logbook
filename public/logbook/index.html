@@ -134,9 +134,10 @@
            discipline in order to log its first-ever entry. Popover, not a
            full modal, matching the filter-btn/filter-panel pattern below. -->
       <div class="relative" id="discipline-wrap">
-        <button type="button" class="group inline-flex items-center gap-[.35rem] h-[var(--field-h)] px-[.8rem] bg-surface border border-border rounded-app text-foreground text-[.85rem] font-semibold cursor-pointer hover:border-accent [&_svg]:w-[.85rem] [&_svg]:h-[.85rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:transition-transform [&_svg]:duration-150 aria-expanded:[&_svg]:rotate-180" id="discipline-btn" aria-haspopup="listbox" aria-expanded="false">
-          <span id="discipline-btn-label">Boulder</span>
-          <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+        <button type="button" class="group inline-flex items-center gap-[.35rem] h-[var(--field-h)] px-[.8rem] max-[480px]:px-[.55rem] shrink-0 bg-surface border border-border rounded-app text-foreground text-[.85rem] font-semibold cursor-pointer hover:border-accent [&_svg]:stroke-current [&_svg]:fill-none [&_.chevron-icon]:transition-transform [&_.chevron-icon]:duration-150 aria-expanded:[&_.chevron-icon]:rotate-180" id="discipline-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Discipline: Boulder">
+          <svg class="hidden max-[480px]:inline-block w-[1.05rem] h-[1.05rem]" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"></path><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"></path><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"></path></svg>
+          <span id="discipline-btn-label" class="max-[480px]:hidden">Boulder</span>
+          <svg class="chevron-icon w-[.85rem] h-[.85rem]" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
         </button>
         <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 bg-background border border-border rounded-app p-[.35rem] min-w-[9rem] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="discipline-popover" role="listbox" aria-label="Discipline" hidden>
           <button type="button" class="discipline-option flex items-center justify-between w-full font-sans text-[.85rem] font-semibold text-foreground bg-transparent border-0 rounded-[calc(var(--radius-app)-2px)] px-[.6rem] py-[.55rem] cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible" role="option" data-discipline="boulder" aria-selected="true">
@@ -150,7 +151,10 @@
         </div>
       </div>
       <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="theme-toggle-btn" aria-label="Switch to light theme"></button>
-      <button type="button" class="admin-btn" id="login-toggle-btn">Log in</button>
+      <button type="button" class="admin-btn shrink-0 max-[480px]:w-9 max-[480px]:px-0 [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:shrink-0" id="login-toggle-btn" aria-label="Log in">
+        <svg id="login-btn-icon" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+        <span id="login-btn-label" class="max-[480px]:hidden">Log in</span>
+      </button>
     </div>
     <h1 class="font-display font-normal uppercase tracking-wide text-[3rem] leading-none mb-[.3rem] max-[600px]:text-[2.25rem]"><span class="text-accent">Climbing</span> <span class="text-foreground">Logbook</span></h1>
     <p class="text-[1.05rem] text-muted mb-4">Log your climbs, visualise your progress (<button type="button" class="inline bg-transparent border-0 p-0 cursor-pointer text-accent no-underline hover:underline" id="footnote-trigger">or not</button>).</p>
@@ -810,6 +814,11 @@
   const DISCIPLINE_LABEL = { boulder: "Boulder", lead: "Lead" };
   function updateDisciplinePicker() {
     document.getElementById("discipline-btn-label").textContent = DISCIPLINE_LABEL[state.activeType];
+    // Kept in sync even though the visible label above covers most widths --
+    // aria-label always wins over visible text content for the accessible
+    // name, so this is what a screen reader announces once the label span
+    // itself is hidden below the icon-collapse breakpoint (#114).
+    disciplineBtn.setAttribute("aria-label", `Discipline: ${DISCIPLINE_LABEL[state.activeType]}`);
     document.querySelectorAll(".discipline-option").forEach(opt =>
       opt.setAttribute("aria-selected", String(opt.dataset.discipline === state.activeType))
     );
@@ -1053,6 +1062,8 @@
 
   // ── DOM refs ─────────────────────────────────────────────────────────
   const loginToggleBtn = document.getElementById("login-toggle-btn");
+  const loginBtnIcon = document.getElementById("login-btn-icon");
+  const loginBtnLabel = document.getElementById("login-btn-label");
   const athleteModeBtn = document.getElementById("athlete-mode-btn");
   const addBtn      = document.getElementById("add-btn");
   const syncBtn     = document.getElementById("sync-btn");
@@ -1092,8 +1103,16 @@
   const citationsOverlay = document.getElementById("citations-overlay");
 
   // ── Admin bar ────────────────────────────────────────────────────────
+  // Icon shown regardless of viewport width (needed once the text label
+  // hides below the icon-collapse breakpoint, see #114); label text and
+  // aria-label both still kept in sync so the visible-label width and the
+  // accessible name never drift apart.
+  const LOG_IN_ICON = `<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line>`;
+  const LOG_OUT_ICON = `<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line>`;
   function updateAdminBar() {
-    loginToggleBtn.textContent = isLoggedIn ? "Log out" : "Log in";
+    loginBtnIcon.innerHTML = isLoggedIn ? LOG_OUT_ICON : LOG_IN_ICON;
+    loginBtnLabel.textContent = isLoggedIn ? "Log out" : "Log in";
+    loginToggleBtn.setAttribute("aria-label", isLoggedIn ? "Log out" : "Log in");
     addBtn.hidden = !isLoggedIn;
     athleteModeBtn.hidden = !isLoggedIn;
     athleteModeBtn.setAttribute("aria-checked", String(athleteMode));
