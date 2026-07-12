@@ -80,6 +80,10 @@
   --color-grade-7c:          var(--grade-7c);
   --color-grade-8a:          var(--grade-8a);
 
+  --color-tier-peer:         var(--tier-peer);
+  --color-tier-heuristic:    var(--tier-heuristic);
+  --color-tier-community:    var(--tier-community);
+
   --radius-app:              var(--r);
   --font-sans:               var(--font-body);
   --font-display:            var(--font-display);
