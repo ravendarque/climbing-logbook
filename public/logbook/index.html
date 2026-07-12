@@ -66,6 +66,14 @@
       --grade-7c:    #f87171;
       --grade-8a:    #c084fc;
       --field-h:     2.25rem;
+
+      /* Evidence-tier colours (#16) -- distinguish peer-reviewed research
+         from coaching heuristics (e.g. the grade pyramid's 8-4-2-1 ratio)
+         from unvetted community data, so claims never read as more
+         authoritative than they actually are. */
+      --tier-peer:      #5b8def;
+      --tier-heuristic: #dba43a;
+      --tier-community: #cd7cae;
     }
 
     /* ── Light theme override (#93) ───────────────────────────────────
@@ -93,6 +101,9 @@
       --grade-7b:    #ea580c;
       --grade-7c:    #b91c1c;
       --grade-8a:    #9333ea;
+      --tier-peer:      #2e5fb8;
+      --tier-heuristic: #a6740a;
+      --tier-community: #a34a7a;
     }
   </style>
   <script>
@@ -106,7 +117,7 @@
     })();
   </script>
 </head>
-<body class="bg-background text-foreground font-sans px-4 pt-6 pb-16">
+<body class="bg-background text-foreground font-sans px-4 pt-6 pb-16 min-w-[375px]">
 <div class="max-w-[960px] mx-auto" id="logbook-app">
   <div class="flex items-center justify-center h-[60vh] text-muted flex-col gap-3" id="loading"><div class="w-8 h-8 border-2 border-border border-t-accent rounded-full animate-spin"></div><span>Loading logbook…</span></div>
   <div id="app" style="display:none">
@@ -116,16 +127,49 @@
         <span class="transition-colors duration-150 group-aria-[checked=false]:text-muted">Athlete Mode</span>
         <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
       </button>
+      <!-- Discipline picker (#110) -- always offers both disciplines
+           regardless of entry counts, unlike the old per-page type-tabs
+           below (which only appeared once 2+ disciplines already had
+           data). That was a catch-22: there was no way to switch to a
+           discipline in order to log its first-ever entry. Popover, not a
+           full modal, matching the filter-btn/filter-panel pattern below. -->
+      <div class="relative" id="discipline-wrap">
+        <button type="button" class="group inline-flex items-center gap-[.35rem] h-[var(--field-h)] px-[.8rem] max-[480px]:px-[.55rem] shrink-0 bg-surface border border-border rounded-app text-foreground text-[.85rem] font-semibold cursor-pointer hover:border-accent [&_svg]:stroke-current [&_svg]:fill-none [&_.chevron-icon]:transition-transform [&_.chevron-icon]:duration-150 aria-expanded:[&_.chevron-icon]:rotate-180" id="discipline-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Discipline: Boulder">
+          <svg class="hidden max-[480px]:inline-block w-[1.05rem] h-[1.05rem]" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"></path><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"></path><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"></path></svg>
+          <span id="discipline-btn-label" class="max-[480px]:hidden">Boulder</span>
+          <svg class="chevron-icon w-[.85rem] h-[.85rem]" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+        </button>
+        <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 bg-background border border-border rounded-app p-[.35rem] min-w-[9rem] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="discipline-popover" role="listbox" aria-label="Discipline" hidden>
+          <button type="button" class="discipline-option flex items-center justify-between w-full font-sans text-[.85rem] font-semibold text-foreground bg-transparent border-0 rounded-[calc(var(--radius-app)-2px)] px-[.6rem] py-[.55rem] cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible" role="option" data-discipline="boulder" aria-selected="true">
+            Boulder
+            <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+          </button>
+          <button type="button" class="discipline-option flex items-center justify-between w-full font-sans text-[.85rem] font-semibold text-foreground bg-transparent border-0 rounded-[calc(var(--radius-app)-2px)] px-[.6rem] py-[.55rem] cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible" role="option" data-discipline="lead" aria-selected="false">
+            Lead
+            <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+          </button>
+        </div>
+      </div>
       <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="theme-toggle-btn" aria-label="Switch to light theme"></button>
-      <button type="button" class="admin-btn" id="login-toggle-btn">Log in</button>
+      <button type="button" class="admin-btn shrink-0 max-[480px]:w-9 max-[480px]:px-0 [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:shrink-0" id="login-toggle-btn" aria-label="Log in">
+        <svg id="login-btn-icon" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+        <span id="login-btn-label" class="max-[480px]:hidden">Log in</span>
+      </button>
     </div>
     <h1 class="font-display font-normal uppercase tracking-wide text-[3rem] leading-none mb-[.3rem] max-[600px]:text-[2.25rem]"><span class="text-accent">Climbing</span> <span class="text-foreground">Logbook</span></h1>
     <p class="text-[1.05rem] text-muted mb-4">Log your climbs, visualise your progress (<button type="button" class="inline bg-transparent border-0 p-0 cursor-pointer text-accent no-underline hover:underline" id="footnote-trigger">or not</button>).</p>
 
-    <!-- Populated by renderTypeTabs() -- hidden entirely (not just empty)
-         when fewer than two types have any entries, since there's nothing
-         to switch between (see #95). -->
-    <div class="flex gap-5 mb-5" id="type-tabs" hidden></div>
+    <!-- Logbook/Grade Pyramid tabs (#110) -- only exist at all in Athlete
+         Mode (see #40: it "gates whether any of this has anywhere to live
+         or a reason to appear"). Replaces the old per-discipline #95
+         type-tabs entirely; discipline selection now lives in the header
+         picker above and applies to both tabs. -->
+    <div class="flex gap-5 mb-5" id="view-tabs" role="tablist" aria-label="View" hidden>
+      <button type="button" class="bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer whitespace-nowrap text-[.95rem] font-semibold text-muted pb-2 border-b-2 border-transparent transition-colors duration-150 hover:text-foreground aria-selected:text-foreground aria-selected:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" id="view-tab-logbook" role="tab" data-view="logbook" aria-selected="true" aria-controls="panel-logbook">Logbook</button>
+      <button type="button" class="bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer whitespace-nowrap text-[.95rem] font-semibold text-muted pb-2 border-b-2 border-transparent transition-colors duration-150 hover:text-foreground aria-selected:text-foreground aria-selected:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" id="view-tab-pyramid" role="tab" data-view="pyramid" aria-selected="false" aria-controls="panel-pyramid">Grade Pyramid</button>
+    </div>
+
+    <div id="panel-logbook" role="tabpanel" aria-labelledby="view-tab-logbook">
     <p class="text-[.95rem] mb-4" id="subtitle"></p>
 
     <div class="flex flex-wrap items-center gap-3 mb-6">
@@ -180,6 +224,54 @@
     <div id="sections"></div>
 
     <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>
+    </div>
+
+    <!-- Grade Pyramid (#12) -- only reachable via the view-tabs above, so
+         only ever visible in Athlete Mode. Evidence-tier chips (#16) up
+         top disclose which claims are peer-reviewed research vs. a
+         coaching heuristic vs. unvetted community data, so the pyramid
+         itself never reads as more authoritative than it actually is. -->
+    <div id="panel-pyramid" role="tabpanel" aria-labelledby="view-tab-pyramid" hidden>
+      <div class="flex flex-wrap items-center gap-[10px] mb-5 pb-5 border-b border-border">
+        <span class="text-[.68rem] font-bold uppercase tracking-wider text-muted mr-[2px]">Evidence:</span>
+        <span class="tier-chip inline-flex items-center gap-[.35rem] py-[.3rem] pr-[.7rem] pl-[.55rem] rounded-full text-[.74rem] font-semibold border border-[color-mix(in_srgb,var(--color-tier-peer)_35%,transparent)] text-tier-peer bg-[color-mix(in_srgb,var(--color-tier-peer)_14%,var(--color-surface))] [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:shrink-0">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z"></path><path d="M9.5 12l1.8 1.8L15 10"></path></svg>
+          Peer-reviewed
+        </span>
+        <span class="tier-chip inline-flex items-center gap-[.35rem] py-[.3rem] pr-[.7rem] pl-[.55rem] rounded-full text-[.74rem] font-semibold border border-[color-mix(in_srgb,var(--color-tier-heuristic)_35%,transparent)] text-tier-heuristic bg-[color-mix(in_srgb,var(--color-tier-heuristic)_14%,var(--color-surface))] [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:shrink-0">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z"></path><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20"></path></svg>
+          Coaching heuristic
+        </span>
+        <span class="tier-chip inline-flex items-center gap-[.35rem] py-[.3rem] pr-[.7rem] pl-[.55rem] rounded-full text-[.74rem] font-semibold border border-[color-mix(in_srgb,var(--color-tier-community)_35%,transparent)] text-tier-community bg-[color-mix(in_srgb,var(--color-tier-community)_14%,var(--color-surface))] [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:shrink-0">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="9" r="2.8"></circle><path d="M2.5 19c0-3 2.7-5 6-5s6 2 6 5"></path><path d="M15.5 6.7A2.8 2.8 0 1 1 15.9 12"></path><path d="M15 14.3c2.8.3 5 2.2 5 4.7"></path></svg>
+          Community data
+        </span>
+      </div>
+
+      <h2 class="text-[1.05rem] font-bold mb-3" id="pyramid-heading">Grade pyramid</h2>
+      <p class="text-[.82rem] text-muted leading-[1.6] mb-4" id="window-note"></p>
+
+      <div class="pyramid-card bg-surface border border-border rounded-app pt-[22px] px-5 pb-4 mb-5" id="pyramid" role="group" aria-labelledby="pyramid-heading"></div>
+
+      <div class="flex gap-3 px-4 py-[14px] rounded-app mb-7 [&_svg]:w-[1.2rem] [&_svg]:h-[1.2rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:mt-[2px] [&_svg]:shrink-0" id="health-card" role="status"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Sources dialog (#12/#16) -- lists the real citations backing the
+     coaching-heuristic claims above; never present those claims as
+     original material. Distinct from the pre-existing "or not" easter-egg
+     #footnote-overlay below. ═══════════════════════════════════════ -->
+<div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-center justify-center px-4 py-6 overflow-y-auto" id="citations-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="citations-title" tabindex="-1">
+  <div class="bg-background border border-border rounded-app p-5 w-full max-w-[380px]">
+    <div class="flex items-center justify-between mb-[14px]">
+      <span class="text-[1.05rem] font-bold text-accent" id="citations-title">Sources</span>
+      <button type="button" class="inline-flex items-center justify-center w-8 h-8 border-none bg-transparent text-muted text-[1.1rem] leading-none cursor-pointer hover:text-foreground" id="citations-close" aria-label="Close sources dialog">✕</button>
+    </div>
+    <ol class="m-0 pl-[1.2rem] text-[.84rem] leading-[1.6] text-foreground [&>li+li]:mt-[10px]">
+      <li>Hörst, E. J. <em class="text-muted italic">How to Climb 5.12</em> — originating source for the route-pyramid training concept (print only, no stable link available).</li>
+      <li>Hampton, K. "Great Pyramids." Power Company Climbing (2010). <a class="text-accent" href="https://www.powercompanyclimbing.com/blog/2010/08/great-pyramids.html" target="_blank" rel="noopener">powercompanyclimbing.com ↗</a></li>
+    </ol>
   </div>
 </div>
 
@@ -461,9 +553,12 @@
   // ── State ────────────────────────────────────────────────────────────
   const state = {
     statusFilters: new Set(), // empty = "all"
-    activeType: "boulder",    // which type-tab is showing -- set for real once
-                               // ALL_ENTRIES loads (see boot()); "boulder" here
-                               // is just a placeholder before that.
+    activeType: "boulder",    // which discipline is selected -- set for real
+                               // once ALL_ENTRIES loads (see boot()); "boulder"
+                               // here is just a placeholder before that.
+    activeView: "logbook",    // "logbook" | "pyramid" -- only switchable in
+                               // Athlete Mode (see #40, #110).
+    lowerGradesExpanded: false,
     search: "",
     sortByPlace: {},  // { placeName: { col: "grade", dir: "asc" } }
     collapsed: new Set(),
@@ -632,7 +727,9 @@
     const groups = groupByPlace(entries);
 
     if (groups.length === 0) {
-      container.innerHTML = `<div class="bg-surface border border-border rounded-app px-5 py-4 text-muted text-center">No problems match your filters.</div>`;
+      // Covers both an empty logbook and a filtered-to-nothing one -- same
+      // code path either way, since `entries` here is already filtered.
+      container.innerHTML = `<div class="bg-surface border border-border rounded-app px-5 py-4 text-muted text-center leading-[1.6]">Nothing to show here.<br>Enjoy this quiet space, or<br>add climbs/change filters.</div>`;
       return;
     }
 
@@ -714,61 +811,28 @@
     }).join("");
   }
 
-  const TYPE_TAB_LABELS = { boulder: "Boulder", lead: "Lead" };
-  function renderTypeTabs() {
-    const container = document.getElementById("type-tabs");
-    const counts = { boulder: 0, lead: 0 };
-    for (const e of ALL_ENTRIES) if (counts[e.type] !== undefined) counts[e.type]++;
-    const types = Object.keys(TYPE_TAB_LABELS).filter(t => counts[t] > 0);
-
-    // Nothing to switch between (a fresh/empty logbook, or one where only
-    // one discipline has ever been logged) -- hide the tab bar entirely
-    // rather than show a single, permanently-active, unclickable tab.
-    if (types.length < 2) {
-      container.hidden = true;
-      container.innerHTML = "";
-      return;
-    }
-
-    container.hidden = false;
-
-    // Only rebuild the DOM when the set of tabs has actually changed
-    // (gaining/losing a second discipline) -- rebuilding via innerHTML on
-    // every render() (e.g. right after a tab switch) would destroy and
-    // recreate the just-focused input, dropping keyboard focus on every
-    // click. Same pattern updateFilterUI() already uses for the status
-    // checkboxes: update .checked on the existing elements, don't touch
-    // the DOM, when nothing structural changed.
-    const existingTypes = [...container.querySelectorAll("input")].map(el => el.value);
-    const needsRebuild = existingTypes.length !== types.length ||
-      existingTypes.some((t, i) => t !== types[i]);
-
-    if (needsRebuild) {
-      // Underline tabs, not the toggle-btn pill/segmented look used for
-      // Status filters and the entry form's own type/status toggles --
-      // those mean "toggle a setting"; this means "switch which content
-      // you're looking at," and reusing the filled-pill treatment for
-      // both read as the same kind of control when they aren't.
-      container.innerHTML = types.map(t => `
-        <label class="cursor-pointer whitespace-nowrap text-[.95rem] font-semibold text-muted pb-2 border-b-2 border-transparent transition-colors duration-150 hover:text-foreground has-checked:text-foreground has-checked:border-accent has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-2">
-          <input type="radio" name="active-type" value="${t}" class="sr-only" ${state.activeType === t ? "checked" : ""}>${TYPE_TAB_LABELS[t]}
-        </label>
-      `).join("");
-    } else {
-      container.querySelectorAll("input").forEach(input => {
-        input.checked = input.value === state.activeType;
-      });
-    }
+  const DISCIPLINE_LABEL = { boulder: "Boulder", lead: "Lead" };
+  function updateDisciplinePicker() {
+    document.getElementById("discipline-btn-label").textContent = DISCIPLINE_LABEL[state.activeType];
+    // Kept in sync even though the visible label above covers most widths --
+    // aria-label always wins over visible text content for the accessible
+    // name, so this is what a screen reader announces once the label span
+    // itself is hidden below the icon-collapse breakpoint (#114).
+    disciplineBtn.setAttribute("aria-label", `Discipline: ${DISCIPLINE_LABEL[state.activeType]}`);
+    document.querySelectorAll(".discipline-option").forEach(opt =>
+      opt.setAttribute("aria-selected", String(opt.dataset.discipline === state.activeType))
+    );
   }
 
   function render() {
-    renderTypeTabs();
+    updateDisciplinePicker();
     const entries = filteredEntries();
     updateFilterUI();
     renderSections(entries);
     updateSubtitle(entries);
     updateAdminBar();
     updateCollapseAllBtn(entries);
+    if (state.activeView === "pyramid") renderPyramid();
   }
 
   function updateCollapseAllBtn(entries) {
@@ -799,6 +863,183 @@
     document.getElementById("footer").textContent = "";
   }
 
+  // ── Grade Pyramid (#12) ─────────────────────────────────────────────
+  // 8-4-2-1 is a widely used coaching heuristic (Hörst, Hampton -- see the
+  // citations dialog), not a scientifically validated ratio; framed that
+  // way everywhere it's surfaced in the UI, never as fact.
+  const PYRAMID_IDEAL_BY_POSITION = [1, 2, 4, 8]; // position 0 = current max (ideal 1) ... position 3 = base tier (ideal 8)
+  const PYRAMID_ICON_GOOD    = `<circle cx="12" cy="12" r="9"></circle><path d="m8.5 12.5 2.5 2.5 5-5"></path>`;
+  const PYRAMID_ICON_LOW     = `<path d="M12 3 2 20h20L12 3Z"></path><path d="M12 9v5"></path><path d="M12 17h.01"></path>`;
+  const PYRAMID_ICON_MISSING = `<circle cx="12" cy="12" r="9"></circle><path d="M12 7v6"></path><path d="M12 16.5h.01"></path>`;
+
+  // Sends only (a "send" covers both flash/onsight and redpoint -- see the
+  // status-label comment near FLASH_LABEL/SEND_LABEL above), from the last
+  // 12 months only, per Hampton's original framing ("8 climbs done in the
+  // past 12 months at a grade"). Dates can be stored as "YYYY", "YYYY-MM",
+  // or "YYYY-MM-DD" (see the Date field's own helper text) -- new Date()
+  // parses all three as UTC, same as dateRank() already relies on
+  // elsewhere in this file for sorting.
+  function isWithinLast12Months(d) {
+    if (!d) return false;
+    const t = new Date(d).getTime();
+    if (Number.isNaN(t)) return false;
+    const cutoff = new Date();
+    cutoff.setFullYear(cutoff.getFullYear() - 1);
+    return t >= cutoff.getTime();
+  }
+
+  function pyramidCounts(type) {
+    const order = (type === "boulder" ? BOULDER_GRADES : LEAD_GRADES).map(x => x.g);
+    const counts = Object.fromEntries(order.map(g => [g, 0]));
+    for (const e of ALL_ENTRIES) {
+      if (e.type !== type || e.status !== "send" || !isWithinLast12Months(e.date)) continue;
+      if (counts[e.grade] !== undefined) counts[e.grade]++;
+    }
+    return { order, counts };
+  }
+
+  // Splits the discipline's full grade order into the 8-4-2-1 window (the
+  // four tiers from the current max sent grade down, including any with
+  // zero sends -- that's a gap worth surfacing, not hiding) and everything
+  // below it, which is shown collapsed by default (see show/hide-lower-
+  // grades link in renderPyramid).
+  function pyramidSplitRows(type) {
+    const { order, counts } = pyramidCounts(type);
+    const sentTiers = order.filter(g => counts[g] > 0);
+    if (!sentTiers.length) return { top4: [], lower: [], hasSends: false };
+
+    const maxGrade = sentTiers[sentTiers.length - 1];
+    const maxIdx = order.indexOf(maxGrade);
+    const windowStartIdx = Math.max(0, maxIdx - 3);
+
+    const top4 = order.slice(windowStartIdx, maxIdx + 1)
+      .map(g => ({ grade: g, count: counts[g] }))
+      .reverse(); // hardest (ideal 1) first
+
+    const firstSentIdx = order.indexOf(sentTiers[0]);
+    const lower = order.slice(firstSentIdx, windowStartIdx)
+      .map(g => ({ grade: g, count: counts[g] }))
+      .reverse();
+
+    return { top4, lower, hasSends: true };
+  }
+
+  function pyramidStatusIcon(actual, ideal) {
+    if (actual === 0) return { cls: "missing", color: "#ef4444", svg: PYRAMID_ICON_MISSING, label: "No sends at this tier" };
+    if (actual < ideal) return { cls: "low", color: "var(--color-tier-heuristic)", svg: PYRAMID_ICON_LOW, label: `${actual} of ${ideal} for a full 8-4-2-1 tier` };
+    return { cls: "good", color: "#22c55e", svg: PYRAMID_ICON_GOOD, label: `Meets or exceeds the ${ideal}-send tier` };
+  }
+
+  // Bars center on a shared vertical midline (rather than left-align) so
+  // the row naturally tapers like a pyramid based on relative send counts.
+  // The dashed ideal-outline is plain CSS border (not SVG -- an SVG
+  // viewBox stretched non-uniformly per row's width would distort its own
+  // corner radius along with the width) with a same-background-color
+  // drop-shadow halo so it stays legible over any grade color underneath,
+  // regardless of whether the bar happens to be wider or narrower than it.
+  function pyramidBarRow(row, { ideal = null, scaleMax, lower = false } = {}) {
+    const actualPct = row.count === 0 ? 0 : (row.count / scaleMax) * 100;
+    const barColor = gradeColor(row.grade);
+    const barStyle = lower
+      ? `width:${actualPct}%; background:${barColor}; filter:saturate(.18) brightness(1.12)`
+      : `width:${actualPct}%; background:${barColor}`;
+    const idealOutline = ideal !== null
+      ? `<div class="absolute top-0 left-1/2 -translate-x-1/2 h-full box-border rounded-[4px] border-[1.25px] border-dashed border-[color-mix(in_srgb,var(--color-foreground)_65%,transparent)] [filter:drop-shadow(0_0_1px_var(--color-surface))_drop-shadow(0_0_1px_var(--color-surface))] pointer-events-none" style="width:${(ideal / scaleMax) * 100}%"></div>`
+      : "";
+    const icon = ideal !== null ? pyramidStatusIcon(row.count, ideal) : null;
+    // The status is conveyed by icon shape+color for sighted users, but a
+    // `title` tooltip requires hover (unavailable on touch, unreliable for
+    // screen readers) -- sr-only text covers both.
+    const iconHtml = icon
+      ? `<svg class="w-[1.15rem] h-[1.15rem] shrink-0" viewBox="0 0 24 24" fill="none" stroke="${icon.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icon.svg}</svg>
+         <span class="sr-only">${icon.label}</span>`
+      : "";
+    const rowClasses = lower
+      ? "grid grid-cols-[3.2rem_1fr_3.6rem] items-center gap-[10px] mb-[14px] opacity-[.82]"
+      : "grid grid-cols-[3.2rem_1fr_3.6rem] items-center gap-[10px] mb-[14px]";
+    const countClasses = lower
+      ? "flex items-center gap-[.35rem] text-[.82rem] font-semibold tabular-nums text-muted"
+      : "flex items-center gap-[.35rem] text-[.82rem] font-bold tabular-nums text-foreground";
+    return `
+      <div class="${rowClasses}">
+        <div class="text-[.8rem] font-bold text-right tabular-nums text-muted">${escapeHtml(row.grade)}</div>
+        <div class="relative h-[1.3rem]">
+          <div class="absolute top-0 left-1/2 -translate-x-1/2 h-full rounded-[4px] transition-[width] duration-300" style="${barStyle}"></div>
+          ${idealOutline}
+        </div>
+        <div class="${countClasses}">${row.count}${iconHtml}</div>
+      </div>`;
+  }
+
+  function renderPyramid() {
+    const type = state.activeType;
+    const { top4, lower, hasSends } = pyramidSplitRows(type);
+    const pyramidEl = document.getElementById("pyramid");
+    const healthEl = document.getElementById("health-card");
+
+    if (!hasSends) {
+      pyramidEl.innerHTML = `<p class="text-[.9rem] text-muted">No ${DISCIPLINE_LABEL[type]} sends logged in the last 12 months yet -- log a send to see your pyramid.</p>`;
+      healthEl.innerHTML = "";
+      document.getElementById("window-note").innerHTML = "";
+      return;
+    }
+
+    const top4Scale = Math.max(8, ...top4.map(r => r.count));
+    const top4Html = top4.map((r, i) => pyramidBarRow(r, { ideal: PYRAMID_IDEAL_BY_POSITION[i], scaleMax: top4Scale })).join("");
+
+    let lowerHtml = "";
+    if (lower.length) {
+      const lowerScale = Math.max(1, ...lower.map(r => r.count));
+      lowerHtml = `
+        <div class="text-center my-1 mb-[14px]">
+          <button type="button" class="font-sans text-[.8rem] font-semibold text-muted bg-transparent border-b-0 border-l-0 border-r-0 border-t border-border py-[14px] min-h-[2.75rem] w-full cursor-pointer hover:text-accent" id="show-lower-link" aria-expanded="${state.lowerGradesExpanded}" aria-controls="lower-rows">${state.lowerGradesExpanded ? "Hide lower grades ▴" : "Show lower grades ▾"}</button>
+        </div>
+        <div id="lower-rows">${state.lowerGradesExpanded ? lower.map(r => pyramidBarRow(r, { scaleMax: lowerScale, lower: true })).join("") : ""}</div>`;
+    }
+
+    pyramidEl.innerHTML = top4Html + lowerHtml;
+
+    if (lower.length) {
+      const link = document.getElementById("show-lower-link");
+      link.addEventListener("click", () => {
+        state.lowerGradesExpanded = !state.lowerGradesExpanded;
+        renderPyramid();
+        // Re-focus after the innerHTML rebuild above destroys the old node
+        // -- otherwise focus silently drops to <body> on every toggle
+        // (same bug class as the #95 type-tabs re-render fix).
+        document.getElementById("show-lower-link").focus();
+      });
+    }
+
+    document.getElementById("window-note").innerHTML =
+      `Sends from the <strong class="text-foreground font-semibold">last 12 months only</strong><button type="button" class="footnote-marker inline-flex items-center justify-center min-w-[1.6rem] min-h-[1.6rem] -mx-[.15rem] font-sans text-[.68em] font-bold align-super text-accent bg-transparent border-0 cursor-pointer underline leading-none" data-citation>1</button>, showing your
+       <strong class="text-foreground font-semibold">8-4-2-1 window</strong> — the four grade tiers from your current max down, including any with zero sends. Dashed outlines mark the
+       ideal count for each tier. The ratio itself is a
+       <span class="inline-flex items-center gap-[.35rem] py-[.05rem] pr-[.5rem] pl-[.4rem] rounded-full text-[.72rem] font-semibold align-[-2px] border border-[color-mix(in_srgb,var(--color-tier-heuristic)_35%,transparent)] text-tier-heuristic bg-[color-mix(in_srgb,var(--color-tier-heuristic)_14%,var(--color-surface))] [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:shrink-0">
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z"></path><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20"></path></svg>
+         widely used coaching heuristic
+       </span><button type="button" class="footnote-marker inline-flex items-center justify-center min-w-[1.6rem] min-h-[1.6rem] -mx-[.15rem] font-sans text-[.68em] font-bold align-super text-accent bg-transparent border-0 cursor-pointer underline leading-none" data-citation>1</button>, not a proven ratio.`;
+    document.querySelectorAll("[data-citation]").forEach(btn =>
+      btn.addEventListener("click", () => openModal(citationsOverlay))
+    );
+
+    const gapRow = top4.find(r => r.count === 0);
+    if (gapRow) {
+      healthEl.className = "flex gap-3 px-4 py-[14px] rounded-app mb-7 [&_svg]:w-[1.2rem] [&_svg]:h-[1.2rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:mt-[2px] [&_svg]:shrink-0 bg-[color-mix(in_srgb,var(--color-tier-heuristic)_8%,var(--color-surface))] border border-[color-mix(in_srgb,var(--color-tier-heuristic)_30%,transparent)] text-tier-heuristic";
+      healthEl.innerHTML = `
+        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+        <div>
+          <p class="text-[.86rem] leading-[1.5] text-foreground">No sends logged at ${escapeHtml(gapRow.grade)} in the last 12 months, right in the middle of your pyramid window.</p>
+          <p class="text-[.8rem] leading-[1.5] text-muted mt-[6px]">Heuristic guidance, not diagnosis — might be worth spending more mileage there before pushing your top grade again.</p>
+        </div>`;
+    } else {
+      healthEl.className = "flex gap-3 px-4 py-[14px] rounded-app mb-7 [&_svg]:w-[1.2rem] [&_svg]:h-[1.2rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:mt-[2px] [&_svg]:shrink-0 bg-[color-mix(in_srgb,var(--color-tier-heuristic)_8%,var(--color-surface))] border border-[color-mix(in_srgb,var(--color-tier-heuristic)_30%,transparent)] text-tier-heuristic";
+      healthEl.innerHTML = `
+        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+        <div><p class="text-[.86rem] leading-[1.5] text-foreground">No gaps in this window — every tier from your base to your max has sends behind it.</p></div>`;
+    }
+  }
+
   // ── Theme toggle (light/dark) ─────────────────────────────────────────
   // The actual theme is already set on <html> by the blocking inline
   // script in <head> (before first paint) -- this just wires up the
@@ -821,6 +1062,8 @@
 
   // ── DOM refs ─────────────────────────────────────────────────────────
   const loginToggleBtn = document.getElementById("login-toggle-btn");
+  const loginBtnIcon = document.getElementById("login-btn-icon");
+  const loginBtnLabel = document.getElementById("login-btn-label");
   const athleteModeBtn = document.getElementById("athlete-mode-btn");
   const addBtn      = document.getElementById("add-btn");
   const syncBtn     = document.getElementById("sync-btn");
@@ -830,6 +1073,11 @@
   const filterPanel  = document.getElementById("filter-panel");
   const filterClearBtn = document.getElementById("filter-clear-btn");
   const collapseAllBtn = document.getElementById("collapse-all-btn");
+  const disciplineBtn = document.getElementById("discipline-btn");
+  const disciplinePopover = document.getElementById("discipline-popover");
+  const viewTabs = document.getElementById("view-tabs");
+  const panelLogbook = document.getElementById("panel-logbook");
+  const panelPyramid = document.getElementById("panel-pyramid");
 
   const entryOverlay   = document.getElementById("entry-overlay");
   const entryForm      = document.getElementById("entry-form");
@@ -852,15 +1100,45 @@
   const notesOverlay  = document.getElementById("notes-overlay");
   const notesModalText = document.getElementById("notes-modal-text");
   const footnoteOverlay = document.getElementById("footnote-overlay");
+  const citationsOverlay = document.getElementById("citations-overlay");
 
   // ── Admin bar ────────────────────────────────────────────────────────
+  // Icon shown regardless of viewport width (needed once the text label
+  // hides below the icon-collapse breakpoint, see #114); label text and
+  // aria-label both still kept in sync so the visible-label width and the
+  // accessible name never drift apart.
+  const LOG_IN_ICON = `<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line>`;
+  const LOG_OUT_ICON = `<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line>`;
   function updateAdminBar() {
-    loginToggleBtn.textContent = isLoggedIn ? "Log out" : "Log in";
+    loginBtnIcon.innerHTML = isLoggedIn ? LOG_OUT_ICON : LOG_IN_ICON;
+    loginBtnLabel.textContent = isLoggedIn ? "Log out" : "Log in";
+    loginToggleBtn.setAttribute("aria-label", isLoggedIn ? "Log out" : "Log in");
     addBtn.hidden = !isLoggedIn;
     athleteModeBtn.hidden = !isLoggedIn;
     athleteModeBtn.setAttribute("aria-checked", String(athleteMode));
     updateSyncButton();
+
+    // Logbook/Grade Pyramid tabs only exist at all in Athlete Mode (#40,
+    // #110) -- off means no tab bar, just the plain Logbook content, same
+    // as the app looked before this feature existed.
+    viewTabs.hidden = !athleteMode;
+    if (!athleteMode && state.activeView !== "logbook") setActiveView("logbook");
   }
+
+  function setActiveView(view) {
+    state.activeView = view;
+    document.querySelectorAll("#view-tabs [role=tab]").forEach(t =>
+      t.setAttribute("aria-selected", String(t.dataset.view === view))
+    );
+    panelLogbook.hidden = view !== "logbook";
+    panelPyramid.hidden = view !== "pyramid";
+    if (view === "pyramid") renderPyramid();
+  }
+
+  viewTabs.addEventListener("click", e => {
+    const tab = e.target.closest("[role=tab]");
+    if (tab) setActiveView(tab.dataset.view);
+  });
 
   // Public visitors always see the effective setting (Off by default,
   // absent KV key); only the logged-in admin sees a control to change it.
@@ -1088,7 +1366,7 @@
     if (lastFocusedEl) lastFocusedEl.focus();
   }
   document.addEventListener("keydown", e => {
-    const openOverlay = [entryOverlay, notesOverlay, footnoteOverlay].find(o => !o.hidden);
+    const openOverlay = [entryOverlay, notesOverlay, footnoteOverlay, citationsOverlay].find(o => !o.hidden);
     if (!openOverlay) return;
 
     if (e.key === "Escape") {
@@ -1151,6 +1429,41 @@
   document.getElementById("footnote-trigger").addEventListener("click", () => openModal(footnoteOverlay));
   document.getElementById("footnote-close").addEventListener("click", () => closeModal(footnoteOverlay));
   footnoteOverlay.addEventListener("click", e => { if (e.target === footnoteOverlay) closeModal(footnoteOverlay); });
+
+  document.getElementById("citations-close").addEventListener("click", () => closeModal(citationsOverlay));
+  citationsOverlay.addEventListener("click", e => { if (e.target === citationsOverlay) closeModal(citationsOverlay); });
+
+  // ── Discipline picker (#110): header popover, always offers both
+  // disciplines regardless of entry counts -- see the markup comment
+  // above discipline-btn for why. Same interaction pattern as filter-btn/
+  // filter-panel below (delegated click, close on outside click), plus
+  // Escape-to-close. ───────────────────────────────────────────────────
+  function openDisciplinePopover() {
+    disciplinePopover.hidden = false;
+    disciplineBtn.setAttribute("aria-expanded", "true");
+  }
+  function closeDisciplinePopover() {
+    disciplinePopover.hidden = true;
+    disciplineBtn.setAttribute("aria-expanded", "false");
+  }
+  disciplineBtn.addEventListener("click", () => {
+    if (disciplinePopover.hidden) openDisciplinePopover(); else closeDisciplinePopover();
+  });
+  disciplinePopover.addEventListener("click", e => {
+    const opt = e.target.closest(".discipline-option");
+    if (!opt) return;
+    state.activeType = opt.dataset.discipline;
+    state.lowerGradesExpanded = false;
+    closeDisciplinePopover();
+    disciplineBtn.focus();
+    render();
+  });
+  document.addEventListener("click", e => {
+    if (!disciplinePopover.hidden && !e.target.closest("#discipline-wrap")) closeDisciplinePopover();
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && !disciplinePopover.hidden) { closeDisciplinePopover(); disciplineBtn.focus(); }
+  });
 
   document.addEventListener("click", e => {
     const editBtn = e.target.closest(".edit-btn");
@@ -1340,21 +1653,14 @@
     }
   });
 
-  // Status filter (multi-select checkboxes) and the type-tab switcher
-  // (single-select radios, see #95) -- change, not click, since they're
-  // native <input> elements rather than <button>.
+  // Status filter (multi-select checkboxes) -- change, not click, since
+  // they're native <input> elements rather than <button>.
   document.addEventListener("change", e => {
     const statusInput = e.target.closest("#filter-status-group input[data-filter]");
     if (statusInput) {
       const filter = statusInput.dataset.filter;
       if (statusInput.checked) state.statusFilters.add(filter);
       else state.statusFilters.delete(filter);
-      render();
-      return;
-    }
-
-    if (e.target.name === "active-type") {
-      state.activeType = e.target.value;
       render();
       return;
     }
