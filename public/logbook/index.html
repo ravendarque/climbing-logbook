@@ -723,7 +723,9 @@
     const groups = groupByPlace(entries);
 
     if (groups.length === 0) {
-      container.innerHTML = `<div class="bg-surface border border-border rounded-app px-5 py-4 text-muted text-center">Nothing matches your filters.</div>`;
+      // Covers both an empty logbook and a filtered-to-nothing one -- same
+      // code path either way, since `entries` here is already filtered.
+      container.innerHTML = `<div class="bg-surface border border-border rounded-app px-5 py-4 text-muted text-center leading-[1.6]">Nothing to show here.<br>Enjoy this quiet space, or<br>add climbs/change filters.</div>`;
       return;
     }
 
