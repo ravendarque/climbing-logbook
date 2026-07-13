@@ -122,7 +122,7 @@
   <div class="flex items-center justify-center h-[60vh] text-muted flex-col gap-3" id="loading"><div class="w-8 h-8 border-2 border-border border-t-accent rounded-full animate-spin"></div><span>Loading logbook…</span></div>
   <div id="app" style="display:none">
 
-    <div class="flex items-center justify-end gap-2 mb-6">
+    <div class="flex items-center justify-end gap-2 mb-6" id="header-row">
       <button type="button" class="group inline-flex items-center h-[var(--field-h)] gap-2 bg-transparent border border-transparent px-[.8rem] cursor-pointer text-[.82rem] font-semibold text-foreground disabled:opacity-60 disabled:cursor-not-allowed" id="athlete-mode-btn" role="switch" aria-checked="false" hidden>
         <span class="transition-colors duration-150 group-aria-[checked=false]:text-muted">Athlete Mode</span>
         <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
@@ -134,9 +134,8 @@
            discipline in order to log its first-ever entry. Popover, not a
            full modal, matching the filter-btn/filter-panel pattern below. -->
       <div class="relative" id="discipline-wrap">
-        <button type="button" class="group inline-flex items-center gap-[.35rem] h-[var(--field-h)] px-[.8rem] max-[480px]:px-[.55rem] shrink-0 bg-surface border border-border rounded-app text-foreground text-[.85rem] font-semibold cursor-pointer hover:border-accent [&_svg]:stroke-current [&_svg]:fill-none [&_.chevron-icon]:transition-transform [&_.chevron-icon]:duration-150 aria-expanded:[&_.chevron-icon]:rotate-180" id="discipline-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Discipline: Boulder">
-          <svg class="hidden max-[480px]:inline-block w-[1.05rem] h-[1.05rem]" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"></path><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"></path><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"></path></svg>
-          <span id="discipline-btn-label" class="max-[480px]:hidden">Boulder</span>
+        <button type="button" class="group inline-flex items-center gap-[.35rem] h-[var(--field-h)] px-[.8rem] bg-surface border border-border rounded-app text-foreground text-[.85rem] font-semibold cursor-pointer hover:border-accent [&_svg]:stroke-current [&_svg]:fill-none [&_.chevron-icon]:transition-transform [&_.chevron-icon]:duration-150 aria-expanded:[&_.chevron-icon]:rotate-180" id="discipline-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Discipline: Boulder">
+          <span id="discipline-btn-label">Boulder</span>
           <svg class="chevron-icon w-[.85rem] h-[.85rem]" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
         </button>
         <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 bg-background border border-border rounded-app p-[.35rem] min-w-[9rem] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="discipline-popover" role="listbox" aria-label="Discipline" hidden>
@@ -150,11 +149,34 @@
           </button>
         </div>
       </div>
-      <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="theme-toggle-btn" aria-label="Switch to light theme"></button>
-      <button type="button" class="admin-btn shrink-0 max-[480px]:w-9 max-[480px]:px-0 [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:shrink-0" id="login-toggle-btn" aria-label="Log in">
-        <svg id="login-btn-icon" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
-        <span id="login-btn-label" class="max-[480px]:hidden">Log in</span>
+      <button type="button" class="inline-flex items-center justify-center w-9 h-9 max-[480px]:w-full max-[480px]:justify-start max-[480px]:px-[.8rem] max-[480px]:gap-2 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:shrink-0" id="theme-toggle-btn" aria-label="Switch to light theme">
+        <span id="theme-toggle-icon" class="inline-flex"></span>
+        <span id="theme-toggle-label" class="hidden max-[480px]:inline text-[.85rem] font-semibold"></span>
       </button>
+      <button type="button" class="admin-btn" id="login-toggle-btn" aria-label="Log in">
+        <svg class="w-4 h-4 stroke-current fill-none shrink-0" id="login-btn-icon" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+        <span id="login-btn-label">Log in</span>
+      </button>
+
+      <!-- Menu (#119): below 480px, the four controls above don't reliably
+           fit even icon-collapsed -- verified fine in devtools viewport
+           emulation, but real Android devices with increased system
+           font/display scaling inflate every rem-sized element beyond what
+           a fixed-width media query breakpoint accounts for, and Athlete
+           Mode's own label was never icon-collapsed (#114) so it always
+           demands full-label width. A single small icon button is robust
+           against that failure mode in a way a row of several icon buttons
+           isn't -- worst case it's just a smaller square, never an
+           overflow/wrap. JS moves the four controls above into the popover
+           below (and back) as the viewport crosses the breakpoint, so
+           there's exactly one live copy of each control/its state, not a
+           second set to keep in sync. -->
+      <div class="relative hidden max-[480px]:block" id="header-menu-wrap">
+        <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="header-menu-btn" aria-haspopup="true" aria-expanded="false" aria-label="Menu">
+          <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="17" x2="20" y2="17"></line></svg>
+        </button>
+        <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 flex flex-col items-stretch gap-2 bg-background border border-border rounded-app p-3 min-w-[13rem] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="header-menu-popover" role="menu" aria-label="Menu" hidden></div>
+      </div>
     </div>
     <h1 class="font-display font-normal uppercase tracking-wide text-[3rem] leading-none mb-[.3rem] max-[600px]:text-[2.25rem]"><span class="text-accent">Climbing</span> <span class="text-foreground">Logbook</span></h1>
     <p class="text-[1.05rem] text-muted mb-4">Log your climbs, visualise your progress (<button type="button" class="inline bg-transparent border-0 p-0 cursor-pointer text-accent no-underline hover:underline" id="footnote-trigger">or not</button>).</p>
@@ -1047,10 +1069,17 @@
   const SUN_ICON = `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>`;
   const MOON_ICON = `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>`;
   const themeToggleBtn = document.getElementById("theme-toggle-btn");
+  const themeToggleIcon = document.getElementById("theme-toggle-icon");
+  const themeToggleLabel = document.getElementById("theme-toggle-label");
   function updateThemeToggleButton() {
     const theme = document.documentElement.dataset.theme;
-    themeToggleBtn.innerHTML = theme === "light" ? MOON_ICON : SUN_ICON;
-    themeToggleBtn.setAttribute("aria-label", theme === "light" ? "Switch to dark theme" : "Switch to light theme");
+    const label = theme === "light" ? "Switch to dark theme" : "Switch to light theme";
+    themeToggleIcon.innerHTML = theme === "light" ? MOON_ICON : SUN_ICON;
+    themeToggleBtn.setAttribute("aria-label", label);
+    // Icon-only in the header row; the label only actually renders once
+    // this button is relocated into the header menu (#119), where every
+    // other row has a visible label too.
+    themeToggleLabel.textContent = label;
   }
   updateThemeToggleButton();
   themeToggleBtn.addEventListener("click", () => {
@@ -1075,6 +1104,11 @@
   const collapseAllBtn = document.getElementById("collapse-all-btn");
   const disciplineBtn = document.getElementById("discipline-btn");
   const disciplinePopover = document.getElementById("discipline-popover");
+  const disciplineWrap = document.getElementById("discipline-wrap");
+  const headerRow = document.getElementById("header-row");
+  const headerMenuWrap = document.getElementById("header-menu-wrap");
+  const headerMenuBtn = document.getElementById("header-menu-btn");
+  const headerMenuPopover = document.getElementById("header-menu-popover");
   const viewTabs = document.getElementById("view-tabs");
   const panelLogbook = document.getElementById("panel-logbook");
   const panelPyramid = document.getElementById("panel-pyramid");
@@ -1463,6 +1497,45 @@
   });
   document.addEventListener("keydown", e => {
     if (e.key === "Escape" && !disciplinePopover.hidden) { closeDisciplinePopover(); disciplineBtn.focus(); }
+  });
+
+  // ── Header menu (#119): below 480px, the four controls above (Athlete
+  // Mode, discipline picker, theme toggle, Log in/out) are relocated --
+  // not duplicated -- into this popover so they stack vertically instead
+  // of squeezing into one row. Reparenting the actual DOM nodes (rather
+  // than a second copy synced to the first) means each control's state,
+  // IDs, and event listeners keep working unchanged regardless of which
+  // container currently holds it. ─────────────────────────────────────
+  const HEADER_MENU_CONTROLS = [athleteModeBtn, disciplineWrap, themeToggleBtn, loginToggleBtn];
+  const headerMenuQuery = matchMedia("(max-width: 480px)");
+  function layoutHeaderControls(narrow) {
+    const target = narrow ? headerMenuPopover : headerRow;
+    // insertBefore(el, headerMenuWrap) keeps the four controls in their
+    // original order, immediately before the menu button/popover itself,
+    // when relocated back into the wide row.
+    for (const el of HEADER_MENU_CONTROLS) target.insertBefore(el, narrow ? null : headerMenuWrap);
+    headerMenuWrap.hidden = !narrow;
+    if (!narrow) closeHeaderMenu();
+  }
+  layoutHeaderControls(headerMenuQuery.matches);
+  headerMenuQuery.addEventListener("change", e => layoutHeaderControls(e.matches));
+
+  function openHeaderMenu() {
+    headerMenuPopover.hidden = false;
+    headerMenuBtn.setAttribute("aria-expanded", "true");
+  }
+  function closeHeaderMenu() {
+    headerMenuPopover.hidden = true;
+    headerMenuBtn.setAttribute("aria-expanded", "false");
+  }
+  headerMenuBtn.addEventListener("click", () => {
+    if (headerMenuPopover.hidden) openHeaderMenu(); else closeHeaderMenu();
+  });
+  document.addEventListener("click", e => {
+    if (!headerMenuPopover.hidden && !e.target.closest("#header-menu-wrap")) closeHeaderMenu();
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && !headerMenuPopover.hidden) { closeHeaderMenu(); headerMenuBtn.focus(); }
   });
 
   document.addEventListener("click", e => {
