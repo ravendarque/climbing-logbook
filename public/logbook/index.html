@@ -483,16 +483,30 @@
   const GRADE_RANK = Object.fromEntries(GRADE_ORDER.map((g, i) => [g.toUpperCase(), i]));
   function gradeRank(g) { return GRADE_RANK[g.toUpperCase()] ?? 99; }
 
-  function gradeColor(g) {
-    const r = gradeRank(g);
-    if (r < 5)  return "var(--grade-easy)";
-    if (r < 8)  return "var(--grade-6a)";
-    if (r < 10) return "var(--grade-6b)";
-    if (r < 12) return "var(--grade-6c)";
-    if (r < 14) return "var(--grade-7a)";
-    if (r < 16) return "var(--grade-7b)";
-    if (r < 18) return "var(--grade-7c)";
-    return "var(--grade-8a)";
+  const GRADE_COLOR_BANDS = [
+    "var(--grade-easy)", "var(--grade-6a)", "var(--grade-6b)", "var(--grade-6c)",
+    "var(--grade-7a)",   "var(--grade-7b)", "var(--grade-7c)", "var(--grade-8a)",
+  ];
+  // BOULDER_GRADES/LEAD_GRADES (defined below) already carry a curated `c`
+  // per entry -- look those up directly rather than re-deriving a color
+  // from rank. Lead's list is only 14 entries against Boulder's 21, so
+  // applying one set of absolute rank thresholds to both compressed most
+  // of Lead's range into a couple of bands (#109); per-discipline lookup
+  // sidesteps that instead of just recalibrating the thresholds.
+  function gradeColor(g, type) {
+    const list = type === "lead" ? LEAD_GRADES : BOULDER_GRADES;
+    const hit = list.find(x => x.g.toUpperCase() === String(g).toUpperCase());
+    if (hit) return hit.c;
+
+    // Grades outside the current picker range (e.g. pre-#60 sub-5 boulder
+    // entries) have no curated color -- band by fraction of this
+    // discipline's own rank span so a short list still spreads across
+    // the full band range instead of bunching up.
+    const minR = gradeRank(list[0].g);
+    const maxR = gradeRank(list[list.length - 1].g);
+    const frac = (gradeRank(g) - minR) / (maxR - minR);
+    const idx = Math.min(GRADE_COLOR_BANDS.length - 1, Math.max(0, Math.floor(frac * GRADE_COLOR_BANDS.length)));
+    return GRADE_COLOR_BANDS[idx];
   }
 
   // ── Grade data (entry form) ───────────────────────────────────────────
@@ -783,7 +797,7 @@
         return `
         <tr class="border-b border-[color-mix(in_srgb,var(--color-border)_40%,transparent)] last:border-b-0 ${rowBg}">
           <td class="${TD_BASE} text-center w-8">${statusBadge(e)}</td>
-          <td class="${TD_BASE}"><span class="grade-badge" style="color:${gradeColor(e.grade)}">${escapeHtml(e.grade)}</span></td>
+          <td class="${TD_BASE}"><span class="grade-badge" style="color:${gradeColor(e.grade, e.type)}">${escapeHtml(e.grade)}</span></td>
           <td class="${TD_BASE}">
             <span class="font-medium ${e._pendingDelete ? "line-through text-muted" : ""}">${escapeHtml(e.name)}</span>
             ${e.notes ? `<button type="button" class="notes-btn border-0 bg-transparent cursor-pointer text-muted inline-flex align-middle p-[.1rem] hover:text-accent" data-notes-id="${escapeHtml(e.id)}" aria-label="View notes"><svg class="w-[.85rem] h-[.85rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg></button>` : ""}
@@ -959,9 +973,9 @@
   // corner radius along with the width) with a same-background-color
   // drop-shadow halo so it stays legible over any grade color underneath,
   // regardless of whether the bar happens to be wider or narrower than it.
-  function pyramidBarRow(row, { ideal = null, scaleMax, lower = false } = {}) {
+  function pyramidBarRow(row, { ideal = null, scaleMax, lower = false, type } = {}) {
     const actualPct = row.count === 0 ? 0 : (row.count / scaleMax) * 100;
-    const barColor = gradeColor(row.grade);
+    const barColor = gradeColor(row.grade, type);
     const barStyle = lower
       ? `width:${actualPct}%; background:${barColor}; filter:saturate(.18) brightness(1.12)`
       : `width:${actualPct}%; background:${barColor}`;
@@ -1011,7 +1025,7 @@
     }
 
     const top4Scale = Math.max(8, ...top4.map(r => r.count));
-    const top4Html = top4.map((r, i) => pyramidBarRow(r, { ideal: PYRAMID_IDEAL_BY_POSITION[i], scaleMax: top4Scale })).join("");
+    const top4Html = top4.map((r, i) => pyramidBarRow(r, { ideal: PYRAMID_IDEAL_BY_POSITION[i], scaleMax: top4Scale, type })).join("");
 
     let lowerHtml = "";
     if (lower.length) {
@@ -1020,7 +1034,7 @@
         <div class="text-center my-1 mb-[14px]">
           <button type="button" class="font-sans text-[.8rem] font-semibold text-muted bg-transparent border-b-0 border-l-0 border-r-0 border-t border-border py-[14px] min-h-[2.75rem] w-full cursor-pointer hover:text-accent" id="show-lower-link" aria-expanded="${state.lowerGradesExpanded}" aria-controls="lower-rows">${state.lowerGradesExpanded ? "Hide lower grades ▴" : "Show lower grades ▾"}</button>
         </div>
-        <div id="lower-rows">${state.lowerGradesExpanded ? lower.map(r => pyramidBarRow(r, { scaleMax: lowerScale, lower: true })).join("") : ""}</div>`;
+        <div id="lower-rows">${state.lowerGradesExpanded ? lower.map(r => pyramidBarRow(r, { scaleMax: lowerScale, lower: true, type })).join("") : ""}</div>`;
     }
 
     pyramidEl.innerHTML = top4Html + lowerHtml;
