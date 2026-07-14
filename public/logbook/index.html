@@ -117,7 +117,7 @@
     })();
   </script>
 </head>
-<body class="bg-background text-foreground font-sans px-4 pt-6 pb-16 min-w-[375px]">
+<body class="bg-background text-foreground font-sans px-4 pt-6 pb-16 min-w-[300px]">
 <div class="max-w-[960px] mx-auto" id="logbook-app">
   <div class="flex items-center justify-center h-[60vh] text-muted flex-col gap-3" id="loading"><div class="w-8 h-8 border-2 border-border border-t-accent rounded-full animate-spin"></div><span>Loading logbook…</span></div>
   <div id="app" style="display:none">
@@ -149,14 +149,8 @@
           </button>
         </div>
       </div>
-      <button type="button" class="inline-flex items-center justify-center w-9 h-9 max-[480px]:w-full max-[480px]:justify-start max-[480px]:px-[.8rem] max-[480px]:gap-2 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:shrink-0" id="theme-toggle-btn" aria-label="Switch to light theme">
-        <span id="theme-toggle-icon" class="inline-flex"></span>
-        <span id="theme-toggle-label" class="hidden max-[480px]:inline text-[.85rem] font-semibold"></span>
-      </button>
-      <button type="button" class="admin-btn" id="login-toggle-btn" aria-label="Log in">
-        <svg class="w-4 h-4 stroke-current fill-none shrink-0" id="login-btn-icon" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
-        <span id="login-btn-label">Log in</span>
-      </button>
+      <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="theme-toggle-btn" aria-label="Switch to light theme"></button>
+      <button type="button" class="admin-btn" id="login-toggle-btn">Log in</button>
 
       <!-- Menu (#119): below 480px, the four controls above don't reliably
            fit even icon-collapsed -- verified fine in devtools viewport
@@ -175,7 +169,15 @@
         <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="header-menu-btn" aria-haspopup="true" aria-expanded="false" aria-label="Menu">
           <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="17" x2="20" y2="17"></line></svg>
         </button>
-        <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 flex flex-col items-stretch gap-2 bg-background border border-border rounded-app p-3 min-w-[13rem] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="header-menu-popover" role="menu" aria-label="Menu" hidden></div>
+        <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 flex flex-col items-end gap-2 bg-background border border-border rounded-app p-3 min-w-[13rem] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="header-menu-popover" role="menu" aria-label="Menu" hidden>
+          <!-- Theme toggle + Log in/out share one full-width row (icon-only
+               control on the left, text-only control on the right) below
+               the right-aligned Athlete Mode/discipline rows above --
+               self-stretch overrides the popover's items-end so this one
+               row spans the full width instead of hugging the right edge
+               at its own natural (narrower) content width. -->
+          <div class="flex items-center justify-between self-stretch pt-2 mt-1 border-t border-border" id="header-menu-bottom-row"></div>
+        </div>
       </div>
     </div>
     <h1 class="font-display font-normal uppercase tracking-wide text-[3rem] leading-none mb-[.3rem] max-[600px]:text-[2.25rem]"><span class="text-accent">Climbing</span> <span class="text-foreground">Logbook</span></h1>
@@ -797,13 +799,11 @@
 
       return `
         <div class="bg-surface border border-border rounded-app mb-3 overflow-hidden" data-place="${escapeHtml(place)}">
-          <div class="place-header flex items-center gap-[.6rem] px-[.9rem] py-[.6rem] border-b border-border bg-[color-mix(in_srgb,var(--color-surface)_60%,var(--color-bg))] cursor-pointer select-none hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,var(--color-surface))]" data-place="${escapeHtml(place)}" role="button" tabindex="0" aria-expanded="${!isCollapsed}">
-            <span class="font-semibold text-base flex-1">${escapeHtml(place)}</span>
-            <span class="text-muted text-[.8rem] whitespace-nowrap">${sorted.length} ${sorted.length === 1 ? "entry" : "entries"}</span>
-            <span class="text-muted text-[.8rem] flex gap-3 max-[600px]:hidden">
-              ${PLACE_COUNTRY[place] ? `<span>${escapeHtml(PLACE_COUNTRY[place])}</span>` : ""}
-            </span>
-            <span class="text-muted text-[.8rem] transition-transform duration-200 ${isCollapsed ? "-rotate-90" : ""}">▾</span>
+          <div class="place-header flex items-center gap-[.5rem] px-[.9rem] py-[.6rem] border-b border-border bg-[color-mix(in_srgb,var(--color-surface)_60%,var(--color-bg))] cursor-pointer select-none hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,var(--color-surface))]" data-place="${escapeHtml(place)}" role="button" tabindex="0" aria-expanded="${!isCollapsed}">
+            <span class="font-semibold text-base truncate min-w-0 flex-1">${escapeHtml(place)}</span>
+            <span class="inline-flex items-center justify-center min-w-[1.4rem] h-[1.4rem] px-1 rounded-full bg-[color-mix(in_srgb,var(--color-text)_12%,transparent)] text-muted text-[.72rem] font-semibold shrink-0" aria-label="${sorted.length} ${sorted.length === 1 ? "entry" : "entries"}">${sorted.length}</span>
+            ${PLACE_COUNTRY[place] ? `<span class="shrink-0" role="img" aria-label="${escapeHtml(PLACE_COUNTRY[place])}">${escapeHtml(PLACE_COUNTRY[place].split(" ")[0])}</span>` : ""}
+            <span class="text-muted text-[.8rem] transition-transform duration-200 shrink-0 ${isCollapsed ? "-rotate-90" : ""}">▾</span>
           </div>
           <div class="overflow-x-auto ${isCollapsed ? "hidden" : ""}">
             <table class="w-full border-collapse text-[.88rem] min-w-[520px]">
@@ -1069,17 +1069,10 @@
   const SUN_ICON = `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>`;
   const MOON_ICON = `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>`;
   const themeToggleBtn = document.getElementById("theme-toggle-btn");
-  const themeToggleIcon = document.getElementById("theme-toggle-icon");
-  const themeToggleLabel = document.getElementById("theme-toggle-label");
   function updateThemeToggleButton() {
     const theme = document.documentElement.dataset.theme;
-    const label = theme === "light" ? "Switch to dark theme" : "Switch to light theme";
-    themeToggleIcon.innerHTML = theme === "light" ? MOON_ICON : SUN_ICON;
-    themeToggleBtn.setAttribute("aria-label", label);
-    // Icon-only in the header row; the label only actually renders once
-    // this button is relocated into the header menu (#119), where every
-    // other row has a visible label too.
-    themeToggleLabel.textContent = label;
+    themeToggleBtn.innerHTML = theme === "light" ? MOON_ICON : SUN_ICON;
+    themeToggleBtn.setAttribute("aria-label", theme === "light" ? "Switch to dark theme" : "Switch to light theme");
   }
   updateThemeToggleButton();
   themeToggleBtn.addEventListener("click", () => {
@@ -1091,8 +1084,6 @@
 
   // ── DOM refs ─────────────────────────────────────────────────────────
   const loginToggleBtn = document.getElementById("login-toggle-btn");
-  const loginBtnIcon = document.getElementById("login-btn-icon");
-  const loginBtnLabel = document.getElementById("login-btn-label");
   const athleteModeBtn = document.getElementById("athlete-mode-btn");
   const addBtn      = document.getElementById("add-btn");
   const syncBtn     = document.getElementById("sync-btn");
@@ -1109,6 +1100,7 @@
   const headerMenuWrap = document.getElementById("header-menu-wrap");
   const headerMenuBtn = document.getElementById("header-menu-btn");
   const headerMenuPopover = document.getElementById("header-menu-popover");
+  const headerMenuBottomRow = document.getElementById("header-menu-bottom-row");
   const viewTabs = document.getElementById("view-tabs");
   const panelLogbook = document.getElementById("panel-logbook");
   const panelPyramid = document.getElementById("panel-pyramid");
@@ -1137,16 +1129,8 @@
   const citationsOverlay = document.getElementById("citations-overlay");
 
   // ── Admin bar ────────────────────────────────────────────────────────
-  // Icon shown regardless of viewport width (needed once the text label
-  // hides below the icon-collapse breakpoint, see #114); label text and
-  // aria-label both still kept in sync so the visible-label width and the
-  // accessible name never drift apart.
-  const LOG_IN_ICON = `<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line>`;
-  const LOG_OUT_ICON = `<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line>`;
   function updateAdminBar() {
-    loginBtnIcon.innerHTML = isLoggedIn ? LOG_OUT_ICON : LOG_IN_ICON;
-    loginBtnLabel.textContent = isLoggedIn ? "Log out" : "Log in";
-    loginToggleBtn.setAttribute("aria-label", isLoggedIn ? "Log out" : "Log in");
+    loginToggleBtn.textContent = isLoggedIn ? "Log out" : "Log in";
     addBtn.hidden = !isLoggedIn;
     athleteModeBtn.hidden = !isLoggedIn;
     athleteModeBtn.setAttribute("aria-checked", String(athleteMode));
@@ -1499,21 +1483,30 @@
     if (e.key === "Escape" && !disciplinePopover.hidden) { closeDisciplinePopover(); disciplineBtn.focus(); }
   });
 
-  // ── Header menu (#119): below 480px, the four controls above (Athlete
-  // Mode, discipline picker, theme toggle, Log in/out) are relocated --
-  // not duplicated -- into this popover so they stack vertically instead
-  // of squeezing into one row. Reparenting the actual DOM nodes (rather
-  // than a second copy synced to the first) means each control's state,
-  // IDs, and event listeners keep working unchanged regardless of which
-  // container currently holds it. ─────────────────────────────────────
-  const HEADER_MENU_CONTROLS = [athleteModeBtn, disciplineWrap, themeToggleBtn, loginToggleBtn];
+  // ── Header menu (#119, #122): below 480px, the four controls above
+  // (Athlete Mode, discipline picker, theme toggle, Log in/out) are
+  // relocated -- not duplicated -- into this popover so they stack
+  // vertically instead of squeezing into one row. Reparenting the actual
+  // DOM nodes (rather than a second copy synced to the first) means each
+  // control's state, IDs, and event listeners keep working unchanged
+  // regardless of which container currently holds it. Athlete Mode and
+  // the discipline picker land directly in the popover (right-aligned via
+  // its own items-end); theme toggle and Log in/out land together in the
+  // dedicated bottom row instead, one icon-only and one text-only control
+  // sharing a line. ───────────────────────────────────────────────────
+  const HEADER_MENU_TOP_CONTROLS = [athleteModeBtn, disciplineWrap];
+  const HEADER_MENU_BOTTOM_CONTROLS = [themeToggleBtn, loginToggleBtn];
   const headerMenuQuery = matchMedia("(max-width: 480px)");
   function layoutHeaderControls(narrow) {
-    const target = narrow ? headerMenuPopover : headerRow;
-    // insertBefore(el, headerMenuWrap) keeps the four controls in their
-    // original order, immediately before the menu button/popover itself,
-    // when relocated back into the wide row.
-    for (const el of HEADER_MENU_CONTROLS) target.insertBefore(el, narrow ? null : headerMenuWrap);
+    // insertBefore(el, headerMenuWrap)/(el, headerMenuBottomRow) keeps
+    // each group in its original order, immediately before its anchor,
+    // in both the wide row and the narrow popover.
+    for (const el of HEADER_MENU_TOP_CONTROLS) {
+      (narrow ? headerMenuPopover : headerRow).insertBefore(el, narrow ? headerMenuBottomRow : headerMenuWrap);
+    }
+    for (const el of HEADER_MENU_BOTTOM_CONTROLS) {
+      (narrow ? headerMenuBottomRow : headerRow).insertBefore(el, narrow ? null : headerMenuWrap);
+    }
     headerMenuWrap.hidden = !narrow;
     if (!narrow) closeHeaderMenu();
   }
