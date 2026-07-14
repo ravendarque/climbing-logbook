@@ -955,11 +955,15 @@
          <span class="sr-only">${icon.label}</span>`
       : "";
     const rowClasses = lower
-      ? "grid grid-cols-[3.2rem_1fr_3.6rem] items-center gap-[10px] mb-[14px] opacity-[.82]"
-      : "grid grid-cols-[3.2rem_1fr_3.6rem] items-center gap-[10px] mb-[14px]";
+      ? "grid grid-cols-[3.2rem_1fr_4.2rem] items-center gap-[10px] mb-[14px] opacity-[.82]"
+      : "grid grid-cols-[3.2rem_1fr_4.2rem] items-center gap-[10px] mb-[14px]";
     const countClasses = lower
       ? "flex items-center gap-[.35rem] text-[.82rem] font-semibold tabular-nums text-muted"
       : "flex items-center gap-[.35rem] text-[.82rem] font-bold tabular-nums text-foreground";
+    // Actual/ideal (e.g. "1/4", "3/2") only where there's an ideal to
+    // compare against -- lower-grade rows (outside the 8-4-2-1 window)
+    // have no defined target, so they keep showing the bare count.
+    const countText = ideal !== null ? `${row.count}/${ideal}` : `${row.count}`;
     return `
       <div class="${rowClasses}">
         <div class="text-[.8rem] font-bold text-right tabular-nums text-muted">${escapeHtml(row.grade)}</div>
@@ -967,7 +971,7 @@
           <div class="absolute top-0 left-1/2 -translate-x-1/2 h-full rounded-[4px] transition-[width] duration-300" style="${barStyle}"></div>
           ${idealOutline}
         </div>
-        <div class="${countClasses}">${row.count}${iconHtml}</div>
+        <div class="${countClasses}">${countText}${iconHtml}</div>
       </div>`;
   }
 
