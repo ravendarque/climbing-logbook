@@ -5,9 +5,12 @@
  * terminal, Ctrl+C stops everything together.
  *
  * This used to be `pnpm run review`-only behavior (see #72/#88/#116);
- * moved here so plain `pnpm dev` gets the same experience, and
- * review-pr.mjs is now a thin wrapper that checks out a PR and installs
- * before delegating to this script.
+ * moved here so plain `pnpm dev` gets the same experience. The old
+ * review-pr.mjs wrapper (checkout a PR, install, then delegate to this
+ * script) was removed (#124) -- it added a whole extra nested `pnpm`
+ * layer just to save typing `gh pr checkout <pr>` yourself first, and
+ * that extra layer was itself the source of some of the noisy
+ * "[ELIFECYCLE] Command failed" output on Ctrl+C.
  *
  * Usage:
  *   pnpm dev [--no-seed] [--no-open]
