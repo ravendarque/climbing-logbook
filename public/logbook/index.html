@@ -251,27 +251,15 @@
     </div>
 
     <!-- Grade Pyramid (#12) -- only reachable via the view-tabs above, so
-         only ever visible in Athlete Mode. Evidence-tier chips (#16) up
-         top disclose which claims are peer-reviewed research vs. a
-         coaching heuristic vs. unvetted community data, so the pyramid
-         itself never reads as more authoritative than it actually is. -->
+         only ever visible in Athlete Mode. Evidence-tier chips (#16)
+         disclose which claims are peer-reviewed research vs. a coaching
+         heuristic vs. unvetted community data, so the pyramid itself
+         never reads as more authoritative than it actually is -- inline
+         in prose (e.g. the "coaching heuristic" chip below), clickable to
+         open #evidence-overlay's full explainer, rather than a persistent
+         always-visible key row (#133 -- that wrapped awkwardly on narrow
+         viewports). -->
     <div id="panel-pyramid" role="tabpanel" aria-labelledby="view-tab-pyramid" hidden>
-      <div class="flex flex-wrap items-center gap-[10px] mb-5 pb-5 border-b border-border">
-        <span class="text-[.68rem] font-bold uppercase tracking-wider text-muted mr-[2px]">Evidence:</span>
-        <span class="tier-chip inline-flex items-center gap-[.35rem] py-[.3rem] pr-[.7rem] pl-[.55rem] rounded-full text-[.74rem] font-semibold border border-[color-mix(in_srgb,var(--color-tier-peer)_35%,transparent)] text-tier-peer bg-[color-mix(in_srgb,var(--color-tier-peer)_14%,var(--color-surface))] [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:shrink-0">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z"></path><path d="M9.5 12l1.8 1.8L15 10"></path></svg>
-          Peer-reviewed
-        </span>
-        <span class="tier-chip inline-flex items-center gap-[.35rem] py-[.3rem] pr-[.7rem] pl-[.55rem] rounded-full text-[.74rem] font-semibold border border-[color-mix(in_srgb,var(--color-tier-heuristic)_35%,transparent)] text-tier-heuristic bg-[color-mix(in_srgb,var(--color-tier-heuristic)_14%,var(--color-surface))] [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:shrink-0">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z"></path><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20"></path></svg>
-          Coaching heuristic
-        </span>
-        <span class="tier-chip inline-flex items-center gap-[.35rem] py-[.3rem] pr-[.7rem] pl-[.55rem] rounded-full text-[.74rem] font-semibold border border-[color-mix(in_srgb,var(--color-tier-community)_35%,transparent)] text-tier-community bg-[color-mix(in_srgb,var(--color-tier-community)_14%,var(--color-surface))] [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:shrink-0">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="9" r="2.8"></circle><path d="M2.5 19c0-3 2.7-5 6-5s6 2 6 5"></path><path d="M15.5 6.7A2.8 2.8 0 1 1 15.9 12"></path><path d="M15 14.3c2.8.3 5 2.2 5 4.7"></path></svg>
-          Community data
-        </span>
-      </div>
-
       <h2 class="text-[1.05rem] font-bold mb-3" id="pyramid-heading">Grade pyramid</h2>
       <p class="text-[.82rem] text-muted leading-[1.6] mb-4" id="window-note"></p>
 
@@ -296,6 +284,44 @@
       <li>Hörst, E. J. <em class="text-muted italic">How to Climb 5.12</em> — originating source for the route-pyramid training concept (print only, no stable link available).</li>
       <li>Hampton, K. "Great Pyramids." Power Company Climbing (2010). <a class="text-accent" href="https://www.powercompanyclimbing.com/blog/2010/08/great-pyramids.html" target="_blank" rel="noopener">powercompanyclimbing.com ↗</a></li>
     </ol>
+  </div>
+</div>
+
+<!-- ══ Evidence tiers dialog (#16/#133) -- explains what each evidence-tier
+     chip means. Opened from wherever a tier chip appears inline in prose
+     (e.g. the pyramid intro's "coaching heuristic" chip, [data-evidence-
+     tier]), replacing a persistent always-visible key row that wrapped
+     awkwardly on narrow viewports. ═══════════════════════════════════ -->
+<div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-center justify-center px-4 py-6 overflow-y-auto" id="evidence-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="evidence-title" tabindex="-1">
+  <div class="bg-background border border-border rounded-app p-5 w-full max-w-[380px]">
+    <div class="flex items-center justify-between mb-[14px]">
+      <span class="text-[1.05rem] font-bold text-accent" id="evidence-title">Evidence tiers</span>
+      <button type="button" class="inline-flex items-center justify-center w-8 h-8 border-none bg-transparent text-muted text-[1.1rem] leading-none cursor-pointer hover:text-foreground" id="evidence-close" aria-label="Close evidence tiers dialog">✕</button>
+    </div>
+    <p class="text-[.82rem] text-muted leading-[1.5] mb-4">Claims in the app are tagged by how well-supported they are, so nothing reads as more authoritative than it actually is.</p>
+    <ul class="m-0 p-0 list-none [&>li+li]:mt-4">
+      <li>
+        <span class="tier-chip inline-flex items-center gap-[.35rem] py-[.3rem] pr-[.7rem] pl-[.55rem] rounded-full text-[.74rem] font-semibold border border-[color-mix(in_srgb,var(--color-tier-peer)_35%,transparent)] text-tier-peer bg-[color-mix(in_srgb,var(--color-tier-peer)_14%,var(--color-surface))] [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:shrink-0 mb-2">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z"></path><path d="M9.5 12l1.8 1.8L15 10"></path></svg>
+          Peer-reviewed
+        </span>
+        <p class="text-[.82rem] leading-[1.5] text-foreground m-0">Backed by published, peer-reviewed research.</p>
+      </li>
+      <li>
+        <span class="tier-chip inline-flex items-center gap-[.35rem] py-[.3rem] pr-[.7rem] pl-[.55rem] rounded-full text-[.74rem] font-semibold border border-[color-mix(in_srgb,var(--color-tier-heuristic)_35%,transparent)] text-tier-heuristic bg-[color-mix(in_srgb,var(--color-tier-heuristic)_14%,var(--color-surface))] [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:shrink-0 mb-2">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z"></path><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20"></path></svg>
+          Coaching heuristic
+        </span>
+        <p class="text-[.82rem] leading-[1.5] text-foreground m-0">A widely used rule of thumb from experienced coaches — useful, but not scientifically validated.</p>
+      </li>
+      <li>
+        <span class="tier-chip inline-flex items-center gap-[.35rem] py-[.3rem] pr-[.7rem] pl-[.55rem] rounded-full text-[.74rem] font-semibold border border-[color-mix(in_srgb,var(--color-tier-community)_35%,transparent)] text-tier-community bg-[color-mix(in_srgb,var(--color-tier-community)_14%,var(--color-surface))] [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:shrink-0 mb-2">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="9" r="2.8"></circle><path d="M2.5 19c0-3 2.7-5 6-5s6 2 6 5"></path><path d="M15.5 6.7A2.8 2.8 0 1 1 15.9 12"></path><path d="M15 14.3c2.8.3 5 2.2 5 4.7"></path></svg>
+          Community data
+        </span>
+        <p class="text-[.82rem] leading-[1.5] text-foreground m-0">Informal, crowdsourced information — not vetted by research or coaching expertise.</p>
+      </li>
+    </ul>
   </div>
 </div>
 
@@ -1113,12 +1139,15 @@
       `Sends from the <strong class="text-foreground font-semibold">last 12 months only</strong><button type="button" class="footnote-marker inline-flex items-center justify-center min-w-[1.6rem] min-h-[1.6rem] -mx-[.15rem] font-sans text-[.68em] font-bold align-super text-accent bg-transparent border-0 cursor-pointer underline leading-none" data-citation>1</button>, showing your
        <strong class="text-foreground font-semibold">8-4-2-1 window</strong> — four grade tiers anchored to your progress so far, including any with zero sends, projecting one tier higher once you've logged enough to be ready to push for it. Dashed outlines mark the
        ideal count for each tier. The ratio itself is a
-       <span class="inline-flex items-center gap-[.35rem] py-[.05rem] pr-[.5rem] pl-[.4rem] rounded-full text-[.72rem] font-semibold align-[-2px] border border-[color-mix(in_srgb,var(--color-tier-heuristic)_35%,transparent)] text-tier-heuristic bg-[color-mix(in_srgb,var(--color-tier-heuristic)_14%,var(--color-surface))] [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:shrink-0">
+       <button type="button" class="tier-chip inline-flex items-center gap-[.35rem] py-[.05rem] pr-[.5rem] pl-[.4rem] rounded-full text-[.72rem] font-semibold align-[-2px] border border-[color-mix(in_srgb,var(--color-tier-heuristic)_35%,transparent)] text-tier-heuristic bg-[color-mix(in_srgb,var(--color-tier-heuristic)_14%,var(--color-surface))] [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:shrink-0 cursor-pointer hover:brightness-95" data-evidence-tier aria-label="What does “coaching heuristic” mean? Opens the evidence tiers explainer">
          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z"></path><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20"></path></svg>
          widely used coaching heuristic
-       </span><button type="button" class="footnote-marker inline-flex items-center justify-center min-w-[1.6rem] min-h-[1.6rem] -mx-[.15rem] font-sans text-[.68em] font-bold align-super text-accent bg-transparent border-0 cursor-pointer underline leading-none" data-citation>1</button>, not a proven ratio.`;
+       </button><button type="button" class="footnote-marker inline-flex items-center justify-center min-w-[1.6rem] min-h-[1.6rem] -mx-[.15rem] font-sans text-[.68em] font-bold align-super text-accent bg-transparent border-0 cursor-pointer underline leading-none" data-citation>1</button>, not a proven ratio.`;
     document.querySelectorAll("[data-citation]").forEach(btn =>
       btn.addEventListener("click", () => openModal(citationsOverlay))
+    );
+    document.querySelectorAll("[data-evidence-tier]").forEach(btn =>
+      btn.addEventListener("click", () => openModal(evidenceOverlay))
     );
 
     if (promotedGrade) {
@@ -1246,6 +1275,7 @@
   const notesModalText = document.getElementById("notes-modal-text");
   const footnoteOverlay = document.getElementById("footnote-overlay");
   const citationsOverlay = document.getElementById("citations-overlay");
+  const evidenceOverlay = document.getElementById("evidence-overlay");
 
   // ── Admin bar ────────────────────────────────────────────────────────
   function updateAdminBar() {
@@ -1503,7 +1533,7 @@
     if (lastFocusedEl) lastFocusedEl.focus();
   }
   document.addEventListener("keydown", e => {
-    const openOverlay = [entryOverlay, notesOverlay, footnoteOverlay, citationsOverlay].find(o => !o.hidden);
+    const openOverlay = [entryOverlay, notesOverlay, footnoteOverlay, citationsOverlay, evidenceOverlay].find(o => !o.hidden);
     if (!openOverlay) return;
 
     if (e.key === "Escape") {
@@ -1569,6 +1599,9 @@
 
   document.getElementById("citations-close").addEventListener("click", () => closeModal(citationsOverlay));
   citationsOverlay.addEventListener("click", e => { if (e.target === citationsOverlay) closeModal(citationsOverlay); });
+
+  document.getElementById("evidence-close").addEventListener("click", () => closeModal(evidenceOverlay));
+  evidenceOverlay.addEventListener("click", e => { if (e.target === evidenceOverlay) closeModal(evidenceOverlay); });
 
   // ── Discipline picker (#110): header popover, always offers both
   // disciplines regardless of entry counts -- see the markup comment
