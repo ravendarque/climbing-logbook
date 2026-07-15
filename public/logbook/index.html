@@ -904,9 +904,11 @@
   // citations dialog), not a scientifically validated ratio; framed that
   // way everywhere it's surfaced in the UI, never as fact.
   const PYRAMID_IDEAL_BY_POSITION = [1, 2, 4, 8]; // position 0 = current max (ideal 1) ... position 3 = base tier (ideal 8)
-  const PYRAMID_ICON_GOOD    = `<circle cx="12" cy="12" r="9"></circle><path d="m8.5 12.5 2.5 2.5 5-5"></path>`;
-  const PYRAMID_ICON_LOW     = `<path d="M12 3 2 20h20L12 3Z"></path><path d="M12 9v5"></path><path d="M12 17h.01"></path>`;
-  const PYRAMID_ICON_MISSING = `<circle cx="12" cy="12" r="9"></circle><path d="M12 7v6"></path><path d="M12 16.5h.01"></path>`;
+  const PYRAMID_ICON_GOOD     = `<circle cx="12" cy="12" r="9"></circle><path d="m8.5 12.5 2.5 2.5 5-5"></path>`;
+  const PYRAMID_ICON_LOW      = `<path d="M12 3 2 20h20L12 3Z"></path><path d="M12 9v5"></path><path d="M12 17h.01"></path>`;
+  const PYRAMID_ICON_MISSING  = `<circle cx="12" cy="12" r="9"></circle><path d="M12 7v6"></path><path d="M12 16.5h.01"></path>`;
+  const PYRAMID_ICON_PROMOTED = `<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"></path>`;
+  const PYRAMID_GOLD = "#eab308"; // achievement/celebratory accent (#131) -- literal hex, matching the existing good/missing icons' style rather than a CSS var
 
   // Sends only (a "send" covers both flash/onsight and redpoint -- see the
   // status-label comment near FLASH_LABEL/SEND_LABEL above), from the last
@@ -934,21 +936,59 @@
     return { order, counts };
   }
 
-  // Splits the discipline's full grade order into the 8-4-2-1 window (the
-  // four tiers from the current max sent grade down, including any with
-  // zero sends -- that's a gap worth surfacing, not hiding) and everything
-  // below it, which is shown collapsed by default (see show/hide-lower-
-  // grades link in renderPyramid).
+  // Is `idx` (and up to two grades below it) already sent enough to be
+  // considered "ready to push" into the next grade up? Checked against
+  // the ideal one position HARDER than each tier's own slot (position 0
+  // = hardest/tier 1 ... position 3 = base/tier 4) -- e.g. tier 1 needs
+  // tier 2's ideal (2) to be ready to promote, tier 2 needs tier 3's (4),
+  // and so on. Stops as soon as it runs off the bottom of the grade
+  // list, so this is the same check whether 1, 2, or 3 real tiers
+  // currently exist below `idx` (#131 -- see the PRD's truth table for
+  // worked examples of each case).
+  function pyramidReadyToPromote(order, counts, idx) {
+    for (let pos = 0; pos <= 2; pos++) {
+      const gradeIdx = idx - pos;
+      if (gradeIdx < 0) break;
+      const need = PYRAMID_IDEAL_BY_POSITION[pos + 1];
+      if (need === undefined) break;
+      if (counts[order[gradeIdx]] < need) return false;
+    }
+    return true;
+  }
+
+  // Splits the discipline's full grade order into the 8-4-2-1 window and
+  // everything below it (shown collapsed by default -- see show/hide-
+  // lower-grades link in renderPyramid). The window used to be "count
+  // down 4 tiers from the max sent grade, clamped at the low end", which
+  // degraded to a 1-tier "complete" pyramid once max-sent was already
+  // the lowest supported grade (#131). It's now a promotion-step anchor,
+  // stateless and recomputed fresh from current sends every render: if
+  // the top (up to) 3 real tiers already have enough volume to be ready
+  // for the next grade up, the window promotes by one -- even into a
+  // grade with zero sends yet -- and the display always spans a full 4
+  // tiers, extending upward rather than truncating near the list's
+  // start. `promotedGrade` marks the single tier (if any) that was just
+  // promoted this render, for the achievement-styled treatment; a real
+  // send landing at or beyond it on a later render moves `maxSentIdx`
+  // there directly, so there's nothing to "un-promote".
   function pyramidSplitRows(type) {
     const { order, counts } = pyramidCounts(type);
     const sentTiers = order.filter(g => counts[g] > 0);
-    if (!sentTiers.length) return { top4: [], lower: [], hasSends: false };
+    if (!sentTiers.length) return { top4: [], lower: [], hasSends: false, promotedGrade: null };
 
     const maxGrade = sentTiers[sentTiers.length - 1];
-    const maxIdx = order.indexOf(maxGrade);
-    const windowStartIdx = Math.max(0, maxIdx - 3);
+    let topIdx = order.indexOf(maxGrade);
 
-    const top4 = order.slice(windowStartIdx, maxIdx + 1)
+    let promotedGrade = null;
+    if (topIdx < order.length - 1 && pyramidReadyToPromote(order, counts, topIdx)) {
+      topIdx += 1;
+      promotedGrade = order[topIdx];
+    }
+
+    const displayTop = Math.max(topIdx, Math.min(3, order.length - 1));
+    const windowStartIdx = Math.max(0, displayTop - 3);
+
+    const top4 = order.slice(windowStartIdx, displayTop + 1)
       .map(g => ({ grade: g, count: counts[g] }))
       .reverse(); // hardest (ideal 1) first
 
@@ -957,10 +997,11 @@
       .map(g => ({ grade: g, count: counts[g] }))
       .reverse();
 
-    return { top4, lower, hasSends: true };
+    return { top4, lower, hasSends: true, promotedGrade };
   }
 
-  function pyramidStatusIcon(actual, ideal) {
+  function pyramidStatusIcon(actual, ideal, promoted) {
+    if (promoted) return { cls: "promoted", color: PYRAMID_GOLD, svg: PYRAMID_ICON_PROMOTED, label: "Ready to push -- you've logged enough at the tier below to attempt this grade" };
     if (actual === 0) return { cls: "missing", color: "#ef4444", svg: PYRAMID_ICON_MISSING, label: "No sends at this tier" };
     if (actual < ideal) return { cls: "low", color: "var(--color-tier-heuristic)", svg: PYRAMID_ICON_LOW, label: `${actual} of ${ideal} for a full 8-4-2-1 tier` };
     return { cls: "good", color: "#22c55e", svg: PYRAMID_ICON_GOOD, label: `Meets or exceeds the ${ideal}-send tier` };
@@ -973,16 +1014,23 @@
   // corner radius along with the width) with a same-background-color
   // drop-shadow halo so it stays legible over any grade color underneath,
   // regardless of whether the bar happens to be wider or narrower than it.
-  function pyramidBarRow(row, { ideal = null, scaleMax, lower = false, type } = {}) {
+  function pyramidBarRow(row, { ideal = null, scaleMax, lower = false, type, promoted = false } = {}) {
     const actualPct = row.count === 0 ? 0 : (row.count / scaleMax) * 100;
     const barColor = gradeColor(row.grade, type);
     const barStyle = lower
       ? `width:${actualPct}%; background:${barColor}; filter:saturate(.18) brightness(1.12)`
       : `width:${actualPct}%; background:${barColor}`;
+    // The promoted (achievement/celebratory, #131) tier's outline goes
+    // gold instead of the usual neutral dashed border, so "ready to
+    // push" reads at a glance even before noticing the icon. Both branches
+    // are written out as complete literal class strings (not built from
+    // the PYRAMID_GOLD JS constant) -- Tailwind's build scans this file's
+    // raw source text for whole class names, so an interpolated
+    // `border-[${PYRAMID_GOLD}]` would never be found or generated.
     const idealOutline = ideal !== null
-      ? `<div class="absolute top-0 left-1/2 -translate-x-1/2 h-full box-border rounded-[4px] border-[1.25px] border-dashed border-[color-mix(in_srgb,var(--color-foreground)_65%,transparent)] [filter:drop-shadow(0_0_1px_var(--color-surface))_drop-shadow(0_0_1px_var(--color-surface))] pointer-events-none" style="width:${(ideal / scaleMax) * 100}%"></div>`
+      ? `<div class="absolute top-0 left-1/2 -translate-x-1/2 h-full box-border rounded-[4px] border-[1.25px] border-dashed ${promoted ? "border-[#eab308]" : "border-[color-mix(in_srgb,var(--color-foreground)_65%,transparent)]"} [filter:drop-shadow(0_0_1px_var(--color-surface))_drop-shadow(0_0_1px_var(--color-surface))] pointer-events-none" style="width:${(ideal / scaleMax) * 100}%"></div>`
       : "";
-    const icon = ideal !== null ? pyramidStatusIcon(row.count, ideal) : null;
+    const icon = ideal !== null ? pyramidStatusIcon(row.count, ideal, promoted) : null;
     // The status is conveyed by icon shape+color for sighted users, but a
     // `title` tooltip requires hover (unavailable on touch, unreliable for
     // screen readers) -- sr-only text covers both.
@@ -1013,7 +1061,7 @@
 
   function renderPyramid() {
     const type = state.activeType;
-    const { top4, lower, hasSends } = pyramidSplitRows(type);
+    const { top4, lower, hasSends, promotedGrade } = pyramidSplitRows(type);
     const pyramidEl = document.getElementById("pyramid");
     const healthEl = document.getElementById("health-card");
 
@@ -1025,7 +1073,7 @@
     }
 
     const top4Scale = Math.max(8, ...top4.map(r => r.count));
-    const top4Html = top4.map((r, i) => pyramidBarRow(r, { ideal: PYRAMID_IDEAL_BY_POSITION[i], scaleMax: top4Scale, type })).join("");
+    const top4Html = top4.map((r, i) => pyramidBarRow(r, { ideal: PYRAMID_IDEAL_BY_POSITION[i], scaleMax: top4Scale, type, promoted: r.grade === promotedGrade })).join("");
 
     let lowerHtml = "";
     if (lower.length) {
@@ -1053,7 +1101,7 @@
 
     document.getElementById("window-note").innerHTML =
       `Sends from the <strong class="text-foreground font-semibold">last 12 months only</strong><button type="button" class="footnote-marker inline-flex items-center justify-center min-w-[1.6rem] min-h-[1.6rem] -mx-[.15rem] font-sans text-[.68em] font-bold align-super text-accent bg-transparent border-0 cursor-pointer underline leading-none" data-citation>1</button>, showing your
-       <strong class="text-foreground font-semibold">8-4-2-1 window</strong> — the four grade tiers from your current max down, including any with zero sends. Dashed outlines mark the
+       <strong class="text-foreground font-semibold">8-4-2-1 window</strong> — four grade tiers anchored to your progress so far, including any with zero sends, projecting one tier higher once you've logged enough to be ready to push for it. Dashed outlines mark the
        ideal count for each tier. The ratio itself is a
        <span class="inline-flex items-center gap-[.35rem] py-[.05rem] pr-[.5rem] pl-[.4rem] rounded-full text-[.72rem] font-semibold align-[-2px] border border-[color-mix(in_srgb,var(--color-tier-heuristic)_35%,transparent)] text-tier-heuristic bg-[color-mix(in_srgb,var(--color-tier-heuristic)_14%,var(--color-surface))] [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:shrink-0">
          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z"></path><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20"></path></svg>
@@ -1062,6 +1110,34 @@
     document.querySelectorAll("[data-citation]").forEach(btn =>
       btn.addEventListener("click", () => openModal(citationsOverlay))
     );
+
+    if (promotedGrade) {
+      // Achievement/celebratory styling (#131) -- gold instead of the
+      // usual tier-heuristic teal. Written as complete literal classes
+      // (not built from the PYRAMID_GOLD JS constant) for the same
+      // reason as pyramidBarRow's dashed-outline branch above: Tailwind
+      // scans this file's raw source text for whole class names.
+      healthEl.className = "flex gap-3 px-4 py-[14px] rounded-app mb-7 [&_svg]:w-[1.2rem] [&_svg]:h-[1.2rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:mt-[2px] [&_svg]:shrink-0 bg-[color-mix(in_srgb,#eab308_10%,var(--color-surface))] border border-[color-mix(in_srgb,#eab308_35%,transparent)] text-[#eab308]";
+      // A promoted tier can still have plain-empty aspirational tiers
+      // above it (Scenario C: building from the base, several grades
+      // still out of reach) -- worth a different message than a clean
+      // Scenario B promotion, where the promoted tier is the only gap.
+      const stillBuilding = top4.some(r => r.count === 0 && r.grade !== promotedGrade);
+      healthEl.innerHTML = stillBuilding
+        ? `
+          <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${PYRAMID_ICON_PROMOTED}</svg>
+          <div>
+            <p class="text-[.86rem] leading-[1.5] text-foreground">Still building your pyramid from the base up — but you've already got enough mileage to give ${escapeHtml(promotedGrade)} a go.</p>
+            <p class="text-[.8rem] leading-[1.5] text-muted mt-[6px]">Keep adding sends at your lower tiers too — a full 8-4-2-1 pyramid needs volume all the way down, not just at the top.</p>
+          </div>`
+        : `
+          <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${PYRAMID_ICON_PROMOTED}</svg>
+          <div>
+            <p class="text-[.86rem] leading-[1.5] text-foreground">You've logged enough at every tier below to be ready to push into ${escapeHtml(promotedGrade)}.</p>
+            <p class="text-[.8rem] leading-[1.5] text-muted mt-[6px]">Heuristic guidance, not diagnosis — the volume says you're ready, only you know if the moves suit you.</p>
+          </div>`;
+      return;
+    }
 
     const gapRow = top4.find(r => r.count === 0);
     if (gapRow) {
