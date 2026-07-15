@@ -260,10 +260,14 @@
          always-visible key row (#133 -- that wrapped awkwardly on narrow
          viewports). -->
     <div id="panel-pyramid" role="tabpanel" aria-labelledby="view-tab-pyramid" hidden>
-      <h2 class="text-[1.05rem] font-bold mb-3" id="pyramid-heading">Grade pyramid</h2>
+      <!-- No visible heading here -- "Grade Pyramid" is already the tab
+           label immediately above (view-tab-pyramid), which the panel's
+           own aria-labelledby already ties to for assistive tech; a
+           second "Grade pyramid" heading directly under it was pure
+           repetition (#133 tidy-up). -->
       <p class="text-[.82rem] text-muted leading-[1.6] mb-4" id="window-note"></p>
 
-      <div class="pyramid-card bg-surface border border-border rounded-app pt-[22px] px-5 pb-4 mb-5" id="pyramid" role="group" aria-labelledby="pyramid-heading"></div>
+      <div class="pyramid-card bg-surface border border-border rounded-app pt-[22px] px-5 pb-4 mb-5" id="pyramid" role="group" aria-label="Grade pyramid"></div>
 
       <div class="flex gap-3 px-4 py-[14px] rounded-app mb-7 [&_svg]:w-[1.2rem] [&_svg]:h-[1.2rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:mt-[2px] [&_svg]:shrink-0" id="health-card" role="status"></div>
     </div>
