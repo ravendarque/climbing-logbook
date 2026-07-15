@@ -1021,14 +1021,19 @@
       ? `width:${actualPct}%; background:${barColor}; filter:saturate(.18) brightness(1.12)`
       : `width:${actualPct}%; background:${barColor}`;
     // The promoted (achievement/celebratory, #131) tier's outline goes
-    // gold instead of the usual neutral dashed border, so "ready to
-    // push" reads at a glance even before noticing the icon. Both branches
-    // are written out as complete literal class strings (not built from
-    // the PYRAMID_GOLD JS constant) -- Tailwind's build scans this file's
-    // raw source text for whole class names, so an interpolated
-    // `border-[${PYRAMID_GOLD}]` would never be found or generated.
+    // gold instead of the usual neutral dashed border -- filled with a
+    // translucent gold wash and a soft glow, not just an empty dashed
+    // box, since its actual bar is always 0-width (no sends there yet)
+    // and would otherwise leave the tier looking empty rather than
+    // "waiting to be claimed". Both branches are written out as complete
+    // literal class strings (not built from the PYRAMID_GOLD JS
+    // constant) -- Tailwind's build scans this file's raw source text
+    // for whole class names, so an interpolated `border-[${PYRAMID_GOLD}]`
+    // would never be found or generated.
     const idealOutline = ideal !== null
-      ? `<div class="absolute top-0 left-1/2 -translate-x-1/2 h-full box-border rounded-[4px] border-[1.25px] border-dashed ${promoted ? "border-[#eab308]" : "border-[color-mix(in_srgb,var(--color-foreground)_65%,transparent)]"} [filter:drop-shadow(0_0_1px_var(--color-surface))_drop-shadow(0_0_1px_var(--color-surface))] pointer-events-none" style="width:${(ideal / scaleMax) * 100}%"></div>`
+      ? promoted
+        ? `<div class="absolute top-0 left-1/2 -translate-x-1/2 h-full box-border rounded-[4px] border-[1.25px] border-dashed border-[#eab308] bg-[color-mix(in_srgb,#eab308_22%,transparent)] shadow-[0_0_10px_-1px_#eab308] [filter:drop-shadow(0_0_1px_var(--color-surface))_drop-shadow(0_0_1px_var(--color-surface))] pointer-events-none" style="width:${(ideal / scaleMax) * 100}%"></div>`
+        : `<div class="absolute top-0 left-1/2 -translate-x-1/2 h-full box-border rounded-[4px] border-[1.25px] border-dashed border-[color-mix(in_srgb,var(--color-foreground)_65%,transparent)] [filter:drop-shadow(0_0_1px_var(--color-surface))_drop-shadow(0_0_1px_var(--color-surface))] pointer-events-none" style="width:${(ideal / scaleMax) * 100}%"></div>`
       : "";
     const icon = ideal !== null ? pyramidStatusIcon(row.count, ideal, promoted) : null;
     // The status is conveyed by icon shape+color for sighted users, but a
@@ -1038,9 +1043,14 @@
       ? `<svg class="w-[1.15rem] h-[1.15rem] shrink-0" viewBox="0 0 24 24" fill="none" stroke="${icon.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icon.svg}</svg>
          <span class="sr-only">${icon.label}</span>`
       : "";
+    // The promoted row gets a soft gold spotlight band behind it (extends
+    // slightly past the bar itself via negative margin/padding) so the
+    // achievement reads at a glance scrolling past, not just up close.
     const rowClasses = lower
       ? "grid grid-cols-[3.2rem_1fr_4.2rem] items-center gap-[10px] mb-[14px] opacity-[.82]"
-      : "grid grid-cols-[3.2rem_1fr_4.2rem] items-center gap-[10px] mb-[14px]";
+      : promoted
+        ? "grid grid-cols-[3.2rem_1fr_4.2rem] items-center gap-[10px] mb-[14px] -mx-[.5rem] px-[.5rem] py-[.25rem] rounded-[8px] bg-[color-mix(in_srgb,#eab308_10%,transparent)]"
+        : "grid grid-cols-[3.2rem_1fr_4.2rem] items-center gap-[10px] mb-[14px]";
     const countClasses = lower
       ? "flex items-center gap-[.35rem] text-[.82rem] font-semibold tabular-nums text-muted"
       : "flex items-center gap-[.35rem] text-[.82rem] font-bold tabular-nums text-foreground";
