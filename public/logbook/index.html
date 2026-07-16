@@ -1573,7 +1573,11 @@
     areaInput.value  = entry?.area  ?? "";
     notesInput.value = entry?.notes ?? "";
     videoInput.value = entry?.video ?? "";
-    dateInput.value  = entry?.date  ?? new Date().toISOString().slice(0, 10);
+    // Default to today only in add mode -- ?? alone can't distinguish "no
+    // entry" from "entry has no date", and edit mode with the latter was
+    // silently pre-filling today's date, which then got saved if the user
+    // didn't notice and just clicked Save (#139).
+    dateInput.value  = entry ? (entry.date ?? "") : new Date().toISOString().slice(0, 10);
 
     renderGradeOptions();
     if (entry) selectGradeByValue(entry.grade, entry.type);
