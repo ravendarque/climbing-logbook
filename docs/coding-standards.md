@@ -158,6 +158,26 @@ quietly reversed without someone re-deciding on purpose.
   transient error response means that error gets served on the next
   genuinely-offline visit.
 
+### Connectivity resilience
+- **This app is built for bad connections, not despite them** — "signal at
+  the crag is usually bad" (#111). That's the actual operating condition to
+  design for, not an edge case.
+- **Don't put a network request at the moment of interaction for something
+  that could be available upfront instead.** A lazy/on-demand fetch (e.g.
+  loading a dataset only when the control that needs it is opened) is the
+  wrong tradeoff here even when it would save real bytes on the common
+  case — it puts the network dependency exactly where it's most likely to
+  fail: mid-interaction on a flaky connection, not at initial page load
+  (which the service worker/offline queue already treat as the resilience
+  boundary).
+- **Prefer bundling small, static, rarely-changing datasets directly into
+  the single-file app** (e.g. a country list) over fetching them on demand.
+  If a dataset is genuinely too large to justify always-loading it, cache
+  it after first load (service worker) rather than leaving it an uncached
+  fetch-on-open.
+- See #111 for the broader initiative (progressive/streamed data loading)
+  this principle is part of.
+
 ### Accessibility
 - Custom interactive elements (collapse toggles, sortable headers) need
   `role="button"`, `tabindex="0"`, and an Enter/Space keydown handler —
