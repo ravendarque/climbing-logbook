@@ -1287,6 +1287,7 @@
     addBtn.hidden = !isLoggedIn;
     athleteModeBtn.hidden = !isLoggedIn;
     athleteModeBtn.setAttribute("aria-checked", String(athleteMode));
+    updateHeaderMenuDivider();
     updateSyncButton();
 
     // Logbook/Grade Pyramid tabs only exist at all in Athlete Mode (#40,
@@ -1639,20 +1640,34 @@
     if (e.key === "Escape" && !disciplinePopover.hidden) { closeDisciplinePopover(); disciplineBtn.focus(); }
   });
 
-  // ── Header menu (#119, #122): below 480px, the four controls above
-  // (Athlete Mode, discipline picker, theme toggle, Log in/out) are
-  // relocated -- not duplicated -- into this popover so they stack
-  // vertically instead of squeezing into one row. Reparenting the actual
-  // DOM nodes (rather than a second copy synced to the first) means each
-  // control's state, IDs, and event listeners keep working unchanged
-  // regardless of which container currently holds it. Athlete Mode and
-  // the discipline picker land directly in the popover (right-aligned via
-  // its own items-end); theme toggle and Log in/out land together in the
+  // ── Header menu (#119, #122, #138): below 480px, Athlete Mode and
+  // theme toggle/Log in-out are relocated -- not duplicated -- into this
+  // popover so they stack vertically instead of squeezing into one row.
+  // Reparenting the actual DOM nodes (rather than a second copy synced to
+  // the first) means each control's state, IDs, and event listeners keep
+  // working unchanged regardless of which container currently holds it.
+  // The discipline picker (disciplineWrap) is deliberately NOT part of
+  // this collapse (#138) -- with it collapsed, there was no visible
+  // indicator anywhere of which discipline was active until the menu was
+  // opened. It stays in the header row at all widths instead. Athlete
+  // Mode lands directly in the popover (right-aligned via its own
+  // items-end); theme toggle and Log in/out land together in the
   // dedicated bottom row instead, one icon-only and one text-only control
   // sharing a line. ───────────────────────────────────────────────────
-  const HEADER_MENU_TOP_CONTROLS = [athleteModeBtn, disciplineWrap];
+  const HEADER_MENU_TOP_CONTROLS = [athleteModeBtn];
   const HEADER_MENU_BOTTOM_CONTROLS = [themeToggleBtn, loginToggleBtn];
   const headerMenuQuery = matchMedia("(max-width: 480px)");
+  // The bottom row's top divider only makes sense when something is
+  // actually visible above it -- Athlete Mode is the only thing that can
+  // occupy the top section now, and it's hidden entirely when logged out
+  // (updateAdminBar), which would otherwise leave the divider floating
+  // above nothing (#138).
+  function updateHeaderMenuDivider() {
+    const hasTopContent = !athleteModeBtn.hidden;
+    headerMenuBottomRow.classList.toggle("border-t", hasTopContent);
+    headerMenuBottomRow.classList.toggle("pt-2", hasTopContent);
+    headerMenuBottomRow.classList.toggle("mt-1", hasTopContent);
+  }
   function layoutHeaderControls(narrow) {
     // insertBefore(el, headerMenuWrap)/(el, headerMenuBottomRow) keeps
     // each group in its original order, immediately before its anchor,
@@ -1665,6 +1680,7 @@
     }
     headerMenuWrap.hidden = !narrow;
     if (!narrow) closeHeaderMenu();
+    updateHeaderMenuDivider();
   }
   layoutHeaderControls(headerMenuQuery.matches);
   headerMenuQuery.addEventListener("change", e => layoutHeaderControls(e.matches));
