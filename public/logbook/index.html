@@ -1311,17 +1311,37 @@
     if (tab) setActiveView(tab.dataset.view);
   });
 
-  // Public visitors always see the effective setting (Off by default,
-  // absent KV key); only the logged-in admin sees a control to change it.
-  async function fetchAthleteMode() {
+  // Set (not directly into state.activeType) by fetchSettings() below, then
+  // applied in boot() after both it and the entries load are known
+  // complete -- both requests run concurrently with a real await in
+  // between them (the entries fetch), so which one resolves first isn't
+  // guaranteed. Writing straight into state.activeType from here would
+  // race the has-entries heuristic in boot() and could get silently
+  // clobbered if the heuristic happened to run second (#137).
+  let persistedDiscipline = null;
+
+  // Public visitors always see the effective settings (Athlete Mode off
+  // by default, discipline from boot()'s has-entries heuristic by
+  // default); only the logged-in admin sees a control to change either.
+  // Covers both settings in one request rather than a separate fetch per
+  // field (#137 folded discipline persistence into the same endpoint).
+  async function fetchSettings() {
     try {
       const res = await fetch(SETTINGS_URL);
       const data = await res.json();
-      athleteMode = res.ok && !!data.athleteMode;
+      if (!res.ok) return;
+      athleteMode = !!data.athleteMode;
+      // Validated defensively even though the server already validates on
+      // write, since this is public data read back out of KV.
+      if (data.activeDiscipline === "boulder" || data.activeDiscipline === "lead") {
+        persistedDiscipline = data.activeDiscipline;
+      }
     } catch {
-      // Offline — keep the last-known in-memory default (false) rather
-      // than guessing; the toggle itself is only interactive when logged
-      // in, so a stale value here can't be acted on incorrectly.
+      // Offline — keep the last-known in-memory defaults rather than
+      // guessing; the Athlete Mode toggle is only interactive when logged
+      // in, so a stale value there can't be acted on incorrectly, and the
+      // discipline heuristic default already applied is a reasonable
+      // fallback for the picker (which is usable while offline).
     }
   }
 
@@ -1623,7 +1643,7 @@
   disciplineBtn.addEventListener("click", () => {
     if (disciplinePopover.hidden) openDisciplinePopover(); else closeDisciplinePopover();
   });
-  disciplinePopover.addEventListener("click", e => {
+  disciplinePopover.addEventListener("click", async e => {
     const opt = e.target.closest(".discipline-option");
     if (!opt) return;
     state.activeType = opt.dataset.discipline;
@@ -1631,6 +1651,26 @@
     closeDisciplinePopover();
     disciplineBtn.focus();
     render();
+
+    // Best-effort persistence (#137) -- PUT is Access-gated (same
+    // boundary as Athlete Mode), so this only actually persists when
+    // logged in; a logged-out visitor's switch stays local, same as
+    // every other admin-only write in this app. Never blocks or reverts
+    // the local switch above either way -- offline/failure just means
+    // it doesn't carry over to other devices this time.
+    try {
+      const res = await adminFetch(ADMIN_SETTINGS_URL, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ activeDiscipline: state.activeType }),
+      });
+      if (res.status === 401 || isAuthRedirect(res)) {
+        isLoggedIn = false;
+        updateAdminBar();
+      }
+    } catch {
+      // Offline or network error -- local switch already applied.
+    }
   });
   document.addEventListener("click", e => {
     if (!disciplinePopover.hidden && !e.target.closest("#discipline-wrap")) closeDisciplinePopover();
@@ -1937,7 +1977,7 @@
     selectGradeByIndex(0);
 
     const sessionPromise = checkSession();
-    const athleteModePromise = fetchAthleteMode();
+    const settingsPromise = fetchSettings();
 
     // Load data (fall back to last-cached entries when offline)
     try {
@@ -1969,7 +2009,13 @@
       state.collapsed.add(place);
     }
 
-    await Promise.all([sessionPromise, athleteModePromise]);
+    await Promise.all([sessionPromise, settingsPromise]);
+
+    // Persisted selection wins over boot()'s has-entries heuristic above,
+    // applied here (not inside fetchSettings()) so the order is
+    // deterministic regardless of which of the two concurrent requests
+    // above happened to resolve first (#137).
+    if (persistedDiscipline) state.activeType = persistedDiscipline;
 
     document.getElementById("loading").style.display = "none";
     document.getElementById("app").style.display = "";
