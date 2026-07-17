@@ -950,12 +950,21 @@
   function evidenceTierText(text) {
     return `<button type="button" class="text-[.82rem] font-bold text-tier-heuristic bg-transparent border-0 p-0 m-0 cursor-pointer hover:brightness-90" data-evidence-tier aria-label="${text} -- evidence tier: coaching heuristic, tap to learn more">${text}</button>`;
   }
-  // The source-citation mark is a small rounded-rectangle badge sized in
-  // em units to the surrounding text's own line-height (1.6em, matching
-  // window-note's leading-[1.6]) rather than a fixed rem size independent
-  // of context -- so it sits inline without inflating that line, however
-  // large or small the surrounding text turns out to be.
-  const CITATION_MARKER = `<button type="button" class="inline-flex items-center justify-center h-[1.5em] px-[.35em] align-middle rounded-[.3em] border border-[color-mix(in_srgb,var(--color-accent)_35%,transparent)] text-accent bg-[color-mix(in_srgb,var(--color-accent)_14%,var(--color-surface))] leading-none cursor-pointer hover:brightness-95" data-citation aria-label="View sources"><span class="text-[.62em] font-bold">1</span></button>`;
+  // The badge is positioned to read like a superscript without actually
+  // being one: its bottom edge sits on the text baseline (where a
+  // non-descending letter like "e" ends, not a descender like "y") and
+  // its top edge reaches the top of the line, so it never inflates the
+  // line height. Plain `vertical-align: baseline` wasn't precise enough
+  // on its own -- a flex container's baseline follows its centered child
+  // rather than its own box edge, landing the badge a few px too low --
+  // so height/top are pinned with a small `relative` nudge, both measured
+  // empirically against window-note's actual rendered line box (13.12px
+  // font, 1.6 line-height) rather than guessed from generic font metrics.
+  // An explicit font-size is required here (unlike other inline buttons
+  // in this file) -- without it the button falls back to the browser's
+  // UA-default form-control font-size instead of inheriting the
+  // paragraph's, throwing off every em-based measurement above.
+  const CITATION_MARKER = `<button type="button" class="relative top-[-.1524em] inline-block overflow-hidden h-[1.1433em] px-[.35em] rounded-[.3em] border border-[color-mix(in_srgb,var(--color-accent)_35%,transparent)] text-accent bg-[color-mix(in_srgb,var(--color-accent)_14%,var(--color-surface))] text-[.82rem] leading-[1.1433em] text-center cursor-pointer hover:brightness-95" data-citation aria-label="View sources"><span class="text-[.62em] font-bold">1</span></button>`;
 
   // Sends only (a "send" covers both flash/onsight and redpoint -- see the
   // status-label comment near FLASH_LABEL/SEND_LABEL above), from the last
