@@ -265,7 +265,7 @@
            own aria-labelledby already ties to for assistive tech; a
            second "Grade pyramid" heading directly under it was pure
            repetition (#133 tidy-up). -->
-      <p class="text-[.82rem] text-muted leading-[1.6] mb-4" id="window-note"></p>
+      <p class="text-[.82rem] text-muted leading-[1.7] mb-4" id="window-note"></p>
 
       <div class="pyramid-card bg-surface border border-border rounded-app pt-[22px] px-5 pb-4 mb-5" id="pyramid" role="group" aria-label="Grade pyramid"></div>
 
@@ -950,27 +950,20 @@
   function evidenceTierText(text) {
     return `<button type="button" class="text-[.82rem] font-bold text-tier-heuristic bg-transparent border-0 p-0 m-0 cursor-pointer hover:brightness-90" data-evidence-tier aria-label="${text} -- evidence tier: coaching heuristic, tap to learn more">${text}</button>`;
   }
-  // The badge is positioned to read like a superscript without actually
-  // being one: its bottom edge sits on the text baseline (where a
-  // non-descending letter like "e" ends, not a descender like "y") and
-  // its top edge reaches the top of the line, so it never inflates the
-  // line height. Plain `vertical-align: baseline` wasn't precise enough
-  // on its own -- a flex container's baseline follows its centered child
-  // rather than its own box edge, landing the badge a few px too low --
-  // so height/top are pinned with a small `relative` nudge, both measured
-  // empirically against window-note's actual rendered line box (13.12px
-  // font, 1.6 line-height) rather than guessed from generic font metrics.
-  // An explicit font-size is required here (unlike other inline buttons
-  // in this file) -- without it the button falls back to the browser's
-  // UA-default form-control font-size instead of inheriting the
-  // paragraph's, throwing off every em-based measurement above.
-  // The outer button only handles sizing/position (overflow-hidden is
-  // what makes its own bottom edge its baseline, per the note above) --
-  // vertical centering of the "1" is delegated to an inner flex wrapper
-  // rather than line-height, since the inner glyph's own font metrics
-  // (at a different font-size, .62em) don't center reliably against a
-  // line-height tuned for the outer box's baseline position instead.
-  const CITATION_MARKER = `<button type="button" class="relative top-[-.2737em] ml-[.3em] inline-block overflow-hidden h-[1.1433em] rounded-[.3em] border border-[color-mix(in_srgb,var(--color-accent)_35%,transparent)] text-accent bg-[color-mix(in_srgb,var(--color-accent)_14%,var(--color-surface))] text-[.82rem] cursor-pointer hover:brightness-95" data-citation aria-label="View sources"><span class="flex items-center justify-center h-full px-[.35em]"><span class="text-[.62em] font-bold leading-none">1</span></span></button>`;
+  // Reads like a superscript because it uses the actual browser-native
+  // superscript mechanism (`align-super`, i.e. `vertical-align: super`)
+  // rather than a hand-measured position -- the browser computes the
+  // raise amount from real font metrics, so this stays correct across
+  // any font/font-size/browser without per-context tuning. The badge's
+  // own font-size is a plain fixed rem value (not relative to the
+  // surrounding paragraph), so it doesn't depend on inheritance either.
+  // window-note's own leading was bumped from 1.6 to 1.7 to give the
+  // raised badge comfortable headroom -- at 1.6 the fit was borderline
+  // enough that per-line text-rendering rounding occasionally tipped one
+  // specific line into visibly growing by ~2px, which the extra leading
+  // absorbs (any remaining ±1px line-to-line variance afterwards is
+  // ordinary sub-pixel rendering noise, present in any paragraph).
+  const CITATION_MARKER = `<button type="button" class="align-super ml-[.3em] inline-flex items-center justify-center px-[.35em] py-[.1em] rounded-[.3em] border border-[color-mix(in_srgb,var(--color-accent)_35%,transparent)] text-accent bg-[color-mix(in_srgb,var(--color-accent)_14%,var(--color-surface))] text-[.65rem] font-bold leading-none cursor-pointer hover:brightness-95" data-citation aria-label="View sources">1</button>`;
 
   // Sends only (a "send" covers both flash/onsight and redpoint -- see the
   // status-label comment near FLASH_LABEL/SEND_LABEL above), from the last
