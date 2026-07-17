@@ -267,7 +267,7 @@
            repetition (#133 tidy-up). -->
       <p class="text-[.82rem] text-muted leading-[1.6] mb-4" id="window-note"></p>
 
-      <div class="pyramid-card bg-surface border border-border rounded-app pt-[22px] px-5 pb-4 mb-5" id="pyramid" role="group" aria-label="Grade pyramid"></div>
+      <div class="pyramid-card bg-surface border border-border rounded-app pt-[22px] px-5 max-[480px]:px-3 pb-4 mb-5" id="pyramid" role="group" aria-label="Grade pyramid"></div>
 
       <div class="flex gap-3 px-4 py-[14px] rounded-app mb-7 [&_svg]:w-[1.2rem] [&_svg]:h-[1.2rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:mt-[2px] [&_svg]:shrink-0" id="health-card" role="status"></div>
     </div>
@@ -1077,10 +1077,10 @@
     // slightly past the bar itself via negative margin/padding) so the
     // achievement reads at a glance scrolling past, not just up close.
     const rowClasses = lower
-      ? "grid grid-cols-[3.2rem_1fr_4.2rem] items-center gap-[10px] mb-[14px] opacity-[.82]"
+      ? "grid grid-cols-[3.2rem_1fr_4.2rem] items-center gap-[10px] max-[480px]:gap-[6px] mb-[14px] opacity-[.82]"
       : promoted
-        ? "grid grid-cols-[3.2rem_1fr_4.2rem] items-center gap-[10px] mb-[14px] -mx-[.5rem] px-[.5rem] py-[.25rem] rounded-[8px] bg-[color-mix(in_srgb,#eab308_10%,transparent)]"
-        : "grid grid-cols-[3.2rem_1fr_4.2rem] items-center gap-[10px] mb-[14px]";
+        ? "grid grid-cols-[3.2rem_1fr_4.2rem] items-center gap-[10px] max-[480px]:gap-[6px] mb-[14px] -mx-[.5rem] px-[.5rem] py-[.25rem] rounded-[8px] bg-[color-mix(in_srgb,#eab308_10%,transparent)]"
+        : "grid grid-cols-[3.2rem_1fr_4.2rem] items-center gap-[10px] max-[480px]:gap-[6px] mb-[14px]";
     const countClasses = lower
       ? "flex items-center gap-[.35rem] text-[.82rem] font-semibold tabular-nums text-muted"
       : "flex items-center gap-[.35rem] text-[.82rem] font-bold tabular-nums text-foreground";
