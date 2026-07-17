@@ -183,14 +183,20 @@
     <h1 class="font-display font-normal uppercase tracking-wide text-[3rem] leading-none mb-[.3rem] max-[600px]:text-[2.25rem]"><span class="text-accent">Climbing</span> <span class="text-foreground">Logbook</span></h1>
     <p class="text-[1.05rem] text-muted mb-4">Log your climbs, visualise your progress (<button type="button" class="inline bg-transparent border-0 p-0 cursor-pointer text-accent no-underline hover:underline" id="footnote-trigger">or not</button>).</p>
 
-    <!-- Logbook/Grade Pyramid tabs (#110) -- only exist at all in Athlete
-         Mode (see #40: it "gates whether any of this has anywhere to live
-         or a reason to appear"). Replaces the old per-discipline #95
-         type-tabs entirely; discipline selection now lives in the header
-         picker above and applies to both tabs. -->
+    <!-- Logbook/Grade Pyramid tabs (#110, #151). Logbook is always public.
+         Grade Pyramid (a performance-reporting tab) requires BOTH being
+         logged in AND Athlete Mode on -- Athlete Mode alone isn't enough
+         since it's a publicly-readable setting (a logged-out visitor could
+         otherwise see it if the owner has it toggled on for themselves).
+         The tab bar itself only shows once 2+ tabs are actually visible --
+         no point showing a single-tab bar (a Map tab, also always public,
+         is planned next, which will keep the bar visible even when
+         Pyramid is hidden). Replaces the old per-discipline #95 type-tabs
+         entirely; discipline selection now lives in the header picker
+         above and applies to all tabs. -->
     <div class="flex gap-5 mb-5" id="view-tabs" role="tablist" aria-label="View" hidden>
       <button type="button" class="bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer whitespace-nowrap text-[.95rem] font-semibold text-muted pb-2 border-b-2 border-transparent transition-colors duration-150 hover:text-foreground aria-selected:text-foreground aria-selected:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" id="view-tab-logbook" role="tab" data-view="logbook" aria-selected="true" aria-controls="panel-logbook">Logbook</button>
-      <button type="button" class="bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer whitespace-nowrap text-[.95rem] font-semibold text-muted pb-2 border-b-2 border-transparent transition-colors duration-150 hover:text-foreground aria-selected:text-foreground aria-selected:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" id="view-tab-pyramid" role="tab" data-view="pyramid" aria-selected="false" aria-controls="panel-pyramid">Grade Pyramid</button>
+      <button type="button" class="bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer whitespace-nowrap text-[.95rem] font-semibold text-muted pb-2 border-b-2 border-transparent transition-colors duration-150 hover:text-foreground aria-selected:text-foreground aria-selected:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" id="view-tab-pyramid" role="tab" data-view="pyramid" aria-selected="false" aria-controls="panel-pyramid" hidden>Grade Pyramid</button>
     </div>
 
     <div id="panel-logbook" role="tabpanel" aria-labelledby="view-tab-logbook">
@@ -251,7 +257,8 @@
     </div>
 
     <!-- Grade Pyramid (#12) -- only reachable via the view-tabs above, so
-         only ever visible in Athlete Mode. Evidence-tier chips (#16)
+         only ever visible to the logged-in owner with Athlete Mode on
+         (#151). Evidence-tier chips (#16)
          disclose which claims are peer-reviewed research vs. a coaching
          heuristic vs. unvetted community data, so the pyramid itself
          never reads as more authoritative than it actually is -- inline
@@ -624,8 +631,9 @@
     activeType: "boulder",    // which discipline is selected -- set for real
                                // once ALL_ENTRIES loads (see boot()); "boulder"
                                // here is just a placeholder before that.
-    activeView: "logbook",    // "logbook" | "pyramid" -- only switchable in
-                               // Athlete Mode (see #40, #110).
+    activeView: "logbook",    // "logbook" | "pyramid" -- "pyramid" only
+                               // switchable when logged in with Athlete
+                               // Mode on (see #40, #110, #151).
     lowerGradesExpanded: false,
     search: "",
     sortByPlace: {},  // { placeName: { col: "grade", dir: "asc" } }
@@ -1275,6 +1283,7 @@
   const headerMenuPopover = document.getElementById("header-menu-popover");
   const headerMenuBottomRow = document.getElementById("header-menu-bottom-row");
   const viewTabs = document.getElementById("view-tabs");
+  const viewTabPyramid = document.getElementById("view-tab-pyramid");
   const panelLogbook = document.getElementById("panel-logbook");
   const panelPyramid = document.getElementById("panel-pyramid");
 
@@ -1311,11 +1320,20 @@
     updateHeaderMenuDivider();
     updateSyncButton();
 
-    // Logbook/Grade Pyramid tabs only exist at all in Athlete Mode (#40,
-    // #110) -- off means no tab bar, just the plain Logbook content, same
-    // as the app looked before this feature existed.
-    viewTabs.hidden = !athleteMode;
-    if (!athleteMode && state.activeView !== "logbook") setActiveView("logbook");
+    // Grade Pyramid (a performance-reporting tab) requires BOTH being
+    // logged in AND Athlete Mode on (#151) -- Athlete Mode alone isn't
+    // enough since it's a publicly-readable setting, so gating on it
+    // alone would let a logged-out visitor see it whenever the owner has
+    // it toggled on for themselves. Logbook (and any future public tab,
+    // e.g. the planned Map) stays unaffected by either.
+    viewTabPyramid.hidden = !(isLoggedIn && athleteMode);
+    if (viewTabPyramid.hidden && state.activeView === "pyramid") setActiveView("logbook");
+
+    // The tab bar itself only makes sense once there's something to
+    // switch between -- hidden whenever fewer than 2 tabs are currently
+    // visible, same as it looked before Grade Pyramid existed.
+    const visibleTabCount = viewTabs.querySelectorAll("[role=tab]:not([hidden])").length;
+    viewTabs.hidden = visibleTabCount < 2;
   }
 
   function setActiveView(view) {
