@@ -265,7 +265,7 @@
            own aria-labelledby already ties to for assistive tech; a
            second "Grade pyramid" heading directly under it was pure
            repetition (#133 tidy-up). -->
-      <p class="text-[.82rem] text-muted leading-[1.6] mb-4" id="window-note"></p>
+      <p class="text-[.82rem] text-muted leading-[1.7] mb-4" id="window-note"></p>
 
       <div class="pyramid-card bg-surface border border-border rounded-app pt-[22px] px-5 max-[480px]:px-2 pb-4 mb-5" id="pyramid" role="group" aria-label="Grade pyramid"></div>
 
@@ -940,6 +940,31 @@
   const PYRAMID_ICON_PROMOTED = `<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"></path>`;
   const PYRAMID_GOLD = "#eab308"; // achievement/celebratory accent (#131) -- literal hex, matching the existing good/missing icons' style rather than a CSS var
 
+  // Evidence-tier claims mark the claim's own words bold + tier-colored
+  // and clickable (rather than a separate icon badge appended after the
+  // text, which read as visually heavy and disturbed the paragraph's line
+  // height, #147 v2) -- plain inline text styling wraps normally across
+  // lines and can never inflate the line box it sits in. `data-evidence-
+  // tier` is wired up generically elsewhere (querySelectorAll), so this
+  // works wherever it's dropped into rendered HTML without extra plumbing.
+  function evidenceTierText(text) {
+    return `<button type="button" class="text-[.82rem] font-bold text-tier-heuristic bg-transparent border-0 p-0 m-0 cursor-pointer hover:brightness-90" data-evidence-tier aria-label="${text} -- evidence tier: coaching heuristic, tap to learn more">${text}</button>`;
+  }
+  // Reads like a superscript because it uses the actual browser-native
+  // superscript mechanism (`align-super`, i.e. `vertical-align: super`)
+  // rather than a hand-measured position -- the browser computes the
+  // raise amount from real font metrics, so this stays correct across
+  // any font/font-size/browser without per-context tuning. The badge's
+  // own font-size is a plain fixed rem value (not relative to the
+  // surrounding paragraph), so it doesn't depend on inheritance either.
+  // window-note's own leading was bumped from 1.6 to 1.7 to give the
+  // raised badge comfortable headroom -- at 1.6 the fit was borderline
+  // enough that per-line text-rendering rounding occasionally tipped one
+  // specific line into visibly growing by ~2px, which the extra leading
+  // absorbs (any remaining ±1px line-to-line variance afterwards is
+  // ordinary sub-pixel rendering noise, present in any paragraph).
+  const CITATION_MARKER = `<button type="button" class="align-super ml-[.3em] inline-flex items-center justify-center px-[.35em] py-[.1em] rounded-[.3em] border border-[color-mix(in_srgb,var(--color-accent)_35%,transparent)] text-accent bg-[color-mix(in_srgb,var(--color-accent)_14%,var(--color-surface))] text-[.65rem] font-bold leading-none cursor-pointer hover:brightness-95" data-citation aria-label="View sources">1</button>`;
+
   // Sends only (a "send" covers both flash/onsight and redpoint -- see the
   // status-label comment near FLASH_LABEL/SEND_LABEL above), from the last
   // 12 months only, per Hampton's original framing ("8 climbs done in the
@@ -1140,13 +1165,9 @@
     }
 
     document.getElementById("window-note").innerHTML =
-      `Sends from the <strong class="text-foreground font-semibold">last 12 months only</strong><button type="button" class="footnote-marker inline-flex items-center justify-center min-w-[1.6rem] min-h-[1.6rem] -mx-[.15rem] font-sans text-[.68em] font-bold align-super text-accent bg-transparent border-0 cursor-pointer underline leading-none" data-citation>1</button>, showing your
+      `Sends from the <strong class="text-foreground font-semibold">last 12 months only</strong>${CITATION_MARKER}, showing your
        <strong class="text-foreground font-semibold">8-4-2-1 window</strong> — four grade tiers anchored to your progress so far, including any with zero sends, projecting one tier higher once you've logged enough to be ready to push for it. Dashed outlines mark the
-       ideal count for each tier. The ratio itself is a
-       <button type="button" class="tier-chip inline-flex items-center gap-[.35rem] py-[.05rem] pr-[.5rem] pl-[.4rem] rounded-full text-[.72rem] font-semibold align-[-2px] border border-[color-mix(in_srgb,var(--color-tier-heuristic)_35%,transparent)] text-tier-heuristic bg-[color-mix(in_srgb,var(--color-tier-heuristic)_14%,var(--color-surface))] [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:shrink-0 cursor-pointer hover:brightness-95" data-evidence-tier aria-label="What does “coaching heuristic” mean? Opens the evidence tiers explainer">
-         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z"></path><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20"></path></svg>
-         widely used coaching heuristic
-       </button><button type="button" class="footnote-marker inline-flex items-center justify-center min-w-[1.6rem] min-h-[1.6rem] -mx-[.15rem] font-sans text-[.68em] font-bold align-super text-accent bg-transparent border-0 cursor-pointer underline leading-none" data-citation>1</button>, not a proven ratio.`;
+       ideal count for each tier. The ratio itself is a ${evidenceTierText("widely used coaching heuristic")}${CITATION_MARKER}, not a proven ratio.`;
     document.querySelectorAll("[data-citation]").forEach(btn =>
       btn.addEventListener("click", () => openModal(citationsOverlay))
     );
