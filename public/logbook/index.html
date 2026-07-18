@@ -123,10 +123,6 @@
   <div id="app" style="display:none">
 
     <div class="flex items-center justify-end gap-2 mb-6" id="header-row">
-      <button type="button" class="group inline-flex items-center h-[var(--field-h)] gap-2 bg-transparent border border-transparent px-[.8rem] max-[480px]:pr-0 cursor-pointer text-[.82rem] font-semibold text-foreground disabled:opacity-60 disabled:cursor-not-allowed" id="athlete-mode-btn" role="switch" aria-checked="false" hidden>
-        <span class="transition-colors duration-150 group-aria-[checked=false]:text-muted">Athlete Mode</span>
-        <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
-      </button>
       <!-- Discipline picker (#110) -- always offers both disciplines
            regardless of entry counts, unlike the old per-page type-tabs
            below (which only appeared once 2+ disciplines already had
@@ -149,34 +145,33 @@
           </button>
         </div>
       </div>
-      <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="theme-toggle-btn" aria-label="Switch to light theme"></button>
-      <button type="button" class="admin-btn" id="login-toggle-btn">Log in</button>
-
-      <!-- Menu (#119): below 480px, the four controls above don't reliably
-           fit even icon-collapsed -- verified fine in devtools viewport
-           emulation, but real Android devices with increased system
-           font/display scaling inflate every rem-sized element beyond what
-           a fixed-width media query breakpoint accounts for, and Athlete
-           Mode's own label was never icon-collapsed (#114) so it always
-           demands full-label width. A single small icon button is robust
-           against that failure mode in a way a row of several icon buttons
-           isn't -- worst case it's just a smaller square, never an
-           overflow/wrap. JS moves the four controls above into the popover
-           below (and back) as the viewport crosses the breakpoint, so
-           there's exactly one live copy of each control/its state, not a
-           second set to keep in sync. -->
-      <div class="relative hidden max-[480px]:block" id="header-menu-wrap">
+      <!-- Menu (#119, #155): every control besides the discipline picker
+           lives in this popover at every viewport width -- narrower than
+           480px was never really the reason to prefer it; once it was
+           built, it turned out to just be a better pattern than a row of
+           icon buttons outright (a single small icon button is robust
+           against real-device text-scaling overflow in a way a row of
+           several never was, #119), so it's used everywhere now instead
+           of switching between two different header layouts. -->
+      <div class="relative" id="header-menu-wrap">
         <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="header-menu-btn" aria-haspopup="true" aria-expanded="false" aria-label="Menu">
           <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="17" x2="20" y2="17"></line></svg>
         </button>
         <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 flex flex-col items-end gap-2 bg-background border border-border rounded-app p-3 min-w-[13rem] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="header-menu-popover" role="menu" aria-label="Menu" hidden>
+          <button type="button" class="group inline-flex items-center h-[var(--field-h)] gap-2 bg-transparent border border-transparent px-[.8rem] cursor-pointer text-[.82rem] font-semibold text-foreground disabled:opacity-60 disabled:cursor-not-allowed" id="athlete-mode-btn" role="switch" aria-checked="false" hidden>
+            <span class="transition-colors duration-150 group-aria-[checked=false]:text-muted">Athlete Mode</span>
+            <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
+          </button>
           <!-- Theme toggle + Log in/out share one full-width row (icon-only
                control on the left, text-only control on the right) below
-               the right-aligned Athlete Mode/discipline rows above --
-               self-stretch overrides the popover's items-end so this one
-               row spans the full width instead of hugging the right edge
-               at its own natural (narrower) content width. -->
-          <div class="flex items-center justify-between self-stretch pt-2 mt-1 border-t border-border" id="header-menu-bottom-row"></div>
+               the right-aligned Athlete Mode row above -- self-stretch
+               overrides the popover's items-end so this one row spans the
+               full width instead of hugging the right edge at its own
+               natural (narrower) content width. -->
+          <div class="flex items-center justify-between self-stretch pt-2 mt-1 border-t border-border" id="header-menu-bottom-row">
+            <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="theme-toggle-btn" aria-label="Switch to light theme"></button>
+            <button type="button" class="admin-btn" id="login-toggle-btn">Log in</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1277,7 +1272,6 @@
   const disciplineBtn = document.getElementById("discipline-btn");
   const disciplinePopover = document.getElementById("discipline-popover");
   const disciplineWrap = document.getElementById("discipline-wrap");
-  const headerRow = document.getElementById("header-row");
   const headerMenuWrap = document.getElementById("header-menu-wrap");
   const headerMenuBtn = document.getElementById("header-menu-btn");
   const headerMenuPopover = document.getElementById("header-menu-popover");
@@ -1723,26 +1717,20 @@
     if (e.key === "Escape" && !disciplinePopover.hidden) { closeDisciplinePopover(); disciplineBtn.focus(); }
   });
 
-  // ── Header menu (#119, #122, #138): below 480px, Athlete Mode and
-  // theme toggle/Log in-out are relocated -- not duplicated -- into this
-  // popover so they stack vertically instead of squeezing into one row.
-  // Reparenting the actual DOM nodes (rather than a second copy synced to
-  // the first) means each control's state, IDs, and event listeners keep
-  // working unchanged regardless of which container currently holds it.
-  // The discipline picker (disciplineWrap) is deliberately NOT part of
-  // this collapse (#138) -- with it collapsed, there was no visible
-  // indicator anywhere of which discipline was active until the menu was
-  // opened. It stays in the header row at all widths instead. Athlete
-  // Mode lands directly in the popover (right-aligned via its own
-  // items-end); theme toggle and Log in/out land together in the
-  // dedicated bottom row instead, one icon-only and one text-only control
-  // sharing a line. ───────────────────────────────────────────────────
-  const HEADER_MENU_TOP_CONTROLS = [athleteModeBtn];
-  const HEADER_MENU_BOTTOM_CONTROLS = [themeToggleBtn, loginToggleBtn];
-  const headerMenuQuery = matchMedia("(max-width: 480px)");
+  // ── Header menu (#119, #122, #138, #155): Athlete Mode, theme toggle,
+  // and Log in/out live in this popover at every viewport width -- it
+  // used to only collapse them in here below 480px (reparenting the DOM
+  // nodes between the header row and here as the viewport crossed that
+  // breakpoint), but the popover turned out to just be a better pattern
+  // outright, not a narrow-viewport compromise, so it's used everywhere
+  // now and the wide-row layout it used to also support is gone. The
+  // discipline picker (disciplineWrap) is deliberately NOT part of this
+  // popover (#138) -- with it collapsed, there was no visible indicator
+  // anywhere of which discipline was active until the menu was opened.
+  // It stays in the header row at all widths instead.
   // The bottom row's top divider only makes sense when something is
   // actually visible above it -- Athlete Mode is the only thing that can
-  // occupy the top section now, and it's hidden entirely when logged out
+  // occupy the top section, and it's hidden entirely when logged out
   // (updateAdminBar), which would otherwise leave the divider floating
   // above nothing (#138).
   function updateHeaderMenuDivider() {
@@ -1751,22 +1739,6 @@
     headerMenuBottomRow.classList.toggle("pt-2", hasTopContent);
     headerMenuBottomRow.classList.toggle("mt-1", hasTopContent);
   }
-  function layoutHeaderControls(narrow) {
-    // insertBefore(el, headerMenuWrap)/(el, headerMenuBottomRow) keeps
-    // each group in its original order, immediately before its anchor,
-    // in both the wide row and the narrow popover.
-    for (const el of HEADER_MENU_TOP_CONTROLS) {
-      (narrow ? headerMenuPopover : headerRow).insertBefore(el, narrow ? headerMenuBottomRow : headerMenuWrap);
-    }
-    for (const el of HEADER_MENU_BOTTOM_CONTROLS) {
-      (narrow ? headerMenuBottomRow : headerRow).insertBefore(el, narrow ? null : headerMenuWrap);
-    }
-    headerMenuWrap.hidden = !narrow;
-    if (!narrow) closeHeaderMenu();
-    updateHeaderMenuDivider();
-  }
-  layoutHeaderControls(headerMenuQuery.matches);
-  headerMenuQuery.addEventListener("change", e => layoutHeaderControls(e.matches));
 
   function openHeaderMenu() {
     headerMenuPopover.hidden = false;
