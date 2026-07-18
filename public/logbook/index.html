@@ -365,23 +365,19 @@
              clicking it never changes the button, only opens the
              popover, unlike a combobox where the trigger and the input
              are the same element. Sized to content (not flex-1 like
-             Location/Area) so it's only as wide as the flag needs. -->
-        <!-- The label is deliberately NOT a normal-flow sibling above the
-             button like Location/Area's -- "Country" is wider than the
-             flag button itself, and this column is shrink-0 (sized to its
-             widest child), so an in-flow label would widen the whole
-             column and steal space Location/Area are supposed to grow
-             into. The invisible nbsp spacer reserves the exact same
-             line-height + margin the other labels get (from the browser's
-             own layout, not a guessed magic number), while the real label
-             is absolutely positioned over it, right-aligned so it
-             overflows left instead of widening the column. -->
-        <div class="shrink-0 relative">
-          <div class="mb-2 text-[.72rem] font-semibold uppercase tracking-[.07em] invisible" aria-hidden="true">&nbsp;</div>
-          <div class="absolute top-0 right-0 text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted whitespace-nowrap">Country</div>
+             Location/Area) so it's only as wide as the flag needs.
+             Deliberately unlabeled, like filter-btn/header-menu-btn/
+             theme-toggle-btn elsewhere in this file -- those are the
+             established precedent for icon-only controls in this app,
+             identified via aria-label alone rather than a visible text
+             label above them. Location/Area's labels sit above their
+             input, so this column would otherwise be shorter than
+             theirs; items-end bottom-aligns the button with their input
+             row instead of leaving it stranded at the top. -->
+        <div class="shrink-0 flex items-end">
           <div class="relative" id="country-wrap">
             <button type="button" class="inline-flex items-center justify-center px-[.7rem] py-[.65rem] bg-surface border border-border rounded-app text-foreground text-[1.15rem] cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="country-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Country: none selected">
-              <span id="country-btn-flag" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20Z"></path></svg></span>
+              <span id="country-btn-flag" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg></span>
             </button>
             <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 bg-background border border-border rounded-app p-[.5rem] w-[15rem] max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="country-popover" hidden>
               <input type="text" class="bg-surface border border-border rounded-app px-[.7rem] py-[.5rem] text-foreground text-[.9rem] outline-none focus:border-accent w-full" id="country-search" placeholder="Search countries…" autocomplete="off" aria-label="Search countries" aria-controls="country-listbox">
@@ -1791,11 +1787,14 @@
   // Trigger-button + popover (#153), the same interaction pattern as
   // discipline-btn/discipline-popover and filter-btn/filter-panel --
   // not an ARIA combobox. The button itself never changes into an input;
-  // it's a fixed-size flag (or placeholder globe when unset) that only
-  // opens the popover. The popover holds a search box (247 countries is
-  // too many to browse unfiltered) above a scrollable listbox, styled
-  // like discipline-option (checkmark on the selected row).
-  const COUNTRY_PLACEHOLDER_ICON = `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20Z"></path></svg>`;
+  // it's a fixed-size flag (or a placeholder flag-outline icon when
+  // unset, from the same Lucide/Feather-style icon set as filter-btn/
+  // header-menu-btn/discipline-option's checkmark elsewhere in this
+  // file) that only opens the popover. The popover holds a search box
+  // (247 countries is too many to browse unfiltered) above a scrollable
+  // listbox, styled like discipline-option (checkmark on the selected
+  // row).
+  const COUNTRY_PLACEHOLDER_ICON = `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>`;
   let countryCommittedValue = "";
   let countryFilteredList = COUNTRIES;
   let countryActiveIndex = -1;
