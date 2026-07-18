@@ -498,10 +498,13 @@
   // app rather than a fetch-on-open. Regenerate via
   // `node scripts/generate-countries.mjs` if it ever needs updating.
   //
-  // Two deliberate overrides, not incidental omissions: Israel is
-  // excluded; Palestine is included (present in the source data as a
-  // non-UN-member state -- no override needed to keep it in). Replaces
-  // the old PLACE_COUNTRY (place name -> flag+country string) lookup,
+  // Deliberate exclusions/inclusions, not incidental omissions: Israel,
+  // Russia, and Belarus are excluded -- all three currently excluded from
+  // world climbing events over international law/human rights violations
+  // (Russia/Belarus: invasion of Ukraine; Israel: occupation). Palestine
+  // is included (present in the source data as a non-UN-member state --
+  // no override needed to keep it in). Replaces the old PLACE_COUNTRY
+  // (place name -> flag+country string) lookup,
   // which silently had no entry for any place nobody remembered to add by
   // hand -- a real country list only ever has "United Kingdom" as an
   // entry, not England/Wales/Scotland as if they were separate countries,
@@ -528,7 +531,6 @@
     { name: "Bahrain", flag: "🇧🇭", lat: 26, lng: 50.55 },
     { name: "Bangladesh", flag: "🇧🇩", lat: 24, lng: 90 },
     { name: "Barbados", flag: "🇧🇧", lat: 13.17, lng: -59.53 },
-    { name: "Belarus", flag: "🇧🇾", lat: 53, lng: 28 },
     { name: "Belgium", flag: "🇧🇪", lat: 50.83, lng: 4 },
     { name: "Belize", flag: "🇧🇿", lat: 17.25, lng: -88.75 },
     { name: "Benin", flag: "🇧🇯", lat: 9.5, lng: 2.25 },
@@ -690,7 +692,6 @@
     { name: "Republic of the Congo", flag: "🇨🇬", lat: -1, lng: 15 },
     { name: "Réunion", flag: "🇷🇪", lat: -21.15, lng: 55.5 },
     { name: "Romania", flag: "🇷🇴", lat: 46, lng: 25 },
-    { name: "Russia", flag: "🇷🇺", lat: 60, lng: 100 },
     { name: "Rwanda", flag: "🇷🇼", lat: -2, lng: 30 },
     { name: "Saint Barthélemy", flag: "🇧🇱", lat: 18.5, lng: -63.42 },
     { name: "Saint Helena, Ascension and Tristan da Cunha", flag: "🇸🇭", lat: -15.95, lng: -5.72 },

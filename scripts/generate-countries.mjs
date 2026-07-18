@@ -5,10 +5,14 @@
  * constant. Not wired into the build; countries change rarely enough that
  * on-demand regeneration is simpler than a live pipeline.
  *
- * Two deliberate overrides applied regardless of what the source package
- * says, per #153/#6: Israel excluded, Palestine included (already present
- * in world-countries as a non-UN-member state, so no extra work there
- * beyond not filtering it out).
+ * Deliberate overrides applied regardless of what the source package says,
+ * per #153/#6:
+ * - Israel, Russia, and Belarus excluded -- countries currently excluded
+ *   from world climbing events over international law/human rights
+ *   violations (Russia/Belarus: invasion of Ukraine; Israel: occupation).
+ * - Palestine included (already present in world-countries as a
+ *   non-UN-member state, so no extra work there beyond not filtering it
+ *   out).
  *
  * `lat`/`lng` are each country's geographic center (world-countries'
  * `latlng` field), not its capital city -- e.g. France is [46, 2], not
@@ -23,8 +27,10 @@ import countries from "world-countries";
 
 const round = n => Math.round(n * 100) / 100;
 
+const EXCLUDED_CCA2 = ["IL", "RU", "BY"]; // Israel, Russia, Belarus -- see file header
+
 const list = countries
-  .filter(c => c.cca2 !== "IL")
+  .filter(c => !EXCLUDED_CCA2.includes(c.cca2))
   .map(c => ({
     name: c.name.common,
     flag: c.flag,
