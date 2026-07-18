@@ -356,6 +356,45 @@
           <input type="text" class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full" id="entry-area" list="entry-areas-list">
           <datalist id="entry-areas-list"></datalist>
         </div>
+        <!-- Country picker (#153) -- same trigger-button + popover
+             pattern already used for the discipline picker, filter
+             panel, and header menu elsewhere in this file, just with a
+             search box added inside the popover (247 countries is too
+             many to browse unfiltered). The button itself stays a
+             fixed-size icon (flag, or a placeholder globe when unset) --
+             clicking it never changes the button, only opens the
+             popover, unlike a combobox where the trigger and the input
+             are the same element. Sized to content (not flex-1 like
+             Location/Area) so it's only as wide as the flag needs.
+             Deliberately unlabeled, like filter-btn/header-menu-btn/
+             theme-toggle-btn elsewhere in this file -- those are the
+             established precedent for icon-only controls in this app,
+             identified via aria-label alone rather than a visible text
+             label above them. Location/Area's labels sit above their
+             input, so this column would otherwise be shorter than
+             theirs; items-end bottom-aligns the button with their input
+             row instead of leaving it stranded at the top. -->
+        <div class="shrink-0 flex items-end">
+          <div class="relative" id="country-wrap">
+            <!-- h-[41.78px] pins this to entry-place/entry-area's own
+                 rendered height (measured, not guessed -- getBoundingClientRect
+                 on entry-place). Padding alone can't get there: those
+                 inputs are sized by *text* line-height (font-size 1rem,
+                 browser default line-height), while this button's
+                 content is an icon/emoji sized by its own box, and the
+                 two metrics don't naturally coincide regardless of how
+                 closely the padding is matched -- fine for something
+                 unrelated to their box model, but not for a control
+                 that has to sit flush against them in the same row. -->
+            <button type="button" class="inline-flex items-center justify-center h-[41.78px] px-[.7rem] bg-surface border border-border rounded-app text-foreground text-[1.15rem] cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="country-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Country: none selected">
+              <span class="flex items-center justify-center" id="country-btn-flag" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20Z"></path></svg></span>
+            </button>
+            <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 bg-background border border-border rounded-app p-[.5rem] w-[15rem] max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="country-popover" hidden>
+              <input type="text" class="bg-surface border border-border rounded-app px-[.7rem] py-[.5rem] text-foreground text-[.9rem] outline-none focus:border-accent w-full" id="country-search" placeholder="Search countries…" autocomplete="off" aria-label="Search countries" aria-controls="country-listbox">
+              <ul class="max-h-[13rem] overflow-y-auto m-0 mt-[.4rem] p-0 list-none" id="country-listbox" role="listbox" aria-label="Country"></ul>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="flex flex-wrap gap-[.6rem] mb-3 mt-[1.1rem]">
@@ -485,24 +524,280 @@
     return res.type === "opaqueredirect";
   }
 
-  // ── Place → country map ──────────────────────────────────────────────
-  const PLACE_COUNTRY = {
-    "Magic Wood":          "🇨🇭 Switzerland",
-    "Fontainebleau":       "🇫🇷 France",
-    "Albarracín":          "🇪🇸 Spain",
-    "Bosco Scorace":       "🇮🇹 Italy",
-    "San Vito Lo Capo":    "🇮🇹 Italy",
-    "Southern Sandstone":  "🏴󠁧󠁢󠁥󠁮󠁧󠁿 England",
-    "Portland":            "🏴󠁧󠁢󠁥󠁮󠁧󠁿 England",
-    "Tintagel":            "🏴󠁧󠁢󠁥󠁮󠁧󠁿 England",
-    "Culm Coast":          "🏴󠁧󠁢󠁥󠁮󠁧󠁿 England",
-    "Eryri":               "🏴󠁧󠁢󠁷󠁬󠁳󠁿 Wales",
-    "Lake District":       "🏴󠁧󠁢󠁥󠁮󠁧󠁿 England",
-    "Northumberland":      "🏴󠁧󠁢󠁥󠁮󠁧󠁿 England",
-    "Cairngorms":          "🏴󠁧󠁢󠁳󠁣󠁴󠁿 Scotland",
-    "Peak District":       "🏴󠁧󠁢󠁥󠁮󠁧󠁿 England",
-    "Rocklands":           "🇿🇦 South Africa",
-  };
+  // ── Country dataset (#153) ──────────────────────────────────────────
+  // Canonical world country list -- flag + geographic-center coordinates
+  // (the latter for the Map tab's per-country pins, #17). Bundled inline
+  // per the Connectivity Resilience standard (docs/coding-standards.md):
+  // small (~16KB), static, rarely-changing, so it belongs in the shipped
+  // app rather than a fetch-on-open. Regenerate via
+  // `node scripts/generate-countries.mjs` if it ever needs updating.
+  //
+  // Deliberate exclusions/inclusions, not incidental omissions: Israel,
+  // Russia, and Belarus are excluded -- all three currently excluded from
+  // world climbing events over international law/human rights violations
+  // (Russia/Belarus: invasion of Ukraine; Israel: occupation). Palestine
+  // is included (present in the source data as a non-UN-member state --
+  // no override needed to keep it in). Replaces the old PLACE_COUNTRY
+  // (place name -> flag+country string) lookup,
+  // which silently had no entry for any place nobody remembered to add by
+  // hand -- a real country list only ever has "United Kingdom" as an
+  // entry, not England/Wales/Scotland as if they were separate countries,
+  // which resolves that old edge case for free rather than needing
+  // special-casing.
+  const COUNTRIES = [
+    { name: "Afghanistan", flag: "🇦🇫", lat: 33, lng: 65 },
+    { name: "Åland Islands", flag: "🇦🇽", lat: 60.12, lng: 19.9 },
+    { name: "Albania", flag: "🇦🇱", lat: 41, lng: 20 },
+    { name: "Algeria", flag: "🇩🇿", lat: 28, lng: 3 },
+    { name: "American Samoa", flag: "🇦🇸", lat: -14.33, lng: -170 },
+    { name: "Andorra", flag: "🇦🇩", lat: 42.5, lng: 1.5 },
+    { name: "Angola", flag: "🇦🇴", lat: -12.5, lng: 18.5 },
+    { name: "Anguilla", flag: "🇦🇮", lat: 18.25, lng: -63.17 },
+    { name: "Antarctica", flag: "🇦🇶", lat: -90, lng: 0 },
+    { name: "Antigua and Barbuda", flag: "🇦🇬", lat: 17.05, lng: -61.8 },
+    { name: "Argentina", flag: "🇦🇷", lat: -34, lng: -64 },
+    { name: "Armenia", flag: "🇦🇲", lat: 40, lng: 45 },
+    { name: "Aruba", flag: "🇦🇼", lat: 12.5, lng: -69.97 },
+    { name: "Australia", flag: "🇦🇺", lat: -27, lng: 133 },
+    { name: "Austria", flag: "🇦🇹", lat: 47.33, lng: 13.33 },
+    { name: "Azerbaijan", flag: "🇦🇿", lat: 40.5, lng: 47.5 },
+    { name: "Bahamas", flag: "🇧🇸", lat: 24.25, lng: -76 },
+    { name: "Bahrain", flag: "🇧🇭", lat: 26, lng: 50.55 },
+    { name: "Bangladesh", flag: "🇧🇩", lat: 24, lng: 90 },
+    { name: "Barbados", flag: "🇧🇧", lat: 13.17, lng: -59.53 },
+    { name: "Belgium", flag: "🇧🇪", lat: 50.83, lng: 4 },
+    { name: "Belize", flag: "🇧🇿", lat: 17.25, lng: -88.75 },
+    { name: "Benin", flag: "🇧🇯", lat: 9.5, lng: 2.25 },
+    { name: "Bermuda", flag: "🇧🇲", lat: 32.33, lng: -64.75 },
+    { name: "Bhutan", flag: "🇧🇹", lat: 27.5, lng: 90.5 },
+    { name: "Bolivia", flag: "🇧🇴", lat: -17, lng: -65 },
+    { name: "Bosnia and Herzegovina", flag: "🇧🇦", lat: 44, lng: 18 },
+    { name: "Botswana", flag: "🇧🇼", lat: -22, lng: 24 },
+    { name: "Bouvet Island", flag: "🇧🇻", lat: -54.43, lng: 3.4 },
+    { name: "Brazil", flag: "🇧🇷", lat: -10, lng: -55 },
+    { name: "British Indian Ocean Territory", flag: "🇮🇴", lat: -6, lng: 71.5 },
+    { name: "British Virgin Islands", flag: "🇻🇬", lat: 18.43, lng: -64.62 },
+    { name: "Brunei", flag: "🇧🇳", lat: 4.5, lng: 114.67 },
+    { name: "Bulgaria", flag: "🇧🇬", lat: 43, lng: 25 },
+    { name: "Burkina Faso", flag: "🇧🇫", lat: 13, lng: -2 },
+    { name: "Burundi", flag: "🇧🇮", lat: -3.5, lng: 30 },
+    { name: "Cambodia", flag: "🇰🇭", lat: 13, lng: 105 },
+    { name: "Cameroon", flag: "🇨🇲", lat: 6, lng: 12 },
+    { name: "Canada", flag: "🇨🇦", lat: 60, lng: -95 },
+    { name: "Cape Verde", flag: "🇨🇻", lat: 16, lng: -24 },
+    { name: "Caribbean Netherlands", flag: "", lat: 12.18, lng: -68.25 },
+    { name: "Cayman Islands", flag: "🇰🇾", lat: 19.5, lng: -80.5 },
+    { name: "Central African Republic", flag: "🇨🇫", lat: 7, lng: 21 },
+    { name: "Chad", flag: "🇹🇩", lat: 15, lng: 19 },
+    { name: "Chile", flag: "🇨🇱", lat: -30, lng: -71 },
+    { name: "China", flag: "🇨🇳", lat: 35, lng: 105 },
+    { name: "Christmas Island", flag: "🇨🇽", lat: -10.5, lng: 105.67 },
+    { name: "Cocos (Keeling) Islands", flag: "🇨🇨", lat: -12.5, lng: 96.83 },
+    { name: "Colombia", flag: "🇨🇴", lat: 4, lng: -72 },
+    { name: "Comoros", flag: "🇰🇲", lat: -12.17, lng: 44.25 },
+    { name: "Cook Islands", flag: "🇨🇰", lat: -21.23, lng: -159.77 },
+    { name: "Costa Rica", flag: "🇨🇷", lat: 10, lng: -84 },
+    { name: "Croatia", flag: "🇭🇷", lat: 45.17, lng: 15.5 },
+    { name: "Cuba", flag: "🇨🇺", lat: 21.5, lng: -80 },
+    { name: "Curaçao", flag: "🇨🇼", lat: 12.12, lng: -68.93 },
+    { name: "Cyprus", flag: "🇨🇾", lat: 35, lng: 33 },
+    { name: "Czechia", flag: "🇨🇿", lat: 49.75, lng: 15.5 },
+    { name: "Denmark", flag: "🇩🇰", lat: 56, lng: 10 },
+    { name: "Djibouti", flag: "🇩🇯", lat: 11.5, lng: 43 },
+    { name: "Dominica", flag: "🇩🇲", lat: 15.42, lng: -61.33 },
+    { name: "Dominican Republic", flag: "🇩🇴", lat: 19, lng: -70.67 },
+    { name: "DR Congo", flag: "🇨🇩", lat: 0, lng: 25 },
+    { name: "Ecuador", flag: "🇪🇨", lat: -2, lng: -77.5 },
+    { name: "Egypt", flag: "🇪🇬", lat: 27, lng: 30 },
+    { name: "El Salvador", flag: "🇸🇻", lat: 13.83, lng: -88.92 },
+    { name: "Equatorial Guinea", flag: "🇬🇶", lat: 2, lng: 10 },
+    { name: "Eritrea", flag: "🇪🇷", lat: 15, lng: 39 },
+    { name: "Estonia", flag: "🇪🇪", lat: 59, lng: 26 },
+    { name: "Eswatini", flag: "🇸🇿", lat: -26.5, lng: 31.5 },
+    { name: "Ethiopia", flag: "🇪🇹", lat: 8, lng: 38 },
+    { name: "Falkland Islands", flag: "🇫🇰", lat: -51.75, lng: -59 },
+    { name: "Faroe Islands", flag: "🇫🇴", lat: 62, lng: -7 },
+    { name: "Fiji", flag: "🇫🇯", lat: -18, lng: 175 },
+    { name: "Finland", flag: "🇫🇮", lat: 64, lng: 26 },
+    { name: "France", flag: "🇫🇷", lat: 46, lng: 2 },
+    { name: "French Guiana", flag: "🇬🇫", lat: 4, lng: -53 },
+    { name: "French Polynesia", flag: "🇵🇫", lat: -15, lng: -140 },
+    { name: "French Southern and Antarctic Lands", flag: "🇹🇫", lat: -49.25, lng: 69.17 },
+    { name: "Gabon", flag: "🇬🇦", lat: -1, lng: 11.75 },
+    { name: "Gambia", flag: "🇬🇲", lat: 13.47, lng: -16.57 },
+    { name: "Georgia", flag: "🇬🇪", lat: 42, lng: 43.5 },
+    { name: "Germany", flag: "🇩🇪", lat: 51, lng: 9 },
+    { name: "Ghana", flag: "🇬🇭", lat: 8, lng: -2 },
+    { name: "Gibraltar", flag: "🇬🇮", lat: 36.13, lng: -5.35 },
+    { name: "Greece", flag: "🇬🇷", lat: 39, lng: 22 },
+    { name: "Greenland", flag: "🇬🇱", lat: 72, lng: -40 },
+    { name: "Grenada", flag: "🇬🇩", lat: 12.12, lng: -61.67 },
+    { name: "Guadeloupe", flag: "🇬🇵", lat: 16.25, lng: -61.58 },
+    { name: "Guam", flag: "🇬🇺", lat: 13.47, lng: 144.78 },
+    { name: "Guatemala", flag: "🇬🇹", lat: 15.5, lng: -90.25 },
+    { name: "Guernsey", flag: "🇬🇬", lat: 49.47, lng: -2.58 },
+    { name: "Guinea", flag: "🇬🇳", lat: 11, lng: -10 },
+    { name: "Guinea-Bissau", flag: "🇬🇼", lat: 12, lng: -15 },
+    { name: "Guyana", flag: "🇬🇾", lat: 5, lng: -59 },
+    { name: "Haiti", flag: "🇭🇹", lat: 19, lng: -72.42 },
+    { name: "Heard Island and McDonald Islands", flag: "🇭🇲", lat: -53.1, lng: 72.52 },
+    { name: "Honduras", flag: "🇭🇳", lat: 15, lng: -86.5 },
+    { name: "Hong Kong", flag: "🇭🇰", lat: 22.27, lng: 114.19 },
+    { name: "Hungary", flag: "🇭🇺", lat: 47, lng: 20 },
+    { name: "Iceland", flag: "🇮🇸", lat: 65, lng: -18 },
+    { name: "India", flag: "🇮🇳", lat: 20, lng: 77 },
+    { name: "Indonesia", flag: "🇮🇩", lat: -5, lng: 120 },
+    { name: "Iran", flag: "🇮🇷", lat: 32, lng: 53 },
+    { name: "Iraq", flag: "🇮🇶", lat: 33, lng: 44 },
+    { name: "Ireland", flag: "🇮🇪", lat: 53, lng: -8 },
+    { name: "Isle of Man", flag: "🇮🇲", lat: 54.25, lng: -4.5 },
+    { name: "Italy", flag: "🇮🇹", lat: 42.83, lng: 12.83 },
+    { name: "Ivory Coast", flag: "🇨🇮", lat: 8, lng: -5 },
+    { name: "Jamaica", flag: "🇯🇲", lat: 18.25, lng: -77.5 },
+    { name: "Japan", flag: "🇯🇵", lat: 36, lng: 138 },
+    { name: "Jersey", flag: "🇯🇪", lat: 49.25, lng: -2.17 },
+    { name: "Jordan", flag: "🇯🇴", lat: 31, lng: 36 },
+    { name: "Kazakhstan", flag: "🇰🇿", lat: 48, lng: 68 },
+    { name: "Kenya", flag: "🇰🇪", lat: 1, lng: 38 },
+    { name: "Kiribati", flag: "🇰🇮", lat: 1.42, lng: 173 },
+    { name: "Kosovo", flag: "🇽🇰", lat: 42.67, lng: 21.17 },
+    { name: "Kuwait", flag: "🇰🇼", lat: 29.5, lng: 45.75 },
+    { name: "Kyrgyzstan", flag: "🇰🇬", lat: 41, lng: 75 },
+    { name: "Laos", flag: "🇱🇦", lat: 18, lng: 105 },
+    { name: "Latvia", flag: "🇱🇻", lat: 57, lng: 25 },
+    { name: "Lebanon", flag: "🇱🇧", lat: 33.83, lng: 35.83 },
+    { name: "Lesotho", flag: "🇱🇸", lat: -29.5, lng: 28.5 },
+    { name: "Liberia", flag: "🇱🇷", lat: 6.5, lng: -9.5 },
+    { name: "Libya", flag: "🇱🇾", lat: 25, lng: 17 },
+    { name: "Liechtenstein", flag: "🇱🇮", lat: 47.27, lng: 9.53 },
+    { name: "Lithuania", flag: "🇱🇹", lat: 56, lng: 24 },
+    { name: "Luxembourg", flag: "🇱🇺", lat: 49.75, lng: 6.17 },
+    { name: "Macau", flag: "🇲🇴", lat: 22.17, lng: 113.55 },
+    { name: "Madagascar", flag: "🇲🇬", lat: -20, lng: 47 },
+    { name: "Malawi", flag: "🇲🇼", lat: -13.5, lng: 34 },
+    { name: "Malaysia", flag: "🇲🇾", lat: 2.5, lng: 112.5 },
+    { name: "Maldives", flag: "🇲🇻", lat: 3.25, lng: 73 },
+    { name: "Mali", flag: "🇲🇱", lat: 17, lng: -4 },
+    { name: "Malta", flag: "🇲🇹", lat: 35.83, lng: 14.58 },
+    { name: "Marshall Islands", flag: "🇲🇭", lat: 9, lng: 168 },
+    { name: "Martinique", flag: "🇲🇶", lat: 14.67, lng: -61 },
+    { name: "Mauritania", flag: "🇲🇷", lat: 20, lng: -12 },
+    { name: "Mauritius", flag: "🇲🇺", lat: -20.28, lng: 57.55 },
+    { name: "Mayotte", flag: "🇾🇹", lat: -12.83, lng: 45.17 },
+    { name: "Mexico", flag: "🇲🇽", lat: 23, lng: -102 },
+    { name: "Micronesia", flag: "🇫🇲", lat: 6.92, lng: 158.25 },
+    { name: "Moldova", flag: "🇲🇩", lat: 47, lng: 29 },
+    { name: "Monaco", flag: "🇲🇨", lat: 43.73, lng: 7.4 },
+    { name: "Mongolia", flag: "🇲🇳", lat: 46, lng: 105 },
+    { name: "Montenegro", flag: "🇲🇪", lat: 42.5, lng: 19.3 },
+    { name: "Montserrat", flag: "🇲🇸", lat: 16.75, lng: -62.2 },
+    { name: "Morocco", flag: "🇲🇦", lat: 32, lng: -5 },
+    { name: "Mozambique", flag: "🇲🇿", lat: -18.25, lng: 35 },
+    { name: "Myanmar", flag: "🇲🇲", lat: 22, lng: 98 },
+    { name: "Namibia", flag: "🇳🇦", lat: -22, lng: 17 },
+    { name: "Nauru", flag: "🇳🇷", lat: -0.53, lng: 166.92 },
+    { name: "Nepal", flag: "🇳🇵", lat: 28, lng: 84 },
+    { name: "Netherlands", flag: "🇳🇱", lat: 52.5, lng: 5.75 },
+    { name: "New Caledonia", flag: "🇳🇨", lat: -21.5, lng: 165.5 },
+    { name: "New Zealand", flag: "🇳🇿", lat: -41, lng: 174 },
+    { name: "Nicaragua", flag: "🇳🇮", lat: 13, lng: -85 },
+    { name: "Niger", flag: "🇳🇪", lat: 16, lng: 8 },
+    { name: "Nigeria", flag: "🇳🇬", lat: 10, lng: 8 },
+    { name: "Niue", flag: "🇳🇺", lat: -19.03, lng: -169.87 },
+    { name: "Norfolk Island", flag: "🇳🇫", lat: -29.03, lng: 167.95 },
+    { name: "North Korea", flag: "🇰🇵", lat: 40, lng: 127 },
+    { name: "North Macedonia", flag: "🇲🇰", lat: 41.83, lng: 22 },
+    { name: "Northern Mariana Islands", flag: "🇲🇵", lat: 15.2, lng: 145.75 },
+    { name: "Norway", flag: "🇳🇴", lat: 62, lng: 10 },
+    { name: "Oman", flag: "🇴🇲", lat: 21, lng: 57 },
+    { name: "Pakistan", flag: "🇵🇰", lat: 30, lng: 70 },
+    { name: "Palau", flag: "🇵🇼", lat: 7.5, lng: 134.5 },
+    { name: "Palestine", flag: "🇵🇸", lat: 31.9, lng: 35.2 },
+    { name: "Panama", flag: "🇵🇦", lat: 9, lng: -80 },
+    { name: "Papua New Guinea", flag: "🇵🇬", lat: -6, lng: 147 },
+    { name: "Paraguay", flag: "🇵🇾", lat: -23, lng: -58 },
+    { name: "Peru", flag: "🇵🇪", lat: -10, lng: -76 },
+    { name: "Philippines", flag: "🇵🇭", lat: 13, lng: 122 },
+    { name: "Pitcairn Islands", flag: "🇵🇳", lat: -25.07, lng: -130.1 },
+    { name: "Poland", flag: "🇵🇱", lat: 52, lng: 20 },
+    { name: "Portugal", flag: "🇵🇹", lat: 39.5, lng: -8 },
+    { name: "Puerto Rico", flag: "🇵🇷", lat: 18.25, lng: -66.5 },
+    { name: "Qatar", flag: "🇶🇦", lat: 25.5, lng: 51.25 },
+    { name: "Republic of the Congo", flag: "🇨🇬", lat: -1, lng: 15 },
+    { name: "Réunion", flag: "🇷🇪", lat: -21.15, lng: 55.5 },
+    { name: "Romania", flag: "🇷🇴", lat: 46, lng: 25 },
+    { name: "Rwanda", flag: "🇷🇼", lat: -2, lng: 30 },
+    { name: "Saint Barthélemy", flag: "🇧🇱", lat: 18.5, lng: -63.42 },
+    { name: "Saint Helena, Ascension and Tristan da Cunha", flag: "🇸🇭", lat: -15.95, lng: -5.72 },
+    { name: "Saint Kitts and Nevis", flag: "🇰🇳", lat: 17.33, lng: -62.75 },
+    { name: "Saint Lucia", flag: "🇱🇨", lat: 13.88, lng: -60.97 },
+    { name: "Saint Martin", flag: "🇲🇫", lat: 18.08, lng: -63.95 },
+    { name: "Saint Pierre and Miquelon", flag: "🇵🇲", lat: 46.83, lng: -56.33 },
+    { name: "Saint Vincent and the Grenadines", flag: "🇻🇨", lat: 13.25, lng: -61.2 },
+    { name: "Samoa", flag: "🇼🇸", lat: -13.58, lng: -172.33 },
+    { name: "San Marino", flag: "🇸🇲", lat: 43.77, lng: 12.42 },
+    { name: "São Tomé and Príncipe", flag: "🇸🇹", lat: 1, lng: 7 },
+    { name: "Saudi Arabia", flag: "🇸🇦", lat: 25, lng: 45 },
+    { name: "Senegal", flag: "🇸🇳", lat: 14, lng: -14 },
+    { name: "Serbia", flag: "🇷🇸", lat: 44, lng: 21 },
+    { name: "Seychelles", flag: "🇸🇨", lat: -4.58, lng: 55.67 },
+    { name: "Sierra Leone", flag: "🇸🇱", lat: 8.5, lng: -11.5 },
+    { name: "Singapore", flag: "🇸🇬", lat: 1.37, lng: 103.8 },
+    { name: "Sint Maarten", flag: "🇸🇽", lat: 18.03, lng: -63.05 },
+    { name: "Slovakia", flag: "🇸🇰", lat: 48.67, lng: 19.5 },
+    { name: "Slovenia", flag: "🇸🇮", lat: 46.12, lng: 14.82 },
+    { name: "Solomon Islands", flag: "🇸🇧", lat: -8, lng: 159 },
+    { name: "Somalia", flag: "🇸🇴", lat: 10, lng: 49 },
+    { name: "South Africa", flag: "🇿🇦", lat: -29, lng: 24 },
+    { name: "South Georgia", flag: "🇬🇸", lat: -54.5, lng: -37 },
+    { name: "South Korea", flag: "🇰🇷", lat: 37, lng: 127.5 },
+    { name: "South Sudan", flag: "🇸🇸", lat: 7, lng: 30 },
+    { name: "Spain", flag: "🇪🇸", lat: 40, lng: -4 },
+    { name: "Sri Lanka", flag: "🇱🇰", lat: 7, lng: 81 },
+    { name: "Sudan", flag: "🇸🇩", lat: 15, lng: 30 },
+    { name: "Suriname", flag: "🇸🇷", lat: 4, lng: -56 },
+    { name: "Svalbard and Jan Mayen", flag: "🇸🇯", lat: 78, lng: 20 },
+    { name: "Sweden", flag: "🇸🇪", lat: 62, lng: 15 },
+    { name: "Switzerland", flag: "🇨🇭", lat: 47, lng: 8 },
+    { name: "Syria", flag: "🇸🇾", lat: 35, lng: 38 },
+    { name: "Taiwan", flag: "🇹🇼", lat: 23.5, lng: 121 },
+    { name: "Tajikistan", flag: "🇹🇯", lat: 39, lng: 71 },
+    { name: "Tanzania", flag: "🇹🇿", lat: -6, lng: 35 },
+    { name: "Thailand", flag: "🇹🇭", lat: 15, lng: 100 },
+    { name: "Timor-Leste", flag: "🇹🇱", lat: -8.83, lng: 125.92 },
+    { name: "Togo", flag: "🇹🇬", lat: 8, lng: 1.17 },
+    { name: "Tokelau", flag: "🇹🇰", lat: -9, lng: -172 },
+    { name: "Tonga", flag: "🇹🇴", lat: -20, lng: -175 },
+    { name: "Trinidad and Tobago", flag: "🇹🇹", lat: 11, lng: -61 },
+    { name: "Tunisia", flag: "🇹🇳", lat: 34, lng: 9 },
+    { name: "Türkiye", flag: "🇹🇷", lat: 39, lng: 35 },
+    { name: "Turkmenistan", flag: "🇹🇲", lat: 40, lng: 60 },
+    { name: "Turks and Caicos Islands", flag: "🇹🇨", lat: 21.75, lng: -71.58 },
+    { name: "Tuvalu", flag: "🇹🇻", lat: -8, lng: 178 },
+    { name: "Uganda", flag: "🇺🇬", lat: 1, lng: 32 },
+    { name: "Ukraine", flag: "🇺🇦", lat: 49, lng: 32 },
+    { name: "United Arab Emirates", flag: "🇦🇪", lat: 24, lng: 54 },
+    { name: "United Kingdom", flag: "🇬🇧", lat: 54, lng: -2 },
+    { name: "United States", flag: "🇺🇸", lat: 38, lng: -97 },
+    { name: "United States Minor Outlying Islands", flag: "🇺🇲", lat: 19.3, lng: 166.63 },
+    { name: "United States Virgin Islands", flag: "🇻🇮", lat: 18.35, lng: -64.93 },
+    { name: "Uruguay", flag: "🇺🇾", lat: -33, lng: -56 },
+    { name: "Uzbekistan", flag: "🇺🇿", lat: 41, lng: 64 },
+    { name: "Vanuatu", flag: "🇻🇺", lat: -16, lng: 167 },
+    { name: "Vatican City", flag: "🇻🇦", lat: 41.9, lng: 12.45 },
+    { name: "Venezuela", flag: "🇻🇪", lat: 8, lng: -66 },
+    { name: "Vietnam", flag: "🇻🇳", lat: 16.17, lng: 107.83 },
+    { name: "Wallis and Futuna", flag: "🇼🇫", lat: -13.3, lng: -176.2 },
+    { name: "Western Sahara", flag: "🇪🇭", lat: 24.5, lng: -13 },
+    { name: "Yemen", flag: "🇾🇪", lat: 15, lng: 48 },
+    { name: "Zambia", flag: "🇿🇲", lat: -15, lng: 30 },
+    { name: "Zimbabwe", flag: "🇿🇼", lat: -20, lng: 30 },
+  ];
+  // entry.country stores the plain name only (a clean key into this
+  // lookup) -- never a pre-formatted "flag + name" string that display
+  // code would then have to re-parse apart via string splitting to get
+  // either piece back out.
+  const COUNTRY_BY_NAME = Object.fromEntries(COUNTRIES.map(c => [c.name, c]));
 
   // ── Grade ordering (display) ─────────────────────────────────────────
   const GRADE_ORDER = [
@@ -844,12 +1139,31 @@
       `;
       }).join("");
 
+      // Country is per-entry now (#153), not a static place lookup -- a
+      // place's flag is whatever its own logged entries say, so pick the
+      // first entry that actually has one set rather than assuming every
+      // entry for a place agrees (older, pre-migration entries may not).
+      // entry.country is a plain name (a key into COUNTRY_BY_NAME), not a
+      // formatted string -- an unrecognized name (a free-text typo, or a
+      // since-excluded country like Russia/Belarus on old data) just
+      // shows nothing here, same as no country being set at all, rather
+      // than needing separate error handling.
+      const placeCountry = COUNTRY_BY_NAME[sorted.find(e => e.country)?.country];
+      // The country *name* text was silently dropped at every width by
+      // #122 (which meant to go flag-only on narrow viewports only, for
+      // space, but the implementation went flag-only everywhere) -- back
+      // on wide viewports (matching the 600px breakpoint this file
+      // already uses for this same narrow/wide boundary, see the <h1>
+      // above), narrow keeps #122's original flag-only intent.
       return `
         <div class="bg-surface border border-border rounded-app mb-3 overflow-hidden" data-place="${escapeHtml(place)}">
           <div class="place-header flex items-center gap-[.5rem] px-[.9rem] py-[.6rem] border-b border-border bg-[color-mix(in_srgb,var(--color-surface)_60%,var(--color-bg))] cursor-pointer select-none hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,var(--color-surface))]" data-place="${escapeHtml(place)}" role="button" tabindex="0" aria-expanded="${!isCollapsed}">
             <span class="font-semibold text-base truncate min-w-0 flex-1">${escapeHtml(place)}</span>
+            ${placeCountry ? `<span class="inline-flex items-center gap-[.3rem] shrink-0">
+              <span class="max-[600px]:hidden text-[.78rem] text-muted font-normal whitespace-nowrap">${escapeHtml(placeCountry.name)}</span>
+              <span role="img" aria-label="${escapeHtml(placeCountry.name)}">${escapeHtml(placeCountry.flag)}</span>
+            </span>` : ""}
             <span class="inline-flex items-center justify-center min-w-[1.4rem] h-[1.4rem] px-1 rounded-full bg-[color-mix(in_srgb,var(--color-text)_12%,transparent)] text-muted text-[.72rem] font-semibold shrink-0" aria-label="${sorted.length} ${sorted.length === 1 ? "entry" : "entries"}">${sorted.length}</span>
-            ${PLACE_COUNTRY[place] ? `<span class="shrink-0" role="img" aria-label="${escapeHtml(PLACE_COUNTRY[place])}">${escapeHtml(PLACE_COUNTRY[place].split(" ")[0])}</span>` : ""}
             <span class="text-muted text-[.8rem] transition-transform duration-200 shrink-0 ${isCollapsed ? "-rotate-90" : ""}">▾</span>
           </div>
           <div class="overflow-x-auto ${isCollapsed ? "hidden" : ""}">
@@ -915,7 +1229,7 @@
     // Boulder stats" / "your Lead stats", not a global summary, now that
     // the two disciplines have their own separate views.
     const typeEntries = ALL_ENTRIES.filter(e => e.type === state.activeType);
-    const countries = new Set(typeEntries.map(e => PLACE_COUNTRY[e.place]).filter(Boolean)).size;
+    const countries = new Set(typeEntries.map(e => e.country).filter(Boolean)).size;
     const flashes   = typeEntries.filter(e => e.status === "send" && e.firstAttempt).length;
     const sends     = typeEntries.filter(e => e.status === "send" && !e.firstAttempt).length;
     const projects  = typeEntries.filter(e => e.status === "project").length;
@@ -1287,6 +1601,11 @@
   const nameInput  = document.getElementById("entry-name");
   const placeInput = document.getElementById("entry-place");
   const areaInput  = document.getElementById("entry-area");
+  const countryBtn = document.getElementById("country-btn");
+  const countryBtnFlag = document.getElementById("country-btn-flag");
+  const countryPopover = document.getElementById("country-popover");
+  const countrySearch = document.getElementById("country-search");
+  const countryListbox = document.getElementById("country-listbox");
   const notesInput = document.getElementById("entry-notes");
   const videoInput = document.getElementById("entry-video");
   const gradeSelect = document.getElementById("grade-select");
@@ -1467,7 +1786,130 @@
     const match = ALL_ENTRIES.find(e => (e.area || "").toLowerCase() === area.toLowerCase());
     return match?.place ?? null;
   }
-  placeInput.addEventListener("input", () => populateAreas(placeInput.value.trim()));
+  // A known place implies its country — same auto-fill pattern as
+  // findPlaceForArea, one level up (#153).
+  function findCountryForPlace(place) {
+    const match = ALL_ENTRIES.find(e => e.place.toLowerCase() === place.toLowerCase() && e.country);
+    return match?.country ?? null;
+  }
+
+  // ── Entry form: country combobox (#153) ──────────────────────────
+  // Trigger-button + popover (#153), the same interaction pattern as
+  // discipline-btn/discipline-popover and filter-btn/filter-panel --
+  // not an ARIA combobox. The button itself never changes into an input;
+  // it's a fixed-size flag (or a placeholder globe when unset) that only
+  // opens the popover. The popover holds a search box (247 countries is
+  // too many to browse unfiltered) above a scrollable listbox, styled
+  // like discipline-option (checkmark on the selected row).
+  //
+  // The globe is a plain hand-drawn shape, not pulled from the Lucide/
+  // Feather set the rest of this file's icons use (filter-btn, header-
+  // menu-btn, discipline-option's checkmark) -- that set's own "flag"
+  // icon was tried here first and read as a signal/marker flag rather
+  // than a national one, which is exactly the wrong connotation next to
+  // an actual country flag emoji.
+  const COUNTRY_PLACEHOLDER_ICON = `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20Z"></path></svg>`;
+  let countryCommittedValue = "";
+  let countryFilteredList = COUNTRIES;
+  let countryActiveIndex = -1;
+
+  function countryOptionId(i) { return `country-option-${i}`; }
+
+  // Keyboard-navigation highlight, tracked separately from aria-selected
+  // (which marks the *committed* value's checkmark) -- toggled directly
+  // via classList rather than a data-* attribute variant, since that's a
+  // plain, already-proven mechanism elsewhere in this file.
+  function updateCountryActiveDescendant() {
+    countrySearch.setAttribute("aria-activedescendant", countryActiveIndex >= 0 ? countryOptionId(countryActiveIndex) : "");
+    countryListbox.querySelectorAll("[role=option]").forEach((el, i) =>
+      el.classList.toggle("bg-[color-mix(in_srgb,var(--color-accent)_16%,transparent)]", i === countryActiveIndex));
+    countryListbox.querySelector(`#${countryOptionId(countryActiveIndex)}`)?.scrollIntoView({ block: "nearest" });
+  }
+
+  function renderCountryOptions(filterText) {
+    const q = filterText.trim().toLowerCase();
+    countryFilteredList = q ? COUNTRIES.filter(c => c.name.toLowerCase().includes(q)) : COUNTRIES;
+    countryActiveIndex = countryFilteredList.length ? 0 : -1;
+    countryListbox.innerHTML = countryFilteredList.length
+      ? countryFilteredList.map((c, i) => `
+          <li id="${countryOptionId(i)}" role="option" data-name="${escapeHtml(c.name)}" aria-selected="${c.name === countryCommittedValue}" class="flex items-center justify-between gap-[.5rem] px-[.6rem] py-[.5rem] rounded-[calc(var(--radius-app)-2px)] cursor-pointer text-[.9rem] text-foreground hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible">
+            <span class="flex items-center gap-[.5rem] min-w-0"><span aria-hidden="true">${escapeHtml(c.flag)}</span><span class="truncate">${escapeHtml(c.name)}</span></span>
+            <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+          </li>`).join("")
+      : `<li class="px-[.6rem] py-[.5rem] text-[.85rem] text-muted">No matches</li>`;
+    updateCountryActiveDescendant();
+  }
+
+  // Reflects the committed value into the trigger button.
+  function setCountry(name) {
+    countryCommittedValue = COUNTRY_BY_NAME[name] ? name : "";
+    const c = COUNTRY_BY_NAME[countryCommittedValue];
+    countryBtn.setAttribute("aria-label", c ? `Country: ${c.name}` : "Country: none selected");
+    countryBtnFlag.innerHTML = c ? escapeHtml(c.flag) : COUNTRY_PLACEHOLDER_ICON;
+  }
+
+  function openCountryPopover() {
+    countryPopover.hidden = false;
+    countryBtn.setAttribute("aria-expanded", "true");
+    // Always starts from a fresh, unfiltered search, not whatever was
+    // last typed -- matches every other search-to-filter control in this
+    // app, none of which remember a stale query across opens.
+    countrySearch.value = "";
+    renderCountryOptions("");
+    countrySearch.focus();
+  }
+  function closeCountryPopover() {
+    countryPopover.hidden = true;
+    countryBtn.setAttribute("aria-expanded", "false");
+  }
+
+  countryBtn.addEventListener("click", () => {
+    if (countryPopover.hidden) openCountryPopover(); else closeCountryPopover();
+  });
+  countrySearch.addEventListener("input", () => renderCountryOptions(countrySearch.value));
+  countrySearch.addEventListener("keydown", e => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (countryFilteredList.length) { countryActiveIndex = (countryActiveIndex + 1) % countryFilteredList.length; updateCountryActiveDescendant(); }
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (countryFilteredList.length) { countryActiveIndex = (countryActiveIndex - 1 + countryFilteredList.length) % countryFilteredList.length; updateCountryActiveDescendant(); }
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (countryActiveIndex >= 0) { setCountry(countryFilteredList[countryActiveIndex].name); closeCountryPopover(); countryBtn.focus(); }
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      // Element-level, not a document-level listener like
+      // discipline-popover's below -- country-popover lives inside the
+      // entry modal, and stopPropagation() here keeps this Escape from
+      // ever reaching the modal's own document-level Escape handler
+      // (which would otherwise close the whole modal instead of just
+      // this popover; multiple document keydown listeners all fire
+      // independently of each other regardless of stopPropagation).
+      e.stopPropagation();
+      closeCountryPopover();
+      countryBtn.focus();
+    }
+  });
+  countryListbox.addEventListener("click", e => {
+    const opt = e.target.closest("[role=option][data-name]");
+    if (!opt) return;
+    setCountry(opt.dataset.name);
+    closeCountryPopover();
+    countryBtn.focus();
+  });
+  document.addEventListener("click", e => {
+    if (!countryPopover.hidden && !e.target.closest("#country-wrap")) closeCountryPopover();
+  });
+
+  placeInput.addEventListener("input", () => {
+    populateAreas(placeInput.value.trim());
+    const place = placeInput.value.trim();
+    if (!countryCommittedValue && place) {
+      const country = findCountryForPlace(place);
+      if (country) setCountry(country);
+    }
+  });
   areaInput.addEventListener("focus", () => populateAreas(placeInput.value.trim()));
   areaInput.addEventListener("input", () => {
     const area = areaInput.value.trim();
@@ -1625,6 +2067,10 @@
     nameInput.value  = entry?.name  ?? "";
     placeInput.value = entry?.place ?? "";
     areaInput.value  = entry?.area  ?? "";
+    // Popover always reopens closed, regardless of whatever open/closed
+    // state a previous modal session left it in.
+    closeCountryPopover();
+    setCountry(entry?.country ?? "");
     notesInput.value = entry?.notes ?? "";
     videoInput.value = entry?.video ?? "";
     // Default to today only in add mode -- ?? alone can't distinguish "no
@@ -1788,6 +2234,11 @@
       id:     editingId ?? crypto.randomUUID(),
       place,
       area:   areaInput.value.trim(),
+      // The committed value, not countrySearch.value directly -- in the
+      // unlikely case the popover is still open (mid-search) at submit
+      // time, its value there is a work-in-progress search string, not
+      // necessarily a valid selection.
+      country: countryCommittedValue,
       name,
       grade:  selectedGrade,
       type:   state.activeType,

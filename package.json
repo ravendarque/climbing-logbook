@@ -17,6 +17,7 @@
     "concurrently": "^10.0.3",
     "semver": "^7.8.5",
     "tailwindcss": "^4.3.2",
+    "world-countries": "^5.1.0",
     "wrangler": "^4.107.0"
   },
   "dependencies": {
