@@ -38,24 +38,26 @@ const write = process.argv.includes("--write");
 const targetFlag = process.argv.includes("--local") ? "--local" : "--remote";
 
 // Snapshot of the old PLACE_COUNTRY mapping (public/logbook/index.html,
-// pre-#153) with flag prefixes stripped and England/Wales/Scotland
+// pre-#153), values reduced to plain country names -- flag prefixes
+// stripped (entry.country stores a clean name, a key into COUNTRY_BY_NAME,
+// not a formatted "flag + name" string) and England/Wales/Scotland
 // collapsed to United Kingdom.
 const PLACE_COUNTRY_SNAPSHOT = {
-  "Magic Wood":          "🇨🇭 Switzerland",
-  "Fontainebleau":       "🇫🇷 France",
-  "Albarracín":          "🇪🇸 Spain",
-  "Bosco Scorace":       "🇮🇹 Italy",
-  "San Vito Lo Capo":    "🇮🇹 Italy",
-  "Southern Sandstone":  "🇬🇧 United Kingdom",
-  "Portland":            "🇬🇧 United Kingdom",
-  "Tintagel":            "🇬🇧 United Kingdom",
-  "Culm Coast":          "🇬🇧 United Kingdom",
-  "Eryri":               "🇬🇧 United Kingdom",
-  "Lake District":       "🇬🇧 United Kingdom",
-  "Northumberland":      "🇬🇧 United Kingdom",
-  "Cairngorms":          "🇬🇧 United Kingdom",
-  "Peak District":       "🇬🇧 United Kingdom",
-  "Rocklands":           "🇿🇦 South Africa",
+  "Magic Wood":          "Switzerland",
+  "Fontainebleau":       "France",
+  "Albarracín":          "Spain",
+  "Bosco Scorace":       "Italy",
+  "San Vito Lo Capo":    "Italy",
+  "Southern Sandstone":  "United Kingdom",
+  "Portland":            "United Kingdom",
+  "Tintagel":            "United Kingdom",
+  "Culm Coast":          "United Kingdom",
+  "Eryri":               "United Kingdom",
+  "Lake District":       "United Kingdom",
+  "Northumberland":      "United Kingdom",
+  "Cairngorms":          "United Kingdom",
+  "Peak District":       "United Kingdom",
+  "Rocklands":           "South Africa",
 };
 
 const raw = execFileSync(

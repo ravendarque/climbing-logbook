@@ -85,9 +85,13 @@ blob: `{ entries: Entry[] }`. Each entry:
   id: string,       // client-generated crypto.randomUUID()
   name, grade, place: string,
   area: string,     // "" if unset, never null
-  country: string,  // "" if unset, never null -- free text like area, but
-                     // populated from the bundled COUNTRIES datalist
-                     // (index.html) in practice; see #153
+  country: string,  // "" if unset, never null -- free text like area (no
+                     // server-side allowlist), but expected to be a plain
+                     // country name matching COUNTRIES[i].name in
+                     // index.html (a key for the COUNTRY_BY_NAME lookup,
+                     // never a pre-formatted "flag + name" display
+                     // string) since it's populated from that bundled
+                     // datalist in practice; see #153
   type: "boulder" | "lead",
   status: "send" | "project" | "abandoned" | "wishlist",
   firstAttempt: boolean,   // only meaningful when status === "send" -- discipline-neutral name for flash/onsight

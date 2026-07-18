@@ -759,7 +759,11 @@
     { name: "Zambia", flag: "🇿🇲", lat: -15, lng: 30 },
     { name: "Zimbabwe", flag: "🇿🇼", lat: -20, lng: 30 },
   ];
-  const COUNTRY_BY_DISPLAY = Object.fromEntries(COUNTRIES.map(c => [`${c.flag} ${c.name}`, c]));
+  // entry.country stores the plain name only (a clean key into this
+  // lookup) -- never a pre-formatted "flag + name" string that display
+  // code would then have to re-parse apart via string splitting to get
+  // either piece back out.
+  const COUNTRY_BY_NAME = Object.fromEntries(COUNTRIES.map(c => [c.name, c]));
 
   // ── Grade ordering (display) ─────────────────────────────────────────
   const GRADE_ORDER = [
@@ -1105,11 +1109,12 @@
       // place's flag is whatever its own logged entries say, so pick the
       // first entry that actually has one set rather than assuming every
       // entry for a place agrees (older, pre-migration entries may not).
-      const placeCountry = sorted.find(e => e.country)?.country;
-      // Country is stored as "🇫🇷 France" (flag + name) -- split once here
-      // rather than repeating the split at each use below.
-      const [placeFlag, ...placeCountryNameParts] = (placeCountry || "").split(" ");
-      const placeCountryName = placeCountryNameParts.join(" ");
+      // entry.country is a plain name (a key into COUNTRY_BY_NAME), not a
+      // formatted string -- an unrecognized name (a free-text typo, or a
+      // since-excluded country like Russia/Belarus on old data) just
+      // shows nothing here, same as no country being set at all, rather
+      // than needing separate error handling.
+      const placeCountry = COUNTRY_BY_NAME[sorted.find(e => e.country)?.country];
       // The country *name* text was silently dropped at every width by
       // #122 (which meant to go flag-only on narrow viewports only, for
       // space, but the implementation went flag-only everywhere) -- back
@@ -1122,8 +1127,8 @@
             <span class="font-semibold text-base truncate min-w-0 flex-1">${escapeHtml(place)}</span>
             <span class="inline-flex items-center justify-center min-w-[1.4rem] h-[1.4rem] px-1 rounded-full bg-[color-mix(in_srgb,var(--color-text)_12%,transparent)] text-muted text-[.72rem] font-semibold shrink-0" aria-label="${sorted.length} ${sorted.length === 1 ? "entry" : "entries"}">${sorted.length}</span>
             ${placeCountry ? `<span class="inline-flex items-center gap-[.3rem] shrink-0">
-              <span role="img" aria-label="${escapeHtml(placeCountryName)}">${escapeHtml(placeFlag)}</span>
-              <span class="max-[600px]:hidden text-[.78rem] text-muted font-normal whitespace-nowrap">${escapeHtml(placeCountryName)}</span>
+              <span role="img" aria-label="${escapeHtml(placeCountry.name)}">${escapeHtml(placeCountry.flag)}</span>
+              <span class="max-[600px]:hidden text-[.78rem] text-muted font-normal whitespace-nowrap">${escapeHtml(placeCountry.name)}</span>
             </span>` : ""}
             <span class="text-muted text-[.8rem] transition-transform duration-200 shrink-0 ${isCollapsed ? "-rotate-90" : ""}">▾</span>
           </div>
@@ -1756,9 +1761,13 @@
   // ever suggest places/areas actually logged before), the country
   // datalist is the full bundled COUNTRIES list, populated once — every
   // country should be pickable, not just ones already visited.
+  // value is the plain name (what actually fills the input on selection,
+  // and what gets stored as entry.country) -- the option's label (its
+  // text content) carries the flag for a searchable flag+name suggestion
+  // list without needing entry.country itself to be a formatted string.
   function populateCountries() {
     document.getElementById("entry-countries-list").innerHTML =
-      COUNTRIES.map(c => `<option value="${escapeHtml(c.flag + " " + c.name)}">`).join("");
+      COUNTRIES.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.flag + " " + c.name)}</option>`).join("");
   }
   placeInput.addEventListener("input", () => {
     populateAreas(placeInput.value.trim());
