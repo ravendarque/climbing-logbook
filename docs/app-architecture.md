@@ -85,6 +85,9 @@ blob: `{ entries: Entry[] }`. Each entry:
   id: string,       // client-generated crypto.randomUUID()
   name, grade, place: string,
   area: string,     // "" if unset, never null
+  country: string,  // "" if unset, never null -- free text like area, but
+                     // populated from the bundled COUNTRIES datalist
+                     // (index.html) in practice; see #153
   type: "boulder" | "lead",
   status: "send" | "project" | "abandoned" | "wishlist",
   firstAttempt: boolean,   // only meaningful when status === "send" -- discipline-neutral name for flash/onsight

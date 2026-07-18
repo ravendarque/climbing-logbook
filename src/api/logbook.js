@@ -53,6 +53,7 @@ function buildEntry(entry, id) {
     grade:  entry.grade,
     place:  entry.place,
     area:   entry.area   ?? "",
+    country: entry.country ?? "",
     type:   entry.type,
     status: entry.status,
     firstAttempt: entry.status === "send" ? Boolean(entry.firstAttempt) : false,
