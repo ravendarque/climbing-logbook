@@ -1125,11 +1125,11 @@
         <div class="bg-surface border border-border rounded-app mb-3 overflow-hidden" data-place="${escapeHtml(place)}">
           <div class="place-header flex items-center gap-[.5rem] px-[.9rem] py-[.6rem] border-b border-border bg-[color-mix(in_srgb,var(--color-surface)_60%,var(--color-bg))] cursor-pointer select-none hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,var(--color-surface))]" data-place="${escapeHtml(place)}" role="button" tabindex="0" aria-expanded="${!isCollapsed}">
             <span class="font-semibold text-base truncate min-w-0 flex-1">${escapeHtml(place)}</span>
-            <span class="inline-flex items-center justify-center min-w-[1.4rem] h-[1.4rem] px-1 rounded-full bg-[color-mix(in_srgb,var(--color-text)_12%,transparent)] text-muted text-[.72rem] font-semibold shrink-0" aria-label="${sorted.length} ${sorted.length === 1 ? "entry" : "entries"}">${sorted.length}</span>
             ${placeCountry ? `<span class="inline-flex items-center gap-[.3rem] shrink-0">
               <span role="img" aria-label="${escapeHtml(placeCountry.name)}">${escapeHtml(placeCountry.flag)}</span>
               <span class="max-[600px]:hidden text-[.78rem] text-muted font-normal whitespace-nowrap">${escapeHtml(placeCountry.name)}</span>
             </span>` : ""}
+            <span class="inline-flex items-center justify-center min-w-[1.4rem] h-[1.4rem] px-1 rounded-full bg-[color-mix(in_srgb,var(--color-text)_12%,transparent)] text-muted text-[.72rem] font-semibold shrink-0" aria-label="${sorted.length} ${sorted.length === 1 ? "entry" : "entries"}">${sorted.length}</span>
             <span class="text-muted text-[.8rem] transition-transform duration-200 shrink-0 ${isCollapsed ? "-rotate-90" : ""}">▾</span>
           </div>
           <div class="overflow-x-auto ${isCollapsed ? "hidden" : ""}">
