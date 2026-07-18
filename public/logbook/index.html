@@ -356,24 +356,26 @@
           <input type="text" class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full" id="entry-area" list="entry-areas-list">
           <datalist id="entry-areas-list"></datalist>
         </div>
-        <!-- Country combobox (#153) -- a real combobox (ARIA
-             Authoring Practices "Combobox with List Autocomplete"
-             pattern), not a text field with suggestions like Place/Area
-             above: closed, it shows only the selected flag (or a
-             placeholder globe if none); opened (click or type), it
-             becomes a real text input filtering a flag+name listbox of
-             all 247 bundled countries. Unlike Place/Area, a value that
-             doesn't match a real country reverts on close rather than
-             being accepted as free text -- countries are a fixed, known
-             set, not open-ended user text. -->
-        <div class="flex-1 min-w-0">
+        <!-- Country picker (#153) -- same trigger-button + popover
+             pattern already used for the discipline picker, filter
+             panel, and header menu elsewhere in this file, just with a
+             search box added inside the popover (247 countries is too
+             many to browse unfiltered). The button itself stays a
+             fixed-size icon (flag, or a placeholder globe when unset) --
+             clicking it never changes the button, only opens the
+             popover, unlike a combobox where the trigger and the input
+             are the same element. Sized to content (not flex-1 like
+             Location/Area) so it's only as wide as the flag needs. -->
+        <div class="shrink-0">
           <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Country</div>
           <div class="relative" id="country-wrap">
-            <button type="button" class="inline-flex items-center justify-center h-[2.7rem] w-full bg-surface border border-border rounded-app text-foreground text-[1.15rem] cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="country-chip-btn" aria-haspopup="listbox" aria-label="Country: none selected">
-              <span id="country-chip-flag" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20Z"></path></svg></span>
+            <button type="button" class="inline-flex items-center justify-center px-[.7rem] py-[.65rem] bg-surface border border-border rounded-app text-foreground text-[1.15rem] cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="country-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Country: none selected">
+              <span id="country-btn-flag" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20Z"></path></svg></span>
             </button>
-            <input type="text" class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full" id="entry-country" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="entry-country-listbox" aria-label="Country" placeholder="Search countries…" autocomplete="off" hidden>
-            <ul class="absolute top-[calc(100%+.4rem)] left-0 z-20 bg-background border border-border rounded-app p-[.35rem] max-h-[13rem] overflow-y-auto w-full m-0 list-none shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="entry-country-listbox" role="listbox" aria-label="Country" hidden></ul>
+            <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 bg-background border border-border rounded-app p-[.5rem] w-[15rem] max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="country-popover" hidden>
+              <input type="text" class="bg-surface border border-border rounded-app px-[.7rem] py-[.5rem] text-foreground text-[.9rem] outline-none focus:border-accent w-full" id="country-search" placeholder="Search countries…" autocomplete="off" aria-label="Search countries" aria-controls="country-listbox">
+              <ul class="max-h-[13rem] overflow-y-auto m-0 mt-[.4rem] p-0 list-none" id="country-listbox" role="listbox" aria-label="Country"></ul>
+            </div>
           </div>
         </div>
       </div>
@@ -1582,10 +1584,11 @@
   const nameInput  = document.getElementById("entry-name");
   const placeInput = document.getElementById("entry-place");
   const areaInput  = document.getElementById("entry-area");
-  const countryChipBtn = document.getElementById("country-chip-btn");
-  const countryChipFlag = document.getElementById("country-chip-flag");
-  const countryInput = document.getElementById("entry-country");
-  const countryListbox = document.getElementById("entry-country-listbox");
+  const countryBtn = document.getElementById("country-btn");
+  const countryBtnFlag = document.getElementById("country-btn-flag");
+  const countryPopover = document.getElementById("country-popover");
+  const countrySearch = document.getElementById("country-search");
+  const countryListbox = document.getElementById("country-listbox");
   const notesInput = document.getElementById("entry-notes");
   const videoInput = document.getElementById("entry-video");
   const gradeSelect = document.getElementById("grade-select");
@@ -1774,28 +1777,28 @@
   }
 
   // ── Entry form: country combobox (#153) ──────────────────────────
-  // A real combobox (ARIA Authoring Practices "Combobox with List
-  // Autocomplete"), unlike the Place/Area datalists above -- closed, it
-  // shows only the selected flag (or a placeholder globe); opened, it's a
-  // text input filtering a listbox built from the full bundled COUNTRIES
-  // list (every country is pickable, not just ones already logged, same
-  // as the datalists it replaced). Unlike Place/Area, typed text that
-  // doesn't match a real country reverts on close rather than being kept
-  // as free text -- countries are a fixed, known set.
+  // Trigger-button + popover (#153), the same interaction pattern as
+  // discipline-btn/discipline-popover and filter-btn/filter-panel --
+  // not an ARIA combobox. The button itself never changes into an input;
+  // it's a fixed-size flag (or placeholder globe when unset) that only
+  // opens the popover. The popover holds a search box (247 countries is
+  // too many to browse unfiltered) above a scrollable listbox, styled
+  // like discipline-option (checkmark on the selected row).
   const COUNTRY_PLACEHOLDER_ICON = `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20Z"></path></svg>`;
-  // The *committed* value (what's actually selected/submitted) -- kept
-  // separate from countryInput.value, which while the combobox is open is
-  // just an in-progress search string, not necessarily a valid selection
-  // yet.
   let countryCommittedValue = "";
   let countryFilteredList = COUNTRIES;
   let countryActiveIndex = -1;
 
   function countryOptionId(i) { return `country-option-${i}`; }
 
+  // Keyboard-navigation highlight, tracked separately from aria-selected
+  // (which marks the *committed* value's checkmark) -- toggled directly
+  // via classList rather than a data-* attribute variant, since that's a
+  // plain, already-proven mechanism elsewhere in this file.
   function updateCountryActiveDescendant() {
-    countryInput.setAttribute("aria-activedescendant", countryActiveIndex >= 0 ? countryOptionId(countryActiveIndex) : "");
-    countryListbox.querySelectorAll("[role=option]").forEach((el, i) => el.setAttribute("aria-selected", String(i === countryActiveIndex)));
+    countrySearch.setAttribute("aria-activedescendant", countryActiveIndex >= 0 ? countryOptionId(countryActiveIndex) : "");
+    countryListbox.querySelectorAll("[role=option]").forEach((el, i) =>
+      el.classList.toggle("bg-[color-mix(in_srgb,var(--color-accent)_16%,transparent)]", i === countryActiveIndex));
     countryListbox.querySelector(`#${countryOptionId(countryActiveIndex)}`)?.scrollIntoView({ block: "nearest" });
   }
 
@@ -1805,66 +1808,42 @@
     countryActiveIndex = countryFilteredList.length ? 0 : -1;
     countryListbox.innerHTML = countryFilteredList.length
       ? countryFilteredList.map((c, i) => `
-          <li id="${countryOptionId(i)}" role="option" data-name="${escapeHtml(c.name)}" class="flex items-center gap-[.5rem] px-[.6rem] py-[.5rem] rounded-[calc(var(--radius-app)-2px)] cursor-pointer text-[.9rem] text-foreground aria-selected:bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)]">
-            <span aria-hidden="true">${escapeHtml(c.flag)}</span>${escapeHtml(c.name)}
+          <li id="${countryOptionId(i)}" role="option" data-name="${escapeHtml(c.name)}" aria-selected="${c.name === countryCommittedValue}" class="flex items-center justify-between gap-[.5rem] px-[.6rem] py-[.5rem] rounded-[calc(var(--radius-app)-2px)] cursor-pointer text-[.9rem] text-foreground hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible">
+            <span class="flex items-center gap-[.5rem] min-w-0"><span aria-hidden="true">${escapeHtml(c.flag)}</span><span class="truncate">${escapeHtml(c.name)}</span></span>
+            <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
           </li>`).join("")
       : `<li class="px-[.6rem] py-[.5rem] text-[.85rem] text-muted">No matches</li>`;
     updateCountryActiveDescendant();
   }
 
-  // Reflects the committed value into the compact closed-state chip.
-  function setCountryChip(name) {
-    const c = COUNTRY_BY_NAME[name];
-    countryChipBtn.setAttribute("aria-label", c ? `Country: ${c.name}` : "Country: none selected");
-    countryChipFlag.innerHTML = c ? escapeHtml(c.flag) : COUNTRY_PLACEHOLDER_ICON;
-  }
-
+  // Reflects the committed value into the trigger button.
   function setCountry(name) {
     countryCommittedValue = COUNTRY_BY_NAME[name] ? name : "";
-    countryInput.value = countryCommittedValue;
-    setCountryChip(countryCommittedValue);
+    const c = COUNTRY_BY_NAME[countryCommittedValue];
+    countryBtn.setAttribute("aria-label", c ? `Country: ${c.name}` : "Country: none selected");
+    countryBtnFlag.innerHTML = c ? escapeHtml(c.flag) : COUNTRY_PLACEHOLDER_ICON;
   }
 
-  function openCountryCombobox() {
-    // The native `hidden` attribute, not a "hidden" utility class --
-    // Tailwind's .hidden{display:none} and .inline-flex{display:
-    // inline-flex} are both plain utility-layer rules with no
-    // specificity edge over each other, so which one wins depends on
-    // generation order, not which was added to classList last (that bit
-    // Country's own chip button here: it stayed visibly inline-flex
-    // despite "hidden" being in its classList). Every other popover in
-    // this file already uses .hidden for exactly this reason.
-    countryChipBtn.hidden = true;
-    countryInput.hidden = false;
-    countryListbox.hidden = false;
-    countryInput.value = countryCommittedValue;
-    renderCountryOptions(countryInput.value);
-    countryInput.setAttribute("aria-expanded", "true");
-    countryInput.focus();
-    countryInput.select();
+  function openCountryPopover() {
+    countryPopover.hidden = false;
+    countryBtn.setAttribute("aria-expanded", "true");
+    // Always starts from a fresh, unfiltered search, not whatever was
+    // last typed -- matches every other search-to-filter control in this
+    // app, none of which remember a stale query across opens.
+    countrySearch.value = "";
+    renderCountryOptions("");
+    countrySearch.focus();
+  }
+  function closeCountryPopover() {
+    countryPopover.hidden = true;
+    countryBtn.setAttribute("aria-expanded", "false");
   }
 
-  // commit=false (Escape, an explicit selection already applied) just
-  // reverts the input's *display* back to the committed value without
-  // re-deriving it; commit=true (blur -- clicking/tabbing away) tries to
-  // match whatever's currently typed against a real country first.
-  function closeCountryCombobox(commit) {
-    if (commit) {
-      const typed = countryInput.value.trim();
-      const match = COUNTRIES.find(c => c.name.toLowerCase() === typed.toLowerCase());
-      setCountry(match ? match.name : countryCommittedValue);
-    } else {
-      countryInput.value = countryCommittedValue;
-    }
-    countryInput.hidden = true;
-    countryListbox.hidden = true;
-    countryInput.setAttribute("aria-expanded", "false");
-    countryChipBtn.hidden = false;
-  }
-
-  countryChipBtn.addEventListener("click", openCountryCombobox);
-  countryInput.addEventListener("input", () => renderCountryOptions(countryInput.value));
-  countryInput.addEventListener("keydown", e => {
+  countryBtn.addEventListener("click", () => {
+    if (countryPopover.hidden) openCountryPopover(); else closeCountryPopover();
+  });
+  countrySearch.addEventListener("input", () => renderCountryOptions(countrySearch.value));
+  countrySearch.addEventListener("keydown", e => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
       if (countryFilteredList.length) { countryActiveIndex = (countryActiveIndex + 1) % countryFilteredList.length; updateCountryActiveDescendant(); }
@@ -1873,31 +1852,31 @@
       if (countryFilteredList.length) { countryActiveIndex = (countryActiveIndex - 1 + countryFilteredList.length) % countryFilteredList.length; updateCountryActiveDescendant(); }
     } else if (e.key === "Enter") {
       e.preventDefault();
-      e.stopPropagation();
-      if (countryActiveIndex >= 0) { setCountry(countryFilteredList[countryActiveIndex].name); closeCountryCombobox(false); countryChipBtn.focus(); }
+      if (countryActiveIndex >= 0) { setCountry(countryFilteredList[countryActiveIndex].name); closeCountryPopover(); countryBtn.focus(); }
     } else if (e.key === "Escape") {
       e.preventDefault();
-      // Otherwise bubbles to the document-level Escape handler that
-      // closes the whole entry modal (any open overlay) -- Escape here
-      // should only close the combobox itself, not the modal it's in.
+      // Element-level, not a document-level listener like
+      // discipline-popover's below -- country-popover lives inside the
+      // entry modal, and stopPropagation() here keeps this Escape from
+      // ever reaching the modal's own document-level Escape handler
+      // (which would otherwise close the whole modal instead of just
+      // this popover; multiple document keydown listeners all fire
+      // independently of each other regardless of stopPropagation).
       e.stopPropagation();
-      closeCountryCombobox(false);
-      countryChipBtn.focus();
+      closeCountryPopover();
+      countryBtn.focus();
     }
   });
-  // mousedown (not click) so this runs -- and preventDefault stops the
-  // input from blurring at all -- before closeCountryCombobox(true) would
-  // otherwise fire from the blur a mouse click causes, which'd revert to
-  // the old value out from under this selection since blur fires first.
-  countryListbox.addEventListener("mousedown", e => {
+  countryListbox.addEventListener("click", e => {
     const opt = e.target.closest("[role=option][data-name]");
     if (!opt) return;
-    e.preventDefault();
     setCountry(opt.dataset.name);
-    closeCountryCombobox(false);
-    countryChipBtn.focus();
+    closeCountryPopover();
+    countryBtn.focus();
   });
-  countryInput.addEventListener("blur", () => closeCountryCombobox(true));
+  document.addEventListener("click", e => {
+    if (!countryPopover.hidden && !e.target.closest("#country-wrap")) closeCountryPopover();
+  });
 
   placeInput.addEventListener("input", () => {
     populateAreas(placeInput.value.trim());
@@ -2064,9 +2043,9 @@
     nameInput.value  = entry?.name  ?? "";
     placeInput.value = entry?.place ?? "";
     areaInput.value  = entry?.area  ?? "";
-    // Combobox always reopens closed (chip showing), regardless of
-    // whatever open/closed state a previous modal session left it in.
-    closeCountryCombobox(false);
+    // Popover always reopens closed, regardless of whatever open/closed
+    // state a previous modal session left it in.
+    closeCountryPopover();
     setCountry(entry?.country ?? "");
     notesInput.value = entry?.notes ?? "";
     videoInput.value = entry?.video ?? "";
@@ -2231,8 +2210,8 @@
       id:     editingId ?? crypto.randomUUID(),
       place,
       area:   areaInput.value.trim(),
-      // The committed value, not countryInput.value directly -- in the
-      // unlikely case the combobox is still open (mid-search) at submit
+      // The committed value, not countrySearch.value directly -- in the
+      // unlikely case the popover is still open (mid-search) at submit
       // time, its value there is a work-in-progress search string, not
       // necessarily a valid selection.
       country: countryCommittedValue,
