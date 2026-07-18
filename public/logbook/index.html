@@ -366,8 +366,19 @@
              popover, unlike a combobox where the trigger and the input
              are the same element. Sized to content (not flex-1 like
              Location/Area) so it's only as wide as the flag needs. -->
-        <div class="shrink-0">
-          <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Country</div>
+        <!-- The label is deliberately NOT a normal-flow sibling above the
+             button like Location/Area's -- "Country" is wider than the
+             flag button itself, and this column is shrink-0 (sized to its
+             widest child), so an in-flow label would widen the whole
+             column and steal space Location/Area are supposed to grow
+             into. The invisible nbsp spacer reserves the exact same
+             line-height + margin the other labels get (from the browser's
+             own layout, not a guessed magic number), while the real label
+             is absolutely positioned over it, right-aligned so it
+             overflows left instead of widening the column. -->
+        <div class="shrink-0 relative">
+          <div class="mb-2 text-[.72rem] font-semibold uppercase tracking-[.07em] invisible" aria-hidden="true">&nbsp;</div>
+          <div class="absolute top-0 right-0 text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted whitespace-nowrap">Country</div>
           <div class="relative" id="country-wrap">
             <button type="button" class="inline-flex items-center justify-center px-[.7rem] py-[.65rem] bg-surface border border-border rounded-app text-foreground text-[1.15rem] cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="country-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Country: none selected">
               <span id="country-btn-flag" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20Z"></path></svg></span>
