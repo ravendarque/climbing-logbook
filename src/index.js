@@ -1,4 +1,6 @@
 import { handleGet, handlePost, handlePut, handleDelete } from "./api/logbook.js";
+import { handleGet as handleGetPlaces, handlePost as handlePostPlaces } from "./api/places.js";
+import { handleGet as handleGetLocations, handlePost as handlePostLocations } from "./api/locations.js";
 import { handleGetSettings, handlePutSettings } from "./api/settings.js";
 import { handleAdminSession } from "./api/admin-session.js";
 import { handleAdminLogin } from "./api/admin-login.js";
@@ -24,6 +26,22 @@ export default {
       if (method === "POST")   return handlePost(request, env);
       if (method === "PUT")    return handlePut(request, env);
       if (method === "DELETE") return handleDelete(request, env);
+    }
+
+    if (pathname === "/logbook/api/places" && method === "GET") {
+      return handleGetPlaces(request, env);
+    }
+
+    if (pathname === "/logbook/api/admin/places" && method === "POST") {
+      return handlePostPlaces(request, env);
+    }
+
+    if (pathname === "/logbook/api/locations" && method === "GET") {
+      return handleGetLocations(request, env);
+    }
+
+    if (pathname === "/logbook/api/admin/locations" && method === "POST") {
+      return handlePostLocations(request, env);
     }
 
     if (pathname === "/logbook/api/settings" && method === "GET") {

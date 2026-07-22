@@ -37,6 +37,10 @@ src/
 ├── index.js           Router — matches pathname+method, dispatches
 ├── api/
 │   ├── logbook.js      GET (public) / POST,PUT,DELETE (admin) — CRUD on entries
+│   ├── places.js        GET (public) / POST (admin) — create/read on places
+│   ├── locations.js     GET (public) / POST (admin) — create/read on locations;
+│   │                       edit/delete deliberately not yet implemented for
+│   │                       either (#159, #160)
 │   ├── settings.js      GET (public) / PUT (admin) — Athlete Mode setting
 │   ├── admin-session.js  GET — "am I authenticated" check for the frontend
 │   └── admin-login.js    GET — redirect target that kicks off Access's login flow
@@ -66,6 +70,10 @@ sees requests that *don't* match a static file — in practice, exactly the
 |---|---|---|---|
 | `/logbook/api/logbook` | GET | public | `handleGet` |
 | `/logbook/api/admin/logbook` | POST/PUT/DELETE | Access-gated | `handlePost`/`handlePut`/`handleDelete` |
+| `/logbook/api/places` | GET | public | `handleGet` (places.js) |
+| `/logbook/api/admin/places` | POST | Access-gated | `handlePost` (places.js) |
+| `/logbook/api/locations` | GET | public | `handleGet` (locations.js) |
+| `/logbook/api/admin/locations` | POST | Access-gated | `handlePost` (locations.js) |
 | `/logbook/api/settings` | GET | public | `handleGetSettings` |
 | `/logbook/api/admin/settings` | PUT | Access-gated | `handlePutSettings` |
 | `/logbook/api/admin/session` | GET | Access-gated | `handleAdminSession` |
@@ -77,21 +85,40 @@ method. See `docs/infra-architecture.md` for the Access configuration.
 
 ## Data model
 
-One KV key (`logbook:entries`) holds the entire dataset as a single JSON
-blob: `{ entries: Entry[] }`. Each entry:
+Three KV keys hold three collections, each a single JSON blob (plus a
+fourth, `logbook:settings`, documented below):
+
+- `logbook:entries` — `{ entries: Entry[] }`
+- `logbook:places` — `{ places: Place[] }`
+- `logbook:locations` — `{ locations: Location[] }`
 
 ```
-{
-  id: string,       // client-generated crypto.randomUUID()
-  name, grade, place: string,
-  area: string,     // "" if unset, never null
-  country: string,  // "" if unset, never null -- free text like area (no
-                     // server-side allowlist), but expected to be a plain
-                     // country name matching COUNTRIES[i].name in
-                     // index.html (a key for the COUNTRY_BY_NAME lookup,
-                     // never a pre-formatted "flag + name" display
-                     // string) since it's populated from that bundled
-                     // datalist in practice; see #153
+Location {
+  id: string,        // client-generated crypto.randomUUID()
+  name: string,       // one row per real-world crag/venue
+  country: string,    // "" if unset, never null -- free text (no
+                       // server-side allowlist), but expected to be a
+                       // plain country name matching COUNTRIES[i].name in
+                       // index.html (a key for the COUNTRY_BY_NAME
+                       // lookup, never a pre-formatted "flag + name"
+                       // display string) since it's populated from that
+                       // bundled dataset in practice; see #153
+}
+
+Place {
+  id: string,         // client-generated crypto.randomUUID()
+  locationId: string, // references Location.id
+  area: string,       // "" if unset, never null -- one row per area/
+                       // sector within a location
+}
+
+Entry {
+  id: string,        // client-generated crypto.randomUUID()
+  placeId: string,   // references Place.id -- no server-side referential
+                      // check that the place actually exists (#158; see
+                      // that issue for why location/area/country moved
+                      // from per-entry fields to real shared entities)
+  name, grade: string,
   type: "boulder" | "lead",
   status: "send" | "project" | "abandoned" | "wishlist",
   firstAttempt: boolean,   // only meaningful when status === "send" -- discipline-neutral name for flash/onsight
@@ -101,16 +128,44 @@ blob: `{ entries: Entry[] }`. Each entry:
 }
 ```
 
-`buildEntry()` in `src/api/logbook.js` reconstructs this fixed shape from
-the incoming payload on every write rather than spreading the raw request
-body into storage — a deliberate allowlist that keeps arbitrary extra
-fields (or prototype-pollution-style keys) from ever reaching KV.
+`buildEntry()`/`buildPlace()`/`buildLocation()` (`src/api/logbook.js`,
+`src/api/places.js`, `src/api/locations.js`) reconstruct these fixed
+shapes from the incoming payload on every write rather than spreading the
+raw request body into storage — a deliberate allowlist that keeps
+arbitrary extra fields (or prototype-pollution-style keys) from ever
+reaching KV.
 
-**Why one blob, not per-entry keys:** simplicity at current scale — a single
-climber's logbook is nowhere near KV's per-value size limit, and a single
-`get`/`put` avoids pagination or multi-key consistency concerns entirely.
-Revisit if this ever needs to support many concurrent writers or a much
-larger dataset — not preemptively.
+**Why a place is its own entity, not fields duplicated onto every entry
+at that place:** the earlier per-entry `place`/`area`/`country` strings
+were matched across entries by string equality, with nothing enforcing
+that two entries at "the same place" actually agreed on its country —
+they silently could, and did, diverge. See #157/#158.
+
+**Why Location is split out from Place, rather than one flat
+`{ location, area, country }` triple:** `location -> country` is a real
+functional dependency (a given named crag is always in one country,
+regardless of which area within it), so storing `country` directly on
+every `Place` row makes it transitively dependent on `location` rather
+than on that row's own key — not actually 3NF, and duplicated across
+every area at the same location with nothing preventing them from
+independently drifting (a narrower version of the same bug this whole
+normalization exists to fix). With `country` living on `Location`
+instead, correcting it is a single-row edit that propagates to every
+`Place` under it, and adding a new area at an already-known location
+never has to ask for country again.
+
+**Why place/location editing/deleting isn't in the API yet:** both are
+separate, deliberately deferred sub-issues of #157 (#159, #160) —
+deletion in particular has an unresolved question (what happens to
+entries/places still referencing a deleted record) that hasn't been
+scoped.
+
+**Why one blob per collection, not per-record keys:** simplicity at
+current scale — a single climber's logbook (and its far-smaller places
+and locations collections) is nowhere near KV's per-value size limit, and
+a single `get`/`put` avoids pagination or multi-key consistency concerns
+entirely. Revisit if this ever needs to support many concurrent writers
+or a much larger dataset — not preemptively.
 
 A second KV key, `logbook:settings`, holds a small settings blob separate
 from the entries data: `{ athleteMode: boolean }`, defaulting to `{
@@ -168,14 +223,22 @@ error response would mean that error gets served back on the next
 genuinely-offline visit.
 
 Writes made while offline (or when a request throws) are queued in
-`localStorage` (`logbook_pending_queue`) as `{ op, entry }` records and
-applied optimistically to the in-memory entry list (marked `_pending`) so
-the UI reflects the change immediately. `syncPending()` replays the queue
-against `/logbook/api/admin/logbook` in order once back online — triggered
-by a manual "Sync" button, automatically after a successful login, and on
-the browser's `online` event. A `401`/redirect-to-login response during
-sync stops the replay and flips the UI back to logged-out state, rather
-than silently dropping the remaining queue.
+`localStorage` (`logbook_pending_queue`) as `{ kind, op, record }` records
+-- `kind` is `"entry"`, `"place"`, or `"location"` (#158; adding a new
+place while offline can be a dependent chain of up to three queued writes:
+create the location if it's new, create the place referencing it, create/
+edit the entry referencing that place -- all client-minted IDs, so
+queuing them in that order and replaying in order is safe). `entry` items
+get applied optimistically to the in-memory entry list (marked
+`_pending`) so the UI reflects the change immediately; `place`/`location`
+items are just pushed into their in-memory arrays, since neither is
+rendered as its own list row anywhere, only joined into entry display.
+`syncPending()` replays the queue in order once back online -- against
+whichever endpoint each item's `kind` maps to -- triggered by a manual
+"Sync" button, automatically after a successful login, and on the
+browser's `online` event. A `401`/redirect-to-login response during sync
+stops the replay and flips the UI back to logged-out state, rather than
+silently dropping the remaining queue.
 
 ## Frontend structure
 
