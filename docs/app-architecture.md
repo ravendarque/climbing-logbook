@@ -223,14 +223,22 @@ error response would mean that error gets served back on the next
 genuinely-offline visit.
 
 Writes made while offline (or when a request throws) are queued in
-`localStorage` (`logbook_pending_queue`) as `{ op, entry }` records and
-applied optimistically to the in-memory entry list (marked `_pending`) so
-the UI reflects the change immediately. `syncPending()` replays the queue
-against `/logbook/api/admin/logbook` in order once back online — triggered
-by a manual "Sync" button, automatically after a successful login, and on
-the browser's `online` event. A `401`/redirect-to-login response during
-sync stops the replay and flips the UI back to logged-out state, rather
-than silently dropping the remaining queue.
+`localStorage` (`logbook_pending_queue`) as `{ kind, op, record }` records
+-- `kind` is `"entry"`, `"place"`, or `"location"` (#158; adding a new
+place while offline can be a dependent chain of up to three queued writes:
+create the location if it's new, create the place referencing it, create/
+edit the entry referencing that place -- all client-minted IDs, so
+queuing them in that order and replaying in order is safe). `entry` items
+get applied optimistically to the in-memory entry list (marked
+`_pending`) so the UI reflects the change immediately; `place`/`location`
+items are just pushed into their in-memory arrays, since neither is
+rendered as its own list row anywhere, only joined into entry display.
+`syncPending()` replays the queue in order once back online -- against
+whichever endpoint each item's `kind` maps to -- triggered by a manual
+"Sync" button, automatically after a successful login, and on the
+browser's `online` event. A `401`/redirect-to-login response during sync
+stops the replay and flips the UI back to logged-out state, rather than
+silently dropping the remaining queue.
 
 ## Frontend structure
 

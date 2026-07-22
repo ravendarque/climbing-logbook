@@ -986,21 +986,32 @@
     localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
     updateSyncButton();
   }
-  function applyPendingToEntries() {
+  // Queue items are { kind: "location"|"place"|"entry", op, record }.
+  // location/place items are always op:"add" (#158's add-place modal is
+  // the only thing that queues them, and editing/deleting either isn't
+  // implemented yet -- #159/#160) -- applied by just pushing the record
+  // in optimistically, no _pending badge, since neither is rendered as
+  // its own list row anywhere; entries get the full add/edit/delete +
+  // _pending treatment this already had.
+  function applyPendingQueue() {
     for (const item of getQueue()) {
-      if (item.op === "add") {
-        if (!ALL_ENTRIES.some(e => e.id === item.entry.id)) {
-          ALL_ENTRIES.push({ ...item.entry, _pending: true });
+      if (item.kind === "location") {
+        if (!ALL_LOCATIONS.some(l => l.id === item.record.id)) ALL_LOCATIONS.push(item.record);
+      } else if (item.kind === "place") {
+        if (!ALL_PLACES.some(p => p.id === item.record.id)) ALL_PLACES.push(item.record);
+      } else if (item.op === "add") {
+        if (!ALL_ENTRIES.some(e => e.id === item.record.id)) {
+          ALL_ENTRIES.push({ ...item.record, _pending: true });
         }
       } else if (item.op === "delete") {
         // Stays visible (marked pending) until the delete actually syncs —
         // removing it here early is what made offline-queued deletes
         // vanish instead of showing as pending (see #61).
-        const idx = ALL_ENTRIES.findIndex(e => e.id === item.entry.id);
-        if (idx !== -1) ALL_ENTRIES[idx] = { ...item.entry, _pending: true, _pendingDelete: true };
+        const idx = ALL_ENTRIES.findIndex(e => e.id === item.record.id);
+        if (idx !== -1) ALL_ENTRIES[idx] = { ...item.record, _pending: true, _pendingDelete: true };
       } else {
-        const idx = ALL_ENTRIES.findIndex(e => e.id === item.entry.id);
-        if (idx !== -1) ALL_ENTRIES[idx] = { ...item.entry, _pending: true };
+        const idx = ALL_ENTRIES.findIndex(e => e.id === item.record.id);
+        if (idx !== -1) ALL_ENTRIES[idx] = { ...item.record, _pending: true };
       }
     }
   }
@@ -1015,6 +1026,34 @@
     syncBtnLabel.textContent = n ? `Sync (${n})` : "Sync";
   }
 
+  // One request for a single queue item, whichever kind it is -- kept
+  // separate from the replay loop below so that loop stays readable
+  // regardless of how many kinds of queueable write this app ends up
+  // with.
+  function syncOne(item) {
+    if (item.kind === "location") {
+      return adminFetch(ADMIN_LOCATIONS_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(item.record),
+      });
+    }
+    if (item.kind === "place") {
+      return adminFetch(ADMIN_PLACES_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(item.record),
+      });
+    }
+    return item.op === "delete"
+      ? adminFetch(`${ADMIN_DATA_URL}?id=${encodeURIComponent(item.record.id)}`, { method: "DELETE" })
+      : adminFetch(ADMIN_DATA_URL, {
+          method: item.op === "edit" ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(item.record),
+        });
+  }
+
   async function syncPending() {
     const queue = getQueue();
     if (!queue.length) return;
@@ -1023,21 +1062,19 @@
 
     try {
       const remaining = [];
-      let lastEntries = null;
+      let lastEntries = null, lastPlaces = null, lastLocations = null;
       for (let i = 0; i < queue.length; i++) {
         const item = queue[i];
         try {
-          const res = item.op === "delete"
-            ? await adminFetch(`${ADMIN_DATA_URL}?id=${encodeURIComponent(item.entry.id)}`, { method: "DELETE" })
-            : await adminFetch(ADMIN_DATA_URL, {
-                method: item.op === "edit" ? "PUT" : "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(item.entry),
-              });
+          const res = await syncOne(item);
           if (res.status === 401 || isAuthRedirect(res)) {
             // queue.slice(i), not [item] -- every item from here on was
             // never attempted and must be preserved too, or a mid-sync
             // 401/network failure silently drops the rest of the queue.
+            // This also naturally preserves a location/place/entry
+            // dependency chain's relative order in `remaining`, since
+            // they're always pushed onto the queue in that order to
+            // begin with (#158).
             remaining.push(...queue.slice(i));
             isLoggedIn = false;
             updateAdminBar();
@@ -1045,7 +1082,9 @@
           }
           if (!res.ok) { remaining.push(item); continue; }
           const data = await res.json();
-          lastEntries = data.entries;
+          if (item.kind === "location") lastLocations = data.locations;
+          else if (item.kind === "place") lastPlaces = data.places;
+          else lastEntries = data.entries;
         } catch {
           remaining.push(...queue.slice(i));
           break; // still offline — stop, preserve order for next attempt
@@ -1053,11 +1092,21 @@
       }
 
       setQueue(remaining);
+      if (lastLocations) {
+        ALL_LOCATIONS = lastLocations;
+        localStorage.setItem(LOCATIONS_CACHE_KEY, JSON.stringify(ALL_LOCATIONS));
+      }
+      if (lastPlaces) {
+        ALL_PLACES = lastPlaces;
+        localStorage.setItem(PLACES_CACHE_KEY, JSON.stringify(ALL_PLACES));
+      }
       if (lastEntries) {
         ALL_ENTRIES = lastEntries;
         localStorage.setItem(ENTRIES_CACHE_KEY, JSON.stringify(ALL_ENTRIES));
-        applyPendingToEntries();
       }
+      // Re-apply whatever's still queued on top of the just-confirmed
+      // server state, for any of the three arrays that changed.
+      if (lastLocations || lastPlaces || lastEntries) applyPendingQueue();
     } finally {
       syncBtn.disabled = false;
       syncBtnIcon.classList.remove("animate-spin");
@@ -2109,6 +2158,11 @@
   document.getElementById("add-place-close").addEventListener("click", () => closeModal(addPlaceOverlay));
   addPlaceOverlay.addEventListener("click", e => { if (e.target === addPlaceOverlay) closeModal(addPlaceOverlay); });
 
+  function showAddPlaceError(text) {
+    addPlaceMsg.textContent = text;
+    addPlaceMsg.className = "mt-[.85rem] px-4 py-3 rounded-app text-[.9rem] bg-[color-mix(in_srgb,#f87171_12%,var(--color-surface))] border border-[color-mix(in_srgb,#f87171_40%,transparent)] text-red-400";
+  }
+
   addPlaceForm.addEventListener("submit", async e => {
     e.preventDefault();
     addPlaceSubmitBtn.disabled = true;
@@ -2118,12 +2172,17 @@
     const area = addPlaceAreaInput.value.trim();
     const matched = findMatchingLocation(locationName);
 
-    try {
-      let locationId;
-      if (matched) {
-        locationId = matched.id;
-      } else {
-        const location = { id: crypto.randomUUID(), name: locationName, country: addPlaceCountryCommitted };
+    // Minted up front regardless of online/offline outcome -- same
+    // rationale as entry IDs: an offline-queued write needs a stable
+    // identity from the moment it's created, not just once it syncs.
+    const location = matched ?? { id: crypto.randomUUID(), name: locationName, country: addPlaceCountryCommitted };
+    const place = { id: crypto.randomUUID(), locationId: location.id, area };
+
+    let authLapsed = false;
+    const queue = getQueue();
+
+    if (!matched) {
+      try {
         const res = await adminFetch(ADMIN_LOCATIONS_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -2131,42 +2190,60 @@
         });
         if (isAuthRedirect(res)) throw new Error("not-authenticated");
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? `Error ${res.status}`);
+        if (!res.ok) {
+          // The server is reachable and rejected this -- a real
+          // validation problem, not connectivity, so don't queue
+          // something that would just fail again identically on retry.
+          showAddPlaceError(data.error ?? `Error ${res.status}`);
+          addPlaceSubmitBtn.disabled = false;
+          return;
+        }
         ALL_LOCATIONS = data.locations;
         localStorage.setItem(LOCATIONS_CACHE_KEY, JSON.stringify(ALL_LOCATIONS));
-        locationId = location.id;
+      } catch (err) {
+        if (err.message === "not-authenticated") authLapsed = true;
+        // Offline, server unreachable, or the Access session lapsed --
+        // queue the location, and the place right behind it below, same
+        // dependency order the online path itself writes in.
+        queue.push({ kind: "location", op: "add", record: location });
       }
-
-      const place = { id: crypto.randomUUID(), locationId, area };
-      const res = await adminFetch(ADMIN_PLACES_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(place),
-      });
-      if (isAuthRedirect(res)) throw new Error("not-authenticated");
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? `Error ${res.status}`);
-      ALL_PLACES = data.places;
-      localStorage.setItem(PLACES_CACHE_KEY, JSON.stringify(ALL_PLACES));
-
-      setPlace(place.id);
-      closeModal(addPlaceOverlay);
-    } catch (err) {
-      if (err.message === "not-authenticated") {
-        isLoggedIn = false;
-        updateAdminBar();
-        addPlaceMsg.textContent = "You've been logged out — log back in and try again.";
-      } else {
-        // Offline/network-failure queueing for a new place is a follow-up
-        // to #158 (extending syncPending() for dependent multi-op
-        // writes), not yet implemented -- this surfaces as an error
-        // rather than silently losing the place or queueing something
-        // syncPending() doesn't know how to replay yet.
-        addPlaceMsg.textContent = err.message || "Couldn't save — check your connection and try again.";
-      }
-      addPlaceMsg.className = "mt-[.85rem] px-4 py-3 rounded-app text-[.9rem] bg-[color-mix(in_srgb,#f87171_12%,var(--color-surface))] border border-[color-mix(in_srgb,#f87171_40%,transparent)] text-red-400";
     }
 
+    const locationQueued = queue.some(item => item.kind === "location" && item.record.id === location.id);
+    if (locationQueued) {
+      // Already know this session is offline -- don't bother attempting
+      // the place online too, just queue it right behind the location.
+      queue.push({ kind: "place", op: "add", record: place });
+    } else {
+      try {
+        const res = await adminFetch(ADMIN_PLACES_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(place),
+        });
+        if (isAuthRedirect(res)) throw new Error("not-authenticated");
+        const data = await res.json();
+        if (!res.ok) {
+          showAddPlaceError(data.error ?? `Error ${res.status}`);
+          addPlaceSubmitBtn.disabled = false;
+          return;
+        }
+        ALL_PLACES = data.places;
+        localStorage.setItem(PLACES_CACHE_KEY, JSON.stringify(ALL_PLACES));
+      } catch (err) {
+        if (err.message === "not-authenticated") authLapsed = true;
+        queue.push({ kind: "place", op: "add", record: place });
+      }
+    }
+
+    if (authLapsed) {
+      isLoggedIn = false;
+      updateAdminBar();
+    }
+    setQueue(queue);
+    applyPendingQueue();
+    setPlace(place.id);
+    closeModal(addPlaceOverlay);
     addPlaceSubmitBtn.disabled = false;
   });
 
@@ -2512,7 +2589,7 @@
       }
       ALL_ENTRIES = data.entries;
       localStorage.setItem(ENTRIES_CACHE_KEY, JSON.stringify(ALL_ENTRIES));
-      applyPendingToEntries();
+      applyPendingQueue();
       closeModal(entryOverlay);
       render();
     } catch (err) {
@@ -2524,11 +2601,11 @@
         updateAdminBar();
       }
       const queue = getQueue();
-      const existingIdx = queue.findIndex(item => item.entry.id === entry.id);
-      if (existingIdx !== -1) queue[existingIdx] = { op: queue[existingIdx].op, entry };
-      else queue.push({ op, entry });
+      const existingIdx = queue.findIndex(item => item.kind === "entry" && item.record.id === entry.id);
+      if (existingIdx !== -1) queue[existingIdx] = { kind: "entry", op: queue[existingIdx].op, record: entry };
+      else queue.push({ kind: "entry", op, record: entry });
       setQueue(queue);
-      applyPendingToEntries();
+      applyPendingQueue();
       closeModal(entryOverlay);
       render();
     }
@@ -2548,9 +2625,9 @@
 
     // If this entry only ever existed as a queued, unsynced "add", there's
     // nothing on the server to delete — just drop it from the queue.
-    const queuedAdd = getQueue().find(item => item.entry.id === id && item.op === "add");
+    const queuedAdd = getQueue().find(item => item.kind === "entry" && item.record.id === id && item.op === "add");
     if (queuedAdd) {
-      setQueue(getQueue().filter(item => item.entry.id !== id));
+      setQueue(getQueue().filter(item => !(item.kind === "entry" && item.record.id === id)));
       ALL_ENTRIES = ALL_ENTRIES.filter(e => e.id !== id);
       closeModal(entryOverlay);
       entryDeleteBtn.disabled = false;
@@ -2570,23 +2647,23 @@
       }
       ALL_ENTRIES = data.entries;
       localStorage.setItem(ENTRIES_CACHE_KEY, JSON.stringify(ALL_ENTRIES));
-      applyPendingToEntries();
+      applyPendingQueue();
       closeModal(entryOverlay);
       render();
     } catch (err) {
       // Offline, server unreachable, or the Access session lapsed (see
       // adminFetch above) — queue for later sync either way. Keep the
-      // entry visible (marked pending-delete via applyPendingToEntries)
+      // entry visible (marked pending-delete via applyPendingQueue)
       // rather than removing it locally; it only disappears once the
       // delete actually syncs.
       if (err.message === "not-authenticated") {
         isLoggedIn = false;
         updateAdminBar();
       }
-      const queue = getQueue().filter(item => item.entry.id !== id);
-      queue.push({ op: "delete", entry: entrySnapshot ?? { id } });
+      const queue = getQueue().filter(item => !(item.kind === "entry" && item.record.id === id));
+      queue.push({ kind: "entry", op: "delete", record: entrySnapshot ?? { id } });
       setQueue(queue);
-      applyPendingToEntries();
+      applyPendingQueue();
       closeModal(entryOverlay);
       render();
     }
@@ -2724,7 +2801,6 @@
         return;
       }
     }
-    applyPendingToEntries();
 
     // Load places + locations (small collections; unlike entries, a
     // failure here shouldn't block the whole app -- placeOf()/
@@ -2751,6 +2827,12 @@
       const cached = localStorage.getItem(LOCATIONS_CACHE_KEY);
       if (cached) { try { ALL_LOCATIONS = JSON.parse(cached); } catch { ALL_LOCATIONS = []; } }
     }
+
+    // Applied once, after all three arrays are loaded -- applyPendingQueue()
+    // touches ALL_ENTRIES/ALL_PLACES/ALL_LOCATIONS together, and calling it
+    // before places/locations were fetched would just have its optimistic
+    // pushes overwritten by the fetch assignments above.
+    applyPendingQueue();
 
     // Default to whichever type actually has entries -- boulder wins if
     // both/neither do, matching the entry form's own default type.
