@@ -19,7 +19,7 @@ const VALID_GRADES = {
 const DATE_SHAPE = /^\d{4}(-\d{2}(-\d{2})?)?$/;
 
 function validateFields(entry) {
-  for (const field of ["place", "name", "grade", "type", "status"]) {
+  for (const field of ["placeId", "name", "grade", "type", "status"]) {
     if (!entry[field]) return `Missing required field: ${field}`;
   }
   if (!VALID_TYPES.includes(entry.type)) {
@@ -49,17 +49,15 @@ function validateFields(entry) {
 function buildEntry(entry, id) {
   return {
     id,
-    name:   entry.name,
-    grade:  entry.grade,
-    place:  entry.place,
-    area:   entry.area   ?? "",
-    country: entry.country ?? "",
-    type:   entry.type,
-    status: entry.status,
+    name:    entry.name,
+    grade:   entry.grade,
+    placeId: entry.placeId,
+    type:    entry.type,
+    status:  entry.status,
     firstAttempt: entry.status === "send" ? Boolean(entry.firstAttempt) : false,
-    date:   entry.date   || null,
-    video:  entry.video  || null,
-    notes:  entry.notes  || null,
+    date:    entry.date   || null,
+    video:   entry.video  || null,
+    notes:   entry.notes  || null,
   };
 }
 

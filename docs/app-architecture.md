@@ -37,6 +37,8 @@ src/
 ├── index.js           Router — matches pathname+method, dispatches
 ├── api/
 │   ├── logbook.js      GET (public) / POST,PUT,DELETE (admin) — CRUD on entries
+│   ├── places.js        GET (public) / POST (admin) — create/read on places;
+│   │                       edit/delete deliberately not yet implemented (#159, #160)
 │   ├── settings.js      GET (public) / PUT (admin) — Athlete Mode setting
 │   ├── admin-session.js  GET — "am I authenticated" check for the frontend
 │   └── admin-login.js    GET — redirect target that kicks off Access's login flow
@@ -66,6 +68,8 @@ sees requests that *don't* match a static file — in practice, exactly the
 |---|---|---|---|
 | `/logbook/api/logbook` | GET | public | `handleGet` |
 | `/logbook/api/admin/logbook` | POST/PUT/DELETE | Access-gated | `handlePost`/`handlePut`/`handleDelete` |
+| `/logbook/api/places` | GET | public | `handleGet` (places.js) |
+| `/logbook/api/admin/places` | POST | Access-gated | `handlePost` (places.js) |
 | `/logbook/api/settings` | GET | public | `handleGetSettings` |
 | `/logbook/api/admin/settings` | PUT | Access-gated | `handlePutSettings` |
 | `/logbook/api/admin/session` | GET | Access-gated | `handleAdminSession` |
@@ -77,21 +81,33 @@ method. See `docs/infra-architecture.md` for the Access configuration.
 
 ## Data model
 
-One KV key (`logbook:entries`) holds the entire dataset as a single JSON
-blob: `{ entries: Entry[] }`. Each entry:
+Two KV keys hold the two collections, each a single JSON blob (plus a
+third, `logbook:settings`, documented below):
+
+- `logbook:entries` — `{ entries: Entry[] }`
+- `logbook:places` — `{ places: Place[] }`
 
 ```
-{
+Place {
   id: string,       // client-generated crypto.randomUUID()
-  name, grade, place: string,
-  area: string,     // "" if unset, never null
-  country: string,  // "" if unset, never null -- free text like area (no
-                     // server-side allowlist), but expected to be a plain
-                     // country name matching COUNTRIES[i].name in
-                     // index.html (a key for the COUNTRY_BY_NAME lookup,
-                     // never a pre-formatted "flag + name" display
-                     // string) since it's populated from that bundled
-                     // datalist in practice; see #153
+  location: string,
+  area: string,      // "" if unset, never null
+  country: string,   // "" if unset, never null -- free text (no
+                      // server-side allowlist), but expected to be a plain
+                      // country name matching COUNTRIES[i].name in
+                      // index.html (a key for the COUNTRY_BY_NAME lookup,
+                      // never a pre-formatted "flag + name" display
+                      // string) since it's populated from that bundled
+                      // dataset in practice; see #153
+}
+
+Entry {
+  id: string,        // client-generated crypto.randomUUID()
+  placeId: string,   // references Place.id -- no server-side referential
+                      // check that the place actually exists (#158; see
+                      // that issue for why location/area/country moved
+                      // from per-entry fields to a real shared entity)
+  name, grade: string,
   type: "boulder" | "lead",
   status: "send" | "project" | "abandoned" | "wishlist",
   firstAttempt: boolean,   // only meaningful when status === "send" -- discipline-neutral name for flash/onsight
@@ -101,13 +117,26 @@ blob: `{ entries: Entry[] }`. Each entry:
 }
 ```
 
-`buildEntry()` in `src/api/logbook.js` reconstructs this fixed shape from
-the incoming payload on every write rather than spreading the raw request
-body into storage — a deliberate allowlist that keeps arbitrary extra
-fields (or prototype-pollution-style keys) from ever reaching KV.
+`buildEntry()`/`buildPlace()` (`src/api/logbook.js`, `src/api/places.js`)
+reconstruct these fixed shapes from the incoming payload on every write
+rather than spreading the raw request body into storage — a deliberate
+allowlist that keeps arbitrary extra fields (or prototype-pollution-style
+keys) from ever reaching KV.
 
-**Why one blob, not per-entry keys:** simplicity at current scale — a single
-climber's logbook is nowhere near KV's per-value size limit, and a single
+**Why a place is its own entity, not fields duplicated onto every entry
+at that place:** the earlier per-entry `place`/`area`/`country` strings
+were matched across entries by string equality, with nothing enforcing
+that two entries at "the same place" actually agreed on its country —
+they silently could, and did, diverge. See #157/#158.
+
+**Why place editing/deleting isn't in the API yet:** both are separate,
+deliberately deferred sub-issues of #157 (#159, #160) — deletion in
+particular has an unresolved question (what happens to entries still
+referencing a deleted `placeId`) that hasn't been scoped.
+
+**Why one blob per collection, not per-record keys:** simplicity at
+current scale — a single climber's logbook (and its far-smaller places
+collection) is nowhere near KV's per-value size limit, and a single
 `get`/`put` avoids pagination or multi-key consistency concerns entirely.
 Revisit if this ever needs to support many concurrent writers or a much
 larger dataset — not preemptively.
