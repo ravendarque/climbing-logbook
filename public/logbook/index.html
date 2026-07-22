@@ -178,20 +178,21 @@
     <h1 class="font-display font-normal uppercase tracking-wide text-[3rem] leading-none mb-[.3rem] max-[600px]:text-[2.25rem]"><span class="text-accent">Climbing</span> <span class="text-foreground">Logbook</span></h1>
     <p class="text-[1.05rem] text-muted mb-4">Log your climbs, visualise your progress (<button type="button" class="inline bg-transparent border-0 p-0 cursor-pointer text-accent no-underline hover:underline" id="footnote-trigger">or not</button>).</p>
 
-    <!-- Logbook/Grade Pyramid tabs (#110, #151). Logbook is always public.
-         Grade Pyramid (a performance-reporting tab) requires BOTH being
-         logged in AND Athlete Mode on -- Athlete Mode alone isn't enough
-         since it's a publicly-readable setting (a logged-out visitor could
-         otherwise see it if the owner has it toggled on for themselves).
-         The tab bar itself only shows once 2+ tabs are actually visible --
-         no point showing a single-tab bar (a Map tab, also always public,
-         is planned next, which will keep the bar visible even when
-         Pyramid is hidden). Replaces the old per-discipline #95 type-tabs
-         entirely; discipline selection now lives in the header picker
-         above and applies to all tabs. -->
+    <!-- Logbook/Grade Pyramid/Map tabs (#110, #151, #17). Logbook and Map
+         are always public. Grade Pyramid (a performance-reporting tab)
+         requires BOTH being logged in AND Athlete Mode on -- Athlete Mode
+         alone isn't enough since it's a publicly-readable setting (a
+         logged-out visitor could otherwise see it if the owner has it
+         toggled on for themselves). The tab bar itself only shows once 2+
+         tabs are actually visible -- with Map always public, that's
+         permanently true now, so the bar stays visible even when Pyramid
+         is hidden. Replaces the old per-discipline #95 type-tabs entirely;
+         discipline selection now lives in the header picker above and
+         applies to all tabs. -->
     <div class="flex gap-5 mb-5" id="view-tabs" role="tablist" aria-label="View" hidden>
       <button type="button" class="bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer whitespace-nowrap text-[.95rem] font-semibold text-muted pb-2 border-b-2 border-transparent transition-colors duration-150 hover:text-foreground aria-selected:text-foreground aria-selected:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" id="view-tab-logbook" role="tab" data-view="logbook" aria-selected="true" aria-controls="panel-logbook">Logbook</button>
       <button type="button" class="bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer whitespace-nowrap text-[.95rem] font-semibold text-muted pb-2 border-b-2 border-transparent transition-colors duration-150 hover:text-foreground aria-selected:text-foreground aria-selected:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" id="view-tab-pyramid" role="tab" data-view="pyramid" aria-selected="false" aria-controls="panel-pyramid" hidden>Grade Pyramid</button>
+      <button type="button" class="bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer whitespace-nowrap text-[.95rem] font-semibold text-muted pb-2 border-b-2 border-transparent transition-colors duration-150 hover:text-foreground aria-selected:text-foreground aria-selected:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" id="view-tab-map" role="tab" data-view="map" aria-selected="false" aria-controls="panel-map">Map</button>
     </div>
 
     <div id="panel-logbook" role="tabpanel" aria-labelledby="view-tab-logbook">
@@ -272,6 +273,16 @@
       <div class="pyramid-card bg-surface border border-border rounded-app pt-[22px] px-5 max-[480px]:px-2 pb-4 mb-5" id="pyramid" role="group" aria-label="Grade pyramid"></div>
 
       <div class="flex gap-3 px-4 py-[14px] rounded-app mb-7 [&_svg]:w-[1.2rem] [&_svg]:h-[1.2rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:mt-[2px] [&_svg]:shrink-0" id="health-card" role="status"></div>
+    </div>
+
+    <!-- World map (#17) -- always public, unlike Grade Pyramid. One pin per
+         country with >=1 logged entry, positioned via each COUNTRIES
+         entry's pre-projected x/y (see the COUNTRIES header comment above
+         for how those are generated). No pan/zoom/tile-fetching -- a fixed
+         SVG that works fully offline after first load, since the map data
+         is bundled inline rather than fetched. -->
+    <div id="panel-map" role="tabpanel" aria-labelledby="view-tab-map" hidden>
+      <div id="map-container"></div>
     </div>
   </div>
 </div>
@@ -973,7 +984,7 @@
     activeType: "boulder",    // which discipline is selected -- set for real
                                // once ALL_ENTRIES loads (see boot()); "boulder"
                                // here is just a placeholder before that.
-    activeView: "logbook",    // "logbook" | "pyramid" -- "pyramid" only
+    activeView: "logbook",    // "logbook" | "pyramid" | "map" -- "pyramid" only
                                // switchable when logged in with Athlete
                                // Mode on (see #40, #110, #151).
     lowerGradesExpanded: false,
@@ -1336,6 +1347,7 @@
     updateAdminBar();
     updateCollapseAllBtn(entries);
     if (state.activeView === "pyramid") renderPyramid();
+    if (state.activeView === "map") renderMap();
   }
 
   function updateCollapseAllBtn(entries) {
@@ -1657,6 +1669,62 @@
     }
   }
 
+  // ── World map (#17) ───────────────────────────────────────────────────
+  // One pin per country with >=1 logged entry (not per-place), scoped to
+  // the active discipline like every other tab (the header discipline
+  // picker "applies to all tabs" -- see the view-tabs comment above).
+  // WORLD_LAND_PATH and each COUNTRIES entry's x/y are already projected
+  // (Equal Earth, #6) at generation time -- see the COUNTRIES header
+  // comment and scripts/generate-world-map.mjs -- so this only draws the
+  // static path and positions pins, no projection math client-side.
+  function renderMap() {
+    const typeEntries = ALL_ENTRIES.filter(e => e.type === state.activeType);
+
+    const countsByCountry = new Map();
+    for (const entry of typeEntries) {
+      const country = entryLocation(entry).country;
+      if (!country) continue;
+      countsByCountry.set(country, (countsByCountry.get(country) ?? 0) + 1);
+    }
+
+    const container = document.getElementById("map-container");
+
+    if (countsByCountry.size === 0) {
+      container.innerHTML = `<p class="text-[.9rem] text-muted">No ${DISCIPLINE_LABEL[state.activeType]} entries logged yet -- log one to see it on the map.</p>`;
+      return;
+    }
+
+    const pinnedCountries = COUNTRIES.filter(c => countsByCountry.has(c.name));
+
+    const pins = pinnedCountries.map(c => {
+      const count = countsByCountry.get(c.name);
+      const label = `${c.name}: ${count} ${count === 1 ? "entry" : "entries"}`;
+      return `
+        <g>
+          <title>${escapeHtml(label)}</title>
+          <circle cx="${c.x}" cy="${c.y}" r="9" class="fill-accent stroke-background" stroke-width="1.5"></circle>
+          <text x="${c.x}" y="${c.y}" text-anchor="middle" dominant-baseline="central" class="fill-accent-foreground text-[9px] font-bold select-none">${count}</text>
+        </g>`;
+    }).join("");
+
+    // The pins carry the same info visually via <title> tooltips, but
+    // <title> on an SVG <g> isn't reliably exposed by screen readers the
+    // way alt text is -- a plain sr-only list gives that a guaranteed,
+    // simple text equivalent instead of depending on tooltip support.
+    const srList = pinnedCountries.map(c =>
+      `<li>${escapeHtml(c.name)}: ${countsByCountry.get(c.name)} ${countsByCountry.get(c.name) === 1 ? "entry" : "entries"}</li>`
+    ).join("");
+
+    container.innerHTML = `
+      <div class="bg-surface border border-border rounded-app p-3 mb-5">
+        <svg viewBox="0 0 ${MAP_WIDTH} ${MAP_HEIGHT}" role="img" aria-label="World map of logged ${DISCIPLINE_LABEL[state.activeType].toLowerCase()} entries by country" class="w-full h-auto">
+          <path d="${WORLD_LAND_PATH}" class="fill-border stroke-none"></path>
+          ${pins}
+        </svg>
+      </div>
+      <ul class="sr-only">${srList}</ul>`;
+  }
+
   // ── Theme toggle (light/dark) ─────────────────────────────────────────
   // The actual theme is already set on <html> by the blocking inline
   // script in <head> (before first paint) -- this just wires up the
@@ -1714,6 +1782,7 @@
   const viewTabPyramid = document.getElementById("view-tab-pyramid");
   const panelLogbook = document.getElementById("panel-logbook");
   const panelPyramid = document.getElementById("panel-pyramid");
+  const panelMap = document.getElementById("panel-map");
 
   const entryOverlay   = document.getElementById("entry-overlay");
   const entryForm      = document.getElementById("entry-form");
@@ -1757,14 +1826,15 @@
     // logged in AND Athlete Mode on (#151) -- Athlete Mode alone isn't
     // enough since it's a publicly-readable setting, so gating on it
     // alone would let a logged-out visitor see it whenever the owner has
-    // it toggled on for themselves. Logbook (and any future public tab,
-    // e.g. the planned Map) stays unaffected by either.
+    // it toggled on for themselves. Logbook and Map stay unaffected by
+    // either.
     viewTabPyramid.hidden = !(isLoggedIn && athleteMode);
     if (viewTabPyramid.hidden && state.activeView === "pyramid") setActiveView("logbook");
 
     // The tab bar itself only makes sense once there's something to
     // switch between -- hidden whenever fewer than 2 tabs are currently
-    // visible, same as it looked before Grade Pyramid existed.
+    // visible. With Map always public alongside Logbook, that's now
+    // permanently true, but the check stays generic rather than hardcoded.
     const visibleTabCount = viewTabs.querySelectorAll("[role=tab]:not([hidden])").length;
     viewTabs.hidden = visibleTabCount < 2;
   }
@@ -1776,7 +1846,9 @@
     );
     panelLogbook.hidden = view !== "logbook";
     panelPyramid.hidden = view !== "pyramid";
+    panelMap.hidden = view !== "map";
     if (view === "pyramid") renderPyramid();
+    if (view === "map") renderMap();
   }
 
   viewTabs.addEventListener("click", e => {
