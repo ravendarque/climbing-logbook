@@ -46,18 +46,24 @@ const LOCATIONS_KEY = "logbook:locations";
 const write = process.argv.includes("--write");
 const targetFlag = process.argv.includes("--local") ? "--local" : "--remote";
 
+// fallback is only for "this key legitimately might not exist yet"
+// (locations/places on a first run). When no fallback is given (entries,
+// which must exist), a failure re-throws with wrangler's actual stderr
+// visible -- silently swallowing it here once already turned a real
+// error (wrong namespace, auth, wrong account, etc.) into a useless
+// generic "not found" message at exactly the moment that mattered.
 function kvGet(key, fallback) {
   try {
     const raw = execFileSync(
       "pnpm",
       ["exec", "wrangler", "kv", "key", "get", key, targetFlag, "--namespace-id", NAMESPACE_ID, "--text"],
-      { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+      { encoding: "utf8" },
     );
     return JSON.parse(raw);
-  } catch {
-    // Key doesn't exist yet -- expected for locations/places on a first
-    // run, since #158 introduced both.
-    return fallback;
+  } catch (err) {
+    if (fallback !== undefined) return fallback;
+    console.error(err.stderr?.toString() ?? err.message);
+    throw new Error(`Failed to read ${key} -- see wrangler output above.`);
   }
 }
 
@@ -75,9 +81,7 @@ function kvPut(key, value) {
   }
 }
 
-const entriesData = kvGet(ENTRIES_KEY, null);
-if (!entriesData) throw new Error(`${ENTRIES_KEY} not found -- nothing to migrate`);
-const { entries } = entriesData;
+const { entries } = kvGet(ENTRIES_KEY);
 
 // Existing locations/places (e.g. added through the app's own "+ Add new
 // place" flow in the gap between deploying this code and running this
