@@ -3,20 +3,25 @@ import { json } from "../lib/json.js";
 const KV_KEY = "logbook:places";
 
 function validateFields(place) {
-  if (!place.location) return "Missing required field: location";
+  if (!place.locationId) return "Missing required field: locationId";
   return null;
 }
 
-// No referential check that entries reference a real placeId -- consistent
-// with this app's existing light-validation style for free-text-ish
-// fields (grade/type/status are enum-checked, place/area/country never
-// were and placeId inherits that).
+// No referential check that locationId points at a real Location, or that
+// entries reference a real placeId -- consistent with this app's existing
+// light-validation style for free-text-ish fields (grade/type/status are
+// enum-checked, place/area/country never were and locationId/placeId
+// inherit that).
+//
+// No country field here -- it lives on Location, not duplicated per area
+// (location determines country, a real functional dependency; storing it
+// on every Place row would make it transitively dependent on location
+// rather than on this row's own key, i.e. not actually 3NF -- see #158).
 function buildPlace(place, id) {
   return {
     id,
-    location: place.location,
-    area:     place.area    ?? "",
-    country:  place.country ?? "",
+    locationId: place.locationId,
+    area:       place.area ?? "",
   };
 }
 
