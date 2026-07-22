@@ -829,7 +829,7 @@
     { name: "Zambia", flag: "🇿🇲", lat: -15, lng: 30 },
     { name: "Zimbabwe", flag: "🇿🇼", lat: -20, lng: 30 },
   ];
-  // entry.country stores the plain name only (a clean key into this
+  // Location.country stores the plain name only (a clean key into this
   // lookup) -- never a pre-formatted "flag + name" string that display
   // code would then have to re-parse apart via string splitting to get
   // either piece back out.
@@ -962,7 +962,7 @@
                                // Mode on (see #40, #110, #151).
     lowerGradesExpanded: false,
     search: "",
-    sortByPlace: {},  // { placeName: { col: "grade", dir: "asc" } }
+    sortByPlace: {},  // { locationId: { col: "grade", dir: "asc" } }
     collapsed: new Set(),
   };
 
@@ -1066,6 +1066,17 @@
   }
 
   // ── Data ─────────────────────────────────────────────────────────────
+  // Entry -> Place -> Location join, degrading gracefully (never null,
+  // matching this file's existing lookup conventions like
+  // COUNTRY_BY_NAME) if placeId/locationId don't resolve to anything
+  // real -- rather than every call site needing its own null-check.
+  function placeOf(entry) {
+    return ALL_PLACES.find(p => p.id === entry.placeId) ?? { locationId: "", area: "" };
+  }
+  function entryLocation(entry) {
+    return locationOf(placeOf(entry));
+  }
+
   function entryMatchesStatusFilter(entry, filter) {
     if (filter === "flash") return entry.status === "send" && entry.firstAttempt;
     if (filter === "send")  return entry.status === "send" && !entry.firstAttempt;
@@ -1078,26 +1089,34 @@
       if (e.type !== state.activeType) return false;
       if (state.statusFilters.size > 0 &&
           ![...state.statusFilters].some(f => entryMatchesStatusFilter(e, f))) return false;
-      if (q && !e.name.toLowerCase().includes(q) && !(e.area||"").toLowerCase().includes(q)) return false;
+      if (q && !e.name.toLowerCase().includes(q) && !placeOf(e).area.toLowerCase().includes(q)) return false;
       return true;
     });
   }
 
+  // Grouped by locationId, not placeId -- a location can have several
+  // distinct places/areas (different placeIds sharing one locationId),
+  // and they should still show together under one header with Area as a
+  // per-row column, same table UX as before Place existed. Grouping by
+  // location (rather than by raw location *name* text) is what makes two
+  // different real-world locations that happen to share a name honestly
+  // stay two separate groups instead of being silently merged (#157/#158).
   function groupByPlace(entries) {
     const map = new Map();
     for (const e of entries) {
-      if (!map.has(e.place)) map.set(e.place, []);
-      map.get(e.place).push(e);
+      const locationId = placeOf(e).locationId;
+      if (!map.has(locationId)) map.set(locationId, []);
+      map.get(locationId).push(e);
     }
     // Preserve order from original data
-    const placeOrder = [...new Set(ALL_ENTRIES.map(e => e.place))];
-    return placeOrder
-      .filter(p => map.has(p))
-      .map(p => [p, map.get(p)]);
+    const locationOrder = [...new Set(ALL_ENTRIES.map(e => placeOf(e).locationId))];
+    return locationOrder
+      .filter(id => map.has(id))
+      .map(id => [id, map.get(id)]);
   }
 
-  function sortEntries(entries, place) {
-    const { col, dir } = getSort(place);
+  function sortEntries(entries, locationId) {
+    const { col, dir } = getSort(locationId);
     const m = dir === "asc" ? 1 : -1;
     return [...entries].sort((a, b) => {
       if (col === "grade")  return m * (gradeRank(a.grade) - gradeRank(b.grade));
@@ -1138,11 +1157,12 @@
     }
 
     let idx = 0;
-    container.innerHTML = groups.map(([place, items]) => {
+    container.innerHTML = groups.map(([locationId, items]) => {
       idx++;
-      const sorted = sortEntries(items, place);
-      const { col, dir } = getSort(place);
-      const isCollapsed = state.collapsed.has(place);
+      const location = ALL_LOCATIONS.find(l => l.id === locationId) ?? { name: "", country: "" };
+      const sorted = sortEntries(items, locationId);
+      const { col, dir } = getSort(locationId);
+      const isCollapsed = state.collapsed.has(locationId);
 
       const sortIcon = (c) => c !== col
         ? `<i class="ml-[.3rem] not-italic opacity-40">↕</i>`
@@ -1169,7 +1189,7 @@
             ${e.notes ? `<button type="button" class="notes-btn border-0 bg-transparent cursor-pointer text-muted inline-flex align-middle p-[.1rem] hover:text-accent" data-notes-id="${escapeHtml(e.id)}" aria-label="View notes"><svg class="w-[.85rem] h-[.85rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg></button>` : ""}
             ${pendingBadge}
           </td>
-          <td class="${TD_BASE} text-muted text-[.82rem]">${escapeHtml(e.area)}</td>
+          <td class="${TD_BASE} text-muted text-[.82rem]">${escapeHtml(placeOf(e).area)}</td>
           <td class="${TD_BASE} text-muted text-[.82rem] whitespace-nowrap">${escapeHtml(formatDate(e.date))}</td>
           <td class="${TD_BASE} text-center w-8">${e.video ? `<a class="inline-flex items-center gap-[.2rem] text-accent text-[.8rem] no-underline hover:opacity-75" href="${escapeHtml(e.video)}" target="_blank" rel="noopener" title="Watch video">▶</a>` : ""}</td>
           <td class="${TD_BASE} text-center w-8">${isLoggedIn ? `<button type="button" class="edit-btn border-0 bg-transparent cursor-pointer text-muted inline-flex p-[.2rem] hover:text-accent [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:stroke-current [&_svg]:fill-none" data-edit-id="${escapeHtml(e.id)}" aria-label="Edit">${EDIT_ICON}</button>` : ""}</td>
@@ -1177,16 +1197,13 @@
       `;
       }).join("");
 
-      // Country is per-entry now (#153), not a static place lookup -- a
-      // place's flag is whatever its own logged entries say, so pick the
-      // first entry that actually has one set rather than assuming every
-      // entry for a place agrees (older, pre-migration entries may not).
-      // entry.country is a plain name (a key into COUNTRY_BY_NAME), not a
-      // formatted string -- an unrecognized name (a free-text typo, or a
-      // since-excluded country like Russia/Belarus on old data) just
-      // shows nothing here, same as no country being set at all, rather
-      // than needing separate error handling.
-      const placeCountry = COUNTRY_BY_NAME[sorted.find(e => e.country)?.country];
+      // Country now comes directly from the group's own Location record
+      // (#158) -- deterministic, always correct, since country lives on
+      // Location and a location can only ever have one. No more "pick
+      // whichever entry happens to have one set" ambiguity; that was
+      // only ever needed because country used to be duplicated per entry
+      // with nothing enforcing agreement.
+      const locationCountry = COUNTRY_BY_NAME[location.country];
       // The country *name* text was silently dropped at every width by
       // #122 (which meant to go flag-only on narrow viewports only, for
       // space, but the implementation went flag-only everywhere) -- back
@@ -1194,12 +1211,12 @@
       // already uses for this same narrow/wide boundary, see the <h1>
       // above), narrow keeps #122's original flag-only intent.
       return `
-        <div class="bg-surface border border-border rounded-app mb-3 overflow-hidden" data-place="${escapeHtml(place)}">
-          <div class="place-header flex items-center gap-[.5rem] px-[.9rem] py-[.6rem] border-b border-border bg-[color-mix(in_srgb,var(--color-surface)_60%,var(--color-bg))] cursor-pointer select-none hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,var(--color-surface))]" data-place="${escapeHtml(place)}" role="button" tabindex="0" aria-expanded="${!isCollapsed}">
-            <span class="font-semibold text-base truncate min-w-0 flex-1">${escapeHtml(place)}</span>
-            ${placeCountry ? `<span class="inline-flex items-center gap-[.3rem] shrink-0">
-              <span class="max-[600px]:hidden text-[.78rem] text-muted font-normal whitespace-nowrap">${escapeHtml(placeCountry.name)}</span>
-              <span role="img" aria-label="${escapeHtml(placeCountry.name)}">${escapeHtml(placeCountry.flag)}</span>
+        <div class="bg-surface border border-border rounded-app mb-3 overflow-hidden" data-location-id="${escapeHtml(locationId)}">
+          <div class="place-header flex items-center gap-[.5rem] px-[.9rem] py-[.6rem] border-b border-border bg-[color-mix(in_srgb,var(--color-surface)_60%,var(--color-bg))] cursor-pointer select-none hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,var(--color-surface))]" data-location-id="${escapeHtml(locationId)}" role="button" tabindex="0" aria-expanded="${!isCollapsed}">
+            <span class="font-semibold text-base truncate min-w-0 flex-1">${escapeHtml(location.name)}</span>
+            ${locationCountry ? `<span class="inline-flex items-center gap-[.3rem] shrink-0">
+              <span class="max-[600px]:hidden text-[.78rem] text-muted font-normal whitespace-nowrap">${escapeHtml(locationCountry.name)}</span>
+              <span role="img" aria-label="${escapeHtml(locationCountry.name)}">${escapeHtml(locationCountry.flag)}</span>
             </span>` : ""}
             <span class="inline-flex items-center justify-center min-w-[1.4rem] h-[1.4rem] px-1 rounded-full bg-[color-mix(in_srgb,var(--color-text)_12%,transparent)] text-muted text-[.72rem] font-semibold shrink-0" aria-label="${sorted.length} ${sorted.length === 1 ? "entry" : "entries"}">${sorted.length}</span>
             <span class="text-muted text-[.8rem] transition-transform duration-200 shrink-0 ${isCollapsed ? "-rotate-90" : ""}">▾</span>
@@ -1209,14 +1226,14 @@
               <thead>
                 <tr>
                   <th class="${TH_BASE} w-8"></th>
-                  <th class="${TH_BASE} ${TH_SORTABLE}" data-sort="grade" data-place="${escapeHtml(place)}" role="button" tabindex="0" aria-sort="${sortAria("grade")}">
+                  <th class="${TH_BASE} ${TH_SORTABLE}" data-sort="grade" data-location-id="${escapeHtml(locationId)}" role="button" tabindex="0" aria-sort="${sortAria("grade")}">
                     Grade ${sortIcon("grade")}
                   </th>
-                  <th class="${TH_BASE} ${TH_SORTABLE}" data-sort="name" data-place="${escapeHtml(place)}" role="button" tabindex="0" aria-sort="${sortAria("name")}">
+                  <th class="${TH_BASE} ${TH_SORTABLE}" data-sort="name" data-location-id="${escapeHtml(locationId)}" role="button" tabindex="0" aria-sort="${sortAria("name")}">
                     Name ${sortIcon("name")}
                   </th>
                   <th class="${TH_BASE}">Area</th>
-                  <th class="${TH_BASE} ${TH_SORTABLE}" data-sort="date" data-place="${escapeHtml(place)}" role="button" tabindex="0" aria-sort="${sortAria("date")}">
+                  <th class="${TH_BASE} ${TH_SORTABLE}" data-sort="date" data-location-id="${escapeHtml(locationId)}" role="button" tabindex="0" aria-sort="${sortAria("date")}">
                     Date ${sortIcon("date")}
                   </th>
                   <th class="${TH_BASE} w-8"></th>
@@ -1257,8 +1274,8 @@
   }
 
   function updateCollapseAllBtn(entries) {
-    const places = groupByPlace(entries).map(([place]) => place);
-    const allCollapsed = places.length > 0 && places.every(p => state.collapsed.has(p));
+    const locationIds = groupByPlace(entries).map(([locationId]) => locationId);
+    const allCollapsed = locationIds.length > 0 && locationIds.every(id => state.collapsed.has(id));
     collapseAllBtn.textContent = allCollapsed ? "Expand all" : "Collapse all";
   }
 
@@ -1267,7 +1284,7 @@
     // Boulder stats" / "your Lead stats", not a global summary, now that
     // the two disciplines have their own separate views.
     const typeEntries = ALL_ENTRIES.filter(e => e.type === state.activeType);
-    const countries = new Set(typeEntries.map(e => e.country).filter(Boolean)).size;
+    const countries = new Set(typeEntries.map(e => entryLocation(e).country).filter(Boolean)).size;
     const flashes   = typeEntries.filter(e => e.status === "send" && e.firstAttempt).length;
     const sends     = typeEntries.filter(e => e.status === "send" && !e.firstAttempt).length;
     const projects  = typeEntries.filter(e => e.status === "project").length;
@@ -2603,10 +2620,10 @@
 
     // Collapse/expand all place sections
     if (e.target.closest("#collapse-all-btn")) {
-      const places = groupByPlace(filteredEntries()).map(([place]) => place);
-      const allCollapsed = places.length > 0 && places.every(p => state.collapsed.has(p));
-      if (allCollapsed) places.forEach(p => state.collapsed.delete(p));
-      else places.forEach(p => state.collapsed.add(p));
+      const locationIds = groupByPlace(filteredEntries()).map(([locationId]) => locationId);
+      const allCollapsed = locationIds.length > 0 && locationIds.every(id => state.collapsed.has(id));
+      if (allCollapsed) locationIds.forEach(id => state.collapsed.delete(id));
+      else locationIds.forEach(id => state.collapsed.add(id));
       render();
       return;
     }
@@ -2657,18 +2674,18 @@
   });
 
   function toggleSort(sortTh) {
-    const place = sortTh.dataset.place;
+    const locationId = sortTh.dataset.locationId;
     const col   = sortTh.dataset.sort;
-    const cur   = getSort(place);
+    const cur   = getSort(locationId);
     const dir   = cur.col === col && cur.dir === "asc" ? "desc" : "asc";
-    state.sortByPlace[place] = { col, dir };
+    state.sortByPlace[locationId] = { col, dir };
     render();
   }
 
   function toggleCollapse(header) {
-    const place = header.dataset.place;
-    if (state.collapsed.has(place)) state.collapsed.delete(place);
-    else state.collapsed.add(place);
+    const locationId = header.dataset.locationId;
+    if (state.collapsed.has(locationId)) state.collapsed.delete(locationId);
+    else state.collapsed.add(locationId);
     render();
   }
 
@@ -2742,8 +2759,8 @@
     state.activeType = hasBoulder || !hasLead ? "boulder" : "lead";
 
     // Sections default to collapsed on first load.
-    for (const placeId of new Set(ALL_ENTRIES.map(e => e.placeId))) {
-      state.collapsed.add(placeId);
+    for (const locationId of new Set(ALL_ENTRIES.map(e => placeOf(e).locationId))) {
+      state.collapsed.add(locationId);
     }
 
     await Promise.all([sessionPromise, settingsPromise]);
