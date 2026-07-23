@@ -2074,13 +2074,19 @@
         <svg viewBox="0 0 ${MAP_WIDTH} ${MAP_HEIGHT}" role="img" aria-label="World map of logged ${DISCIPLINE_LABEL[state.activeType].toLowerCase()} entries by country" class="w-full h-auto block touch-none cursor-grab">
           <defs>
             <filter id="border-glow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="0.5"></feGaussianBlur>
+              <feGaussianBlur stdDeviation="0.9"></feGaussianBlur>
             </filter>
           </defs>
           <path d="${GRATICULE_PATH}" class="stroke-border fill-none" stroke-width="0.5"></path>
           <path d="${WORLD_LAND_PATH}" class="fill-border stroke-none"></path>
-          <path d="${COUNTRY_BORDERS_PATH}" class="stroke-background fill-none transition-opacity duration-200" stroke-width="0.8" opacity="0.2" filter="url(#border-glow)" id="map-border-glow"></path>
+          <!-- Crisp seam first (the border "beneath"), then the country-
+               colored glow drawn OVER it (the country's own fill, lit up
+               near its edge) -- painter's order puts the country's glow
+               on top of the line instead of the line on top of the
+               country, so the soft edge visually dominates the crisp one
+               underneath it rather than the other way around. -->
           <path d="${COUNTRY_BORDERS_PATH}" class="stroke-background fill-none" stroke-width="0.6" stroke-linejoin="round" stroke-linecap="round"></path>
+          <path d="${COUNTRY_BORDERS_PATH}" class="stroke-[color-mix(in_srgb,var(--color-border)_45%,white_55%)] fill-none transition-opacity duration-200" stroke-width="1.1" opacity="0.7" stroke-linejoin="round" stroke-linecap="round" filter="url(#border-glow)" id="map-border-glow"></path>
           ${pins}
         </svg>
       </div>
