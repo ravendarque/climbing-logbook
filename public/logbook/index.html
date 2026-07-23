@@ -1714,6 +1714,16 @@
   const MAP_ASPECT = MAP_WIDTH / MAP_HEIGHT;
   const MAP_MIN_W = MAP_WIDTH / 8; // max zoom-in: 8x
   const MAP_VIEW_EPS = 0.01; // float slop for the button disabled-at-bounds checks below
+  // Pins are sized in the same user-space units as the map itself, so
+  // without correction they'd grow on screen as the viewBox shrinks while
+  // zooming in (same user-space radius, but now spanning a much bigger
+  // fraction of the same rendered width). These are each pin's radius/
+  // stroke/font at the full, zoomed-out extent (mapView.w === MAP_WIDTH);
+  // applyPinScale() below rescales every pin by mapView.w / MAP_WIDTH on
+  // every zoom change so they stay a constant apparent size on screen.
+  const PIN_BASE_R = 9;
+  const PIN_BASE_STROKE = 1.5;
+  const PIN_BASE_FONT = 9;
   let mapView = { x: 0, y: 0, w: MAP_WIDTH, h: MAP_HEIGHT };
   let mapDrag = null; // { pointerId, lastClientX, lastClientY } while a drag is in progress
 
@@ -1729,10 +1739,22 @@
     return { x, y, w, h };
   }
 
+  function applyPinScale() {
+    const scale = mapView.w / MAP_WIDTH;
+    document.querySelectorAll("#map-container [data-pin-country] circle").forEach(c => {
+      c.setAttribute("r", PIN_BASE_R * scale);
+      c.setAttribute("stroke-width", PIN_BASE_STROKE * scale);
+    });
+    document.querySelectorAll("#map-container [data-pin-country] text").forEach(t => {
+      t.style.fontSize = `${PIN_BASE_FONT * scale}px`;
+    });
+  }
+
   function applyMapView() {
     const svg = getMapSvg();
     if (!svg) return;
     svg.setAttribute("viewBox", `${mapView.x} ${mapView.y} ${mapView.w} ${mapView.h}`);
+    applyPinScale();
 
     const zoomInBtn  = document.getElementById("map-zoom-in");
     const zoomOutBtn = document.getElementById("map-zoom-out");
@@ -1829,21 +1851,27 @@
   function renderPinPopoverContent(countryName) {
     const c = COUNTRY_BY_NAME[countryName];
     const { flashes, sends, projects } = countryStatusBreakdown(countryName);
-    const stat = (n, singular, plural) =>
-      `<span class="text-foreground font-semibold">${n}</span> <span class="text-muted">${n === 1 ? singular : plural}</span>`;
+    // Reuses STATUS_ICONS/STATUS_ICON_CLASS's icon markup, same as the
+    // table's own statusBadge() -- just a smaller icon size to fit a
+    // compact popover row.
+    const statRow = (icon, title, n, singular, plural) => `
+      <div class="flex items-center gap-[.45rem]">
+        <span class="inline-flex align-middle shrink-0 cursor-default [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem]" title="${escapeHtml(title)}">${icon}</span>
+        <span><span class="text-foreground font-semibold">${n}</span> <span class="text-muted">${n === 1 ? singular : plural}</span></span>
+      </div>`;
     return `
-      <div class="flex items-center justify-between gap-3 mb-[.4rem]">
+      <div class="flex items-center justify-between gap-3 mb-[.5rem]">
         <span class="font-semibold text-foreground flex items-center gap-[.35rem]">
           ${c ? `<span role="img" aria-label="${escapeHtml(c.name)}">${escapeHtml(c.flag)}</span>` : ""}
           ${escapeHtml(countryName)}
         </span>
         <button type="button" class="bg-transparent border-0 text-muted cursor-pointer p-0 leading-none text-[1rem] hover:text-foreground" id="map-pin-popover-close" aria-label="Close">✕</button>
       </div>
-      <div class="text-[.82rem] leading-[1.6] whitespace-nowrap">${[
-        stat(flashes, flashLabel(state.activeType), flashLabel(state.activeType, true)),
-        stat(sends, sendLabel(state.activeType), sendLabel(state.activeType, true)),
-        stat(projects, "Project", "Projects"),
-      ].join(`<span class="text-muted"> · </span>`)}</div>`;
+      <div class="flex flex-col gap-[.35rem] text-[.82rem]">
+        ${statRow(STATUS_ICONS.flash, flashLabel(state.activeType), flashes, flashLabel(state.activeType), flashLabel(state.activeType, true))}
+        ${statRow(STATUS_ICONS.send, sendLabel(state.activeType), sends, sendLabel(state.activeType), sendLabel(state.activeType, true))}
+        ${statRow(STATUS_ICONS.project, "Project", projects, "Project", "Projects")}
+      </div>`;
   }
 
   let pinPopoverCleanup = null; // floating-ui autoUpdate teardown for the currently-open popover, if any
@@ -1924,8 +1952,8 @@
       return `
         <g class="cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" role="button" tabindex="0" data-pin-country="${escapeHtml(c.name)}" aria-label="${escapeHtml(label)}">
           <title>${escapeHtml(label)}</title>
-          <circle cx="${c.x}" cy="${c.y}" r="9" class="fill-accent stroke-background" stroke-width="1.5"></circle>
-          <text x="${c.x}" y="${c.y}" text-anchor="middle" dominant-baseline="central" class="fill-accent-foreground text-[9px] font-bold select-none">${count}</text>
+          <circle cx="${c.x}" cy="${c.y}" r="${PIN_BASE_R}" class="fill-accent stroke-background" stroke-width="${PIN_BASE_STROKE}"></circle>
+          <text x="${c.x}" y="${c.y}" text-anchor="middle" dominant-baseline="central" class="fill-accent-foreground font-bold select-none" style="font-size: ${PIN_BASE_FONT}px">${count}</text>
         </g>`;
     }).join("");
 
