@@ -2080,33 +2080,38 @@
         <svg viewBox="0 0 ${MAP_WIDTH} ${MAP_HEIGHT}" role="img" aria-label="World map of logged ${DISCIPLINE_LABEL[state.activeType].toLowerCase()} entries by country" class="w-full h-auto block touch-none cursor-grab">
           <defs>
             <filter id="border-glow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="0.6"></feGaussianBlur>
+              <feGaussianBlur stdDeviation="0.4"></feGaussianBlur>
             </filter>
             <!-- Turns the border from a zero-width line into a real
                  shape with its own area: an SVG mask (unlike clipPath)
                  renders its children's actual stroke, using the result's
                  luminance to decide what's visible through it. A white
-                 BORDER_STRIP_WIDTH-wide stroke here means "this strip,
-                 and nothing outside it" -- anything masked with this,
-                 however wide or blurred, gets hard-cut at exactly the
-                 strip's own edge instead of bleeding past it. -->
+                 1.3-wide stroke here means "this strip, and nothing
+                 outside it" -- anything masked with this, however wide
+                 or blurred, gets hard-cut at exactly the strip's own
+                 edge instead of bleeding past it. -->
             <mask id="border-strip-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="${MAP_WIDTH}" height="${MAP_HEIGHT}">
-              <path d="${COUNTRY_BORDERS_PATH}" stroke="white" fill="none" stroke-width="1.1" stroke-linejoin="round" stroke-linecap="round"></path>
+              <path d="${COUNTRY_BORDERS_PATH}" stroke="white" fill="none" stroke-width="1.3" stroke-linejoin="round"></path>
             </mask>
           </defs>
           <path d="${GRATICULE_PATH}" class="stroke-border fill-none" stroke-width="0.5"></path>
           <path d="${WORLD_LAND_PATH}" class="fill-border stroke-none"></path>
-          <!-- The border strip itself (same width as the mask above,
-               country-colored so it reads as part of the land, not a
-               foreign line) -- this alone is what "the border" is now;
-               nothing decorates it from outside its own bounds. -->
-          <path d="${COUNTRY_BORDERS_PATH}" class="stroke-border fill-none" stroke-width="1.1" stroke-linejoin="round" stroke-linecap="round"></path>
-          <!-- A wider, blurred, lightened copy sits on top, masked back
-               down to the strip's exact bounds -- the blur wants to
-               spread further, but the mask cuts it off hard at the strip
-               edge, so the interior of the strip glows while zero light
-               escapes into the actual country fill on either side. -->
-          <path d="${COUNTRY_BORDERS_PATH}" class="stroke-[color-mix(in_srgb,var(--color-border)_40%,white_60%)] fill-none transition-opacity duration-200" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" filter="url(#border-glow)" mask="url(#border-strip-mask)" id="map-border-glow"></path>
+          <!-- Always-visible crisp baseline -- cheap (no blur/mask), so
+               it's what's actually on screen during drag/zoom while the
+               glow below is hidden for performance; without this the
+               border would vanish entirely mid-interaction. -->
+          <path d="${COUNTRY_BORDERS_PATH}" class="stroke-background fill-none" stroke-width="0.6" stroke-linejoin="round"></path>
+          <!-- The glow itself: a THIN (0.5, narrower than the 1.3 mask)
+               source stroke, blurred -- the previous attempt used a
+               source wider than its own mask, so the mask only ever
+               revealed the flat, fully-saturated middle of that stroke
+               and never its soft edges, reading as a solid fat line
+               instead of a glow. Narrow source + blur radius sized to
+               reach the mask's own half-width means the visible result
+               actually fades from a bright core to nothing at the strip
+               edge, which is what makes it read as glowing rather than
+               solid. -->
+          <path d="${COUNTRY_BORDERS_PATH}" class="stroke-[color-mix(in_srgb,var(--color-border)_35%,white_65%)] fill-none transition-opacity duration-200" stroke-width="0.5" stroke-linejoin="round" filter="url(#border-glow)" mask="url(#border-strip-mask)" id="map-border-glow"></path>
           ${pins}
         </svg>
       </div>
