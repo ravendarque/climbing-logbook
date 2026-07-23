@@ -2056,7 +2056,7 @@
         <svg viewBox="0 0 ${MAP_WIDTH} ${MAP_HEIGHT}" role="img" aria-label="World map of logged ${DISCIPLINE_LABEL[state.activeType].toLowerCase()} entries by country" class="w-full h-auto block touch-none cursor-grab">
           <path d="${GRATICULE_PATH}" class="stroke-border fill-none" stroke-width="0.5"></path>
           <path d="${WORLD_LAND_PATH}" class="fill-border stroke-none"></path>
-          <path d="${COUNTRY_BORDERS_PATH}" class="stroke-background fill-none" stroke-width="0.6"></path>
+          <path d="${COUNTRY_BORDERS_PATH}" class="stroke-background fill-none" stroke-width="0.6" stroke-linejoin="round" stroke-linecap="round"></path>
           ${pins}
         </svg>
       </div>
