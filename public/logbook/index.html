@@ -1816,11 +1816,29 @@
     });
   }
 
+  // The border glow (an feGaussianBlur filter, see the SVG markup) measurably
+  // costs paint time on every repaint -- ~5ms/frame average, with spikes to
+  // 3x that, in direct rAF measurement -- because the browser has to
+  // re-blur a ~150-segment path on every viewBox change. Invisible normally,
+  // but drag-panning and wheel-zoom change the viewBox on every single
+  // frame, so paying that cost live would show up as real stutter. Hidden
+  // during any view change and faded back in once it's settled (debounced)
+  // gets the glow at rest, for free, without taxing the interaction itself.
+  let mapGlowSettleTimer = null;
+  function hideMapGlowUntilSettled() {
+    const glow = document.getElementById("map-border-glow");
+    if (!glow) return;
+    glow.style.opacity = "0";
+    clearTimeout(mapGlowSettleTimer);
+    mapGlowSettleTimer = setTimeout(() => { glow.style.opacity = ""; }, 200);
+  }
+
   function applyMapView() {
     const svg = getMapSvg();
     if (!svg) return;
     svg.setAttribute("viewBox", `${mapView.x} ${mapView.y} ${mapView.w} ${mapView.h}`);
     applyPinScale();
+    hideMapGlowUntilSettled();
 
     const zoomInBtn  = document.getElementById("map-zoom-in");
     const zoomOutBtn = document.getElementById("map-zoom-out");
@@ -2054,8 +2072,14 @@
     container.innerHTML = `
       <div class="bg-surface border border-border rounded-app overflow-hidden mb-5">
         <svg viewBox="0 0 ${MAP_WIDTH} ${MAP_HEIGHT}" role="img" aria-label="World map of logged ${DISCIPLINE_LABEL[state.activeType].toLowerCase()} entries by country" class="w-full h-auto block touch-none cursor-grab">
+          <defs>
+            <filter id="border-glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="1.2"></feGaussianBlur>
+            </filter>
+          </defs>
           <path d="${GRATICULE_PATH}" class="stroke-border fill-none" stroke-width="0.5"></path>
           <path d="${WORLD_LAND_PATH}" class="fill-border stroke-none"></path>
+          <path d="${COUNTRY_BORDERS_PATH}" class="stroke-accent fill-none transition-opacity duration-200" stroke-width="0.8" opacity="0.2" filter="url(#border-glow)" id="map-border-glow"></path>
           <path d="${COUNTRY_BORDERS_PATH}" class="stroke-background fill-none" stroke-width="0.6" stroke-linejoin="round" stroke-linecap="round"></path>
           ${pins}
         </svg>
