@@ -1816,21 +1816,27 @@
     });
   }
 
-  // The border glow (an feGaussianBlur filter, see the SVG markup) measurably
-  // costs paint time on every repaint -- ~5ms/frame average, with spikes to
-  // 3x that, in direct rAF measurement -- because the browser has to
-  // re-blur a ~150-segment path on every viewBox change. Invisible normally,
-  // but drag-panning and wheel-zoom change the viewBox on every single
-  // frame, so paying that cost live would show up as real stutter. Hidden
-  // during any view change and faded back in once it's settled (debounced)
-  // gets the glow at rest, for free, without taxing the interaction itself.
+  // The border glow (feGaussianBlur + mask, see the SVG markup) measurably
+  // costs paint time on every repaint -- opacity:0 alone isn't enough to
+  // avoid it, since the browser still has to evaluate the mask's own
+  // stroked content and the blur before compositing the result away, so
+  // this needs display:none (which drops it from the render tree
+  // entirely) rather than an opacity fade during the drag/zoom itself.
+  // Re-shown (via a quick opacity fade back in, not an instant pop) once
+  // the view settles (debounced) -- full effect at rest, for free,
+  // without taxing the interaction that changes the viewBox every frame.
   let mapGlowSettleTimer = null;
   function hideMapGlowUntilSettled() {
     const glow = document.getElementById("map-border-glow");
     if (!glow) return;
-    glow.style.opacity = "0";
+    glow.style.display = "none";
     clearTimeout(mapGlowSettleTimer);
-    mapGlowSettleTimer = setTimeout(() => { glow.style.opacity = ""; }, 200);
+    mapGlowSettleTimer = setTimeout(() => {
+      glow.style.opacity = "0";
+      glow.style.display = "";
+      void glow.getBoundingClientRect(); // force layout so the browser registers opacity:0 before the transition below starts, or it'd just pop straight to visible instead of fading in
+      glow.style.opacity = "";
+    }, 200);
   }
 
   function applyMapView() {
@@ -2074,19 +2080,33 @@
         <svg viewBox="0 0 ${MAP_WIDTH} ${MAP_HEIGHT}" role="img" aria-label="World map of logged ${DISCIPLINE_LABEL[state.activeType].toLowerCase()} entries by country" class="w-full h-auto block touch-none cursor-grab">
           <defs>
             <filter id="border-glow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="0.9"></feGaussianBlur>
+              <feGaussianBlur stdDeviation="0.6"></feGaussianBlur>
             </filter>
+            <!-- Turns the border from a zero-width line into a real
+                 shape with its own area: an SVG mask (unlike clipPath)
+                 renders its children's actual stroke, using the result's
+                 luminance to decide what's visible through it. A white
+                 BORDER_STRIP_WIDTH-wide stroke here means "this strip,
+                 and nothing outside it" -- anything masked with this,
+                 however wide or blurred, gets hard-cut at exactly the
+                 strip's own edge instead of bleeding past it. -->
+            <mask id="border-strip-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="${MAP_WIDTH}" height="${MAP_HEIGHT}">
+              <path d="${COUNTRY_BORDERS_PATH}" stroke="white" fill="none" stroke-width="1.1" stroke-linejoin="round" stroke-linecap="round"></path>
+            </mask>
           </defs>
           <path d="${GRATICULE_PATH}" class="stroke-border fill-none" stroke-width="0.5"></path>
           <path d="${WORLD_LAND_PATH}" class="fill-border stroke-none"></path>
-          <!-- Crisp seam first (the border "beneath"), then the country-
-               colored glow drawn OVER it (the country's own fill, lit up
-               near its edge) -- painter's order puts the country's glow
-               on top of the line instead of the line on top of the
-               country, so the soft edge visually dominates the crisp one
-               underneath it rather than the other way around. -->
-          <path d="${COUNTRY_BORDERS_PATH}" class="stroke-background fill-none" stroke-width="0.6" stroke-linejoin="round" stroke-linecap="round"></path>
-          <path d="${COUNTRY_BORDERS_PATH}" class="stroke-[color-mix(in_srgb,var(--color-border)_45%,white_55%)] fill-none transition-opacity duration-200" stroke-width="1.1" opacity="0.7" stroke-linejoin="round" stroke-linecap="round" filter="url(#border-glow)" id="map-border-glow"></path>
+          <!-- The border strip itself (same width as the mask above,
+               country-colored so it reads as part of the land, not a
+               foreign line) -- this alone is what "the border" is now;
+               nothing decorates it from outside its own bounds. -->
+          <path d="${COUNTRY_BORDERS_PATH}" class="stroke-border fill-none" stroke-width="1.1" stroke-linejoin="round" stroke-linecap="round"></path>
+          <!-- A wider, blurred, lightened copy sits on top, masked back
+               down to the strip's exact bounds -- the blur wants to
+               spread further, but the mask cuts it off hard at the strip
+               edge, so the interior of the strip glows while zero light
+               escapes into the actual country fill on either side. -->
+          <path d="${COUNTRY_BORDERS_PATH}" class="stroke-[color-mix(in_srgb,var(--color-border)_40%,white_60%)] fill-none transition-opacity duration-200" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" filter="url(#border-glow)" mask="url(#border-strip-mask)" id="map-border-glow"></path>
           ${pins}
         </svg>
       </div>
