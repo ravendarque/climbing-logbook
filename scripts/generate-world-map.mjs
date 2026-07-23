@@ -21,11 +21,30 @@
  * would only trim a few KB while making the silhouette less recognizable
  * as "the world."
  *
+ * fitSize() is deliberately NOT run against the full landmass -- a
+ * handful of tiny polygons straddle the antimeridian (Fiji, split in two
+ * by the ±180° seam; Wrangel Island, Russia, likewise) and get projected
+ * to the extreme left/right edges of the frame. Naively fitting to
+ * everything lets those slivers -- worth a few barely-visible pixels --
+ * anchor the bounding box, wasting ~10% of scale and leaving real margins
+ * around the continents everyone actually looks at (reported as "dead
+ * space either side of the map," #17 follow-up). Fixed with the
+ * fit-to-core/render-everything pattern below: compute fitSize()'s
+ * scale/translate against a copy of the geometry with those antimeridian
+ * polygons removed, then render the ORIGINAL full geometry with that
+ * projection -- the excluded slivers just clip slightly outside the
+ * viewBox instead of dictating its scale, and nothing else is lost.
+ *
+ * MAP_HEIGHT is computed, not a fixed 500 -- probing the core geometry's
+ * own bounding aspect ratio (via a large square fitSize()) and matching
+ * MAP_WIDTH:MAP_HEIGHT to it means the core landmass touches all four
+ * edges with ~0 margin, instead of picking a height that happens to
+ * under- or over-shoot it.
+ *
  * digits(0) on the path (integer pixel coordinates, no sub-pixel
- * precision) keeps the generated path around 40KB instead of 55-65KB at
- * finer precision -- imperceptible at this element's rendered size, and
- * keeps the bundled dataset in the same "small, static" bracket as
- * COUNTRIES itself.
+ * precision) keeps the generated path small -- imperceptible at this
+ * element's rendered size, and keeps the bundled dataset in the same
+ * "small, static" bracket as COUNTRIES itself.
  *
  * COUNTRIES' name/flag/lat/lng and the Israel/Russia/Belarus exclusion are
  * regenerated here independently from world-countries rather than
@@ -45,7 +64,6 @@ import { feature } from "topojson-client";
 import landTopo from "world-atlas/land-110m.json" with { type: "json" };
 
 const MAP_WIDTH = 960;
-const MAP_HEIGHT = 500;
 
 const round1 = n => Math.round(n * 10) / 10;
 const round2 = n => Math.round(n * 100) / 100;
@@ -53,8 +71,26 @@ const round2 = n => Math.round(n * 100) / 100;
 const EXCLUDED_CCA2 = ["IL", "RU", "BY"]; // Israel, Russia, Belarus -- see generate-countries.mjs
 
 const landGeo = feature(landTopo, landTopo.objects.land);
-const projection = geoEqualEarth().fitSize([MAP_WIDTH, MAP_HEIGHT], landGeo);
-const worldLandPath = geoPath(projection).digits(0)(landGeo);
+
+// See the file header for why: excludes only-just-barely-visible polygons
+// split across the antimeridian (Fiji, Wrangel Island) from the fitSize()
+// calculation so they can't anchor its scale, without removing them from
+// what actually gets rendered.
+const ANTIMERIDIAN_MARGIN = 5; // degrees of longitude from ±180°
+const isAntimeridianSliver = polygon =>
+  polygon.every(ring => ring.every(([lng]) => Math.abs(Math.abs(lng) - 180) <= ANTIMERIDIAN_MARGIN));
+const corePolygons = landGeo.features[0].geometry.coordinates.filter(p => !isAntimeridianSliver(p));
+const coreLandGeo = { type: "Feature", geometry: { type: "MultiPolygon", coordinates: corePolygons } };
+
+// Probe the core geometry's own bounding aspect ratio (fit to an
+// arbitrary large square, independent of MAP_WIDTH) so MAP_HEIGHT can
+// match it -- see file header.
+const probeBounds = geoPath(geoEqualEarth().fitSize([10000, 10000], coreLandGeo)).bounds(coreLandGeo);
+const coreAspect = (probeBounds[1][0] - probeBounds[0][0]) / (probeBounds[1][1] - probeBounds[0][1]);
+const MAP_HEIGHT = Math.round(MAP_WIDTH / coreAspect);
+
+const projection = geoEqualEarth().fitSize([MAP_WIDTH, MAP_HEIGHT], coreLandGeo);
+const worldLandPath = geoPath(projection).digits(0)(landGeo); // full geometry, incl. the antimeridian slivers -- just not fit against them
 
 const list = countries
   .filter(c => !EXCLUDED_CCA2.includes(c.cca2))
