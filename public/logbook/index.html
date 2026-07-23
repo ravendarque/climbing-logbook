@@ -278,14 +278,40 @@
     <!-- World map (#17) -- always public, unlike Grade Pyramid. One pin per
          country with >=1 logged entry, positioned via each COUNTRIES
          entry's pre-projected x/y (see the COUNTRIES header comment above
-         for how those are generated). No pan/zoom/tile-fetching -- a fixed
-         SVG that works fully offline after first load, since the map data
-         is bundled inline rather than fetched. -->
+         for how those are generated). The landmass path and pin positions
+         are static/pre-projected (no tile fetching, works fully offline),
+         but the view itself is zoomable/pannable (#168) via plain SVG
+         viewBox math on that same static data -- no raster tiles, no
+         network calls added. Zoom/pan controls (buttons here, plus wheel/
+         drag wired up in JS) live outside #map-container since that div's
+         content is fully replaced on every renderMap() call -- these
+         persist across re-renders instead of being rebuilt each time. -->
     <div id="panel-map" role="tabpanel" aria-labelledby="view-tab-map" hidden>
-      <div id="map-container"></div>
+      <div class="relative" id="map-wrap">
+        <div id="map-container"></div>
+        <div class="absolute top-6 right-6 max-[480px]:top-3 max-[480px]:right-3 flex flex-col gap-[.35rem] max-[480px]:gap-[.25rem]" id="map-zoom-controls" hidden>
+          <button type="button" class="w-8 h-8 max-[480px]:w-6 max-[480px]:h-6 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[1.1rem] max-[480px]:text-[.85rem] font-bold leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-zoom-in" aria-label="Zoom in">+</button>
+          <button type="button" class="w-8 h-8 max-[480px]:w-6 max-[480px]:h-6 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[1.1rem] max-[480px]:text-[.85rem] font-bold leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-zoom-out" aria-label="Zoom out">−</button>
+        </div>
+        <div class="absolute bottom-6 right-6 max-[480px]:bottom-3 max-[480px]:right-3 grid grid-cols-3 grid-rows-3 gap-[2px] w-[84px] h-[84px] max-[480px]:w-[64px] max-[480px]:h-[64px]" id="map-pan-controls" hidden>
+          <button type="button" class="col-start-2 row-start-1 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[.8rem] max-[480px]:text-[.65rem] leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-pan-up" aria-label="Pan up">▲</button>
+          <button type="button" class="col-start-1 row-start-2 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[.8rem] max-[480px]:text-[.65rem] leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-pan-left" aria-label="Pan left">◀</button>
+          <button type="button" class="col-start-3 row-start-2 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[.8rem] max-[480px]:text-[.65rem] leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-pan-right" aria-label="Pan right">▶</button>
+          <button type="button" class="col-start-2 row-start-3 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[.8rem] max-[480px]:text-[.65rem] leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-pan-down" aria-label="Pan down">▼</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
+
+<!-- ══ Map pin popover (#18) -- country breakdown by status, reusing the
+     same flash/send/project categories the subtitle stat line shows.
+     Positioned dynamically via @floating-ui/dom (vendored, see
+     scripts/vendor-floating-ui.mjs), anchored to whichever pin was
+     clicked -- lives outside #panel-map, at the top level, so its
+     position:fixed placement (set in JS) isn't affected by any ancestor
+     overflow/transform. ═══════════════════════════════════════════ -->
+<div class="fixed z-30 bg-background border border-border rounded-app p-3 shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)] text-[.85rem] max-w-[240px]" id="map-pin-popover" hidden role="group"></div>
 
 <!-- ══ Sources dialog (#12/#16) -- lists the real citations backing the
      coaching-heuristic claims above; never present those claims as
@@ -534,6 +560,7 @@
 <script type="module">
   import { STATUS_ICONS } from "./status-icons.js";
   import { escapeHtml } from "./escape-html.js";
+  import { computePosition, autoUpdate, offset, flip, shift } from "./floating-ui-dom.js";
 
   // ── Config ───────────────────────────────────────────────────────────
   const DATA_URL = "/logbook/api/logbook";
@@ -1677,7 +1704,195 @@
   // (Equal Earth, #6) at generation time -- see the COUNTRIES header
   // comment and scripts/generate-world-map.mjs -- so this only draws the
   // static path and positions pins, no projection math client-side.
+  //
+  // Zoom/pan (#168) is pure viewBox arithmetic on that same static SVG --
+  // still no tiles, no network calls, offline behavior unchanged from
+  // #17's original fixed-map design. mapView is deliberately a
+  // module-level variable that renderMap() never resets, so switching
+  // discipline or any other full re-render preserves whatever the user
+  // was zoomed/panned to instead of snapping back to the full extent.
+  const MAP_ASPECT = MAP_WIDTH / MAP_HEIGHT;
+  const MAP_MIN_W = MAP_WIDTH / 8; // max zoom-in: 8x
+  const MAP_VIEW_EPS = 0.01; // float slop for the button disabled-at-bounds checks below
+  let mapView = { x: 0, y: 0, w: MAP_WIDTH, h: MAP_HEIGHT };
+  let mapDrag = null; // { pointerId, lastClientX, lastClientY } while a drag is in progress
+
+  function getMapSvg() {
+    return document.querySelector("#map-container svg");
+  }
+
+  function clampMapView(view) {
+    const w = Math.min(MAP_WIDTH, Math.max(MAP_MIN_W, view.w));
+    const h = w / MAP_ASPECT;
+    const x = Math.min(MAP_WIDTH - w, Math.max(0, view.x));
+    const y = Math.min(MAP_HEIGHT - h, Math.max(0, view.y));
+    return { x, y, w, h };
+  }
+
+  function applyMapView() {
+    const svg = getMapSvg();
+    if (!svg) return;
+    svg.setAttribute("viewBox", `${mapView.x} ${mapView.y} ${mapView.w} ${mapView.h}`);
+
+    const zoomInBtn  = document.getElementById("map-zoom-in");
+    const zoomOutBtn = document.getElementById("map-zoom-out");
+    zoomInBtn.disabled  = mapView.w <= MAP_MIN_W + MAP_VIEW_EPS;
+    zoomOutBtn.disabled = mapView.w >= MAP_WIDTH - MAP_VIEW_EPS;
+
+    document.getElementById("map-pan-up").disabled    = mapView.y <= MAP_VIEW_EPS;
+    document.getElementById("map-pan-down").disabled  = mapView.y >= MAP_HEIGHT - mapView.h - MAP_VIEW_EPS;
+    document.getElementById("map-pan-left").disabled  = mapView.x <= MAP_VIEW_EPS;
+    document.getElementById("map-pan-right").disabled = mapView.x >= MAP_WIDTH - mapView.w - MAP_VIEW_EPS;
+  }
+
+  function setMapView(view) {
+    mapView = clampMapView(view);
+    applyMapView();
+    closePinPopover();
+  }
+
+  function zoomMapBy(factor, cx, cy) {
+    if (cx === undefined) cx = mapView.x + mapView.w / 2;
+    if (cy === undefined) cy = mapView.y + mapView.h / 2;
+    // Keeps (cx, cy) fixed in place on screen while the view scales around
+    // it -- centered zoom for the buttons (cx/cy omitted), cursor-anchored
+    // zoom for the wheel (cx/cy = pointer position), same as any map UI.
+    const relX = (cx - mapView.x) / mapView.w;
+    const relY = (cy - mapView.y) / mapView.h;
+    const newW = mapView.w / factor;
+    const newH = newW / MAP_ASPECT;
+    setMapView({ x: cx - relX * newW, y: cy - relY * newH, w: newW, h: newH });
+  }
+
+  function panMapBy(dx, dy) {
+    setMapView({ ...mapView, x: mapView.x + dx, y: mapView.y + dy });
+  }
+
+  // Client-pixel <-> viewBox-user-space conversions, both needed because
+  // the map scales with its container (w-full h-auto) and the ratio
+  // between rendered pixels and user-space units changes with both
+  // viewport width and the current zoom level.
+  function mapClientDeltaToUserSpace(svg, dxClient, dyClient) {
+    const rect = svg.getBoundingClientRect();
+    return { dx: (dxClient / rect.width) * mapView.w, dy: (dyClient / rect.height) * mapView.h };
+  }
+  function mapClientPointToUserSpace(svg, clientX, clientY) {
+    const rect = svg.getBoundingClientRect();
+    return {
+      x: mapView.x + ((clientX - rect.left) / rect.width) * mapView.w,
+      y: mapView.y + ((clientY - rect.top) / rect.height) * mapView.h,
+    };
+  }
+
+  function endMapDrag(e) {
+    if (!mapDrag || e.pointerId !== mapDrag.pointerId) return;
+    mapDrag = null;
+    const svg = getMapSvg();
+    if (svg) { svg.classList.remove("cursor-grabbing"); svg.classList.add("cursor-grab"); }
+  }
+  // Bound once at module scope, not inside renderMap() -- a drag can
+  // legitimately move the pointer outside the SVG's bounds mid-gesture,
+  // so these have to listen on the document rather than the (regularly
+  // recreated) SVG element itself.
+  document.addEventListener("pointermove", e => {
+    if (!mapDrag || e.pointerId !== mapDrag.pointerId) return;
+    const svg = getMapSvg();
+    if (!svg) return;
+    const { dx, dy } = mapClientDeltaToUserSpace(svg, e.clientX - mapDrag.lastClientX, e.clientY - mapDrag.lastClientY);
+    mapDrag.lastClientX = e.clientX;
+    mapDrag.lastClientY = e.clientY;
+    panMapBy(-dx, -dy);
+  });
+  document.addEventListener("pointerup", endMapDrag);
+  document.addEventListener("pointercancel", endMapDrag);
+
+  document.getElementById("map-zoom-in").addEventListener("click", () => zoomMapBy(1.6));
+  document.getElementById("map-zoom-out").addEventListener("click", () => zoomMapBy(1 / 1.6));
+  document.getElementById("map-pan-up").addEventListener("click", () => panMapBy(0, -mapView.h * 0.25));
+  document.getElementById("map-pan-down").addEventListener("click", () => panMapBy(0, mapView.h * 0.25));
+  document.getElementById("map-pan-left").addEventListener("click", () => panMapBy(-mapView.w * 0.25, 0));
+  document.getElementById("map-pan-right").addEventListener("click", () => panMapBy(mapView.w * 0.25, 0));
+
+  // ── World map: pin popover (#18) ──────────────────────────────────────
+  // Reuses the exact same flash/send/project categories the subtitle stat
+  // line shows (flashLabel/sendLabel included), just scoped to one
+  // country instead of every logged entry.
+  function countryStatusBreakdown(countryName) {
+    const entries = ALL_ENTRIES.filter(e => e.type === state.activeType && entryLocation(e).country === countryName);
+    return {
+      flashes:  entries.filter(e => e.status === "send" && e.firstAttempt).length,
+      sends:    entries.filter(e => e.status === "send" && !e.firstAttempt).length,
+      projects: entries.filter(e => e.status === "project").length,
+    };
+  }
+
+  function renderPinPopoverContent(countryName) {
+    const c = COUNTRY_BY_NAME[countryName];
+    const { flashes, sends, projects } = countryStatusBreakdown(countryName);
+    const stat = (n, singular, plural) =>
+      `<span class="text-foreground font-semibold">${n}</span> <span class="text-muted">${n === 1 ? singular : plural}</span>`;
+    return `
+      <div class="flex items-center justify-between gap-3 mb-[.4rem]">
+        <span class="font-semibold text-foreground flex items-center gap-[.35rem]">
+          ${c ? `<span role="img" aria-label="${escapeHtml(c.name)}">${escapeHtml(c.flag)}</span>` : ""}
+          ${escapeHtml(countryName)}
+        </span>
+        <button type="button" class="bg-transparent border-0 text-muted cursor-pointer p-0 leading-none text-[1rem] hover:text-foreground" id="map-pin-popover-close" aria-label="Close">✕</button>
+      </div>
+      <div class="text-[.82rem] leading-[1.6] whitespace-nowrap">${[
+        stat(flashes, flashLabel(state.activeType), flashLabel(state.activeType, true)),
+        stat(sends, sendLabel(state.activeType), sendLabel(state.activeType, true)),
+        stat(projects, "Project", "Projects"),
+      ].join(`<span class="text-muted"> · </span>`)}</div>`;
+  }
+
+  let pinPopoverCleanup = null; // floating-ui autoUpdate teardown for the currently-open popover, if any
+  let activePinCountry = null;
+
+  function openPinPopover(pinEl, countryName) {
+    const popover = document.getElementById("map-pin-popover");
+    activePinCountry = countryName;
+    popover.innerHTML = renderPinPopoverContent(countryName);
+    popover.hidden = false;
+    document.getElementById("map-pin-popover-close").addEventListener("click", closePinPopover);
+
+    if (pinPopoverCleanup) pinPopoverCleanup();
+    pinPopoverCleanup = autoUpdate(pinEl, popover, () => {
+      computePosition(pinEl, popover, {
+        strategy: "fixed",
+        placement: "top",
+        middleware: [offset(10), flip(), shift({ padding: 8 })],
+      }).then(({ x, y }) => {
+        Object.assign(popover.style, { left: `${x}px`, top: `${y}px` });
+      });
+    });
+  }
+
+  function closePinPopover() {
+    if (!activePinCountry) return;
+    activePinCountry = null;
+    document.getElementById("map-pin-popover").hidden = true;
+    if (pinPopoverCleanup) { pinPopoverCleanup(); pinPopoverCleanup = null; }
+  }
+
+  function togglePinPopover(pinEl) {
+    const country = pinEl.dataset.pinCountry;
+    if (activePinCountry === country) closePinPopover();
+    else openPinPopover(pinEl, country);
+  }
+
+  document.addEventListener("click", e => {
+    if (activePinCountry && !e.target.closest("#map-pin-popover") && !e.target.closest("[data-pin-country]")) {
+      closePinPopover();
+    }
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && activePinCountry) closePinPopover();
+  });
+
   function renderMap() {
+    closePinPopover();
+
     const typeEntries = ALL_ENTRIES.filter(e => e.type === state.activeType);
 
     const countsByCountry = new Map();
@@ -1688,11 +1903,18 @@
     }
 
     const container = document.getElementById("map-container");
+    const zoomControls = document.getElementById("map-zoom-controls");
+    const panControls = document.getElementById("map-pan-controls");
 
     if (countsByCountry.size === 0) {
       container.innerHTML = `<p class="text-[.9rem] text-muted">No ${DISCIPLINE_LABEL[state.activeType]} entries logged yet -- log one to see it on the map.</p>`;
+      zoomControls.hidden = true;
+      panControls.hidden = true;
       return;
     }
+
+    zoomControls.hidden = false;
+    panControls.hidden = false;
 
     const pinnedCountries = COUNTRIES.filter(c => countsByCountry.has(c.name));
 
@@ -1700,7 +1922,7 @@
       const count = countsByCountry.get(c.name);
       const label = `${c.name}: ${count} ${count === 1 ? "entry" : "entries"}`;
       return `
-        <g>
+        <g class="cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" role="button" tabindex="0" data-pin-country="${escapeHtml(c.name)}" aria-label="${escapeHtml(label)}">
           <title>${escapeHtml(label)}</title>
           <circle cx="${c.x}" cy="${c.y}" r="9" class="fill-accent stroke-background" stroke-width="1.5"></circle>
           <text x="${c.x}" y="${c.y}" text-anchor="middle" dominant-baseline="central" class="fill-accent-foreground text-[9px] font-bold select-none">${count}</text>
@@ -1717,12 +1939,40 @@
 
     container.innerHTML = `
       <div class="bg-surface border border-border rounded-app p-3 mb-5">
-        <svg viewBox="0 0 ${MAP_WIDTH} ${MAP_HEIGHT}" role="img" aria-label="World map of logged ${DISCIPLINE_LABEL[state.activeType].toLowerCase()} entries by country" class="w-full h-auto">
+        <svg viewBox="0 0 ${MAP_WIDTH} ${MAP_HEIGHT}" role="img" aria-label="World map of logged ${DISCIPLINE_LABEL[state.activeType].toLowerCase()} entries by country" class="w-full h-auto touch-none cursor-grab">
           <path d="${WORLD_LAND_PATH}" class="fill-border stroke-none"></path>
           ${pins}
         </svg>
       </div>
       <ul class="sr-only">${srList}</ul>`;
+
+    // Re-bound every call since container.innerHTML above just replaced
+    // the SVG element outright -- unlike the static zoom/pan buttons and
+    // the document-level drag listeners above, this element genuinely
+    // doesn't survive a re-render.
+    const svg = getMapSvg();
+    svg.addEventListener("pointerdown", e => {
+      if (e.button !== 0) return;
+      // Starting a drag here would call setPointerCapture, which
+      // retargets the pointer's later mouseup/click to the SVG itself --
+      // that silently ate every pin click (the click handler's
+      // e.target.closest("[data-pin-country]") never matched, since
+      // e.target was the SVG, not the pin) until this check was added.
+      // Skipping capture when the press starts on a pin lets that click
+      // reach the pin-popover handler instead of beginning a map drag.
+      if (e.target.closest("[data-pin-country]")) return;
+      svg.setPointerCapture(e.pointerId);
+      mapDrag = { pointerId: e.pointerId, lastClientX: e.clientX, lastClientY: e.clientY };
+      svg.classList.remove("cursor-grab");
+      svg.classList.add("cursor-grabbing");
+    });
+    svg.addEventListener("wheel", e => {
+      e.preventDefault();
+      const { x, y } = mapClientPointToUserSpace(svg, e.clientX, e.clientY);
+      zoomMapBy(e.deltaY < 0 ? 1.2 : 1 / 1.2, x, y);
+    }, { passive: false });
+
+    applyMapView();
   }
 
   // ── Theme toggle (light/dark) ─────────────────────────────────────────
@@ -1847,6 +2097,7 @@
     panelLogbook.hidden = view !== "logbook";
     panelPyramid.hidden = view !== "pyramid";
     panelMap.hidden = view !== "map";
+    if (view !== "map") closePinPopover();
     if (view === "pyramid") renderPyramid();
     if (view === "map") renderMap();
   }
@@ -2806,6 +3057,13 @@
       toggleCollapse(header);
       return;
     }
+
+    // Map pin (#18)
+    const pin = e.target.closest("[data-pin-country]");
+    if (pin) {
+      togglePinPopover(pin);
+      return;
+    }
   });
 
   // Status filter (multi-select checkboxes) -- change, not click, since
@@ -2835,6 +3093,13 @@
     if (header) {
       e.preventDefault();
       toggleCollapse(header);
+      return;
+    }
+
+    const pin = e.target.closest?.("[data-pin-country]");
+    if (pin) {
+      e.preventDefault();
+      togglePinPopover(pin);
     }
   });
 
