@@ -1760,13 +1760,29 @@
   const PIN_BASE_STROKE = 1.5;
   const PIN_BASE_FONT = 9;
 
-  // Default view: full height, horizontally centered, width set by the
-  // current viewport aspect (see above).
+  // Default view: full height, width set by the current viewport aspect
+  // (see above), horizontally centered on the current discipline's own
+  // pinned countries rather than the world's geometric center (~longitude
+  // 0) -- renderMap() keeps pinnedXCenter up to date with whichever
+  // countries are actually pinned, so a user whose climbing is all in,
+  // say, Southeast Asia sees that region by default instead of landing on
+  // Europe/Africa and having to pan there themselves. Falls back to the
+  // world center before any data has loaded (or if nothing's pinned).
+  let pinnedXCenter = null;
   function defaultMapView() {
     const w = mapMaxW();
-    return { x: (MAP_WIDTH - w) / 2, y: 0, w, h: w / mapViewportAspect() };
+    const centerX = pinnedXCenter ?? MAP_WIDTH / 2;
+    const x = Math.min(MAP_WIDTH - w, Math.max(0, centerX - w / 2));
+    return { x, y: 0, w, h: w / mapViewportAspect() };
   }
   let mapView = defaultMapView();
+  // Sticks at false until the user's first real zoom/pan (see
+  // setMapView) -- renderMap() re-centers on the current pins every time
+  // while this is still false (so switching discipline before ever
+  // touching the map re-centers on that discipline's own pins too), then
+  // leaves mapView alone once the user's taken control, consistent with
+  // the "never reset on re-render" behavior described above.
+  let mapUserHasInteracted = false;
   let mapDrag = null; // { pointerId, lastClientX, lastClientY } while a drag is in progress
 
   function getMapSvg() {
@@ -1810,6 +1826,7 @@
   }
 
   function setMapView(view) {
+    mapUserHasInteracted = true;
     mapView = clampMapView(view);
     applyMapView();
     closePinPopover();
@@ -1998,6 +2015,14 @@
     panControls.hidden = false;
 
     const pinnedCountries = COUNTRIES.filter(c => countsByCountry.has(c.name));
+
+    // Bounding-box midpoint of the pinned countries' x positions, not a
+    // mean -- robust to one place having far more entries than another,
+    // and matches "center the spread of your pins" rather than being
+    // skewed toward wherever you've logged the most.
+    const pinnedXs = pinnedCountries.map(c => c.x);
+    pinnedXCenter = (Math.min(...pinnedXs) + Math.max(...pinnedXs)) / 2;
+    if (!mapUserHasInteracted) mapView = defaultMapView();
 
     const pins = pinnedCountries.map(c => {
       const count = countsByCountry.get(c.name);
