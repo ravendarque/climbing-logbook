@@ -1,13 +1,24 @@
 /**
  * Regenerates the world-map static data embedded in public/logbook/index.html
- * (#17, part of the #6 map epic): a single SVG path for the world's
- * landmasses, plus a projected {x, y} pixel position for every country in
- * COUNTRIES (#153), both pre-computed here in Node via d3-geo/topojson-client
- * rather than shipped to the browser -- this app has no JS bundler
- * (docs/app-architecture.md), and neither library is meant for a bare
- * <script type="module"> import, so the projection math runs once at
- * generation time and only its static output ships. Equal Earth, not
- * Mercator -- deliberate per #6.
+ * (#17, part of the #6 map epic): SVG paths for the world's landmasses,
+ * internal country borders, and a lat/long graticule, plus a projected
+ * {x, y} pixel position for every country in COUNTRIES (#153), all
+ * pre-computed here in Node via d3-geo/topojson-client rather than shipped
+ * to the browser -- this app has no JS bundler (docs/app-architecture.md),
+ * and neither library is meant for a bare <script type="module"> import, so
+ * the projection math runs once at generation time and only its static
+ * output ships. Equal Earth, not Mercator -- deliberate per #6.
+ *
+ * Source data is countries-110m.json, not the plain land-110m.json used
+ * before -- it bundles both a `land` object (the merged coastline, same
+ * role as before) and a `countries` object (177 individual country
+ * polygons, topologically consistent with `land` since they're arcs from
+ * the same file) needed for the border mesh below. Country borders are
+ * topojson's mesh(topology, countries, (a, b) => a !== b) -- the standard
+ * technique for isolating shared edges between two *different* countries
+ * from the full topology, which excludes coastline arcs (only bordered by
+ * one country + ocean) for free rather than needing a separate pass to
+ * strip them back out.
  *
  * Like generate-countries.mjs, this prints to stdout rather than writing
  * index.html directly -- paste the constants in manually, replacing the
@@ -55,22 +66,32 @@
  * truth to update, this script just needs re-running afterward to keep
  * x/y in sync.
  *
+ * The graticule (lat/long reference grid) is d3-geo's own geoGraticule(),
+ * not sourced from world-atlas -- it's pure math (meridians/parallels at a
+ * fixed step), no data file needed. 20° step rather than the 10° default:
+ * dense enough to read as a grid, coarse enough to stay a quiet background
+ * detail rather than competing with the country borders for attention at
+ * this element's small rendered size.
+ *
  * Usage: node scripts/generate-world-map.mjs > /tmp/world-map.js
  */
 
 import countries from "world-countries";
-import { geoEqualEarth, geoPath } from "d3-geo";
-import { feature } from "topojson-client";
-import landTopo from "world-atlas/land-110m.json" with { type: "json" };
+import { geoEqualEarth, geoPath, geoGraticule } from "d3-geo";
+import { feature, mesh } from "topojson-client";
+import countriesTopo from "world-atlas/countries-110m.json" with { type: "json" };
 
 const MAP_WIDTH = 960;
+const GRATICULE_STEP = 20; // degrees
 
 const round1 = n => Math.round(n * 10) / 10;
 const round2 = n => Math.round(n * 100) / 100;
 
 const EXCLUDED_CCA2 = ["IL", "RU", "BY"]; // Israel, Russia, Belarus -- see generate-countries.mjs
 
-const landGeo = feature(landTopo, landTopo.objects.land);
+const landGeo = feature(countriesTopo, countriesTopo.objects.land);
+const bordersGeo = mesh(countriesTopo, countriesTopo.objects.countries, (a, b) => a !== b);
+const graticuleGeo = geoGraticule().step([GRATICULE_STEP, GRATICULE_STEP])();
 
 // See the file header for why: excludes only-just-barely-visible polygons
 // split across the antimeridian (Fiji, Wrangel Island) from the fitSize()
@@ -90,7 +111,10 @@ const coreAspect = (probeBounds[1][0] - probeBounds[0][0]) / (probeBounds[1][1] 
 const MAP_HEIGHT = Math.round(MAP_WIDTH / coreAspect);
 
 const projection = geoEqualEarth().fitSize([MAP_WIDTH, MAP_HEIGHT], coreLandGeo);
-const worldLandPath = geoPath(projection).digits(0)(landGeo); // full geometry, incl. the antimeridian slivers -- just not fit against them
+const path = geoPath(projection).digits(0);
+const worldLandPath = path(landGeo); // full geometry, incl. the antimeridian slivers -- just not fit against them
+const countryBordersPath = path(bordersGeo);
+const graticulePath = path(graticuleGeo);
 
 const list = countries
   .filter(c => !EXCLUDED_CCA2.includes(c.cca2))
@@ -108,4 +132,6 @@ const countryLines = list.map(c =>
 console.log(`  const MAP_WIDTH = ${MAP_WIDTH};`);
 console.log(`  const MAP_HEIGHT = ${MAP_HEIGHT};`);
 console.log(`  const WORLD_LAND_PATH = ${JSON.stringify(worldLandPath)};`);
+console.log(`  const COUNTRY_BORDERS_PATH = ${JSON.stringify(countryBordersPath)};`);
+console.log(`  const GRATICULE_PATH = ${JSON.stringify(graticulePath)};`);
 console.log(`  const COUNTRIES = [\n${countryLines.join("\n")}\n  ];`);
