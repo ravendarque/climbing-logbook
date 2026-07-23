@@ -2044,8 +2044,8 @@
     ).join("");
 
     container.innerHTML = `
-      <div class="bg-surface border border-border rounded-app p-3 mb-5">
-        <svg viewBox="0 0 ${MAP_WIDTH} ${MAP_HEIGHT}" role="img" aria-label="World map of logged ${DISCIPLINE_LABEL[state.activeType].toLowerCase()} entries by country" class="w-full h-auto touch-none cursor-grab">
+      <div class="bg-surface border border-border rounded-app overflow-hidden mb-5">
+        <svg viewBox="0 0 ${MAP_WIDTH} ${MAP_HEIGHT}" role="img" aria-label="World map of logged ${DISCIPLINE_LABEL[state.activeType].toLowerCase()} entries by country" class="w-full h-auto block touch-none cursor-grab">
           <path d="${WORLD_LAND_PATH}" class="fill-border stroke-none"></path>
           ${pins}
         </svg>
