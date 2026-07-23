@@ -93,6 +93,15 @@ const landGeo = feature(countriesTopo, countriesTopo.objects.land);
 const bordersGeo = mesh(countriesTopo, countriesTopo.objects.countries, (a, b) => a !== b);
 const graticuleGeo = geoGraticule().step([GRATICULE_STEP, GRATICULE_STEP])();
 
+// geoGraticule() only draws one line for the ±180° meridian (correct on a
+// sphere -- -180° and +180° are the same line), naming it -180. On this
+// flat, antimeridian-crossing map that seam needs to render on BOTH
+// edges, not just whichever one -180 happens to land on -- otherwise the
+// other edge is left with no meridian line at all. Mirror the existing
+// -180 line at +180 so both sides get one.
+const westMeridian = graticuleGeo.coordinates.find(line => line[0][0] === -180);
+graticuleGeo.coordinates.push(westMeridian.map(([, lat]) => [180, lat]));
+
 // See the file header for why: excludes only-just-barely-visible polygons
 // split across the antimeridian (Fiji, Wrangel Island) from the fitSize()
 // calculation so they can't anchor its scale, without removing them from
