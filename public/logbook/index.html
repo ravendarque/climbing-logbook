@@ -178,25 +178,25 @@
     <h1 class="font-display font-normal uppercase tracking-wide text-[3rem] leading-none mb-[.3rem] max-[600px]:text-[2.25rem]"><span class="text-accent">Climbing</span> <span class="text-foreground">Logbook</span></h1>
     <p class="text-[1.05rem] text-muted mb-4">Log your climbs, visualise your progress (<button type="button" class="inline bg-transparent border-0 p-0 cursor-pointer text-accent no-underline hover:underline" id="footnote-trigger">or not</button>).</p>
 
-    <!-- Logbook/Grade Pyramid tabs (#110, #151). Logbook is always public.
-         Grade Pyramid (a performance-reporting tab) requires BOTH being
-         logged in AND Athlete Mode on -- Athlete Mode alone isn't enough
-         since it's a publicly-readable setting (a logged-out visitor could
-         otherwise see it if the owner has it toggled on for themselves).
-         The tab bar itself only shows once 2+ tabs are actually visible --
-         no point showing a single-tab bar (a Map tab, also always public,
-         is planned next, which will keep the bar visible even when
-         Pyramid is hidden). Replaces the old per-discipline #95 type-tabs
-         entirely; discipline selection now lives in the header picker
-         above and applies to all tabs. -->
+    <!-- Logbook/Map/Grade Pyramid tabs (#110, #151, #17). Public tabs
+         first (Logbook, Map), then private/gated ones (Grade Pyramid, and
+         any future Athlete-Mode-gated tabs). Grade Pyramid (a
+         performance-reporting tab) requires BOTH being logged in AND
+         Athlete Mode on -- Athlete Mode alone isn't enough since it's a
+         publicly-readable setting (a logged-out visitor could otherwise
+         see it if the owner has it toggled on for themselves). The tab
+         bar itself only shows once 2+ tabs are actually visible -- with
+         Map always public, that's permanently true now, so the bar stays
+         visible even when Pyramid is hidden. Replaces the old
+         per-discipline #95 type-tabs entirely; discipline selection now
+         lives in the header picker above and applies to all tabs. -->
     <div class="flex gap-5 mb-5" id="view-tabs" role="tablist" aria-label="View" hidden>
       <button type="button" class="bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer whitespace-nowrap text-[.95rem] font-semibold text-muted pb-2 border-b-2 border-transparent transition-colors duration-150 hover:text-foreground aria-selected:text-foreground aria-selected:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" id="view-tab-logbook" role="tab" data-view="logbook" aria-selected="true" aria-controls="panel-logbook">Logbook</button>
+      <button type="button" class="bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer whitespace-nowrap text-[.95rem] font-semibold text-muted pb-2 border-b-2 border-transparent transition-colors duration-150 hover:text-foreground aria-selected:text-foreground aria-selected:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" id="view-tab-map" role="tab" data-view="map" aria-selected="false" aria-controls="panel-map">Map</button>
       <button type="button" class="bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer whitespace-nowrap text-[.95rem] font-semibold text-muted pb-2 border-b-2 border-transparent transition-colors duration-150 hover:text-foreground aria-selected:text-foreground aria-selected:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" id="view-tab-pyramid" role="tab" data-view="pyramid" aria-selected="false" aria-controls="panel-pyramid" hidden>Grade Pyramid</button>
     </div>
 
     <div id="panel-logbook" role="tabpanel" aria-labelledby="view-tab-logbook">
-    <p class="text-[.95rem] mb-4" id="subtitle"></p>
-
     <div class="flex flex-wrap items-center gap-3 mb-6">
       <input class="flex-[0_1_220px] min-w-[140px] bg-surface border border-border rounded-app px-[.85rem] py-[.4rem] text-foreground text-[.9rem] outline-none placeholder:text-muted focus:border-accent" id="search" placeholder="Search problems…" autocomplete="off">
       <div class="filter-wrap relative ml-auto">
@@ -251,6 +251,50 @@
     <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>
     </div>
 
+    <!-- World map (#17) -- always public, unlike Grade Pyramid. One pin per
+         country with >=1 logged entry, positioned via each COUNTRIES
+         entry's pre-projected x/y (see the COUNTRIES header comment above
+         for how those are generated). The landmass path and pin positions
+         are static/pre-projected (no tile fetching, works fully offline),
+         but the view itself is zoomable/pannable (#168) via plain SVG
+         viewBox math on that same static data -- no raster tiles, no
+         network calls added. Zoom/pan controls (buttons here, plus wheel/
+         drag wired up in JS) live outside #map-container since that div's
+         content is fully replaced on every renderMap() call -- these
+         persist across re-renders instead of being rebuilt each time. -->
+    <div id="panel-map" role="tabpanel" aria-labelledby="view-tab-map" hidden>
+      <p class="text-[.95rem] mb-4" id="subtitle"></p>
+      <div class="relative" id="map-wrap">
+        <div id="map-container"></div>
+        <!-- #169: which of the 3 Equal Earth central-meridian variants is
+             loaded/shown -- always visible (not part of #map-container's
+             innerHTML swaps, and not gated by the zoom/pan controls'
+             hidden toggling) so it stays available to switch away from
+             even while a variant is loading or failed to load. -->
+        <div class="absolute top-6 left-6 max-[480px]:top-3 max-[480px]:left-3" id="map-variant-picker">
+          <select class="bg-surface border border-border rounded-app px-[.6rem] py-[.35rem] max-[480px]:px-[.4rem] max-[480px]:py-[.25rem] text-foreground text-[.82rem] max-[480px]:text-[.7rem] outline-none cursor-pointer hover:border-accent focus:border-accent" id="map-variant-select" aria-label="Map projection">
+            <option value="greenwich">Greenwich</option>
+            <option value="americas">Americas</option>
+            <option value="oceania">Oceania</option>
+          </select>
+        </div>
+        <div class="absolute top-6 right-6 max-[480px]:top-3 max-[480px]:right-3 flex flex-col gap-[.35rem] max-[480px]:gap-[.25rem]" id="map-zoom-controls" hidden>
+          <button type="button" class="w-8 h-8 max-[480px]:w-6 max-[480px]:h-6 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[1.1rem] max-[480px]:text-[.85rem] font-bold leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-zoom-in" aria-label="Zoom in">+</button>
+          <button type="button" class="w-8 h-8 max-[480px]:w-6 max-[480px]:h-6 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[1.1rem] max-[480px]:text-[.85rem] font-bold leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-zoom-out" aria-label="Zoom out">−</button>
+        </div>
+        <div class="absolute bottom-6 right-6 max-[480px]:bottom-3 max-[480px]:right-3 grid grid-cols-3 grid-rows-3 gap-[2px] w-[84px] h-[84px] max-[480px]:w-[64px] max-[480px]:h-[64px]" id="map-pan-controls" hidden>
+          <button type="button" class="col-start-2 row-start-1 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[.8rem] max-[480px]:text-[.65rem] leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-pan-up" aria-label="Pan up">▲</button>
+          <button type="button" class="col-start-1 row-start-2 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[.8rem] max-[480px]:text-[.65rem] leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-pan-left" aria-label="Pan left">◀</button>
+          <button type="button" class="col-start-3 row-start-2 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[.8rem] max-[480px]:text-[.65rem] leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-pan-right" aria-label="Pan right">▶</button>
+          <button type="button" class="col-start-2 row-start-3 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[.8rem] max-[480px]:text-[.65rem] leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-pan-down" aria-label="Pan down">▼</button>
+        </div>
+      </div>
+      <!-- Static -- unlike #map-container, never touched by renderMap()'s
+           re-renders, so it doesn't need rebuilding on every discipline
+           switch. -->
+      <p class="text-[.78rem] text-muted leading-[1.6] mt-3">This map uses the <a class="text-accent" href="https://equal-earth.com/equal-earth-projection.html" target="_blank" rel="noopener">Equal Earth projection ↗</a> instead of the more common Mercator, which inflates countries near the poles (mostly the Global North) while shrinking those near the equator (mostly the Global South) — Greenland, for instance, appears larger than Africa on Mercator despite being 14 times smaller. Equal Earth is equal-area throughout, so every country's size on the map reflects its true relative size. Powered by <a class="text-accent" href="https://d3js.org/d3-geo" target="_blank" rel="noopener">d3-geo ↗</a>, a free library for exactly this kind of thing.</p>
+    </div>
+
     <!-- Grade Pyramid (#12) -- only reachable via the view-tabs above, so
          only ever visible to the logged-in owner with Athlete Mode on
          (#151). Evidence-tier chips (#16)
@@ -275,6 +319,15 @@
     </div>
   </div>
 </div>
+
+<!-- ══ Map pin popover (#18) -- country breakdown by status, reusing the
+     same flash/send/project categories the subtitle stat line shows.
+     Positioned dynamically via @floating-ui/dom (vendored, see
+     scripts/vendor-floating-ui.mjs), anchored to whichever pin was
+     clicked -- lives outside #panel-map, at the top level, so its
+     position:fixed placement (set in JS) isn't affected by any ancestor
+     overflow/transform. ═══════════════════════════════════════════ -->
+<div class="fixed z-30 bg-background border border-border rounded-app p-3 shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)] text-[.85rem] max-w-[240px]" id="map-pin-popover" hidden role="group"></div>
 
 <!-- ══ Sources dialog (#12/#16) -- lists the real citations backing the
      coaching-heuristic claims above; never present those claims as
@@ -523,6 +576,7 @@
 <script type="module">
   import { STATUS_ICONS } from "./status-icons.js";
   import { escapeHtml } from "./escape-html.js";
+  import { computePosition, autoUpdate, offset, flip, shift } from "./floating-ui-dom.js";
 
   // ── Config ───────────────────────────────────────────────────────────
   const DATA_URL = "/logbook/api/logbook";
@@ -560,13 +614,13 @@
     return res.type === "opaqueredirect";
   }
 
-  // ── Country dataset (#153) ──────────────────────────────────────────
-  // Canonical world country list -- flag + geographic-center coordinates
-  // (the latter for the Map tab's per-country pins, #17). Bundled inline
-  // per the Connectivity Resilience standard (docs/coding-standards.md):
-  // small (~16KB), static, rarely-changing, so it belongs in the shipped
-  // app rather than a fetch-on-open. Regenerate via
-  // `node scripts/generate-countries.mjs` if it ever needs updating.
+  // ── Country dataset (#153) ────────────────────────────────────────────
+  // Canonical world country list -- flag + geographic-center coordinates.
+  // Bundled inline per the Connectivity Resilience standard
+  // (docs/coding-standards.md): small, static, rarely-changing, so it
+  // belongs in the shipped app rather than a fetch-on-open. Regenerate
+  // via `node scripts/generate-countries.mjs` if country metadata
+  // changes.
   //
   // Deliberate exclusions/inclusions, not incidental omissions: Israel,
   // Russia, and Belarus are excluded -- all three currently excluded from
@@ -580,6 +634,13 @@
   // entry, not England/Wales/Scotland as if they were separate countries,
   // which resolves that old edge case for free rather than needing
   // special-casing.
+  //
+  // Each country's map-projected {x, y} pin position is NOT here -- it
+  // varies per Equal Earth projection variant (#169: Greenwich/Americas/
+  // Oceania), so it lives in the per-variant world-map-<variant>.json
+  // files fetched on demand by the Map tab instead (see the "World map"
+  // section below), joined against this list by country name at render
+  // time for flag/label.
   const COUNTRIES = [
     { name: "Afghanistan", flag: "🇦🇫", lat: 33, lng: 65 },
     { name: "Åland Islands", flag: "🇦🇽", lat: 60.12, lng: 19.9 },
@@ -829,6 +890,7 @@
     { name: "Zambia", flag: "🇿🇲", lat: -15, lng: 30 },
     { name: "Zimbabwe", flag: "🇿🇼", lat: -20, lng: 30 },
   ];
+
   // Location.country stores the plain name only (a clean key into this
   // lookup) -- never a pre-formatted "flag + name" string that display
   // code would then have to re-parse apart via string splitting to get
@@ -957,7 +1019,7 @@
     activeType: "boulder",    // which discipline is selected -- set for real
                                // once ALL_ENTRIES loads (see boot()); "boulder"
                                // here is just a placeholder before that.
-    activeView: "logbook",    // "logbook" | "pyramid" -- "pyramid" only
+    activeView: "logbook",    // "logbook" | "pyramid" | "map" -- "pyramid" only
                                // switchable when logged in with Athlete
                                // Mode on (see #40, #110, #151).
     lowerGradesExpanded: false,
@@ -1320,6 +1382,7 @@
     updateAdminBar();
     updateCollapseAllBtn(entries);
     if (state.activeView === "pyramid") renderPyramid();
+    if (state.activeView === "map") renderMap();
   }
 
   function updateCollapseAllBtn(entries) {
@@ -1641,6 +1704,593 @@
     }
   }
 
+  // ── World map (#17, #169) ─────────────────────────────────────────────
+  // One pin per country with >=1 logged entry (not per-place), scoped to
+  // the active discipline like every other tab (the header discipline
+  // picker "applies to all tabs" -- see the view-tabs comment above).
+  //
+  // The world's landmass/border/graticule paths and each country's
+  // projected {x, y} pin position are pre-computed at generation time
+  // (Equal Earth, #6, via scripts/generate-world-map.mjs) -- this only
+  // draws the static path and positions pins, no projection math
+  // client-side. Zoom/pan (#168) is pure viewBox arithmetic on that same
+  // static SVG.
+  //
+  // #169: Equal Earth ships three official central-meridian variants --
+  // Greenwich, Americas (90degW), and Oceania (150degE), each recentring
+  // the map on a different part of the world (see the explainer text
+  // below the map). Unlike the country list above, these are NOT bundled
+  // inline -- shipping all three upfront (~80KB each) would nearly triple
+  // this file for two variants most visits never use. That's a
+  // deliberate, narrow exception to the Connectivity Resilience
+  // standard's "don't fetch on demand" rule (docs/coding-standards.md):
+  // the map is a nice-to-have never needed at the crag (#111's bad-signal
+  // concern is about logging climbs, not this), so it gets its own
+  // tradeoff -- fetch on demand, show real load progress so a slow
+  // connection is a visible, informed wait rather than a silent hang, and
+  // fail with a plain "you need to be online" message instead of
+  // pretending to work offline.
+  const MAP_WIDTH = 960; // fixed across all variants -- only height varies per variant, see generate-world-map.mjs
+
+  const MAP_VARIANTS = {
+    greenwich: { label: "Greenwich" },
+    americas: { label: "Americas" },
+    oceania: { label: "Oceania" },
+  };
+  // Each variant's exact UNCOMPRESSED byte size, printed by
+  // generate-world-map.mjs on every regeneration -- the client needs its
+  // own copy of this number because the response's Content-Length header
+  // isn't a usable source for it: any real browser fetch sends
+  // Accept-Encoding: gzip, and this server (both wrangler dev locally and
+  // Cloudflare's edge in production -- streaming gzip can't know its own
+  // compressed size upfront) responds Transfer-Encoding: chunked with no
+  // Content-Length at all once compression kicks in (confirmed via curl
+  // -H "Accept-Encoding: gzip"). What IS reliably available is the
+  // DEcompressed byte count fetchWithProgress's reader loop measures --
+  // fetch()'s body stream is always already-decompressed, browsers
+  // transparently undo Content-Encoding before JS ever sees the bytes --
+  // so comparing that running count against this known-upfront total
+  // gives a real percentage, with no header dependency at all.
+  const MAP_VARIANT_SIZES = {"greenwich":83027,"americas":82148,"oceania":82354};
+  const MAP_VARIANT_STORAGE_KEY = "mapProjectionVariant";
+
+  // Best-effort only -- picks a reasonable *default* the first time the
+  // map's opened; the user can always switch explicitly afterward, and
+  // that choice then persists (see getActiveMapVariant). Buckets the
+  // browser's current local UTC offset into whichever of the three
+  // central meridians (0deg/-90deg/150deg) is geographically closest,
+  // using today's actual offset (Date's own getTimezoneOffset, not a
+  // full IANA timezone->region table) so DST is naturally accounted for.
+  // Wrong for plenty of real timezones near the bucket edges -- fine,
+  // it's only ever a starting point.
+  function guessMapVariant() {
+    const offsetHours = -new Date().getTimezoneOffset() / 60;
+    if (offsetHours >= -3 && offsetHours < 5) return "greenwich";
+    if (offsetHours >= -10 && offsetHours < -3) return "americas";
+    return "oceania";
+  }
+
+  function getActiveMapVariant() {
+    const stored = localStorage.getItem(MAP_VARIANT_STORAGE_KEY);
+    return stored && MAP_VARIANTS[stored] ? stored : guessMapVariant();
+  }
+
+  function setActiveMapVariant(name) {
+    localStorage.setItem(MAP_VARIANT_STORAGE_KEY, name);
+    // Pixel coordinates from the old variant mean nothing under the new
+    // projection -- reset to the new variant's own default view instead
+    // of carrying over a viewBox that would point at the wrong part of
+    // the map (or land outside it entirely).
+    mapUserHasInteracted = false;
+    mapView = null;
+    renderMap();
+  }
+
+  const mapDataCache = new Map(); // variant name -> loaded {height, worldLandPath, countryBordersPath, graticulePath, pins, pinsByName}
+  const mapLoadingVariants = new Set(); // variant names with a fetch currently in flight
+  let mapData = null; // the active variant's loaded data, once available
+  let mapLoadProgress = null; // 0-1, or null while total size is unknown
+  let mapLoadError = null;
+
+  // Reads the response body as it streams in (rather than the simpler
+  // `res.json()`) so onProgress can report real bytes-loaded against the
+  // known total -- see MAP_VARIANT_SIZES for why that total has to be
+  // passed in rather than read off the response.
+  async function fetchWithProgress(url, total, onProgress) {
+    const res = await fetch(url);
+    if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+    const reader = res.body.getReader();
+    const chunks = [];
+    let loaded = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      loaded += value.length;
+      // Clamped, not just divided -- MAP_VARIANT_SIZES is a snapshot from
+      // whenever generate-world-map.mjs last ran, so a rounding quirk or
+      // stale value could in principle put loaded a byte or two past
+      // total before the stream itself reports done.
+      onProgress(total ? Math.min(1, loaded / total) : null);
+    }
+    return JSON.parse(await new Blob(chunks).text());
+  }
+
+  function updateMapLoadProgressUI(frac) {
+    mapLoadProgress = frac;
+    const bar = document.getElementById("map-load-progress-bar");
+    const label = document.getElementById("map-load-progress-label");
+    if (!bar || !label) return; // loading UI isn't the one currently painted
+    if (frac === null) {
+      // Only reachable if MAP_VARIANT_SIZES is ever missing an entry --
+      // every real variant has a known size, so this is a defensive
+      // fallback, not the expected path.
+      bar.style.width = "100%";
+      bar.classList.add("animate-pulse");
+      label.textContent = "Loading map…";
+      return;
+    }
+    bar.style.width = `${Math.round(frac * 100)}%`;
+    bar.classList.remove("animate-pulse");
+    label.textContent = `Loading map… ${Math.round(frac * 100)}%`;
+  }
+
+  // Kicks off (or joins) a variant's fetch without blocking the caller --
+  // renderMap() calls this and then immediately paints a loading/error
+  // state, re-rendering for real once the promise below settles. Guarded
+  // by mapLoadingVariants so switching tabs back and forth, or re-picking
+  // the same variant, never starts a second concurrent fetch for it.
+  function ensureMapVariantLoading(variant) {
+    if (mapLoadingVariants.has(variant)) return;
+    mapLoadingVariants.add(variant);
+    mapLoadError = null;
+    mapLoadProgress = null;
+    loadMapVariant(variant)
+      .then(() => {
+        mapLoadingVariants.delete(variant);
+        if (getActiveMapVariant() === variant && state.activeView === "map") renderMap();
+      })
+      .catch(err => {
+        mapLoadingVariants.delete(variant);
+        mapLoadError = err;
+        if (getActiveMapVariant() === variant && state.activeView === "map") renderMap();
+      });
+  }
+
+  async function loadMapVariant(name) {
+    if (mapDataCache.has(name)) return mapDataCache.get(name);
+    const data = await fetchWithProgress(`world-map-${name}.json`, MAP_VARIANT_SIZES[name] ?? 0, frac => {
+      // A background fetch for a variant the user's since switched away
+      // from shouldn't fight the currently-displayed one for the shared
+      // progress UI.
+      if (getActiveMapVariant() === name) updateMapLoadProgressUI(frac);
+    });
+    data.pinsByName = new Map(data.pins.map(p => [p.name, p]));
+    mapDataCache.set(name, data);
+    return data;
+  }
+
+  // Viewport aspect (#17 follow-up): showing the *entire* world by
+  // default means most of a typical user's actual pins (clustered in one
+  // region) render tiny, surrounded by ocean/continents nobody's ever
+  // climbed in, which read as dead space around the sides (especially
+  // pronounced on a narrow mobile viewport, where the rendered map is
+  // short as well as letterboxed). Instead the viewport keeps its own
+  // fixed aspect -- narrower/taller on narrow viewports, wider/shorter on
+  // wide ones, matching the app's existing 600px narrow/wide breakpoint
+  // (see the country-name-display comment elsewhere in this file) -- and
+  // the *default* (max zoomed-out) view shows the full vertical extent
+  // (pole to pole) but only a horizontal slice, centered, panned left/
+  // right to see the rest. This trades "see the whole world at once" for
+  // "see your own region at a readable size by default," which is the
+  // actually useful default for a personal climbing map.
+  const MAP_NARROW_ASPECT = 3 / 4; // width:height on narrow (<=600px) viewports -- taller than wide
+  const MAP_WIDE_ASPECT   = 4 / 3; // width:height on wide (>600px) viewports -- wider than tall, but still short of the full world's ~1.9:1
+  const mapNarrowQuery = window.matchMedia("(max-width: 600px)");
+  function mapViewportAspect() {
+    return mapNarrowQuery.matches ? MAP_NARROW_ASPECT : MAP_WIDE_ASPECT;
+  }
+  // The widest (shortest-zoomed) the viewport can ever go: full height
+  // (of the active variant) tall, however wide that makes it at the
+  // current aspect. Zooming out further would mean showing more than
+  // pole-to-pole vertically, which doesn't exist. Only callable once
+  // mapData has loaded -- every caller below is reachable only from the
+  // "loaded" render path or from interactions the loading/error states
+  // don't expose (the zoom/pan controls stay hidden until then).
+  function mapMaxW() {
+    return mapData.height * mapViewportAspect();
+  }
+  const MAP_MIN_W = MAP_WIDTH / 8; // max zoom-in: relative to the full world width, not the (smaller, aspect-dependent) default view
+  const MAP_VIEW_EPS = 0.01; // float slop for the button disabled-at-bounds checks below
+  // Pins are sized in the same user-space units as the map itself, so
+  // without correction they'd grow on screen as the viewBox shrinks while
+  // zooming in (same user-space radius, but now spanning a much bigger
+  // fraction of the same rendered width). These are each pin's radius/
+  // stroke/font at the default (max zoomed-out) view; applyPinScale()
+  // below rescales every pin by mapView.w / mapMaxW() on every zoom
+  // change so they stay a constant apparent size on screen.
+  const PIN_BASE_R = 9;
+  const PIN_BASE_STROKE = 1.5;
+  const PIN_BASE_FONT = 9;
+
+  // Default view: full height, width set by the current viewport aspect
+  // (see above), horizontally centered on the world (not on the current
+  // discipline's pinned countries -- tried that per #17/#169, but it
+  // meant every projection switch, and even a plain default load, could
+  // clamp hard to an edge depending on where your pins happened to land
+  // under that rotation, reading as a broken/panned map rather than
+  // "here's this projection." World-centered is simple and predictable
+  // regardless of your data or which variant is active.)
+  function defaultMapView() {
+    const w = mapMaxW();
+    const x = (MAP_WIDTH - w) / 2;
+    return { x, y: 0, w, h: w / mapViewportAspect() };
+  }
+  // Deliberately not initialized to defaultMapView() here -- that needs
+  // mapData.height, which isn't available until the active variant has
+  // loaded. renderMap() computes it lazily on first successful load (and
+  // again on every variant switch, see setActiveMapVariant).
+  let mapView = null;
+  // Sticks at false until the user's first real zoom/pan (see
+  // setMapView) -- renderMap() re-centers on the current pins every time
+  // while this is still false (so switching discipline before ever
+  // touching the map re-centers on that discipline's own pins too), then
+  // leaves mapView alone once the user's taken control, consistent with
+  // the "never reset on re-render" behavior described above.
+  let mapUserHasInteracted = false;
+  let mapDrag = null; // { pointerId, lastClientX, lastClientY } while a drag is in progress
+
+  function getMapSvg() {
+    return document.querySelector("#map-container svg");
+  }
+
+  function clampMapView(view) {
+    const w = Math.min(mapMaxW(), Math.max(MAP_MIN_W, view.w));
+    const h = w / mapViewportAspect();
+    const x = Math.min(MAP_WIDTH - w, Math.max(0, view.x));
+    const y = Math.min(mapData.height - h, Math.max(0, view.y));
+    return { x, y, w, h };
+  }
+
+  function applyPinScale() {
+    const scale = mapView.w / mapMaxW();
+    document.querySelectorAll("#map-container [data-pin-country] circle").forEach(c => {
+      c.setAttribute("r", PIN_BASE_R * scale);
+      c.setAttribute("stroke-width", PIN_BASE_STROKE * scale);
+    });
+    document.querySelectorAll("#map-container [data-pin-country] text").forEach(t => {
+      t.style.fontSize = `${PIN_BASE_FONT * scale}px`;
+    });
+  }
+
+  function applyMapView() {
+    const svg = getMapSvg();
+    if (!svg) return;
+    svg.setAttribute("viewBox", `${mapView.x} ${mapView.y} ${mapView.w} ${mapView.h}`);
+    applyPinScale();
+
+    const zoomInBtn  = document.getElementById("map-zoom-in");
+    const zoomOutBtn = document.getElementById("map-zoom-out");
+    zoomInBtn.disabled  = mapView.w <= MAP_MIN_W + MAP_VIEW_EPS;
+    zoomOutBtn.disabled = mapView.w >= mapMaxW() - MAP_VIEW_EPS;
+
+    document.getElementById("map-pan-up").disabled    = mapView.y <= MAP_VIEW_EPS;
+    document.getElementById("map-pan-down").disabled  = mapView.y >= mapData.height - mapView.h - MAP_VIEW_EPS;
+    document.getElementById("map-pan-left").disabled  = mapView.x <= MAP_VIEW_EPS;
+    document.getElementById("map-pan-right").disabled = mapView.x >= MAP_WIDTH - mapView.w - MAP_VIEW_EPS;
+  }
+
+  function setMapView(view) {
+    mapUserHasInteracted = true;
+    mapView = clampMapView(view);
+    applyMapView();
+    closePinPopover();
+  }
+
+  // Crossing the narrow/wide breakpoint (window resize, orientation
+  // change) changes mapMaxW()/mapViewportAspect() -- reset to the fresh
+  // default for the new shape rather than leaving mapView locked to
+  // whatever aspect was current when the user last zoomed/panned, which
+  // would otherwise never self-correct. No-op before any variant has
+  // ever loaded (mapData null) -- nothing to resize yet.
+  mapNarrowQuery.addEventListener("change", () => {
+    if (!mapData) return;
+    mapView = defaultMapView();
+    applyMapView();
+    closePinPopover();
+  });
+
+  function zoomMapBy(factor, cx, cy) {
+    if (cx === undefined) cx = mapView.x + mapView.w / 2;
+    if (cy === undefined) cy = mapView.y + mapView.h / 2;
+    // Keeps (cx, cy) fixed in place on screen while the view scales around
+    // it -- centered zoom for the buttons (cx/cy omitted), cursor-anchored
+    // zoom for the wheel (cx/cy = pointer position), same as any map UI.
+    const relX = (cx - mapView.x) / mapView.w;
+    const relY = (cy - mapView.y) / mapView.h;
+    // Clamped to the same bounds clampMapView will enforce BEFORE using it
+    // below, not after -- otherwise, once already at a zoom limit, every
+    // further wheel tick past it still computes x/y against the
+    // hypothetical (never-applied) unclamped width, drifting the pan
+    // offset a little further each time even though the zoom itself is
+    // pinned. That drift is exactly what scrolling to zoom past the max
+    // on a trackpad looked like: the map appearing to pan on its own once
+    // it couldn't zoom in any further.
+    const newW = Math.min(mapMaxW(), Math.max(MAP_MIN_W, mapView.w / factor));
+    const newH = newW / mapViewportAspect();
+    setMapView({ x: cx - relX * newW, y: cy - relY * newH, w: newW, h: newH });
+  }
+
+  function panMapBy(dx, dy) {
+    setMapView({ ...mapView, x: mapView.x + dx, y: mapView.y + dy });
+  }
+
+  // Client-pixel <-> viewBox-user-space conversions, both needed because
+  // the map scales with its container (w-full h-auto) and the ratio
+  // between rendered pixels and user-space units changes with both
+  // viewport width and the current zoom level.
+  function mapClientDeltaToUserSpace(svg, dxClient, dyClient) {
+    const rect = svg.getBoundingClientRect();
+    return { dx: (dxClient / rect.width) * mapView.w, dy: (dyClient / rect.height) * mapView.h };
+  }
+  function mapClientPointToUserSpace(svg, clientX, clientY) {
+    const rect = svg.getBoundingClientRect();
+    return {
+      x: mapView.x + ((clientX - rect.left) / rect.width) * mapView.w,
+      y: mapView.y + ((clientY - rect.top) / rect.height) * mapView.h,
+    };
+  }
+
+  function endMapDrag(e) {
+    if (!mapDrag || e.pointerId !== mapDrag.pointerId) return;
+    mapDrag = null;
+    const svg = getMapSvg();
+    if (svg) { svg.classList.remove("cursor-grabbing"); svg.classList.add("cursor-grab"); }
+  }
+  // Bound once at module scope, not inside renderMap() -- a drag can
+  // legitimately move the pointer outside the SVG's bounds mid-gesture,
+  // so these have to listen on the document rather than the (regularly
+  // recreated) SVG element itself.
+  document.addEventListener("pointermove", e => {
+    if (!mapDrag || e.pointerId !== mapDrag.pointerId) return;
+    const svg = getMapSvg();
+    if (!svg) return;
+    const { dx, dy } = mapClientDeltaToUserSpace(svg, e.clientX - mapDrag.lastClientX, e.clientY - mapDrag.lastClientY);
+    mapDrag.lastClientX = e.clientX;
+    mapDrag.lastClientY = e.clientY;
+    panMapBy(-dx, -dy);
+  });
+  document.addEventListener("pointerup", endMapDrag);
+  document.addEventListener("pointercancel", endMapDrag);
+
+  document.getElementById("map-zoom-in").addEventListener("click", () => zoomMapBy(1.6));
+  document.getElementById("map-zoom-out").addEventListener("click", () => zoomMapBy(1 / 1.6));
+  document.getElementById("map-pan-up").addEventListener("click", () => panMapBy(0, -mapView.h * 0.25));
+  document.getElementById("map-pan-down").addEventListener("click", () => panMapBy(0, mapView.h * 0.25));
+  document.getElementById("map-pan-left").addEventListener("click", () => panMapBy(-mapView.w * 0.25, 0));
+  document.getElementById("map-pan-right").addEventListener("click", () => panMapBy(mapView.w * 0.25, 0));
+
+  const mapVariantSelect = document.getElementById("map-variant-select");
+  mapVariantSelect.addEventListener("change", () => setActiveMapVariant(mapVariantSelect.value));
+
+  // ── World map: pin popover (#18) ──────────────────────────────────────
+  // Reuses the exact same flash/send/project categories the subtitle stat
+  // line shows (flashLabel/sendLabel included), just scoped to one
+  // country instead of every logged entry.
+  function countryStatusBreakdown(countryName) {
+    const entries = ALL_ENTRIES.filter(e => e.type === state.activeType && entryLocation(e).country === countryName);
+    return {
+      flashes:  entries.filter(e => e.status === "send" && e.firstAttempt).length,
+      sends:    entries.filter(e => e.status === "send" && !e.firstAttempt).length,
+      projects: entries.filter(e => e.status === "project").length,
+    };
+  }
+
+  function renderPinPopoverContent(countryName) {
+    const c = COUNTRY_BY_NAME[countryName];
+    const { flashes, sends, projects } = countryStatusBreakdown(countryName);
+    // Reuses STATUS_ICONS/STATUS_ICON_CLASS's icon markup, same as the
+    // table's own statusBadge() -- just a smaller icon size to fit a
+    // compact popover row.
+    const statRow = (icon, title, n, singular, plural) => `
+      <div class="flex items-center gap-[.45rem]">
+        <span class="inline-flex align-middle shrink-0 cursor-default [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem]" title="${escapeHtml(title)}">${icon}</span>
+        <span><span class="text-foreground font-semibold">${n}</span> <span class="text-muted">${n === 1 ? singular : plural}</span></span>
+      </div>`;
+    return `
+      <div class="flex items-center justify-between gap-3 mb-[.5rem]">
+        <span class="font-semibold text-foreground flex items-center gap-[.35rem]">
+          ${c ? `<span role="img" aria-label="${escapeHtml(c.name)}">${escapeHtml(c.flag)}</span>` : ""}
+          ${escapeHtml(countryName)}
+        </span>
+        <button type="button" class="bg-transparent border-0 text-muted cursor-pointer p-0 leading-none text-[1rem] hover:text-foreground" id="map-pin-popover-close" aria-label="Close">✕</button>
+      </div>
+      <div class="flex flex-col gap-[.35rem] text-[.82rem]">
+        ${statRow(STATUS_ICONS.flash, flashLabel(state.activeType), flashes, flashLabel(state.activeType), flashLabel(state.activeType, true))}
+        ${statRow(STATUS_ICONS.send, sendLabel(state.activeType), sends, sendLabel(state.activeType), sendLabel(state.activeType, true))}
+        ${statRow(STATUS_ICONS.project, "Project", projects, "Project", "Projects")}
+      </div>`;
+  }
+
+  let pinPopoverCleanup = null; // floating-ui autoUpdate teardown for the currently-open popover, if any
+  let activePinCountry = null;
+
+  function openPinPopover(pinEl, countryName) {
+    const popover = document.getElementById("map-pin-popover");
+    activePinCountry = countryName;
+    popover.innerHTML = renderPinPopoverContent(countryName);
+    popover.hidden = false;
+    document.getElementById("map-pin-popover-close").addEventListener("click", closePinPopover);
+
+    if (pinPopoverCleanup) pinPopoverCleanup();
+    pinPopoverCleanup = autoUpdate(pinEl, popover, () => {
+      computePosition(pinEl, popover, {
+        strategy: "fixed",
+        placement: "top",
+        middleware: [offset(10), flip(), shift({ padding: 8 })],
+      }).then(({ x, y }) => {
+        Object.assign(popover.style, { left: `${x}px`, top: `${y}px` });
+      });
+    });
+  }
+
+  function closePinPopover() {
+    if (!activePinCountry) return;
+    activePinCountry = null;
+    document.getElementById("map-pin-popover").hidden = true;
+    if (pinPopoverCleanup) { pinPopoverCleanup(); pinPopoverCleanup = null; }
+  }
+
+  function togglePinPopover(pinEl) {
+    const country = pinEl.dataset.pinCountry;
+    if (activePinCountry === country) closePinPopover();
+    else openPinPopover(pinEl, country);
+  }
+
+  document.addEventListener("click", e => {
+    if (activePinCountry && !e.target.closest("#map-pin-popover") && !e.target.closest("[data-pin-country]")) {
+      closePinPopover();
+    }
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && activePinCountry) closePinPopover();
+  });
+
+  function renderMap() {
+    closePinPopover();
+
+    const variant = getActiveMapVariant();
+    mapVariantSelect.value = variant;
+
+    const typeEntries = ALL_ENTRIES.filter(e => e.type === state.activeType);
+
+    const countsByCountry = new Map();
+    for (const entry of typeEntries) {
+      const country = entryLocation(entry).country;
+      if (!country) continue;
+      countsByCountry.set(country, (countsByCountry.get(country) ?? 0) + 1);
+    }
+
+    const container = document.getElementById("map-container");
+    const zoomControls = document.getElementById("map-zoom-controls");
+    const panControls = document.getElementById("map-pan-controls");
+
+    if (countsByCountry.size === 0) {
+      container.innerHTML = `<p class="text-[.9rem] text-muted">No ${DISCIPLINE_LABEL[state.activeType]} entries logged yet -- log one to see it on the map.</p>`;
+      zoomControls.hidden = true;
+      panControls.hidden = true;
+      return;
+    }
+
+    // #169: the active variant's data might not be loaded yet -- kick off
+    // (or join) its fetch and paint a loading/error state in the
+    // meantime rather than the map itself. ensureMapVariantLoading()
+    // re-invokes renderMap() once the fetch settles.
+    if (!mapDataCache.has(variant)) {
+      mapData = null;
+      zoomControls.hidden = true;
+      panControls.hidden = true;
+
+      // A previous attempt's failure is a stopping point, not a retry
+      // trigger -- only the explicit Retry click below clears
+      // mapLoadError and re-enters the fetch branch. Calling
+      // ensureMapVariantLoading() unconditionally here would restart the
+      // fetch on every single renderMap() call this error state's own
+      // render() triggers (any state change repaints the whole app),
+      // which very quickly becomes an unthrottled retry loop hammering
+      // the server -- confirmed while testing this exact failure path.
+      if (mapLoadError) {
+        container.innerHTML = `
+          <div class="bg-surface border border-border rounded-app p-6 mb-5 text-center">
+            <p class="text-[.85rem] text-muted mb-3">You need to be online to view the map.</p>
+            <button type="button" class="text-[.85rem] font-semibold text-accent bg-transparent border-0 cursor-pointer hover:underline" id="map-load-retry">Retry</button>
+          </div>`;
+        document.getElementById("map-load-retry").addEventListener("click", () => {
+          mapLoadError = null;
+          renderMap();
+        });
+      } else {
+        ensureMapVariantLoading(variant);
+        container.innerHTML = `
+          <div class="bg-surface border border-border rounded-app p-6 mb-5 text-center">
+            <p class="text-[.85rem] text-muted mb-2" id="map-load-progress-label">Loading map…</p>
+            <div class="h-1.5 bg-border rounded-full overflow-hidden">
+              <div class="h-full bg-accent transition-[width] duration-150" id="map-load-progress-bar" style="width: 0%"></div>
+            </div>
+          </div>`;
+        updateMapLoadProgressUI(mapLoadProgress);
+      }
+      return;
+    }
+
+    mapData = mapDataCache.get(variant);
+    zoomControls.hidden = false;
+    panControls.hidden = false;
+
+    const pinnedCountries = mapData.pins.filter(c => countsByCountry.has(c.name));
+
+    if (!mapUserHasInteracted || mapView === null) mapView = defaultMapView();
+
+    const pins = pinnedCountries.map(c => {
+      const count = countsByCountry.get(c.name);
+      const label = `${c.name}: ${count} ${count === 1 ? "entry" : "entries"}`;
+      return `
+        <g class="cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" role="button" tabindex="0" data-pin-country="${escapeHtml(c.name)}" aria-label="${escapeHtml(label)}">
+          <title>${escapeHtml(label)}</title>
+          <circle cx="${c.x}" cy="${c.y}" r="${PIN_BASE_R}" class="fill-accent stroke-background" stroke-width="${PIN_BASE_STROKE}"></circle>
+          <text x="${c.x}" y="${c.y}" text-anchor="middle" dominant-baseline="central" class="fill-accent-foreground font-bold select-none" style="font-size: ${PIN_BASE_FONT}px">${count}</text>
+        </g>`;
+    }).join("");
+
+    // The pins carry the same info visually via <title> tooltips, but
+    // <title> on an SVG <g> isn't reliably exposed by screen readers the
+    // way alt text is -- a plain sr-only list gives that a guaranteed,
+    // simple text equivalent instead of depending on tooltip support.
+    const srList = pinnedCountries.map(c =>
+      `<li>${escapeHtml(c.name)}: ${countsByCountry.get(c.name)} ${countsByCountry.get(c.name) === 1 ? "entry" : "entries"}</li>`
+    ).join("");
+
+    container.innerHTML = `
+      <div class="bg-surface border border-border rounded-app overflow-hidden mb-5">
+        <svg viewBox="0 0 ${MAP_WIDTH} ${mapData.height}" role="img" aria-label="World map of logged ${DISCIPLINE_LABEL[state.activeType].toLowerCase()} entries by country" class="w-full h-auto block touch-none cursor-grab">
+          <path d="${mapData.graticulePath}" class="stroke-border fill-none" stroke-width="0.5"></path>
+          <path d="${mapData.worldLandPath}" class="fill-border stroke-none"></path>
+          <path d="${mapData.countryBordersPath}" class="stroke-[color-mix(in_srgb,var(--color-accent)_20%,var(--color-muted)_80%)] fill-none" stroke-width="0.35" stroke-linejoin="round"></path>
+          ${pins}
+        </svg>
+      </div>
+      <ul class="sr-only">${srList}</ul>`;
+
+    // Re-bound every call since container.innerHTML above just replaced
+    // the SVG element outright -- unlike the static zoom/pan buttons and
+    // the document-level drag listeners above, this element genuinely
+    // doesn't survive a re-render.
+    const svg = getMapSvg();
+    svg.addEventListener("pointerdown", e => {
+      if (e.button !== 0) return;
+      // Starting a drag here would call setPointerCapture, which
+      // retargets the pointer's later mouseup/click to the SVG itself --
+      // that silently ate every pin click (the click handler's
+      // e.target.closest("[data-pin-country]") never matched, since
+      // e.target was the SVG, not the pin) until this check was added.
+      // Skipping capture when the press starts on a pin lets that click
+      // reach the pin-popover handler instead of beginning a map drag.
+      if (e.target.closest("[data-pin-country]")) return;
+      svg.setPointerCapture(e.pointerId);
+      mapDrag = { pointerId: e.pointerId, lastClientX: e.clientX, lastClientY: e.clientY };
+      svg.classList.remove("cursor-grab");
+      svg.classList.add("cursor-grabbing");
+    });
+    svg.addEventListener("wheel", e => {
+      e.preventDefault();
+      const { x, y } = mapClientPointToUserSpace(svg, e.clientX, e.clientY);
+      zoomMapBy(e.deltaY < 0 ? 1.2 : 1 / 1.2, x, y);
+    }, { passive: false });
+
+    applyMapView();
+  }
+
+
   // ── Theme toggle (light/dark) ─────────────────────────────────────────
   // The actual theme is already set on <html> by the blocking inline
   // script in <head> (before first paint) -- this just wires up the
@@ -1698,6 +2348,7 @@
   const viewTabPyramid = document.getElementById("view-tab-pyramid");
   const panelLogbook = document.getElementById("panel-logbook");
   const panelPyramid = document.getElementById("panel-pyramid");
+  const panelMap = document.getElementById("panel-map");
 
   const entryOverlay   = document.getElementById("entry-overlay");
   const entryForm      = document.getElementById("entry-form");
@@ -1741,14 +2392,15 @@
     // logged in AND Athlete Mode on (#151) -- Athlete Mode alone isn't
     // enough since it's a publicly-readable setting, so gating on it
     // alone would let a logged-out visitor see it whenever the owner has
-    // it toggled on for themselves. Logbook (and any future public tab,
-    // e.g. the planned Map) stays unaffected by either.
+    // it toggled on for themselves. Logbook and Map stay unaffected by
+    // either.
     viewTabPyramid.hidden = !(isLoggedIn && athleteMode);
     if (viewTabPyramid.hidden && state.activeView === "pyramid") setActiveView("logbook");
 
     // The tab bar itself only makes sense once there's something to
     // switch between -- hidden whenever fewer than 2 tabs are currently
-    // visible, same as it looked before Grade Pyramid existed.
+    // visible. With Map always public alongside Logbook, that's now
+    // permanently true, but the check stays generic rather than hardcoded.
     const visibleTabCount = viewTabs.querySelectorAll("[role=tab]:not([hidden])").length;
     viewTabs.hidden = visibleTabCount < 2;
   }
@@ -1760,7 +2412,10 @@
     );
     panelLogbook.hidden = view !== "logbook";
     panelPyramid.hidden = view !== "pyramid";
+    panelMap.hidden = view !== "map";
+    if (view !== "map") closePinPopover();
     if (view === "pyramid") renderPyramid();
+    if (view === "map") renderMap();
   }
 
   viewTabs.addEventListener("click", e => {
@@ -2718,6 +3373,13 @@
       toggleCollapse(header);
       return;
     }
+
+    // Map pin (#18)
+    const pin = e.target.closest("[data-pin-country]");
+    if (pin) {
+      togglePinPopover(pin);
+      return;
+    }
   });
 
   // Status filter (multi-select checkboxes) -- change, not click, since
@@ -2747,6 +3409,13 @@
     if (header) {
       e.preventDefault();
       toggleCollapse(header);
+      return;
+    }
+
+    const pin = e.target.closest?.("[data-pin-country]");
+    if (pin) {
+      e.preventDefault();
+      togglePinPopover(pin);
     }
   });
 

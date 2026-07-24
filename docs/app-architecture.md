@@ -246,9 +246,17 @@ Everything client-side lives in one file (`index.html`) by design — no
 bundler, no framework, so there's nothing to build. It's organized into
 clearly-commented sections (config, grade data, state, render, event
 delegation, boot) rather than split into modules, since the whole app is
-one page with one job. `escape-html.js` and `status-icons.js` are the only
-things factored out, because they're also referenced by `sw.js`'s caching
-list independently of the main script.
+one page with one job. `escape-html.js` and `status-icons.js` are factored
+out because they're also referenced by `sw.js`'s caching list independently
+of the main script. `floating-ui-core.js` and `floating-ui-dom.js` (#18)
+are factored out for a different reason: they're `@floating-ui/dom`'s own
+prebuilt browser ESM output, vendored verbatim via
+`scripts/vendor-floating-ui.mjs` since there's no bundler to resolve the
+package's bare `@floating-ui/dom` import specifier otherwise, and fetching
+it from a CDN at runtime would be an uncached network dependency the
+Connectivity Resilience standard rules out — same reasoning as bundling
+`COUNTRIES` inline, just as a separate file instead of inline since it's
+third-party code, not app data.
 
 All user-controlled text (name, place, area, notes, video href) is passed
 through `escapeHtml()` before being interpolated into `innerHTML` template

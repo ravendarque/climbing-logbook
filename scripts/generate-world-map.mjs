@@ -1,0 +1,226 @@
+/**
+ * Regenerates the world-map static data fetched on demand by
+ * public/logbook/index.html's Map tab (#17, #169): SVG paths for the
+ * world's landmasses, internal country borders, and a lat/long graticule,
+ * plus a projected {x, y} pixel position for every country in COUNTRIES
+ * (#153), all pre-computed here in Node via d3-geo/topojson-client rather
+ * than shipped as library code to the browser -- this app has no JS
+ * bundler (docs/app-architecture.md), and neither library is meant for a
+ * bare <script type="module"> import, so the projection math runs once at
+ * generation time and only its static output ships. Equal Earth, not
+ * Mercator -- deliberate per #6, #17.
+ *
+ * #169: the Equal Earth projection has three official central-meridian
+ * variants -- Greenwich (0deg), Americas (90degW), and Oceania (150degE)
+ * -- each recentring the map on a different part of the world instead of
+ * splitting it across the left/right edges. This script generates all
+ * three, writing one JSON file per variant (public/logbook/world-map-
+ * <variant>.json) that the client fetches on demand when the user picks
+ * that variant, rather than printing to stdout for manual splicing --
+ * three variants is too much to hand-paste, and JSON fits the app's
+ * existing fetch-and-cache pattern (sw.js's generic GET handler) better
+ * than baking any one of them into index.html as a special-cased default.
+ *
+ * Source data is countries-110m.json, not the plain land-110m.json used
+ * before -- it bundles both a `land` object (the merged coastline, same
+ * role as before) and a `countries` object (177 individual country
+ * polygons, topologically consistent with `land` since they're arcs from
+ * the same file) needed for the border mesh below. Country borders are
+ * topojson's mesh(topology, countries, (a, b) => a !== b) -- the standard
+ * technique for isolating shared edges between two *different* countries
+ * from the full topology, which excludes coastline arcs (only bordered by
+ * one country + ocean) for free rather than needing a separate pass to
+ * strip them back out.
+ *
+ * Not wired into the build; world boundaries and each country's
+ * geographic center change rarely enough that regenerating on-demand is
+ * simpler than a live pipeline.
+ *
+ * Antarctica is kept in the landmass path -- it doesn't actually cost any
+ * effective map scale (its bounding box isn't the constraining dimension
+ * of the fit; longitude span is, with or without it), so excluding it
+ * would only trim a few KB while making the silhouette less recognizable
+ * as "the world."
+ *
+ * fitSize() is deliberately NOT run against the full landmass -- a
+ * handful of tiny polygons straddle each variant's antimeridian seam
+ * (e.g. Fiji and Wrangel Island for the Greenwich variant's +-180deg seam)
+ * and get projected to the extreme left/right edges of the frame. Naively
+ * fitting to everything lets those slivers -- worth a few barely-visible
+ * pixels -- anchor the bounding box, wasting ~10% of scale and leaving
+ * real margins around the continents everyone actually looks at (reported
+ * as "dead space either side of the map," #17 follow-up). Fixed with the
+ * fit-to-core/render-everything pattern below: compute fitSize()'s
+ * scale/translate against a copy of the geometry with those seam-hugging
+ * polygons removed, then render the ORIGINAL full geometry with that
+ * projection -- the excluded slivers just clip slightly outside the
+ * viewBox instead of dictating its scale, and nothing else is lost.
+ *
+ * #169: which raw (lon/lat) polygons count as "seam-hugging slivers"
+ * depends on the variant's own central meridian, not always +-180deg --
+ * d3-geo's default antimeridian clipping operates in the ROTATED frame,
+ * so for a projection rotated to center longitude C, the seam that
+ * actually gets clipped is raw longitude C+180 (wrapped), not the
+ * unrotated globe's own +-180deg seam. seamLngFor() below computes that
+ * per variant; isSeamSliver() replaces the old fixed "near +-180" check
+ * with "near the variant's own seam."
+ *
+ * MAP_HEIGHT is computed per variant, not fixed -- probing each variant's
+ * own core geometry's bounding aspect ratio (via a large square
+ * fitSize()) and matching MAP_WIDTH:MAP_HEIGHT to it means the core
+ * landmass touches all four edges with ~0 margin. In practice this comes
+ * out the same across variants (Equal Earth is pseudocylindrical: y
+ * depends only on latitude, never on the rotation), but it's computed
+ * honestly per variant rather than assumed, since which polygon fragments
+ * count as "core" does shift with the seam.
+ *
+ * digits(0) on the path (integer pixel coordinates, no sub-pixel
+ * precision) keeps the generated path small -- imperceptible at this
+ * element's rendered size.
+ *
+ * Each variant's JSON only carries {name, x, y} per country ("pins"), not
+ * the full name/flag/lat/lng record -- those don't change per rotation,
+ * so they stay in index.html's own bundled COUNTRIES const (source of
+ * truth: generate-countries.mjs) rather than being duplicated three times
+ * over. The Israel/Russia/Belarus exclusion below has to match
+ * generate-countries.mjs's own filter, or a pin would exist here with no
+ * COUNTRIES entry to join it against on the client.
+ *
+ * The graticule (lat/long reference grid) is d3-geo's own geoGraticule(),
+ * not sourced from world-atlas -- it's pure math (meridians/parallels at a
+ * fixed step), no data file needed. 20deg step rather than the 10deg
+ * default: dense enough to read as a grid, coarse enough to stay a quiet
+ * background detail rather than competing with the country borders for
+ * attention at this element's small rendered size.
+ *
+ * Usage: node scripts/generate-world-map.mjs
+ * (writes public/logbook/world-map-{greenwich,americas,oceania}.json)
+ */
+
+import { writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { Buffer } from "node:buffer";
+import countries from "world-countries";
+import { geoEqualEarth, geoPath, geoGraticule } from "d3-geo";
+import { feature, mesh } from "topojson-client";
+import countriesTopo from "world-atlas/countries-110m.json" with { type: "json" };
+
+const OUT_DIR = fileURLToPath(new URL("../public/logbook/", import.meta.url));
+
+const MAP_WIDTH = 960;
+const GRATICULE_STEP = 20; // degrees
+const ANTIMERIDIAN_MARGIN = 5; // degrees of longitude from the seam
+
+const round1 = n => Math.round(n * 10) / 10;
+const round2 = n => Math.round(n * 100) / 100;
+const wrap180 = deg => ((deg + 180) % 360 + 360) % 360 - 180;
+
+const EXCLUDED_CCA2 = ["IL", "RU", "BY"]; // Israel, Russia, Belarus -- see generate-countries.mjs
+
+const VARIANTS = [
+  { name: "greenwich", centralMeridian: 0 },
+  { name: "americas", centralMeridian: -90 },
+  { name: "oceania", centralMeridian: 150 },
+];
+
+// Each variant's exact UNCOMPRESSED byte size, printed below for pasting
+// into index.html's MAP_VARIANT_SIZES -- see that constant's own comment
+// for why the client needs this baked in rather than reading it off the
+// response (the server always serves these gzipped to a real browser
+// fetch, which strips Content-Length; the byte count fetch()'s stream
+// actually measures client-side is the DEcompressed size regardless, so
+// this number -- known upfront, since generation is what produces the
+// data in the first place -- is exactly the total that count needs to be
+// compared against for a real percentage).
+const sizes = {};
+
+const landGeo = feature(countriesTopo, countriesTopo.objects.land);
+const bordersGeo = mesh(countriesTopo, countriesTopo.objects.countries, (a, b) => a !== b);
+const graticuleGeo = geoGraticule().step([GRATICULE_STEP, GRATICULE_STEP])();
+
+// Latitude samples to reuse for each variant's synthetic seam meridian
+// below -- borrowed from whichever line d3 already generated, so the
+// synthetic line curves with the same sampling density/smoothness as
+// every other graticule meridian instead of being coarser or finer.
+const meridianLatSamples = graticuleGeo.coordinates.find(line => line[0][0] === -180).map(([, lat]) => lat);
+
+for (const { name, centralMeridian } of VARIANTS) {
+  // Standard d3 convention: rotate([-C, 0]) centers the projection on
+  // longitude C.
+  const rotate = [-centralMeridian, 0];
+
+  // See file header: exclude only the polygons hugging THIS variant's own
+  // seam (raw longitude centralMeridian+180, wrapped) from the fitSize()
+  // calculation so they can't anchor its scale, without removing them
+  // from what actually gets rendered.
+  const seamLng = wrap180(centralMeridian + 180);
+  const isSeamSliver = polygon =>
+    polygon.every(ring => ring.every(([lng]) => Math.abs(wrap180(lng - seamLng)) <= ANTIMERIDIAN_MARGIN));
+  const corePolygons = landGeo.features[0].geometry.coordinates.filter(p => !isSeamSliver(p));
+  const coreLandGeo = { type: "Feature", geometry: { type: "MultiPolygon", coordinates: corePolygons } };
+
+  // A meridian line running exactly along this variant's own seam
+  // (raw longitude === seamLng) is the general form of the +-180deg
+  // "missing edge line" bug fixed for the Greenwich variant early in #17:
+  // d3's antimeridian clipping treats a line sitting EXACTLY on the
+  // rotated-frame seam as a degenerate case and draws it on only one of
+  // the map's two edges, when geometrically the seam is a single
+  // physical meridian that both edges represent. For Greenwich
+  // (seamLng === 180) that line already exists naturally in the
+  // graticule (as -180, since -180 and +180 are the same location and
+  // d3 only generates one), so the old fix just mirrored it. For
+  // Americas/Oceania the seam (90deg/-30deg) doesn't land on any
+  // naturally-generated 20deg-step meridian at all, so there's nothing to
+  // mirror -- a synthetic line has to be added outright.
+  //
+  // The fix generalizes to a single trick that covers both cases:
+  // longitude is mod-360, so seamLng and seamLng-360 are two DIFFERENT
+  // raw numbers that represent the identical physical meridian. Rotating
+  // both by this variant's own rotation lands them on the two opposite
+  // boundary spellings (+180 and -180) of the clip range, which is
+  // exactly what puts one copy on each edge -- verified by rendering all
+  // three variants and confirming a continuous edge-to-edge line on both
+  // sides (screenshots, not just the math). Applied uniformly (not just
+  // where seamLng doesn't already coincide with a natural line) -- for
+  // Greenwich this duplicates the existing -180 line harmlessly (a few
+  // extra bytes of an identical, overlapping path) rather than needing a
+  // special case.
+  const seamMeridianA = meridianLatSamples.map(lat => [seamLng, lat]);
+  const seamMeridianB = meridianLatSamples.map(lat => [seamLng - 360, lat]);
+  const variantGraticuleGeo = {
+    type: graticuleGeo.type,
+    coordinates: [...graticuleGeo.coordinates, seamMeridianA, seamMeridianB],
+  };
+
+  // Probe the core geometry's own bounding aspect ratio (fit to an
+  // arbitrary large square, independent of MAP_WIDTH) so MAP_HEIGHT can
+  // match it -- see file header.
+  const probeBounds = geoPath(geoEqualEarth().rotate(rotate).fitSize([10000, 10000], coreLandGeo)).bounds(coreLandGeo);
+  const coreAspect = (probeBounds[1][0] - probeBounds[0][0]) / (probeBounds[1][1] - probeBounds[0][1]);
+  const height = Math.round(MAP_WIDTH / coreAspect);
+
+  const projection = geoEqualEarth().rotate(rotate).fitSize([MAP_WIDTH, height], coreLandGeo);
+  const path = geoPath(projection).digits(0);
+  const worldLandPath = path(landGeo); // full geometry, incl. the seam slivers -- just not fit against them
+  const countryBordersPath = path(bordersGeo);
+  const graticulePath = path(variantGraticuleGeo);
+
+  const pins = countries
+    .filter(c => !EXCLUDED_CCA2.includes(c.cca2))
+    .map(c => {
+      const [x, y] = projection([round2(c.latlng[1]), round2(c.latlng[0])]);
+      return { name: c.name.common, x: round1(x), y: round1(y) };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const data = { height, worldLandPath, countryBordersPath, graticulePath, pins };
+  const json = JSON.stringify(data);
+  const byteSize = Buffer.byteLength(json, "utf8"); // not json.length -- country names include non-ASCII characters (e.g. "Åland Islands"), so UTF-16 code-unit count and UTF-8 byte count genuinely differ
+  sizes[name] = byteSize;
+  const outPath = `${OUT_DIR}world-map-${name}.json`;
+  writeFileSync(outPath, json);
+  console.log(`Wrote ${outPath} (${(byteSize / 1024).toFixed(1)} KB)`);
+}
+
+console.log(`\nPaste into index.html's MAP_VARIANT_SIZES:`);
+console.log(`  const MAP_VARIANT_SIZES = ${JSON.stringify(sizes)};`);
