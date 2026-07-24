@@ -76,17 +76,15 @@
  *
  * digits(0) on the path (integer pixel coordinates, no sub-pixel
  * precision) keeps the generated path small -- imperceptible at this
- * element's rendered size, and keeps the bundled dataset in the same
- * "small, static" bracket as COUNTRIES itself.
+ * element's rendered size.
  *
- * COUNTRIES' name/flag/lat/lng and the Israel/Russia/Belarus exclusion are
- * regenerated here independently from world-countries rather than
- * importing generate-countries.mjs's output, matching how
- * migrate-country-field.mjs already duplicates a point-in-time snapshot
- * rather than sharing code across these one-off generator scripts -- if
- * this list needs to change, generate-countries.mjs is still the source of
- * truth to update, this script just needs re-running afterward to keep
- * x/y in sync (for all three variants).
+ * Each variant's JSON only carries {name, x, y} per country ("pins"), not
+ * the full name/flag/lat/lng record -- those don't change per rotation,
+ * so they stay in index.html's own bundled COUNTRIES const (source of
+ * truth: generate-countries.mjs) rather than being duplicated three times
+ * over. The Israel/Russia/Belarus exclusion below has to match
+ * generate-countries.mjs's own filter, or a pin would exist here with no
+ * COUNTRIES entry to join it against on the client.
  *
  * The graticule (lat/long reference grid) is d3-geo's own geoGraticule(),
  * not sourced from world-atlas -- it's pure math (meridians/parallels at a
@@ -165,17 +163,15 @@ for (const { name, centralMeridian } of VARIANTS) {
   const countryBordersPath = path(bordersGeo);
   const graticulePath = path(graticuleGeo);
 
-  const list = countries
+  const pins = countries
     .filter(c => !EXCLUDED_CCA2.includes(c.cca2))
     .map(c => {
-      const lat = round2(c.latlng[0]);
-      const lng = round2(c.latlng[1]);
-      const [x, y] = projection([lng, lat]);
-      return { name: c.name.common, flag: c.flag, lat, lng, x: round1(x), y: round1(y) };
+      const [x, y] = projection([round2(c.latlng[1]), round2(c.latlng[0])]);
+      return { name: c.name.common, x: round1(x), y: round1(y) };
     })
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  const data = { width: MAP_WIDTH, height, worldLandPath, countryBordersPath, graticulePath, countries: list };
+  const data = { height, worldLandPath, countryBordersPath, graticulePath, pins };
   const outPath = `${OUT_DIR}world-map-${name}.json`;
   writeFileSync(outPath, JSON.stringify(data));
   console.log(`Wrote ${outPath} (${(JSON.stringify(data).length / 1024).toFixed(1)} KB)`);
