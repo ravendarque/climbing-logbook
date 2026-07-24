@@ -1859,7 +1859,15 @@
     // zoom for the wheel (cx/cy = pointer position), same as any map UI.
     const relX = (cx - mapView.x) / mapView.w;
     const relY = (cy - mapView.y) / mapView.h;
-    const newW = mapView.w / factor;
+    // Clamped to the same bounds clampMapView will enforce BEFORE using it
+    // below, not after -- otherwise, once already at a zoom limit, every
+    // further wheel tick past it still computes x/y against the
+    // hypothetical (never-applied) unclamped width, drifting the pan
+    // offset a little further each time even though the zoom itself is
+    // pinned. That drift is exactly what scrolling to zoom past the max
+    // on a trackpad looked like: the map appearing to pan on its own once
+    // it couldn't zoom in any further.
+    const newW = Math.min(mapMaxW(), Math.max(MAP_MIN_W, mapView.w / factor));
     const newH = newW / mapViewportAspect();
     setMapView({ x: cx - relX * newW, y: cy - relY * newH, w: newW, h: newH });
   }
