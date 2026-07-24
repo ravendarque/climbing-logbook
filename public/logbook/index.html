@@ -196,8 +196,6 @@
     </div>
 
     <div id="panel-logbook" role="tabpanel" aria-labelledby="view-tab-logbook">
-    <p class="text-[.95rem] mb-4" id="subtitle"></p>
-
     <div class="flex flex-wrap items-center gap-3 mb-6">
       <input class="flex-[0_1_220px] min-w-[140px] bg-surface border border-border rounded-app px-[.85rem] py-[.4rem] text-foreground text-[.9rem] outline-none placeholder:text-muted focus:border-accent" id="search" placeholder="Search problems…" autocomplete="off">
       <div class="filter-wrap relative ml-auto">
@@ -287,6 +285,7 @@
          content is fully replaced on every renderMap() call -- these
          persist across re-renders instead of being rebuilt each time. -->
     <div id="panel-map" role="tabpanel" aria-labelledby="view-tab-map" hidden>
+      <p class="text-[.95rem] mb-4" id="subtitle"></p>
       <div class="relative" id="map-wrap">
         <div id="map-container"></div>
         <div class="absolute top-6 right-6 max-[480px]:top-3 max-[480px]:right-3 flex flex-col gap-[.35rem] max-[480px]:gap-[.25rem]" id="map-zoom-controls" hidden>
