@@ -99,6 +99,7 @@
 
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { Buffer } from "node:buffer";
 import countries from "world-countries";
 import { geoEqualEarth, geoPath, geoGraticule } from "d3-geo";
 import { feature, mesh } from "topojson-client";
@@ -121,6 +122,17 @@ const VARIANTS = [
   { name: "americas", centralMeridian: -90 },
   { name: "oceania", centralMeridian: 150 },
 ];
+
+// Each variant's exact UNCOMPRESSED byte size, printed below for pasting
+// into index.html's MAP_VARIANT_SIZES -- see that constant's own comment
+// for why the client needs this baked in rather than reading it off the
+// response (the server always serves these gzipped to a real browser
+// fetch, which strips Content-Length; the byte count fetch()'s stream
+// actually measures client-side is the DEcompressed size regardless, so
+// this number -- known upfront, since generation is what produces the
+// data in the first place -- is exactly the total that count needs to be
+// compared against for a real percentage).
+const sizes = {};
 
 const landGeo = feature(countriesTopo, countriesTopo.objects.land);
 const bordersGeo = mesh(countriesTopo, countriesTopo.objects.countries, (a, b) => a !== b);
@@ -172,7 +184,13 @@ for (const { name, centralMeridian } of VARIANTS) {
     .sort((a, b) => a.name.localeCompare(b.name));
 
   const data = { height, worldLandPath, countryBordersPath, graticulePath, pins };
+  const json = JSON.stringify(data);
+  const byteSize = Buffer.byteLength(json, "utf8"); // not json.length -- country names include non-ASCII characters (e.g. "Åland Islands"), so UTF-16 code-unit count and UTF-8 byte count genuinely differ
+  sizes[name] = byteSize;
   const outPath = `${OUT_DIR}world-map-${name}.json`;
-  writeFileSync(outPath, JSON.stringify(data));
-  console.log(`Wrote ${outPath} (${(JSON.stringify(data).length / 1024).toFixed(1)} KB)`);
+  writeFileSync(outPath, json);
+  console.log(`Wrote ${outPath} (${(byteSize / 1024).toFixed(1)} KB)`);
 }
+
+console.log(`\nPaste into index.html's MAP_VARIANT_SIZES:`);
+console.log(`  const MAP_VARIANT_SIZES = ${JSON.stringify(sizes)};`);

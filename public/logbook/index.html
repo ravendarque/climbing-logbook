@@ -1737,6 +1737,21 @@
     americas: { label: "Americas" },
     oceania: { label: "Oceania" },
   };
+  // Each variant's exact UNCOMPRESSED byte size, printed by
+  // generate-world-map.mjs on every regeneration -- the client needs its
+  // own copy of this number because the response's Content-Length header
+  // isn't a usable source for it: any real browser fetch sends
+  // Accept-Encoding: gzip, and this server (both wrangler dev locally and
+  // Cloudflare's edge in production -- streaming gzip can't know its own
+  // compressed size upfront) responds Transfer-Encoding: chunked with no
+  // Content-Length at all once compression kicks in (confirmed via curl
+  // -H "Accept-Encoding: gzip"). What IS reliably available is the
+  // DEcompressed byte count fetchWithProgress's reader loop measures --
+  // fetch()'s body stream is always already-decompressed, browsers
+  // transparently undo Content-Encoding before JS ever sees the bytes --
+  // so comparing that running count against this known-upfront total
+  // gives a real percentage, with no header dependency at all.
+  const MAP_VARIANT_SIZES = {"greenwich":82846,"americas":81864,"oceania":82074};
   const MAP_VARIANT_STORAGE_KEY = "mapProjectionVariant";
 
   // Best-effort only -- picks a reasonable *default* the first time the
@@ -1778,13 +1793,12 @@
   let mapLoadError = null;
 
   // Reads the response body as it streams in (rather than the simpler
-  // `res.json()`) purely so onProgress can report real bytes-loaded --
-  // see the section header for why a slow connection gets a visible
-  // progress readout instead of a silent wait.
-  async function fetchWithProgress(url, onProgress) {
+  // `res.json()`) so onProgress can report real bytes-loaded against the
+  // known total -- see MAP_VARIANT_SIZES for why that total has to be
+  // passed in rather than read off the response.
+  async function fetchWithProgress(url, total, onProgress) {
     const res = await fetch(url);
     if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
-    const total = Number(res.headers.get("Content-Length")) || 0;
     const reader = res.body.getReader();
     const chunks = [];
     let loaded = 0;
@@ -1793,43 +1807,32 @@
       if (done) break;
       chunks.push(value);
       loaded += value.length;
-      onProgress(total ? loaded / total : null);
+      // Clamped, not just divided -- MAP_VARIANT_SIZES is a snapshot from
+      // whenever generate-world-map.mjs last ran, so a rounding quirk or
+      // stale value could in principle put loaded a byte or two past
+      // total before the stream itself reports done.
+      onProgress(total ? Math.min(1, loaded / total) : null);
     }
     return JSON.parse(await new Blob(chunks).text());
   }
 
-  let mapLoadStartedAt = null; // Date.now() when the in-flight fetch began, for the elapsed-time readout below
-  let mapLoadTicker = null; // setInterval id ticking that readout while indeterminate
-
-  // Percentage-based progress (frac) turns out to be effectively
-  // unreachable in practice: a real browser fetch always sends
-  // Accept-Encoding: gzip, and this server (both wrangler dev locally
-  // and, near-certainly, the same story on Cloudflare's edge in
-  // production -- streaming gzip can't know its own compressed size
-  // upfront) responds Transfer-Encoding: chunked with no Content-Length
-  // once compression kicks in, confirmed via curl -H "Accept-Encoding:
-  // gzip". fetchWithProgress's frac still gets used on the rare response
-  // that DOES carry one, but elapsed time is the readout that's actually
-  // always available -- and it's arguably the more honest answer to "is
-  // this worth waiting for" anyway, which is the whole point per the
-  // section header.
   function updateMapLoadProgressUI(frac) {
     mapLoadProgress = frac;
     const bar = document.getElementById("map-load-progress-bar");
     const label = document.getElementById("map-load-progress-label");
     if (!bar || !label) return; // loading UI isn't the one currently painted
-    if (frac !== null) {
-      bar.style.width = `${Math.round(frac * 100)}%`;
-      bar.classList.remove("animate-pulse");
-      label.textContent = `Loading map… ${Math.round(frac * 100)}%`;
+    if (frac === null) {
+      // Only reachable if MAP_VARIANT_SIZES is ever missing an entry --
+      // every real variant has a known size, so this is a defensive
+      // fallback, not the expected path.
+      bar.style.width = "100%";
+      bar.classList.add("animate-pulse");
+      label.textContent = "Loading map…";
       return;
     }
-    bar.style.width = "100%";
-    bar.classList.add("animate-pulse");
-    const elapsed = mapLoadStartedAt ? (Date.now() - mapLoadStartedAt) / 1000 : 0;
-    // No number for the first moment -- a "0s" flash on every ordinary,
-    // fast load would be noise, not signal.
-    label.textContent = elapsed >= 1.5 ? `Loading map… (${elapsed.toFixed(0)}s)` : "Loading map…";
+    bar.style.width = `${Math.round(frac * 100)}%`;
+    bar.classList.remove("animate-pulse");
+    label.textContent = `Loading map… ${Math.round(frac * 100)}%`;
   }
 
   // Kicks off (or joins) a variant's fetch without blocking the caller --
@@ -1842,21 +1845,12 @@
     mapLoadingVariants.add(variant);
     mapLoadError = null;
     mapLoadProgress = null;
-    mapLoadStartedAt = Date.now();
-    if (mapLoadTicker) clearInterval(mapLoadTicker);
-    mapLoadTicker = setInterval(() => {
-      if (getActiveMapVariant() === variant) updateMapLoadProgressUI(mapLoadProgress);
-    }, 1000);
-
-    const stopTicker = () => { clearInterval(mapLoadTicker); mapLoadTicker = null; };
     loadMapVariant(variant)
       .then(() => {
-        stopTicker();
         mapLoadingVariants.delete(variant);
         if (getActiveMapVariant() === variant && state.activeView === "map") renderMap();
       })
       .catch(err => {
-        stopTicker();
         mapLoadingVariants.delete(variant);
         mapLoadError = err;
         if (getActiveMapVariant() === variant && state.activeView === "map") renderMap();
@@ -1865,7 +1859,7 @@
 
   async function loadMapVariant(name) {
     if (mapDataCache.has(name)) return mapDataCache.get(name);
-    const data = await fetchWithProgress(`world-map-${name}.json`, frac => {
+    const data = await fetchWithProgress(`world-map-${name}.json`, MAP_VARIANT_SIZES[name] ?? 0, frac => {
       // A background fetch for a variant the user's since switched away
       // from shouldn't fight the currently-displayed one for the shared
       // progress UI.
