@@ -138,14 +138,11 @@ const landGeo = feature(countriesTopo, countriesTopo.objects.land);
 const bordersGeo = mesh(countriesTopo, countriesTopo.objects.countries, (a, b) => a !== b);
 const graticuleGeo = geoGraticule().step([GRATICULE_STEP, GRATICULE_STEP])();
 
-// geoGraticule() only draws one line for the +-180deg meridian (correct on
-// a sphere -- -180deg and +180deg are the same line), naming it -180. On a
-// flat, antimeridian-crossing map that seam needs to render on BOTH edges,
-// not just whichever one -180 happens to land on -- otherwise the other
-// edge is left with no meridian line at all. Mirror the existing -180
-// line at +180 so both sides get one, before any rotation is applied.
-const westMeridian = graticuleGeo.coordinates.find(line => line[0][0] === -180);
-graticuleGeo.coordinates.push(westMeridian.map(([, lat]) => [180, lat]));
+// Latitude samples to reuse for each variant's synthetic seam meridian
+// below -- borrowed from whichever line d3 already generated, so the
+// synthetic line curves with the same sampling density/smoothness as
+// every other graticule meridian instead of being coarser or finer.
+const meridianLatSamples = graticuleGeo.coordinates.find(line => line[0][0] === -180).map(([, lat]) => lat);
 
 for (const { name, centralMeridian } of VARIANTS) {
   // Standard d3 convention: rotate([-C, 0]) centers the projection on
@@ -162,6 +159,39 @@ for (const { name, centralMeridian } of VARIANTS) {
   const corePolygons = landGeo.features[0].geometry.coordinates.filter(p => !isSeamSliver(p));
   const coreLandGeo = { type: "Feature", geometry: { type: "MultiPolygon", coordinates: corePolygons } };
 
+  // A meridian line running exactly along this variant's own seam
+  // (raw longitude === seamLng) is the general form of the +-180deg
+  // "missing edge line" bug fixed for the Greenwich variant early in #17:
+  // d3's antimeridian clipping treats a line sitting EXACTLY on the
+  // rotated-frame seam as a degenerate case and draws it on only one of
+  // the map's two edges, when geometrically the seam is a single
+  // physical meridian that both edges represent. For Greenwich
+  // (seamLng === 180) that line already exists naturally in the
+  // graticule (as -180, since -180 and +180 are the same location and
+  // d3 only generates one), so the old fix just mirrored it. For
+  // Americas/Oceania the seam (90deg/-30deg) doesn't land on any
+  // naturally-generated 20deg-step meridian at all, so there's nothing to
+  // mirror -- a synthetic line has to be added outright.
+  //
+  // The fix generalizes to a single trick that covers both cases:
+  // longitude is mod-360, so seamLng and seamLng-360 are two DIFFERENT
+  // raw numbers that represent the identical physical meridian. Rotating
+  // both by this variant's own rotation lands them on the two opposite
+  // boundary spellings (+180 and -180) of the clip range, which is
+  // exactly what puts one copy on each edge -- verified by rendering all
+  // three variants and confirming a continuous edge-to-edge line on both
+  // sides (screenshots, not just the math). Applied uniformly (not just
+  // where seamLng doesn't already coincide with a natural line) -- for
+  // Greenwich this duplicates the existing -180 line harmlessly (a few
+  // extra bytes of an identical, overlapping path) rather than needing a
+  // special case.
+  const seamMeridianA = meridianLatSamples.map(lat => [seamLng, lat]);
+  const seamMeridianB = meridianLatSamples.map(lat => [seamLng - 360, lat]);
+  const variantGraticuleGeo = {
+    type: graticuleGeo.type,
+    coordinates: [...graticuleGeo.coordinates, seamMeridianA, seamMeridianB],
+  };
+
   // Probe the core geometry's own bounding aspect ratio (fit to an
   // arbitrary large square, independent of MAP_WIDTH) so MAP_HEIGHT can
   // match it -- see file header.
@@ -173,7 +203,7 @@ for (const { name, centralMeridian } of VARIANTS) {
   const path = geoPath(projection).digits(0);
   const worldLandPath = path(landGeo); // full geometry, incl. the seam slivers -- just not fit against them
   const countryBordersPath = path(bordersGeo);
-  const graticulePath = path(graticuleGeo);
+  const graticulePath = path(variantGraticuleGeo);
 
   const pins = countries
     .filter(c => !EXCLUDED_CCA2.includes(c.cca2))

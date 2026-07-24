@@ -1751,7 +1751,7 @@
   // transparently undo Content-Encoding before JS ever sees the bytes --
   // so comparing that running count against this known-upfront total
   // gives a real percentage, with no header dependency at all.
-  const MAP_VARIANT_SIZES = {"greenwich":82846,"americas":81864,"oceania":82074};
+  const MAP_VARIANT_SIZES = {"greenwich":83027,"americas":82148,"oceania":82354};
   const MAP_VARIANT_STORAGE_KEY = "mapProjectionVariant";
 
   // Best-effort only -- picks a reasonable *default* the first time the
@@ -1775,6 +1775,13 @@
     return stored && MAP_VARIANTS[stored] ? stored : guessMapVariant();
   }
 
+  // One-shot: consumed (and reset) by the very next defaultMapView() call,
+  // which happens either immediately (if this variant's data is already
+  // cached) or after its fetch resolves (renderMap() re-runs once loaded)
+  // -- either way, survives the async gap correctly since it's just a
+  // module-level flag, not something computed at switch time.
+  let mapNextDefaultIsWorldCentered = false;
+
   function setActiveMapVariant(name) {
     localStorage.setItem(MAP_VARIANT_STORAGE_KEY, name);
     // Pixel coordinates from the old variant mean nothing under the new
@@ -1783,6 +1790,7 @@
     // the map (or land outside it entirely).
     mapUserHasInteracted = false;
     mapView = null;
+    mapNextDefaultIsWorldCentered = true;
     renderMap();
   }
 
@@ -1921,10 +1929,19 @@
   // say, Southeast Asia sees that region by default instead of landing on
   // Europe/Africa and having to pan there themselves. Falls back to the
   // world center before any data has loaded (or if nothing's pinned).
+  //
+  // #169: centerOnPins is false when the caller is an explicit projection
+  // switch (see mapNextDefaultIsWorldCentered/setActiveMapVariant below)
+  // -- pins clustered in, say, Europe would otherwise drag the view
+  // toward one edge under Americas/Oceania's rotation every time, which
+  // reads as the map being broken/panned wrong rather than as "showing
+  // your data." Picking a projection is "show me this part of the
+  // world," not "re-find my pins under a new lens," so it gets that
+  // projection's own true center instead.
   let pinnedXCenter = null;
-  function defaultMapView() {
+  function defaultMapView(centerOnPins) {
     const w = mapMaxW();
-    const centerX = pinnedXCenter ?? MAP_WIDTH / 2;
+    const centerX = (centerOnPins && pinnedXCenter !== null) ? pinnedXCenter : MAP_WIDTH / 2;
     const x = Math.min(MAP_WIDTH - w, Math.max(0, centerX - w / 2));
     return { x, y: 0, w, h: w / mapViewportAspect() };
   }
@@ -1997,7 +2014,7 @@
   // ever loaded (mapData null) -- nothing to resize yet.
   mapNarrowQuery.addEventListener("change", () => {
     if (!mapData) return;
-    mapView = defaultMapView();
+    mapView = defaultMapView(true);
     applyMapView();
     closePinPopover();
   });
@@ -2237,7 +2254,10 @@
     // skewed toward wherever you've logged the most.
     const pinnedXs = pinnedCountries.map(c => c.x);
     pinnedXCenter = (Math.min(...pinnedXs) + Math.max(...pinnedXs)) / 2;
-    if (!mapUserHasInteracted || mapView === null) mapView = defaultMapView();
+    if (!mapUserHasInteracted || mapView === null) {
+      mapView = defaultMapView(!mapNextDefaultIsWorldCentered);
+      mapNextDefaultIsWorldCentered = false;
+    }
 
     const pins = pinnedCountries.map(c => {
       const count = countsByCountry.get(c.name);
