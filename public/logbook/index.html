@@ -300,6 +300,10 @@
           <button type="button" class="col-start-2 row-start-3 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[.8rem] max-[480px]:text-[.65rem] leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-pan-down" aria-label="Pan down">▼</button>
         </div>
       </div>
+      <!-- Static -- unlike #map-container, never touched by renderMap()'s
+           re-renders, so it doesn't need rebuilding on every discipline
+           switch. -->
+      <p class="text-[.78rem] text-muted leading-[1.6] mt-3">This map uses the <a class="text-accent" href="https://equal-earth.com/equal-earth-projection.html" target="_blank" rel="noopener">Equal Earth projection ↗</a> — an equal-area projection, so every region keeps its true relative size (Mercator, by contrast, inflates areas near the poles). Powered by <a class="text-accent" href="https://d3js.org/d3-geo" target="_blank" rel="noopener">d3-geo ↗</a>, a free library for exactly this kind of thing.</p>
     </div>
   </div>
 </div>
