@@ -264,20 +264,20 @@
          persist across re-renders instead of being rebuilt each time. -->
     <div id="panel-map" role="tabpanel" aria-labelledby="view-tab-map" hidden>
       <p class="text-[.95rem] mb-4" id="subtitle"></p>
-      <!-- #169: which of the 3 Equal Earth central-meridian variants is
-           loaded/shown -- always visible (not part of #map-container's
-           innerHTML swaps) so it stays available to switch away from
-           even while a variant is loading or failed to load. -->
-      <div class="flex items-center justify-end gap-2 mb-3">
-        <label for="map-variant-select" class="text-[.78rem] text-muted">Projection</label>
-        <select class="bg-surface border border-border rounded-app px-[.6rem] py-[.3rem] text-foreground text-[.82rem] outline-none cursor-pointer focus:border-accent" id="map-variant-select">
-          <option value="greenwich">Greenwich</option>
-          <option value="americas">Americas</option>
-          <option value="oceania">Oceania</option>
-        </select>
-      </div>
       <div class="relative" id="map-wrap">
         <div id="map-container"></div>
+        <!-- #169: which of the 3 Equal Earth central-meridian variants is
+             loaded/shown -- always visible (not part of #map-container's
+             innerHTML swaps, and not gated by the zoom/pan controls'
+             hidden toggling) so it stays available to switch away from
+             even while a variant is loading or failed to load. -->
+        <div class="absolute top-6 left-6 max-[480px]:top-3 max-[480px]:left-3" id="map-variant-picker">
+          <select class="bg-surface border border-border rounded-app px-[.6rem] py-[.35rem] max-[480px]:px-[.4rem] max-[480px]:py-[.25rem] text-foreground text-[.82rem] max-[480px]:text-[.7rem] outline-none cursor-pointer hover:border-accent focus:border-accent" id="map-variant-select" aria-label="Map projection">
+            <option value="greenwich">Greenwich</option>
+            <option value="americas">Americas</option>
+            <option value="oceania">Oceania</option>
+          </select>
+        </div>
         <div class="absolute top-6 right-6 max-[480px]:top-3 max-[480px]:right-3 flex flex-col gap-[.35rem] max-[480px]:gap-[.25rem]" id="map-zoom-controls" hidden>
           <button type="button" class="w-8 h-8 max-[480px]:w-6 max-[480px]:h-6 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[1.1rem] max-[480px]:text-[.85rem] font-bold leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-zoom-in" aria-label="Zoom in">+</button>
           <button type="button" class="w-8 h-8 max-[480px]:w-6 max-[480px]:h-6 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[1.1rem] max-[480px]:text-[.85rem] font-bold leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-zoom-out" aria-label="Zoom out">−</button>
