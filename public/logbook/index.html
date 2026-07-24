@@ -178,21 +178,22 @@
     <h1 class="font-display font-normal uppercase tracking-wide text-[3rem] leading-none mb-[.3rem] max-[600px]:text-[2.25rem]"><span class="text-accent">Climbing</span> <span class="text-foreground">Logbook</span></h1>
     <p class="text-[1.05rem] text-muted mb-4">Log your climbs, visualise your progress (<button type="button" class="inline bg-transparent border-0 p-0 cursor-pointer text-accent no-underline hover:underline" id="footnote-trigger">or not</button>).</p>
 
-    <!-- Logbook/Grade Pyramid/Map tabs (#110, #151, #17). Logbook and Map
-         are always public. Grade Pyramid (a performance-reporting tab)
-         requires BOTH being logged in AND Athlete Mode on -- Athlete Mode
-         alone isn't enough since it's a publicly-readable setting (a
-         logged-out visitor could otherwise see it if the owner has it
-         toggled on for themselves). The tab bar itself only shows once 2+
-         tabs are actually visible -- with Map always public, that's
-         permanently true now, so the bar stays visible even when Pyramid
-         is hidden. Replaces the old per-discipline #95 type-tabs entirely;
-         discipline selection now lives in the header picker above and
-         applies to all tabs. -->
+    <!-- Logbook/Map/Grade Pyramid tabs (#110, #151, #17). Public tabs
+         first (Logbook, Map), then private/gated ones (Grade Pyramid, and
+         any future Athlete-Mode-gated tabs). Grade Pyramid (a
+         performance-reporting tab) requires BOTH being logged in AND
+         Athlete Mode on -- Athlete Mode alone isn't enough since it's a
+         publicly-readable setting (a logged-out visitor could otherwise
+         see it if the owner has it toggled on for themselves). The tab
+         bar itself only shows once 2+ tabs are actually visible -- with
+         Map always public, that's permanently true now, so the bar stays
+         visible even when Pyramid is hidden. Replaces the old
+         per-discipline #95 type-tabs entirely; discipline selection now
+         lives in the header picker above and applies to all tabs. -->
     <div class="flex gap-5 mb-5" id="view-tabs" role="tablist" aria-label="View" hidden>
       <button type="button" class="bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer whitespace-nowrap text-[.95rem] font-semibold text-muted pb-2 border-b-2 border-transparent transition-colors duration-150 hover:text-foreground aria-selected:text-foreground aria-selected:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" id="view-tab-logbook" role="tab" data-view="logbook" aria-selected="true" aria-controls="panel-logbook">Logbook</button>
-      <button type="button" class="bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer whitespace-nowrap text-[.95rem] font-semibold text-muted pb-2 border-b-2 border-transparent transition-colors duration-150 hover:text-foreground aria-selected:text-foreground aria-selected:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" id="view-tab-pyramid" role="tab" data-view="pyramid" aria-selected="false" aria-controls="panel-pyramid" hidden>Grade Pyramid</button>
       <button type="button" class="bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer whitespace-nowrap text-[.95rem] font-semibold text-muted pb-2 border-b-2 border-transparent transition-colors duration-150 hover:text-foreground aria-selected:text-foreground aria-selected:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" id="view-tab-map" role="tab" data-view="map" aria-selected="false" aria-controls="panel-map">Map</button>
+      <button type="button" class="bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer whitespace-nowrap text-[.95rem] font-semibold text-muted pb-2 border-b-2 border-transparent transition-colors duration-150 hover:text-foreground aria-selected:text-foreground aria-selected:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" id="view-tab-pyramid" role="tab" data-view="pyramid" aria-selected="false" aria-controls="panel-pyramid" hidden>Grade Pyramid</button>
     </div>
 
     <div id="panel-logbook" role="tabpanel" aria-labelledby="view-tab-logbook">
@@ -250,29 +251,6 @@
     <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>
     </div>
 
-    <!-- Grade Pyramid (#12) -- only reachable via the view-tabs above, so
-         only ever visible to the logged-in owner with Athlete Mode on
-         (#151). Evidence-tier chips (#16)
-         disclose which claims are peer-reviewed research vs. a coaching
-         heuristic vs. unvetted community data, so the pyramid itself
-         never reads as more authoritative than it actually is -- inline
-         in prose (e.g. the "coaching heuristic" chip below), clickable to
-         open #evidence-overlay's full explainer, rather than a persistent
-         always-visible key row (#133 -- that wrapped awkwardly on narrow
-         viewports). -->
-    <div id="panel-pyramid" role="tabpanel" aria-labelledby="view-tab-pyramid" hidden>
-      <!-- No visible heading here -- "Grade Pyramid" is already the tab
-           label immediately above (view-tab-pyramid), which the panel's
-           own aria-labelledby already ties to for assistive tech; a
-           second "Grade pyramid" heading directly under it was pure
-           repetition (#133 tidy-up). -->
-      <p class="text-[.82rem] text-muted leading-[1.7] mb-4" id="window-note"></p>
-
-      <div class="pyramid-card bg-surface border border-border rounded-app pt-[22px] px-5 max-[480px]:px-2 pb-4 mb-5" id="pyramid" role="group" aria-label="Grade pyramid"></div>
-
-      <div class="flex gap-3 px-4 py-[14px] rounded-app mb-7 [&_svg]:w-[1.2rem] [&_svg]:h-[1.2rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:mt-[2px] [&_svg]:shrink-0" id="health-card" role="status"></div>
-    </div>
-
     <!-- World map (#17) -- always public, unlike Grade Pyramid. One pin per
          country with >=1 logged entry, positioned via each COUNTRIES
          entry's pre-projected x/y (see the COUNTRIES header comment above
@@ -315,6 +293,29 @@
            re-renders, so it doesn't need rebuilding on every discipline
            switch. -->
       <p class="text-[.78rem] text-muted leading-[1.6] mt-3">This map uses the <a class="text-accent" href="https://equal-earth.com/equal-earth-projection.html" target="_blank" rel="noopener">Equal Earth projection ↗</a> instead of the more common Mercator, which inflates countries near the poles (mostly the Global North) while shrinking those near the equator (mostly the Global South) — Greenland, for instance, appears larger than Africa on Mercator despite being 14 times smaller. Equal Earth is equal-area throughout, so every country's size on the map reflects its true relative size. Powered by <a class="text-accent" href="https://d3js.org/d3-geo" target="_blank" rel="noopener">d3-geo ↗</a>, a free library for exactly this kind of thing.</p>
+    </div>
+
+    <!-- Grade Pyramid (#12) -- only reachable via the view-tabs above, so
+         only ever visible to the logged-in owner with Athlete Mode on
+         (#151). Evidence-tier chips (#16)
+         disclose which claims are peer-reviewed research vs. a coaching
+         heuristic vs. unvetted community data, so the pyramid itself
+         never reads as more authoritative than it actually is -- inline
+         in prose (e.g. the "coaching heuristic" chip below), clickable to
+         open #evidence-overlay's full explainer, rather than a persistent
+         always-visible key row (#133 -- that wrapped awkwardly on narrow
+         viewports). -->
+    <div id="panel-pyramid" role="tabpanel" aria-labelledby="view-tab-pyramid" hidden>
+      <!-- No visible heading here -- "Grade Pyramid" is already the tab
+           label immediately above (view-tab-pyramid), which the panel's
+           own aria-labelledby already ties to for assistive tech; a
+           second "Grade pyramid" heading directly under it was pure
+           repetition (#133 tidy-up). -->
+      <p class="text-[.82rem] text-muted leading-[1.7] mb-4" id="window-note"></p>
+
+      <div class="pyramid-card bg-surface border border-border rounded-app pt-[22px] px-5 max-[480px]:px-2 pb-4 mb-5" id="pyramid" role="group" aria-label="Grade pyramid"></div>
+
+      <div class="flex gap-3 px-4 py-[14px] rounded-app mb-7 [&_svg]:w-[1.2rem] [&_svg]:h-[1.2rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:mt-[2px] [&_svg]:shrink-0" id="health-card" role="status"></div>
     </div>
   </div>
 </div>
