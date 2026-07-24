@@ -1775,13 +1775,6 @@
     return stored && MAP_VARIANTS[stored] ? stored : guessMapVariant();
   }
 
-  // One-shot: consumed (and reset) by the very next defaultMapView() call,
-  // which happens either immediately (if this variant's data is already
-  // cached) or after its fetch resolves (renderMap() re-runs once loaded)
-  // -- either way, survives the async gap correctly since it's just a
-  // module-level flag, not something computed at switch time.
-  let mapNextDefaultIsWorldCentered = false;
-
   function setActiveMapVariant(name) {
     localStorage.setItem(MAP_VARIANT_STORAGE_KEY, name);
     // Pixel coordinates from the old variant mean nothing under the new
@@ -1790,7 +1783,6 @@
     // the map (or land outside it entirely).
     mapUserHasInteracted = false;
     mapView = null;
-    mapNextDefaultIsWorldCentered = true;
     renderMap();
   }
 
@@ -1922,27 +1914,16 @@
   const PIN_BASE_FONT = 9;
 
   // Default view: full height, width set by the current viewport aspect
-  // (see above), horizontally centered on the current discipline's own
-  // pinned countries rather than the world's geometric center (~longitude
-  // 0) -- renderMap() keeps pinnedXCenter up to date with whichever
-  // countries are actually pinned, so a user whose climbing is all in,
-  // say, Southeast Asia sees that region by default instead of landing on
-  // Europe/Africa and having to pan there themselves. Falls back to the
-  // world center before any data has loaded (or if nothing's pinned).
-  //
-  // #169: centerOnPins is false when the caller is an explicit projection
-  // switch (see mapNextDefaultIsWorldCentered/setActiveMapVariant below)
-  // -- pins clustered in, say, Europe would otherwise drag the view
-  // toward one edge under Americas/Oceania's rotation every time, which
-  // reads as the map being broken/panned wrong rather than as "showing
-  // your data." Picking a projection is "show me this part of the
-  // world," not "re-find my pins under a new lens," so it gets that
-  // projection's own true center instead.
-  let pinnedXCenter = null;
-  function defaultMapView(centerOnPins) {
+  // (see above), horizontally centered on the world (not on the current
+  // discipline's pinned countries -- tried that per #17/#169, but it
+  // meant every projection switch, and even a plain default load, could
+  // clamp hard to an edge depending on where your pins happened to land
+  // under that rotation, reading as a broken/panned map rather than
+  // "here's this projection." World-centered is simple and predictable
+  // regardless of your data or which variant is active.)
+  function defaultMapView() {
     const w = mapMaxW();
-    const centerX = (centerOnPins && pinnedXCenter !== null) ? pinnedXCenter : MAP_WIDTH / 2;
-    const x = Math.min(MAP_WIDTH - w, Math.max(0, centerX - w / 2));
+    const x = (MAP_WIDTH - w) / 2;
     return { x, y: 0, w, h: w / mapViewportAspect() };
   }
   // Deliberately not initialized to defaultMapView() here -- that needs
@@ -2014,7 +1995,7 @@
   // ever loaded (mapData null) -- nothing to resize yet.
   mapNarrowQuery.addEventListener("change", () => {
     if (!mapData) return;
-    mapView = defaultMapView(true);
+    mapView = defaultMapView();
     applyMapView();
     closePinPopover();
   });
@@ -2248,16 +2229,7 @@
 
     const pinnedCountries = mapData.pins.filter(c => countsByCountry.has(c.name));
 
-    // Bounding-box midpoint of the pinned countries' x positions, not a
-    // mean -- robust to one place having far more entries than another,
-    // and matches "center the spread of your pins" rather than being
-    // skewed toward wherever you've logged the most.
-    const pinnedXs = pinnedCountries.map(c => c.x);
-    pinnedXCenter = (Math.min(...pinnedXs) + Math.max(...pinnedXs)) / 2;
-    if (!mapUserHasInteracted || mapView === null) {
-      mapView = defaultMapView(!mapNextDefaultIsWorldCentered);
-      mapNextDefaultIsWorldCentered = false;
-    }
+    if (!mapUserHasInteracted || mapView === null) mapView = defaultMapView();
 
     const pins = pinnedCountries.map(c => {
       const count = countsByCountry.get(c.name);
