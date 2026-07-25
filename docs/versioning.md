@@ -25,19 +25,39 @@ app rather than a published library with a versioned API contract:
   from a shared `ADMIN_KEY` string to Cloudflare Access changed *how* you
   log in, but no existing data or functionality broke — a minor bump
   (`v1.0.0` → `v1.1.0`).
-- **PATCH** — a bug fix that doesn't change intended behavior.
-- **No bump** — docs-only changes, infrastructure/provisioning changes that
-  don't alter the deployed app's behavior (e.g. moving KV provisioning from
-  a one-off script to Terraform), refactors, CI/tooling changes, chores.
-  These are real work, just not release-worthy on their own — they ride
-  along into whichever version comes next.
+- **PATCH** — everything else that changes code shipped as part of the
+  deployed app: bug fixes, and also refactors, framework/library
+  migrations, and internal restructuring that don't add user-facing
+  capability but do change what's actually running in production. Example:
+  migrating the UI from hand-rolled CSS to Tailwind touches nearly every
+  template and is zero *intended* user-facing change — but it's still a
+  patch, not a no-bump, because the deployed app is materially different
+  code before and after.
+- **No bump** — changes that never reach the deployed app at all: docs-only
+  changes, CI/tooling changes, dev-only scripts and local tooling (seed
+  scripts, review helpers, one-off migration/ops scripts run outside the
+  app's own runtime), dependency/chore bumps that don't change shipped
+  code, and infrastructure/provisioning changes that don't alter the
+  deployed app's behavior (e.g. moving KV provisioning from a one-off
+  script to Terraform). These are real work, just not release-worthy on
+  their own — they ride along into whichever version comes next.
 
-The test for MINOR vs. no-bump isn't "which files changed" or "how much
-work was it" — it's **"would a user of the app notice or need to know about
-this."** A Terraform rewrite of how a KV namespace gets created is
-substantial engineering effort and zero user-facing change; a new login
-flow is comparatively little code and a real behavior change every user
-will hit.
+Two different tests apply here, and it matters which one you're asking:
+
+- **MINOR vs. PATCH** — "would a user of the app notice or need to know
+  about this." A new login flow is comparatively little code but a real
+  behavior change every user will hit — minor. A CSS-framework migration is
+  invisible to the user but is still shipped app code — patch, not
+  no-bump.
+- **PATCH vs. no-bump** — "does this change what code is running in the
+  deployed app." If it touches app source or UI and ships, it's at least a
+  patch. This is what keeps a version tag a trustworthy checkpoint of "what
+  code is this," instead of a milestone that can silently bundle an
+  unrelated multi-PR rewrite underneath whatever bug fix happens to land
+  next. Docs, CI config, and tooling that only developers touch — never
+  users, never production — don't ship, so they stay no-bump. A Terraform
+  rewrite of how a KV namespace gets created is substantial engineering
+  effort with zero effect on deployed app code, so it stays no-bump too.
 
 ## Where the version lives
 
