@@ -55,8 +55,41 @@ public/logbook/
 ├── sw.js               Service worker — offline app-shell + API caching
 ├── status-icons.js      SVG icon constants
 ├── escape-html.js       Shared HTML-escaping helper
+├── floating-ui-core.js  Vendored @floating-ui/dom dependency (prebuilt
+├── floating-ui-dom.js    browser ESM bundles, see scripts/vendor-floating-ui.mjs) —
+│                         positions the pin popover on the Map tab (#18)
+├── world-map-greenwich.json  Static Equal Earth map data (landmass/border/
+├── world-map-americas.json    graticule SVG paths + per-country pin x/y),
+├── world-map-oceania.json     one file per central-meridian projection variant
+│                               (#17/#169) — see "Map tab data" below
+├── icon.svg             PWA icon
+├── fonts/
+│   └── BebasNeue-Regular.woff2  Display font (headings)
 └── manifest.json        PWA manifest
 ```
+
+### Map tab data
+
+The Map tab (#17) renders a static Equal Earth world map with one pin per
+logged country. Its data — landmass/border/graticule SVG paths plus each
+country's projected {x, y} — is pre-computed at generation time in Node
+(`scripts/generate-world-map.mjs`, using `d3-geo`/`topojson-client`, dev
+dependencies only) rather than shipping either projection library to the
+browser. Three official Equal Earth central-meridian variants exist
+(Greenwich/Americas/Oceania, #169), each recentring the map on a
+different part of the world; unlike the bundled-inline `COUNTRIES` list
+(name/flag/lat/lng, used well beyond the map — see below), the map data
+is **not** in `index.html` at all — fetched on demand
+(`world-map-<variant>.json`) and cached in memory per variant once
+loaded, with an explicit projection selector on the Map tab and a
+best-effort default guessed from the browser's UTC offset. This is a
+deliberate, narrow exception to the Connectivity Resilience standard's
+"don't fetch on demand" rule (`docs/coding-standards.md`) — the map is
+never needed at the crag, so a failed fetch shows a plain "you need to
+be online" message with Retry instead of pretending to work offline.
+`sw.js`'s existing generic GET handler (network-first, cache-fallback)
+caches each variant's JSON after its first successful fetch — no
+separate precache entry needed.
 
 ## Request routing
 
@@ -168,13 +201,22 @@ entirely. Revisit if this ever needs to support many concurrent writers
 or a much larger dataset — not preemptively.
 
 A second KV key, `logbook:settings`, holds a small settings blob separate
-from the entries data: `{ athleteMode: boolean }`, defaulting to `{
-athleteMode: false }` when the key is absent (so existing behavior is
-unchanged until an admin explicitly opts in). It follows the same
-public-read/admin-write split as the entries API, gated the same way.
-Toggling it off hides (not deletes) the coaching-mode UI it will
-eventually gate — the underlying data, once other fields land, is
-unaffected by the toggle.
+from the entries data: `{ athleteMode: boolean, activeDiscipline:
+"boulder" | "lead" }`, defaulting to `{ athleteMode: false,
+activeDiscipline: "boulder" }` when the key is absent (so existing
+behavior is unchanged until an admin explicitly opts in). It follows the
+same public-read/admin-write split as the entries API, gated the same
+way. Toggling Athlete Mode off hides (not deletes) the coaching-mode UI
+it gates — the underlying data is unaffected by the toggle.
+`activeDiscipline` persists which discipline tab (#137) was last active,
+best-effort (only when logged in; a logged-out visitor's switch stays
+local for that session).
+
+`PUT` merges onto the existing stored settings rather than replacing them
+wholesale (#137) — callers only ever send the one field they're changing
+(e.g. just `activeDiscipline` when switching disciplines from the
+header picker), so a blind overwrite would silently wipe out whichever
+field wasn't included in that particular request.
 
 **ID generation:** the client mints the ID (`crypto.randomUUID()`), not the
 server. This matters for the offline-queue design below — a queued write's
