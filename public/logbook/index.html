@@ -200,7 +200,7 @@
     <div class="flex flex-wrap items-center gap-3 mb-6">
       <input class="flex-[0_1_220px] min-w-[140px] bg-surface border border-border rounded-app px-[.85rem] py-[.4rem] text-foreground text-[.9rem] outline-none placeholder:text-muted focus:border-accent" id="search" placeholder="Search problems…" autocomplete="off">
       <div class="filter-wrap relative ml-auto">
-        <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&.active]:border-accent [&.active]:text-accent [&.active]:bg-[color-mix(in_srgb,var(--color-accent)_12%,var(--color-surface))]" id="filter-btn" aria-label="Filter" aria-expanded="false">
+        <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&.active]:border-accent [&.active]:text-accent [&.active]:bg-[color-mix(in_srgb,var(--color-accent)_12%,var(--color-surface))]" id="filter-btn" aria-label="Filter" aria-expanded="false" aria-pressed="false">
           <svg class="w-[1.1rem] h-[1.1rem] stroke-current fill-none" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"></path></svg>
         </button>
         <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 bg-background border border-border rounded-app p-[.9rem] w-80 max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="filter-panel" hidden>
@@ -1245,6 +1245,10 @@
     document.getElementById("filter-flash-label").textContent = flashLabel(state.activeType);
     document.getElementById("filter-send-label").textContent = sendLabel(state.activeType);
     filterBtn.classList.toggle("active", state.statusFilters.size > 0);
+    // aria-expanded (set by createDisclosure) reflects popover-open
+    // state -- a different thing from "a filter is currently applied,"
+    // which is what aria-pressed communicates here (#171).
+    filterBtn.setAttribute("aria-pressed", String(state.statusFilters.size > 0));
   }
 
   const EDIT_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"></path></svg>`;
@@ -2336,6 +2340,12 @@
   const filterBtn    = document.getElementById("filter-btn");
   const filterPanel  = document.getElementById("filter-panel");
   const filterClearBtn = document.getElementById("filter-clear-btn");
+  // Open/close/outside-click/Escape all handled by createDisclosure (#171)
+  // -- this popover's own toggle used to be inlined directly into the
+  // generic click-delegation handler below instead of getting standalone
+  // open/close functions like every other popover in this file, and
+  // silently never got a matching Escape handler as a result.
+  createDisclosure(filterBtn, filterPanel, ".filter-wrap");
   const collapseAllBtn = document.getElementById("collapse-all-btn");
   const disciplineBtn = document.getElementById("discipline-btn");
   const disciplinePopover = document.getElementById("discipline-popover");
@@ -2526,6 +2536,53 @@
   syncBtn.addEventListener("click", syncPending);
   window.addEventListener("online", () => { if (isLoggedIn) syncPending(); });
 
+  // ── Shared UI helper: disclosure popovers (#171) ───────────────────────
+  // Common trigger-button + panel interaction (open, close, close on
+  // outside click, close on Escape + refocus the trigger) shared by every
+  // dropdown-style popover in this app -- discipline picker, header menu,
+  // place picker, add-place country picker, and the status filter panel.
+  // Extracted after a code review found five near-identical hand-rolled
+  // copies, one of which (the filter panel) had silently diverged and
+  // dropped its Escape handler entirely.
+  //
+  // escapeTarget defaults to `document`, correct for popovers that aren't
+  // nested inside a modal (discipline picker, header menu, filter panel).
+  // Pass a specific element -- in practice the popover's own search input
+  // -- for a popover that lives inside a modal (place picker, add-place
+  // country picker): Escape has to bind there instead, with
+  // stopPropagation/preventDefault, so it closes only this popover rather
+  // than also reaching the modal's own document-level Escape handler.
+  // (Separate document keydown listeners all fire independently of each
+  // other regardless of stopPropagation on the event itself -- binding at
+  // document level here would close the whole modal too, not just this
+  // popover.)
+  //
+  // onOpen is an optional extra callback for popovers that do more than
+  // just reveal the panel on open (the two search-based pickers reset
+  // their query, re-render options, and refocus the search input).
+  function createDisclosure(trigger, panel, containerSelector, { escapeTarget = document, onOpen } = {}) {
+    function open() {
+      panel.hidden = false;
+      trigger.setAttribute("aria-expanded", "true");
+      if (onOpen) onOpen();
+    }
+    function close() {
+      panel.hidden = true;
+      trigger.setAttribute("aria-expanded", "false");
+    }
+    trigger.addEventListener("click", () => { if (panel.hidden) open(); else close(); });
+    document.addEventListener("click", e => {
+      if (!panel.hidden && !e.target.closest(containerSelector)) close();
+    });
+    escapeTarget.addEventListener("keydown", e => {
+      if (e.key !== "Escape" || panel.hidden) return;
+      if (escapeTarget !== document) { e.preventDefault(); e.stopPropagation(); }
+      close();
+      trigger.focus();
+    });
+    return { open, close };
+  }
+
   // ── Entry form: place picker (#158) ───────────────────────────────
   // Trigger-button + popover, same interaction pattern as the country
   // picker it replaces (which followed discipline-btn/discipline-popover
@@ -2605,24 +2662,21 @@
     placeBtnLabel.classList.remove("text-muted");
   }
 
-  function openPlacePopover() {
-    placePopover.hidden = false;
-    placeBtn.setAttribute("aria-expanded", "true");
-    // Always starts from a fresh, unfiltered search, not whatever was
-    // last typed -- matches every other search-to-filter control in this
-    // app, none of which remember a stale query across opens.
-    placeSearch.value = "";
-    renderPlaceOptions("");
-    placeSearch.focus();
-  }
-  function closePlacePopover() {
-    placePopover.hidden = true;
-    placeBtn.setAttribute("aria-expanded", "false");
-  }
-
-  placeBtn.addEventListener("click", () => {
-    if (placePopover.hidden) openPlacePopover(); else closePlacePopover();
+  // Escape is bound to placeSearch, not document -- see createDisclosure's
+  // own header comment for why (this popover lives inside the entry
+  // modal).
+  const { close: closePlacePopover } = createDisclosure(placeBtn, placePopover, "#place-wrap", {
+    escapeTarget: placeSearch,
+    onOpen() {
+      // Always starts from a fresh, unfiltered search, not whatever was
+      // last typed -- matches every other search-to-filter control in this
+      // app, none of which remember a stale query across opens.
+      placeSearch.value = "";
+      renderPlaceOptions("");
+      placeSearch.focus();
+    },
   });
+
   placeSearch.addEventListener("input", () => renderPlaceOptions(placeSearch.value));
   placeSearch.addEventListener("keydown", e => {
     if (e.key === "ArrowDown") {
@@ -2634,18 +2688,6 @@
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (placeActiveIndex >= 0) { setPlace(placeFilteredList[placeActiveIndex].id); closePlacePopover(); placeBtn.focus(); }
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      // Element-level, not a document-level listener like
-      // discipline-popover's below -- place-popover lives inside the
-      // entry modal, and stopPropagation() here keeps this Escape from
-      // ever reaching the modal's own document-level Escape handler
-      // (which would otherwise close the whole modal instead of just
-      // this popover; multiple document keydown listeners all fire
-      // independently of each other regardless of stopPropagation).
-      e.stopPropagation();
-      closePlacePopover();
-      placeBtn.focus();
     }
   });
   placeListbox.addEventListener("click", e => {
@@ -2658,9 +2700,6 @@
   placeAddNewBtn.addEventListener("click", () => {
     closePlacePopover();
     openAddPlaceModal();
-  });
-  document.addEventListener("click", e => {
-    if (!placePopover.hidden && !e.target.closest("#place-wrap")) closePlacePopover();
   });
 
   // ── Entry form: add-place modal (#158) ────────────────────────────
@@ -2731,22 +2770,20 @@
     addPlaceCountryLabel.classList.toggle("text-muted", !c);
   }
 
-  function openAddPlaceCountryPopover() {
-    if (addPlaceCountryBtn.disabled) return;
-    addPlaceCountryPopover.hidden = false;
-    addPlaceCountryBtn.setAttribute("aria-expanded", "true");
-    addPlaceCountrySearch.value = "";
-    renderAddPlaceCountryOptions("");
-    addPlaceCountrySearch.focus();
-  }
-  function closeAddPlaceCountryPopover() {
-    addPlaceCountryPopover.hidden = true;
-    addPlaceCountryBtn.setAttribute("aria-expanded", "false");
-  }
-
-  addPlaceCountryBtn.addEventListener("click", () => {
-    if (addPlaceCountryPopover.hidden) openAddPlaceCountryPopover(); else closeAddPlaceCountryPopover();
+  // No explicit addPlaceCountryBtn.disabled guard needed here -- a real
+  // disabled <button> never dispatches click events in the first place,
+  // so createDisclosure's trigger listener below simply never fires
+  // while it's locked (see setAddPlaceCountry/updateAddPlaceLocationMatch
+  // for where .disabled gets toggled).
+  const { close: closeAddPlaceCountryPopover } = createDisclosure(addPlaceCountryBtn, addPlaceCountryPopover, "#add-place-country-wrap", {
+    escapeTarget: addPlaceCountrySearch,
+    onOpen() {
+      addPlaceCountrySearch.value = "";
+      renderAddPlaceCountryOptions("");
+      addPlaceCountrySearch.focus();
+    },
   });
+
   addPlaceCountrySearch.addEventListener("input", () => renderAddPlaceCountryOptions(addPlaceCountrySearch.value));
   addPlaceCountrySearch.addEventListener("keydown", e => {
     if (e.key === "ArrowDown") {
@@ -2758,16 +2795,6 @@
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (addPlaceCountryActiveIndex >= 0) { setAddPlaceCountry(addPlaceCountryFiltered[addPlaceCountryActiveIndex].name); closeAddPlaceCountryPopover(); addPlaceCountryBtn.focus(); }
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      // Element-level, not document-level -- same reasoning as the place
-      // picker's own Escape handling: this popover lives inside a modal
-      // (two deep here: add-place-overlay, itself inside entry-overlay),
-      // and stopPropagation() keeps this Escape from reaching either
-      // ancestor's document-level handler.
-      e.stopPropagation();
-      closeAddPlaceCountryPopover();
-      addPlaceCountryBtn.focus();
     }
   });
   addPlaceCountryListbox.addEventListener("click", e => {
@@ -2776,9 +2803,6 @@
     setAddPlaceCountry(opt.dataset.name);
     closeAddPlaceCountryPopover();
     addPlaceCountryBtn.focus();
-  });
-  document.addEventListener("click", e => {
-    if (!addPlaceCountryPopover.hidden && !e.target.closest("#add-place-country-wrap")) closeAddPlaceCountryPopover();
   });
 
   function updateAddPlaceLocationMatch() {
@@ -3097,18 +3121,9 @@
   // disciplines regardless of entry counts -- see the markup comment
   // above discipline-btn for why. Same interaction pattern as filter-btn/
   // filter-panel below (delegated click, close on outside click), plus
-  // Escape-to-close. ───────────────────────────────────────────────────
-  function openDisciplinePopover() {
-    disciplinePopover.hidden = false;
-    disciplineBtn.setAttribute("aria-expanded", "true");
-  }
-  function closeDisciplinePopover() {
-    disciplinePopover.hidden = true;
-    disciplineBtn.setAttribute("aria-expanded", "false");
-  }
-  disciplineBtn.addEventListener("click", () => {
-    if (disciplinePopover.hidden) openDisciplinePopover(); else closeDisciplinePopover();
-  });
+  // Escape-to-close via createDisclosure. ────────────────────────────────
+  const { close: closeDisciplinePopover } = createDisclosure(disciplineBtn, disciplinePopover, "#discipline-wrap");
+
   disciplinePopover.addEventListener("click", async e => {
     const opt = e.target.closest(".discipline-option");
     if (!opt) return;
@@ -3138,12 +3153,6 @@
       // Offline or network error -- local switch already applied.
     }
   });
-  document.addEventListener("click", e => {
-    if (!disciplinePopover.hidden && !e.target.closest("#discipline-wrap")) closeDisciplinePopover();
-  });
-  document.addEventListener("keydown", e => {
-    if (e.key === "Escape" && !disciplinePopover.hidden) { closeDisciplinePopover(); disciplineBtn.focus(); }
-  });
 
   // ── Header menu (#119, #122, #138, #155): Athlete Mode, theme toggle,
   // and Log in/out live in this popover at every viewport width -- it
@@ -3168,23 +3177,7 @@
     headerMenuBottomRow.classList.toggle("mt-1", hasTopContent);
   }
 
-  function openHeaderMenu() {
-    headerMenuPopover.hidden = false;
-    headerMenuBtn.setAttribute("aria-expanded", "true");
-  }
-  function closeHeaderMenu() {
-    headerMenuPopover.hidden = true;
-    headerMenuBtn.setAttribute("aria-expanded", "false");
-  }
-  headerMenuBtn.addEventListener("click", () => {
-    if (headerMenuPopover.hidden) openHeaderMenu(); else closeHeaderMenu();
-  });
-  document.addEventListener("click", e => {
-    if (!headerMenuPopover.hidden && !e.target.closest("#header-menu-wrap")) closeHeaderMenu();
-  });
-  document.addEventListener("keydown", e => {
-    if (e.key === "Escape" && !headerMenuPopover.hidden) { closeHeaderMenu(); headerMenuBtn.focus(); }
-  });
+  createDisclosure(headerMenuBtn, headerMenuPopover, "#header-menu-wrap");
 
   document.addEventListener("click", e => {
     const editBtn = e.target.closest(".edit-btn");
@@ -3328,20 +3321,6 @@
 
   // ── Event delegation (list controls) ─────────────────────────────────
   document.addEventListener("click", e => {
-    // Filter popover toggle
-    if (e.target.closest("#filter-btn")) {
-      const willOpen = filterPanel.hidden;
-      filterPanel.hidden = !willOpen;
-      filterBtn.setAttribute("aria-expanded", String(willOpen));
-      return;
-    }
-
-    // Click away closes the filter popover
-    if (!filterPanel.hidden && !e.target.closest(".filter-wrap")) {
-      filterPanel.hidden = true;
-      filterBtn.setAttribute("aria-expanded", "false");
-    }
-
     // Clear filters (status only -- the active type-tab isn't a "filter"
     // to clear, it's the current view)
     if (e.target.closest("#filter-clear-btn")) {
