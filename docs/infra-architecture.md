@@ -58,8 +58,12 @@ Everything provisionable is declarative and idempotent via Terraform in
 - `cloudflare_zero_trust_access_application` + `cloudflare_zero_trust_access_policy`
   — the Access gate on `/logbook/api/admin*`
 - `cloudflare_workers_kv_namespace` — the KV namespace backing logbook data
-  (imported from a pre-Terraform namespace via a declarative `import` block
-  in `infra/kv.tf`, not recreated)
+  (one-time-imported into state from a pre-Terraform namespace via a
+  declarative `import` block in `infra/kv.tf`; the block itself was
+  removed once the import completed, per Terraform's own guidance —
+  leaving it in place would have broken a from-scratch disaster-recovery
+  apply, since it'd try importing an ID that no longer exists instead of
+  just creating a fresh namespace)
 
 **Intentionally excluded from Terraform**, by design: the admin login email
 (a `sensitive` variable, supplied via a repo secret — never committed) and
