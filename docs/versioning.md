@@ -20,44 +20,45 @@ app rather than a published library with a versioned API contract:
 - **MAJOR** — a breaking change to data or behavior that would break or
   surprise an existing user: an incompatible schema change, a removed
   feature, a change that requires manual data migration.
-- **MINOR** — new user-facing capability or a significant behavior change,
-  backward-compatible. Example from this project's actual history: moving
-  from a shared `ADMIN_KEY` string to Cloudflare Access changed *how* you
-  log in, but no existing data or functionality broke — a minor bump
-  (`v1.0.0` → `v1.1.0`).
-- **PATCH** — everything else that changes code shipped as part of the
-  deployed app: bug fixes, and also refactors, framework/library
-  migrations, and internal restructuring that don't add user-facing
-  capability but do change what's actually running in production. Example:
-  migrating the UI from hand-rolled CSS to Tailwind touches nearly every
-  template and is zero *intended* user-facing change — but it's still a
-  patch, not a no-bump, because the deployed app is materially different
-  code before and after.
-- **No bump** — changes that never reach the deployed app at all: docs-only
+- **MINOR** — either of two things, per the SemVer spec:
+  - new user-facing capability or a significant behavior change,
+    backward-compatible (the spec's "new functionality... to the public
+    API"). Example from this project's actual history: moving from a
+    shared `ADMIN_KEY` string to Cloudflare Access changed *how* you log
+    in, but no existing data or functionality broke — a minor bump
+    (`v1.0.0` → `v1.1.0`).
+  - a **substantial internal-only rewrite** that doesn't fix a bug and
+    adds no user-facing capability, but is significant enough that the
+    team wants it to register in the version history. The spec explicitly
+    allows this ("MAY be incremented if substantial new functionality or
+    improvements are introduced within the private code"). Example:
+    migrating the UI's styling from hand-rolled CSS to Tailwind touches
+    nearly every template and is zero *intended* user-facing change — but
+    it's a big enough rewrite of what's actually running in production to
+    be worth a minor bump, once, at the point the migration is complete.
+- **PATCH** — strictly a bug fix: an internal change that fixes incorrect
+  behavior. Nothing else qualifies as PATCH, no matter how much shipped
+  code it touches — per the spec, "a bug fix is defined as an internal
+  change that fixes incorrect behavior," full stop.
+- **No bump** — everything that's neither a bug fix, a user-facing
+  addition, nor judged "substantial" enough to register: docs-only
   changes, CI/tooling changes, dev-only scripts and local tooling (seed
   scripts, review helpers, one-off migration/ops scripts run outside the
   app's own runtime), dependency/chore bumps that don't change shipped
-  code, and infrastructure/provisioning changes that don't alter the
-  deployed app's behavior (e.g. moving KV provisioning from a one-off
-  script to Terraform). These are real work, just not release-worthy on
-  their own — they ride along into whichever version comes next.
+  code, infrastructure/provisioning changes that don't alter the deployed
+  app's behavior (e.g. moving KV provisioning from a one-off script to
+  Terraform), and refactors too small to be worth flagging. These are real
+  work, just not release-worthy on their own — they ride along into
+  whichever version comes next.
 
-Two different tests apply here, and it matters which one you're asking:
-
-- **MINOR vs. PATCH** — "would a user of the app notice or need to know
-  about this." A new login flow is comparatively little code but a real
-  behavior change every user will hit — minor. A CSS-framework migration is
-  invisible to the user but is still shipped app code — patch, not
-  no-bump.
-- **PATCH vs. no-bump** — "does this change what code is running in the
-  deployed app." If it touches app source or UI and ships, it's at least a
-  patch. This is what keeps a version tag a trustworthy checkpoint of "what
-  code is this," instead of a milestone that can silently bundle an
-  unrelated multi-PR rewrite underneath whatever bug fix happens to land
-  next. Docs, CI config, and tooling that only developers touch — never
-  users, never production — don't ship, so they stay no-bump. A Terraform
-  rewrite of how a KV namespace gets created is substantial engineering
-  effort with zero effect on deployed app code, so it stays no-bump too.
+The test isn't "which files changed" or "how much work was it" — for
+MINOR-as-new-capability vs. no-bump it's **"would a user of the app notice
+or need to know about this."** For MINOR-as-substantial-rewrite vs. no-bump
+it's a judgment call the team makes deliberately, not something that falls
+out of a mechanical rule — most refactors stay no-bump; only the rare ones
+big enough to be worth a line in the release notes get flagged, and only
+once, at the point the rewrite is actually complete (not on every
+incremental PR that contributes to it).
 
 ## Where the version lives
 
