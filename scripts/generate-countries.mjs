@@ -6,13 +6,11 @@
  * on-demand regeneration is simpler than a live pipeline.
  *
  * Deliberate overrides applied regardless of what the source package says,
- * per #153/#6:
- * - Israel, Russia, and Belarus excluded -- countries currently excluded
- *   from world climbing events over international law/human rights
- *   violations (Russia/Belarus: invasion of Ukraine; Israel: occupation).
- * - Palestine included (already present in world-countries as a
- *   non-UN-member state, so no extra work there beyond not filtering it
- *   out).
+ * per #153/#6 -- see scripts/lib/country-exclusions.mjs (shared with
+ * generate-world-map.mjs) for the exclusion list itself and why it's
+ * shared. Palestine is included (already present in world-countries as a
+ * non-UN-member state, so no extra work there beyond not filtering it
+ * out).
  *
  * `lat`/`lng` are each country's geographic center (world-countries'
  * `latlng` field), not its capital city -- e.g. France is [46, 2], not
@@ -24,10 +22,9 @@
  */
 
 import countries from "world-countries";
+import { EXCLUDED_CCA2 } from "./lib/country-exclusions.mjs";
 
 const round = n => Math.round(n * 100) / 100;
-
-const EXCLUDED_CCA2 = ["IL", "RU", "BY"]; // Israel, Russia, Belarus -- see file header
 
 const list = countries
   .filter(c => !EXCLUDED_CCA2.includes(c.cca2))

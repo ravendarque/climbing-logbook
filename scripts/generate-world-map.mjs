@@ -82,8 +82,9 @@
  * the full name/flag/lat/lng record -- those don't change per rotation,
  * so they stay in index.html's own bundled COUNTRIES const (source of
  * truth: generate-countries.mjs) rather than being duplicated three times
- * over. The Israel/Russia/Belarus exclusion below has to match
- * generate-countries.mjs's own filter, or a pin would exist here with no
+ * over. The exclusion list (scripts/lib/country-exclusions.mjs) is
+ * shared with generate-countries.mjs rather than each script keeping its
+ * own copy, so the two can't drift apart and produce a pin here with no
  * COUNTRIES entry to join it against on the client.
  *
  * The graticule (lat/long reference grid) is d3-geo's own geoGraticule(),
@@ -104,6 +105,7 @@ import countries from "world-countries";
 import { geoEqualEarth, geoPath, geoGraticule } from "d3-geo";
 import { feature, mesh } from "topojson-client";
 import countriesTopo from "world-atlas/countries-110m.json" with { type: "json" };
+import { EXCLUDED_CCA2 } from "./lib/country-exclusions.mjs";
 
 const OUT_DIR = fileURLToPath(new URL("../public/logbook/", import.meta.url));
 
@@ -114,8 +116,6 @@ const ANTIMERIDIAN_MARGIN = 5; // degrees of longitude from the seam
 const round1 = n => Math.round(n * 10) / 10;
 const round2 = n => Math.round(n * 100) / 100;
 const wrap180 = deg => ((deg + 180) % 360 + 360) % 360 - 180;
-
-const EXCLUDED_CCA2 = ["IL", "RU", "BY"]; // Israel, Russia, Belarus -- see generate-countries.mjs
 
 const VARIANTS = [
   { name: "greenwich", centralMeridian: 0 },
