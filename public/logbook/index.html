@@ -229,7 +229,7 @@
           </fieldset>
 
           <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mt-[.9rem] mb-[.4rem]" id="filter-grade-label">Grade</div>
-          <div class="border border-border rounded-app bg-surface px-3 py-3">
+          <div class="border border-border rounded-app bg-surface px-[.7rem] py-3">
             <!-- Two-thumb range slider (#161): thumb positions are indices
                  into the active discipline's own grade list (BOULDER_GRADES/
                  LEAD_GRADES), not raw grade text or a shared numeric scale,
@@ -237,8 +237,13 @@
                  picker does. Collapsing both thumbs onto the same index
                  filters to a single grade -- no separate single/range mode,
                  see #161 discussion. Positions/labels are (re)computed in
-                 updateFilterUI(); dragging/keyboard logic is wired below. -->
-            <div class="relative h-4 flex items-center cursor-pointer" id="grade-slider-track">
+                 updateFilterUI(); dragging/keyboard logic is wired below.
+                 mx-2 on the track offsets each thumb's -ml-2 centering
+                 offset, so a thumb at 0%/100% lands flush with this box's
+                 own px-[.7rem] padding -- same as the icon inset on the
+                 toggle-btn rows above -- instead of bleeding half its own
+                 width past it. -->
+            <div class="relative h-4 mx-2 flex items-center cursor-pointer" id="grade-slider-track">
               <div class="absolute left-0 right-0 h-1 bg-border rounded-full"></div>
               <div class="absolute h-1 bg-accent rounded-full" id="grade-slider-fill"></div>
               <button type="button" class="absolute w-4 h-4 -ml-2 top-1/2 -translate-y-1/2 bg-accent border-2 border-background rounded-full shadow-[0_1px_3px_color-mix(in_srgb,black_40%,transparent)] cursor-grab touch-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" id="grade-thumb-min" role="slider" aria-label="Minimum grade" aria-valuemin="0" tabindex="0"></button>
