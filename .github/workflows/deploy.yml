@@ -1,8 +1,12 @@
 name: Deploy
 
+# Deploys are tied to actual releases, not every merge to main: a tag push
+# (created by release.yml when a labelled PR merges) is what ships. A
+# release: none merge just rides along un-deployed until the next tag. See
+# docs/versioning.md.
 on:
   push:
-    branches: [main]
+    tags: ['v*']
   workflow_dispatch:
 
 jobs:

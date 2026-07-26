@@ -89,7 +89,7 @@ rather than depending on any state of its own).
 |---|---|---|
 | `bootstrap-state.yml` | Manual only (`workflow_dispatch`) | Creates the R2 state bucket if missing. Safe to re-run any time, including full disaster recovery. |
 | `infra.yml` | `pull_request`/`push` on `infra/**`, plus manual | `terraform plan` on PRs, `apply` on merge to `main`. Also syncs `wrangler.jsonc`'s KV namespace id from Terraform's output (see below), committing with `[skip ci]` if it changed. |
-| `deploy.yml` | `push` to `main`, plus manual | `wrangler deploy` — the Worker script and static assets. |
+| `deploy.yml` | `push` of a `vX.Y.Z` tag, plus manual | `wrangler deploy` — the Worker script and static assets. Tied to releases, not every merge — see `docs/versioning.md`. |
 
 **Why three separate workflows, not one:** `bootstrap-state.yml` must be
 independently re-runnable with no dependency on Terraform even existing yet.
@@ -119,10 +119,12 @@ commits straight to `main` rather than via PR — justified because it's a
 mechanical sync of a derived value with no human judgment involved, the same
 category as a lockfile auto-update.
 
-`[skip ci]` also means `deploy.yml` won't automatically pick up a changed KV
-id from that commit — that's only a concern after a full disaster-recovery
-rebuild (the id doesn't otherwise change), and `deploy.yml` has
-`workflow_dispatch` specifically so it can be forced in that case.
+`deploy.yml` no longer triggers from any `main`-branch push at all (it's
+tag-gated — see `docs/versioning.md`), so a changed KV id is never picked up
+automatically regardless of `[skip ci]`. That's only a concern after a full
+disaster-recovery rebuild (the id doesn't otherwise change), and
+`deploy.yml` has `workflow_dispatch` specifically so it can be forced in
+that case.
 
 ## Required secrets/variables
 
