@@ -1,0 +1,31 @@
+name: Require release label
+
+# Blocks a PR from being mergeable until it carries a deliberate release
+# decision — one of the three release: major/minor/patch labels, or the
+# explicit no-bump opt-out release: none. See docs/versioning.md.
+#
+# This exists because "no label = no release" previously meant PRs could
+# (and did — see issue #173) merge silently unlabeled for weeks, bundling
+# real user-facing changes into an untagged, unreleased backlog. Making the
+# choice itself required, rather than opt-in, is what actually prevents
+# that recurring.
+on:
+  pull_request:
+    types: [opened, reopened, labeled, unlabeled, synchronize]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  check-label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify a release label is present
+        run: |
+          labels='${{ toJSON(github.event.pull_request.labels.*.name) }}'
+          if echo "$labels" | grep -qE "release: (major|minor|patch|none)"; then
+            echo "Release label present."
+          else
+            echo "::error::No release label on this PR. Apply one of 'release: major', 'release: minor', 'release: patch', or 'release: none' before merging — see docs/versioning.md."
+            exit 1
+          fi

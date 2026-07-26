@@ -74,16 +74,24 @@ Automatic on merge, driven by a label — not a separate step to remember
 after the fact. This project doesn't use a commit-message convention like
 Conventional Commits (auto-detecting bump type from commit messages isn't
 reliable without one), so the bump type is instead decided once, at review
-time, by applying one of three labels to the PR:
+time, by applying one of four labels to the PR:
 
 - `release: major`
 - `release: minor`
 - `release: patch`
+- `release: none` — an explicit, deliberate "this doesn't warrant a
+  version bump" for docs-only/infra-only/refactor-too-small-to-flag
+  changes.
 
-**No release label → no release.** A PR with none of these three labels
-just merges normally with no version bump — this is how docs-only/
-infra-only/refactor changes ride along without triggering anything. Apply
-the label based on the criteria above before merging.
+**A release label is required before merge** — `.github/workflows/
+require-release-label.yml` runs as a required check on every PR and fails
+until one of the four labels above is applied. This isn't optional
+bookkeeping: for three weeks (see issue #173) "no label → no release" meant
+PRs merged unlabeled by default, and 58 of them did, silently bundling real
+user-facing changes into an unreleased, untagged backlog. Making the
+release decision itself required — even when the answer is "none" — is
+what prevents that from happening again. `release: none` merges with no
+version bump; the other three trigger the release workflow below.
 
 When a labelled PR merges, `.github/workflows/release.yml` reads the label,
 calculates the new version with the `semver` package, bumps `package.json`,
