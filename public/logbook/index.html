@@ -227,6 +227,31 @@
               <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="abandoned"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em] whitespace-nowrap">Abandoned</span>
             </label>
           </fieldset>
+
+          <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mt-[.9rem] mb-[.4rem]" id="filter-grade-label">Grade</div>
+          <div class="border border-border rounded-app bg-surface px-[.7rem] py-3">
+            <!-- Two-thumb range slider (#161): thumb positions are indices
+                 into the active discipline's own grade list (BOULDER_GRADES/
+                 LEAD_GRADES), not raw grade text or a shared numeric scale,
+                 so it always has exactly as many steps as that discipline's
+                 picker does. Collapsing both thumbs onto the same index
+                 filters to a single grade -- no separate single/range mode,
+                 see #161 discussion. Positions/labels are (re)computed in
+                 updateFilterUI(); dragging/keyboard logic is wired below.
+                 mx-2 on the track offsets each thumb's -ml-2 centering
+                 offset, so a thumb at 0%/100% lands flush with this box's
+                 own px-[.7rem] padding -- same as the icon inset on the
+                 toggle-btn rows above -- instead of bleeding half its own
+                 width past it. -->
+            <div class="relative h-4 mx-2 flex items-center cursor-pointer" id="grade-slider-track">
+              <div class="absolute left-0 right-0 h-1 bg-border rounded-full"></div>
+              <div class="absolute h-1 bg-accent rounded-full" id="grade-slider-fill"></div>
+              <button type="button" class="absolute w-4 h-4 -ml-2 top-1/2 -translate-y-1/2 bg-accent border-2 border-background rounded-full shadow-[0_1px_3px_color-mix(in_srgb,black_40%,transparent)] cursor-grab touch-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" id="grade-thumb-min" role="slider" aria-label="Minimum grade" aria-valuemin="0" tabindex="0"></button>
+              <button type="button" class="absolute w-4 h-4 -ml-2 top-1/2 -translate-y-1/2 bg-accent border-2 border-background rounded-full shadow-[0_1px_3px_color-mix(in_srgb,black_40%,transparent)] cursor-grab touch-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" id="grade-thumb-max" role="slider" aria-label="Maximum grade" aria-valuemin="0" tabindex="0"></button>
+            </div>
+            <div class="text-center text-[.75rem] text-foreground font-semibold mt-[.4rem]" id="grade-slider-label"></div>
+          </div>
+
           <button type="button" class="block w-full mt-[.9rem] bg-transparent border-0 text-muted text-[.78rem] underline cursor-pointer text-center hover:text-foreground" id="filter-clear-btn">Clear filters</button>
         </div>
       </div>
@@ -1016,6 +1041,11 @@
   // ── State ────────────────────────────────────────────────────────────
   const state = {
     statusFilters: new Set(), // empty = "all"
+    gradeRange: null, // null = full range (no filter); otherwise
+                       // { min, max } as indices into activeGradeList() --
+                       // min === max filters to a single grade (#161).
+                       // Reset to null on discipline switch since boulder
+                       // and lead grades aren't the same scale.
     activeType: "boulder",    // which discipline is selected -- set for real
                                // once ALL_ENTRIES loads (see boot()); "boulder"
                                // here is just a placeholder before that.
@@ -1194,12 +1224,25 @@
     return entry.status === filter;
   }
 
+  // Active discipline's own grade list -- BOULDER_GRADES/LEAD_GRADES, not
+  // the shared GRADE_ORDER/gradeRank table -- so the range filter's step
+  // count and bounds always match what the entry-form picker itself offers
+  // for this discipline (21 boulder grades vs. 14 lead grades) (#161).
+  function activeGradeList() {
+    return state.activeType === "boulder" ? BOULDER_GRADES : LEAD_GRADES;
+  }
+
   function filteredEntries() {
     const q = state.search.toLowerCase();
     return ALL_ENTRIES.filter(e => {
       if (e.type !== state.activeType) return false;
       if (state.statusFilters.size > 0 &&
           ![...state.statusFilters].some(f => entryMatchesStatusFilter(e, f))) return false;
+      if (state.gradeRange) {
+        const list = activeGradeList();
+        const r = gradeRank(e.grade);
+        if (r < gradeRank(list[state.gradeRange.min].g) || r > gradeRank(list[state.gradeRange.max].g)) return false;
+      }
       if (q && !e.name.toLowerCase().includes(q) && !placeOf(e).area.toLowerCase().includes(q)) return false;
       return true;
     });
@@ -1244,11 +1287,41 @@
     });
     document.getElementById("filter-flash-label").textContent = flashLabel(state.activeType);
     document.getElementById("filter-send-label").textContent = sendLabel(state.activeType);
-    filterBtn.classList.toggle("active", state.statusFilters.size > 0);
+    updateGradeSlider();
+    const anyActive = state.statusFilters.size > 0 || state.gradeRange !== null;
+    filterBtn.classList.toggle("active", anyActive);
     // aria-expanded (set by createDisclosure) reflects popover-open
     // state -- a different thing from "a filter is currently applied,"
     // which is what aria-pressed communicates here (#171).
-    filterBtn.setAttribute("aria-pressed", String(state.statusFilters.size > 0));
+    filterBtn.setAttribute("aria-pressed", String(anyActive));
+  }
+
+  // Grade range slider (#161) -- thumb positions/labels always reflect a
+  // concrete { min, max } even when state.gradeRange is null (displays the
+  // full span, unfiltered), recomputed against the *active discipline's*
+  // grade list every call since switching disciplines changes both the
+  // step count and what each index means.
+  function updateGradeSlider() {
+    const list = activeGradeList();
+    const lastIdx = list.length - 1;
+    const range = state.gradeRange ?? { min: 0, max: lastIdx };
+    const pct = i => lastIdx === 0 ? 0 : (i / lastIdx) * 100;
+
+    gradeThumbMin.style.left = `${pct(range.min)}%`;
+    gradeThumbMax.style.left = `${pct(range.max)}%`;
+    gradeThumbMin.setAttribute("aria-valuemax", String(lastIdx));
+    gradeThumbMax.setAttribute("aria-valuemax", String(lastIdx));
+    gradeThumbMin.setAttribute("aria-valuenow", String(range.min));
+    gradeThumbMax.setAttribute("aria-valuenow", String(range.max));
+    gradeThumbMin.setAttribute("aria-valuetext", list[range.min].g);
+    gradeThumbMax.setAttribute("aria-valuetext", list[range.max].g);
+
+    gradeSliderFill.style.left = `${pct(range.min)}%`;
+    gradeSliderFill.style.right = `${100 - pct(range.max)}%`;
+
+    gradeSliderLabel.textContent = range.min === range.max
+      ? list[range.min].g
+      : `${list[range.min].g} – ${list[range.max].g}`;
   }
 
   const EDIT_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"></path></svg>`;
@@ -2346,6 +2419,68 @@
   // open/close functions like every other popover in this file, and
   // silently never got a matching Escape handler as a result.
   createDisclosure(filterBtn, filterPanel, ".filter-wrap");
+
+  // Grade range slider (#161): drag/keyboard/click-to-snap. Thumb identity
+  // is fixed (min can never exceed max) rather than "whichever thumb is
+  // closer" swapping mid-drag -- dragging one thumb into the other just
+  // clamps at the shared index, which is also how the range collapses to
+  // a single grade instead of needing a separate single/range mode.
+  const gradeSliderTrack = document.getElementById("grade-slider-track");
+  const gradeThumbMin = document.getElementById("grade-thumb-min");
+  const gradeThumbMax = document.getElementById("grade-thumb-max");
+  const gradeSliderFill = document.getElementById("grade-slider-fill");
+  const gradeSliderLabel = document.getElementById("grade-slider-label");
+
+  function indexFromClientX(clientX) {
+    const rect = gradeSliderTrack.getBoundingClientRect();
+    const lastIdx = activeGradeList().length - 1;
+    const pct = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+    return Math.round(pct * lastIdx);
+  }
+
+  function setGradeBound(which, index) {
+    const lastIdx = activeGradeList().length - 1;
+    index = Math.min(lastIdx, Math.max(0, index));
+    const current = state.gradeRange ?? { min: 0, max: lastIdx };
+    const next = { ...current };
+    if (which === "min") next.min = Math.min(index, current.max);
+    else next.max = Math.max(index, current.min);
+    if (next.min === current.min && next.max === current.max) return;
+    state.gradeRange = next;
+    render();
+  }
+
+  let dragThumb = null; // "min" | "max" | null
+  gradeThumbMin.addEventListener("pointerdown", e => { dragThumb = "min"; gradeThumbMin.setPointerCapture(e.pointerId); });
+  gradeThumbMax.addEventListener("pointerdown", e => { dragThumb = "max"; gradeThumbMax.setPointerCapture(e.pointerId); });
+  gradeSliderTrack.addEventListener("pointermove", e => {
+    if (!dragThumb) return;
+    setGradeBound(dragThumb, indexFromClientX(e.clientX));
+  });
+  gradeSliderTrack.addEventListener("pointerup", () => { dragThumb = null; });
+  gradeSliderTrack.addEventListener("pointercancel", () => { dragThumb = null; });
+
+  // Click/tap directly on the track (not a thumb) moves whichever thumb is
+  // nearest -- the easiest way to collapse both thumbs onto one grade.
+  gradeSliderTrack.addEventListener("pointerdown", e => {
+    if (e.target === gradeThumbMin || e.target === gradeThumbMax) return;
+    const index = indexFromClientX(e.clientX);
+    const range = state.gradeRange ?? { min: 0, max: activeGradeList().length - 1 };
+    const which = Math.abs(index - range.min) <= Math.abs(index - range.max) ? "min" : "max";
+    setGradeBound(which, index);
+  });
+
+  [[gradeThumbMin, "min"], [gradeThumbMax, "max"]].forEach(([thumb, which]) => {
+    thumb.addEventListener("keydown", e => {
+      const range = state.gradeRange ?? { min: 0, max: activeGradeList().length - 1 };
+      const current = range[which];
+      if (e.key === "ArrowLeft" || e.key === "ArrowDown") { setGradeBound(which, current - 1); e.preventDefault(); }
+      else if (e.key === "ArrowRight" || e.key === "ArrowUp") { setGradeBound(which, current + 1); e.preventDefault(); }
+      else if (e.key === "Home") { setGradeBound(which, 0); e.preventDefault(); }
+      else if (e.key === "End") { setGradeBound(which, activeGradeList().length - 1); e.preventDefault(); }
+    });
+  });
+
   const collapseAllBtn = document.getElementById("collapse-all-btn");
   const disciplineBtn = document.getElementById("discipline-btn");
   const disciplinePopover = document.getElementById("discipline-popover");
@@ -3129,6 +3264,10 @@
     if (!opt) return;
     state.activeType = opt.dataset.discipline;
     state.lowerGradesExpanded = false;
+    // Boulder and lead grades aren't the same scale -- carrying a range
+    // like "6A-7B+" over as some translated lead range would silently
+    // filter to something the user didn't ask for (#161).
+    state.gradeRange = null;
     closeDisciplinePopover();
     disciplineBtn.focus();
     render();
@@ -3321,10 +3460,11 @@
 
   // ── Event delegation (list controls) ─────────────────────────────────
   document.addEventListener("click", e => {
-    // Clear filters (status only -- the active type-tab isn't a "filter"
-    // to clear, it's the current view)
+    // Clear filters (status + grade range -- the active type-tab isn't a
+    // "filter" to clear, it's the current view)
     if (e.target.closest("#filter-clear-btn")) {
       state.statusFilters.clear();
+      state.gradeRange = null;
       render();
       return;
     }
