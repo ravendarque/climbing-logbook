@@ -1,16 +1,20 @@
 # Versioning Strategy
 
-## Deploys vs. releases — these are different things here
+## Deploys vs. releases — deploys are tag-gated
 
-This app deploys continuously: every merge to `main` triggers `deploy.yml`
-and goes live immediately (see `docs/infra-architecture.md`). A version tag
-is **not** a release gate — nothing waits for one, and nothing about what's
-live depends on whether the current commit is tagged.
+A version tag **is** the release gate: `deploy.yml` triggers on a `vX.Y.Z`
+tag push, not on every merge to `main` (see `docs/infra-architecture.md`).
+Merging to `main` integrates a change; nothing goes live until the next tag
+is cut.
 
-A version tag is a **human-deliberate marker** on top of that continuous
-stream, placed when a change is significant enough to name and describe.
-Most commits never get their own tag; they just ride along inside whichever
-version eventually gets cut next.
+A version tag is a **human-deliberate marker**, placed when a change is
+significant enough to name, describe, and ship. A `release: none` merge
+doesn't deploy on its own — it just rides along inside `main` until
+whichever version eventually gets cut next, at which point it goes live
+bundled with that release. This is safe by construction: `release: none` is
+only for changes with zero externally visible behavior (see below), so it
+makes no observable difference whether such a change ships alone or
+bundled.
 
 ## What SemVer means for this project
 
@@ -62,11 +66,15 @@ incremental PR that contributes to it).
 
 ## Where the version lives
 
-- `package.json`'s `version` field — the single source of truth for "what
-  version is this checkout."
-- A git tag `vX.Y.Z` on the commit the version was cut from.
+- A git tag `vX.Y.Z` on the commit the version was cut from — the single
+  source of truth. Nothing in the app or build reads a version from a
+  file, so there's nothing to keep in sync.
 - A GitHub Release on that tag, with auto-generated notes (merged PRs since
   the last tag).
+- `package.json`'s `version` field is an inert placeholder (`"0.0.0"`), kept
+  only because npm/pnpm require some semver string to be present. It is
+  never written by automation and carries no meaning — check tags/releases
+  for the actual version.
 
 ## Cutting a release
 
@@ -94,9 +102,12 @@ what prevents that from happening again. `release: none` merges with no
 version bump; the other three trigger the release workflow below.
 
 When a labelled PR merges, `.github/workflows/release.yml` reads the label,
-calculates the new version with the `semver` package, bumps `package.json`,
-commits it to `main`, creates and pushes the `vX.Y.Z` tag, and creates a
-GitHub Release with auto-generated notes — no manual step required.
+finds the latest existing `vX.Y.Z` tag, calculates the new version with the
+`semver` package, then creates and pushes **only** the new tag (no commit,
+no push to `main`) and creates a GitHub Release with auto-generated notes —
+no manual step required. Because it never pushes to `main`, this never
+interacts with branch protection on `main` — tags aren't covered by it.
+That tag push is what triggers `deploy.yml`.
 
 `workflow_dispatch` (Actions tab → "Release" → Run workflow) still exists
 as a manual override, for a corrective release or anything unusual that
