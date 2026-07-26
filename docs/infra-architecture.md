@@ -88,7 +88,7 @@ rather than depending on any state of its own).
 | Workflow | Trigger | Job |
 |---|---|---|
 | `bootstrap-state.yml` | Manual only (`workflow_dispatch`) | Creates the R2 state bucket if missing. Safe to re-run any time, including full disaster recovery. |
-| `infra.yml` | `pull_request`/`push` on `infra/**`, plus manual | `terraform plan` on PRs, `apply` on merge to `main`. Also syncs `wrangler.jsonc`'s KV namespace id from Terraform's output (see below), committing with `[skip ci]` if it changed. |
+| `infra.yml` | `pull_request`/`push` on `infra/**`, plus manual | `terraform plan` on PRs, `apply` on merge to `main`. Also syncs `wrangler.jsonc`'s KV namespace id from Terraform's output (see below), opening and self-merging a PR if it changed. |
 | `deploy.yml` | `push` of a `vX.Y.Z` tag, plus manual | `wrangler deploy` — the Worker script and static assets. Tied to releases, not every merge — see `docs/versioning.md`. |
 
 **Why three separate workflows, not one:** `bootstrap-state.yml` must be
@@ -113,15 +113,19 @@ of operations for a from-scratch setup: merge → bootstrap → re-run infra.
 `wrangler.jsonc`'s `kv_namespaces[0].id` must reference the *current*
 Terraform-managed namespace. `infra.yml` reads `terraform output -raw
 kv_namespace_id` after apply and rewrites `wrangler.jsonc` if it changed,
-committing directly (bot-authored, `[skip ci]` to avoid retriggering itself
-via the lockfile-in-`infra/**` path match). This is the one place a bot
-commits straight to `main` rather than via PR — justified because it's a
-mechanical sync of a derived value with no human judgment involved, the same
-category as a lockfile auto-update.
+then pushes a branch, opens a PR, labels it `release: none`, waits for the
+required `check-label` status, and merges it itself (squash, `[skip ci]` on
+the merge commit to avoid retriggering itself via the lockfile-in-`infra/**`
+path match). It used to commit straight to `main` directly, but the
+repo's branch-protection ruleset (`bypass_actors: []`, no exceptions —
+see #179/#181) rejects any direct push regardless of actor, so this has to
+go through a PR. Fully bot-driven, no human review gate — the same
+zero-touch automation level the direct-commit version had, just routed
+through the required PR mechanism.
 
 `deploy.yml` no longer triggers from any `main`-branch push at all (it's
 tag-gated — see `docs/versioning.md`), so a changed KV id is never picked up
-automatically regardless of `[skip ci]`. That's only a concern after a full
+automatically by this merge. That's only a concern after a full
 disaster-recovery rebuild (the id doesn't otherwise change), and
 `deploy.yml` has `workflow_dispatch` specifically so it can be forced in
 that case.

@@ -62,16 +62,33 @@ jobs:
             }
           "
 
-      - name: Commit generated files if changed
+      - name: Open and merge PR if generated files changed
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add wrangler.jsonc infra/.terraform.lock.hcl
-          if ! git diff --cached --quiet; then
-            git commit -m "chore: sync generated infra config [skip ci]"
-            git push
-          else
+          if git diff --cached --quiet; then
             echo "Nothing to commit."
+            exit 0
           fi
+
+          BRANCH="infra/sync-kv-id-${{ github.run_id }}"
+          git checkout -b "$BRANCH"
+          git commit -m "chore: sync generated infra config"
+          git push origin "$BRANCH"
+
+          PR_URL=$(gh pr create \
+            --title "chore: sync generated infra config" \
+            --body "Automated sync of Terraform-derived config (KV namespace id / lockfile) after an infra apply. See docs/infra-architecture.md." \
+            --base main --head "$BRANCH")
+          PR_NUM="${PR_URL##*/}"
+
+          gh api "repos/${{ github.repository }}/issues/$PR_NUM/labels" -f "labels[]=release: none"
+
+          gh pr checks "$PR_NUM" --watch
+          gh pr merge "$PR_NUM" --squash --delete-branch \
+            --subject "chore: sync generated infra config [skip ci]"
