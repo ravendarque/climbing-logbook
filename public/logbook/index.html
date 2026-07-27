@@ -56,35 +56,42 @@
     [hidden] { display: none; }
 
     /* ── Grade/status colours — semantic (#170) ───────────────────────
-       Fixed regardless of light/dark theme, deliberately -- these are
-       the app's first named palettes (Citrus Burst for status, Fiery
-       Red Sunset for grade), meant as a stable default ahead of #75's
-       curated/custom theming work, not something that should also vary
-       with light/dark right now. */
+       Fixed regardless of light/dark theme, deliberately -- meant as a
+       stable default ahead of #75's curated/custom theming work, not
+       something that should also vary with light/dark right now. */
     :root {
       --field-h:     2.25rem;
 
-      /* Citrus Burst -- one colour per status, used as the status cell's
-         background fill (#170). */
-      --status-flash:     #f5bb00; /* amber_gold */
-      --status-send:      #8ea604; /* lime_moss */
-      --status-project:   #ec9f05; /* golden_orange */
-      --status-wishlist:  #d76a03; /* chocolate */
-      --status-abandoned: #bf3100; /* rusty_spice */
+      /* Baseline checkpoint (#170 follow-up, in progress): neutral flat
+         grey for every status while design exploration continues --
+         same flat-colour-for-every-status structure as the muted-red
+         experiment before it, just parked on a neutral rather than a
+         colour while other options get explored. Differentiation relies
+         entirely on icon shape. */
+      --status-flash:     #3f403f;
+      --status-send:      #3f403f;
+      --status-project:   #3f403f;
+      --status-wishlist:  #3f403f;
+      --status-abandoned: #3f403f;
 
-      /* Fiery Red Sunset -- ten steps, weighted so V4-V10 (where most
-         entries actually fall) each get their own colour, with the
-         extremes compressed (see gradeColor()/BOULDER_GRADES). */
-      --grade-01: #03071e; /* ink_black */
-      --grade-02: #370617; /* night_bordeaux */
-      --grade-03: #6a040f; /* black_cherry */
-      --grade-04: #9d0208; /* oxblood */
-      --grade-05: #d00000; /* brick_ember */
-      --grade-06: #dc2f02; /* red_ochre */
-      --grade-07: #e85d04; /* cayenne_red */
-      --grade-08: #f48c06; /* deep_saffron */
-      --grade-09: #faa307; /* orange */
-      --grade-10: #ffba08; /* amber_flame */
+      /* Fiery Orange Gradient -- ten steps, weighted so V4-V10 (where
+         most entries actually fall) each get their own colour, with the
+         extremes compressed (see gradeColor()/BOULDER_GRADES). Darkest
+         = hardest. Much narrower lightness range than Fiery Red Sunset
+         (all steps stay bright/saturated orange, no near-black end) --
+         a deliberately gentler gradient than the previous two palettes.
+         (Fiery Red Sunset, then Purple Haze Extravaganza, were tried in
+         its place and reverted.) */
+      --grade-01: #ff4800;
+      --grade-02: #ff5400;
+      --grade-03: #ff6000;
+      --grade-04: #ff6d00;
+      --grade-05: #ff7900;
+      --grade-06: #ff8500;
+      --grade-07: #ff9100;
+      --grade-08: #ff9e00;
+      --grade-09: #ffaa00;
+      --grade-10: #ffb600;
 
       /* Fixed ink pair -- status icons use both at once (two-tone, see
          status-icons.js), grade text picks one per-cell for contrast
@@ -960,13 +967,15 @@
     "var(--grade-06)", "var(--grade-05)", "var(--grade-04)", "var(--grade-03)",
     "var(--grade-02)", "var(--grade-01)",
   ];
-  // Fiery Red Sunset runs dark-to-bright (#170) -- the last three steps
-  // (deep_saffron/orange/amber_flame) are bright enough to need dark ink,
-  // since grade text is single-tone (unlike the two-tone status icons).
+  // Fiery Orange Gradient stays bright/saturated across all ten steps
+  // (no near-black end) -- computed WCAG contrast against both inks
+  // shows dark ink wins at every single step (worst case 5.4:1 at the
+  // darkest step vs 3.16:1 for light ink there), unlike Fiery Red
+  // Sunset which needed a per-step split.
   const GRADE_INK = {
-    "var(--grade-01)": "light", "var(--grade-02)": "light", "var(--grade-03)": "light",
-    "var(--grade-04)": "light", "var(--grade-05)": "light", "var(--grade-06)": "light",
-    "var(--grade-07)": "light", "var(--grade-08)": "dark",  "var(--grade-09)": "dark",
+    "var(--grade-01)": "dark", "var(--grade-02)": "dark", "var(--grade-03)": "dark",
+    "var(--grade-04)": "dark", "var(--grade-05)": "dark", "var(--grade-06)": "dark",
+    "var(--grade-07)": "dark", "var(--grade-08)": "dark", "var(--grade-09)": "dark",
     "var(--grade-10)": "dark",
   };
   function gradeInk(colorVar) {
