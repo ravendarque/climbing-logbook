@@ -1,0 +1,128 @@
+name: Project status sync
+
+# Keeps the Climbing Logbook project board's Status field in sync with
+# actual work state (#192) -- GitHub's built-in Project Workflows only
+# cover item-added/item-closed/PR-merged/manual-status-changed; there's
+# no native "branch created" or "PR opened" trigger (confirmed against
+# GitHub's own docs, not assumed).
+#
+# Needs a PAT with `project` + `repo` scopes stored as the
+# PROJECT_STATUS_PAT secret -- the default GITHUB_TOKEN cannot access
+# Projects v2 at all ("GITHUB_TOKEN is scoped to the repository level
+# and cannot access projects", per GitHub's docs), regardless of any
+# permissions: block here. Set it yourself, not via an assistant, so
+# the token value never passes through a shared transcript:
+#   gh secret set PROJECT_STATUS_PAT
+#
+# Branch names and PR bodies are attacker-influenceable on a public
+# repo, so they're passed through env: below rather than interpolated
+# directly into a run: script -- direct ${{ }} interpolation into shell
+# text is a known injection vector (a branch/PR body containing shell
+# metacharacters would otherwise execute as part of the script).
+on:
+  create:
+  pull_request:
+    types: [opened]
+
+permissions:
+  contents: read
+
+env:
+  PROJECT_ID: "PVT_kwHOANLCeM4Bef3-"
+  STATUS_FIELD_ID: "PVTSSF_lAHOANLCeM4Bef3-zhY5m5E"
+  IN_PROGRESS_OPTION: "47fc9ee4"
+  IN_REVIEW_OPTION: "aba860b9"
+
+jobs:
+  branch-created:
+    if: github.event_name == 'create' && github.ref_type == 'branch'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.PROJECT_STATUS_PAT }}
+      BRANCH_NAME: ${{ github.ref_name }}
+    steps:
+      - name: Move linked issue to In Progress
+        run: |
+          ISSUE_NUM=$(echo "$BRANCH_NAME" | grep -oE '^[a-z]+/[0-9]+-' | grep -oE '[0-9]+' || true)
+          if [ -z "$ISSUE_NUM" ]; then
+            echo "Branch '$BRANCH_NAME' doesn't match the type/NNN-slug convention -- skipping."
+            exit 0
+          fi
+          echo "Resolved issue #$ISSUE_NUM from branch $BRANCH_NAME"
+
+          ITEM_ID=$(gh api graphql -f query='
+            query($owner:String!, $repo:String!, $num:Int!) {
+              repository(owner:$owner, name:$repo) {
+                issue(number:$num) {
+                  projectItems(first: 20) {
+                    nodes { id project { id } }
+                  }
+                }
+              }
+            }' -f owner="${{ github.repository_owner }}" -f repo="${{ github.event.repository.name }}" -F num="$ISSUE_NUM" \
+            --jq ".data.repository.issue.projectItems.nodes[] | select(.project.id == \"$PROJECT_ID\") | .id")
+
+          if [ -z "$ITEM_ID" ]; then
+            echo "Issue #$ISSUE_NUM isn't on the project board -- skipping."
+            exit 0
+          fi
+
+          gh api graphql -f query='
+            mutation($project:ID!, $item:ID!, $field:ID!, $value:String!) {
+              updateProjectV2ItemFieldValue(input: {
+                projectId: $project, itemId: $item, fieldId: $field,
+                value: { singleSelectOptionId: $value }
+              }) { projectV2Item { id } }
+            }' -f project="$PROJECT_ID" -f item="$ITEM_ID" -f field="$STATUS_FIELD_ID" -f value="$IN_PROGRESS_OPTION"
+
+          echo "Set issue #$ISSUE_NUM to In Progress."
+
+  pr-opened:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.PROJECT_STATUS_PAT }}
+      BRANCH_NAME: ${{ github.head_ref }}
+      PR_BODY: ${{ github.event.pull_request.body }}
+    steps:
+      - name: Move linked issue to In Review
+        run: |
+          ISSUE_NUM=$(echo "$BRANCH_NAME" | grep -oE '^[a-z]+/[0-9]+-' | grep -oE '[0-9]+' || true)
+          if [ -z "$ISSUE_NUM" ]; then
+            # Fallback for branches that don't follow the naming convention:
+            # look for Closes/Fixes/Resolves #N in the PR body.
+            ISSUE_NUM=$(echo "$PR_BODY" | grep -ioE '(close[sd]?|fix(e[sd])?|resolve[sd]?)[[:space:]]+#[0-9]+' | grep -oE '[0-9]+' | head -1 || true)
+          fi
+
+          if [ -z "$ISSUE_NUM" ]; then
+            echo "Couldn't resolve a linked issue from branch '$BRANCH_NAME' or the PR body -- skipping."
+            exit 0
+          fi
+          echo "Resolved issue #$ISSUE_NUM"
+
+          ITEM_ID=$(gh api graphql -f query='
+            query($owner:String!, $repo:String!, $num:Int!) {
+              repository(owner:$owner, name:$repo) {
+                issue(number:$num) {
+                  projectItems(first: 20) {
+                    nodes { id project { id } }
+                  }
+                }
+              }
+            }' -f owner="${{ github.repository_owner }}" -f repo="${{ github.event.repository.name }}" -F num="$ISSUE_NUM" \
+            --jq ".data.repository.issue.projectItems.nodes[] | select(.project.id == \"$PROJECT_ID\") | .id")
+
+          if [ -z "$ITEM_ID" ]; then
+            echo "Issue #$ISSUE_NUM isn't on the project board -- skipping."
+            exit 0
+          fi
+
+          gh api graphql -f query='
+            mutation($project:ID!, $item:ID!, $field:ID!, $value:String!) {
+              updateProjectV2ItemFieldValue(input: {
+                projectId: $project, itemId: $item, fieldId: $field,
+                value: { singleSelectOptionId: $value }
+              }) { projectV2Item { id } }
+            }' -f project="$PROJECT_ID" -f item="$ITEM_ID" -f field="$STATUS_FIELD_ID" -f value="$IN_REVIEW_OPTION"
+
+          echo "Set issue #$ISSUE_NUM to In Review."
