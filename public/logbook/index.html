@@ -55,17 +55,44 @@
        every hidden-attribute element actually needs. */
     [hidden] { display: none; }
 
-    /* ── Grade colours — semantic ─────────────────────────────────── */
+    /* ── Grade/status colours — semantic (#170) ───────────────────────
+       Fixed regardless of light/dark theme, deliberately -- these are
+       the app's first named palettes (Citrus Burst for status, Fiery
+       Red Sunset for grade), meant as a stable default ahead of #75's
+       curated/custom theming work, not something that should also vary
+       with light/dark right now. */
     :root {
-      --grade-easy:  #94a3b8;
-      --grade-6a:    #22d3ee;
-      --grade-6b:    #4ade80;
-      --grade-6c:    #a3e635;
-      --grade-7a:    #facc15;
-      --grade-7b:    #fb923c;
-      --grade-7c:    #f87171;
-      --grade-8a:    #c084fc;
       --field-h:     2.25rem;
+
+      /* Citrus Burst -- one colour per status, used as the status cell's
+         background fill (#170). */
+      --status-flash:     #f5bb00; /* amber_gold */
+      --status-send:      #8ea604; /* lime_moss */
+      --status-project:   #ec9f05; /* golden_orange */
+      --status-wishlist:  #d76a03; /* chocolate */
+      --status-abandoned: #bf3100; /* rusty_spice */
+
+      /* Fiery Red Sunset -- ten steps, weighted so V4-V10 (where most
+         entries actually fall) each get their own colour, with the
+         extremes compressed (see gradeColor()/BOULDER_GRADES). */
+      --grade-01: #03071e; /* ink_black */
+      --grade-02: #370617; /* night_bordeaux */
+      --grade-03: #6a040f; /* black_cherry */
+      --grade-04: #9d0208; /* oxblood */
+      --grade-05: #d00000; /* brick_ember */
+      --grade-06: #dc2f02; /* red_ochre */
+      --grade-07: #e85d04; /* cayenne_red */
+      --grade-08: #f48c06; /* deep_saffron */
+      --grade-09: #faa307; /* orange */
+      --grade-10: #ffba08; /* amber_flame */
+
+      /* Fixed ink pair -- status icons use both at once (two-tone, see
+         status-icons.js), grade text picks one per-cell for contrast
+         (see gradeInk()). Not tied to the page's own light/dark
+         foreground tokens since those flip independently of these fixed
+         backgrounds. */
+      --cell-ink-dark:  #1a1400;
+      --cell-ink-light: #fdf6e8;
 
       /* Evidence-tier colours (#16) -- distinguish peer-reviewed research
          from coaching heuristics (e.g. the grade pyramid's 8-4-2-1 ratio)
@@ -93,14 +120,6 @@
       --color-accent:      #ff2727;
       --color-accent-text: #ffffff;
       --color-border:      #dcdcdc;
-      --grade-easy:  #64748b;
-      --grade-6a:    #0891b2;
-      --grade-6b:    #16a34a;
-      --grade-6c:    #65a30d;
-      --grade-7a:    #ca8a04;
-      --grade-7b:    #ea580c;
-      --grade-7c:    #b91c1c;
-      --grade-8a:    #9333ea;
       --tier-peer:      #2e5fb8;
       --tier-heuristic: #a6740a;
       --tier-community: #a34a7a;
@@ -933,10 +952,26 @@
   const GRADE_RANK = Object.fromEntries(GRADE_ORDER.map((g, i) => [g.toUpperCase(), i]));
   function gradeRank(g) { return GRADE_RANK[g.toUpperCase()] ?? 99; }
 
+  // Reversed order (#170 follow-up): darker = harder, so easiest grades
+  // (low frac) get the brightest step (grade-10) and hardest get the
+  // darkest (grade-01).
   const GRADE_COLOR_BANDS = [
-    "var(--grade-easy)", "var(--grade-6a)", "var(--grade-6b)", "var(--grade-6c)",
-    "var(--grade-7a)",   "var(--grade-7b)", "var(--grade-7c)", "var(--grade-8a)",
+    "var(--grade-10)", "var(--grade-09)", "var(--grade-08)", "var(--grade-07)",
+    "var(--grade-06)", "var(--grade-05)", "var(--grade-04)", "var(--grade-03)",
+    "var(--grade-02)", "var(--grade-01)",
   ];
+  // Fiery Red Sunset runs dark-to-bright (#170) -- the last three steps
+  // (deep_saffron/orange/amber_flame) are bright enough to need dark ink,
+  // since grade text is single-tone (unlike the two-tone status icons).
+  const GRADE_INK = {
+    "var(--grade-01)": "light", "var(--grade-02)": "light", "var(--grade-03)": "light",
+    "var(--grade-04)": "light", "var(--grade-05)": "light", "var(--grade-06)": "light",
+    "var(--grade-07)": "light", "var(--grade-08)": "dark",  "var(--grade-09)": "dark",
+    "var(--grade-10)": "dark",
+  };
+  function gradeInk(colorVar) {
+    return GRADE_INK[colorVar] === "dark" ? "var(--cell-ink-dark)" : "var(--cell-ink-light)";
+  }
   // BOULDER_GRADES/LEAD_GRADES (defined below) already carry a curated `c`
   // per entry -- look those up directly rather than re-deriving a color
   // from rank. Lead's list is only 14 entries against Boulder's 21, so
@@ -960,44 +995,50 @@
   }
 
   // ── Grade data (entry form) ───────────────────────────────────────────
+  // Colours are Fiery Red Sunset (#170), ten steps weighted so V4-V10
+  // (where most entries fall) each get their own colour, with the
+  // extremes compressed -- same named grade always gets the same
+  // colour across Boulder/Lead (e.g. 6A/6a share --grade-09). Darker =
+  // harder (reversed from the initial pass): easiest grades get the
+  // brightest step, hardest get the darkest.
   const BOULDER_GRADES = [
-    { g: "5",   v: "V0",  c: "var(--grade-easy)" },
-    { g: "5+",  v: "V0",  c: "var(--grade-easy)" },
-    { g: "5A",  v: "V0",  c: "var(--grade-easy)" },
-    { g: "5B",  v: "V1",  c: "var(--grade-easy)" },
-    { g: "5C",  v: "V2",  c: "var(--grade-easy)" },
-    { g: "6A",  v: "V3",  c: "var(--grade-6a)"   },
-    { g: "6A+", v: "V3",  c: "var(--grade-6a)"   },
-    { g: "6B",  v: "V4",  c: "var(--grade-6b)"   },
-    { g: "6B+", v: "V4",  c: "var(--grade-6b)"   },
-    { g: "6C",  v: "V5",  c: "var(--grade-6c)"   },
-    { g: "6C+", v: "V5",  c: "var(--grade-6c)"   },
-    { g: "7A",  v: "V6",  c: "var(--grade-7a)"   },
-    { g: "7A+", v: "V7",  c: "var(--grade-7a)"   },
-    { g: "7B",  v: "V8",  c: "var(--grade-7b)"   },
-    { g: "7B+", v: "V8",  c: "var(--grade-7b)"   },
-    { g: "7C",  v: "V9",  c: "var(--grade-7c)"   },
-    { g: "7C+", v: "V10", c: "var(--grade-7c)"   },
-    { g: "8A",  v: "V11", c: "var(--grade-8a)"   },
-    { g: "8A+", v: "V12", c: "var(--grade-8a)"   },
-    { g: "8B",  v: "V13", c: "var(--grade-8a)"   },
-    { g: "8B+", v: "V14", c: "var(--grade-8a)"   },
+    { g: "5",   v: "V0",  c: "var(--grade-10)" },
+    { g: "5+",  v: "V0",  c: "var(--grade-10)" },
+    { g: "5A",  v: "V0",  c: "var(--grade-10)" },
+    { g: "5B",  v: "V1",  c: "var(--grade-10)" },
+    { g: "5C",  v: "V2",  c: "var(--grade-09)" },
+    { g: "6A",  v: "V3",  c: "var(--grade-09)" },
+    { g: "6A+", v: "V3",  c: "var(--grade-09)" },
+    { g: "6B",  v: "V4",  c: "var(--grade-08)" },
+    { g: "6B+", v: "V4",  c: "var(--grade-08)" },
+    { g: "6C",  v: "V5",  c: "var(--grade-07)" },
+    { g: "6C+", v: "V5",  c: "var(--grade-07)" },
+    { g: "7A",  v: "V6",  c: "var(--grade-06)" },
+    { g: "7A+", v: "V7",  c: "var(--grade-05)" },
+    { g: "7B",  v: "V8",  c: "var(--grade-04)" },
+    { g: "7B+", v: "V8",  c: "var(--grade-04)" },
+    { g: "7C",  v: "V9",  c: "var(--grade-03)" },
+    { g: "7C+", v: "V10", c: "var(--grade-02)" },
+    { g: "8A",  v: "V11", c: "var(--grade-01)" },
+    { g: "8A+", v: "V12", c: "var(--grade-01)" },
+    { g: "8B",  v: "V13", c: "var(--grade-01)" },
+    { g: "8B+", v: "V14", c: "var(--grade-01)" },
   ];
   const LEAD_GRADES = [
-    { g: "5c",  c: "var(--grade-easy)" },
-    { g: "6a",  c: "var(--grade-6a)"   },
-    { g: "6a+", c: "var(--grade-6a)"   },
-    { g: "6b",  c: "var(--grade-6b)"   },
-    { g: "6b+", c: "var(--grade-6b)"   },
-    { g: "6c",  c: "var(--grade-6c)"   },
-    { g: "6c+", c: "var(--grade-6c)"   },
-    { g: "7a",  c: "var(--grade-7a)"   },
-    { g: "7a+", c: "var(--grade-7a)"   },
-    { g: "7b",  c: "var(--grade-7b)"   },
-    { g: "7b+", c: "var(--grade-7b)"   },
-    { g: "7c",  c: "var(--grade-7c)"   },
-    { g: "7c+", c: "var(--grade-7c)"   },
-    { g: "8a",  c: "var(--grade-8a)"   },
+    { g: "5c",  c: "var(--grade-09)" },
+    { g: "6a",  c: "var(--grade-09)" },
+    { g: "6a+", c: "var(--grade-09)" },
+    { g: "6b",  c: "var(--grade-08)" },
+    { g: "6b+", c: "var(--grade-08)" },
+    { g: "6c",  c: "var(--grade-07)" },
+    { g: "6c+", c: "var(--grade-07)" },
+    { g: "7a",  c: "var(--grade-06)" },
+    { g: "7a+", c: "var(--grade-05)" },
+    { g: "7b",  c: "var(--grade-04)" },
+    { g: "7b+", c: "var(--grade-04)" },
+    { g: "7c",  c: "var(--grade-03)" },
+    { g: "7c+", c: "var(--grade-02)" },
+    { g: "8a",  c: "var(--grade-01)" },
   ];
 
   // ── Date helpers ─────────────────────────────────────────────────────
@@ -1025,17 +1066,23 @@
   const sendLabel  = (type, plural) => SEND_LABEL[type ?? "boulder"][plural ? 1 : 0];
   const nameLabel  = type => NAME_LABEL[type ?? "boulder"];
 
-  const STATUS_ICON_CLASS = "inline-flex align-middle cursor-default [&_svg]:w-[1.4rem] [&_svg]:h-[1.4rem]";
+  const STATUS_ICON_CLASS = "relative z-[1] inline-flex items-center justify-center w-full h-full pr-[6px] cursor-default [&_svg]:w-[1.4rem] [&_svg]:h-[1.4rem]";
+  // Status key + label -- the table row's status cell (#170) needs the
+  // key itself (to pick the Citrus Burst background), not just a
+  // rendered icon span, so this is split out from the actual markup.
+  function statusInfo(entry) {
+    if (entry.status === "send" && entry.firstAttempt) return { key: "flash", title: flashLabel(entry.type) };
+    if (entry.status === "send") return { key: "send", title: sendLabel(entry.type) };
+    if (entry.status === "project") return { key: "project", title: "Project" };
+    if (entry.status === "abandoned") return { key: "abandoned", title: "Abandoned" };
+    return { key: "wishlist", title: "Check out" };
+  }
+  // Diagonal background fill + icon (#170) -- the shape class comes from
+  // tailwind.css's status-cell-shape; the icon's own two-tone colouring
+  // is baked into its SVG paths (status-icons.js), not set here.
   function statusBadge(entry) {
-    if (entry.status === "send" && entry.firstAttempt)
-      return `<span class="${STATUS_ICON_CLASS}" title="${flashLabel(entry.type)}">${STATUS_ICONS.flash}</span>`;
-    if (entry.status === "send")
-      return `<span class="${STATUS_ICON_CLASS}" title="${sendLabel(entry.type)}">${STATUS_ICONS.send}</span>`;
-    if (entry.status === "project")
-      return `<span class="${STATUS_ICON_CLASS}" title="Project">${STATUS_ICONS.project}</span>`;
-    if (entry.status === "abandoned")
-      return `<span class="${STATUS_ICON_CLASS}" title="Abandoned">${STATUS_ICONS.abandoned}</span>`;
-    return `<span class="${STATUS_ICON_CLASS}" title="Check out">${STATUS_ICONS.wishlist}</span>`;
+    const { key, title } = statusInfo(entry);
+    return `<div class="status-cell-shape" style="background:var(--status-${key})"></div><span class="${STATUS_ICON_CLASS}" title="${title}">${STATUS_ICONS[key]}</span>`;
   }
 
   // ── State ────────────────────────────────────────────────────────────
@@ -1370,9 +1417,12 @@
           : "";
         return `
         <tr class="border-b border-[color-mix(in_srgb,var(--color-border)_40%,transparent)] last:border-b-0 ${rowBg}">
-          <td class="${TD_BASE} text-center w-8">${statusBadge(e)}</td>
-          <td class="${TD_BASE}"><span class="grade-badge" style="color:${gradeColor(e.grade, e.type)}">${escapeHtml(e.grade)}</span></td>
-          <td class="${TD_BASE}">
+          <td class="relative p-0 w-12 align-middle">${statusBadge(e)}</td>
+          <td class="relative p-0 w-14 align-middle" style="overflow: visible;">${(() => {
+            const gc = gradeColor(e.grade, e.type);
+            return `<div class="grade-cell-shape" style="background:${gc}"></div><span class="relative z-[1] grade-badge inline-block pl-[.85rem] pr-[.5rem] py-[.35rem]" style="color:${gradeInk(gc)}">${escapeHtml(e.grade)}</span>`;
+          })()}</td>
+          <td class="${TD_BASE} whitespace-nowrap">
             <span class="font-medium ${e._pendingDelete ? "line-through text-muted" : ""}">${escapeHtml(e.name)}</span>
             ${e.notes ? `<button type="button" class="notes-btn border-0 bg-transparent cursor-pointer text-muted inline-flex align-middle p-[.1rem] hover:text-accent" data-notes-id="${escapeHtml(e.id)}" aria-label="View notes"><svg class="w-[.85rem] h-[.85rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg></button>` : ""}
             ${pendingBadge}
@@ -1413,9 +1463,9 @@
             <table class="w-full border-collapse text-[.88rem] min-w-[520px]">
               <thead>
                 <tr>
-                  <th class="${TH_BASE} w-8"></th>
-                  <th class="${TH_BASE} ${TH_SORTABLE}" data-sort="grade" data-location-id="${escapeHtml(locationId)}" role="button" tabindex="0" aria-sort="${sortAria("grade")}">
-                    Grade ${sortIcon("grade")}
+                  <th class="${TH_BASE} w-12"></th>
+                  <th class="${TH_BASE} ${TH_SORTABLE} w-14" data-sort="grade" data-location-id="${escapeHtml(locationId)}" role="button" tabindex="0" aria-sort="${sortAria("grade")}" title="Grade">
+                    GRD ${sortIcon("grade")}
                   </th>
                   <th class="${TH_BASE} ${TH_SORTABLE}" data-sort="name" data-location-id="${escapeHtml(locationId)}" role="button" tabindex="0" aria-sort="${sortAria("name")}">
                     Name ${sortIcon("name")}

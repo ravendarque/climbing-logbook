@@ -71,15 +71,6 @@
   --color-accent-foreground: var(--color-accent-text);
   --color-border:            var(--color-border);
 
-  --color-grade-easy:        var(--grade-easy);
-  --color-grade-6a:          var(--grade-6a);
-  --color-grade-6b:          var(--grade-6b);
-  --color-grade-6c:          var(--grade-6c);
-  --color-grade-7a:          var(--grade-7a);
-  --color-grade-7b:          var(--grade-7b);
-  --color-grade-7c:          var(--grade-7c);
-  --color-grade-8a:          var(--grade-8a);
-
   --color-tier-peer:         var(--tier-peer);
   --color-tier-heuristic:    var(--tier-heuristic);
   --color-tier-community:    var(--tier-community);
@@ -95,14 +86,36 @@
    via @utility (Tailwind v4's custom-utility mechanism) rather than a
    separate hand-rolled stylesheet, so they still live in Tailwind's
    layer system and compose with variants normally. */
+/* Monochrome grade text (#170) -- the cell's own background fill now
+   carries the colour (see status-cell-shape/grade-cell-shape below), so
+   this is typography only, not a coloured pill anymore. */
 @utility grade-badge {
   font-family: monospace;
   font-weight: 700;
   font-size: .85rem;
-  padding: .15rem .45rem;
-  border-radius: calc(var(--radius-app) * .5);
-  background: color-mix(in srgb, currentColor 12%, transparent);
   white-space: nowrap;
+}
+
+/* Status/grade table cells (#170): a background fill clipped into a
+   parallelogram -- top edge full width, bottom edge 10px shorter --
+   so adjacent cells' colours meet along one continuous diagonal seam
+   instead of a flat vertical line. grade-cell-shape bleeds 10px past
+   its own box on the left to interlock with status-cell-shape's
+   receding right edge: two independently-clipped rectangles would
+   leave a widening gap at the seam instead of a flush line, since a
+   moving shared boundary between two boxes needs one side's colour to
+   physically extend into the other's box. Both stay position:absolute,
+   z-index below their cell's actual content (icon/grade text). */
+@utility status-cell-shape {
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+}
+@utility grade-cell-shape {
+  position: absolute;
+  inset: 0;
+  left: -10px;
+  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
 }
 
 /* Same currentColor-driven background as grade-badge above, but for the
