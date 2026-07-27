@@ -22,6 +22,20 @@ Process rules for how Claude works in this repository. Code-level standards
   unmerged commits beyond the merged history, rebase those onto the new base
   instead of discarding them.
 
+## GitHub Project board workflow
+
+- Move an issue to **Ready** once it has enough information to be picked up.
+- Move to **In Progress** when work starts, and link the feature branch.
+- Move to **In Review** when a PR is opened, and link the PR.
+- **Done** happens automatically on merge/close (board's built-in Workflows).
+
+## Releases
+
+Every PR needs a `release: major/minor/patch/none` label before merge
+(enforced by a required check) — see `docs/versioning.md` for what
+qualifies. Versioning is tag-based (`vX.Y.Z` git tags), not a
+`package.json` commit.
+
 ## GitHub API usage (rate limits)
 
 GitHub's secondary rate limit caps **content-generating requests at 500/hour
@@ -43,6 +57,11 @@ plain read.
   stop and report it rather than retrying — retrying risks the account being
   flagged for abuse (per GitHub's docs: continuing to make requests while
   rate limited can result in the integration being banned).
+- **Projects v2 needs the `project` OAuth scope** (`gh auth status` to check,
+  `gh auth refresh -s project` to add it) — without it, `gh project`
+  commands fail even though issue/PR commands work fine. Prefer `gh`/
+  GraphQL directly over GitHub MCP-server tools for board work — MCP-based
+  GitHub tools have had confirmed Projects v2 access gaps.
 
 ## Development workflow
 
