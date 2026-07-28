@@ -1276,6 +1276,7 @@
       if (col === "grade")  return m * (gradeRank(a.grade) - gradeRank(b.grade));
       if (col === "date")   return m * (dateRank(a.date) - dateRank(b.date));
       if (col === "name")   return m * a.name.localeCompare(b.name);
+      if (col === "area")   return m * placeOf(a).area.localeCompare(placeOf(b).area);
       return 0;
     });
   }
@@ -1420,7 +1421,9 @@
                   <th class="${TH_BASE} ${TH_SORTABLE}" data-sort="name" data-location-id="${escapeHtml(locationId)}" role="button" tabindex="0" aria-sort="${sortAria("name")}">
                     Name ${sortIcon("name")}
                   </th>
-                  <th class="${TH_BASE}">Area</th>
+                  <th class="${TH_BASE} ${TH_SORTABLE}" data-sort="area" data-location-id="${escapeHtml(locationId)}" role="button" tabindex="0" aria-sort="${sortAria("area")}">
+                    Area ${sortIcon("area")}
+                  </th>
                   <th class="${TH_BASE} ${TH_SORTABLE}" data-sort="date" data-location-id="${escapeHtml(locationId)}" role="button" tabindex="0" aria-sort="${sortAria("date")}">
                     Date ${sortIcon("date")}
                   </th>
