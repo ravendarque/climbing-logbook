@@ -1371,17 +1371,17 @@
           : "";
         return `
         <tr class="border-b border-[color-mix(in_srgb,var(--color-border)_40%,transparent)] last:border-b-0 ${rowBg}">
-          <td class="${TD_BASE} text-center w-8">${statusBadge(e)}</td>
+          <td class="${TD_BASE} text-center">${statusBadge(e)}</td>
           <td class="${TD_BASE}"><span class="grade-badge" style="color:${gradeColor(e.grade, e.type)}">${escapeHtml(e.grade)}</span></td>
-          <td class="${TD_BASE}">
-            <span class="font-medium ${e._pendingDelete ? "line-through text-muted" : ""}">${escapeHtml(e.name)}</span>
+          <td class="${TD_BASE} overflow-hidden">
+            <span class="font-medium truncate inline-block max-w-full align-bottom ${e._pendingDelete ? "line-through text-muted" : ""}">${escapeHtml(e.name)}</span>
             ${pendingBadge}
           </td>
-          <td class="${TD_BASE} text-muted text-[.82rem]">${escapeHtml(placeOf(e).area)}</td>
+          <td class="${TD_BASE} text-muted text-[.82rem] truncate">${escapeHtml(placeOf(e).area)}</td>
           <td class="${TD_BASE} text-muted text-[.82rem] whitespace-nowrap">${escapeHtml(formatDate(e.date))}</td>
-          <td class="${TD_BASE} text-center w-8">${e.notes ? `<button type="button" class="notes-btn border-0 bg-transparent cursor-pointer text-muted inline-flex align-middle p-[.1rem] hover:text-accent" data-notes-id="${escapeHtml(e.id)}" aria-label="View notes"><svg class="w-[.85rem] h-[.85rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg></button>` : ""}</td>
-          <td class="${TD_BASE} text-center w-8">${e.video ? `<a class="inline-flex items-center gap-[.2rem] text-accent text-[.8rem] no-underline hover:opacity-75" href="${escapeHtml(e.video)}" target="_blank" rel="noopener" title="Watch video">▶</a>` : ""}</td>
-          <td class="${TD_BASE} text-center w-8">${isLoggedIn ? `<button type="button" class="edit-btn border-0 bg-transparent cursor-pointer text-muted inline-flex p-[.2rem] hover:text-accent [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:stroke-current [&_svg]:fill-none" data-edit-id="${escapeHtml(e.id)}" aria-label="Edit">${EDIT_ICON}</button>` : ""}</td>
+          <td class="${TD_BASE} text-center">${e.notes ? `<button type="button" class="notes-btn border-0 bg-transparent cursor-pointer text-muted inline-flex align-middle p-[.2rem] hover:text-accent" data-notes-id="${escapeHtml(e.id)}" aria-label="View notes"><svg class="w-[.95rem] h-[.95rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg></button>` : ""}</td>
+          <td class="${TD_BASE} text-center">${e.video ? `<a class="inline-flex align-middle p-[.2rem] text-muted hover:text-accent" href="${escapeHtml(e.video)}" target="_blank" rel="noopener" title="Watch video" aria-label="Watch video"><svg class="w-[.95rem] h-[.95rem] fill-current" viewBox="0 0 24 24"><path d="M6 4.5v15l14-7.5z"></path></svg></a>` : ""}</td>
+          <td class="${TD_BASE} text-center">${isLoggedIn ? `<button type="button" class="edit-btn border-0 bg-transparent cursor-pointer text-muted inline-flex p-[.2rem] hover:text-accent [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:stroke-current [&_svg]:fill-none" data-edit-id="${escapeHtml(e.id)}" aria-label="Edit">${EDIT_ICON}</button>` : ""}</td>
         </tr>
       `;
       }).join("");
@@ -1410,26 +1410,45 @@
             <span class="inline-flex items-center justify-center min-w-[1.4rem] h-[1.4rem] px-1 rounded-full bg-[color-mix(in_srgb,var(--color-text)_12%,transparent)] text-muted text-[.72rem] font-semibold shrink-0" aria-label="${sorted.length} ${sorted.length === 1 ? "entry" : "entries"}">${sorted.length}</span>
             <span class="text-muted text-[.8rem] transition-transform duration-200 shrink-0 ${isCollapsed ? "-rotate-90" : ""}">▾</span>
           </div>
+          <!-- Fixed colgroup widths (#184) so every location's table lines up
+               identically instead of each negotiating its own column widths.
+               Only Name is left unspecified, so it alone absorbs both extra
+               space on wide viewports and the table's min-width floor below
+               -- min-width is the fixed columns' sum (25.5rem) plus a 15rem
+               Name floor, sized so Status+Grade+Name alone roughly fill a
+               narrow phone viewport (only the first three columns need to be
+               visible without scrolling there). Notes/Video/Edit share the
+               same width so the icons sit equidistant from one another. -->
           <div class="overflow-x-auto ${isCollapsed ? "hidden" : ""}">
-            <table class="w-full border-collapse text-[.88rem] min-w-[520px]">
+            <table class="w-full border-collapse text-[.88rem] min-w-[40.5rem]" style="table-layout:fixed">
+              <colgroup>
+                <col style="width:2.5rem">
+                <col style="width:3.75rem">
+                <col>
+                <col style="width:7.5rem">
+                <col style="width:5.75rem">
+                <col style="width:2rem">
+                <col style="width:2rem">
+                <col style="width:2rem">
+              </colgroup>
               <thead>
                 <tr>
-                  <th class="${TH_BASE} w-8"></th>
+                  <th class="${TH_BASE}"></th>
                   <th class="${TH_BASE} ${TH_SORTABLE}" data-sort="grade" data-location-id="${escapeHtml(locationId)}" role="button" tabindex="0" aria-sort="${sortAria("grade")}">
-                    Grade ${sortIcon("grade")}
+                    Grd ${sortIcon("grade")}
                   </th>
                   <th class="${TH_BASE} ${TH_SORTABLE}" data-sort="name" data-location-id="${escapeHtml(locationId)}" role="button" tabindex="0" aria-sort="${sortAria("name")}">
                     Name ${sortIcon("name")}
                   </th>
-                  <th class="${TH_BASE} ${TH_SORTABLE}" data-sort="area" data-location-id="${escapeHtml(locationId)}" role="button" tabindex="0" aria-sort="${sortAria("area")}">
+                  <th class="${TH_BASE} ${TH_SORTABLE} truncate" data-sort="area" data-location-id="${escapeHtml(locationId)}" role="button" tabindex="0" aria-sort="${sortAria("area")}">
                     Area ${sortIcon("area")}
                   </th>
                   <th class="${TH_BASE} ${TH_SORTABLE}" data-sort="date" data-location-id="${escapeHtml(locationId)}" role="button" tabindex="0" aria-sort="${sortAria("date")}">
                     Date ${sortIcon("date")}
                   </th>
-                  <th class="${TH_BASE} w-8"></th>
-                  <th class="${TH_BASE} w-8"></th>
-                  <th class="${TH_BASE} w-8"></th>
+                  <th class="${TH_BASE}"></th>
+                  <th class="${TH_BASE}"></th>
+                  <th class="${TH_BASE}"></th>
                 </tr>
               </thead>
               <tbody>
