@@ -68,6 +68,13 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
+          # A tag pushed with the default GITHUB_TOKEN doesn't trigger other
+          # workflows (GitHub's anti-recursion protection) -- deploy.yml's
+          # `push: tags: ['v*']` needs a real-user push. PROJECT_STATUS_PAT
+          # (public_repo scope) already exists for the board-sync workflow
+          # and covers push access here too, so it's reused rather than
+          # minting a new secret. See #197.
+          token: ${{ secrets.PROJECT_STATUS_PAT }}
 
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4

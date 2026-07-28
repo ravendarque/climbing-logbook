@@ -107,7 +107,10 @@ finds the latest existing `vX.Y.Z` tag, calculates the new version with the
 no push to `main`) and creates a GitHub Release with auto-generated notes —
 no manual step required. Because it never pushes to `main`, this never
 interacts with branch protection on `main` — tags aren't covered by it.
-That tag push is what triggers `deploy.yml`.
+That tag push is what triggers `deploy.yml` — it authenticates with the
+`PROJECT_STATUS_PAT` secret rather than the default `GITHUB_TOKEN`, since
+GitHub doesn't let a `GITHUB_TOKEN`-authenticated push trigger other
+workflows (see #197).
 
 `workflow_dispatch` (Actions tab → "Release" → Run workflow) still exists
 as a manual override, for a corrective release or anything unusual that
