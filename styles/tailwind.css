@@ -9,6 +9,7 @@
 @import "tailwindcss/utilities" layer(utilities);
 
 @source "../public/logbook/**/*.html";
+@source "../client/**/*.js";
 
 /* This has to live in a layer, not a plain unlayered rule (which is
    where it lived before #51) — unlayered CSS always wins the cascade

@@ -3,6 +3,7 @@ const CACHE_NAME = "logbook-shell-v1";
 const APP_SHELL = [
   "/logbook/",
   "/logbook/index.html",
+  "/logbook/app.js",
   "/logbook/escape-html.js",
   "/logbook/status-icons.js",
   "/logbook/floating-ui-core.js",

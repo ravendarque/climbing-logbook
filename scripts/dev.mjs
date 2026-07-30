@@ -1,7 +1,8 @@
 /**
- * Starts the local dev server (wrangler + Tailwind watcher, via
- * `concurrently` directly), waits for it to be ready, seeds some test
- * data, and opens the app in a browser at the actual /logbook path --
+ * Starts the local dev server (wrangler + Tailwind watcher + client JS
+ * bundle watcher, via `concurrently` directly), waits for it to be ready,
+ * seeds some test data, and opens the app in a browser at the actual
+ * /logbook path --
  * all in one terminal, Ctrl+C stops everything together.
  *
  * This used to be `pnpm run review`-only behavior (see #72/#88/#116);
@@ -60,10 +61,11 @@ console.log("==> Starting dev server");
 // `pnpm run dev:raw` here doubled that noise. `dev:raw` stays in
 // package.json for anyone who wants to run it standalone.
 const dev = spawn("concurrently", [
-  "-n", "wrangler,tailwind",
-  "-c", "blue,magenta",
+  "-n", "wrangler,tailwind,client",
+  "-c", "blue,magenta,green",
   "wrangler dev",
   "tailwindcss -i ./styles/tailwind.css -o ./public/logbook/tailwind.css --watch",
+  "pnpm run client:watch",
 ], {
   stdio: ["inherit", "pipe", "inherit"],
   shell: WIN,
