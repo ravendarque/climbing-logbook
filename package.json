@@ -11,6 +11,7 @@
     "tailwind:build": "tailwindcss -i ./styles/tailwind.css -o ./public/logbook/tailwind.css --minify",
     "tailwind:watch": "tailwindcss -i ./styles/tailwind.css -o ./public/logbook/tailwind.css --watch",
     "seed": "node scripts/seed-dev-data.mjs",
+    "test": "vitest run",
     "vendor:floating-ui": "node scripts/vendor-floating-ui.mjs"
   },
   "devDependencies": {
