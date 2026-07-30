@@ -1,0 +1,161 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html,body{margin:0;padding:0;background:#2a2a2a;font-family:system-ui,sans-serif;color:#eee;}
+  .page{padding:2rem;}
+  .row{display:flex;gap:2rem;align-items:flex-end;margin-bottom:2.5rem;flex-wrap:wrap;}
+  .label{font-size:.7rem;color:#999;text-align:center;margin-top:.4rem;}
+  .col{display:flex;flex-direction:column;align-items:center;}
+  canvas{border:1px solid #444;}
+  h2{font-size:1rem;border-bottom:1px solid #444;padding-bottom:.3rem;}
+  .shape-tile{border-radius:0;}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h2>A — White mark on #0f0f0f (matches header's monochrome choice)</h2>
+  <div class="row" id="rowA"></div>
+
+  <h2>B — Red mark (#ff2727) on #0f0f0f (matches current placeholder + brand accent)</h2>
+  <div class="row" id="rowB"></div>
+
+  <h2>C — Mobile home-screen shortcut icon shapes (white mark, #0f0f0f background)</h2>
+  <p style="font-size:.75rem;color:#999;max-width:640px;">
+    iOS/Android mask the PWA icon into a shape at "Add to Home Screen" time — the
+    square PNG itself doesn't control the final shape. These previews clip the
+    same square icon into each candidate mask so we can judge how much the mark
+    survives the crop. Android in particular also wants extra padding (the
+    "safe zone") since the system can crop fairly aggressively depending on the
+    device's icon pack — the last tile shows the safe-zone margin.
+  </p>
+  <div class="row" id="rowC"></div>
+
+</div>
+<script>
+const PATH1 = "M45.6,14.4l23.718,48l-2.99,6l-21.689,0l10.843,21.6l-10.142,20.4l-45.342,0l45.6,-96Z";
+const PATH2 = "M85.203,37.2l16.333,31.2l-10.787,21.6l21.63,0l10.501,20.4l-74.042,0l36.364,-73.2Z";
+// ink bbox: x 0-122.88, y 14.4-110.4 (w=122.88, h=96)
+
+function renderIcon(size, markColor, bgColor, padPct) {
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, size, size);
+
+  const pad = size * padPct;
+  const availW = size - pad * 2;
+  const availH = size - pad * 2;
+  const inkW = 122.88, inkH = 96;
+  // fit by width (mark is wider than tall relative to available box after padding)
+  let scale = availW / inkW;
+  if (inkH * scale > availH) scale = availH / inkH;
+  const drawW = inkW * scale, drawH = inkH * scale;
+  const offsetX = (size - drawW) / 2;
+  const offsetY = (size - drawH) / 2;
+
+  ctx.save();
+  ctx.translate(offsetX, offsetY - 14.4 * scale); // -14.4*scale compensates viewBox's y-origin crop
+  ctx.scale(scale, scale);
+  ctx.fillStyle = markColor;
+  ctx.fill(new Path2D(PATH1));
+  ctx.fill(new Path2D(PATH2));
+  ctx.restore();
+  return canvas;
+}
+
+function buildRow(rowId, markColor) {
+  const row = document.getElementById(rowId);
+  [128, 32, 16].forEach(size => {
+    const col = document.createElement('div');
+    col.className = 'col';
+    // Render at native device pixels (accounting for DPR) so small sizes are
+    // genuinely crisp/anti-aliased like a real browser tab favicon, not
+    // upscaled+pixelated.
+    const dpr = window.devicePixelRatio || 1;
+    const c = renderIcon(Math.round(size * dpr), markColor, '#0f0f0f', 0.12);
+    c.style.width = size + 'px';
+    c.style.height = size + 'px';
+    const label = document.createElement('div');
+    label.className = 'label';
+    label.textContent = size + 'px (native)';
+    col.appendChild(c);
+    col.appendChild(label);
+    row.appendChild(col);
+  });
+}
+
+buildRow('rowA', '#f0f0f0');
+buildRow('rowB', '#ff2727');
+
+function roundedRectPath(ctx, x, y, w, h, r) {
+  // r can be a number or {tl, tr, br, bl}
+  const rad = typeof r === 'number' ? { tl: r, tr: r, br: r, bl: r } : r;
+  ctx.beginPath();
+  ctx.moveTo(x + rad.tl, y);
+  ctx.lineTo(x + w - rad.tr, y);
+  ctx.arcTo(x + w, y, x + w, y + rad.tr, rad.tr);
+  ctx.lineTo(x + w, y + h - rad.br);
+  ctx.arcTo(x + w, y + h, x + w - rad.br, y + h, rad.br);
+  ctx.lineTo(x + rad.bl, y + h);
+  ctx.arcTo(x, y + h, x, y + h - rad.bl, rad.bl);
+  ctx.lineTo(x, y + rad.tl);
+  ctx.arcTo(x, y, x + rad.tl, y, rad.tl);
+  ctx.closePath();
+}
+
+function shapedTile(size, clipFn, label, showSafeZone) {
+  const dpr = window.devicePixelRatio || 1;
+  const px = Math.round(size * dpr);
+  const canvas = document.createElement('canvas');
+  canvas.width = px;
+  canvas.height = px;
+  canvas.className = 'shape-tile';
+  canvas.style.width = size + 'px';
+  canvas.style.height = size + 'px';
+  const ctx = canvas.getContext('2d');
+
+  ctx.save();
+  clipFn(ctx, px);
+  ctx.clip();
+  // draw the base square icon (bg + mark) into the clipped region
+  const base = renderIcon(px, '#f0f0f0', '#0f0f0f', 0.12);
+  ctx.drawImage(base, 0, 0);
+  ctx.restore();
+
+  if (showSafeZone) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(0,255,0,.8)';
+    ctx.setLineDash([px * 0.03, px * 0.03]);
+    ctx.lineWidth = Math.max(1, px * 0.01);
+    ctx.beginPath();
+    ctx.arc(px / 2, px / 2, px * 0.305, 0, Math.PI * 2); // ~61% diameter safe zone
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  const col = document.createElement('div');
+  col.className = 'col';
+  const lbl = document.createElement('div');
+  lbl.className = 'label';
+  lbl.textContent = label;
+  col.appendChild(canvas);
+  col.appendChild(lbl);
+  return col;
+}
+
+const rowC = document.getElementById('rowC');
+const SIZE = 100;
+
+rowC.appendChild(shapedTile(SIZE, (ctx, s) => roundedRectPath(ctx, 0, 0, s, s, 0), 'Square (baseline)'));
+rowC.appendChild(shapedTile(SIZE, (ctx, s) => roundedRectPath(ctx, 0, 0, s, s, s * 0.22), 'Rounded rect (~22%, iOS-ish)'));
+rowC.appendChild(shapedTile(SIZE, (ctx, s) => { ctx.beginPath(); ctx.arc(s/2, s/2, s/2, 0, Math.PI*2); }, 'Circle'));
+rowC.appendChild(shapedTile(SIZE, (ctx, s) => roundedRectPath(ctx, 0, 0, s, s, { tl: s*0.4, tr: s*0.15, br: s*0.4, bl: s*0.15 }), 'Pebble (asymmetric rounding)'));
+rowC.appendChild(shapedTile(SIZE, (ctx, s) => roundedRectPath(ctx, 0, 0, s, s, 0), 'Android safe zone (dashed = ~61% content circle)', true));
+</script>
+</body>
+</html>
