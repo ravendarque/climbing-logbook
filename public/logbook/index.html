@@ -2652,7 +2652,7 @@
     athleteModeBtn.disabled = true;
     try {
       const res = await adminFetch(ADMIN_SETTINGS_URL, {
-        method: "PUT",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ athleteMode: next }),
       });
@@ -3317,7 +3317,7 @@
     disciplineBtn.focus();
     render();
 
-    // Best-effort persistence (#137) -- PUT is Access-gated (same
+    // Best-effort persistence (#137) -- PATCH is Access-gated (same
     // boundary as Athlete Mode), so this only actually persists when
     // logged in; a logged-out visitor's switch stays local, same as
     // every other admin-only write in this app. Never blocks or reverts
@@ -3325,7 +3325,7 @@
     // it doesn't carry over to other devices this time.
     try {
       const res = await adminFetch(ADMIN_SETTINGS_URL, {
-        method: "PUT",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ activeDiscipline: state.activeType }),
       });
