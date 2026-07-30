@@ -1,6 +1,6 @@
 import { json } from "../lib/json.js";
 
-const KV_KEY = "logbook:settings";
+export const KV_KEY = "logbook:settings";
 
 const DEFAULT_SETTINGS = { athleteMode: false, activeDiscipline: "boulder" };
 
@@ -28,6 +28,13 @@ export async function handlePatchSettings(request, env) {
   try {
     body = await request.json();
   } catch {
+    return json({ error: "Invalid JSON" }, 400);
+  }
+
+  // request.json() only fails to parse malformed text -- `null`, `42`, or
+  // `"a string"` all parse fine but aren't objects, and `"x" in body` throws
+  // on those (TypeError, not a validation error) if this guard isn't here.
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
     return json({ error: "Invalid JSON" }, 400);
   }
 

@@ -1,132 +1,89 @@
 // Exercises places.js/locations.js/settings.js/admin-session.js/admin-login.js
 // through the real Worker entrypoint, same rationale as logbook.test.js:
 // the public HTTP contract is what's under test, not module internals.
-import { env, exports } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
+import { fetchJson, jsonRequest, resetKv } from "./support.js";
 
-const PLACES_KEY = "logbook:places";
-const LOCATIONS_KEY = "logbook:locations";
-const SETTINGS_KEY = "logbook:settings";
+beforeEach(resetKv);
 
-beforeEach(async () => {
-  await env.LOGBOOK_KV.delete(PLACES_KEY);
-  await env.LOGBOOK_KV.delete(LOCATIONS_KEY);
-  await env.LOGBOOK_KV.delete(SETTINGS_KEY);
-});
-
-function fetchJson(path, init) {
-  return exports.default.fetch(`https://example.com${path}`, init);
-}
 function postJson(path, body) {
-  return fetchJson(path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: typeof body === "string" ? body : JSON.stringify(body),
-  });
+  return jsonRequest("POST", path, body);
 }
 function patchJson(path, body) {
-  return fetchJson(path, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: typeof body === "string" ? body : JSON.stringify(body),
-  });
+  return jsonRequest("PATCH", path, body);
 }
 
-describe("places", () => {
-  const VALID_PLACE = { locationId: "loc-1", area: "Sector 1" };
-
-  it("returns an empty places array when KV is unset", async () => {
-    const res = await fetchJson("/logbook/api/places");
+// places and locations are structurally identical resources (create + list,
+// one required field, one optional field defaulting to "", idempotent
+// create-by-id) -- a single parameterized suite covers both instead of two
+// hand-copied describe blocks that can silently drift apart.
+describe.each([
+  {
+    resource: "places",
+    listPath: "/logbook/api/places",
+    createPath: "/logbook/api/admin/places",
+    listKey: "places",
+    validBody: { locationId: "loc-1", area: "Sector 1" },
+    minimalBody: { locationId: "loc-1" },
+    requiredField: "locationId",
+    defaultField: "area",
+  },
+  {
+    resource: "locations",
+    listPath: "/logbook/api/locations",
+    createPath: "/logbook/api/admin/locations",
+    listKey: "locations",
+    validBody: { name: "Magic Wood", country: "Switzerland" },
+    minimalBody: { name: "Magic Wood" },
+    requiredField: "name",
+    defaultField: "country",
+  },
+])("$resource", ({ listPath, createPath, listKey, validBody, minimalBody, requiredField, defaultField }) => {
+  it(`returns an empty ${listKey} array when KV is unset`, async () => {
+    const res = await fetchJson(listPath);
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ places: [] });
+    expect(await res.json()).toEqual({ [listKey]: [] });
   });
 
-  it("creates a place on the happy path", async () => {
-    const res = await postJson("/logbook/api/admin/places", VALID_PLACE);
+  it("creates on the happy path", async () => {
+    const res = await postJson(createPath, validBody);
     expect(res.status).toBe(201);
-    const { places } = await res.json();
-    expect(places).toHaveLength(1);
-    expect(places[0]).toMatchObject({ locationId: "loc-1", area: "Sector 1" });
-    expect(typeof places[0].id).toBe("string");
-    expect(places[0].id.length).toBeGreaterThan(0);
+    const body = await res.json();
+    expect(body[listKey]).toHaveLength(1);
+    expect(body[listKey][0]).toMatchObject(validBody);
+    expect(typeof body[listKey][0].id).toBe("string");
+    expect(body[listKey][0].id.length).toBeGreaterThan(0);
   });
 
-  it("defaults area to an empty string when omitted", async () => {
-    const res = await postJson("/logbook/api/admin/places", { locationId: "loc-1" });
-    const { places } = await res.json();
-    expect(places[0].area).toBe("");
+  it(`defaults ${defaultField} to an empty string when omitted`, async () => {
+    const res = await postJson(createPath, minimalBody);
+    const body = await res.json();
+    expect(body[listKey][0][defaultField]).toBe("");
   });
 
   it("rejects malformed JSON", async () => {
-    const res = await postJson("/logbook/api/admin/places", "{not json");
+    const res = await postJson(createPath, "{not json");
     expect(res.status).toBe(400);
     expect((await res.json()).error).toBe("Invalid JSON");
   });
 
-  it("rejects a missing locationId", async () => {
-    const res = await postJson("/logbook/api/admin/places", { area: "Sector 1" });
+  it(`rejects a missing ${requiredField}`, async () => {
+    const body = { ...validBody };
+    delete body[requiredField];
+    const res = await postJson(createPath, body);
     expect(res.status).toBe(400);
-    expect((await res.json()).error).toBe("Missing required field: locationId");
+    expect((await res.json()).error).toBe(`Missing required field: ${requiredField}`);
   });
 
   it("replays an existing id idempotently instead of erroring or duplicating", async () => {
-    const placeWithId = { ...VALID_PLACE, id: "fixed-place-1" };
-    const first = await postJson("/logbook/api/admin/places", placeWithId);
+    const withId = { ...validBody, id: "fixed-id-1" };
+    const first = await postJson(createPath, withId);
     expect(first.status).toBe(201);
 
-    const second = await postJson("/logbook/api/admin/places", placeWithId);
+    const second = await postJson(createPath, withId);
     expect(second.status).toBe(200);
-    const { places } = await second.json();
-    expect(places).toHaveLength(1);
-  });
-});
-
-describe("locations", () => {
-  const VALID_LOCATION = { name: "Magic Wood", country: "Switzerland" };
-
-  it("returns an empty locations array when KV is unset", async () => {
-    const res = await fetchJson("/logbook/api/locations");
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ locations: [] });
-  });
-
-  it("creates a location on the happy path", async () => {
-    const res = await postJson("/logbook/api/admin/locations", VALID_LOCATION);
-    expect(res.status).toBe(201);
-    const { locations } = await res.json();
-    expect(locations).toHaveLength(1);
-    expect(locations[0]).toMatchObject({ name: "Magic Wood", country: "Switzerland" });
-    expect(typeof locations[0].id).toBe("string");
-    expect(locations[0].id.length).toBeGreaterThan(0);
-  });
-
-  it("defaults country to an empty string when omitted", async () => {
-    const res = await postJson("/logbook/api/admin/locations", { name: "Magic Wood" });
-    const { locations } = await res.json();
-    expect(locations[0].country).toBe("");
-  });
-
-  it("rejects malformed JSON", async () => {
-    const res = await postJson("/logbook/api/admin/locations", "{not json");
-    expect(res.status).toBe(400);
-    expect((await res.json()).error).toBe("Invalid JSON");
-  });
-
-  it("rejects a missing name", async () => {
-    const res = await postJson("/logbook/api/admin/locations", { country: "Switzerland" });
-    expect(res.status).toBe(400);
-    expect((await res.json()).error).toBe("Missing required field: name");
-  });
-
-  it("replays an existing id idempotently instead of erroring or duplicating", async () => {
-    const locationWithId = { ...VALID_LOCATION, id: "fixed-location-1" };
-    const first = await postJson("/logbook/api/admin/locations", locationWithId);
-    expect(first.status).toBe(201);
-
-    const second = await postJson("/logbook/api/admin/locations", locationWithId);
-    expect(second.status).toBe(200);
-    const { locations } = await second.json();
-    expect(locations).toHaveLength(1);
+    const body = await second.json();
+    expect(body[listKey]).toHaveLength(1);
   });
 });
 
@@ -160,6 +117,15 @@ describe("settings", () => {
     expect(res.status).toBe(400);
     expect((await res.json()).error).toBe("Invalid JSON");
   });
+
+  it.each([null, 42, "a string", [1, 2, 3]])(
+    "rejects a non-object JSON body (%j)",
+    async (body) => {
+      const res = await patchJson("/logbook/api/admin/settings", JSON.stringify(body));
+      expect(res.status).toBe(400);
+      expect((await res.json()).error).toBe("Invalid JSON");
+    }
+  );
 
   it("rejects a non-boolean athleteMode", async () => {
     const res = await patchJson("/logbook/api/admin/settings", { athleteMode: "yes" });

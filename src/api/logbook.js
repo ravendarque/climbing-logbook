@@ -1,6 +1,6 @@
 import { json } from "../lib/json.js";
 
-const KV_KEY = "logbook:entries";
+export const KV_KEY = "logbook:entries";
 
 const VALID_TYPES    = ["boulder", "lead"];
 const VALID_STATUSES = ["send", "project", "abandoned", "wishlist"];

@@ -2,16 +2,21 @@
 // (Miniflare) with a working LOGBOOK_KV binding, not just that Vitest
 // itself boots. Real per-handler coverage is #204/#205 -- this is
 // infrastructure-only, per #203.
-import { exports } from "cloudflare:workers";
 import { it } from "vitest";
+import { fetchJson } from "./support.js";
 
 it("returns 404 for an unmatched route", async ({ expect }) => {
-  const response = await exports.default.fetch("https://example.com/nope");
+  const response = await fetchJson("/nope");
   expect(response.status).toBe(404);
 });
 
+// No beforeEach reset here -- safe only because storage isolation is per
+// test *file* (Cloudflare's documented behavior for vitest-pool-workers),
+// so this file never sees writes made by test/logbook.test.js's POST
+// tests. If that isolation granularity ever changes (e.g. a future
+// singleWorker config for speed), this assertion would need its own reset.
 it("reads from the LOGBOOK_KV binding via the public logbook endpoint", async ({ expect }) => {
-  const response = await exports.default.fetch("https://example.com/logbook/api/logbook");
+  const response = await fetchJson("/logbook/api/logbook");
   expect(response.status).toBe(200);
   expect(await response.json()).toEqual({ entries: [] });
 });
