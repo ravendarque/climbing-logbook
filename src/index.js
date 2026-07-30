@@ -1,7 +1,7 @@
 import { handleGet, handlePost, handlePut, handleDelete } from "./api/logbook.js";
 import { handleGet as handleGetPlaces, handlePost as handlePostPlaces } from "./api/places.js";
 import { handleGet as handleGetLocations, handlePost as handlePostLocations } from "./api/locations.js";
-import { handleGetSettings, handlePutSettings } from "./api/settings.js";
+import { handleGetSettings, handlePatchSettings } from "./api/settings.js";
 import { handleAdminSession } from "./api/admin-session.js";
 import { handleAdminLogin } from "./api/admin-login.js";
 
@@ -48,8 +48,8 @@ export default {
       return handleGetSettings(request, env);
     }
 
-    if (pathname === "/logbook/api/admin/settings" && method === "PUT") {
-      return handlePutSettings(request, env);
+    if (pathname === "/logbook/api/admin/settings" && method === "PATCH") {
+      return handlePatchSettings(request, env);
     }
 
     if (pathname === "/logbook/api/admin/session" && method === "GET") {

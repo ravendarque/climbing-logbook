@@ -18,11 +18,12 @@ export async function handleGetSettings(request, env) {
 // Reachable only via /logbook/api/admin/settings, which Cloudflare Access
 // gates at the edge — an unauthenticated request never reaches this code.
 //
-// Merges onto the existing stored settings rather than replacing them
-// wholesale (#137) -- callers only ever send the one field they're
-// changing (e.g. just `activeDiscipline` when switching disciplines), so a
-// blind overwrite would silently wipe out whichever field wasn't included.
-export async function handlePutSettings(request, env) {
+// PATCH, not PUT (#137) -- merges onto the existing stored settings rather
+// than replacing them wholesale, since callers only ever send the one
+// field they're changing (e.g. just `activeDiscipline` when switching
+// disciplines); a blind overwrite would silently wipe out whichever field
+// wasn't included.
+export async function handlePatchSettings(request, env) {
   let body;
   try {
     body = await request.json();

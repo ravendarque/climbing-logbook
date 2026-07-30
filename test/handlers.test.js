@@ -24,9 +24,9 @@ function postJson(path, body) {
     body: typeof body === "string" ? body : JSON.stringify(body),
   });
 }
-function putJson(path, body) {
+function patchJson(path, body) {
   return fetchJson(path, {
-    method: "PUT",
+    method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: typeof body === "string" ? body : JSON.stringify(body),
   });
@@ -138,37 +138,37 @@ describe("settings", () => {
   });
 
   it("updates athleteMode on the happy path", async () => {
-    const res = await putJson("/logbook/api/admin/settings", { athleteMode: true });
+    const res = await patchJson("/logbook/api/admin/settings", { athleteMode: true });
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ athleteMode: true, activeDiscipline: "boulder" });
   });
 
   it("updates activeDiscipline on the happy path", async () => {
-    const res = await putJson("/logbook/api/admin/settings", { activeDiscipline: "lead" });
+    const res = await patchJson("/logbook/api/admin/settings", { activeDiscipline: "lead" });
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "lead" });
   });
 
   it("merges a partial update onto existing settings instead of overwriting", async () => {
-    await putJson("/logbook/api/admin/settings", { athleteMode: true });
-    const res = await putJson("/logbook/api/admin/settings", { activeDiscipline: "lead" });
+    await patchJson("/logbook/api/admin/settings", { athleteMode: true });
+    const res = await patchJson("/logbook/api/admin/settings", { activeDiscipline: "lead" });
     expect(await res.json()).toEqual({ athleteMode: true, activeDiscipline: "lead" });
   });
 
   it("rejects malformed JSON", async () => {
-    const res = await putJson("/logbook/api/admin/settings", "{not json");
+    const res = await patchJson("/logbook/api/admin/settings", "{not json");
     expect(res.status).toBe(400);
     expect((await res.json()).error).toBe("Invalid JSON");
   });
 
   it("rejects a non-boolean athleteMode", async () => {
-    const res = await putJson("/logbook/api/admin/settings", { athleteMode: "yes" });
+    const res = await patchJson("/logbook/api/admin/settings", { athleteMode: "yes" });
     expect(res.status).toBe(400);
     expect((await res.json()).error).toBe("athleteMode must be a boolean");
   });
 
   it("rejects an activeDiscipline outside boulder/lead", async () => {
-    const res = await putJson("/logbook/api/admin/settings", { activeDiscipline: "sport" });
+    const res = await patchJson("/logbook/api/admin/settings", { activeDiscipline: "sport" });
     expect(res.status).toBe(400);
     expect((await res.json()).error).toBe("activeDiscipline must be 'boulder' or 'lead'");
   });
