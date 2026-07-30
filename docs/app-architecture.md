@@ -41,7 +41,7 @@ src/
 │   ├── locations.js     GET (public) / POST (admin) — create/read on locations;
 │   │                       edit/delete deliberately not yet implemented for
 │   │                       either (#159, #160)
-│   ├── settings.js      GET (public) / PUT (admin) — Athlete Mode setting
+│   ├── settings.js      GET (public) / PATCH (admin) — Athlete Mode setting
 │   ├── admin-session.js  GET — "am I authenticated" check for the frontend
 │   └── admin-login.js    GET — redirect target that kicks off Access's login flow
 └── lib/
@@ -108,7 +108,7 @@ sees requests that *don't* match a static file — in practice, exactly the
 | `/logbook/api/locations` | GET | public | `handleGet` (locations.js) |
 | `/logbook/api/admin/locations` | POST | Access-gated | `handlePost` (locations.js) |
 | `/logbook/api/settings` | GET | public | `handleGetSettings` |
-| `/logbook/api/admin/settings` | PUT | Access-gated | `handlePutSettings` |
+| `/logbook/api/admin/settings` | PATCH | Access-gated | `handlePatchSettings` |
 | `/logbook/api/admin/session` | GET | Access-gated | `handleAdminSession` |
 | `/logbook/api/admin/login` | GET | Access-gated | `handleAdminLogin` (redirect) |
 
@@ -212,7 +212,7 @@ it gates — the underlying data is unaffected by the toggle.
 best-effort (only when logged in; a logged-out visitor's switch stays
 local for that session).
 
-`PUT` merges onto the existing stored settings rather than replacing them
+`PATCH` merges onto the existing stored settings rather than replacing them
 wholesale (#137) — callers only ever send the one field they're changing
 (e.g. just `activeDiscipline` when switching disciplines from the
 header picker), so a blind overwrite would silently wipe out whichever

@@ -6,38 +6,26 @@
 // file (confirmed empirically -- entries accumulated across `it` blocks
 // until this reset was added), so every test starts from a clean slate
 // via beforeEach instead of relying on execution order.
-import { env, exports } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
+import { fetchJson, jsonRequest, resetKv } from "./support.js";
 
-const KV_KEY = "logbook:entries";
+beforeEach(resetKv);
 
-beforeEach(async () => {
-  await env.LOGBOOK_KV.delete(KV_KEY);
-});
-
-const PUBLIC_URL = "https://example.com/logbook/api/logbook";
-const ADMIN_URL = "https://example.com/logbook/api/admin/logbook";
+const PUBLIC_URL = "/logbook/api/logbook";
+const ADMIN_URL = "/logbook/api/admin/logbook";
 
 function get() {
-  return exports.default.fetch(PUBLIC_URL);
+  return fetchJson(PUBLIC_URL);
 }
 function post(body) {
-  return exports.default.fetch(ADMIN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: typeof body === "string" ? body : JSON.stringify(body),
-  });
+  return jsonRequest("POST", ADMIN_URL, body);
 }
 function put(body) {
-  return exports.default.fetch(ADMIN_URL, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: typeof body === "string" ? body : JSON.stringify(body),
-  });
+  return jsonRequest("PUT", ADMIN_URL, body);
 }
 function del(id) {
-  const url = id === undefined ? ADMIN_URL : `${ADMIN_URL}?id=${encodeURIComponent(id)}`;
-  return exports.default.fetch(url, { method: "DELETE" });
+  const path = id === undefined ? ADMIN_URL : `${ADMIN_URL}?id=${encodeURIComponent(id)}`;
+  return fetchJson(path, { method: "DELETE" });
 }
 
 const VALID_ENTRY = {

@@ -1,6 +1,6 @@
 import { json } from "../lib/json.js";
 
-const KV_KEY = "logbook:locations";
+export const KV_KEY = "logbook:locations";
 
 function validateFields(location) {
   if (!location.name) return "Missing required field: name";
