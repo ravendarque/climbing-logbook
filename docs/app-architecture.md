@@ -53,8 +53,11 @@ client/
 │                         by esbuild into public/logbook/app.js. Extracted
 │                         pure-logic modules live alongside it as they're
 │                         pulled out, each with its own Vitest coverage
-│                         under test/client/. Remaining candidate: map
-│                         geometry.
+│                         under test/client/. All five originally-scoped
+│                         extraction candidates are now done (#206);
+│                         DOM/browser-dependent code (rendering, the
+│                         offline queue's localStorage-touching half, map
+│                         loading/interaction wiring) stays here.
 ├── grade-data.js       Grade ordering/coloring, per-discipline grade lists
 ├── date-helpers.js     formatDate/dateRank
 ├── status.js           statusBadge, flash/send/name labels
@@ -76,6 +79,17 @@ client/
 │                         main.js's own rendering code). pyramidStatusIcon/
 │                         pyramidBarRow/renderPyramid stay in main.js --
 │                         they're presentation, not stats
+├── map-geometry.js     World Map (#17/#168/#169) viewBox math -- zoom,
+│                         pan, clamping, and client-pixel <-> user-space
+│                         conversion. Takes the current view/map height/
+│                         viewport aspect/a DOMRect-shaped object as
+│                         explicit parameters rather than reading mapView/
+│                         mapData/mapNarrowQuery or calling
+│                         getBoundingClientRect() directly, so it needs no
+│                         browser environment to test. Loading (fetch/
+│                         localStorage/progress UI) and DOM-touching code
+│                         (applyMapView, the drag/wheel listeners) stay in
+│                         main.js
 └── offline-queue.js    applyPendingQueue -- the offline-queue merge logic,
                           refactored to take queue/entries/places/locations
                           as parameters (mutated in place) instead of
