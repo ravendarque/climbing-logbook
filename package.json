@@ -14,10 +14,12 @@
     "client:watch": "esbuild client/main.js --bundle --format=esm --outfile=public/logbook/app.js --watch --external:./escape-html.js --external:./floating-ui-dom.js",
     "seed": "node scripts/seed-dev-data.mjs",
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "vendor:floating-ui": "node scripts/vendor-floating-ui.mjs"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.19.0",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/cli": "^4.3.3",
     "concurrently": "^10.0.4",
     "d3-geo": "^3.1.1",

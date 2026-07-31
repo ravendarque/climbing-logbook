@@ -361,9 +361,10 @@ modules under `client/`, bundled by esbuild into `public/logbook/app.js`
 data, the offline-queue merge, filter/sort, grade-pyramid stats, map
 geometry) get pulled out into their own files as they're touched, each
 gaining Vitest coverage in the process. DOM-heavy rendering code stays in
-`main.js` for now — it doesn't benefit from unit testing without also
-solving DOM/E2E testing (tracked separately). No frontend framework is in
-use.
+`main.js` for now — it doesn't benefit from unit testing on its own, but
+is covered at the golden-path level by the Playwright E2E suite (`e2e/`,
+#218), which exercises the real rendered app in a real browser against
+`wrangler dev`. No frontend framework is in use.
 
 `escape-html.js` stays a separate file outside the bundle (marked
 `external` in the esbuild command) because it's also referenced by
