@@ -1,0 +1,57 @@
+name: Preview
+
+# Uploads a version of the separate climbing-logbook-preview Worker
+# (env.preview in wrangler.jsonc, #222) for every PR -- bound to its own KV
+# namespace, never production's. `wrangler versions upload` (not `deploy`)
+# never attaches a route or receives production traffic; it just produces a
+# reachable preview URL. The alias is stable per PR number, so the same
+# comment gets updated across pushes instead of a new one piling up each
+# time (mirrors what Cloudflare Pages/native Workers Builds do natively --
+# see #222 for why this project uses its own workflow instead of that).
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run tailwind:build
+      - run: pnpm run client:build
+      - name: Upload preview version
+        id: upload
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          OUTPUT=$(pnpm exec wrangler versions upload --env preview --preview-alias "pr-$PR_NUMBER")
+          echo "$OUTPUT"
+          URL=$(echo "$OUTPUT" | grep -oE 'Version Preview Alias URL: https://\S+' | sed 's/^Version Preview Alias URL: //')
+          if [ -z "$URL" ]; then
+            echo "Couldn't find a preview alias URL in wrangler's output -- see the log above." >&2
+            exit 1
+          fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+      - name: Comment preview URL on the PR
+        env:
+          PREVIEW_URL: ${{ steps.upload.outputs.url }}
+        run: |
+          set -euo pipefail
+          BODY="Preview: $PREVIEW_URL
+
+          Bound to a separate preview KV namespace, not production data."
+          gh pr comment "$PR_NUMBER" --edit-last --body "$BODY" \
+            || gh pr comment "$PR_NUMBER" --body "$BODY"

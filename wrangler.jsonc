@@ -15,5 +15,24 @@
   ],
   "observability": {
     "enabled": true
+  },
+  // PR preview deployments (#222) -- `wrangler versions upload --env preview`
+  // in CI (see .github/workflows/preview.yml) uploads a version of a
+  // *separate* Worker script (Wrangler appends the environment name --
+  // this becomes "climbing-logbook-preview", not "climbing-logbook") bound
+  // to its own KV namespace, never the production one. `routes` and
+  // `kv_namespaces` are both explicitly overridden rather than left to
+  // inherit from the top level -- routes/workers_dev are inheritable by
+  // default, and while `versions upload` (unlike `deploy`) never actually
+  // attaches a route to traffic, there's no reason to leave the production
+  // route pattern sitting in the preview env's config at all.
+  "env": {
+    "preview": {
+      "workers_dev": true,
+      "routes": [],
+      "kv_namespaces": [
+        { "binding": "LOGBOOK_KV", "id": "c09de14bab5142c58b6cb90b6072ba2f" }
+      ]
+    }
   }
 }
