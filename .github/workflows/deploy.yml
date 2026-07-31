@@ -22,6 +22,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run tailwind:build
       - run: pnpm run client:build
-      - run: pnpm exec wrangler deploy
+      # --env="" is explicit, not decorative: wrangler.jsonc now defines a
+      # second environment (env.preview, #222) alongside the top-level one,
+      # and wrangler warns/refuses to guess which one you meant once more
+      # than one exists. This pins production deploys to the top-level
+      # config regardless of what other environments get added later.
+      - run: pnpm exec wrangler deploy --env=""
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
