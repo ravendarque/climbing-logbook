@@ -53,15 +53,25 @@ client/
 │                         by esbuild into public/logbook/app.js. Extracted
 │                         pure-logic modules live alongside it as they're
 │                         pulled out, each with its own Vitest coverage
-│                         under test/client/. Remaining candidates: offline
-│                         queue, entry filter/sort, grade-pyramid stats,
-│                         map geometry.
+│                         under test/client/. Remaining candidates: entry
+│                         filter/sort, grade-pyramid stats, map geometry.
 ├── grade-data.js       Grade ordering/coloring, per-discipline grade lists
 ├── date-helpers.js     formatDate/dateRank
 ├── status.js           statusBadge, flash/send/name labels
-└── status-icons.js     SVG icon constants — bundled here rather than kept
-                          external once status.js needed to import it (see
-                          Overview above)
+├── status-icons.js     SVG icon constants — bundled here rather than kept
+│                         external once status.js needed to import it (see
+│                         Overview above)
+└── offline-queue.js    applyPendingQueue -- the offline-queue merge logic,
+                          refactored to take queue/entries/places/locations
+                          as parameters (mutated in place) instead of
+                          reading module globals directly, so it's testable
+                          without a browser environment. getQueue/setQueue/
+                          syncOne/syncPending stay in main.js -- they need
+                          localStorage, which the Vitest pool (a Workers
+                          runtime, not a browser) doesn't provide; same
+                          "not testable without solving a browser
+                          environment too" reasoning as DOM-heavy code,
+                          tracked by #218
 
 src/
 ├── index.js           Router — matches pathname+method, dispatches
@@ -319,9 +329,9 @@ Client-side logic used to live entirely inline in `index.html`'s
 `<script type="module">`. It's being incrementally extracted into real ES
 modules under `client/`, bundled by esbuild into `public/logbook/app.js`
 (#206) — `client/main.js` is the entry point; pure-logic pieces (grade
-data, offline-queue merge, filter/sort, grade-pyramid stats, map geometry)
-get pulled out into their own files as they're touched, each gaining
-Vitest coverage in the process. DOM-heavy rendering code stays in
+data, the offline-queue merge, filter/sort, grade-pyramid stats, map
+geometry) get pulled out into their own files as they're touched, each
+gaining Vitest coverage in the process. DOM-heavy rendering code stays in
 `main.js` for now — it doesn't benefit from unit testing without also
 solving DOM/E2E testing (tracked separately). No frontend framework is in
 use.
