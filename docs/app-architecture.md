@@ -57,7 +57,28 @@ client/
 │                         extraction candidates are now done (#206);
 │                         DOM/browser-dependent code (rendering, the
 │                         offline queue's localStorage-touching half, map
-│                         loading/interaction wiring) stays here.
+│                         loading/interaction wiring) stays here. State
+│                         itself now lives behind store.js (#234) — main.js
+│                         calls store.* rather than reading/writing
+│                         module-scope globals directly.
+├── store.js            Owns client-side app state (statusFilters, gradeRange,
+│                         activeType, activeView, search, sortByPlace,
+│                         collapsed, entries/places/locations, isLoggedIn)
+│                         behind named methods (Tell-Don't-Ask), not raw
+│                         field access — #234, first piece of #233's
+│                         modularization epic. A factory (createStore()),
+│                         not a singleton, with an injectable `storage`
+│                         param defaulting to the real localStorage — the
+│                         Workers-pool Vitest runs client/ tests under has
+│                         no localStorage global (confirmed empirically),
+│                         so a hardwired reference would make it
+│                         untestable. athleteMode/editingId/
+│                         lowerGradesExpanded deliberately stay local to
+│                         their one owning section of main.js rather than
+│                         joining the shared Store — see the file's own
+│                         top comment for why. Reactivity/subscriptions
+│                         (#219) are deliberately out of scope — a plain
+│                         store first.
 ├── grade-data.js       Grade ordering/coloring, per-discipline grade lists
 ├── date-helpers.js     formatDate/dateRank
 ├── status.js           statusBadge, flash/send/name labels
