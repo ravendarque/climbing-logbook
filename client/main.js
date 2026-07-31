@@ -14,6 +14,7 @@ import { computePosition, autoUpdate, offset, flip, shift } from "./floating-ui-
 import { gradeRank, gradeColor, BOULDER_GRADES, LEAD_GRADES } from "./grade-data.js";
 import { formatDate, dateRank } from "./date-helpers.js";
 import { flashLabel, sendLabel, nameLabel, statusBadge } from "./status.js";
+import { applyPendingQueue } from "./offline-queue.js";
 
   // ── Config ───────────────────────────────────────────────────────────
   const DATA_URL = "/logbook/api/logbook";
@@ -374,35 +375,6 @@ import { flashLabel, sendLabel, nameLabel, statusBadge } from "./status.js";
     localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
     updateSyncButton();
   }
-  // Queue items are { kind: "location"|"place"|"entry", op, record }.
-  // location/place items are always op:"add" (#158's add-place modal is
-  // the only thing that queues them, and editing/deleting either isn't
-  // implemented yet -- #159/#160) -- applied by just pushing the record
-  // in optimistically, no _pending badge, since neither is rendered as
-  // its own list row anywhere; entries get the full add/edit/delete +
-  // _pending treatment this already had.
-  function applyPendingQueue() {
-    for (const item of getQueue()) {
-      if (item.kind === "location") {
-        if (!ALL_LOCATIONS.some(l => l.id === item.record.id)) ALL_LOCATIONS.push(item.record);
-      } else if (item.kind === "place") {
-        if (!ALL_PLACES.some(p => p.id === item.record.id)) ALL_PLACES.push(item.record);
-      } else if (item.op === "add") {
-        if (!ALL_ENTRIES.some(e => e.id === item.record.id)) {
-          ALL_ENTRIES.push({ ...item.record, _pending: true });
-        }
-      } else if (item.op === "delete") {
-        // Stays visible (marked pending) until the delete actually syncs —
-        // removing it here early is what made offline-queued deletes
-        // vanish instead of showing as pending (see #61).
-        const idx = ALL_ENTRIES.findIndex(e => e.id === item.record.id);
-        if (idx !== -1) ALL_ENTRIES[idx] = { ...item.record, _pending: true, _pendingDelete: true };
-      } else {
-        const idx = ALL_ENTRIES.findIndex(e => e.id === item.record.id);
-        if (idx !== -1) ALL_ENTRIES[idx] = { ...item.record, _pending: true };
-      }
-    }
-  }
   function updateSyncButton() {
     const n = getQueue().length;
     // A sync while logged out is a guaranteed no-op (Access rejects it) --
@@ -494,7 +466,7 @@ import { flashLabel, sendLabel, nameLabel, statusBadge } from "./status.js";
       }
       // Re-apply whatever's still queued on top of the just-confirmed
       // server state, for any of the three arrays that changed.
-      if (lastLocations || lastPlaces || lastEntries) applyPendingQueue();
+      if (lastLocations || lastPlaces || lastEntries) applyPendingQueue(getQueue(), ALL_ENTRIES, ALL_PLACES, ALL_LOCATIONS);
     } finally {
       syncBtn.disabled = false;
       syncBtnIcon.classList.remove("animate-spin");
@@ -2374,7 +2346,7 @@ import { flashLabel, sendLabel, nameLabel, statusBadge } from "./status.js";
       updateAdminBar();
     }
     setQueue(queue);
-    applyPendingQueue();
+    applyPendingQueue(getQueue(), ALL_ENTRIES, ALL_PLACES, ALL_LOCATIONS);
     setPlace(place.id);
     closeModal(addPlaceOverlay);
     addPlaceSubmitBtn.disabled = false;
@@ -2695,7 +2667,7 @@ import { flashLabel, sendLabel, nameLabel, statusBadge } from "./status.js";
       }
       ALL_ENTRIES = data.entries;
       localStorage.setItem(ENTRIES_CACHE_KEY, JSON.stringify(ALL_ENTRIES));
-      applyPendingQueue();
+      applyPendingQueue(getQueue(), ALL_ENTRIES, ALL_PLACES, ALL_LOCATIONS);
       closeModal(entryOverlay);
       render();
     } catch (err) {
@@ -2711,7 +2683,7 @@ import { flashLabel, sendLabel, nameLabel, statusBadge } from "./status.js";
       if (existingIdx !== -1) queue[existingIdx] = { kind: "entry", op: queue[existingIdx].op, record: entry };
       else queue.push({ kind: "entry", op, record: entry });
       setQueue(queue);
-      applyPendingQueue();
+      applyPendingQueue(getQueue(), ALL_ENTRIES, ALL_PLACES, ALL_LOCATIONS);
       closeModal(entryOverlay);
       render();
     }
@@ -2753,7 +2725,7 @@ import { flashLabel, sendLabel, nameLabel, statusBadge } from "./status.js";
       }
       ALL_ENTRIES = data.entries;
       localStorage.setItem(ENTRIES_CACHE_KEY, JSON.stringify(ALL_ENTRIES));
-      applyPendingQueue();
+      applyPendingQueue(getQueue(), ALL_ENTRIES, ALL_PLACES, ALL_LOCATIONS);
       closeModal(entryOverlay);
       render();
     } catch (err) {
@@ -2769,7 +2741,7 @@ import { flashLabel, sendLabel, nameLabel, statusBadge } from "./status.js";
       const queue = getQueue().filter(item => !(item.kind === "entry" && item.record.id === id));
       queue.push({ kind: "entry", op: "delete", record: entrySnapshot ?? { id } });
       setQueue(queue);
-      applyPendingQueue();
+      applyPendingQueue(getQueue(), ALL_ENTRIES, ALL_PLACES, ALL_LOCATIONS);
       closeModal(entryOverlay);
       render();
     }
@@ -2939,7 +2911,7 @@ import { flashLabel, sendLabel, nameLabel, statusBadge } from "./status.js";
     // touches ALL_ENTRIES/ALL_PLACES/ALL_LOCATIONS together, and calling it
     // before places/locations were fetched would just have its optimistic
     // pushes overwritten by the fetch assignments above.
-    applyPendingQueue();
+    applyPendingQueue(getQueue(), ALL_ENTRIES, ALL_PLACES, ALL_LOCATIONS);
 
     // Default to whichever type actually has entries -- boulder wins if
     // both/neither do, matching the entry form's own default type.
