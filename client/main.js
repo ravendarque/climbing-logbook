@@ -4,12 +4,16 @@
 // queue, etc.) happen incrementally from here in follow-up work, each with
 // its own Vitest coverage.
 //
-// status-icons.js/escape-html.js/floating-ui-dom.js stay external (see
-// esbuild.config.mjs) -- they're unchanged, already-vendored/precached files
+// status-icons.js/escape-html.js/floating-ui-dom.js stay external (see the
+// --external flags on the client:build/client:watch scripts in
+// package.json) -- they're unchanged, already-vendored/precached files
 // served directly from public/logbook/, not part of this bundle.
 import { STATUS_ICONS } from "./status-icons.js";
 import { escapeHtml } from "./escape-html.js";
 import { computePosition, autoUpdate, offset, flip, shift } from "./floating-ui-dom.js";
+import { gradeRank, gradeColor, BOULDER_GRADES, LEAD_GRADES } from "./grade-data.js";
+import { formatDate, dateRank } from "./date-helpers.js";
+import { flashLabel, sendLabel, nameLabel, statusBadge } from "./status.js";
 
   // ── Config ───────────────────────────────────────────────────────────
   const DATA_URL = "/logbook/api/logbook";
@@ -329,122 +333,6 @@ import { computePosition, autoUpdate, offset, flip, shift } from "./floating-ui-
   // code would then have to re-parse apart via string splitting to get
   // either piece back out.
   const COUNTRY_BY_NAME = Object.fromEntries(COUNTRIES.map(c => [c.name, c]));
-
-  // ── Grade ordering (display) ─────────────────────────────────────────
-  const GRADE_ORDER = [
-    "3","3+","4","4+","5","5+","5A","5A+","5B","5B+","5C",
-    "6A","6A+","6B","6B+","6C","6C+",
-    "7A","7A+","7B","7B+","7C","7C+",
-    "8A","8A+","8B","8B+","8C","8C+",
-    "9A","9A+"
-  ];
-  const GRADE_RANK = Object.fromEntries(GRADE_ORDER.map((g, i) => [g.toUpperCase(), i]));
-  function gradeRank(g) { return GRADE_RANK[g.toUpperCase()] ?? 99; }
-
-  const GRADE_COLOR_BANDS = [
-    "var(--grade-easy)", "var(--grade-6a)", "var(--grade-6b)", "var(--grade-6c)",
-    "var(--grade-7a)",   "var(--grade-7b)", "var(--grade-7c)", "var(--grade-8a)",
-  ];
-  // BOULDER_GRADES/LEAD_GRADES (defined below) already carry a curated `c`
-  // per entry -- look those up directly rather than re-deriving a color
-  // from rank. Lead's list is only 14 entries against Boulder's 21, so
-  // applying one set of absolute rank thresholds to both compressed most
-  // of Lead's range into a couple of bands (#109); per-discipline lookup
-  // sidesteps that instead of just recalibrating the thresholds.
-  function gradeColor(g, type) {
-    const list = type === "lead" ? LEAD_GRADES : BOULDER_GRADES;
-    const hit = list.find(x => x.g.toUpperCase() === String(g).toUpperCase());
-    if (hit) return hit.c;
-
-    // Grades outside the current picker range (e.g. pre-#60 sub-5 boulder
-    // entries) have no curated color -- band by fraction of this
-    // discipline's own rank span so a short list still spreads across
-    // the full band range instead of bunching up.
-    const minR = gradeRank(list[0].g);
-    const maxR = gradeRank(list[list.length - 1].g);
-    const frac = (gradeRank(g) - minR) / (maxR - minR);
-    const idx = Math.min(GRADE_COLOR_BANDS.length - 1, Math.max(0, Math.floor(frac * GRADE_COLOR_BANDS.length)));
-    return GRADE_COLOR_BANDS[idx];
-  }
-
-  // ── Grade data (entry form) ───────────────────────────────────────────
-  const BOULDER_GRADES = [
-    { g: "5",   v: "V0",  c: "var(--grade-easy)" },
-    { g: "5+",  v: "V0",  c: "var(--grade-easy)" },
-    { g: "5A",  v: "V0",  c: "var(--grade-easy)" },
-    { g: "5B",  v: "V1",  c: "var(--grade-easy)" },
-    { g: "5C",  v: "V2",  c: "var(--grade-easy)" },
-    { g: "6A",  v: "V3",  c: "var(--grade-6a)"   },
-    { g: "6A+", v: "V3",  c: "var(--grade-6a)"   },
-    { g: "6B",  v: "V4",  c: "var(--grade-6b)"   },
-    { g: "6B+", v: "V4",  c: "var(--grade-6b)"   },
-    { g: "6C",  v: "V5",  c: "var(--grade-6c)"   },
-    { g: "6C+", v: "V5",  c: "var(--grade-6c)"   },
-    { g: "7A",  v: "V6",  c: "var(--grade-7a)"   },
-    { g: "7A+", v: "V7",  c: "var(--grade-7a)"   },
-    { g: "7B",  v: "V8",  c: "var(--grade-7b)"   },
-    { g: "7B+", v: "V8",  c: "var(--grade-7b)"   },
-    { g: "7C",  v: "V9",  c: "var(--grade-7c)"   },
-    { g: "7C+", v: "V10", c: "var(--grade-7c)"   },
-    { g: "8A",  v: "V11", c: "var(--grade-8a)"   },
-    { g: "8A+", v: "V12", c: "var(--grade-8a)"   },
-    { g: "8B",  v: "V13", c: "var(--grade-8a)"   },
-    { g: "8B+", v: "V14", c: "var(--grade-8a)"   },
-  ];
-  const LEAD_GRADES = [
-    { g: "5c",  c: "var(--grade-easy)" },
-    { g: "6a",  c: "var(--grade-6a)"   },
-    { g: "6a+", c: "var(--grade-6a)"   },
-    { g: "6b",  c: "var(--grade-6b)"   },
-    { g: "6b+", c: "var(--grade-6b)"   },
-    { g: "6c",  c: "var(--grade-6c)"   },
-    { g: "6c+", c: "var(--grade-6c)"   },
-    { g: "7a",  c: "var(--grade-7a)"   },
-    { g: "7a+", c: "var(--grade-7a)"   },
-    { g: "7b",  c: "var(--grade-7b)"   },
-    { g: "7b+", c: "var(--grade-7b)"   },
-    { g: "7c",  c: "var(--grade-7c)"   },
-    { g: "7c+", c: "var(--grade-7c)"   },
-    { g: "8a",  c: "var(--grade-8a)"   },
-  ];
-
-  // ── Date helpers ─────────────────────────────────────────────────────
-  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  function formatDate(d) {
-    if (!d) return "—";
-    const p = d.split("-");
-    if (p.length === 1) return p[0];
-    if (p.length === 2) return `${MONTHS[+p[1]-1]} ${p[0]}`;
-    return `${+p[2]} ${MONTHS[+p[1]-1]} ${p[0]}`;
-  }
-  function dateRank(d) {
-    if (!d) return -1;
-    return new Date(d).getTime();
-  }
-
-  // ── Status ───────────────────────────────────────────────────────────
-  // "Flash"/"Send" are bouldering terms; the equivalent sport/lead terms
-  // are "Onsight"/"Redpoint" (same underlying status/flash data either
-  // way, see #98) -- icons stay the same, only the label text differs.
-  const FLASH_LABEL = { boulder: ["Flash", "Flashes"], lead: ["Onsight", "Onsights"] };
-  const SEND_LABEL  = { boulder: ["Send", "Sends"],    lead: ["Redpoint", "Redpoints"] };
-  const NAME_LABEL  = { boulder: "Problem name", lead: "Route name" };
-  const flashLabel = (type, plural) => FLASH_LABEL[type ?? "boulder"][plural ? 1 : 0];
-  const sendLabel  = (type, plural) => SEND_LABEL[type ?? "boulder"][plural ? 1 : 0];
-  const nameLabel  = type => NAME_LABEL[type ?? "boulder"];
-
-  const STATUS_ICON_CLASS = "inline-flex align-middle cursor-default [&_svg]:w-[1.4rem] [&_svg]:h-[1.4rem]";
-  function statusBadge(entry) {
-    if (entry.status === "send" && entry.firstAttempt)
-      return `<span class="${STATUS_ICON_CLASS}" title="${flashLabel(entry.type)}">${STATUS_ICONS.flash}</span>`;
-    if (entry.status === "send")
-      return `<span class="${STATUS_ICON_CLASS}" title="${sendLabel(entry.type)}">${STATUS_ICONS.send}</span>`;
-    if (entry.status === "project")
-      return `<span class="${STATUS_ICON_CLASS}" title="Project">${STATUS_ICONS.project}</span>`;
-    if (entry.status === "abandoned")
-      return `<span class="${STATUS_ICON_CLASS}" title="Abandoned">${STATUS_ICONS.abandoned}</span>`;
-    return `<span class="${STATUS_ICON_CLASS}" title="Check out">${STATUS_ICONS.wishlist}</span>`;
-  }
 
   // ── State ────────────────────────────────────────────────────────────
   const state = {

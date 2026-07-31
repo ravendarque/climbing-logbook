@@ -10,8 +10,8 @@
     "deploy": "pnpm run tailwind:build && pnpm run client:build && wrangler deploy",
     "tailwind:build": "tailwindcss -i ./styles/tailwind.css -o ./public/logbook/tailwind.css --minify",
     "tailwind:watch": "tailwindcss -i ./styles/tailwind.css -o ./public/logbook/tailwind.css --watch",
-    "client:build": "esbuild client/main.js --bundle --format=esm --outfile=public/logbook/app.js --minify --external:./status-icons.js --external:./escape-html.js --external:./floating-ui-dom.js",
-    "client:watch": "esbuild client/main.js --bundle --format=esm --outfile=public/logbook/app.js --watch --external:./status-icons.js --external:./escape-html.js --external:./floating-ui-dom.js",
+    "client:build": "esbuild client/main.js --bundle --format=esm --outfile=public/logbook/app.js --minify --external:./escape-html.js --external:./floating-ui-dom.js",
+    "client:watch": "esbuild client/main.js --bundle --format=esm --outfile=public/logbook/app.js --watch --external:./escape-html.js --external:./floating-ui-dom.js",
     "seed": "node scripts/seed-dev-data.mjs",
     "test": "vitest run",
     "vendor:floating-ui": "node scripts/vendor-floating-ui.mjs"

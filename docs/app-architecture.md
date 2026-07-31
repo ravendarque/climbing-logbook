@@ -18,10 +18,16 @@ every deploy (`.github/workflows/deploy.yml`):
   `public/`, so it's never served raw) and is bundled by esbuild into
   `public/logbook/app.js` via `pnpm run client:build` (one-shot, minified)
   or `client:watch` (used by `pnpm dev`) — see "Frontend structure" below
-  for why (#206). `status-icons.js`, `escape-html.js`, and the vendored
-  `floating-ui-*.js` files stay as separate, directly-served files (marked
-  `external` in the esbuild command) rather than being pulled into the
-  bundle — unchanged from before the bundler existed.
+  for why (#206). `escape-html.js` and the vendored `floating-ui-*.js`
+  files stay as separate, directly-served files (marked `external` in the
+  esbuild command) rather than being pulled into the bundle.
+  `status-icons.js` used to be one of them too, but moved into `client/`
+  and folded into the bundle once an extracted module (`status.js`) needed
+  to import it — Vitest resolves `client/`'s own imports directly against
+  disk, so an import that only worked when passed through unbundled to the
+  browser (correct relative to the *bundle's* eventual location, not the
+  source file's) broke under test. Pulling the dependency into the bundle
+  fixed it at the root rather than special-casing the test setup.
 
 Styling itself is Tailwind utility classes directly in `index.html`'s
 markup — not a utilities layer sitting alongside a separate hand-rolled
@@ -43,11 +49,19 @@ styles/
                           see file for why); compiles to public/logbook/tailwind.css
 
 client/
-└── main.js             Entry point for the client JS bundle (#206) — bundled
-                          by esbuild into public/logbook/app.js. Extracted
-                          pure-logic modules (grade data, offline queue, etc.)
-                          live alongside it as they're pulled out, each with
-                          its own Vitest coverage under test/.
+├── main.js             Entry point for the client JS bundle (#206) — bundled
+│                         by esbuild into public/logbook/app.js. Extracted
+│                         pure-logic modules live alongside it as they're
+│                         pulled out, each with its own Vitest coverage
+│                         under test/client/. Remaining candidates: offline
+│                         queue, entry filter/sort, grade-pyramid stats,
+│                         map geometry.
+├── grade-data.js       Grade ordering/coloring, per-discipline grade lists
+├── date-helpers.js     formatDate/dateRank
+├── status.js           statusBadge, flash/send/name labels
+└── status-icons.js     SVG icon constants — bundled here rather than kept
+                          external once status.js needed to import it (see
+                          Overview above)
 
 src/
 ├── index.js           Router — matches pathname+method, dispatches
@@ -71,7 +85,6 @@ public/logbook/
 ├── app.js               Generated from client/main.js — not committed, see .gitignore
 ├── tailwind.css         Generated — not committed, see .gitignore
 ├── sw.js               Service worker — offline app-shell + API caching
-├── status-icons.js      SVG icon constants
 ├── escape-html.js       Shared HTML-escaping helper
 ├── floating-ui-core.js  Vendored @floating-ui/dom dependency (prebuilt
 ├── floating-ui-dom.js    browser ESM bundles, see scripts/vendor-floating-ui.mjs) —
@@ -313,9 +326,12 @@ Vitest coverage in the process. DOM-heavy rendering code stays in
 solving DOM/E2E testing (tracked separately). No frontend framework is in
 use.
 
-`escape-html.js` and `status-icons.js` stay as separate files outside the
-bundle (marked `external` in the esbuild command) because they're also
-referenced by `sw.js`'s caching list independently of the app bundle.
+`escape-html.js` stays a separate file outside the bundle (marked
+`external` in the esbuild command) because it's also referenced by
+`sw.js`'s caching list independently of the app bundle. `status-icons.js`
+used to be handled the same way, but moved into `client/` and got bundled
+once `status.js` needed to import it — its own `sw.js` precache entry was
+removed accordingly, since it's just part of `app.js` now.
 `floating-ui-core.js` and `floating-ui-dom.js` (#18) are external for a
 different reason: they're `@floating-ui/dom`'s own prebuilt browser ESM
 output, vendored verbatim via `scripts/vendor-floating-ui.mjs` rather than

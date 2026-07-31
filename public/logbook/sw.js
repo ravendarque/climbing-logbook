@@ -5,7 +5,6 @@ const APP_SHELL = [
   "/logbook/index.html",
   "/logbook/app.js",
   "/logbook/escape-html.js",
-  "/logbook/status-icons.js",
   "/logbook/floating-ui-core.js",
   "/logbook/floating-ui-dom.js",
   "/logbook/manifest.json",
