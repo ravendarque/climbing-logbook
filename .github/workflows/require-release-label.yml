@@ -20,10 +20,20 @@ jobs:
   check-label:
     runs-on: ubuntu-latest
     steps:
+      # Live query, not `github.event.pull_request.labels` -- that's a
+      # snapshot of the webhook payload at the moment the triggering event
+      # fired, not the PR's actual state when this job runs. `gh pr create
+      # --label` isn't a single atomic API call (create-PR, then a separate
+      # add-labels call), so the `opened` event's payload can genuinely
+      # predate the label landing -- checking live state at run time (by
+      # which point the label call has long since completed) closes that
+      # race regardless of how/when the label was attached.
       - name: Verify a release label is present
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          labels='${{ toJSON(github.event.pull_request.labels.*.name) }}'
-          if echo "$labels" | grep -qE "release: (major|minor|patch|none)"; then
+          labels=$(gh pr view "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --json labels --jq '.labels[].name')
+          if echo "$labels" | grep -qE "^release: (major|minor|patch|none)$"; then
             echo "Release label present."
           else
             echo "::error::No release label on this PR. Apply one of 'release: major', 'release: minor', 'release: patch', or 'release: none' before merging — see docs/versioning.md."
