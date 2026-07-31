@@ -24,6 +24,10 @@ import {
   groupByPlace as groupByPlacePure,
   sortEntries as sortEntriesPure,
 } from "./entries.js";
+import {
+  PYRAMID_IDEAL_BY_POSITION,
+  pyramidSplitRows as pyramidSplitRowsPure,
+} from "./pyramid-stats.js";
 
   // ── Config ───────────────────────────────────────────────────────────
   const DATA_URL = "/logbook/api/logbook";
@@ -748,15 +752,17 @@ import {
   }
 
   // ── Grade Pyramid (#12) ─────────────────────────────────────────────
-  // 8-4-2-1 is a widely used coaching heuristic (Hörst, Hampton -- see the
-  // citations dialog), not a scientifically validated ratio; framed that
-  // way everywhere it's surfaced in the UI, never as fact.
-  const PYRAMID_IDEAL_BY_POSITION = [1, 2, 4, 8]; // position 0 = current max (ideal 1) ... position 3 = base tier (ideal 8)
   const PYRAMID_ICON_GOOD     = `<circle cx="12" cy="12" r="9"></circle><path d="m8.5 12.5 2.5 2.5 5-5"></path>`;
   const PYRAMID_ICON_LOW      = `<path d="M12 3 2 20h20L12 3Z"></path><path d="M12 9v5"></path><path d="M12 17h.01"></path>`;
   const PYRAMID_ICON_MISSING  = `<circle cx="12" cy="12" r="9"></circle><path d="M12 7v6"></path><path d="M12 16.5h.01"></path>`;
   const PYRAMID_ICON_PROMOTED = `<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"></path>`;
   const PYRAMID_GOLD = "#eab308"; // achievement/celebratory accent (#131) -- literal hex, matching the existing good/missing icons' style rather than a CSS var
+
+  // Thin wrapper over client/pyramid-stats.js's pure pyramidSplitRows --
+  // closes over ALL_ENTRIES so renderPyramid's one call site is unchanged.
+  function pyramidSplitRows(type) {
+    return pyramidSplitRowsPure(type, ALL_ENTRIES);
+  }
 
   // Evidence-tier claims mark the claim's own words bold + tier-colored
   // and clickable (rather than a separate icon badge appended after the
@@ -782,96 +788,6 @@ import {
   // absorbs (any remaining ±1px line-to-line variance afterwards is
   // ordinary sub-pixel rendering noise, present in any paragraph).
   const CITATION_MARKER = `<button type="button" class="align-super ml-[.3em] inline-flex items-center justify-center px-[.35em] py-[.1em] rounded-[.3em] border border-[color-mix(in_srgb,var(--color-accent)_35%,transparent)] text-accent bg-[color-mix(in_srgb,var(--color-accent)_14%,var(--color-surface))] text-[.65rem] font-bold leading-none cursor-pointer hover:brightness-95" data-citation aria-label="View sources">1</button>`;
-
-  // Sends only (a "send" covers both flash/onsight and redpoint -- see the
-  // status-label comment near FLASH_LABEL/SEND_LABEL above), from the last
-  // 12 months only, per Hampton's original framing ("8 climbs done in the
-  // past 12 months at a grade"). Dates can be stored as "YYYY", "YYYY-MM",
-  // or "YYYY-MM-DD" (see the Date field's own helper text) -- new Date()
-  // parses all three as UTC, same as dateRank() already relies on
-  // elsewhere in this file for sorting.
-  function isWithinLast12Months(d) {
-    if (!d) return false;
-    const t = new Date(d).getTime();
-    if (Number.isNaN(t)) return false;
-    const cutoff = new Date();
-    cutoff.setFullYear(cutoff.getFullYear() - 1);
-    return t >= cutoff.getTime();
-  }
-
-  function pyramidCounts(type) {
-    const order = (type === "boulder" ? BOULDER_GRADES : LEAD_GRADES).map(x => x.g);
-    const counts = Object.fromEntries(order.map(g => [g, 0]));
-    for (const e of ALL_ENTRIES) {
-      if (e.type !== type || e.status !== "send" || !isWithinLast12Months(e.date)) continue;
-      if (counts[e.grade] !== undefined) counts[e.grade]++;
-    }
-    return { order, counts };
-  }
-
-  // Is `idx` (and up to two grades below it) already sent enough to be
-  // considered "ready to push" into the next grade up? Checked against
-  // the ideal one position HARDER than each tier's own slot (position 0
-  // = hardest/tier 1 ... position 3 = base/tier 4) -- e.g. tier 1 needs
-  // tier 2's ideal (2) to be ready to promote, tier 2 needs tier 3's (4),
-  // and so on. Stops as soon as it runs off the bottom of the grade
-  // list, so this is the same check whether 1, 2, or 3 real tiers
-  // currently exist below `idx` (#131 -- see the PRD's truth table for
-  // worked examples of each case).
-  function pyramidReadyToPromote(order, counts, idx) {
-    for (let pos = 0; pos <= 2; pos++) {
-      const gradeIdx = idx - pos;
-      if (gradeIdx < 0) break;
-      const need = PYRAMID_IDEAL_BY_POSITION[pos + 1];
-      if (need === undefined) break;
-      if (counts[order[gradeIdx]] < need) return false;
-    }
-    return true;
-  }
-
-  // Splits the discipline's full grade order into the 8-4-2-1 window and
-  // everything below it (shown collapsed by default -- see show/hide-
-  // lower-grades link in renderPyramid). The window used to be "count
-  // down 4 tiers from the max sent grade, clamped at the low end", which
-  // degraded to a 1-tier "complete" pyramid once max-sent was already
-  // the lowest supported grade (#131). It's now a promotion-step anchor,
-  // stateless and recomputed fresh from current sends every render: if
-  // the top (up to) 3 real tiers already have enough volume to be ready
-  // for the next grade up, the window promotes by one -- even into a
-  // grade with zero sends yet -- and the display always spans a full 4
-  // tiers, extending upward rather than truncating near the list's
-  // start. `promotedGrade` marks the single tier (if any) that was just
-  // promoted this render, for the achievement-styled treatment; a real
-  // send landing at or beyond it on a later render moves `maxSentIdx`
-  // there directly, so there's nothing to "un-promote".
-  function pyramidSplitRows(type) {
-    const { order, counts } = pyramidCounts(type);
-    const sentTiers = order.filter(g => counts[g] > 0);
-    if (!sentTiers.length) return { top4: [], lower: [], hasSends: false, promotedGrade: null };
-
-    const maxGrade = sentTiers[sentTiers.length - 1];
-    let topIdx = order.indexOf(maxGrade);
-
-    let promotedGrade = null;
-    if (topIdx < order.length - 1 && pyramidReadyToPromote(order, counts, topIdx)) {
-      topIdx += 1;
-      promotedGrade = order[topIdx];
-    }
-
-    const displayTop = Math.max(topIdx, Math.min(3, order.length - 1));
-    const windowStartIdx = Math.max(0, displayTop - 3);
-
-    const top4 = order.slice(windowStartIdx, displayTop + 1)
-      .map(g => ({ grade: g, count: counts[g] }))
-      .reverse(); // hardest (ideal 1) first
-
-    const firstSentIdx = order.indexOf(sentTiers[0]);
-    const lower = order.slice(firstSentIdx, windowStartIdx)
-      .map(g => ({ grade: g, count: counts[g] }))
-      .reverse();
-
-    return { top4, lower, hasSends: true, promotedGrade };
-  }
 
   function pyramidStatusIcon(actual, ideal, promoted) {
     if (promoted) return { cls: "promoted", color: PYRAMID_GOLD, svg: PYRAMID_ICON_PROMOTED, label: "Ready to push -- you've logged enough at the tier below to attempt this grade" };

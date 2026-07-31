@@ -53,8 +53,8 @@ client/
 │                         by esbuild into public/logbook/app.js. Extracted
 │                         pure-logic modules live alongside it as they're
 │                         pulled out, each with its own Vitest coverage
-│                         under test/client/. Remaining candidates:
-│                         grade-pyramid stats, map geometry.
+│                         under test/client/. Remaining candidate: map
+│                         geometry.
 ├── grade-data.js       Grade ordering/coloring, per-discipline grade lists
 ├── date-helpers.js     formatDate/dateRank
 ├── status.js           statusBadge, flash/send/name labels
@@ -68,6 +68,14 @@ client/
 │                         wrapper functions closing over its own globals, so
 │                         none of the ~25 existing call sites needed to
 │                         change
+├── pyramid-stats.js    Grade Pyramid (#12) send-counting and 8-4-2-1
+│                         promotion-window logic (isWithinLast12Months/
+│                         pyramidCounts/pyramidReadyToPromote/
+│                         pyramidSplitRows), plus the PYRAMID_IDEAL_BY_
+│                         POSITION constant (also read directly by
+│                         main.js's own rendering code). pyramidStatusIcon/
+│                         pyramidBarRow/renderPyramid stay in main.js --
+│                         they're presentation, not stats
 └── offline-queue.js    applyPendingQueue -- the offline-queue merge logic,
                           refactored to take queue/entries/places/locations
                           as parameters (mutated in place) instead of
