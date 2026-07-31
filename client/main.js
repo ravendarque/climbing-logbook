@@ -28,6 +28,19 @@ import {
   PYRAMID_IDEAL_BY_POSITION,
   pyramidSplitRows as pyramidSplitRowsPure,
 } from "./pyramid-stats.js";
+import {
+  MAP_WIDTH,
+  MAP_MIN_W,
+  MAP_VIEW_EPS,
+  mapViewportAspect as mapViewportAspectPure,
+  mapMaxW as mapMaxWPure,
+  defaultMapView as defaultMapViewPure,
+  clampMapView as clampMapViewPure,
+  panView,
+  computeZoomedView,
+  mapClientDeltaToUserSpace as mapClientDeltaToUserSpacePure,
+  mapClientPointToUserSpace as mapClientPointToUserSpacePure,
+} from "./map-geometry.js";
 
   // ── Config ───────────────────────────────────────────────────────────
   const DATA_URL = "/logbook/api/logbook";
@@ -979,8 +992,7 @@ import {
   // tradeoff -- fetch on demand, show real load progress so a slow
   // connection is a visible, informed wait rather than a silent hang, and
   // fail with a plain "you need to be online" message instead of
-  // pretending to work offline.
-  const MAP_WIDTH = 960; // fixed across all variants -- only height varies per variant, see generate-world-map.mjs
+  // pretending to work offline. MAP_WIDTH imported from map-geometry.js.
 
   const MAP_VARIANTS = {
     greenwich: { label: "Greenwich" },
@@ -1134,24 +1146,19 @@ import {
   // right to see the rest. This trades "see the whole world at once" for
   // "see your own region at a readable size by default," which is the
   // actually useful default for a personal climbing map.
-  const MAP_NARROW_ASPECT = 3 / 4; // width:height on narrow (<=600px) viewports -- taller than wide
-  const MAP_WIDE_ASPECT   = 4 / 3; // width:height on wide (>600px) viewports -- wider than tall, but still short of the full world's ~1.9:1
   const mapNarrowQuery = window.matchMedia("(max-width: 600px)");
+  // Thin wrappers over client/map-geometry.js's pure functions -- they
+  // close over mapData/mapNarrowQuery so every existing call site below
+  // keeps calling these same zero-arg names. Only callable once mapData
+  // has loaded -- every caller below is reachable only from the "loaded"
+  // render path or from interactions the loading/error states don't
+  // expose (the zoom/pan controls stay hidden until then).
   function mapViewportAspect() {
-    return mapNarrowQuery.matches ? MAP_NARROW_ASPECT : MAP_WIDE_ASPECT;
+    return mapViewportAspectPure(mapNarrowQuery.matches);
   }
-  // The widest (shortest-zoomed) the viewport can ever go: full height
-  // (of the active variant) tall, however wide that makes it at the
-  // current aspect. Zooming out further would mean showing more than
-  // pole-to-pole vertically, which doesn't exist. Only callable once
-  // mapData has loaded -- every caller below is reachable only from the
-  // "loaded" render path or from interactions the loading/error states
-  // don't expose (the zoom/pan controls stay hidden until then).
   function mapMaxW() {
-    return mapData.height * mapViewportAspect();
+    return mapMaxWPure(mapData.height, mapViewportAspect());
   }
-  const MAP_MIN_W = MAP_WIDTH / 8; // max zoom-in: relative to the full world width, not the (smaller, aspect-dependent) default view
-  const MAP_VIEW_EPS = 0.01; // float slop for the button disabled-at-bounds checks below
   // Pins are sized in the same user-space units as the map itself, so
   // without correction they'd grow on screen as the viewBox shrinks while
   // zooming in (same user-space radius, but now spanning a much bigger
@@ -1172,9 +1179,7 @@ import {
   // "here's this projection." World-centered is simple and predictable
   // regardless of your data or which variant is active.)
   function defaultMapView() {
-    const w = mapMaxW();
-    const x = (MAP_WIDTH - w) / 2;
-    return { x, y: 0, w, h: w / mapViewportAspect() };
+    return defaultMapViewPure(MAP_WIDTH, mapMaxW(), mapViewportAspect());
   }
   // Deliberately not initialized to defaultMapView() here -- that needs
   // mapData.height, which isn't available until the active variant has
@@ -1195,11 +1200,12 @@ import {
   }
 
   function clampMapView(view) {
-    const w = Math.min(mapMaxW(), Math.max(MAP_MIN_W, view.w));
-    const h = w / mapViewportAspect();
-    const x = Math.min(MAP_WIDTH - w, Math.max(0, view.x));
-    const y = Math.min(mapData.height - h, Math.max(0, view.y));
-    return { x, y, w, h };
+    return clampMapViewPure(view, {
+      maxW: mapMaxW(),
+      minW: MAP_MIN_W,
+      viewportAspect: mapViewportAspect(),
+      mapHeight: mapData.height,
+    });
   }
 
   function applyPinScale() {
@@ -1250,29 +1256,23 @@ import {
     closePinPopover();
   });
 
+  // Keeps (cx, cy) fixed in place on screen while the view scales around
+  // it -- centered zoom for the buttons (cx/cy omitted below), cursor-
+  // anchored zoom for the wheel (cx/cy = pointer position), same as any
+  // map UI. See client/map-geometry.js's computeZoomedView for the
+  // over-zoom-drift rationale behind clamping inline before applying it.
   function zoomMapBy(factor, cx, cy) {
     if (cx === undefined) cx = mapView.x + mapView.w / 2;
     if (cy === undefined) cy = mapView.y + mapView.h / 2;
-    // Keeps (cx, cy) fixed in place on screen while the view scales around
-    // it -- centered zoom for the buttons (cx/cy omitted), cursor-anchored
-    // zoom for the wheel (cx/cy = pointer position), same as any map UI.
-    const relX = (cx - mapView.x) / mapView.w;
-    const relY = (cy - mapView.y) / mapView.h;
-    // Clamped to the same bounds clampMapView will enforce BEFORE using it
-    // below, not after -- otherwise, once already at a zoom limit, every
-    // further wheel tick past it still computes x/y against the
-    // hypothetical (never-applied) unclamped width, drifting the pan
-    // offset a little further each time even though the zoom itself is
-    // pinned. That drift is exactly what scrolling to zoom past the max
-    // on a trackpad looked like: the map appearing to pan on its own once
-    // it couldn't zoom in any further.
-    const newW = Math.min(mapMaxW(), Math.max(MAP_MIN_W, mapView.w / factor));
-    const newH = newW / mapViewportAspect();
-    setMapView({ x: cx - relX * newW, y: cy - relY * newH, w: newW, h: newH });
+    setMapView(computeZoomedView(mapView, factor, cx, cy, {
+      maxW: mapMaxW(),
+      minW: MAP_MIN_W,
+      viewportAspect: mapViewportAspect(),
+    }));
   }
 
   function panMapBy(dx, dy) {
-    setMapView({ ...mapView, x: mapView.x + dx, y: mapView.y + dy });
+    setMapView(panView(mapView, dx, dy));
   }
 
   // Client-pixel <-> viewBox-user-space conversions, both needed because
@@ -1280,15 +1280,10 @@ import {
   // between rendered pixels and user-space units changes with both
   // viewport width and the current zoom level.
   function mapClientDeltaToUserSpace(svg, dxClient, dyClient) {
-    const rect = svg.getBoundingClientRect();
-    return { dx: (dxClient / rect.width) * mapView.w, dy: (dyClient / rect.height) * mapView.h };
+    return mapClientDeltaToUserSpacePure(svg.getBoundingClientRect(), mapView, dxClient, dyClient);
   }
   function mapClientPointToUserSpace(svg, clientX, clientY) {
-    const rect = svg.getBoundingClientRect();
-    return {
-      x: mapView.x + ((clientX - rect.left) / rect.width) * mapView.w,
-      y: mapView.y + ((clientY - rect.top) / rect.height) * mapView.h,
-    };
+    return mapClientPointToUserSpacePure(svg.getBoundingClientRect(), mapView, clientX, clientY);
   }
 
   function endMapDrag(e) {
