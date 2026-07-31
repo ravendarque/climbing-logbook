@@ -15,6 +15,15 @@ import { gradeRank, gradeColor, BOULDER_GRADES, LEAD_GRADES } from "./grade-data
 import { formatDate, dateRank } from "./date-helpers.js";
 import { flashLabel, sendLabel, nameLabel, statusBadge } from "./status.js";
 import { applyPendingQueue } from "./offline-queue.js";
+import {
+  placeOf as placeOfPure,
+  locationOf as locationOfPure,
+  entryLocation as entryLocationPure,
+  activeGradeList as activeGradeListPure,
+  filteredEntries as filteredEntriesPure,
+  groupByPlace as groupByPlacePure,
+  sortEntries as sortEntriesPure,
+} from "./entries.js";
 
   // ── Config ───────────────────────────────────────────────────────────
   const DATA_URL = "/logbook/api/logbook";
@@ -475,78 +484,35 @@ import { applyPendingQueue } from "./offline-queue.js";
   }
 
   // ── Data ─────────────────────────────────────────────────────────────
-  // Entry -> Place -> Location join, degrading gracefully (never null,
-  // matching this file's existing lookup conventions like
-  // COUNTRY_BY_NAME) if placeId/locationId don't resolve to anything
-  // real -- rather than every call site needing its own null-check.
+  // Thin wrappers over client/entries.js's pure functions -- they close
+  // over the actual module globals (ALL_ENTRIES/ALL_PLACES/ALL_LOCATIONS/
+  // state) so every existing call site throughout this file keeps calling
+  // these same names with the same (often zero-arg) signatures.
   function placeOf(entry) {
-    return ALL_PLACES.find(p => p.id === entry.placeId) ?? { locationId: "", area: "" };
+    return placeOfPure(entry, ALL_PLACES);
+  }
+  function locationOf(place) {
+    return locationOfPure(place, ALL_LOCATIONS);
   }
   function entryLocation(entry) {
-    return locationOf(placeOf(entry));
+    return entryLocationPure(entry, ALL_PLACES, ALL_LOCATIONS);
   }
-
-  function entryMatchesStatusFilter(entry, filter) {
-    if (filter === "flash") return entry.status === "send" && entry.firstAttempt;
-    if (filter === "send")  return entry.status === "send" && !entry.firstAttempt;
-    return entry.status === filter;
-  }
-
-  // Active discipline's own grade list -- BOULDER_GRADES/LEAD_GRADES, not
-  // the shared GRADE_ORDER/gradeRank table -- so the range filter's step
-  // count and bounds always match what the entry-form picker itself offers
-  // for this discipline (21 boulder grades vs. 14 lead grades) (#161).
   function activeGradeList() {
-    return state.activeType === "boulder" ? BOULDER_GRADES : LEAD_GRADES;
+    return activeGradeListPure(state.activeType);
   }
-
   function filteredEntries() {
-    const q = state.search.toLowerCase();
-    return ALL_ENTRIES.filter(e => {
-      if (e.type !== state.activeType) return false;
-      if (state.statusFilters.size > 0 &&
-          ![...state.statusFilters].some(f => entryMatchesStatusFilter(e, f))) return false;
-      if (state.gradeRange) {
-        const list = activeGradeList();
-        const r = gradeRank(e.grade);
-        if (r < gradeRank(list[state.gradeRange.min].g) || r > gradeRank(list[state.gradeRange.max].g)) return false;
-      }
-      if (q && !e.name.toLowerCase().includes(q) && !placeOf(e).area.toLowerCase().includes(q)) return false;
-      return true;
+    return filteredEntriesPure(ALL_ENTRIES, ALL_PLACES, {
+      activeType: state.activeType,
+      statusFilters: state.statusFilters,
+      gradeRange: state.gradeRange,
+      search: state.search,
     });
   }
-
-  // Grouped by locationId, not placeId -- a location can have several
-  // distinct places/areas (different placeIds sharing one locationId),
-  // and they should still show together under one header with Area as a
-  // per-row column, same table UX as before Place existed. Grouping by
-  // location (rather than by raw location *name* text) is what makes two
-  // different real-world locations that happen to share a name honestly
-  // stay two separate groups instead of being silently merged (#157/#158).
   function groupByPlace(entries) {
-    const map = new Map();
-    for (const e of entries) {
-      const locationId = placeOf(e).locationId;
-      if (!map.has(locationId)) map.set(locationId, []);
-      map.get(locationId).push(e);
-    }
-    // Preserve order from original data
-    const locationOrder = [...new Set(ALL_ENTRIES.map(e => placeOf(e).locationId))];
-    return locationOrder
-      .filter(id => map.has(id))
-      .map(id => [id, map.get(id)]);
+    return groupByPlacePure(entries, ALL_ENTRIES, ALL_PLACES);
   }
-
   function sortEntries(entries, locationId) {
-    const { col, dir } = getSort(locationId);
-    const m = dir === "asc" ? 1 : -1;
-    return [...entries].sort((a, b) => {
-      if (col === "grade")  return m * (gradeRank(a.grade) - gradeRank(b.grade));
-      if (col === "date")   return m * (dateRank(a.date) - dateRank(b.date));
-      if (col === "name")   return m * a.name.localeCompare(b.name);
-      if (col === "area")   return m * placeOf(a).area.localeCompare(placeOf(b).area);
-      return 0;
-    });
+    return sortEntriesPure(entries, getSort(locationId), ALL_PLACES);
   }
 
   // ── Render ───────────────────────────────────────────────────────────
@@ -2024,10 +1990,6 @@ import { applyPendingQueue } from "./offline-queue.js";
   let placeActiveIndex = -1;
 
   function placeOptionId(i) { return `place-option-${i}`; }
-
-  function locationOf(place) {
-    return ALL_LOCATIONS.find(l => l.id === place.locationId) ?? { name: "", country: "" };
-  }
 
   // Every selectable Place, joined against its Location, sorted by
   // location then area -- rebuilt on each render rather than cached,

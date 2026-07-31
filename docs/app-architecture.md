@@ -53,14 +53,21 @@ client/
 │                         by esbuild into public/logbook/app.js. Extracted
 │                         pure-logic modules live alongside it as they're
 │                         pulled out, each with its own Vitest coverage
-│                         under test/client/. Remaining candidates: entry
-│                         filter/sort, grade-pyramid stats, map geometry.
+│                         under test/client/. Remaining candidates:
+│                         grade-pyramid stats, map geometry.
 ├── grade-data.js       Grade ordering/coloring, per-discipline grade lists
 ├── date-helpers.js     formatDate/dateRank
 ├── status.js           statusBadge, flash/send/name labels
 ├── status-icons.js     SVG icon constants — bundled here rather than kept
 │                         external once status.js needed to import it (see
 │                         Overview above)
+├── entries.js          Entry/place/location joins (placeOf/locationOf/
+│                         entryLocation) plus filter/sort/group logic for
+│                         the entries table. Takes entries/places/state as
+│                         explicit parameters; main.js keeps thin same-named
+│                         wrapper functions closing over its own globals, so
+│                         none of the ~25 existing call sites needed to
+│                         change
 └── offline-queue.js    applyPendingQueue -- the offline-queue merge logic,
                           refactored to take queue/entries/places/locations
                           as parameters (mutated in place) instead of
