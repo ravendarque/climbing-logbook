@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "climbing-logbook-dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["run", "dev", "--", "--no-open"],
+      "port": 8787
+    }
+  ]
+}
