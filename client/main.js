@@ -15,15 +15,7 @@ import { gradeRank, gradeColor, BOULDER_GRADES, LEAD_GRADES } from "./grade-data
 import { formatDate, dateRank } from "./date-helpers.js";
 import { flashLabel, sendLabel, nameLabel, statusBadge } from "./status.js";
 import { applyPendingQueue } from "./offline-queue.js";
-import {
-  placeOf as placeOfPure,
-  locationOf as locationOfPure,
-  entryLocation as entryLocationPure,
-  activeGradeList as activeGradeListPure,
-  filteredEntries as filteredEntriesPure,
-  groupByPlace as groupByPlacePure,
-  sortEntries as sortEntriesPure,
-} from "./entries.js";
+import { createStore } from "./store.js";
 import {
   PYRAMID_IDEAL_BY_POSITION,
   pyramidSplitRows as pyramidSplitRowsPure,
@@ -54,9 +46,6 @@ import {
   const SETTINGS_URL = "/logbook/api/settings";
   const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
   const ACCESS_LOGOUT_URL = "https://ravendarque.com/cdn-cgi/access/logout";
-  const ENTRIES_CACHE_KEY = "logbook_entries_cache";
-  const PLACES_CACHE_KEY = "logbook_places_cache";
-  const LOCATIONS_CACHE_KEY = "logbook_locations_cache";
   const LOGIN_HINT_KEY    = "logbook_logged_in_hint";
   const QUEUE_KEY         = "logbook_pending_queue";
 
@@ -362,35 +351,18 @@ import {
   const COUNTRY_BY_NAME = Object.fromEntries(COUNTRIES.map(c => [c.name, c]));
 
   // ── State ────────────────────────────────────────────────────────────
-  const state = {
-    statusFilters: new Set(), // empty = "all"
-    gradeRange: null, // null = full range (no filter); otherwise
-                       // { min, max } as indices into activeGradeList() --
-                       // min === max filters to a single grade (#161).
-                       // Reset to null on discipline switch since boulder
-                       // and lead grades aren't the same scale.
-    activeType: "boulder",    // which discipline is selected -- set for real
-                               // once ALL_ENTRIES loads (see boot()); "boulder"
-                               // here is just a placeholder before that.
-    activeView: "logbook",    // "logbook" | "pyramid" | "map" -- "pyramid" only
-                               // switchable when logged in with Athlete
-                               // Mode on (see #40, #110, #151).
-    lowerGradesExpanded: false,
-    search: "",
-    sortByPlace: {},  // { locationId: { col: "grade", dir: "asc" } }
-    collapsed: new Set(),
-  };
+  // Owned by the Store module (#234) -- statusFilters/gradeRange/activeType/
+  // activeView/search/sortByPlace/collapsed/entries/places/locations/
+  // isLoggedIn all live behind store.*, not raw fields. athleteMode,
+  // editingId, and lowerGradesExpanded stay local module `let`s here --
+  // each is read/written by exactly one section below (admin bar, entry
+  // form, Grade Pyramid respectively), so they'll move into that section's
+  // own module in #235-#242 rather than the shared Store now.
+  const store = createStore();
 
-  function getSort(place) {
-    return state.sortByPlace[place] ?? { col: "grade", dir: "asc" };
-  }
-
-  let ALL_ENTRIES  = [];
-  let ALL_PLACES   = [];
-  let ALL_LOCATIONS = [];
-  let isLoggedIn   = false;
   let athleteMode  = false;
   let editingId    = null; // null = add mode
+  let lowerGradesExpanded = false;
 
   // ── Offline queue ──────────────────────────────────────────────────
   function getQueue() {
@@ -408,7 +380,7 @@ import {
     // entries themselves still show their own badges, so this doesn't hide
     // the fact that changes are queued, just the button that can't act on
     // them yet.
-    syncBtn.hidden = n === 0 || !isLoggedIn;
+    syncBtn.hidden = n === 0 || !store.isLoggedIn();
     syncBtnLabel.textContent = n ? `Sync (${n})` : "Sync";
   }
 
@@ -462,7 +434,7 @@ import {
             // they're always pushed onto the queue in that order to
             // begin with (#158).
             remaining.push(...queue.slice(i));
-            isLoggedIn = false;
+            store.setLoggedIn(false);
             updateAdminBar();
             break;
           }
@@ -478,21 +450,14 @@ import {
       }
 
       setQueue(remaining);
-      if (lastLocations) {
-        ALL_LOCATIONS = lastLocations;
-        localStorage.setItem(LOCATIONS_CACHE_KEY, JSON.stringify(ALL_LOCATIONS));
-      }
-      if (lastPlaces) {
-        ALL_PLACES = lastPlaces;
-        localStorage.setItem(PLACES_CACHE_KEY, JSON.stringify(ALL_PLACES));
-      }
-      if (lastEntries) {
-        ALL_ENTRIES = lastEntries;
-        localStorage.setItem(ENTRIES_CACHE_KEY, JSON.stringify(ALL_ENTRIES));
-      }
+      if (lastLocations) store.setLocations(lastLocations);
+      if (lastPlaces) store.setPlaces(lastPlaces);
+      if (lastEntries) store.setEntries(lastEntries);
       // Re-apply whatever's still queued on top of the just-confirmed
       // server state, for any of the three arrays that changed.
-      if (lastLocations || lastPlaces || lastEntries) applyPendingQueue(getQueue(), ALL_ENTRIES, ALL_PLACES, ALL_LOCATIONS);
+      if (lastLocations || lastPlaces || lastEntries) {
+        applyPendingQueue(getQueue(), store.getEntries(), store.getPlaces(), store.getLocations());
+      }
     } finally {
       syncBtn.disabled = false;
       syncBtnIcon.classList.remove("animate-spin");
@@ -501,46 +466,51 @@ import {
   }
 
   // ── Data ─────────────────────────────────────────────────────────────
-  // Thin wrappers over client/entries.js's pure functions -- they close
-  // over the actual module globals (ALL_ENTRIES/ALL_PLACES/ALL_LOCATIONS/
-  // state) so every existing call site throughout this file keeps calling
-  // these same names with the same (often zero-arg) signatures.
+  // Thin wrappers over store's own thin wrappers over client/entries.js's
+  // pure functions -- kept bare-named so every existing call site
+  // throughout this file (dozens, for placeOf/entryLocation especially)
+  // keeps calling these same names with the same signatures, same
+  // risk-managed extraction pattern #206 used for many-call-site
+  // functions. Unlike those, the *state itself* (activeType, ALL_ENTRIES,
+  // etc.) is not re-wrapped this way below -- every direct state
+  // read/write site now calls store.* explicitly instead, since hiding
+  // that behind another layer of bare functions would just recreate the
+  // "any function can reach in and change any field" problem #234 exists
+  // to fix, one level removed.
   function placeOf(entry) {
-    return placeOfPure(entry, ALL_PLACES);
+    return store.placeOf(entry);
   }
   function locationOf(place) {
-    return locationOfPure(place, ALL_LOCATIONS);
+    return store.locationOf(place);
   }
   function entryLocation(entry) {
-    return entryLocationPure(entry, ALL_PLACES, ALL_LOCATIONS);
+    return store.entryLocation(entry);
   }
   function activeGradeList() {
-    return activeGradeListPure(state.activeType);
+    return store.activeGradeList();
   }
   function filteredEntries() {
-    return filteredEntriesPure(ALL_ENTRIES, ALL_PLACES, {
-      activeType: state.activeType,
-      statusFilters: state.statusFilters,
-      gradeRange: state.gradeRange,
-      search: state.search,
-    });
+    return store.filteredEntries();
   }
   function groupByPlace(entries) {
-    return groupByPlacePure(entries, ALL_ENTRIES, ALL_PLACES);
+    return store.groupByPlace(entries);
   }
   function sortEntries(entries, locationId) {
-    return sortEntriesPure(entries, getSort(locationId), ALL_PLACES);
+    return store.sortEntries(entries, locationId);
+  }
+  function getSort(locationId) {
+    return store.getSort(locationId);
   }
 
   // ── Render ───────────────────────────────────────────────────────────
   function updateFilterUI() {
     document.querySelectorAll("#filter-status-group input[data-filter]").forEach(input => {
-      input.checked = state.statusFilters.has(input.dataset.filter);
+      input.checked = store.hasStatusFilter(input.dataset.filter);
     });
-    document.getElementById("filter-flash-label").textContent = flashLabel(state.activeType);
-    document.getElementById("filter-send-label").textContent = sendLabel(state.activeType);
+    document.getElementById("filter-flash-label").textContent = flashLabel(store.getActiveType());
+    document.getElementById("filter-send-label").textContent = sendLabel(store.getActiveType());
     updateGradeSlider();
-    const anyActive = state.statusFilters.size > 0 || state.gradeRange !== null;
+    const anyActive = store.hasActiveFilters();
     filterBtn.classList.toggle("active", anyActive);
     // aria-expanded (set by createDisclosure) reflects popover-open
     // state -- a different thing from "a filter is currently applied,"
@@ -549,14 +519,14 @@ import {
   }
 
   // Grade range slider (#161) -- thumb positions/labels always reflect a
-  // concrete { min, max } even when state.gradeRange is null (displays the
-  // full span, unfiltered), recomputed against the *active discipline's*
-  // grade list every call since switching disciplines changes both the
-  // step count and what each index means.
+  // concrete { min, max } even when store.getGradeRange() is null (displays
+  // the full span, unfiltered), recomputed against the *active
+  // discipline's* grade list every call since switching disciplines
+  // changes both the step count and what each index means.
   function updateGradeSlider() {
     const list = activeGradeList();
     const lastIdx = list.length - 1;
-    const range = state.gradeRange ?? { min: 0, max: lastIdx };
+    const range = store.getGradeRange() ?? { min: 0, max: lastIdx };
     const pct = i => lastIdx === 0 ? 0 : (i / lastIdx) * 100;
 
     gradeThumbMin.style.left = `${pct(range.min)}%`;
@@ -599,10 +569,10 @@ import {
     let idx = 0;
     container.innerHTML = groups.map(([locationId, items]) => {
       idx++;
-      const location = ALL_LOCATIONS.find(l => l.id === locationId) ?? { name: "", country: "" };
+      const location = store.getLocations().find(l => l.id === locationId) ?? { name: "", country: "" };
       const sorted = sortEntries(items, locationId);
       const { col, dir } = getSort(locationId);
-      const isCollapsed = state.collapsed.has(locationId);
+      const isCollapsed = store.isCollapsed(locationId);
 
       const sortIcon = (c) => c !== col
         ? `<i class="ml-[.3rem] not-italic opacity-40">↕</i>`
@@ -632,7 +602,7 @@ import {
           <td class="${TD_BASE} text-muted text-[.82rem] whitespace-nowrap">${escapeHtml(formatDate(e.date))}</td>
           <td class="${TD_BASE} text-center">${e.notes ? `<button type="button" class="notes-btn border-0 bg-transparent cursor-pointer text-muted inline-flex align-middle p-[.2rem] hover:text-accent" data-notes-id="${escapeHtml(e.id)}" aria-label="View notes"><svg class="w-[.95rem] h-[.95rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg></button>` : ""}</td>
           <td class="${TD_BASE} text-center">${e.video ? `<a class="inline-flex align-middle p-[.2rem] text-muted hover:text-accent" href="${escapeHtml(e.video)}" target="_blank" rel="noopener" title="Watch video" aria-label="Watch video"><svg class="w-[.95rem] h-[.95rem] fill-current" viewBox="0 0 24 24"><path d="M6 4.5v15l14-7.5z"></path></svg></a>` : ""}</td>
-          <td class="${TD_BASE} text-center">${isLoggedIn ? `<button type="button" class="edit-btn border-0 bg-transparent cursor-pointer text-muted inline-flex p-[.2rem] hover:text-accent [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:stroke-current [&_svg]:fill-none" data-edit-id="${escapeHtml(e.id)}" aria-label="Edit">${EDIT_ICON}</button>` : ""}</td>
+          <td class="${TD_BASE} text-center">${store.isLoggedIn() ? `<button type="button" class="edit-btn border-0 bg-transparent cursor-pointer text-muted inline-flex p-[.2rem] hover:text-accent [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:stroke-current [&_svg]:fill-none" data-edit-id="${escapeHtml(e.id)}" aria-label="Edit">${EDIT_ICON}</button>` : ""}</td>
         </tr>
       `;
       }).join("");
@@ -713,14 +683,14 @@ import {
 
   const DISCIPLINE_LABEL = { boulder: "Boulder", lead: "Lead" };
   function updateDisciplinePicker() {
-    document.getElementById("discipline-btn-label").textContent = DISCIPLINE_LABEL[state.activeType];
+    document.getElementById("discipline-btn-label").textContent = DISCIPLINE_LABEL[store.getActiveType()];
     // Kept in sync even though the visible label above covers most widths --
     // aria-label always wins over visible text content for the accessible
     // name, so this is what a screen reader announces once the label span
     // itself is hidden below the icon-collapse breakpoint (#114).
-    disciplineBtn.setAttribute("aria-label", `Discipline: ${DISCIPLINE_LABEL[state.activeType]}`);
+    disciplineBtn.setAttribute("aria-label", `Discipline: ${DISCIPLINE_LABEL[store.getActiveType()]}`);
     document.querySelectorAll(".discipline-option").forEach(opt =>
-      opt.setAttribute("aria-selected", String(opt.dataset.discipline === state.activeType))
+      opt.setAttribute("aria-selected", String(opt.dataset.discipline === store.getActiveType()))
     );
   }
 
@@ -732,13 +702,13 @@ import {
     updateSubtitle(entries);
     updateAdminBar();
     updateCollapseAllBtn(entries);
-    if (state.activeView === "pyramid") renderPyramid();
-    if (state.activeView === "map") renderMap();
+    if (store.getActiveView() === "pyramid") renderPyramid();
+    if (store.getActiveView() === "map") renderMap();
   }
 
   function updateCollapseAllBtn(entries) {
     const locationIds = groupByPlace(entries).map(([locationId]) => locationId);
-    const allCollapsed = locationIds.length > 0 && locationIds.every(id => state.collapsed.has(id));
+    const allCollapsed = locationIds.length > 0 && locationIds.every(id => store.isCollapsed(id));
     collapseAllBtn.textContent = allCollapsed ? "Expand all" : "Collapse all";
   }
 
@@ -746,7 +716,7 @@ import {
     // Scoped to the active tab's type only (see #97) -- these are "your
     // Boulder stats" / "your Lead stats", not a global summary, now that
     // the two disciplines have their own separate views.
-    const typeEntries = ALL_ENTRIES.filter(e => e.type === state.activeType);
+    const typeEntries = store.getEntries().filter(e => e.type === store.getActiveType());
     const countries = new Set(typeEntries.map(e => entryLocation(e).country).filter(Boolean)).size;
     const flashes   = typeEntries.filter(e => e.status === "send" && e.firstAttempt).length;
     const sends     = typeEntries.filter(e => e.status === "send" && !e.firstAttempt).length;
@@ -757,8 +727,8 @@ import {
 
     document.getElementById("subtitle").innerHTML = [
       stat(countries, "Country", "Countries"),
-      stat(flashes, flashLabel(state.activeType), flashLabel(state.activeType, true)),
-      stat(sends, sendLabel(state.activeType), sendLabel(state.activeType, true)),
+      stat(flashes, flashLabel(store.getActiveType()), flashLabel(store.getActiveType(), true)),
+      stat(sends, sendLabel(store.getActiveType()), sendLabel(store.getActiveType(), true)),
       stat(projects, "Project", "Projects"),
     ].join(`<span class="text-muted"> · </span>`);
     document.getElementById("footer").textContent = "";
@@ -772,9 +742,10 @@ import {
   const PYRAMID_GOLD = "#eab308"; // achievement/celebratory accent (#131) -- literal hex, matching the existing good/missing icons' style rather than a CSS var
 
   // Thin wrapper over client/pyramid-stats.js's pure pyramidSplitRows --
-  // closes over ALL_ENTRIES so renderPyramid's one call site is unchanged.
+  // closes over the Store's entries so renderPyramid's one call site is
+  // unchanged.
   function pyramidSplitRows(type) {
-    return pyramidSplitRowsPure(type, ALL_ENTRIES);
+    return pyramidSplitRowsPure(type, store.getEntries());
   }
 
   // Evidence-tier claims mark the claim's own words bold + tier-colored
@@ -872,7 +843,7 @@ import {
   }
 
   function renderPyramid() {
-    const type = state.activeType;
+    const type = store.getActiveType();
     const { top4, lower, hasSends, promotedGrade } = pyramidSplitRows(type);
     const pyramidEl = document.getElementById("pyramid");
     const healthEl = document.getElementById("health-card");
@@ -892,9 +863,9 @@ import {
       const lowerScale = Math.max(1, ...lower.map(r => r.count));
       lowerHtml = `
         <div class="text-center my-1 mb-[14px]">
-          <button type="button" class="font-sans text-[.8rem] font-semibold text-muted bg-transparent border-b-0 border-l-0 border-r-0 border-t border-border py-[14px] min-h-[2.75rem] w-full cursor-pointer hover:text-accent" id="show-lower-link" aria-expanded="${state.lowerGradesExpanded}" aria-controls="lower-rows">${state.lowerGradesExpanded ? "Hide lower grades ▴" : "Show lower grades ▾"}</button>
+          <button type="button" class="font-sans text-[.8rem] font-semibold text-muted bg-transparent border-b-0 border-l-0 border-r-0 border-t border-border py-[14px] min-h-[2.75rem] w-full cursor-pointer hover:text-accent" id="show-lower-link" aria-expanded="${lowerGradesExpanded}" aria-controls="lower-rows">${lowerGradesExpanded ? "Hide lower grades ▴" : "Show lower grades ▾"}</button>
         </div>
-        <div id="lower-rows">${state.lowerGradesExpanded ? lower.map(r => pyramidBarRow(r, { scaleMax: lowerScale, lower: true, type })).join("") : ""}</div>`;
+        <div id="lower-rows">${lowerGradesExpanded ? lower.map(r => pyramidBarRow(r, { scaleMax: lowerScale, lower: true, type })).join("") : ""}</div>`;
     }
 
     pyramidEl.innerHTML = top4Html + lowerHtml;
@@ -902,7 +873,7 @@ import {
     if (lower.length) {
       const link = document.getElementById("show-lower-link");
       link.addEventListener("click", () => {
-        state.lowerGradesExpanded = !state.lowerGradesExpanded;
+        lowerGradesExpanded = !lowerGradesExpanded;
         renderPyramid();
         // Re-focus after the innerHTML rebuild above destroys the old node
         // -- otherwise focus silently drops to <body> on every toggle
@@ -1110,12 +1081,12 @@ import {
     loadMapVariant(variant)
       .then(() => {
         mapLoadingVariants.delete(variant);
-        if (getActiveMapVariant() === variant && state.activeView === "map") renderMap();
+        if (getActiveMapVariant() === variant && store.getActiveView() === "map") renderMap();
       })
       .catch(err => {
         mapLoadingVariants.delete(variant);
         mapLoadError = err;
-        if (getActiveMapVariant() === variant && state.activeView === "map") renderMap();
+        if (getActiveMapVariant() === variant && store.getActiveView() === "map") renderMap();
       });
   }
 
@@ -1323,7 +1294,7 @@ import {
   // line shows (flashLabel/sendLabel included), just scoped to one
   // country instead of every logged entry.
   function countryStatusBreakdown(countryName) {
-    const entries = ALL_ENTRIES.filter(e => e.type === state.activeType && entryLocation(e).country === countryName);
+    const entries = store.getEntries().filter(e => e.type === store.getActiveType() && entryLocation(e).country === countryName);
     return {
       flashes:  entries.filter(e => e.status === "send" && e.firstAttempt).length,
       sends:    entries.filter(e => e.status === "send" && !e.firstAttempt).length,
@@ -1351,8 +1322,8 @@ import {
         <button type="button" class="bg-transparent border-0 text-muted cursor-pointer p-0 leading-none text-[1rem] hover:text-foreground" id="map-pin-popover-close" aria-label="Close">✕</button>
       </div>
       <div class="flex flex-col gap-[.35rem] text-[.82rem]">
-        ${statRow(STATUS_ICONS.flash, flashLabel(state.activeType), flashes, flashLabel(state.activeType), flashLabel(state.activeType, true))}
-        ${statRow(STATUS_ICONS.send, sendLabel(state.activeType), sends, sendLabel(state.activeType), sendLabel(state.activeType, true))}
+        ${statRow(STATUS_ICONS.flash, flashLabel(store.getActiveType()), flashes, flashLabel(store.getActiveType()), flashLabel(store.getActiveType(), true))}
+        ${statRow(STATUS_ICONS.send, sendLabel(store.getActiveType()), sends, sendLabel(store.getActiveType()), sendLabel(store.getActiveType(), true))}
         ${statRow(STATUS_ICONS.project, "Project", projects, "Project", "Projects")}
       </div>`;
   }
@@ -1407,7 +1378,7 @@ import {
     const variant = getActiveMapVariant();
     mapVariantSelect.value = variant;
 
-    const typeEntries = ALL_ENTRIES.filter(e => e.type === state.activeType);
+    const typeEntries = store.getEntries().filter(e => e.type === store.getActiveType());
 
     const countsByCountry = new Map();
     for (const entry of typeEntries) {
@@ -1421,7 +1392,7 @@ import {
     const panControls = document.getElementById("map-pan-controls");
 
     if (countsByCountry.size === 0) {
-      container.innerHTML = `<p class="text-[.9rem] text-muted">No ${DISCIPLINE_LABEL[state.activeType]} entries logged yet -- log one to see it on the map.</p>`;
+      container.innerHTML = `<p class="text-[.9rem] text-muted">No ${DISCIPLINE_LABEL[store.getActiveType()]} entries logged yet -- log one to see it on the map.</p>`;
       zoomControls.hidden = true;
       panControls.hidden = true;
       return;
@@ -1497,7 +1468,7 @@ import {
 
     container.innerHTML = `
       <div class="bg-surface border border-border rounded-app overflow-hidden mb-5">
-        <svg viewBox="0 0 ${MAP_WIDTH} ${mapData.height}" role="img" aria-label="World map of logged ${DISCIPLINE_LABEL[state.activeType].toLowerCase()} entries by country" class="w-full h-auto block touch-none cursor-grab">
+        <svg viewBox="0 0 ${MAP_WIDTH} ${mapData.height}" role="img" aria-label="World map of logged ${DISCIPLINE_LABEL[store.getActiveType()].toLowerCase()} entries by country" class="w-full h-auto block touch-none cursor-grab">
           <path d="${mapData.graticulePath}" class="stroke-border fill-none" stroke-width="0.5"></path>
           <path d="${mapData.worldLandPath}" class="fill-border stroke-none"></path>
           <path d="${mapData.countryBordersPath}" class="stroke-[color-mix(in_srgb,var(--color-accent)_20%,var(--color-muted)_80%)] fill-none" stroke-width="0.35" stroke-linejoin="round"></path>
@@ -1609,12 +1580,12 @@ import {
   function setGradeBound(which, index) {
     const lastIdx = activeGradeList().length - 1;
     index = Math.min(lastIdx, Math.max(0, index));
-    const current = state.gradeRange ?? { min: 0, max: lastIdx };
+    const current = store.getGradeRange() ?? { min: 0, max: lastIdx };
     const next = { ...current };
     if (which === "min") next.min = Math.min(index, current.max);
     else next.max = Math.max(index, current.min);
     if (next.min === current.min && next.max === current.max) return;
-    state.gradeRange = next;
+    store.setGradeRange(next);
     render();
   }
 
@@ -1633,14 +1604,14 @@ import {
   gradeSliderTrack.addEventListener("pointerdown", e => {
     if (e.target === gradeThumbMin || e.target === gradeThumbMax) return;
     const index = indexFromClientX(e.clientX);
-    const range = state.gradeRange ?? { min: 0, max: activeGradeList().length - 1 };
+    const range = store.getGradeRange() ?? { min: 0, max: activeGradeList().length - 1 };
     const which = Math.abs(index - range.min) <= Math.abs(index - range.max) ? "min" : "max";
     setGradeBound(which, index);
   });
 
   [[gradeThumbMin, "min"], [gradeThumbMax, "max"]].forEach(([thumb, which]) => {
     thumb.addEventListener("keydown", e => {
-      const range = state.gradeRange ?? { min: 0, max: activeGradeList().length - 1 };
+      const range = store.getGradeRange() ?? { min: 0, max: activeGradeList().length - 1 };
       const current = range[which];
       if (e.key === "ArrowLeft" || e.key === "ArrowDown") { setGradeBound(which, current - 1); e.preventDefault(); }
       else if (e.key === "ArrowRight" || e.key === "ArrowUp") { setGradeBound(which, current + 1); e.preventDefault(); }
@@ -1694,9 +1665,9 @@ import {
 
   // ── Admin bar ────────────────────────────────────────────────────────
   function updateAdminBar() {
-    loginToggleBtn.textContent = isLoggedIn ? "Log out" : "Log in";
-    addBtn.hidden = !isLoggedIn;
-    athleteModeBtn.hidden = !isLoggedIn;
+    loginToggleBtn.textContent = store.isLoggedIn() ? "Log out" : "Log in";
+    addBtn.hidden = !store.isLoggedIn();
+    athleteModeBtn.hidden = !store.isLoggedIn();
     athleteModeBtn.setAttribute("aria-checked", String(athleteMode));
     updateHeaderMenuDivider();
     updateSyncButton();
@@ -1707,8 +1678,8 @@ import {
     // alone would let a logged-out visitor see it whenever the owner has
     // it toggled on for themselves. Logbook and Map stay unaffected by
     // either.
-    viewTabPyramid.hidden = !(isLoggedIn && athleteMode);
-    if (viewTabPyramid.hidden && state.activeView === "pyramid") setActiveView("logbook");
+    viewTabPyramid.hidden = !(store.isLoggedIn() && athleteMode);
+    if (viewTabPyramid.hidden && store.getActiveView() === "pyramid") setActiveView("logbook");
 
     // The tab bar itself only makes sense once there's something to
     // switch between -- hidden whenever fewer than 2 tabs are currently
@@ -1719,7 +1690,7 @@ import {
   }
 
   function setActiveView(view) {
-    state.activeView = view;
+    store.setActiveView(view);
     document.querySelectorAll("#view-tabs [role=tab]").forEach(t =>
       t.setAttribute("aria-selected", String(t.dataset.view === view))
     );
@@ -1736,11 +1707,11 @@ import {
     if (tab) setActiveView(tab.dataset.view);
   });
 
-  // Set (not directly into state.activeType) by fetchSettings() below, then
-  // applied in boot() after both it and the entries load are known
+  // Set (not directly via store.setActiveType()) by fetchSettings() below,
+  // then applied in boot() after both it and the entries load are known
   // complete -- both requests run concurrently with a real await in
   // between them (the entries fetch), so which one resolves first isn't
-  // guaranteed. Writing straight into state.activeType from here would
+  // guaranteed. Calling store.setActiveType() straight from here would
   // race the has-entries heuristic in boot() and could get silently
   // clobbered if the heuristic happened to run second (#137).
   let persistedDiscipline = null;
@@ -1782,7 +1753,7 @@ import {
       if (res.status === 401 || isAuthRedirect(res)) {
         // Access session lapsed since page load — same handling as
         // syncPending()'s 401 case: drop back to the logged-out view.
-        isLoggedIn = false;
+        store.setLoggedIn(false);
       } else if (res.ok) {
         const data = await res.json();
         athleteMode = !!data.athleteMode;
@@ -1811,22 +1782,22 @@ import {
       // Offline — fall back to the last known login state so the UI
       // still shows edit affordances; writes still get verified for
       // real by Access once synced.
-      isLoggedIn = localStorage.getItem(LOGIN_HINT_KEY) === "1";
+      store.setLoggedIn(localStorage.getItem(LOGIN_HINT_KEY) === "1");
       return;
     }
     try {
       const data = await res.json();
-      isLoggedIn = res.ok && !!data.loggedIn;
+      store.setLoggedIn(res.ok && !!data.loggedIn);
     } catch {
       // Access intercepted with its own hosted login page (non-JSON) —
       // not logged in.
-      isLoggedIn = false;
+      store.setLoggedIn(false);
     }
-    localStorage.setItem(LOGIN_HINT_KEY, isLoggedIn ? "1" : "0");
+    localStorage.setItem(LOGIN_HINT_KEY, store.isLoggedIn() ? "1" : "0");
   }
 
   loginToggleBtn.addEventListener("click", () => {
-    if (isLoggedIn) {
+    if (store.isLoggedIn()) {
       window.location.href = ACCESS_LOGOUT_URL;
     } else {
       // Full-page navigation (not fetch) so Cloudflare Access's hosted
@@ -1837,7 +1808,7 @@ import {
   });
 
   syncBtn.addEventListener("click", syncPending);
-  window.addEventListener("online", () => { if (isLoggedIn) syncPending(); });
+  window.addEventListener("online", () => { if (store.isLoggedIn()) syncPending(); });
 
   // ── Shared UI helper: disclosure popovers (#171) ───────────────────────
   // Common trigger-button + panel interaction (open, close, close on
@@ -1904,9 +1875,9 @@ import {
 
   // Every selectable Place, joined against its Location, sorted by
   // location then area -- rebuilt on each render rather than cached,
-  // since ALL_PLACES/ALL_LOCATIONS are nowhere near COUNTRIES' 247 rows.
+  // since the place/location lists are nowhere near COUNTRIES' 247 rows.
   function joinedPlaces() {
-    return ALL_PLACES.map(p => {
+    return store.getPlaces().map(p => {
       const loc = locationOf(p);
       return { id: p.id, location: loc.name, area: p.area, country: loc.country };
     }).sort((a, b) => a.location.localeCompare(b.location) || a.area.localeCompare(b.area));
@@ -1943,7 +1914,7 @@ import {
 
   // Reflects the committed value into the trigger button.
   function setPlace(placeId) {
-    const p = ALL_PLACES.find(x => x.id === placeId);
+    const p = store.getPlaces().find(x => x.id === placeId);
     placeCommittedValue = p ? placeId : "";
     if (!p) {
       placeBtn.setAttribute("aria-label", "Place: none selected");
@@ -2034,7 +2005,7 @@ import {
   function findMatchingLocation(name) {
     const q = name.trim().toLowerCase();
     if (!q) return null;
-    return ALL_LOCATIONS.find(l => l.name.toLowerCase() === q) ?? null;
+    return store.getLocations().find(l => l.name.toLowerCase() === q) ?? null;
   }
 
   function addPlaceCountryOptionId(i) { return `add-place-country-option-${i}`; }
@@ -2130,7 +2101,7 @@ import {
     addPlaceCountryBtn.disabled = false;
     addPlaceCountryHint.hidden = true;
     document.getElementById("add-place-location-list").innerHTML =
-      [...new Set(ALL_LOCATIONS.map(l => l.name))].sort().map(n => `<option value="${escapeHtml(n)}">`).join("");
+      [...new Set(store.getLocations().map(l => l.name))].sort().map(n => `<option value="${escapeHtml(n)}">`).join("");
     openModal(addPlaceOverlay);
   }
   document.getElementById("add-place-close").addEventListener("click", () => closeModal(addPlaceOverlay));
@@ -2176,8 +2147,7 @@ import {
           addPlaceSubmitBtn.disabled = false;
           return;
         }
-        ALL_LOCATIONS = data.locations;
-        localStorage.setItem(LOCATIONS_CACHE_KEY, JSON.stringify(ALL_LOCATIONS));
+        store.setLocations(data.locations);
       } catch (err) {
         if (err.message === "not-authenticated") authLapsed = true;
         // Offline, server unreachable, or the Access session lapsed --
@@ -2206,8 +2176,7 @@ import {
           addPlaceSubmitBtn.disabled = false;
           return;
         }
-        ALL_PLACES = data.places;
-        localStorage.setItem(PLACES_CACHE_KEY, JSON.stringify(ALL_PLACES));
+        store.setPlaces(data.places);
       } catch (err) {
         if (err.message === "not-authenticated") authLapsed = true;
         queue.push({ kind: "place", op: "add", record: place });
@@ -2215,11 +2184,11 @@ import {
     }
 
     if (authLapsed) {
-      isLoggedIn = false;
+      store.setLoggedIn(false);
       updateAdminBar();
     }
     setQueue(queue);
-    applyPendingQueue(getQueue(), ALL_ENTRIES, ALL_PLACES, ALL_LOCATIONS);
+    applyPendingQueue(getQueue(), store.getEntries(), store.getPlaces(), store.getLocations());
     setPlace(place.id);
     closeModal(addPlaceOverlay);
     addPlaceSubmitBtn.disabled = false;
@@ -2227,22 +2196,22 @@ import {
 
   // ── Entry form: labels (Problem/Route name, Flash/Onsight, Send/Redpoint) ──
   // The form no longer has its own type toggle -- an entry's type is
-  // whichever tab was active when the form opened (state.activeType),
+  // whichever tab was active when the form opened (store.getActiveType()),
   // since the table it was added/edited from is already scoped to that
   // type by construction.
   function updateFormStatusLabels() {
-    document.getElementById("form-flash-label").textContent = flashLabel(state.activeType);
-    document.getElementById("form-send-label").textContent = sendLabel(state.activeType);
-    document.getElementById("form-name-label").textContent = nameLabel(state.activeType);
+    document.getElementById("form-flash-label").textContent = flashLabel(store.getActiveType());
+    document.getElementById("form-send-label").textContent = sendLabel(store.getActiveType());
+    document.getElementById("form-name-label").textContent = nameLabel(store.getActiveType());
   }
 
   // ── Entry form: grade picker (dropdown + prev/next) ──────────────────
   let selectedGrade = "";
   function currentGrades() {
-    return state.activeType === "boulder" ? BOULDER_GRADES : LEAD_GRADES;
+    return store.getActiveType() === "boulder" ? BOULDER_GRADES : LEAD_GRADES;
   }
   function renderGradeOptions() {
-    const boulder = state.activeType === "boulder";
+    const boulder = store.getActiveType() === "boulder";
     gradeSelect.innerHTML = currentGrades()
       .map(({ g, v }) => `<option class="font-bold bg-surface text-foreground" value="${g}">${boulder ? `${g}/${v}` : g}</option>`)
       .join("");
@@ -2426,12 +2395,13 @@ import {
   disciplinePopover.addEventListener("click", async e => {
     const opt = e.target.closest(".discipline-option");
     if (!opt) return;
-    state.activeType = opt.dataset.discipline;
-    state.lowerGradesExpanded = false;
-    // Boulder and lead grades aren't the same scale -- carrying a range
-    // like "6A-7B+" over as some translated lead range would silently
-    // filter to something the user didn't ask for (#161).
-    state.gradeRange = null;
+    // store.setActiveType() resets gradeRange itself (boulder and lead
+    // grades aren't the same scale -- carrying a range like "6A-7B+" over
+    // as some translated lead range would silently filter to something
+    // the user didn't ask for, #161); lowerGradesExpanded stays local to
+    // this section (Pyramid-only), so it's reset directly here.
+    store.setActiveType(opt.dataset.discipline);
+    lowerGradesExpanded = false;
     closeDisciplinePopover();
     disciplineBtn.focus();
     render();
@@ -2446,10 +2416,10 @@ import {
       const res = await adminFetch(ADMIN_SETTINGS_URL, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ activeDiscipline: state.activeType }),
+        body: JSON.stringify({ activeDiscipline: store.getActiveType() }),
       });
       if (res.status === 401 || isAuthRedirect(res)) {
-        isLoggedIn = false;
+        store.setLoggedIn(false);
         updateAdminBar();
       }
     } catch {
@@ -2485,14 +2455,14 @@ import {
   document.addEventListener("click", e => {
     const editBtn = e.target.closest(".edit-btn");
     if (editBtn) {
-      const entry = ALL_ENTRIES.find(x => x.id === editBtn.dataset.editId);
+      const entry = store.getEntries().find(x => x.id === editBtn.dataset.editId);
       if (entry) openEntryModal(entry);
       return;
     }
 
     const notesBtn = e.target.closest(".notes-btn");
     if (notesBtn) {
-      const entry = ALL_ENTRIES.find(x => x.id === notesBtn.dataset.notesId);
+      const entry = store.getEntries().find(x => x.id === notesBtn.dataset.notesId);
       if (entry) {
         notesModalText.textContent = entry.notes;
         openModal(notesOverlay);
@@ -2515,7 +2485,7 @@ import {
       placeId: placeCommittedValue,
       name,
       grade:  selectedGrade,
-      type:   state.activeType,
+      type:   store.getActiveType(),
       status: selectedStatus,
       firstAttempt: isFlash,
       date:   dateInput.value.trim() || null,
@@ -2538,9 +2508,8 @@ import {
         entrySubmitBtn.disabled = false;
         return;
       }
-      ALL_ENTRIES = data.entries;
-      localStorage.setItem(ENTRIES_CACHE_KEY, JSON.stringify(ALL_ENTRIES));
-      applyPendingQueue(getQueue(), ALL_ENTRIES, ALL_PLACES, ALL_LOCATIONS);
+      store.setEntries(data.entries);
+      applyPendingQueue(getQueue(), store.getEntries(), store.getPlaces(), store.getLocations());
       closeModal(entryOverlay);
       render();
     } catch (err) {
@@ -2548,7 +2517,7 @@ import {
       // adminFetch above) — queue for later sync either way, and reflect
       // the change locally so it shows up right away.
       if (err.message === "not-authenticated") {
-        isLoggedIn = false;
+        store.setLoggedIn(false);
         updateAdminBar();
       }
       const queue = getQueue();
@@ -2556,7 +2525,7 @@ import {
       if (existingIdx !== -1) queue[existingIdx] = { kind: "entry", op: queue[existingIdx].op, record: entry };
       else queue.push({ kind: "entry", op, record: entry });
       setQueue(queue);
-      applyPendingQueue(getQueue(), ALL_ENTRIES, ALL_PLACES, ALL_LOCATIONS);
+      applyPendingQueue(getQueue(), store.getEntries(), store.getPlaces(), store.getLocations());
       closeModal(entryOverlay);
       render();
     }
@@ -2572,14 +2541,14 @@ import {
     entryDeleteBtn.disabled = true;
     entryMsg.className = "hidden";
     const id = editingId;
-    const entrySnapshot = ALL_ENTRIES.find(e => e.id === id);
+    const entrySnapshot = store.getEntries().find(e => e.id === id);
 
     // If this entry only ever existed as a queued, unsynced "add", there's
     // nothing on the server to delete — just drop it from the queue.
     const queuedAdd = getQueue().find(item => item.kind === "entry" && item.record.id === id && item.op === "add");
     if (queuedAdd) {
       setQueue(getQueue().filter(item => !(item.kind === "entry" && item.record.id === id)));
-      ALL_ENTRIES = ALL_ENTRIES.filter(e => e.id !== id);
+      store.setEntries(store.getEntries().filter(e => e.id !== id));
       closeModal(entryOverlay);
       entryDeleteBtn.disabled = false;
       render();
@@ -2596,9 +2565,8 @@ import {
         entryDeleteBtn.disabled = false;
         return;
       }
-      ALL_ENTRIES = data.entries;
-      localStorage.setItem(ENTRIES_CACHE_KEY, JSON.stringify(ALL_ENTRIES));
-      applyPendingQueue(getQueue(), ALL_ENTRIES, ALL_PLACES, ALL_LOCATIONS);
+      store.setEntries(data.entries);
+      applyPendingQueue(getQueue(), store.getEntries(), store.getPlaces(), store.getLocations());
       closeModal(entryOverlay);
       render();
     } catch (err) {
@@ -2608,13 +2576,13 @@ import {
       // rather than removing it locally; it only disappears once the
       // delete actually syncs.
       if (err.message === "not-authenticated") {
-        isLoggedIn = false;
+        store.setLoggedIn(false);
         updateAdminBar();
       }
       const queue = getQueue().filter(item => !(item.kind === "entry" && item.record.id === id));
       queue.push({ kind: "entry", op: "delete", record: entrySnapshot ?? { id } });
       setQueue(queue);
-      applyPendingQueue(getQueue(), ALL_ENTRIES, ALL_PLACES, ALL_LOCATIONS);
+      applyPendingQueue(getQueue(), store.getEntries(), store.getPlaces(), store.getLocations());
       closeModal(entryOverlay);
       render();
     }
@@ -2627,8 +2595,7 @@ import {
     // Clear filters (status + grade range -- the active type-tab isn't a
     // "filter" to clear, it's the current view)
     if (e.target.closest("#filter-clear-btn")) {
-      state.statusFilters.clear();
-      state.gradeRange = null;
+      store.clearFilters();
       render();
       return;
     }
@@ -2636,9 +2603,7 @@ import {
     // Collapse/expand all place sections
     if (e.target.closest("#collapse-all-btn")) {
       const locationIds = groupByPlace(filteredEntries()).map(([locationId]) => locationId);
-      const allCollapsed = locationIds.length > 0 && locationIds.every(id => state.collapsed.has(id));
-      if (allCollapsed) locationIds.forEach(id => state.collapsed.delete(id));
-      else locationIds.forEach(id => state.collapsed.add(id));
+      store.toggleAllCollapsed(locationIds);
       render();
       return;
     }
@@ -2671,8 +2636,7 @@ import {
     const statusInput = e.target.closest("#filter-status-group input[data-filter]");
     if (statusInput) {
       const filter = statusInput.dataset.filter;
-      if (statusInput.checked) state.statusFilters.add(filter);
-      else state.statusFilters.delete(filter);
+      store.setStatusFilter(filter, statusInput.checked);
       render();
       return;
     }
@@ -2703,23 +2667,17 @@ import {
   });
 
   function toggleSort(sortTh) {
-    const locationId = sortTh.dataset.locationId;
-    const col   = sortTh.dataset.sort;
-    const cur   = getSort(locationId);
-    const dir   = cur.col === col && cur.dir === "asc" ? "desc" : "asc";
-    state.sortByPlace[locationId] = { col, dir };
+    store.toggleSort(sortTh.dataset.locationId, sortTh.dataset.sort);
     render();
   }
 
   function toggleCollapse(header) {
-    const locationId = header.dataset.locationId;
-    if (state.collapsed.has(locationId)) state.collapsed.delete(locationId);
-    else state.collapsed.add(locationId);
+    store.toggleCollapse(header.dataset.locationId);
     render();
   }
 
   document.getElementById("search").addEventListener("input", e => {
-    state.search = e.target.value;
+    store.setSearch(e.target.value);
     render();
   });
 
@@ -2741,13 +2699,9 @@ import {
       const res = await fetch(DATA_URL);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      ALL_ENTRIES = data.entries ?? [];
-      localStorage.setItem(ENTRIES_CACHE_KEY, JSON.stringify(ALL_ENTRIES));
+      store.setEntries(data.entries ?? []);
     } catch (err) {
-      const cached = localStorage.getItem(ENTRIES_CACHE_KEY);
-      if (cached) {
-        try { ALL_ENTRIES = JSON.parse(cached); } catch { ALL_ENTRIES = []; }
-      } else {
+      if (!store.loadEntriesFromCache()) {
         document.getElementById("loading").innerHTML =
           `<div class="bg-[color-mix(in_srgb,#f87171_10%,var(--color-bg))] border border-[color-mix(in_srgb,#f87171_40%,transparent)] rounded-app px-5 py-4 text-foreground"><strong>Failed to load logbook data</strong><br>${escapeHtml(err.message)}</div>`;
         return;
@@ -2763,39 +2717,33 @@ import {
       const res = await fetch(PLACES_URL);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      ALL_PLACES = data.places ?? [];
-      localStorage.setItem(PLACES_CACHE_KEY, JSON.stringify(ALL_PLACES));
+      store.setPlaces(data.places ?? []);
     } catch {
-      const cached = localStorage.getItem(PLACES_CACHE_KEY);
-      if (cached) { try { ALL_PLACES = JSON.parse(cached); } catch { ALL_PLACES = []; } }
+      store.loadPlacesFromCache();
     }
     try {
       const res = await fetch(LOCATIONS_URL);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      ALL_LOCATIONS = data.locations ?? [];
-      localStorage.setItem(LOCATIONS_CACHE_KEY, JSON.stringify(ALL_LOCATIONS));
+      store.setLocations(data.locations ?? []);
     } catch {
-      const cached = localStorage.getItem(LOCATIONS_CACHE_KEY);
-      if (cached) { try { ALL_LOCATIONS = JSON.parse(cached); } catch { ALL_LOCATIONS = []; } }
+      store.loadLocationsFromCache();
     }
 
     // Applied once, after all three arrays are loaded -- applyPendingQueue()
-    // touches ALL_ENTRIES/ALL_PLACES/ALL_LOCATIONS together, and calling it
-    // before places/locations were fetched would just have its optimistic
-    // pushes overwritten by the fetch assignments above.
-    applyPendingQueue(getQueue(), ALL_ENTRIES, ALL_PLACES, ALL_LOCATIONS);
+    // touches entries/places/locations together, and calling it before
+    // places/locations were fetched would just have its optimistic pushes
+    // overwritten by the fetch assignments above.
+    applyPendingQueue(getQueue(), store.getEntries(), store.getPlaces(), store.getLocations());
 
     // Default to whichever type actually has entries -- boulder wins if
     // both/neither do, matching the entry form's own default type.
-    const hasBoulder = ALL_ENTRIES.some(e => e.type === "boulder");
-    const hasLead = ALL_ENTRIES.some(e => e.type === "lead");
-    state.activeType = hasBoulder || !hasLead ? "boulder" : "lead";
+    const hasBoulder = store.getEntries().some(e => e.type === "boulder");
+    const hasLead = store.getEntries().some(e => e.type === "lead");
+    store.setActiveType(hasBoulder || !hasLead ? "boulder" : "lead");
 
     // Sections default to collapsed on first load.
-    for (const locationId of new Set(ALL_ENTRIES.map(e => placeOf(e).locationId))) {
-      state.collapsed.add(locationId);
-    }
+    store.setCollapsed(new Set(store.getEntries().map(e => placeOf(e).locationId)));
 
     await Promise.all([sessionPromise, settingsPromise]);
 
@@ -2803,7 +2751,7 @@ import {
     // applied here (not inside fetchSettings()) so the order is
     // deterministic regardless of which of the two concurrent requests
     // above happened to resolve first (#137).
-    if (persistedDiscipline) state.activeType = persistedDiscipline;
+    if (persistedDiscipline) store.setActiveType(persistedDiscipline);
 
     document.getElementById("loading").style.display = "none";
     document.getElementById("app").style.display = "";
