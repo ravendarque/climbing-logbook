@@ -8,16 +8,13 @@
 // --external flags on the client:build/client:watch scripts in
 // package.json) -- they're unchanged, already-vendored/precached files
 // served directly from public/logbook/, not part of this bundle.
-import { STATUS_ICONS } from "./status-icons.js";
 import { escapeHtml } from "./escape-html.js";
-import { BOULDER_GRADES, LEAD_GRADES } from "./grade-data.js";
-import { formatDate, dateRank } from "./date-helpers.js";
-import { flashLabel, sendLabel, nameLabel, statusBadge } from "./status.js";
 import { applyPendingQueue } from "./offline-queue.js";
 import { createStore } from "./store.js";
 import { createLogbookView } from "./logbook-view.js";
 import { createMapView } from "./map-view.js";
 import { createPyramidView } from "./pyramid-view.js";
+import { createEntryForm } from "./entry-form.js";
 
   // ── Config ───────────────────────────────────────────────────────────
   const DATA_URL = "/logbook/api/logbook";
@@ -338,17 +335,16 @@ import { createPyramidView } from "./pyramid-view.js";
   // ── State ────────────────────────────────────────────────────────────
   // Owned by the Store module (#234) -- statusFilters/gradeRange/activeType/
   // activeView/search/sortByPlace/collapsed/entries/places/locations/
-  // isLoggedIn all live behind store.*, not raw fields. athleteMode and
-  // editingId stay local module `let`s here -- each is read/written by
-  // exactly one section below (admin bar, entry form), so they'll move
-  // into that section's own module in #238-#242 rather than the shared
-  // Store now. (lowerGradesExpanded made the same call for the Grade
-  // Pyramid section, and has since moved into client/pyramid-view.js,
-  // #237.)
+  // isLoggedIn all live behind store.*, not raw fields. athleteMode stays
+  // a local module `let` here -- read/written only by the admin bar
+  // section, so it'll move into that section's own module in #239/#240
+  // rather than the shared Store now. (lowerGradesExpanded and editingId
+  // made the same call for the Grade Pyramid and Entry form sections
+  // respectively, and have since moved into client/pyramid-view.js
+  // (#237) and client/entry-form.js (#238).)
   const store = createStore();
 
   let athleteMode  = false;
-  let editingId    = null; // null = add mode
 
   // ── Offline queue ──────────────────────────────────────────────────
   function getQueue() {
@@ -584,28 +580,13 @@ import { createPyramidView } from "./pyramid-view.js";
   const panelPyramid = document.getElementById("panel-pyramid");
   const panelMap = document.getElementById("panel-map");
 
+  // entryOverlay/addPlaceOverlay are still referenced here too (not just
+  // client/entry-form.js and client/place-picker.js, which each look them
+  // up independently) -- Modal helpers' Escape/Tab-trap handler below
+  // needs direct references to every overlay in the app, entry-form's
+  // included.
   const entryOverlay   = document.getElementById("entry-overlay");
-  const entryForm      = document.getElementById("entry-form");
-  const entryModalTitle= document.getElementById("entry-modal-title");
-  const nameInput  = document.getElementById("entry-name");
-  const placeBtn = document.getElementById("place-btn");
-  const placeBtnFlag = document.getElementById("place-btn-flag");
-  const placeBtnLabel = document.getElementById("place-btn-label");
-  const placePopover = document.getElementById("place-popover");
-  const placeSearch = document.getElementById("place-search");
-  const placeListbox = document.getElementById("place-listbox");
-  const placeAddNewBtn = document.getElementById("place-add-new-btn");
-  const notesInput = document.getElementById("entry-notes");
-  const videoInput = document.getElementById("entry-video");
-  const gradeSelect = document.getElementById("grade-select");
-  const gradePrev   = document.getElementById("grade-prev");
-  const gradeNext   = document.getElementById("grade-next");
-  const dateInput  = document.getElementById("entry-date");
-  const dateNative = document.getElementById("date-native");
-  const datePickerBtn = document.getElementById("date-picker-btn");
-  const entrySubmitBtn = document.getElementById("entry-submit-btn");
-  const entryDeleteBtn = document.getElementById("entry-delete-btn");
-  const entryMsg      = document.getElementById("entry-msg");
+  const addPlaceOverlay = document.getElementById("add-place-overlay");
 
   const notesOverlay  = document.getElementById("notes-overlay");
   const notesModalText = document.getElementById("notes-modal-text");
@@ -807,438 +788,10 @@ import { createPyramidView } from "./pyramid-view.js";
     return { open, close };
   }
 
-  // ── Entry form: place picker (#158) ───────────────────────────────
-  // Trigger-button + popover, same interaction pattern as the country
-  // picker it replaces (which followed discipline-btn/discipline-popover
-  // and filter-btn/filter-panel). Each option joins a Place against its
-  // Location -- country lives on Location now, not duplicated per Place
-  // (a flat { location, area, country } triple wasn't actually 3NF: see
-  // #158). Selecting an option sets placeId atomically; there's no way
-  // to combine a mismatched location/area/country anymore, unlike the
-  // old free-text Location/Area inputs this replaces.
-  const PLACE_PLACEHOLDER_ICON = `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20Z"></path></svg>`;
-  let placeCommittedValue = ""; // the committed placeId, "" if none
-  let placeFilteredList = [];
-  let placeActiveIndex = -1;
-
-  function placeOptionId(i) { return `place-option-${i}`; }
-
-  // Every selectable Place, joined against its Location, sorted by
-  // location then area -- rebuilt on each render rather than cached,
-  // since the place/location lists are nowhere near COUNTRIES' 247 rows.
-  function joinedPlaces() {
-    return store.getPlaces().map(p => {
-      const loc = locationOf(p);
-      return { id: p.id, location: loc.name, area: p.area, country: loc.country };
-    }).sort((a, b) => a.location.localeCompare(b.location) || a.area.localeCompare(b.area));
-  }
-
-  function updatePlaceActiveDescendant() {
-    placeSearch.setAttribute("aria-activedescendant", placeActiveIndex >= 0 ? placeOptionId(placeActiveIndex) : "");
-    placeListbox.querySelectorAll("[role=option]").forEach((el, i) =>
-      el.classList.toggle("bg-[color-mix(in_srgb,var(--color-accent)_16%,transparent)]", i === placeActiveIndex));
-    placeListbox.querySelector(`#${placeOptionId(placeActiveIndex)}`)?.scrollIntoView({ block: "nearest" });
-  }
-
-  function renderPlaceOptions(filterText) {
-    const q = filterText.trim().toLowerCase();
-    const all = joinedPlaces();
-    placeFilteredList = q
-      ? all.filter(p => p.location.toLowerCase().includes(q) || p.area.toLowerCase().includes(q))
-      : all;
-    placeActiveIndex = placeFilteredList.length ? 0 : -1;
-    placeListbox.innerHTML = placeFilteredList.length
-      ? placeFilteredList.map((p, i) => {
-          const c = COUNTRY_BY_NAME[p.country];
-          const flag = c ? escapeHtml(c.flag) : PLACE_PLACEHOLDER_ICON;
-          const label = p.area ? `${escapeHtml(p.location)}, ${escapeHtml(p.area)}` : escapeHtml(p.location);
-          return `
-          <li id="${placeOptionId(i)}" role="option" data-id="${escapeHtml(p.id)}" aria-selected="${p.id === placeCommittedValue}" class="flex items-center justify-between gap-[.5rem] px-[.6rem] py-[.5rem] rounded-[calc(var(--radius-app)-2px)] cursor-pointer text-[.9rem] text-foreground hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible">
-            <span class="flex items-center gap-[.5rem] min-w-0"><span class="flex items-center justify-center shrink-0" aria-hidden="true">${flag}</span><span class="truncate">${label}</span></span>
-            <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
-          </li>`;
-        }).join("")
-      : `<li class="px-[.6rem] py-[.5rem] text-[.85rem] text-muted">No matches</li>`;
-    updatePlaceActiveDescendant();
-  }
-
-  // Reflects the committed value into the trigger button.
-  function setPlace(placeId) {
-    const p = store.getPlaces().find(x => x.id === placeId);
-    placeCommittedValue = p ? placeId : "";
-    if (!p) {
-      placeBtn.setAttribute("aria-label", "Place: none selected");
-      placeBtnFlag.innerHTML = PLACE_PLACEHOLDER_ICON;
-      placeBtnLabel.textContent = "Select a place…";
-      placeBtnLabel.classList.add("text-muted");
-      return;
-    }
-    const loc = locationOf(p);
-    const c = COUNTRY_BY_NAME[loc.country];
-    const label = p.area ? `${loc.name}, ${p.area}` : loc.name;
-    placeBtn.setAttribute("aria-label", `Place: ${label}`);
-    placeBtnFlag.innerHTML = c ? escapeHtml(c.flag) : PLACE_PLACEHOLDER_ICON;
-    placeBtnLabel.textContent = label;
-    placeBtnLabel.classList.remove("text-muted");
-  }
-
-  // Escape is bound to placeSearch, not document -- see createDisclosure's
-  // own header comment for why (this popover lives inside the entry
-  // modal).
-  const { close: closePlacePopover } = createDisclosure(placeBtn, placePopover, "#place-wrap", {
-    escapeTarget: placeSearch,
-    onOpen() {
-      // Always starts from a fresh, unfiltered search, not whatever was
-      // last typed -- matches every other search-to-filter control in this
-      // app, none of which remember a stale query across opens.
-      placeSearch.value = "";
-      renderPlaceOptions("");
-      placeSearch.focus();
-    },
-  });
-
-  placeSearch.addEventListener("input", () => renderPlaceOptions(placeSearch.value));
-  placeSearch.addEventListener("keydown", e => {
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      if (placeFilteredList.length) { placeActiveIndex = (placeActiveIndex + 1) % placeFilteredList.length; updatePlaceActiveDescendant(); }
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      if (placeFilteredList.length) { placeActiveIndex = (placeActiveIndex - 1 + placeFilteredList.length) % placeFilteredList.length; updatePlaceActiveDescendant(); }
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      if (placeActiveIndex >= 0) { setPlace(placeFilteredList[placeActiveIndex].id); closePlacePopover(); placeBtn.focus(); }
-    }
-  });
-  placeListbox.addEventListener("click", e => {
-    const opt = e.target.closest("[role=option][data-id]");
-    if (!opt) return;
-    setPlace(opt.dataset.id);
-    closePlacePopover();
-    placeBtn.focus();
-  });
-  placeAddNewBtn.addEventListener("click", () => {
-    closePlacePopover();
-    openAddPlaceModal();
-  });
-
-  // ── Entry form: add-place modal (#158) ────────────────────────────
-  // Stacks on top of entry-overlay. Branches on whether the typed
-  // Location exactly matches (case-insensitive) an existing one: if so,
-  // Country auto-fills and locks -- inherited, not re-askable, which is
-  // the entire reason Location was split out from Place (a location's
-  // country can now only ever be set once, never re-typed per area, so
-  // it can't drift again). If not, Country stays open for picking, same
-  // interaction pattern as the place picker's own (search + listbox with
-  // a checkmark on the selected row), just shown in full "[flag] name"
-  // text rather than icon-only -- these fields are stacked vertically
-  // with no width constraint forcing that compromise.
-  const addPlaceOverlay = document.getElementById("add-place-overlay");
-  const addPlaceForm = document.getElementById("add-place-form");
-  const addPlaceLocationInput = document.getElementById("add-place-location");
-  const addPlaceAreaInput = document.getElementById("add-place-area");
-  const addPlaceCountryBtn = document.getElementById("add-place-country-btn");
-  const addPlaceCountryFlag = document.getElementById("add-place-country-flag");
-  const addPlaceCountryLabel = document.getElementById("add-place-country-label");
-  const addPlaceCountryPopover = document.getElementById("add-place-country-popover");
-  const addPlaceCountrySearch = document.getElementById("add-place-country-search");
-  const addPlaceCountryListbox = document.getElementById("add-place-country-listbox");
-  const addPlaceCountryHint = document.getElementById("add-place-country-hint");
-  const addPlaceSubmitBtn = document.getElementById("add-place-submit-btn");
-  const addPlaceMsg = document.getElementById("add-place-msg");
-
-  let addPlaceCountryCommitted = ""; // committed country name, "" if none
-  let addPlaceCountryFiltered = COUNTRIES;
-  let addPlaceCountryActiveIndex = -1;
-  let addPlaceMatchedLocation = null; // the existing Location the typed name matches, or null
-
-  function findMatchingLocation(name) {
-    const q = name.trim().toLowerCase();
-    if (!q) return null;
-    return store.getLocations().find(l => l.name.toLowerCase() === q) ?? null;
-  }
-
-  function addPlaceCountryOptionId(i) { return `add-place-country-option-${i}`; }
-
-  function updateAddPlaceCountryActiveDescendant() {
-    addPlaceCountrySearch.setAttribute("aria-activedescendant", addPlaceCountryActiveIndex >= 0 ? addPlaceCountryOptionId(addPlaceCountryActiveIndex) : "");
-    addPlaceCountryListbox.querySelectorAll("[role=option]").forEach((el, i) =>
-      el.classList.toggle("bg-[color-mix(in_srgb,var(--color-accent)_16%,transparent)]", i === addPlaceCountryActiveIndex));
-    addPlaceCountryListbox.querySelector(`#${addPlaceCountryOptionId(addPlaceCountryActiveIndex)}`)?.scrollIntoView({ block: "nearest" });
-  }
-
-  function renderAddPlaceCountryOptions(filterText) {
-    const q = filterText.trim().toLowerCase();
-    addPlaceCountryFiltered = q ? COUNTRIES.filter(c => c.name.toLowerCase().includes(q)) : COUNTRIES;
-    addPlaceCountryActiveIndex = addPlaceCountryFiltered.length ? 0 : -1;
-    addPlaceCountryListbox.innerHTML = addPlaceCountryFiltered.length
-      ? addPlaceCountryFiltered.map((c, i) => `
-          <li id="${addPlaceCountryOptionId(i)}" role="option" data-name="${escapeHtml(c.name)}" aria-selected="${c.name === addPlaceCountryCommitted}" class="flex items-center justify-between gap-[.5rem] px-[.6rem] py-[.5rem] rounded-[calc(var(--radius-app)-2px)] cursor-pointer text-[.9rem] text-foreground hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible">
-            <span class="flex items-center gap-[.5rem] min-w-0"><span aria-hidden="true">${escapeHtml(c.flag)}</span><span class="truncate">${escapeHtml(c.name)}</span></span>
-            <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
-          </li>`).join("")
-      : `<li class="px-[.6rem] py-[.5rem] text-[.85rem] text-muted">No matches</li>`;
-    updateAddPlaceCountryActiveDescendant();
-  }
-
-  function setAddPlaceCountry(name) {
-    addPlaceCountryCommitted = COUNTRY_BY_NAME[name] ? name : "";
-    const c = COUNTRY_BY_NAME[addPlaceCountryCommitted];
-    addPlaceCountryBtn.setAttribute("aria-label", c ? `Country: ${c.name}` : "Country: none selected");
-    addPlaceCountryFlag.innerHTML = c ? escapeHtml(c.flag) : PLACE_PLACEHOLDER_ICON;
-    addPlaceCountryLabel.textContent = c ? c.name : "Select a country…";
-    addPlaceCountryLabel.classList.toggle("text-muted", !c);
-  }
-
-  // No explicit addPlaceCountryBtn.disabled guard needed here -- a real
-  // disabled <button> never dispatches click events in the first place,
-  // so createDisclosure's trigger listener below simply never fires
-  // while it's locked (see setAddPlaceCountry/updateAddPlaceLocationMatch
-  // for where .disabled gets toggled).
-  const { close: closeAddPlaceCountryPopover } = createDisclosure(addPlaceCountryBtn, addPlaceCountryPopover, "#add-place-country-wrap", {
-    escapeTarget: addPlaceCountrySearch,
-    onOpen() {
-      addPlaceCountrySearch.value = "";
-      renderAddPlaceCountryOptions("");
-      addPlaceCountrySearch.focus();
-    },
-  });
-
-  addPlaceCountrySearch.addEventListener("input", () => renderAddPlaceCountryOptions(addPlaceCountrySearch.value));
-  addPlaceCountrySearch.addEventListener("keydown", e => {
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      if (addPlaceCountryFiltered.length) { addPlaceCountryActiveIndex = (addPlaceCountryActiveIndex + 1) % addPlaceCountryFiltered.length; updateAddPlaceCountryActiveDescendant(); }
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      if (addPlaceCountryFiltered.length) { addPlaceCountryActiveIndex = (addPlaceCountryActiveIndex - 1 + addPlaceCountryFiltered.length) % addPlaceCountryFiltered.length; updateAddPlaceCountryActiveDescendant(); }
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      if (addPlaceCountryActiveIndex >= 0) { setAddPlaceCountry(addPlaceCountryFiltered[addPlaceCountryActiveIndex].name); closeAddPlaceCountryPopover(); addPlaceCountryBtn.focus(); }
-    }
-  });
-  addPlaceCountryListbox.addEventListener("click", e => {
-    const opt = e.target.closest("[role=option][data-name]");
-    if (!opt) return;
-    setAddPlaceCountry(opt.dataset.name);
-    closeAddPlaceCountryPopover();
-    addPlaceCountryBtn.focus();
-  });
-
-  function updateAddPlaceLocationMatch() {
-    addPlaceMatchedLocation = findMatchingLocation(addPlaceLocationInput.value);
-    if (addPlaceMatchedLocation) {
-      setAddPlaceCountry(addPlaceMatchedLocation.country);
-      addPlaceCountryBtn.disabled = true;
-      closeAddPlaceCountryPopover();
-      addPlaceCountryHint.hidden = false;
-    } else {
-      addPlaceCountryBtn.disabled = false;
-      addPlaceCountryHint.hidden = true;
-      // Doesn't reset a country the user may have already picked before
-      // the match broke (e.g. a typo mid-edit) -- still a normal
-      // editable field at that point, not a locked one, so leaving it in
-      // place is less disruptive than wiping it and forcing a re-pick.
-    }
-  }
-  addPlaceLocationInput.addEventListener("input", updateAddPlaceLocationMatch);
-
-  function openAddPlaceModal() {
-    addPlaceForm.reset();
-    addPlaceMsg.className = "hidden";
-    addPlaceMatchedLocation = null;
-    setAddPlaceCountry("");
-    addPlaceCountryBtn.disabled = false;
-    addPlaceCountryHint.hidden = true;
-    document.getElementById("add-place-location-list").innerHTML =
-      [...new Set(store.getLocations().map(l => l.name))].sort().map(n => `<option value="${escapeHtml(n)}">`).join("");
-    openModal(addPlaceOverlay);
-  }
-  document.getElementById("add-place-close").addEventListener("click", () => closeModal(addPlaceOverlay));
-  addPlaceOverlay.addEventListener("click", e => { if (e.target === addPlaceOverlay) closeModal(addPlaceOverlay); });
-
-  function showAddPlaceError(text) {
-    addPlaceMsg.textContent = text;
-    addPlaceMsg.className = "mt-[.85rem] px-4 py-3 rounded-app text-[.9rem] bg-[color-mix(in_srgb,#f87171_12%,var(--color-surface))] border border-[color-mix(in_srgb,#f87171_40%,transparent)] text-red-400";
-  }
-
-  addPlaceForm.addEventListener("submit", async e => {
-    e.preventDefault();
-    addPlaceSubmitBtn.disabled = true;
-    addPlaceMsg.className = "hidden";
-
-    const locationName = addPlaceLocationInput.value.trim();
-    const area = addPlaceAreaInput.value.trim();
-    const matched = findMatchingLocation(locationName);
-
-    // Minted up front regardless of online/offline outcome -- same
-    // rationale as entry IDs: an offline-queued write needs a stable
-    // identity from the moment it's created, not just once it syncs.
-    const location = matched ?? { id: crypto.randomUUID(), name: locationName, country: addPlaceCountryCommitted };
-    const place = { id: crypto.randomUUID(), locationId: location.id, area };
-
-    let authLapsed = false;
-    const queue = getQueue();
-
-    if (!matched) {
-      try {
-        const res = await adminFetch(ADMIN_LOCATIONS_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(location),
-        });
-        if (isAuthRedirect(res)) throw new Error("not-authenticated");
-        const data = await res.json();
-        if (!res.ok) {
-          // The server is reachable and rejected this -- a real
-          // validation problem, not connectivity, so don't queue
-          // something that would just fail again identically on retry.
-          showAddPlaceError(data.error ?? `Error ${res.status}`);
-          addPlaceSubmitBtn.disabled = false;
-          return;
-        }
-        store.setLocations(data.locations);
-      } catch (err) {
-        if (err.message === "not-authenticated") authLapsed = true;
-        // Offline, server unreachable, or the Access session lapsed --
-        // queue the location, and the place right behind it below, same
-        // dependency order the online path itself writes in.
-        queue.push({ kind: "location", op: "add", record: location });
-      }
-    }
-
-    const locationQueued = queue.some(item => item.kind === "location" && item.record.id === location.id);
-    if (locationQueued) {
-      // Already know this session is offline -- don't bother attempting
-      // the place online too, just queue it right behind the location.
-      queue.push({ kind: "place", op: "add", record: place });
-    } else {
-      try {
-        const res = await adminFetch(ADMIN_PLACES_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(place),
-        });
-        if (isAuthRedirect(res)) throw new Error("not-authenticated");
-        const data = await res.json();
-        if (!res.ok) {
-          showAddPlaceError(data.error ?? `Error ${res.status}`);
-          addPlaceSubmitBtn.disabled = false;
-          return;
-        }
-        store.setPlaces(data.places);
-      } catch (err) {
-        if (err.message === "not-authenticated") authLapsed = true;
-        queue.push({ kind: "place", op: "add", record: place });
-      }
-    }
-
-    if (authLapsed) {
-      store.setLoggedIn(false);
-      updateAdminBar();
-    }
-    setQueue(queue);
-    applyPendingQueue(getQueue(), store.getEntries(), store.getPlaces(), store.getLocations());
-    setPlace(place.id);
-    closeModal(addPlaceOverlay);
-    addPlaceSubmitBtn.disabled = false;
-  });
-
-  // ── Entry form: labels (Problem/Route name, Flash/Onsight, Send/Redpoint) ──
-  // The form no longer has its own type toggle -- an entry's type is
-  // whichever tab was active when the form opened (store.getActiveType()),
-  // since the table it was added/edited from is already scoped to that
-  // type by construction.
-  function updateFormStatusLabels() {
-    document.getElementById("form-flash-label").textContent = flashLabel(store.getActiveType());
-    document.getElementById("form-send-label").textContent = sendLabel(store.getActiveType());
-    document.getElementById("form-name-label").textContent = nameLabel(store.getActiveType());
-  }
-
-  // ── Entry form: grade picker (dropdown + prev/next) ──────────────────
-  let selectedGrade = "";
-  function currentGrades() {
-    return store.getActiveType() === "boulder" ? BOULDER_GRADES : LEAD_GRADES;
-  }
-  function renderGradeOptions() {
-    const boulder = store.getActiveType() === "boulder";
-    gradeSelect.innerHTML = currentGrades()
-      .map(({ g, v }) => `<option class="font-bold bg-surface text-foreground" value="${g}">${boulder ? `${g}/${v}` : g}</option>`)
-      .join("");
-  }
-  function selectGradeByIndex(index) {
-    const grades = currentGrades();
-    const wrapped = ((index % grades.length) + grades.length) % grades.length;
-    const { g, c } = grades[wrapped];
-    selectedGrade = g;
-    gradeSelect.value = g;
-    gradeSelect.style.color = c;
-  }
-  function selectGradeByValue(value, type) {
-    const grades = type === "boulder" ? BOULDER_GRADES : LEAD_GRADES;
-    const idx = grades.findIndex(({ g }) => g.toUpperCase() === String(value).toUpperCase());
-    selectGradeByIndex(idx === -1 ? 0 : idx);
-  }
-  function currentGradeIndex() {
-    const idx = currentGrades().findIndex(({ g }) => g === selectedGrade);
-    return idx === -1 ? 0 : idx;
-  }
-  gradeSelect.addEventListener("change", () => selectGradeByIndex(
-    currentGrades().findIndex(({ g }) => g === gradeSelect.value)
-  ));
-  gradePrev.addEventListener("click", () => selectGradeByIndex(currentGradeIndex() - 1));
-  gradeNext.addEventListener("click", () => selectGradeByIndex(currentGradeIndex() + 1));
-
-  // ── Entry form: status toggle (Flash = status send, flash=true) ─────
-  let selectedStatus = "send";
-  let isFlash = false;
-  const statusGroup = document.getElementById("status-group");
-
-  // Fades the edges of #status-group's horizontal scroll to hint there's
-  // more content past them -- only on whichever side actually has more to
-  // scroll to, so a screen wide enough to show every button gets no fade
-  // at all (both edges read as "at start" and "at end" simultaneously).
-  function updateStatusScrollFade() {
-    const atStart = statusGroup.scrollLeft <= 1;
-    const atEnd = statusGroup.scrollLeft + statusGroup.clientWidth >= statusGroup.scrollWidth - 1;
-    const mask = `linear-gradient(to right, ${atStart ? "black" : "transparent"}, black 24px, black calc(100% - 24px), ${atEnd ? "black" : "transparent"})`;
-    statusGroup.style.maskImage = mask;
-    statusGroup.style.webkitMaskImage = mask;
-  }
-  statusGroup.addEventListener("scroll", updateStatusScrollFade);
-  window.addEventListener("resize", updateStatusScrollFade);
-
-  statusGroup.addEventListener("change", e => {
-    if (e.target.name !== "entry-status") return;
-    const value = e.target.value;
-    selectedStatus = value === "flash" ? "send" : value;
-    isFlash = value === "flash";
-  });
-  document.querySelectorAll("[data-icon]").forEach(el => {
-    el.innerHTML = STATUS_ICONS[el.dataset.icon];
-  });
-
-  function setStatusToggle(status, flash) {
-    const value = flash ? "flash" : status;
-    document.querySelector(`#status-group input[value="${value}"]`).checked = true;
-    selectedStatus = status;
-    isFlash = flash;
-  }
-
-  // ── Entry form: date picker ──────────────────────────────────────────
-  datePickerBtn.addEventListener("click", () => {
-    const current = dateInput.value.trim();
-    dateNative.value = /^\d{4}-\d{2}-\d{2}$/.test(current)
-      ? current
-      : /^\d{4}-\d{2}$/.test(current)
-        ? `${current}-01`
-        : new Date().toISOString().slice(0, 10);
-    if (dateNative.showPicker) dateNative.showPicker();
-    else dateNative.focus();
-  });
-  dateNative.addEventListener("change", () => {
-    if (dateNative.value) dateInput.value = dateNative.value;
-  });
+  // Entry form (place picker, add-place modal, grade/status/date pickers,
+  // modal lifecycle, submit/delete) now lives in client/entry-form.js and
+  // client/place-picker.js (#238). Instantiated below, after Modal
+  // helpers (openModal/closeModal, still in main.js -- #241) is defined.
 
   // ── Modal helpers: focus trap + Escape-to-close ──────────────────────
   let lastFocusedEl = null;
@@ -1285,42 +838,9 @@ import { createPyramidView } from "./pyramid-view.js";
     }
   });
 
-  // ── Entry modal: open/close ──────────────────────────────────────────
-  function openEntryModal(entry) {
-    editingId = entry?.id ?? null;
-    entryModalTitle.textContent = editingId ? "Edit entry" : "Add entry";
-    entrySubmitBtn.textContent = editingId ? "Save changes" : "Add to logbook";
-    entryDeleteBtn.hidden = !editingId;
-    entryMsg.className = "hidden";
-
-    nameInput.value  = entry?.name  ?? "";
-    // Popover always reopens closed, regardless of whatever open/closed
-    // state a previous modal session left it in.
-    closePlacePopover();
-    setPlace(entry?.placeId ?? "");
-    notesInput.value = entry?.notes ?? "";
-    videoInput.value = entry?.video ?? "";
-    // Default to today only in add mode -- ?? alone can't distinguish "no
-    // entry" from "entry has no date", and edit mode with the latter was
-    // silently pre-filling today's date, which then got saved if the user
-    // didn't notice and just clicked Save (#139).
-    dateInput.value  = entry ? (entry.date ?? "") : new Date().toISOString().slice(0, 10);
-
-    renderGradeOptions();
-    if (entry) selectGradeByValue(entry.grade, entry.type);
-    else selectGradeByIndex(0);
-    updateFormStatusLabels();
-    setStatusToggle(entry?.status ?? "send", Boolean(entry?.firstAttempt));
-
-    openModal(entryOverlay);
-    nameInput.focus();
-    // scrollWidth/clientWidth both read as 0 while the modal is still
-    // hidden -- wait a frame for it to actually paint before measuring.
-    requestAnimationFrame(updateStatusScrollFade);
-  }
-  addBtn.addEventListener("click", () => openEntryModal(null));
-  document.getElementById("entry-close").addEventListener("click", () => closeModal(entryOverlay));
-  entryOverlay.addEventListener("click", e => { if (e.target === entryOverlay) closeModal(entryOverlay); });
+  // Entry modal open/close (was here) now lives in client/entry-form.js
+  // (#238) -- instantiated below, once Modal helpers above and the admin/
+  // queue helpers below are all defined.
 
   document.getElementById("notes-close").addEventListener("click", () => closeModal(notesOverlay));
   notesOverlay.addEventListener("click", e => { if (e.target === notesOverlay) closeModal(notesOverlay); });
@@ -1407,7 +927,7 @@ import { createPyramidView } from "./pyramid-view.js";
     const editBtn = e.target.closest(".edit-btn");
     if (editBtn) {
       const entry = store.getEntries().find(x => x.id === editBtn.dataset.editId);
-      if (entry) openEntryModal(entry);
+      if (entry) entryForm.open(entry);
       return;
     }
 
@@ -1421,124 +941,14 @@ import { createPyramidView } from "./pyramid-view.js";
     }
   });
 
-  // ── Entry form: submit (online → API, offline → queue) ──────────────
-  entryForm.addEventListener("submit", async e => {
-    e.preventDefault();
-    entrySubmitBtn.disabled = true;
-    entryMsg.className = "hidden";
-
-    const name  = nameInput.value.trim();
-    const entry = {
-      id:     editingId ?? crypto.randomUUID(),
-      // The committed value, not any in-progress popover search text --
-      // same reasoning the old country picker had: whatever's mid-search
-      // isn't necessarily a valid, or the intended, selection.
-      placeId: placeCommittedValue,
-      name,
-      grade:  selectedGrade,
-      type:   store.getActiveType(),
-      status: selectedStatus,
-      firstAttempt: isFlash,
-      date:   dateInput.value.trim() || null,
-      notes:  notesInput.value.trim() || null,
-      video:  videoInput.value.trim() || null,
-    };
-    const op = editingId ? "edit" : "add";
-
-    try {
-      const res = await adminFetch(ADMIN_DATA_URL, {
-        method: editingId ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(entry),
-      });
-      if (isAuthRedirect(res)) throw new Error("not-authenticated");
-      const data = await res.json();
-      if (!res.ok) {
-        entryMsg.textContent = data.error ?? `Error ${res.status}`;
-        entryMsg.className = "mt-[.85rem] px-4 py-3 rounded-app text-[.9rem] bg-[color-mix(in_srgb,#f87171_12%,var(--color-surface))] border border-[color-mix(in_srgb,#f87171_40%,transparent)] text-red-400";
-        entrySubmitBtn.disabled = false;
-        return;
-      }
-      store.setEntries(data.entries);
-      applyPendingQueue(getQueue(), store.getEntries(), store.getPlaces(), store.getLocations());
-      closeModal(entryOverlay);
-      render();
-    } catch (err) {
-      // Offline, server unreachable, or the Access session lapsed (see
-      // adminFetch above) — queue for later sync either way, and reflect
-      // the change locally so it shows up right away.
-      if (err.message === "not-authenticated") {
-        store.setLoggedIn(false);
-        updateAdminBar();
-      }
-      const queue = getQueue();
-      const existingIdx = queue.findIndex(item => item.kind === "entry" && item.record.id === entry.id);
-      if (existingIdx !== -1) queue[existingIdx] = { kind: "entry", op: queue[existingIdx].op, record: entry };
-      else queue.push({ kind: "entry", op, record: entry });
-      setQueue(queue);
-      applyPendingQueue(getQueue(), store.getEntries(), store.getPlaces(), store.getLocations());
-      closeModal(entryOverlay);
-      render();
-    }
-
-    entrySubmitBtn.disabled = false;
-  });
-
-  // ── Entry form: delete (online → API, offline → queue) ───────────────
-  entryDeleteBtn.addEventListener("click", async () => {
-    if (!editingId) return;
-    if (!confirm(`Delete "${nameInput.value.trim()}"? This can't be undone.`)) return;
-
-    entryDeleteBtn.disabled = true;
-    entryMsg.className = "hidden";
-    const id = editingId;
-    const entrySnapshot = store.getEntries().find(e => e.id === id);
-
-    // If this entry only ever existed as a queued, unsynced "add", there's
-    // nothing on the server to delete — just drop it from the queue.
-    const queuedAdd = getQueue().find(item => item.kind === "entry" && item.record.id === id && item.op === "add");
-    if (queuedAdd) {
-      setQueue(getQueue().filter(item => !(item.kind === "entry" && item.record.id === id)));
-      store.setEntries(store.getEntries().filter(e => e.id !== id));
-      closeModal(entryOverlay);
-      entryDeleteBtn.disabled = false;
-      render();
-      return;
-    }
-
-    try {
-      const res = await adminFetch(`${ADMIN_DATA_URL}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-      if (isAuthRedirect(res)) throw new Error("not-authenticated");
-      const data = await res.json();
-      if (!res.ok) {
-        entryMsg.textContent = data.error ?? `Error ${res.status}`;
-        entryMsg.className = "mt-[.85rem] px-4 py-3 rounded-app text-[.9rem] bg-[color-mix(in_srgb,#f87171_12%,var(--color-surface))] border border-[color-mix(in_srgb,#f87171_40%,transparent)] text-red-400";
-        entryDeleteBtn.disabled = false;
-        return;
-      }
-      store.setEntries(data.entries);
-      applyPendingQueue(getQueue(), store.getEntries(), store.getPlaces(), store.getLocations());
-      closeModal(entryOverlay);
-      render();
-    } catch (err) {
-      // Offline, server unreachable, or the Access session lapsed (see
-      // adminFetch above) — queue for later sync either way. Keep the
-      // entry visible (marked pending-delete via applyPendingQueue)
-      // rather than removing it locally; it only disappears once the
-      // delete actually syncs.
-      if (err.message === "not-authenticated") {
-        store.setLoggedIn(false);
-        updateAdminBar();
-      }
-      const queue = getQueue().filter(item => !(item.kind === "entry" && item.record.id === id));
-      queue.push({ kind: "entry", op: "delete", record: entrySnapshot ?? { id } });
-      setQueue(queue);
-      applyPendingQueue(getQueue(), store.getEntries(), store.getPlaces(), store.getLocations());
-      closeModal(entryOverlay);
-      render();
-    }
-
-    entryDeleteBtn.disabled = false;
+  // ── Entry form (#238) -- see client/entry-form.js/client/place-picker.js.
+  // Owns the Add/Edit modal's whole lifecycle (place picker + add-place
+  // modal, grade/status/date pickers, submit/delete).
+  const entryForm = createEntryForm({
+    store, createDisclosure, openModal, closeModal, adminFetch, isAuthRedirect,
+    getQueue, setQueue, applyPendingQueue, updateAdminBar, render,
+    COUNTRY_BY_NAME, COUNTRIES,
+    adminDataUrl: ADMIN_DATA_URL, adminLocationsUrl: ADMIN_LOCATIONS_URL, adminPlacesUrl: ADMIN_PLACES_URL,
   });
 
   // Map-pin click/keydown delegation now lives in client/map-view.js
@@ -1553,9 +963,6 @@ import { createPyramidView } from "./pyramid-view.js";
 
   // ── Boot ─────────────────────────────────────────────────────────────
   async function boot() {
-    renderGradeOptions();
-    selectGradeByIndex(0);
-
     const sessionPromise = checkSession();
     const settingsPromise = fetchSettings();
 
