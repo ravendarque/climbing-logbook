@@ -10,15 +10,20 @@
 //
 // A factory with a wide injected-dependency list -- not a design smell
 // introduced by this extraction, but this workflow's real, pre-existing
-// surface: it touches auth (adminFetch/isAuthRedirect), the offline
-// queue, the admin bar, and the Store, none of which are their own
-// module yet (#239/#241). Each is passed straight through from
-// main.js's own not-yet-extracted implementations.
+// surface: it touches auth (adminFetch/isAuthRedirect, still main.js-local
+// -- #242 kept them there, real cross-cutting infrastructure the
+// composition root reasonably owns and hands out), the offline queue, and
+// the admin bar. openModal/closeModal (client/modal-utils.js, #241) stay
+// injected too, not imported -- unlike createDisclosure (stateless, safe
+// to call independently from anywhere), they share one `lastFocusedEl`
+// across the whole app, so every caller needs the same instance from
+// main.js's single createModalHelpers() call, not its own.
 import { escapeHtml } from "./escape-html.js";
+import { COUNTRY_BY_NAME, COUNTRIES } from "./countries.js";
+import { createDisclosure } from "./modal-utils.js";
 
 export function createPlacePicker({
   store,
-  createDisclosure,
   openModal,
   closeModal,
   adminFetch,
@@ -27,8 +32,6 @@ export function createPlacePicker({
   setQueue,
   applyPendingQueue,
   updateAdminBar,
-  COUNTRY_BY_NAME,
-  COUNTRIES,
   adminLocationsUrl,
   adminPlacesUrl,
 }) {

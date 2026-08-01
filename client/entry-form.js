@@ -13,7 +13,6 @@ import { createPlacePicker } from "./place-picker.js";
 
 export function createEntryForm({
   store,
-  createDisclosure,
   openModal,
   closeModal,
   adminFetch,
@@ -23,8 +22,6 @@ export function createEntryForm({
   applyPendingQueue,
   updateAdminBar,
   render,
-  COUNTRY_BY_NAME,
-  COUNTRIES,
   adminDataUrl,
   adminLocationsUrl,
   adminPlacesUrl,
@@ -47,9 +44,9 @@ export function createEntryForm({
   const statusGroup = document.getElementById("status-group");
 
   const placePicker = createPlacePicker({
-    store, createDisclosure, openModal, closeModal, adminFetch, isAuthRedirect,
+    store, openModal, closeModal, adminFetch, isAuthRedirect,
     getQueue, setQueue, applyPendingQueue, updateAdminBar,
-    COUNTRY_BY_NAME, COUNTRIES, adminLocationsUrl, adminPlacesUrl,
+    adminLocationsUrl, adminPlacesUrl,
   });
 
   let editingId = null; // null = add mode

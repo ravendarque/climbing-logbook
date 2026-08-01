@@ -60,7 +60,21 @@ client/
 │                         loading/interaction wiring) stays here. State
 │                         itself now lives behind store.js (#234) — main.js
 │                         calls store.* rather than reading/writing
-│                         module-scope globals directly.
+│                         module-scope globals directly. #233's
+│                         modularization epic (#234-#242) reduced it from
+│                         ~3,072 lines to ~430: it's now a thin composition
+│                         root -- config/URL constants, adminFetch/
+│                         isAuthRedirect, store + modal-helpers + every
+│                         view module's instantiation (each wired with only
+│                         the collaborators it actually needs), render(),
+│                         the offline sync button, and boot(). #242 (the
+│                         epic's last piece) also removed six dead
+│                         bare-named wrapper functions left over from
+│                         #206 (only filteredEntries()/placeOf() still had
+│                         real callers by then -- both inlined to call
+│                         store.* directly) and extracted the last
+│                         remaining un-modularized data, COUNTRIES/
+│                         COUNTRY_BY_NAME, into client/countries.js.
 ├── store.js            Owns client-side app state (statusFilters, gradeRange,
 │                         activeType, activeView, search, sortByPlace,
 │                         collapsed, entries/places/locations, isLoggedIn)
@@ -84,12 +98,16 @@ client/
 │                         A factory (createLogbookView()), not bare
 │                         functions — unlike the pure-logic modules below,
 │                         it owns DOM refs and event listeners, so it needs
-│                         `store` and two collaborators injected:
-│                         `createDisclosure` (client/modal-utils.js, #241)
-│                         and `render`
-│                         (main.js's own top-level composition — table
-│                         interactions trigger a full app re-render, same
-│                         as before this extraction). DOM-heavy, so it's
+│                         `store` and `render` injected (main.js's own
+│                         top-level composition — table interactions
+│                         trigger a full app re-render, same as before this
+│                         extraction). `createDisclosure` (client/
+│                         modal-utils.js, #241) is a plain import here, not
+│                         injected -- it's stateless, so every module that
+│                         needs it imports it directly (#242 removed the
+│                         pass-through main.js was doing for it until then).
+│                         `COUNTRY_BY_NAME` (client/countries.js) is a
+│                         plain import too, same reasoning. DOM-heavy, so it's
 │                         covered by the Playwright E2E suite (#218)
 │                         rather than Vitest, same as main.js's other
 │                         render code
@@ -102,7 +120,9 @@ client/
 │                         logic, predating that shared helper) and no
 │                         injected `render` (nothing here ever needs a
 │                         full top-level re-render; every interaction
-│                         re-invokes this module's own render()). Also
+│                         re-invokes this module's own render()).
+│                         `COUNTRY_BY_NAME` (client/countries.js) is a
+│                         plain import, not injected (#242). Also
 │                         owns updateSubtitle() -- despite the name
 │                         sitting next to renderSections() in the
 │                         pre-#235 file, #subtitle lives inside the Map
@@ -120,8 +140,9 @@ client/
 │                         this one. Also now owns
 │                         lowerGradesExpanded as fully private state
 │                         (exposes resetExpansion() for the discipline
-│                         picker's cross-module reset, still in main.js
-│                         until #240). DOM-heavy, covered by the
+│                         picker's cross-module reset -- now a narrow
+│                         callback injected into header-chrome.js, #240).
+│                         DOM-heavy, covered by the
 │                         Playwright E2E suite rather than Vitest, same as
 │                         logbook-view.js/map-view.js
 ├── entry-form.js       The Add/Edit entry modal (#238, fifth piece of
@@ -130,7 +151,9 @@ client/
 │                         delete (online -> API, offline -> queue).
 │                         Composes place-picker.js internally (instantiated
 │                         here, not injected from main.js -- the picker
-│                         exists only to serve this form)
+│                         exists only to serve this form; entry-form.js
+│                         itself doesn't use createDisclosure or the
+│                         countries data, only place-picker.js does)
 ├── place-picker.js     The entry form's Place picker (#158) -- including
 │                         the "add a new place" modal, deliberately not
 │                         split into its own file: add-place-modal has
@@ -138,6 +161,12 @@ client/
 │                         place" button) and its success path calls
 │                         straight back into this module's own setPlace(),
 │                         the same direct coupling the pre-#238 code had.
+│                         `COUNTRY_BY_NAME`/`COUNTRIES` (client/
+│                         countries.js) and `createDisclosure` (client/
+│                         modal-utils.js) are plain imports, not injected
+│                         (#242) -- both stateless, so every module that
+│                         needs them imports directly rather than taking
+│                         them as main.js pass-through params.
 │                         Widest injected-dependency list of any module so
 │                         far (auth, offline queue, admin bar, Store,
 │                         client/modal-utils.js's openModal/closeModal) --
@@ -170,7 +199,11 @@ client/
 │                         followed. resetPyramidExpansion is one narrow
 │                         callback into pyramid-view.js (not the whole
 │                         module -- this only ever needs "reset the
-│                         lower-grades toggle on discipline switch")
+│                         lower-grades toggle on discipline switch").
+│                         `createDisclosure` (client/modal-utils.js) is a
+│                         plain import, not injected -- same #242
+│                         pass-through removal as logbook-view.js/
+│                         place-picker.js
 ├── modal-utils.js       Shared popover/modal utilities (#241, eighth and
 │                         final view-module piece of #233): createDisclosure
 │                         (trigger + panel, open/close/outside-click/
@@ -203,13 +236,27 @@ client/
 ├── status-icons.js     SVG icon constants — bundled here rather than kept
 │                         external once status.js needed to import it (see
 │                         Overview above)
+├── countries.js        COUNTRIES (#153) -- the flat {name, flag, lat, lng}
+│                         list backing the Map tab's pins and the add-place
+│                         modal's country picker -- and COUNTRY_BY_NAME, a
+│                         name-keyed lookup built from it. Plain data/export,
+│                         no factory. Extracted during #242's "verify
+│                         decomposition is complete" pass -- it was the
+│                         last piece of app data still sitting inline in
+│                         main.js, injected into map-view.js/entry-form.js/
+│                         place-picker.js purely because nothing had pulled
+│                         it out yet, same as every other not-yet-
+│                         modularized dependency this epic worked through.
+│                         Kept inline as a bundled array rather than fetched
+│                         at runtime -- same Connectivity Resilience
+│                         reasoning as vendoring floating-ui-dom.js (below)
 ├── entries.js          Entry/place/location joins (placeOf/locationOf/
 │                         entryLocation) plus filter/sort/group logic for
 │                         the entries table. Takes entries/places/state as
-│                         explicit parameters; main.js keeps thin same-named
-│                         wrapper functions closing over its own globals, so
-│                         none of the ~25 existing call sites needed to
-│                         change
+│                         explicit parameters; store.js (#234) keeps thin
+│                         same-named wrapper methods closing over its own
+│                         state, so none of the ~25 existing call sites
+│                         needed to change when this was extracted
 ├── pyramid-stats.js    Grade Pyramid (#12) send-counting and 8-4-2-1
 │                         promotion-window logic (isWithinLast12Months/
 │                         pyramidCounts/pyramidReadyToPromote/

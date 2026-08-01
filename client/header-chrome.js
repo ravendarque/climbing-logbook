@@ -3,16 +3,16 @@
 // seventh piece of #233's modularization epic). Reads/writes active
 // discipline through the Store (#234).
 //
-// `createDisclosure` isn't its own module yet (#241), `resetPyramidExpansion`
-// is the one narrow callback into pyramid-view.js's own module (not the
-// whole module -- this only ever needs "reset the lower-grades toggle on
-// discipline switch," nothing else about the Pyramid view), and
-// `updateAdminBar`/`adminFetch`/`isAuthRedirect`/`adminSettingsUrl` are
-// the same not-yet-extracted auth/admin-bar surface place-picker.js and
-// entry-form.js already depend on.
+// `resetPyramidExpansion` is the one narrow callback into pyramid-view.js's
+// own module (not the whole module -- this only ever needs "reset the
+// lower-grades toggle on discipline switch," nothing else about the
+// Pyramid view), and `updateAdminBar`/`adminFetch`/`isAuthRedirect`/
+// `adminSettingsUrl` are the same not-yet-extracted auth/admin-bar
+// surface place-picker.js and entry-form.js already depend on.
+import { createDisclosure } from "./modal-utils.js";
+
 export function createHeaderChrome({
   store,
-  createDisclosure,
   resetPyramidExpansion,
   render,
   adminFetch,

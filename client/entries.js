@@ -4,10 +4,10 @@
 // Every function here takes its data (entries/places/locations/filter
 // criteria) as explicit parameters instead of reading main.js's module-
 // global ALL_ENTRIES/ALL_PLACES/ALL_LOCATIONS/state directly -- that's
-// what makes this testable without a DOM or the rest of the app. main.js
-// keeps thin same-named wrapper functions (placeOf, locationOf, etc.)
-// that close over the actual globals and call these, so none of the
-// ~25 existing call sites throughout the file needed to change.
+// what makes this testable without a DOM or the rest of the app. store.js
+// keeps thin same-named wrapper methods (placeOf, locationOf, etc.)
+// that close over its own state and call these, so none of the
+// ~25 existing call sites throughout the codebase needed to change.
 import { BOULDER_GRADES, LEAD_GRADES, gradeRank } from "./grade-data.js";
 import { dateRank } from "./date-helpers.js";
 
