@@ -125,6 +125,25 @@ client/
 │                         until #240). DOM-heavy, covered by the
 │                         Playwright E2E suite rather than Vitest, same as
 │                         logbook-view.js/map-view.js
+├── entry-form.js       The Add/Edit entry modal (#238, fifth piece of
+│                         #233): labels, the grade/status/date pickers, the
+│                         modal's own open/close lifecycle, and submit/
+│                         delete (online -> API, offline -> queue).
+│                         Composes place-picker.js internally (instantiated
+│                         here, not injected from main.js -- the picker
+│                         exists only to serve this form)
+├── place-picker.js     The entry form's Place picker (#158) -- including
+│                         the "add a new place" modal, deliberately not
+│                         split into its own file: add-place-modal has
+│                         exactly one caller (this picker's "Add new
+│                         place" button) and its success path calls
+│                         straight back into this module's own setPlace(),
+│                         the same direct coupling the pre-#238 code had.
+│                         Widest injected-dependency list of any module so
+│                         far (auth, offline queue, admin bar, Store) --
+│                         not a smell introduced by the extraction, this
+│                         workflow's real pre-existing surface, none of it
+│                         its own module yet (#239/#241)
 ├── grade-data.js       Grade ordering/coloring, per-discipline grade lists
 ├── date-helpers.js     formatDate/dateRank
 ├── status.js           statusBadge, flash/send/name labels
@@ -142,10 +161,11 @@ client/
 │                         promotion-window logic (isWithinLast12Months/
 │                         pyramidCounts/pyramidReadyToPromote/
 │                         pyramidSplitRows), plus the PYRAMID_IDEAL_BY_
-│                         POSITION constant (also read directly by
-│                         main.js's own rendering code). pyramidStatusIcon/
-│                         pyramidBarRow/renderPyramid stay in main.js --
-│                         they're presentation, not stats
+│                         POSITION constant. pyramidStatusIcon/
+│                         pyramidBarRow/render() moved to pyramid-view.js
+│                         (#237) -- they're presentation, not stats, so
+│                         they stayed out of this pure-logic module, just
+│                         no longer in main.js either
 ├── map-geometry.js     World Map (#17/#168/#169) viewBox math -- zoom,
 │                         pan, clamping, and client-pixel <-> user-space
 │                         conversion. Takes the current view/map height/
