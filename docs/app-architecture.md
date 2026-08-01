@@ -111,6 +111,20 @@ client/
 │                         move it into. DOM-heavy, covered by the
 │                         Playwright E2E suite rather than Vitest, same
 │                         as logbook-view.js
+├── pyramid-view.js     Grade Pyramid tab (#12) -- #237, fourth piece of
+│                         #233. A factory, same reasoning as logbook-view.js
+│                         /map-view.js. `openModal` is injected since the
+│                         shared modal helper (focus trap + Escape-to-
+│                         close) isn't its own module yet (#241) -- the
+│                         citations/evidence-tier overlays this module
+│                         opens are generic modals owned by that
+│                         not-yet-extracted helper. Also now owns
+│                         lowerGradesExpanded as fully private state
+│                         (exposes resetExpansion() for the discipline
+│                         picker's cross-module reset, still in main.js
+│                         until #240). DOM-heavy, covered by the
+│                         Playwright E2E suite rather than Vitest, same as
+│                         logbook-view.js/map-view.js
 ├── grade-data.js       Grade ordering/coloring, per-discipline grade lists
 ├── date-helpers.js     formatDate/dateRank
 ├── status.js           statusBadge, flash/send/name labels
