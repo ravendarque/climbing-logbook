@@ -85,6 +85,12 @@ rather than depending on any state of its own).
 
 ## Three-workflow structure
 
+These three cover provisioning and production deploys. PR preview
+deployments are a separate, fourth CI workflow (`preview.yml`) — see its
+own section below — deliberately kept independent since it's app-deploy
+machinery, not infra-provisioning, and runs on every PR rather than on
+`infra/**` changes or tagged releases.
+
 | Workflow | Trigger | Job |
 |---|---|---|
 | `bootstrap-state.yml` | Manual only (`workflow_dispatch`) | Creates the R2 state bucket if missing. Safe to re-run any time, including full disaster recovery. |
@@ -129,6 +135,108 @@ automatically by this merge. That's only a concern after a full
 disaster-recovery rebuild (the id doesn't otherwise change), and
 `deploy.yml` has `workflow_dispatch` specifically so it can be forced in
 that case.
+
+## PR preview deployments
+
+Every PR gets a real, working preview URL bound to its own KV namespace —
+never production data — via `.github/workflows/preview.yml`. This was built
+as a deliberate alternative to Cloudflare's native Git-linked Workers
+Builds (dashboard-configured, would run as a second deploy path alongside
+this project's existing tag-triggered pipeline — see "Three-workflow
+structure" above and `docs/versioning.md`); this keeps preview deployments
+inside the CI this project already owns (#222).
+
+**Mechanism:** `wrangler versions upload --env preview` (not `wrangler
+deploy`) — this uploads a new *version* of the Worker without attaching a
+route or receiving any production traffic; it just produces a reachable
+preview URL. Crucially, `--env preview` targets a genuinely separate Worker
+script: Wrangler appends the environment name to the Worker's `name`, so
+`climbing-logbook` becomes `climbing-logbook-preview` — a distinct script
+with its own version history, not a variant deploy of the production
+script.
+
+**`wrangler.jsonc`'s `env.preview` block:**
+
+```jsonc
+"env": {
+  "preview": {
+    "workers_dev": true,
+    "routes": [],
+    "kv_namespaces": [
+      { "binding": "LOGBOOK_KV", "id": "<preview namespace id>" }
+    ]
+  }
+}
+```
+
+`routes` and `kv_namespaces` are explicitly overridden rather than left to
+inherit from the top-level config (both are inheritable by default) —
+`versions upload` never attaches a route regardless, but there's no reason
+to leave the production route pattern or KV namespace sitting in the
+preview env's config. `workers_dev: true` is what makes the preview env's
+`*.workers.dev` URL reachable at all, deliberately the opposite of the
+top-level `workers_dev: false` (see "Why a Worker, not another Pages
+project" above — that `false` exists specifically so Access-gated routes
+aren't bypassable via a public preview URL; the preview env has no
+Access-gated routes to bypass, since `routes` is empty and it never serves
+production traffic).
+
+**The preview KV namespace is *not* Terraform-managed** — unlike the
+production namespace (`infra/kv.tf`), it was a one-time manual bootstrap
+(`wrangler kv namespace create <NAME>_PREVIEW` or via the dashboard), on
+the reasoning that per-PR preview data is disposable and doesn't need
+disaster-recovery guarantees the way production data does. If replicating
+this in another repo, provisioning it manually (once) is the intended
+approach, not an oversight to fix.
+
+**One-time bootstrap** (needed once per repo/Worker, before `preview.yml`
+can run — `versions upload` requires the target script to already exist):
+
+1. Create the preview KV namespace (dashboard or `wrangler kv namespace
+   create`).
+2. Add the `env.preview` block to `wrangler.jsonc` (above), with the new
+   namespace's id.
+3. `wrangler deploy --env preview` once, manually, to create the
+   `<name>-preview` script itself.
+4. Verify: `wrangler versions upload --env preview --preview-alias
+   test-setup`, then curl the resulting URL and confirm it reflects the
+   *preview* namespace's (empty/test) data, not production's.
+5. Add `.github/workflows/preview.yml` (below) — from this point on,
+   every PR provisions and updates its own preview automatically.
+
+**Cloudflare's Preview URLs opt-in caveat (from #222's own scoping):**
+Cloudflare made per-version Preview URLs (the `<version>-<name>.<subdomain>
+.workers.dev` URLs `versions upload` relies on) opt-in as of September
+2025, and did a one-time disable of the feature for any existing Worker
+that already had `workers_dev` off. This project's bootstrap worked without
+any extra dashboard step (confirmed via a live `curl` against the resulting
+URL when #222 landed) — but if a preview URL 404s or refuses to resolve
+during setup in another repo, check the Worker's own settings in the
+Cloudflare dashboard for a Preview URLs toggle before assuming the
+workflow itself is broken. Wrangler's own config schema also exposes this
+as a `preview_urls` boolean (default `false`) inside an environment block,
+separate from `workers_dev` — not currently set explicitly here since the
+default has worked in practice, but worth knowing if a fresh setup doesn't
+"just work."
+
+**`.github/workflows/preview.yml`:** on every `pull_request` event
+(opened/synchronize/reopened — the default set; there's no `closed`
+handler, so preview versions for closed/merged PRs are never cleaned up
+and just accumulate — a known, accepted gap, not a bug), it builds the app
+the same way `deploy.yml` does (`tailwind:build` + `client:build`), runs
+`wrangler versions upload --env preview --preview-alias "pr-$PR_NUMBER"`,
+then posts the resulting URL as a PR comment. The alias is stable per PR
+number (not per-commit), so `gh pr comment --edit-last` updates the same
+comment across pushes to that PR instead of a new comment piling up on
+every push — falling back to a fresh comment if `--edit-last` fails
+(nothing to edit yet, i.e. the first push). Comment body explicitly notes
+the preview is bound to preview KV, not production data, so nobody mistakes
+a preview for a live look at real logbook entries.
+
+**No additional `CLOUDFLARE_API_TOKEN` scopes needed** — the same token
+covering production deploys already has Workers Scripts: Edit and Workers
+KV Storage: Edit account-wide (see permission table below), which covers
+the `-preview` script and its namespace too.
 
 ## Required secrets/variables
 
