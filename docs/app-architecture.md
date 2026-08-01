@@ -93,6 +93,24 @@ client/
 │                         covered by the Playwright E2E suite (#218)
 │                         rather than Vitest, same as main.js's other
 │                         render code
+├── map-view.js         Map tab: World Map rendering (#17/#169), zoom/pan/
+│                         drag (#168), and the pin popover (#18) -- #236,
+│                         third piece of #233. A factory, same reasoning
+│                         as logbook-view.js, but with a shorter
+│                         dependency list -- no createDisclosure (the pin
+│                         popover has its own purpose-built open/close
+│                         logic, predating that shared helper) and no
+│                         injected `render` (nothing here ever needs a
+│                         full top-level re-render; every interaction
+│                         re-invokes this module's own render()). Also
+│                         owns updateSubtitle() -- despite the name
+│                         sitting next to renderSections() in the
+│                         pre-#235 file, #subtitle lives inside the Map
+│                         tab's panel in the markup, not the Logbook
+│                         tab's; moved here once this module existed to
+│                         move it into. DOM-heavy, covered by the
+│                         Playwright E2E suite rather than Vitest, same
+│                         as logbook-view.js
 ├── grade-data.js       Grade ordering/coloring, per-discipline grade lists
 ├── date-helpers.js     formatDate/dateRank
 ├── status.js           statusBadge, flash/send/name labels
