@@ -17,6 +17,7 @@ import { createPyramidView } from "./pyramid-view.js";
 import { createEntryForm } from "./entry-form.js";
 import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
+import { createDisclosure, createModalHelpers } from "./modal-utils.js";
 
   // ── Config ───────────────────────────────────────────────────────────
   const DATA_URL = "/logbook/api/logbook";
@@ -340,6 +341,15 @@ import { createHeaderChrome } from "./header-chrome.js";
   // respectively.
   const store = createStore();
 
+  // client/modal-utils.js (#241) -- instantiated this early (not down
+  // where the old "Modal helpers" section comment used to sit) because
+  // openModal/closeModal are destructured `const`s now, not hoisted
+  // function declarations -- every module below that takes them as an
+  // injected dependency (pyramidView, entryForm) needs them to already
+  // exist by the time its own createX({ ... }) call evaluates its
+  // argument object, not just by the time that function is later called.
+  const { openModal, closeModal } = createModalHelpers();
+
   // ── Offline queue ──────────────────────────────────────────────────
   function getQueue() {
     try { return JSON.parse(localStorage.getItem(QUEUE_KEY)) ?? []; }
@@ -590,106 +600,11 @@ import { createHeaderChrome } from "./header-chrome.js";
   syncBtn.addEventListener("click", syncPending);
   window.addEventListener("online", () => { if (store.isLoggedIn()) syncPending(); });
 
-  // ── Shared UI helper: disclosure popovers (#171) ───────────────────────
-  // Common trigger-button + panel interaction (open, close, close on
-  // outside click, close on Escape + refocus the trigger) shared by every
-  // dropdown-style popover in this app -- discipline picker, header menu,
-  // place picker, add-place country picker, and the status filter panel.
-  // Extracted after a code review found five near-identical hand-rolled
-  // copies, one of which (the filter panel) had silently diverged and
-  // dropped its Escape handler entirely.
-  //
-  // escapeTarget defaults to `document`, correct for popovers that aren't
-  // nested inside a modal (discipline picker, header menu, filter panel).
-  // Pass a specific element -- in practice the popover's own search input
-  // -- for a popover that lives inside a modal (place picker, add-place
-  // country picker): Escape has to bind there instead, with
-  // stopPropagation/preventDefault, so it closes only this popover rather
-  // than also reaching the modal's own document-level Escape handler.
-  // (Separate document keydown listeners all fire independently of each
-  // other regardless of stopPropagation on the event itself -- binding at
-  // document level here would close the whole modal too, not just this
-  // popover.)
-  //
-  // onOpen is an optional extra callback for popovers that do more than
-  // just reveal the panel on open (the two search-based pickers reset
-  // their query, re-render options, and refocus the search input).
-  function createDisclosure(trigger, panel, containerSelector, { escapeTarget = document, onOpen } = {}) {
-    function open() {
-      panel.hidden = false;
-      trigger.setAttribute("aria-expanded", "true");
-      if (onOpen) onOpen();
-    }
-    function close() {
-      panel.hidden = true;
-      trigger.setAttribute("aria-expanded", "false");
-    }
-    trigger.addEventListener("click", () => { if (panel.hidden) open(); else close(); });
-    document.addEventListener("click", e => {
-      if (!panel.hidden && !e.target.closest(containerSelector)) close();
-    });
-    escapeTarget.addEventListener("keydown", e => {
-      if (e.key !== "Escape" || panel.hidden) return;
-      if (escapeTarget !== document) { e.preventDefault(); e.stopPropagation(); }
-      close();
-      trigger.focus();
-    });
-    return { open, close };
-  }
-
-  // Entry form (place picker, add-place modal, grade/status/date pickers,
-  // modal lifecycle, submit/delete) now lives in client/entry-form.js and
-  // client/place-picker.js (#238). Instantiated below, after Modal
-  // helpers (openModal/closeModal, still in main.js -- #241) is defined.
-
-  // ── Modal helpers: focus trap + Escape-to-close ──────────────────────
-  let lastFocusedEl = null;
-  function focusableEls(overlay) {
-    return [...overlay.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
-      .filter(el => !el.disabled && el.offsetParent !== null);
-  }
-  function openModal(overlay) {
-    lastFocusedEl = document.activeElement;
-    overlay.hidden = false;
-    overlay.scrollTop = 0;
-    (focusableEls(overlay)[0] ?? overlay).focus();
-  }
-  function closeModal(overlay) {
-    overlay.hidden = true;
-    if (lastFocusedEl) lastFocusedEl.focus();
-  }
-  document.addEventListener("keydown", e => {
-    // addPlaceOverlay listed before entryOverlay -- it can be open at the
-    // same time, stacked on top (opened from the place picker without
-    // closing the entry form behind it), and .find() takes the first
-    // match, so this ordering makes Escape close the topmost overlay
-    // first rather than jumping straight to the one underneath it.
-    const openOverlay = [addPlaceOverlay, entryOverlay, notesOverlay, footnoteOverlay, citationsOverlay, evidenceOverlay].find(o => !o.hidden);
-    if (!openOverlay) return;
-
-    if (e.key === "Escape") {
-      closeModal(openOverlay);
-      return;
-    }
-
-    if (e.key === "Tab") {
-      const focusable = focusableEls(openOverlay);
-      if (focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    }
-  });
-
-  // Entry modal open/close (was here) now lives in client/entry-form.js
-  // (#238) -- instantiated below, once Modal helpers above and the admin/
-  // queue helpers below are all defined.
+  // createDisclosure and openModal/closeModal now live in
+  // client/modal-utils.js (#241) -- imported/instantiated near the top of
+  // this file (see the comment by createModalHelpers() above) rather
+  // than here where the sections used to sit, since other modules below
+  // depend on them existing already.
 
   document.getElementById("notes-close").addEventListener("click", () => closeModal(notesOverlay));
   notesOverlay.addEventListener("click", e => { if (e.target === notesOverlay) closeModal(notesOverlay); });

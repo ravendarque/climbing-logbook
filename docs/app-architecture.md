@@ -84,9 +84,9 @@ client/
 │                         A factory (createLogbookView()), not bare
 │                         functions — unlike the pure-logic modules below,
 │                         it owns DOM refs and event listeners, so it needs
-│                         `store` and two not-yet-extracted collaborators
-│                         injected: `createDisclosure` (shared popover
-│                         helper, still in main.js, see #241) and `render`
+│                         `store` and two collaborators injected:
+│                         `createDisclosure` (client/modal-utils.js, #241)
+│                         and `render`
 │                         (main.js's own top-level composition — table
 │                         interactions trigger a full app re-render, same
 │                         as before this extraction). DOM-heavy, so it's
@@ -113,12 +113,11 @@ client/
 │                         as logbook-view.js
 ├── pyramid-view.js     Grade Pyramid tab (#12) -- #237, fourth piece of
 │                         #233. A factory, same reasoning as logbook-view.js
-│                         /map-view.js. `openModal` is injected since the
-│                         shared modal helper (focus trap + Escape-to-
-│                         close) isn't its own module yet (#241) -- the
-│                         citations/evidence-tier overlays this module
-│                         opens are generic modals owned by that
-│                         not-yet-extracted helper. Also now owns
+│                         /map-view.js. `openModal` is injected (from
+│                         client/modal-utils.js, #241) -- the citations/
+│                         evidence-tier overlays this module opens are
+│                         generic modals owned by that shared helper, not
+│                         this one. Also now owns
 │                         lowerGradesExpanded as fully private state
 │                         (exposes resetExpansion() for the discipline
 │                         picker's cross-module reset, still in main.js
@@ -140,10 +139,10 @@ client/
 │                         straight back into this module's own setPlace(),
 │                         the same direct coupling the pre-#238 code had.
 │                         Widest injected-dependency list of any module so
-│                         far (auth, offline queue, admin bar, Store) --
+│                         far (auth, offline queue, admin bar, Store,
+│                         client/modal-utils.js's openModal/closeModal) --
 │                         not a smell introduced by the extraction, this
-│                         workflow's real pre-existing surface, none of it
-│                         its own module yet (#241)
+│                         workflow's real pre-existing surface
 ├── admin-auth.js       Auth state + the Athlete Mode setting (#239, sixth
 │                         piece of #233). Owns checkSession() (the
 │                         Cloudflare Access session check), fetchSettings()
@@ -172,6 +171,32 @@ client/
 │                         callback into pyramid-view.js (not the whole
 │                         module -- this only ever needs "reset the
 │                         lower-grades toggle on discipline switch")
+├── modal-utils.js       Shared popover/modal utilities (#241, eighth and
+│                         final view-module piece of #233): createDisclosure
+│                         (trigger + panel, open/close/outside-click/
+│                         Escape -- every dropdown-style popover in the
+│                         app) and createModalHelpers() (focus trap +
+│                         Escape-to-close for every full-page overlay).
+│                         Pure DOM utilities, no state coupling beyond
+│                         what's passed in -- could have landed
+│                         independently of the Store or any other module
+│                         in the epic, and did land last only because nothing
+│                         forced it earlier. Instantiated near the top of
+│                         main.js, not where the old sections used to sit --
+│                         openModal/closeModal are destructured `const`s
+│                         now, not hoisted function declarations, so every
+│                         module that takes them as a dependency needs them
+│                         to already exist by argument-evaluation time.
+│                         Deliberately did NOT generalize the overlay list
+│                         to a `[id$="-overlay"]` query during this
+│                         extraction -- verified against the real markup
+│                         that add-place-overlay's DOM source order
+│                         actually comes *after* entry-overlay's, opposite
+│                         the z-index stacking order (add-place needs
+│                         Escape-priority when both are open, stacked from
+│                         the place picker). A generic query would have
+│                         silently closed the wrong modal; kept the
+│                         explicit, correctly-ordered list instead
 ├── grade-data.js       Grade ordering/coloring, per-discipline grade lists
 ├── date-helpers.js     formatDate/dateRank
 ├── status.js           statusBadge, flash/send/name labels
