@@ -151,14 +151,27 @@ client/
 │                         login/logout + Athlete Mode toggle click
 │                         handlers. Scoped narrower than the issue's own
 │                         rough estimate -- updateAdminBar()/
-│                         setActiveView() stay in main.js, since grounding
-│                         scope in the real code showed they're genuinely
-│                         header-chrome/composition-root concerns (#240/
-│                         #242) that happen to be *triggered by*
-│                         auth-state changes, not auth logic themselves.
-│                         Exposes isAthleteMode() so main.js's
+│                         setActiveView() stay in main.js permanently, not
+│                         deferred elsewhere: #240 confirmed they're
+│                         cross-module orchestration (refreshing header
+│                         chrome, the sync button, view-tab visibility —
+│                         all *triggered by* state changes, not owned
+│                         logic), which is what main.js's own composition
+│                         root (#242) is for. Exposes isAthleteMode() so
 │                         updateAdminBar() can still read the one piece of
 │                         state that moved
+├── header-chrome.js    The header's discipline picker popover, header
+│                         menu (Athlete Mode/theme toggle/login live
+│                         inside it), and theme persistence/toggling
+│                         (#240, seventh piece of #233). Also owns
+│                         updateDisciplinePicker() -- found living next to
+│                         render() in main.js, same "physically adjacent
+│                         but not actually part of the composition root"
+│                         pattern #235's updateSubtitle() discovery
+│                         followed. resetPyramidExpansion is one narrow
+│                         callback into pyramid-view.js (not the whole
+│                         module -- this only ever needs "reset the
+│                         lower-grades toggle on discipline switch")
 ├── grade-data.js       Grade ordering/coloring, per-discipline grade lists
 ├── date-helpers.js     formatDate/dateRank
 ├── status.js           statusBadge, flash/send/name labels

@@ -1,0 +1,148 @@
+// The header's discipline picker, header menu (Athlete Mode/theme
+// toggle/login live inside it), and theme persistence/toggling (#240,
+// seventh piece of #233's modularization epic). Reads/writes active
+// discipline through the Store (#234).
+//
+// `createDisclosure` isn't its own module yet (#241), `resetPyramidExpansion`
+// is the one narrow callback into pyramid-view.js's own module (not the
+// whole module -- this only ever needs "reset the lower-grades toggle on
+// discipline switch," nothing else about the Pyramid view), and
+// `updateAdminBar`/`adminFetch`/`isAuthRedirect`/`adminSettingsUrl` are
+// the same not-yet-extracted auth/admin-bar surface place-picker.js and
+// entry-form.js already depend on.
+export function createHeaderChrome({
+  store,
+  createDisclosure,
+  resetPyramidExpansion,
+  render,
+  adminFetch,
+  isAuthRedirect,
+  adminSettingsUrl,
+  updateAdminBar,
+}) {
+  // ── Theme toggle (light/dark) ─────────────────────────────────────────
+  // The actual theme is already set on <html> by the blocking inline
+  // script in <head> (before first paint) -- this just wires up the
+  // button to flip it and keeps the icon/label in sync.
+  const SUN_ICON = `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>`;
+  const MOON_ICON = `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>`;
+  const themeToggleBtn = document.getElementById("theme-toggle-btn");
+  function updateThemeToggleButton() {
+    const theme = document.documentElement.dataset.theme;
+    themeToggleBtn.innerHTML = theme === "light" ? MOON_ICON : SUN_ICON;
+    themeToggleBtn.setAttribute("aria-label", theme === "light" ? "Switch to dark theme" : "Switch to light theme");
+  }
+  updateThemeToggleButton();
+  themeToggleBtn.addEventListener("click", () => {
+    const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+    document.documentElement.dataset.theme = next;
+    localStorage.setItem("logbook_theme", next);
+    // Deferred, not called inline: updateThemeToggleButton() replaces this
+    // button's innerHTML, which destroys whatever element the click
+    // actually landed on (almost always the icon <svg> itself, not the
+    // button). Doing that synchronously mid-bubble detaches e.target
+    // before it reaches the header menu's document-level outside-click
+    // listener (#123) -- a detached node's closest() can't find any
+    // ancestor, including #header-menu-wrap, so the click reads as
+    // "outside" and the menu closes right when it shouldn't.
+    // queueMicrotask is NOT enough here: microtasks are checkpointed after
+    // *each* listener invocation during event dispatch (per spec's "clean
+    // up after running script"), not just once after the whole bubble
+    // phase finishes -- confirmed empirically, a queued microtask still
+    // ran before the next bubble-phase listener saw this event. setTimeout
+    // defers to a genuinely later task, after the entire click (all
+    // listeners, all elements) has finished dispatching.
+    setTimeout(updateThemeToggleButton, 0);
+  });
+
+  // ── Discipline picker (#110): header popover, always offers both
+  // disciplines regardless of entry counts -- see the markup comment
+  // above discipline-btn for why. Same interaction pattern as filter-btn/
+  // filter-panel (delegated click, close on outside click), plus
+  // Escape-to-close via createDisclosure.
+  const disciplineBtn = document.getElementById("discipline-btn");
+  const disciplinePopover = document.getElementById("discipline-popover");
+  const { close: closeDisciplinePopover } = createDisclosure(disciplineBtn, disciplinePopover, "#discipline-wrap");
+
+  const DISCIPLINE_LABEL = { boulder: "Boulder", lead: "Lead" };
+  // Called every render() cycle (not just on switch) to keep the label/
+  // aria-label/aria-selected state in sync with the Store's active type.
+  function updateDisciplinePicker() {
+    document.getElementById("discipline-btn-label").textContent = DISCIPLINE_LABEL[store.getActiveType()];
+    // Kept in sync even though the visible label above covers most widths --
+    // aria-label always wins over visible text content for the accessible
+    // name, so this is what a screen reader announces once the label span
+    // itself is hidden below the icon-collapse breakpoint (#114).
+    disciplineBtn.setAttribute("aria-label", `Discipline: ${DISCIPLINE_LABEL[store.getActiveType()]}`);
+    document.querySelectorAll(".discipline-option").forEach(opt =>
+      opt.setAttribute("aria-selected", String(opt.dataset.discipline === store.getActiveType()))
+    );
+  }
+
+  disciplinePopover.addEventListener("click", async e => {
+    const opt = e.target.closest(".discipline-option");
+    if (!opt) return;
+    // store.setActiveType() resets gradeRange itself (boulder and lead
+    // grades aren't the same scale -- carrying a range like "6A-7B+" over
+    // as some translated lead range would silently filter to something
+    // the user didn't ask for, #161); the Pyramid's lower-grades
+    // expansion is reset via its own module's callback.
+    store.setActiveType(opt.dataset.discipline);
+    resetPyramidExpansion();
+    closeDisciplinePopover();
+    disciplineBtn.focus();
+    render();
+
+    // Best-effort persistence (#137) -- PATCH is Access-gated (same
+    // boundary as Athlete Mode), so this only actually persists when
+    // logged in; a logged-out visitor's switch stays local, same as
+    // every other admin-only write in this app. Never blocks or reverts
+    // the local switch above either way -- offline/failure just means
+    // it doesn't carry over to other devices this time.
+    try {
+      const res = await adminFetch(adminSettingsUrl, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ activeDiscipline: store.getActiveType() }),
+      });
+      if (res.status === 401 || isAuthRedirect(res)) {
+        store.setLoggedIn(false);
+        updateAdminBar();
+      }
+    } catch {
+      // Offline or network error -- local switch already applied.
+    }
+  });
+
+  // ── Header menu (#119, #122, #138, #155): Athlete Mode, theme toggle,
+  // and Log in/out live in this popover at every viewport width -- it
+  // used to only collapse them in here below 480px (reparenting the DOM
+  // nodes between the header row and here as the viewport crossed that
+  // breakpoint), but the popover turned out to just be a better pattern
+  // outright, not a narrow-viewport compromise, so it's used everywhere
+  // now and the wide-row layout it used to also support is gone. The
+  // discipline picker is deliberately NOT part of this popover (#138) --
+  // with it collapsed, there was no visible indicator anywhere of which
+  // discipline was active until the menu was opened. It stays in the
+  // header row at all widths instead.
+  const headerMenuBtn = document.getElementById("header-menu-btn");
+  const headerMenuPopover = document.getElementById("header-menu-popover");
+  const headerMenuBottomRow = document.getElementById("header-menu-bottom-row");
+  const athleteModeBtn = document.getElementById("athlete-mode-btn");
+
+  // The bottom row's top divider only makes sense when something is
+  // actually visible above it -- Athlete Mode is the only thing that can
+  // occupy the top section, and it's hidden entirely when logged out
+  // (main.js's updateAdminBar(), which calls this), which would
+  // otherwise leave the divider floating above nothing (#138).
+  function updateMenuDivider() {
+    const hasTopContent = !athleteModeBtn.hidden;
+    headerMenuBottomRow.classList.toggle("border-t", hasTopContent);
+    headerMenuBottomRow.classList.toggle("pt-2", hasTopContent);
+    headerMenuBottomRow.classList.toggle("mt-1", hasTopContent);
+  }
+
+  createDisclosure(headerMenuBtn, headerMenuPopover, "#header-menu-wrap");
+
+  return { updateMenuDivider, updateDisciplinePicker };
+}
