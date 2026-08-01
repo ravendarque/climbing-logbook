@@ -15,6 +15,7 @@ import { createLogbookView } from "./logbook-view.js";
 import { createMapView } from "./map-view.js";
 import { createPyramidView } from "./pyramid-view.js";
 import { createEntryForm } from "./entry-form.js";
+import { createAdminAuth } from "./admin-auth.js";
 
   // ── Config ───────────────────────────────────────────────────────────
   const DATA_URL = "/logbook/api/logbook";
@@ -23,12 +24,7 @@ import { createEntryForm } from "./entry-form.js";
   const ADMIN_PLACES_URL = "/logbook/api/admin/places";
   const LOCATIONS_URL = "/logbook/api/locations";
   const ADMIN_LOCATIONS_URL = "/logbook/api/admin/locations";
-  const ADMIN_SESSION_URL = "/logbook/api/admin/session";
-  const ADMIN_LOGIN_URL = "/logbook/api/admin/login";
-  const SETTINGS_URL = "/logbook/api/settings";
-  const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
-  const ACCESS_LOGOUT_URL = "https://ravendarque.com/cdn-cgi/access/logout";
-  const LOGIN_HINT_KEY    = "logbook_logged_in_hint";
+  const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings"; // also used by the discipline picker's PATCH, below
   const QUEUE_KEY         = "logbook_pending_queue";
 
   // Cloudflare Access gates every /logbook/api/admin/* route at the edge --
@@ -335,16 +331,13 @@ import { createEntryForm } from "./entry-form.js";
   // ── State ────────────────────────────────────────────────────────────
   // Owned by the Store module (#234) -- statusFilters/gradeRange/activeType/
   // activeView/search/sortByPlace/collapsed/entries/places/locations/
-  // isLoggedIn all live behind store.*, not raw fields. athleteMode stays
-  // a local module `let` here -- read/written only by the admin bar
-  // section, so it'll move into that section's own module in #239/#240
-  // rather than the shared Store now. (lowerGradesExpanded and editingId
-  // made the same call for the Grade Pyramid and Entry form sections
-  // respectively, and have since moved into client/pyramid-view.js
-  // (#237) and client/entry-form.js (#238).)
+  // isLoggedIn all live behind store.*, not raw fields. athleteMode,
+  // lowerGradesExpanded, and editingId all made the same "stays local to
+  // one section, not the shared Store" call, and have each since moved
+  // into that section's own module: client/pyramid-view.js (#237),
+  // client/entry-form.js (#238), and client/admin-auth.js (#239)
+  // respectively.
   const store = createStore();
-
-  let athleteMode  = false;
 
   // ── Offline queue ──────────────────────────────────────────────────
   function getQueue() {
@@ -599,7 +592,7 @@ import { createEntryForm } from "./entry-form.js";
     loginToggleBtn.textContent = store.isLoggedIn() ? "Log out" : "Log in";
     addBtn.hidden = !store.isLoggedIn();
     athleteModeBtn.hidden = !store.isLoggedIn();
-    athleteModeBtn.setAttribute("aria-checked", String(athleteMode));
+    athleteModeBtn.setAttribute("aria-checked", String(adminAuth.isAthleteMode()));
     updateHeaderMenuDivider();
     updateSyncButton();
 
@@ -609,7 +602,7 @@ import { createEntryForm } from "./entry-form.js";
     // alone would let a logged-out visitor see it whenever the owner has
     // it toggled on for themselves. Logbook and Map stay unaffected by
     // either.
-    viewTabPyramid.hidden = !(store.isLoggedIn() && athleteMode);
+    viewTabPyramid.hidden = !(store.isLoggedIn() && adminAuth.isAthleteMode());
     if (viewTabPyramid.hidden && store.getActiveView() === "pyramid") setActiveView("logbook");
 
     // The tab bar itself only makes sense once there's something to
@@ -638,105 +631,10 @@ import { createEntryForm } from "./entry-form.js";
     if (tab) setActiveView(tab.dataset.view);
   });
 
-  // Set (not directly via store.setActiveType()) by fetchSettings() below,
-  // then applied in boot() after both it and the entries load are known
-  // complete -- both requests run concurrently with a real await in
-  // between them (the entries fetch), so which one resolves first isn't
-  // guaranteed. Calling store.setActiveType() straight from here would
-  // race the has-entries heuristic in boot() and could get silently
-  // clobbered if the heuristic happened to run second (#137).
-  let persistedDiscipline = null;
-
-  // Public visitors always see the effective settings (Athlete Mode off
-  // by default, discipline from boot()'s has-entries heuristic by
-  // default); only the logged-in admin sees a control to change either.
-  // Covers both settings in one request rather than a separate fetch per
-  // field (#137 folded discipline persistence into the same endpoint).
-  async function fetchSettings() {
-    try {
-      const res = await fetch(SETTINGS_URL);
-      const data = await res.json();
-      if (!res.ok) return;
-      athleteMode = !!data.athleteMode;
-      // Validated defensively even though the server already validates on
-      // write, since this is public data read back out of KV.
-      if (data.activeDiscipline === "boulder" || data.activeDiscipline === "lead") {
-        persistedDiscipline = data.activeDiscipline;
-      }
-    } catch {
-      // Offline — keep the last-known in-memory defaults rather than
-      // guessing; the Athlete Mode toggle is only interactive when logged
-      // in, so a stale value there can't be acted on incorrectly, and the
-      // discipline heuristic default already applied is a reasonable
-      // fallback for the picker (which is usable while offline).
-    }
-  }
-
-  athleteModeBtn.addEventListener("click", async () => {
-    const next = !athleteMode;
-    athleteModeBtn.disabled = true;
-    try {
-      const res = await adminFetch(ADMIN_SETTINGS_URL, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ athleteMode: next }),
-      });
-      if (res.status === 401 || isAuthRedirect(res)) {
-        // Access session lapsed since page load — same handling as
-        // syncPending()'s 401 case: drop back to the logged-out view.
-        store.setLoggedIn(false);
-      } else if (res.ok) {
-        const data = await res.json();
-        athleteMode = !!data.athleteMode;
-        athleteModeBtn.title = "";
-      } else {
-        athleteModeBtn.title = `Failed to update Athlete Mode (${res.status})`;
-      }
-    } catch (err) {
-      athleteModeBtn.title = `Failed to update Athlete Mode: ${err.message}`;
-    } finally {
-      athleteModeBtn.disabled = false;
-      updateAdminBar();
-    }
-  });
-
-  // Cloudflare Access gates /logbook/api/admin/* at Cloudflare's edge, so
-  // "logged in" just means "the session fetch below wasn't intercepted by
-  // Access's own hosted login page." A genuine network failure (offline)
-  // is distinguished from "not authenticated" so the offline-queue hint
-  // doesn't get mistaken for a real session.
-  async function checkSession() {
-    let res;
-    try {
-      res = await adminFetch(ADMIN_SESSION_URL);
-    } catch {
-      // Offline — fall back to the last known login state so the UI
-      // still shows edit affordances; writes still get verified for
-      // real by Access once synced.
-      store.setLoggedIn(localStorage.getItem(LOGIN_HINT_KEY) === "1");
-      return;
-    }
-    try {
-      const data = await res.json();
-      store.setLoggedIn(res.ok && !!data.loggedIn);
-    } catch {
-      // Access intercepted with its own hosted login page (non-JSON) —
-      // not logged in.
-      store.setLoggedIn(false);
-    }
-    localStorage.setItem(LOGIN_HINT_KEY, store.isLoggedIn() ? "1" : "0");
-  }
-
-  loginToggleBtn.addEventListener("click", () => {
-    if (store.isLoggedIn()) {
-      window.location.href = ACCESS_LOGOUT_URL;
-    } else {
-      // Full-page navigation (not fetch) so Cloudflare Access's hosted
-      // login redirect can actually complete; it bounces back to the app
-      // once you're authenticated.
-      window.location.href = ADMIN_LOGIN_URL;
-    }
-  });
+  // ── Admin/auth (#239) -- see client/admin-auth.js. Owns checkSession(),
+  // fetchSettings() (Athlete Mode + persisted discipline), and the
+  // login/logout + Athlete Mode toggle click handlers.
+  const adminAuth = createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettingsUrl: ADMIN_SETTINGS_URL, updateAdminBar });
 
   syncBtn.addEventListener("click", syncPending);
   window.addEventListener("online", () => { if (store.isLoggedIn()) syncPending(); });
@@ -963,8 +861,8 @@ import { createEntryForm } from "./entry-form.js";
 
   // ── Boot ─────────────────────────────────────────────────────────────
   async function boot() {
-    const sessionPromise = checkSession();
-    const settingsPromise = fetchSettings();
+    const sessionPromise = adminAuth.checkSession();
+    const settingsPromise = adminAuth.fetchSettings();
 
     // Load data (fall back to last-cached entries when offline)
     try {
@@ -1020,9 +918,10 @@ import { createEntryForm } from "./entry-form.js";
     await Promise.all([sessionPromise, settingsPromise]);
 
     // Persisted selection wins over boot()'s has-entries heuristic above,
-    // applied here (not inside fetchSettings()) so the order is
+    // applied here (not inside adminAuth.fetchSettings()) so the order is
     // deterministic regardless of which of the two concurrent requests
     // above happened to resolve first (#137).
+    const persistedDiscipline = adminAuth.getPersistedDiscipline();
     if (persistedDiscipline) store.setActiveType(persistedDiscipline);
 
     document.getElementById("loading").style.display = "none";

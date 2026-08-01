@@ -143,7 +143,22 @@ client/
 │                         far (auth, offline queue, admin bar, Store) --
 │                         not a smell introduced by the extraction, this
 │                         workflow's real pre-existing surface, none of it
-│                         its own module yet (#239/#241)
+│                         its own module yet (#241)
+├── admin-auth.js       Auth state + the Athlete Mode setting (#239, sixth
+│                         piece of #233). Owns checkSession() (the
+│                         Cloudflare Access session check), fetchSettings()
+│                         (Athlete Mode + persisted discipline), and the
+│                         login/logout + Athlete Mode toggle click
+│                         handlers. Scoped narrower than the issue's own
+│                         rough estimate -- updateAdminBar()/
+│                         setActiveView() stay in main.js, since grounding
+│                         scope in the real code showed they're genuinely
+│                         header-chrome/composition-root concerns (#240/
+│                         #242) that happen to be *triggered by*
+│                         auth-state changes, not auth logic themselves.
+│                         Exposes isAthleteMode() so main.js's
+│                         updateAdminBar() can still read the one piece of
+│                         state that moved
 ├── grade-data.js       Grade ordering/coloring, per-discipline grade lists
 ├── date-helpers.js     formatDate/dateRank
 ├── status.js           statusBadge, flash/send/name labels
