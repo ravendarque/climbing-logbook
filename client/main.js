@@ -16,6 +16,7 @@ import { createMapView } from "./map-view.js";
 import { createPyramidView } from "./pyramid-view.js";
 import { createEntryForm } from "./entry-form.js";
 import { createAdminAuth } from "./admin-auth.js";
+import { createHeaderChrome } from "./header-chrome.js";
 
   // ── Config ───────────────────────────────────────────────────────────
   const DATA_URL = "/logbook/api/logbook";
@@ -485,21 +486,8 @@ import { createAdminAuth } from "./admin-auth.js";
   // here).
   const logbookView = createLogbookView({ store, createDisclosure, render, COUNTRY_BY_NAME });
 
-  const DISCIPLINE_LABEL = { boulder: "Boulder", lead: "Lead" };
-  function updateDisciplinePicker() {
-    document.getElementById("discipline-btn-label").textContent = DISCIPLINE_LABEL[store.getActiveType()];
-    // Kept in sync even though the visible label above covers most widths --
-    // aria-label always wins over visible text content for the accessible
-    // name, so this is what a screen reader announces once the label span
-    // itself is hidden below the icon-collapse breakpoint (#114).
-    disciplineBtn.setAttribute("aria-label", `Discipline: ${DISCIPLINE_LABEL[store.getActiveType()]}`);
-    document.querySelectorAll(".discipline-option").forEach(opt =>
-      opt.setAttribute("aria-selected", String(opt.dataset.discipline === store.getActiveType()))
-    );
-  }
-
   function render() {
-    updateDisciplinePicker();
+    headerChrome.updateDisciplinePicker();
     const entries = filteredEntries();
     logbookView.render(entries);
     updateAdminBar();
@@ -516,40 +504,8 @@ import { createAdminAuth } from "./admin-auth.js";
   // loading/switching, zoom/pan/drag, and the pin popover.
   const mapView = createMapView({ store, COUNTRY_BY_NAME });
 
-  // ── Theme toggle (light/dark) ─────────────────────────────────────────
-  // The actual theme is already set on <html> by the blocking inline
-  // script in <head> (before first paint) -- this just wires up the
-  // button to flip it and keeps the icon/label in sync.
-  const SUN_ICON = `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>`;
-  const MOON_ICON = `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>`;
-  const themeToggleBtn = document.getElementById("theme-toggle-btn");
-  function updateThemeToggleButton() {
-    const theme = document.documentElement.dataset.theme;
-    themeToggleBtn.innerHTML = theme === "light" ? MOON_ICON : SUN_ICON;
-    themeToggleBtn.setAttribute("aria-label", theme === "light" ? "Switch to dark theme" : "Switch to light theme");
-  }
-  updateThemeToggleButton();
-  themeToggleBtn.addEventListener("click", () => {
-    const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
-    document.documentElement.dataset.theme = next;
-    localStorage.setItem("logbook_theme", next);
-    // Deferred, not called inline: updateThemeToggleButton() replaces this
-    // button's innerHTML, which destroys whatever element the click
-    // actually landed on (almost always the icon <svg> itself, not the
-    // button). Doing that synchronously mid-bubble detaches e.target
-    // before it reaches the header menu's document-level outside-click
-    // listener (#123) -- a detached node's closest() can't find any
-    // ancestor, including #header-menu-wrap, so the click reads as
-    // "outside" and the menu closes right when it shouldn't.
-    // queueMicrotask is NOT enough here: microtasks are checkpointed after
-    // *each* listener invocation during event dispatch (per spec's "clean
-    // up after running script"), not just once after the whole bubble
-    // phase finishes -- confirmed empirically, a queued microtask still
-    // ran before the next bubble-phase listener saw this event. setTimeout
-    // defers to a genuinely later task, after the entire click (all
-    // listeners, all elements) has finished dispatching.
-    setTimeout(updateThemeToggleButton, 0);
-  });
+  // Theme toggle, discipline picker, and header menu now live in
+  // client/header-chrome.js (#240) -- instantiated below.
 
   // ── DOM refs ─────────────────────────────────────────────────────────
   const loginToggleBtn = document.getElementById("login-toggle-btn");
@@ -559,14 +515,9 @@ import { createAdminAuth } from "./admin-auth.js";
   const syncBtnLabel = document.getElementById("sync-btn-label");
   const syncBtnIcon  = document.getElementById("sync-btn-icon");
   // filter-btn/filter-panel, the grade-range slider, collapse-all-btn, and
-  // search now live in client/logbook-view.js (#235).
-  const disciplineBtn = document.getElementById("discipline-btn");
-  const disciplinePopover = document.getElementById("discipline-popover");
-  const disciplineWrap = document.getElementById("discipline-wrap");
-  const headerMenuWrap = document.getElementById("header-menu-wrap");
-  const headerMenuBtn = document.getElementById("header-menu-btn");
-  const headerMenuPopover = document.getElementById("header-menu-popover");
-  const headerMenuBottomRow = document.getElementById("header-menu-bottom-row");
+  // search now live in client/logbook-view.js (#235). discipline-btn/
+  // -popover and header-menu-btn/-popover/-bottom-row now live in
+  // client/header-chrome.js (#240).
   const viewTabs = document.getElementById("view-tabs");
   const viewTabPyramid = document.getElementById("view-tab-pyramid");
   const panelLogbook = document.getElementById("panel-logbook");
@@ -593,7 +544,7 @@ import { createAdminAuth } from "./admin-auth.js";
     addBtn.hidden = !store.isLoggedIn();
     athleteModeBtn.hidden = !store.isLoggedIn();
     athleteModeBtn.setAttribute("aria-checked", String(adminAuth.isAthleteMode()));
-    updateHeaderMenuDivider();
+    headerChrome.updateMenuDivider();
     updateSyncButton();
 
     // Grade Pyramid (a performance-reporting tab) requires BOTH being
@@ -753,73 +704,14 @@ import { createAdminAuth } from "./admin-auth.js";
   document.getElementById("evidence-close").addEventListener("click", () => closeModal(evidenceOverlay));
   evidenceOverlay.addEventListener("click", e => { if (e.target === evidenceOverlay) closeModal(evidenceOverlay); });
 
-  // ── Discipline picker (#110): header popover, always offers both
-  // disciplines regardless of entry counts -- see the markup comment
-  // above discipline-btn for why. Same interaction pattern as filter-btn/
-  // filter-panel below (delegated click, close on outside click), plus
-  // Escape-to-close via createDisclosure. ────────────────────────────────
-  const { close: closeDisciplinePopover } = createDisclosure(disciplineBtn, disciplinePopover, "#discipline-wrap");
-
-  disciplinePopover.addEventListener("click", async e => {
-    const opt = e.target.closest(".discipline-option");
-    if (!opt) return;
-    // store.setActiveType() resets gradeRange itself (boulder and lead
-    // grades aren't the same scale -- carrying a range like "6A-7B+" over
-    // as some translated lead range would silently filter to something
-    // the user didn't ask for, #161); lowerGradesExpanded is now private
-    // to client/pyramid-view.js (#237), so it's reset through that
-    // module's own resetExpansion() instead of a direct field write.
-    store.setActiveType(opt.dataset.discipline);
-    pyramidView.resetExpansion();
-    closeDisciplinePopover();
-    disciplineBtn.focus();
-    render();
-
-    // Best-effort persistence (#137) -- PATCH is Access-gated (same
-    // boundary as Athlete Mode), so this only actually persists when
-    // logged in; a logged-out visitor's switch stays local, same as
-    // every other admin-only write in this app. Never blocks or reverts
-    // the local switch above either way -- offline/failure just means
-    // it doesn't carry over to other devices this time.
-    try {
-      const res = await adminFetch(ADMIN_SETTINGS_URL, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ activeDiscipline: store.getActiveType() }),
-      });
-      if (res.status === 401 || isAuthRedirect(res)) {
-        store.setLoggedIn(false);
-        updateAdminBar();
-      }
-    } catch {
-      // Offline or network error -- local switch already applied.
-    }
+  // ── Header chrome (#240) -- see client/header-chrome.js. Owns the
+  // discipline picker popover, the header menu (Athlete Mode/theme
+  // toggle/login live inside it), and theme persistence/toggling.
+  const headerChrome = createHeaderChrome({
+    store, createDisclosure, render, adminFetch, isAuthRedirect, updateAdminBar,
+    adminSettingsUrl: ADMIN_SETTINGS_URL,
+    resetPyramidExpansion: () => pyramidView.resetExpansion(),
   });
-
-  // ── Header menu (#119, #122, #138, #155): Athlete Mode, theme toggle,
-  // and Log in/out live in this popover at every viewport width -- it
-  // used to only collapse them in here below 480px (reparenting the DOM
-  // nodes between the header row and here as the viewport crossed that
-  // breakpoint), but the popover turned out to just be a better pattern
-  // outright, not a narrow-viewport compromise, so it's used everywhere
-  // now and the wide-row layout it used to also support is gone. The
-  // discipline picker (disciplineWrap) is deliberately NOT part of this
-  // popover (#138) -- with it collapsed, there was no visible indicator
-  // anywhere of which discipline was active until the menu was opened.
-  // It stays in the header row at all widths instead.
-  // The bottom row's top divider only makes sense when something is
-  // actually visible above it -- Athlete Mode is the only thing that can
-  // occupy the top section, and it's hidden entirely when logged out
-  // (updateAdminBar), which would otherwise leave the divider floating
-  // above nothing (#138).
-  function updateHeaderMenuDivider() {
-    const hasTopContent = !athleteModeBtn.hidden;
-    headerMenuBottomRow.classList.toggle("border-t", hasTopContent);
-    headerMenuBottomRow.classList.toggle("pt-2", hasTopContent);
-    headerMenuBottomRow.classList.toggle("mt-1", hasTopContent);
-  }
-
-  createDisclosure(headerMenuBtn, headerMenuPopover, "#header-menu-wrap");
 
   document.addEventListener("click", e => {
     const editBtn = e.target.closest(".edit-btn");
