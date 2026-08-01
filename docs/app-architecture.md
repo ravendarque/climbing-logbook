@@ -79,6 +79,20 @@ client/
 │                         top comment for why. Reactivity/subscriptions
 │                         (#219) are deliberately out of scope — a plain
 │                         store first.
+├── logbook-view.js     Logbook tab: entries table + search/filter/sort/
+│                         collapse controls (#235, second piece of #233).
+│                         A factory (createLogbookView()), not bare
+│                         functions — unlike the pure-logic modules below,
+│                         it owns DOM refs and event listeners, so it needs
+│                         `store` and two not-yet-extracted collaborators
+│                         injected: `createDisclosure` (shared popover
+│                         helper, still in main.js, see #241) and `render`
+│                         (main.js's own top-level composition — table
+│                         interactions trigger a full app re-render, same
+│                         as before this extraction). DOM-heavy, so it's
+│                         covered by the Playwright E2E suite (#218)
+│                         rather than Vitest, same as main.js's other
+│                         render code
 ├── grade-data.js       Grade ordering/coloring, per-discipline grade lists
 ├── date-helpers.js     formatDate/dateRank
 ├── status.js           statusBadge, flash/send/name labels
