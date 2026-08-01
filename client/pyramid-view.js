@@ -3,10 +3,9 @@
 // client/pyramid-stats.js's pure send-counting/promotion logic (#231).
 //
 // A factory, same reasoning as logbook-view.js/map-view.js. `openModal`
-// is injected since the shared modal-helper (focus trap + Escape-to-close,
-// used by every overlay in the app) isn't its own module yet (#241) --
-// the citations/evidence-tier overlays this module opens are generic
-// modals owned by that not-yet-extracted helper, not by this module.
+// is injected (from client/modal-utils.js, #241) -- the citations/
+// evidence-tier overlays this module opens are generic modals owned by
+// that shared helper, not this one.
 import { escapeHtml } from "./escape-html.js";
 import { gradeColor } from "./grade-data.js";
 import {
@@ -14,9 +13,9 @@ import {
   pyramidSplitRows as pyramidSplitRowsPure,
 } from "./pyramid-stats.js";
 
-// Duplicated from main.js's own copy (used by the header discipline
-// picker, #240) rather than injected -- same trivial-duplication call as
-// client/map-view.js's copy.
+// Duplicated from client/header-chrome.js's own copy (the discipline
+// picker's true owner, #240) rather than shared -- same trivial-
+// duplication call as client/map-view.js's copy.
 const DISCIPLINE_LABEL = { boulder: "Boulder", lead: "Lead" };
 
 const PYRAMID_ICON_GOOD     = `<circle cx="12" cy="12" r="9"></circle><path d="m8.5 12.5 2.5 2.5 5-5"></path>`;

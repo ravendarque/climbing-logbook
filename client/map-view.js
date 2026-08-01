@@ -29,10 +29,11 @@ import {
   mapClientDeltaToUserSpace as mapClientDeltaToUserSpacePure,
   mapClientPointToUserSpace as mapClientPointToUserSpacePure,
 } from "./map-geometry.js";
+import { COUNTRY_BY_NAME } from "./countries.js";
 
-// Duplicated from main.js's own copy (used by the header discipline
-// picker, #240) rather than injected -- two hardcoded labels isn't worth
-// coupling this module to a not-yet-extracted header-chrome module for.
+// Duplicated from client/header-chrome.js's own copy (the discipline
+// picker's true owner, #240) rather than shared -- two hardcoded labels
+// isn't worth a dedicated module or an injected dependency for.
 const DISCIPLINE_LABEL = { boulder: "Boulder", lead: "Lead" };
 
 const MAP_VARIANTS = {
@@ -61,7 +62,7 @@ const PIN_BASE_R = 9;
 const PIN_BASE_STROKE = 1.5;
 const PIN_BASE_FONT = 9;
 
-export function createMapView({ store, COUNTRY_BY_NAME }) {
+export function createMapView({ store }) {
   // Best-effort only -- picks a reasonable *default* the first time the
   // map's opened; the user can always switch explicitly afterward, and
   // that choice then persists (see getActiveMapVariant). Buckets the

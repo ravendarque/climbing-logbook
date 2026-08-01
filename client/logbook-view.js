@@ -4,18 +4,17 @@
 // directly, since there's no such thing to touch anymore.
 //
 // A factory, not a bundle of bare module-level functions, because it needs
-// two things injected rather than imported outright: `createDisclosure`
-// (still defined in main.js -- the shared popover-interaction helper used
-// by five different popovers across the app, not yet extracted into its
-// own module, see #241) and `render` (main.js's own top-level composition
-// render -- sorting/collapsing/filtering the table triggers a full app
-// re-render today, same as before this extraction, not just a table-local
-// repaint: renderPyramid()/renderMap() are cheap no-ops when their tab
-// isn't active, so this was never wasted work worth special-casing).
+// `render` injected: main.js's own top-level composition render --
+// sorting/collapsing/filtering the table triggers a full app re-render
+// today, same as before this extraction, not just a table-local repaint:
+// renderPyramid()/renderMap() are cheap no-ops when their tab isn't
+// active, so this was never wasted work worth special-casing.
 import { escapeHtml } from "./escape-html.js";
 import { formatDate } from "./date-helpers.js";
 import { gradeColor } from "./grade-data.js";
 import { flashLabel, sendLabel, statusBadge } from "./status.js";
+import { COUNTRY_BY_NAME } from "./countries.js";
+import { createDisclosure } from "./modal-utils.js";
 
 const EDIT_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"></path></svg>`;
 const PENDING_ICON = `<svg class="inline-block w-[.8rem] h-[.8rem] align-[-1px] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
@@ -26,7 +25,7 @@ const TH_BASE = "text-left px-[.65rem] py-[.35rem] text-muted font-medium text-[
 const TH_SORTABLE = "cursor-pointer hover:text-foreground";
 const TD_BASE = "px-[.65rem] py-[.35rem] align-middle";
 
-export function createLogbookView({ store, createDisclosure, render, COUNTRY_BY_NAME }) {
+export function createLogbookView({ store, render }) {
   const searchInput = document.getElementById("search");
   const filterBtn = document.getElementById("filter-btn");
   const filterPanel = document.getElementById("filter-panel");
