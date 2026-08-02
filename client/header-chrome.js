@@ -6,19 +6,20 @@
 // `resetPyramidExpansion` is the one narrow callback into pyramid-view.js's
 // own module (not the whole module -- this only ever needs "reset the
 // lower-grades toggle on discipline switch," nothing else about the
-// Pyramid view), and `updateAdminBar`/`adminFetch`/`isAuthRedirect`/
-// `adminSettingsUrl` are the same not-yet-extracted auth/admin-bar
-// surface place-picker.js and entry-form.js already depend on.
+// Pyramid view), and `adminFetch`/`isAuthRedirect`/`adminSettingsUrl` are
+// the same not-yet-extracted auth/admin-bar surface place-picker.js and
+// entry-form.js already depend on. `render`/`updateAdminBar` are no
+// longer injected (#264) -- every state change here goes through a Store
+// setter, which notifies main.js's render() (the Store's sole subscriber)
+// automatically.
 import { createDisclosure } from "./modal-utils.js";
 
 export function createHeaderChrome({
   store,
   resetPyramidExpansion,
-  render,
   adminFetch,
   isAuthRedirect,
   adminSettingsUrl,
-  updateAdminBar,
 }) {
   // ── Theme toggle (light/dark) ─────────────────────────────────────────
   // The actual theme is already set on <html> by the blocking inline
@@ -87,11 +88,18 @@ export function createHeaderChrome({
     // as some translated lead range would silently filter to something
     // the user didn't ask for, #161); the Pyramid's lower-grades
     // expansion is reset via its own module's callback.
-    store.setActiveType(opt.dataset.discipline);
+    //
+    // resetPyramidExpansion() deliberately runs BEFORE store.setActiveType()
+    // (#264) -- setActiveType() is a Store mutation, so it synchronously
+    // triggers the subscribed render() the moment it's called; if
+    // lowerGradesExpanded (pyramid-view.js's own private state, not Store
+    // state) hadn't already been reset by then, that auto-triggered render
+    // would still be showing the previous discipline's expanded lower-grades
+    // section, since nothing re-renders again afterward.
     resetPyramidExpansion();
+    store.setActiveType(opt.dataset.discipline);
     closeDisciplinePopover();
     disciplineBtn.focus();
-    render();
 
     // Best-effort persistence (#137) -- PATCH is Access-gated (same
     // boundary as Athlete Mode), so this only actually persists when
@@ -106,8 +114,7 @@ export function createHeaderChrome({
         body: JSON.stringify({ activeDiscipline: store.getActiveType() }),
       });
       if (res.status === 401 || isAuthRedirect(res)) {
-        store.setLoggedIn(false);
-        updateAdminBar();
+        store.setLoggedIn(false); // Store mutation -- notify() covers the admin-bar update (#264)
       }
     } catch {
       // Offline or network error -- local switch already applied.

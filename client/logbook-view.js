@@ -3,12 +3,15 @@
 // state through the Store module (#234) -- never ALL_ENTRIES/state
 // directly, since there's no such thing to touch anymore.
 //
-// A factory, not a bundle of bare module-level functions, because it needs
-// `render` injected: main.js's own top-level composition render --
-// sorting/collapsing/filtering the table triggers a full app re-render
-// today, same as before this extraction, not just a table-local repaint:
-// renderPyramid()/renderMap() are cheap no-ops when their tab isn't
-// active, so this was never wasted work worth special-casing.
+// A factory, not a bundle of bare module-level functions, because it owns
+// DOM refs and event listeners. `render` used to be injected here too
+// (main.js's own top-level composition render, triggered manually after
+// every table interaction) but isn't anymore (#264) -- every interaction
+// below goes through a Store setter, which notifies main.js's render()
+// (the Store's sole subscriber) on its own. This module's own returned
+// render(entries) method is a different thing: the table-specific repaint
+// main.js's render() calls into, not the injected callback that used to
+// exist here.
 import { escapeHtml } from "./escape-html.js";
 import { formatDate } from "./date-helpers.js";
 import { gradeColor } from "./grade-data.js";
@@ -25,7 +28,7 @@ const TH_BASE = "text-left px-[.65rem] py-[.35rem] text-muted font-medium text-[
 const TH_SORTABLE = "cursor-pointer hover:text-foreground";
 const TD_BASE = "px-[.65rem] py-[.35rem] align-middle";
 
-export function createLogbookView({ store, render }) {
+export function createLogbookView({ store }) {
   const searchInput = document.getElementById("search");
   const filterBtn = document.getElementById("filter-btn");
   const filterPanel = document.getElementById("filter-panel");
@@ -95,7 +98,6 @@ export function createLogbookView({ store, render }) {
     else next.max = Math.max(index, current.min);
     if (next.min === current.min && next.max === current.max) return;
     store.setGradeRange(next);
-    render();
   }
 
   let dragThumb = null; // "min" | "max" | null
@@ -270,25 +272,21 @@ export function createLogbookView({ store, render }) {
 
   function toggleSort(sortTh) {
     store.toggleSort(sortTh.dataset.locationId, sortTh.dataset.sort);
-    render();
   }
 
   function toggleCollapse(header) {
     store.toggleCollapse(header.dataset.locationId);
-    render();
   }
 
   document.addEventListener("click", e => {
     if (e.target.closest("#filter-clear-btn")) {
       store.clearFilters();
-      render();
       return;
     }
 
     if (e.target.closest("#collapse-all-btn")) {
       const locationIds = store.groupByPlace(store.filteredEntries()).map(([locationId]) => locationId);
       store.toggleAllCollapsed(locationIds);
-      render();
       return;
     }
 
@@ -311,7 +309,6 @@ export function createLogbookView({ store, render }) {
     const statusInput = e.target.closest("#filter-status-group input[data-filter]");
     if (statusInput) {
       store.setStatusFilter(statusInput.dataset.filter, statusInput.checked);
-      render();
     }
   });
 
@@ -334,7 +331,6 @@ export function createLogbookView({ store, render }) {
 
   searchInput.addEventListener("input", e => {
     store.setSearch(e.target.value);
-    render();
   });
 
   return {

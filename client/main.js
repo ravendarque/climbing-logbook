@@ -9,7 +9,6 @@
 // package.json) -- they're unchanged, already-vendored/precached files
 // served directly from public/logbook/, not part of this bundle.
 import { escapeHtml } from "./escape-html.js";
-import { applyPendingQueue } from "./offline-queue.js";
 import { createStore } from "./store.js";
 import { createLogbookView } from "./logbook-view.js";
 import { createMapView } from "./map-view.js";
@@ -66,6 +65,14 @@ import { createContentOverlays } from "./content-overlays.js";
   // respectively.
   const store = createStore();
 
+  // #264: render (defined below, a hoisted function declaration so the
+  // reference is already valid here) is the Store's one subscriber --
+  // every store.setX()/toggleX()/applyPendingQueue() call notifies it
+  // automatically, replacing the ~20 manual render()/updateAdminBar()
+  // calls that used to follow every store mutation across six different
+  // modules.
+  store.subscribe(render);
+
   // client/modal-utils.js (#241) -- instantiated this early (not down
   // where the old "Modal helpers" section comment used to sit) because
   // openModal/closeModal are destructured `const`s now, not hoisted
@@ -77,12 +84,11 @@ import { createContentOverlays } from "./content-overlays.js";
 
   // ── Offline sync (#262) -- see client/offline-sync.js. Owns the pending-
   // write queue's localStorage read/write, the sync button, and replaying
-  // queued writes against the server. `render`/`updateAdminBar` are hoisted
-  // function declarations (defined below), so referencing them here is
-  // safe -- unlike openModal/closeModal above, only the *reference* needs
-  // to exist yet, not the value, since this isn't a destructured const.
+  // queued writes against the server. `render`/`updateAdminBar` no longer
+  // need to be injected (#264) -- every store mutation it makes notifies
+  // render() (subscribed above) on its own.
   const offlineSync = createOfflineSync({
-    store, adminFetch, isAuthRedirect, updateAdminBar, render,
+    store, adminFetch, isAuthRedirect,
     adminDataUrl: ADMIN_DATA_URL, adminLocationsUrl: ADMIN_LOCATIONS_URL, adminPlacesUrl: ADMIN_PLACES_URL,
     queueKey: QUEUE_KEY,
   });
@@ -98,10 +104,10 @@ import { createContentOverlays } from "./content-overlays.js";
   // instead of keeping six wrappers with zero callers.
 
   // ── Logbook table view (#235) -- entries table + search/filter/sort/
-  // collapse controls; see client/logbook-view.js. `render` is injected
-  // since it's main.js's own top-level composition, defined below via a
-  // hoisted function declaration so the reference is already valid here.
-  const logbookView = createLogbookView({ store, render });
+  // collapse controls; see client/logbook-view.js. `render` no longer
+  // needs to be injected (#264) -- every interaction here goes through a
+  // Store setter, which notifies render() (subscribed above) on its own.
+  const logbookView = createLogbookView({ store });
 
   function render() {
     headerChrome.updateDisciplinePicker();
@@ -205,8 +211,10 @@ import { createContentOverlays } from "./content-overlays.js";
   // ── Header chrome (#240) -- see client/header-chrome.js. Owns the
   // discipline picker popover, the header menu (Athlete Mode/theme
   // toggle/login live inside it), and theme persistence/toggling.
+  // `render`/`updateAdminBar` no longer need to be injected (#264) --
+  // store.setActiveType()/setLoggedIn() notify render() on their own.
   const headerChrome = createHeaderChrome({
-    store, render, adminFetch, isAuthRedirect, updateAdminBar,
+    store, adminFetch, isAuthRedirect,
     adminSettingsUrl: ADMIN_SETTINGS_URL,
     resetPyramidExpansion: () => pyramidView.resetExpansion(),
   });
@@ -226,10 +234,13 @@ import { createContentOverlays } from "./content-overlays.js";
 
   // ── Entry form (#238) -- see client/entry-form.js/client/place-picker.js.
   // Owns the Add/Edit modal's whole lifecycle (place picker + add-place
-  // modal, grade/status/date pickers, submit/delete).
+  // modal, grade/status/date pickers, submit/delete). `applyPendingQueue`/
+  // `updateAdminBar`/`render` no longer need to be injected (#264) --
+  // store.setEntries()/applyPendingQueue()/setLoggedIn() all notify
+  // render() (subscribed above) on their own.
   const entryForm = createEntryForm({
     store, openModal, closeModal, adminFetch, isAuthRedirect,
-    getQueue: offlineSync.getQueue, setQueue: offlineSync.setQueue, applyPendingQueue, updateAdminBar, render,
+    getQueue: offlineSync.getQueue, setQueue: offlineSync.setQueue,
     adminDataUrl: ADMIN_DATA_URL, adminLocationsUrl: ADMIN_LOCATIONS_URL, adminPlacesUrl: ADMIN_PLACES_URL,
   });
 
@@ -291,7 +302,7 @@ import { createContentOverlays } from "./content-overlays.js";
     // touches entries/places/locations together, and calling it before
     // places/locations were fetched would just have its optimistic pushes
     // overwritten by the fetch assignments above.
-    applyPendingQueue(offlineSync.getQueue(), store.getEntries(), store.getPlaces(), store.getLocations());
+    store.applyPendingQueue(offlineSync.getQueue());
 
     // Default to whichever type actually has entries -- boulder wins if
     // both/neither do, matching the entry form's own default type.
@@ -311,6 +322,12 @@ import { createContentOverlays } from "./content-overlays.js";
     const persistedDiscipline = adminAuth.getPersistedDiscipline();
     if (persistedDiscipline) store.setActiveType(persistedDiscipline);
 
+    // Every store.setX() call above already notified render() on its own
+    // (#264) -- while #app stayed display:none, so entirely invisible.
+    // This explicit final call is the one deliberate exception left in
+    // the app: it's what actually produces the first real paint, right
+    // after unhiding #app (a raw DOM write, not a Store mutation, so
+    // nothing would trigger this otherwise).
     document.getElementById("loading").style.display = "none";
     document.getElementById("app").style.display = "";
     render();

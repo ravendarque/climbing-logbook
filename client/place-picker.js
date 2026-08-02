@@ -12,12 +12,16 @@
 // introduced by this extraction, but this workflow's real, pre-existing
 // surface: it touches auth (adminFetch/isAuthRedirect, still main.js-local
 // -- #242 kept them there, real cross-cutting infrastructure the
-// composition root reasonably owns and hands out), the offline queue, and
-// the admin bar. openModal/closeModal (client/modal-utils.js, #241) stay
-// injected too, not imported -- unlike createDisclosure (stateless, safe
-// to call independently from anywhere), they share one `lastFocusedEl`
-// across the whole app, so every caller needs the same instance from
-// main.js's single createModalHelpers() call, not its own.
+// composition root reasonably owns and hands out) and the offline queue.
+// `applyPendingQueue`/`updateAdminBar` used to be injected here too, but
+// aren't anymore (#264) -- store.applyPendingQueue() and store.setLoggedIn()
+// are both Store mutations now, so main.js's render() (the Store's sole
+// subscriber) picks up the resulting change on its own; nothing here needs
+// to trigger it manually. openModal/closeModal (client/modal-utils.js,
+// #241) stay injected, not imported -- unlike createDisclosure (stateless,
+// safe to call independently from anywhere), they share one
+// `lastFocusedEl` across the whole app, so every caller needs the same
+// instance from main.js's single createModalHelpers() call, not its own.
 import { escapeHtml } from "./escape-html.js";
 import { COUNTRY_BY_NAME, COUNTRIES } from "./countries.js";
 import { createDisclosure } from "./modal-utils.js";
@@ -30,8 +34,6 @@ export function createPlacePicker({
   isAuthRedirect,
   getQueue,
   setQueue,
-  applyPendingQueue,
-  updateAdminBar,
   adminLocationsUrl,
   adminPlacesUrl,
 }) {
@@ -361,11 +363,10 @@ export function createPlacePicker({
     }
 
     if (authLapsed) {
-      store.setLoggedIn(false);
-      updateAdminBar();
+      store.setLoggedIn(false); // Store mutation -- notify() covers the admin-bar update (#264)
     }
     setQueue(queue);
-    applyPendingQueue(getQueue(), store.getEntries(), store.getPlaces(), store.getLocations());
+    store.applyPendingQueue(getQueue());
     setPlace(place.id);
     closeModal(addPlaceOverlay);
     addPlaceSubmitBtn.disabled = false;
