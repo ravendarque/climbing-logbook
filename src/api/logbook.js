@@ -1,4 +1,5 @@
 import { json } from "../lib/json.js";
+import { createKvResourceHandlers } from "../lib/kv-resource.js";
 
 export const KV_KEY = "logbook:entries";
 
@@ -61,57 +62,18 @@ function buildEntry(entry, id) {
   };
 }
 
-export async function handleGet(request, env) {
-  const raw = await env.LOGBOOK_KV.get(KV_KEY);
-  const body = raw ?? JSON.stringify({ entries: [] });
-  return new Response(body, {
-    headers: {
-      "Content-Type": "application/json",
-      "Cache-Control": "no-store",
-    },
-  });
-}
-
-// handlePost/handlePut/handleDelete are only ever reachable via
-// /logbook/api/admin/logbook, which Cloudflare Access gates at the edge —
-// an unauthenticated request never reaches this code.
-export async function handlePost(request, env) {
-  let entry;
-  try {
-    entry = await request.json();
-  } catch {
-    return json({ error: "Invalid JSON" }, 400);
-  }
-
-  const err = validateFields(entry);
-  if (err) return json({ error: err }, 400);
-
-  const raw = await env.LOGBOOK_KV.get(KV_KEY);
-  const { entries = [] } = raw ? JSON.parse(raw) : {};
-
-  // The client mints the ID (crypto.randomUUID()) so offline-queued writes
-  // keep a stable identity across the whole add/edit/sync lifecycle — the
-  // server never rewrites it, which would desync any already-queued edit.
-  const id = typeof entry.id === "string" && entry.id ? entry.id : crypto.randomUUID();
-
-  // With UUIDs, hitting an existing ID here is essentially always a retried
-  // sync of a write that already landed (e.g. the success response was lost
-  // to a flaky connection) rather than a genuine collision — treat it as an
-  // idempotent replay instead of erroring, so it doesn't get stuck in the
-  // offline queue forever.
-  if (entries.some(e => e.id === id)) {
-    return json({ entries }, 200);
-  }
-
-  entries.push(buildEntry(entry, id));
-  const updated = JSON.stringify({ entries });
-  await env.LOGBOOK_KV.put(KV_KEY, updated);
-
-  return new Response(updated, {
-    status: 201,
-    headers: { "Content-Type": "application/json" },
-  });
-}
+// handleGet/handlePost (#270) -- see src/lib/kv-resource.js for the
+// shared shape every KV-backed create+list resource follows.
+// handlePut/handleDelete stay logbook.js's own exports below -- entries
+// is the only resource with edit/delete (places/locations don't have
+// them yet, #159/#160), only reachable via /logbook/api/admin/logbook,
+// which Cloudflare Access gates at the edge.
+export const { handleGet, handlePost } = createKvResourceHandlers({
+  kvKey: KV_KEY,
+  resourceKey: "entries",
+  validateFields,
+  buildRecord: buildEntry,
+});
 
 export async function handlePut(request, env) {
   let entry;
