@@ -18,6 +18,7 @@ import { createEntryForm } from "./entry-form.js";
 import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
 import { createModalHelpers } from "./modal-utils.js";
+import { createOfflineSync } from "./offline-sync.js";
 
   // ── Config ───────────────────────────────────────────────────────────
   const DATA_URL = "/logbook/api/logbook";
@@ -73,106 +74,17 @@ import { createModalHelpers } from "./modal-utils.js";
   // argument object, not just by the time that function is later called.
   const { openModal, closeModal } = createModalHelpers();
 
-  // ── Offline queue ──────────────────────────────────────────────────
-  function getQueue() {
-    try { return JSON.parse(localStorage.getItem(QUEUE_KEY)) ?? []; }
-    catch { return []; }
-  }
-  function setQueue(queue) {
-    localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
-    updateSyncButton();
-  }
-  function updateSyncButton() {
-    const n = getQueue().length;
-    // A sync while logged out is a guaranteed no-op (Access rejects it) --
-    // same rule as addBtn/athleteModeBtn in updateAdminBar(). The pending
-    // entries themselves still show their own badges, so this doesn't hide
-    // the fact that changes are queued, just the button that can't act on
-    // them yet.
-    syncBtn.hidden = n === 0 || !store.isLoggedIn();
-    syncBtnLabel.textContent = n ? `Sync (${n})` : "Sync";
-  }
-
-  // One request for a single queue item, whichever kind it is -- kept
-  // separate from the replay loop below so that loop stays readable
-  // regardless of how many kinds of queueable write this app ends up
-  // with.
-  function syncOne(item) {
-    if (item.kind === "location") {
-      return adminFetch(ADMIN_LOCATIONS_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(item.record),
-      });
-    }
-    if (item.kind === "place") {
-      return adminFetch(ADMIN_PLACES_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(item.record),
-      });
-    }
-    return item.op === "delete"
-      ? adminFetch(`${ADMIN_DATA_URL}?id=${encodeURIComponent(item.record.id)}`, { method: "DELETE" })
-      : adminFetch(ADMIN_DATA_URL, {
-          method: item.op === "edit" ? "PUT" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(item.record),
-        });
-  }
-
-  async function syncPending() {
-    const queue = getQueue();
-    if (!queue.length) return;
-    syncBtn.disabled = true;
-    syncBtnIcon.classList.add("animate-spin");
-
-    try {
-      const remaining = [];
-      let lastEntries = null, lastPlaces = null, lastLocations = null;
-      for (let i = 0; i < queue.length; i++) {
-        const item = queue[i];
-        try {
-          const res = await syncOne(item);
-          if (res.status === 401 || isAuthRedirect(res)) {
-            // queue.slice(i), not [item] -- every item from here on was
-            // never attempted and must be preserved too, or a mid-sync
-            // 401/network failure silently drops the rest of the queue.
-            // This also naturally preserves a location/place/entry
-            // dependency chain's relative order in `remaining`, since
-            // they're always pushed onto the queue in that order to
-            // begin with (#158).
-            remaining.push(...queue.slice(i));
-            store.setLoggedIn(false);
-            updateAdminBar();
-            break;
-          }
-          if (!res.ok) { remaining.push(item); continue; }
-          const data = await res.json();
-          if (item.kind === "location") lastLocations = data.locations;
-          else if (item.kind === "place") lastPlaces = data.places;
-          else lastEntries = data.entries;
-        } catch {
-          remaining.push(...queue.slice(i));
-          break; // still offline — stop, preserve order for next attempt
-        }
-      }
-
-      setQueue(remaining);
-      if (lastLocations) store.setLocations(lastLocations);
-      if (lastPlaces) store.setPlaces(lastPlaces);
-      if (lastEntries) store.setEntries(lastEntries);
-      // Re-apply whatever's still queued on top of the just-confirmed
-      // server state, for any of the three arrays that changed.
-      if (lastLocations || lastPlaces || lastEntries) {
-        applyPendingQueue(getQueue(), store.getEntries(), store.getPlaces(), store.getLocations());
-      }
-    } finally {
-      syncBtn.disabled = false;
-      syncBtnIcon.classList.remove("animate-spin");
-      render();
-    }
-  }
+  // ── Offline sync (#262) -- see client/offline-sync.js. Owns the pending-
+  // write queue's localStorage read/write, the sync button, and replaying
+  // queued writes against the server. `render`/`updateAdminBar` are hoisted
+  // function declarations (defined below), so referencing them here is
+  // safe -- unlike openModal/closeModal above, only the *reference* needs
+  // to exist yet, not the value, since this isn't a destructured const.
+  const offlineSync = createOfflineSync({
+    store, adminFetch, isAuthRedirect, updateAdminBar, render,
+    adminDataUrl: ADMIN_DATA_URL, adminLocationsUrl: ADMIN_LOCATIONS_URL, adminPlacesUrl: ADMIN_PLACES_URL,
+    queueKey: QUEUE_KEY,
+  });
 
   // The "Data" section (placeOf/locationOf/entryLocation/activeGradeList/
   // filteredEntries/groupByPlace/sortEntries/getSort) that used to live
@@ -215,13 +127,11 @@ import { createModalHelpers } from "./modal-utils.js";
   const loginToggleBtn = document.getElementById("login-toggle-btn");
   const athleteModeBtn = document.getElementById("athlete-mode-btn");
   const addBtn      = document.getElementById("add-btn");
-  const syncBtn     = document.getElementById("sync-btn");
-  const syncBtnLabel = document.getElementById("sync-btn-label");
-  const syncBtnIcon  = document.getElementById("sync-btn-icon");
   // filter-btn/filter-panel, the grade-range slider, collapse-all-btn, and
   // search now live in client/logbook-view.js (#235). discipline-btn/
   // -popover and header-menu-btn/-popover/-bottom-row now live in
-  // client/header-chrome.js (#240).
+  // client/header-chrome.js (#240). sync-btn/-label/-icon now live in
+  // client/offline-sync.js (#262).
   const viewTabs = document.getElementById("view-tabs");
   const viewTabPyramid = document.getElementById("view-tab-pyramid");
   const panelLogbook = document.getElementById("panel-logbook");
@@ -249,7 +159,7 @@ import { createModalHelpers } from "./modal-utils.js";
     athleteModeBtn.hidden = !store.isLoggedIn();
     athleteModeBtn.setAttribute("aria-checked", String(adminAuth.isAthleteMode()));
     headerChrome.updateMenuDivider();
-    updateSyncButton();
+    offlineSync.updateSyncButton();
 
     // Grade Pyramid (a performance-reporting tab) requires BOTH being
     // logged in AND Athlete Mode on (#151) -- Athlete Mode alone isn't
@@ -290,9 +200,6 @@ import { createModalHelpers } from "./modal-utils.js";
   // fetchSettings() (Athlete Mode + persisted discipline), and the
   // login/logout + Athlete Mode toggle click handlers.
   const adminAuth = createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettingsUrl: ADMIN_SETTINGS_URL, updateAdminBar });
-
-  syncBtn.addEventListener("click", syncPending);
-  window.addEventListener("online", () => { if (store.isLoggedIn()) syncPending(); });
 
   // openModal/closeModal now live in client/modal-utils.js (#241) --
   // instantiated near the top of this file (see the comment by
@@ -346,7 +253,7 @@ import { createModalHelpers } from "./modal-utils.js";
   // modal, grade/status/date pickers, submit/delete).
   const entryForm = createEntryForm({
     store, openModal, closeModal, adminFetch, isAuthRedirect,
-    getQueue, setQueue, applyPendingQueue, updateAdminBar, render,
+    getQueue: offlineSync.getQueue, setQueue: offlineSync.setQueue, applyPendingQueue, updateAdminBar, render,
     adminDataUrl: ADMIN_DATA_URL, adminLocationsUrl: ADMIN_LOCATIONS_URL, adminPlacesUrl: ADMIN_PLACES_URL,
   });
 
@@ -405,7 +312,7 @@ import { createModalHelpers } from "./modal-utils.js";
     // touches entries/places/locations together, and calling it before
     // places/locations were fetched would just have its optimistic pushes
     // overwritten by the fetch assignments above.
-    applyPendingQueue(getQueue(), store.getEntries(), store.getPlaces(), store.getLocations());
+    applyPendingQueue(offlineSync.getQueue(), store.getEntries(), store.getPlaces(), store.getLocations());
 
     // Default to whichever type actually has entries -- boulder wins if
     // both/neither do, matching the entry form's own default type.
