@@ -228,9 +228,24 @@ describe("handleDelete", () => {
     expect((await res.json()).error).toBe("Missing required field: id");
   });
 
-  it("404s when the id doesn't exist", async () => {
+  it("is idempotent when the id doesn't exist, rather than erroring (#268)", async () => {
+    // Mirrors handlePost's duplicate-id idempotency -- the client's
+    // offline queue replays a delete unconditionally now, including for
+    // an entry that only ever existed as a queued, never-synced add.
     const res = await del("does-not-exist");
-    expect(res.status).toBe(404);
-    expect((await res.json()).error).toBe("Entry not found");
+    expect(res.status).toBe(200);
+    const { entries } = await res.json();
+    expect(entries).toEqual([]);
+  });
+
+  it("idempotent delete leaves other entries untouched", async () => {
+    const created = await (await post(VALID_ENTRY)).json();
+    const id = created.entries[0].id;
+
+    const res = await del("does-not-exist");
+    expect(res.status).toBe(200);
+    const { entries } = await res.json();
+    expect(entries).toEqual([created.entries[0]]);
+    expect(entries.find(e => e.id === id)).toBeDefined();
   });
 });

@@ -694,6 +694,21 @@ browser's `online` event. A `401`/redirect-to-login response during sync
 stops the replay and flips the UI back to logged-out state, rather than
 silently dropping the remaining queue.
 
+A genuine append-only event log, not "last write wins" (#268) --
+`client/entry-form.js`'s submit/delete handlers always push a new queue
+item rather than collapsing onto an existing one for the same entity id.
+Add-then-edit-then-delete on the same never-synced entry queues three
+separate events and replays all three, in order, on the next sync (create,
+update, delete) -- a few extra harmless requests, in exchange for removing
+the collapsing logic entirely and matching what `applyPendingQueue()`'s
+merge loop and `syncPending()`'s replay loop already did (both were always
+plain, unconditional per-item processing; #268 didn't need to touch
+either). The one thing that made unconditional replay actually safe:
+`handleDelete` (`src/api/logbook.js`) treats a missing id as an idempotent
+success (200, unchanged entries) rather than a 404 error, mirroring
+`handlePost`'s existing duplicate-id idempotency -- without that, deleting
+a queued-but-never-synced entry while online would 404 and get stuck.
+
 ## Frontend structure
 
 Client-side logic used to live entirely inline in `index.html`'s

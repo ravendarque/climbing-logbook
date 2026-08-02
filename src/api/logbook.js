@@ -148,7 +148,19 @@ export async function handleDelete(request, env) {
   const { entries = [] } = raw ? JSON.parse(raw) : {};
 
   const index = entries.findIndex(e => e.id === id);
-  if (index === -1) return json({ error: "Entry not found" }, 404);
+  // A missing id is treated as "already gone" rather than an error --
+  // mirrors handlePost's own duplicate-id idempotency above (#268). The
+  // client's offline queue replays a queued delete unconditionally now,
+  // including for an entry that only ever existed as a queued, never-
+  // synced add -- the server never saw it exist, so there's nothing to
+  // remove, and that's success, not failure. Also covers a retried
+  // delete whose success response was lost to a flaky connection, same
+  // as handlePost's case.
+  if (index === -1) {
+    return new Response(JSON.stringify({ entries }), {
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 
   entries.splice(index, 1);
   const updated = JSON.stringify({ entries });
