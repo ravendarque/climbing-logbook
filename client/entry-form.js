@@ -5,6 +5,12 @@
 // only to serve this form, so it's instantiated here rather than
 // injected from main.js, and every dependency it needs is simply passed
 // straight through from this module's own injected list.
+//
+// `render`/`updateAdminBar` used to be injected here too, but aren't
+// anymore (#264) -- store.setEntries()/store.setLoggedIn()/
+// store.applyPendingQueue() are all Store mutations, so main.js's
+// render() (the Store's sole subscriber) picks up every change here on
+// its own; nothing in this module needs to trigger it manually.
 import { escapeHtml } from "./escape-html.js";
 import { BOULDER_GRADES, LEAD_GRADES } from "./grade-data.js";
 import { flashLabel, sendLabel, nameLabel } from "./status.js";
@@ -19,9 +25,6 @@ export function createEntryForm({
   isAuthRedirect,
   getQueue,
   setQueue,
-  applyPendingQueue,
-  updateAdminBar,
-  render,
   adminDataUrl,
   adminLocationsUrl,
   adminPlacesUrl,
@@ -45,7 +48,7 @@ export function createEntryForm({
 
   const placePicker = createPlacePicker({
     store, openModal, closeModal, adminFetch, isAuthRedirect,
-    getQueue, setQueue, applyPendingQueue, updateAdminBar,
+    getQueue, setQueue,
     adminLocationsUrl, adminPlacesUrl,
   });
 
@@ -226,25 +229,22 @@ export function createEntryForm({
         return;
       }
       store.setEntries(data.entries);
-      applyPendingQueue(getQueue(), store.getEntries(), store.getPlaces(), store.getLocations());
+      store.applyPendingQueue(getQueue());
       closeModal(entryOverlay);
-      render();
     } catch (err) {
       // Offline, server unreachable, or the Access session lapsed (see
       // adminFetch above) — queue for later sync either way, and reflect
       // the change locally so it shows up right away.
       if (err.message === "not-authenticated") {
-        store.setLoggedIn(false);
-        updateAdminBar();
+        store.setLoggedIn(false); // Store mutation -- notify() covers the admin-bar update (#264)
       }
       const queue = getQueue();
       const existingIdx = queue.findIndex(item => item.kind === "entry" && item.record.id === entry.id);
       if (existingIdx !== -1) queue[existingIdx] = { kind: "entry", op: queue[existingIdx].op, record: entry };
       else queue.push({ kind: "entry", op, record: entry });
       setQueue(queue);
-      applyPendingQueue(getQueue(), store.getEntries(), store.getPlaces(), store.getLocations());
+      store.applyPendingQueue(getQueue());
       closeModal(entryOverlay);
-      render();
     }
 
     entrySubmitBtn.disabled = false;
@@ -268,7 +268,6 @@ export function createEntryForm({
       store.setEntries(store.getEntries().filter(e => e.id !== id));
       closeModal(entryOverlay);
       entryDeleteBtn.disabled = false;
-      render();
       return;
     }
 
@@ -283,9 +282,8 @@ export function createEntryForm({
         return;
       }
       store.setEntries(data.entries);
-      applyPendingQueue(getQueue(), store.getEntries(), store.getPlaces(), store.getLocations());
+      store.applyPendingQueue(getQueue());
       closeModal(entryOverlay);
-      render();
     } catch (err) {
       // Offline, server unreachable, or the Access session lapsed (see
       // adminFetch above) — queue for later sync either way. Keep the
@@ -293,15 +291,13 @@ export function createEntryForm({
       // rather than removing it locally; it only disappears once the
       // delete actually syncs.
       if (err.message === "not-authenticated") {
-        store.setLoggedIn(false);
-        updateAdminBar();
+        store.setLoggedIn(false); // Store mutation -- notify() covers the admin-bar update (#264)
       }
       const queue = getQueue().filter(item => !(item.kind === "entry" && item.record.id === id));
       queue.push({ kind: "entry", op: "delete", record: entrySnapshot ?? { id } });
       setQueue(queue);
-      applyPendingQueue(getQueue(), store.getEntries(), store.getPlaces(), store.getLocations());
+      store.applyPendingQueue(getQueue());
       closeModal(entryOverlay);
-      render();
     }
 
     entryDeleteBtn.disabled = false;

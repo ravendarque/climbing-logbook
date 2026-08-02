@@ -10,17 +10,17 @@
 //
 // A factory, same reasoning as every other #233/#261 module -- owns DOM
 // refs (the sync button) and a document-level `online` listener, so it
-// needs `store`/`updateAdminBar`/`render` injected rather than importing
-// them. `applyPendingQueue` is a plain import, not injected, since it's
-// stateless (same call as createDisclosure's #242 conversion).
-import { applyPendingQueue } from "./offline-queue.js";
-
+// needs `store` injected. `render`/`updateAdminBar` used to be injected
+// too, but aren't anymore (#264) -- every store mutation below (via
+// store.setLoggedIn()/setLocations()/setPlaces()/setEntries()/
+// applyPendingQueue()) notifies main.js's render() (the Store's sole
+// subscriber) on its own. applyPendingQueue itself moved from a plain
+// import here to a store.js method for the same reason (#264) -- see
+// store.js's own comment on why it lives there now.
 export function createOfflineSync({
   store,
   adminFetch,
   isAuthRedirect,
-  updateAdminBar,
-  render,
   adminDataUrl,
   adminLocationsUrl,
   adminPlacesUrl,
@@ -99,8 +99,7 @@ export function createOfflineSync({
             // they're always pushed onto the queue in that order to
             // begin with (#158).
             remaining.push(...queue.slice(i));
-            store.setLoggedIn(false);
-            updateAdminBar();
+            store.setLoggedIn(false); // Store mutation -- notify() covers the admin-bar update (#264)
             break;
           }
           if (!res.ok) { remaining.push(item); continue; }
@@ -121,12 +120,20 @@ export function createOfflineSync({
       // Re-apply whatever's still queued on top of the just-confirmed
       // server state, for any of the three arrays that changed.
       if (lastLocations || lastPlaces || lastEntries) {
-        applyPendingQueue(getQueue(), store.getEntries(), store.getPlaces(), store.getLocations());
+        store.applyPendingQueue(getQueue());
       }
+      // No trailing render() call needed (#264) -- every branch that
+      // changes anything render() would reflect already went through a
+      // Store mutation above, each notifying on its own. The only paths
+      // that reach here without any Store mutation (every queued item
+      // failed with a non-401, non-network error) are also paths where
+      // nothing about the rendered entries/places/locations actually
+      // changed, so there'd be nothing for a render() to pick up anyway.
     } finally {
+      // syncBtn's own disabled/spin state is plain DOM, not Store-driven
+      // -- reset directly, not via render().
       syncBtn.disabled = false;
       syncBtnIcon.classList.remove("animate-spin");
-      render();
     }
   }
 

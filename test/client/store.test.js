@@ -224,6 +224,86 @@ describe("collapsed", () => {
   });
 });
 
+describe("subscribe/notify (#264)", () => {
+  it("calls every subscriber once per mutating call", () => {
+    let calls = 0;
+    store.subscribe(() => { calls++; });
+    store.setSearch("digitalis");
+    expect(calls).toBe(1);
+    store.toggleCollapse("l1");
+    expect(calls).toBe(2);
+  });
+
+  it("calls every subscriber, not just the first one registered", () => {
+    let a = 0, b = 0;
+    store.subscribe(() => { a++; });
+    store.subscribe(() => { b++; });
+    store.setLoggedIn(true);
+    expect(a).toBe(1);
+    expect(b).toBe(1);
+  });
+
+  it("does not notify from a pure getter/read method", () => {
+    let calls = 0;
+    store.subscribe(() => { calls++; });
+    store.isLoggedIn();
+    store.getEntries();
+    store.hasActiveFilters();
+    expect(calls).toBe(0);
+  });
+
+  it("notifies on every mutating method", () => {
+    let calls = 0;
+    store.subscribe(() => { calls++; });
+    store.setEntries(ENTRIES);
+    store.setPlaces(PLACES);
+    store.setLocations(LOCATIONS);
+    store.setLoggedIn(true);
+    store.setActiveType("lead");
+    store.setActiveView("map");
+    store.setStatusFilter("send", true);
+    store.setGradeRange({ min: 0, max: 1 });
+    store.setSearch("x");
+    store.toggleSort("l1", "name");
+    store.toggleCollapse("l1");
+    store.toggleAllCollapsed(["l2"]);
+    store.setCollapsed(["l1"]);
+    store.clearFilters();
+    store.applyPendingQueue([]);
+    expect(calls).toBe(15);
+  });
+});
+
+describe("applyPendingQueue (#264)", () => {
+  beforeEach(() => {
+    store.setEntries(ENTRIES);
+    store.setPlaces(PLACES);
+    store.setLocations(LOCATIONS);
+  });
+
+  it("merges a queued add into entries", () => {
+    store.applyPendingQueue([{ kind: "entry", op: "add", record: { id: "e3", grade: "6A" } }]);
+    expect(store.getEntries().find(e => e.id === "e3")).toMatchObject({ _pending: true });
+  });
+
+  it("does not write the merged result to the entries cache", () => {
+    // Deliberate: only server-confirmed data (via setEntries) should ever
+    // persist to the cache -- see store.js's applyPendingQueue comment for
+    // why caching optimistic/pending state would be a real bug.
+    const before = storage.getItem("logbook_entries_cache");
+    store.applyPendingQueue([{ kind: "entry", op: "add", record: { id: "e3", grade: "6A" } }]);
+    expect(storage.getItem("logbook_entries_cache")).toBe(before);
+    expect(JSON.parse(before).find(e => e.id === "e3")).toBeUndefined();
+  });
+
+  it("notifies subscribers", () => {
+    let calls = 0;
+    store.subscribe(() => { calls++; });
+    store.applyPendingQueue([{ kind: "entry", op: "add", record: { id: "e3", grade: "6A" } }]);
+    expect(calls).toBe(1);
+  });
+});
+
 describe("join/filter/sort delegation to client/entries.js", () => {
   // Thin coverage only -- client/entries.js's own test file exhaustively
   // covers the underlying pure logic. This just proves the Store wires

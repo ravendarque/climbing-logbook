@@ -102,7 +102,23 @@ client/
 │                         that modal-utils.js's Escape/Tab-trap handler
 │                         needed them, when it's actually always done its
 │                         own independent getElementById lookups via its
-│                         own overlayIds array).
+│                         own overlayIds array). #264 (#219's original
+│                         reactivity concern, finally implemented) added
+│                         `store.subscribe(render)` right after Store
+│                         instantiation -- render() is now the Store's one
+│                         subscriber, so every view module below simply
+│                         mutates the Store and lets that subscription
+│                         pick up the re-render; ~20 manual render()/
+│                         updateAdminBar() calls that used to follow every
+│                         mutation across six different modules are gone.
+│                         `boot()`'s own trailing render() call is the one
+│                         deliberate holdout -- it's what actually reveals
+│                         the app after #app flips from display:none, a
+│                         raw DOM write no Store mutation would trigger.
+│                         Net effect on line count is close to a wash
+│                         (~335, barely above #263's ~320) since the
+│                         removed call sites are offset by the comments
+│                         explaining why they're gone.
 ├── store.js            Owns client-side app state (statusFilters, gradeRange,
 │                         activeType, activeView, search, sortByPlace,
 │                         collapsed, entries/places/locations, isLoggedIn)
@@ -119,17 +135,50 @@ client/
 │                         their one owning section of main.js rather than
 │                         joining the shared Store — see the file's own
 │                         top comment for why. Reactivity/subscriptions
-│                         (#219) are deliberately out of scope — a plain
-│                         store first.
+│                         (#219's original concern, deliberately deferred
+│                         at #234 -- "a plain store first") implemented at
+│                         #264: subscribe(fn)/notify() is a plain array of
+│                         callbacks, no library, called from the end of
+│                         every mutating method. Whole-store notify, not
+│                         per-field -- nothing in this app does partial
+│                         re-rendering, every render() everywhere is
+│                         already a full innerHTML rebuild. Synchronous,
+│                         not batched -- the app already assumes renders
+│                         happen synchronously (e.g. pyramid-view.js
+│                         re-renders then immediately re-queries/focuses
+│                         the freshly-rebuilt DOM node), and a handful of
+│                         redundant same-frame re-renders (e.g. during
+│                         boot(), while #app is still hidden) cost nothing
+│                         visible at this app's scale. Also now owns
+│                         applyPendingQueue() (wrapping the pure function
+│                         of the same name from client/offline-queue.js,
+│                         same pattern as placeOf/filteredEntries/etc.
+│                         above) -- moved in from being a plain import
+│                         main.js/entry-form.js/place-picker.js/
+│                         offline-sync.js each called directly, reaching
+│                         into the Store via getEntries()/getPlaces()/
+│                         getLocations() just to hand the live arrays to
+│                         an outside function (a Tell-Don't-Ask leak this
+│                         closes). Deliberately does NOT call setEntries/
+│                         setPlaces/setLocations (and so does NOT write to
+│                         the cache) -- only server-confirmed data should
+│                         ever persist there; caching optimistic/pending-
+│                         queue state risks a stale _pending/
+│                         _pendingDelete flag outliving the queue item
+│                         that created it.
 ├── logbook-view.js     Logbook tab: entries table + search/filter/sort/
 │                         collapse controls (#235, second piece of #233).
 │                         A factory (createLogbookView()), not bare
 │                         functions — unlike the pure-logic modules below,
 │                         it owns DOM refs and event listeners, so it needs
-│                         `store` and `render` injected (main.js's own
-│                         top-level composition — table interactions
-│                         trigger a full app re-render, same as before this
-│                         extraction). `createDisclosure` (client/
+│                         `store` injected. `render` used to be injected
+│                         too (main.js's own top-level composition,
+│                         triggered manually after every table
+│                         interaction) but isn't anymore (#264) -- every
+│                         interaction here goes through a Store setter,
+│                         which notifies main.js's render() (the Store's
+│                         sole subscriber) on its own. `createDisclosure`
+│                         (client/
 │                         modal-utils.js, #241) is a plain import here, not
 │                         injected -- it's stateless, so every module that
 │                         needs it imports it directly (#242 removed the
@@ -186,7 +235,13 @@ client/
 │                         here, not injected from main.js -- the picker
 │                         exists only to serve this form; entry-form.js
 │                         itself doesn't use createDisclosure or the
-│                         countries data, only place-picker.js does)
+│                         countries data, only place-picker.js does).
+│                         `applyPendingQueue`/`updateAdminBar`/`render`
+│                         used to be injected too, but aren't anymore
+│                         (#264) -- store.setEntries()/applyPendingQueue()/
+│                         setLoggedIn() are all Store mutations, so
+│                         main.js's render() (the Store's sole subscriber)
+│                         picks up every change here on its own
 ├── place-picker.js     The entry form's Place picker (#158) -- including
 │                         the "add a new place" modal, deliberately not
 │                         split into its own file: add-place-modal has
@@ -200,11 +255,15 @@ client/
 │                         (#242) -- both stateless, so every module that
 │                         needs them imports directly rather than taking
 │                         them as main.js pass-through params.
-│                         Widest injected-dependency list of any module so
-│                         far (auth, offline queue, admin bar, Store,
-│                         client/modal-utils.js's openModal/closeModal) --
-│                         not a smell introduced by the extraction, this
-│                         workflow's real pre-existing surface
+│                         `applyPendingQueue`/`updateAdminBar` used to be
+│                         injected too, dropped the same way as
+│                         entry-form.js's for the same reason (#264).
+│                         Injected-dependency list narrowed accordingly --
+│                         auth, the offline queue, Store, and
+│                         client/modal-utils.js's openModal/closeModal;
+│                         not a smell introduced by the original
+│                         extraction, this workflow's real pre-existing
+│                         surface
 ├── admin-auth.js       Auth state + the Athlete Mode setting (#239, sixth
 │                         piece of #233). Owns checkSession() (the
 │                         Cloudflare Access session check), fetchSettings()
@@ -236,7 +295,21 @@ client/
 │                         `createDisclosure` (client/modal-utils.js) is a
 │                         plain import, not injected -- same #242
 │                         pass-through removal as logbook-view.js/
-│                         place-picker.js
+│                         place-picker.js. `render`/`updateAdminBar`
+│                         used to be injected too, but aren't anymore
+│                         (#264) -- store.setActiveType()/setLoggedIn()
+│                         notify render() on their own. The one handler
+│                         that mutates both Store and non-Store state
+│                         (discipline switch, which also resets pyramid-
+│                         view.js's private lowerGradesExpanded) calls
+│                         resetPyramidExpansion() *before*
+│                         store.setActiveType(), not after -- setActiveType
+│                         synchronously triggers the subscribed render()
+│                         the moment it's called, so the non-Store reset
+│                         has to already be done by then or the
+│                         auto-triggered render would still show the
+│                         previous discipline's expanded lower-grades
+│                         section
 ├── modal-utils.js       Shared popover/modal utilities (#241, eighth and
 │                         final view-module piece of #233): createDisclosure
 │                         (trigger + panel, open/close/outside-click/
@@ -311,12 +384,17 @@ client/
 │                         (applyMapView, the drag/wheel listeners) stay in
 │                         main.js
 ├── offline-queue.js    applyPendingQueue -- the offline-queue merge logic,
-│                         refactored to take queue/entries/places/locations
-│                         as parameters (mutated in place) instead of
-│                         reading module globals directly, so it's testable
-│                         without a browser environment. Pure logic only --
-│                         see offline-sync.js below for the orchestration
-│                         half
+│                         taking queue/entries/places/locations as
+│                         parameters so it's testable without a browser
+│                         environment. Returns new { entries, places,
+│                         locations } rather than mutating the passed-in
+│                         ones (#264, changed from the original mutate-in-
+│                         place contract) -- store.js is now this
+│                         function's sole caller (wrapped as its own
+│                         applyPendingQueue() method), and needs a return
+│                         value to reassign its own closure variables to
+│                         and notify() subscribers from, the same pattern
+│                         every other Store mutation follows
 ├── offline-sync.js     getQueue/setQueue/syncOne/syncPending/
 │                         updateSyncButton (#262, first piece of #261's
 │                         follow-up to #233) -- the offline-queue
@@ -335,9 +413,18 @@ client/
 │                         list. A factory, same reasoning as the rest of
 │                         #233/#261's modules -- owns the sync button's
 │                         DOM refs and a document-level `online` listener.
-│                         `applyPendingQueue` (above) is a plain import,
-│                         not injected -- stateless, same #242 pattern as
-│                         createDisclosure
+│                         `render`/`updateAdminBar` used to be injected
+│                         too, but aren't anymore (#264) -- every store
+│                         mutation here (setLoggedIn()/setLocations()/
+│                         setPlaces()/setEntries()/applyPendingQueue())
+│                         notifies render() on its own; syncPending()'s
+│                         own trailing render() call was removed
+│                         accordingly (the sync button's own disabled/
+│                         spin reset is plain DOM, handled directly, not
+│                         via render()). `applyPendingQueue` moved from a
+│                         plain import here to a store.js method for the
+│                         same reason (#264) -- see store.js's own entry
+│                         above
 └── content-overlays.js Notes-view + "or not" footnote modals (#263,
                           second piece of #261's follow-up). Two small,
                           self-contained content overlays that don't
