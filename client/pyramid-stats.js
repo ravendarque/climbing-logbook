@@ -1,12 +1,11 @@
 // Extracted from client/main.js (#206). The Grade Pyramid's (#12) send-
 // counting and promotion-window logic -- takes entries as an explicit
 // parameter instead of reading main.js's module-global ALL_ENTRIES
-// directly. Only one external call site (pyramidSplitRows, from
-// renderPyramid) exists in main.js, so it keeps a thin same-named
-// wrapper there rather than touching renderPyramid itself.
-//
-// pyramidStatusIcon/pyramidBarRow/renderPyramid stay in main.js -- they're
-// presentation (SVG icon markup, CSS classes, DOM), not stats.
+// directly, so this stays testable without a DOM or the rest of the app.
+// pyramidSplitRows() is called from client/pyramid-view.js's own
+// pyramidSplitRows() wrapper (#237) -- pyramidStatusIcon/pyramidBarRow/
+// render() all moved there too, since they're presentation (SVG icon
+// markup, CSS classes, DOM), not stats.
 import { BOULDER_GRADES, LEAD_GRADES } from "./grade-data.js";
 
 // 8-4-2-1 is a widely used coaching heuristic (Hörst, Hampton -- see the
