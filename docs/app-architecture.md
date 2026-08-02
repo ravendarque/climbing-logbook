@@ -447,16 +447,48 @@ client/
 src/
 ├── index.js           Router — matches pathname+method, dispatches
 ├── api/
-│   ├── logbook.js      GET (public) / POST,PUT,DELETE (admin) — CRUD on entries
-│   ├── places.js        GET (public) / POST (admin) — create/read on places
+│   ├── logbook.js      GET (public) / POST,PUT,DELETE (admin) — CRUD on entries.
+│   │                     handleGet/handlePost delegate to lib/kv-resource.js
+│   │                     (#270); handlePut/handleDelete stay here since
+│   │                     entries is the only resource with edit/delete
+│   ├── places.js        GET (public) / POST (admin) — create/read on places.
+│   │                     handleGet/handlePost are lib/kv-resource.js's
+│   │                     output directly (#270) — this file is now just
+│   │                     validateFields/buildPlace plus that wiring
 │   ├── locations.js     GET (public) / POST (admin) — create/read on locations;
 │   │                       edit/delete deliberately not yet implemented for
-│   │                       either (#159, #160)
-│   ├── settings.js      GET (public) / PATCH (admin) — Athlete Mode setting
-│   ├── admin-session.js  GET — "am I authenticated" check for the frontend
+│   │                       either (#159, #160). Same lib/kv-resource.js
+│   │                       delegation as places.js
+│   ├── settings.js      GET (public) / PATCH (admin) — Athlete Mode setting.
+│   │                     GET passes the raw KV string straight through
+│   │                     rather than parsing then re-stringifying it (#270,
+│   │                     same reasoning as kv-resource.js's own GET); PATCH
+│   │                     uses the shared json() helper for its success
+│   │                     response now too
+│   ├── admin-session.js  GET — "am I authenticated" check for the frontend.
+│   │                       Uses the shared json() helper (#270)
 │   └── admin-login.js    GET — redirect target that kicks off Access's login flow
 └── lib/
-    └── json.js         Tiny JSON Response helper
+    ├── json.js         Tiny JSON Response helper
+    └── kv-resource.js  createKvResourceHandlers({ kvKey, resourceKey,
+                           validateFields, buildRecord }) (#270) — the
+                           handleGet/handlePost shape logbook.js/places.js/
+                           locations.js each hand-rolled identically until
+                           now: fetch from KV, default to an empty list,
+                           Cache-Control: no-store (GET); parse -> validate
+                           -> fetch existing -> resolve a client-minted or
+                           generated id -> idempotent-replay check on a
+                           collision -> push + persist -> 201 (POST). Found
+                           while auditing src/ to the same rigor already
+                           applied to client/ (#233-#268) -- the exact
+                           duplication test/handlers.test.js's own
+                           parameterized places/locations suite already
+                           called out and fixed, just never carried over
+                           to the handlers themselves. Only covers create
+                           + list, not edit/delete (only entries has those,
+                           and forcing a 4th shape in ahead of #159/#160's
+                           design would be building ahead of settled
+                           requirements)
 
 public/logbook/
 ├── index.html          Markup (styled via Tailwind utility classes) + a

@@ -4,10 +4,15 @@ export const KV_KEY = "logbook:settings";
 
 const DEFAULT_SETTINGS = { athleteMode: false, activeDiscipline: "boulder" };
 
+// Passes the raw KV string straight through rather than parsing then
+// re-stringifying it (#270, matching src/lib/kv-resource.js's handleGet
+// -- `json()` isn't used here for the same reason it isn't there: it'd
+// require parsing `raw` into an object just to hand it straight back to
+// JSON.stringify).
 export async function handleGetSettings(request, env) {
   const raw = await env.LOGBOOK_KV.get(KV_KEY);
-  const settings = raw ? JSON.parse(raw) : DEFAULT_SETTINGS;
-  return new Response(JSON.stringify(settings), {
+  const body = raw ?? JSON.stringify(DEFAULT_SETTINGS);
+  return new Response(body, {
     headers: {
       "Content-Type": "application/json",
       "Cache-Control": "no-store",
@@ -57,7 +62,5 @@ export async function handlePatchSettings(request, env) {
 
   await env.LOGBOOK_KV.put(KV_KEY, JSON.stringify(settings));
 
-  return new Response(JSON.stringify(settings), {
-    headers: { "Content-Type": "application/json" },
-  });
+  return json(settings);
 }
