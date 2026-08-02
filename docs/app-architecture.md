@@ -54,11 +54,15 @@ client/
 │                         pure-logic modules live alongside it as they're
 │                         pulled out, each with its own Vitest coverage
 │                         under test/client/. All five originally-scoped
-│                         extraction candidates are now done (#206);
-│                         DOM/browser-dependent code (rendering, the
-│                         offline queue's localStorage-touching half, map
-│                         loading/interaction wiring) stays here. State
-│                         itself now lives behind store.js (#234) — main.js
+│                         extraction candidates are now done (#206), and
+│                         the remaining DOM/browser-dependent code that
+│                         justified that plan (rendering, the offline
+│                         queue's localStorage-touching half, map loading/
+│                         interaction wiring) has since gained real modules
+│                         of its own too, via #233/#261 -- rendering is
+│                         the one piece still genuinely here, as
+│                         render()/boot()'s own composition-root glue.
+│                         State itself now lives behind store.js (#234) — main.js
 │                         calls store.* rather than reading/writing
 │                         module-scope globals directly. #233's
 │                         modularization epic (#234-#242) reduced it from
@@ -67,14 +71,24 @@ client/
 │                         isAuthRedirect, store + modal-helpers + every
 │                         view module's instantiation (each wired with only
 │                         the collaborators it actually needs), render(),
-│                         the offline sync button, and boot(). #242 (the
-│                         epic's last piece) also removed six dead
-│                         bare-named wrapper functions left over from
-│                         #206 (only filteredEntries()/placeOf() still had
-│                         real callers by then -- both inlined to call
-│                         store.* directly) and extracted the last
-│                         remaining un-modularized data, COUNTRIES/
-│                         COUNTRY_BY_NAME, into client/countries.js.
+│                         and boot(). #242 (the epic's last piece) also
+│                         removed six dead bare-named wrapper functions
+│                         left over from #206 (only filteredEntries()/
+│                         placeOf() still had real callers by then -- both
+│                         inlined to call store.* directly) and extracted
+│                         the last remaining un-modularized data,
+│                         COUNTRIES/COUNTRY_BY_NAME, into
+│                         client/countries.js. #261 (a direct follow-up,
+│                         picking up loose ends #233 itself flagged as
+│                         deferred rather than done) further trimmed it to
+│                         ~340 lines: #262 moved the offline-queue
+│                         orchestration (getQueue/setQueue/syncOne/
+│                         syncPending/updateSyncButton, and the sync
+│                         button's own DOM refs/listeners) out to
+│                         client/offline-sync.js, the same "DOM/browser-
+│                         dependent code stays here until it gets a real
+│                         module" pattern every other #233/#261 extraction
+│                         followed.
 ├── store.js            Owns client-side app state (statusFilters, gradeRange,
 │                         activeType, activeView, search, sortByPlace,
 │                         collapsed, entries/places/locations, isLoggedIn)
@@ -277,17 +291,34 @@ client/
 │                         localStorage/progress UI) and DOM-touching code
 │                         (applyMapView, the drag/wheel listeners) stay in
 │                         main.js
-└── offline-queue.js    applyPendingQueue -- the offline-queue merge logic,
-                          refactored to take queue/entries/places/locations
-                          as parameters (mutated in place) instead of
-                          reading module globals directly, so it's testable
-                          without a browser environment. getQueue/setQueue/
-                          syncOne/syncPending stay in main.js -- they need
-                          localStorage, which the Vitest pool (a Workers
-                          runtime, not a browser) doesn't provide; same
+├── offline-queue.js    applyPendingQueue -- the offline-queue merge logic,
+│                         refactored to take queue/entries/places/locations
+│                         as parameters (mutated in place) instead of
+│                         reading module globals directly, so it's testable
+│                         without a browser environment. Pure logic only --
+│                         see offline-sync.js below for the orchestration
+│                         half
+└── offline-sync.js     getQueue/setQueue/syncOne/syncPending/
+                          updateSyncButton (#262, first piece of #261's
+                          follow-up to #233) -- the offline-queue
+                          *orchestration* half: localStorage read/write,
+                          the sync button, and replaying queued writes
+                          against the server. Needed localStorage, which
+                          the Vitest pool (a Workers runtime, not a
+                          browser) doesn't provide, so it stayed in
+                          main.js from #206 all the way through #233 --
                           "not testable without solving a browser
-                          environment too" reasoning as DOM-heavy code,
-                          tracked by #218
+                          environment too" reasoning as other DOM-heavy
+                          code, tracked loosely by #218 but never actually
+                          picked up as its own #233 sub-issue. Covered by
+                          e2e/offline-sync.spec.js (#249) rather than
+                          Vitest, same as every DOM-heavy module in this
+                          list. A factory, same reasoning as the rest of
+                          #233/#261's modules -- owns the sync button's
+                          DOM refs and a document-level `online` listener.
+                          `applyPendingQueue` (above) is a plain import,
+                          not injected -- stateless, same #242 pattern as
+                          createDisclosure
 
 src/
 ├── index.js           Router — matches pathname+method, dispatches
