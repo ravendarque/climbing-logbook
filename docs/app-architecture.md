@@ -88,7 +88,21 @@ client/
 │                         client/offline-sync.js, the same "DOM/browser-
 │                         dependent code stays here until it gets a real
 │                         module" pattern every other #233/#261 extraction
-│                         followed.
+│                         followed. #263 (composition-root polish) trimmed
+│                         it further to ~320 lines: moved the notes/
+│                         footnote overlays out to client/content-
+│                         overlays.js, moved the citations/evidence
+│                         overlays' close wiring into client/pyramid-
+│                         view.js (which already owned opening them),
+│                         collapsed boot()'s three near-identical fetch-
+│                         with-cache-fallback blocks into one
+│                         loadResource() helper, and removed two
+│                         completely dead DOM-ref constants
+│                         (entryOverlay/addPlaceOverlay -- a stale claim
+│                         that modal-utils.js's Escape/Tab-trap handler
+│                         needed them, when it's actually always done its
+│                         own independent getElementById lookups via its
+│                         own overlayIds array).
 ├── store.js            Owns client-side app state (statusFilters, gradeRange,
 │                         activeType, activeView, search, sortByPlace,
 │                         collapsed, entries/places/locations, isLoggedIn)
@@ -147,11 +161,16 @@ client/
 │                         as logbook-view.js
 ├── pyramid-view.js     Grade Pyramid tab (#12) -- #237, fourth piece of
 │                         #233. A factory, same reasoning as logbook-view.js
-│                         /map-view.js. `openModal` is injected (from
-│                         client/modal-utils.js, #241) -- the citations/
-│                         evidence-tier overlays this module opens are
-│                         generic modals owned by that shared helper, not
-│                         this one. Also now owns
+│                         /map-view.js. `openModal`/`closeModal` are
+│                         injected (from client/modal-utils.js, #241) --
+│                         the underlying focus-trap/Escape-to-close
+│                         mechanism is generic and shared, but this module
+│                         owns the citations/evidence-tier overlays' full
+│                         open *and* close lifecycle itself (#263 moved
+│                         their close wiring here from main.js, joining
+│                         the open wiring that already lived here -- one
+│                         owner for both instead of split across two
+│                         files). Also now owns
 │                         lowerGradesExpanded as fully private state
 │                         (exposes resetExpansion() for the discipline
 │                         picker's cross-module reset -- now a narrow
@@ -298,27 +317,45 @@ client/
 │                         without a browser environment. Pure logic only --
 │                         see offline-sync.js below for the orchestration
 │                         half
-└── offline-sync.js     getQueue/setQueue/syncOne/syncPending/
-                          updateSyncButton (#262, first piece of #261's
-                          follow-up to #233) -- the offline-queue
-                          *orchestration* half: localStorage read/write,
-                          the sync button, and replaying queued writes
-                          against the server. Needed localStorage, which
-                          the Vitest pool (a Workers runtime, not a
-                          browser) doesn't provide, so it stayed in
-                          main.js from #206 all the way through #233 --
-                          "not testable without solving a browser
-                          environment too" reasoning as other DOM-heavy
-                          code, tracked loosely by #218 but never actually
-                          picked up as its own #233 sub-issue. Covered by
-                          e2e/offline-sync.spec.js (#249) rather than
-                          Vitest, same as every DOM-heavy module in this
-                          list. A factory, same reasoning as the rest of
-                          #233/#261's modules -- owns the sync button's
-                          DOM refs and a document-level `online` listener.
-                          `applyPendingQueue` (above) is a plain import,
-                          not injected -- stateless, same #242 pattern as
-                          createDisclosure
+├── offline-sync.js     getQueue/setQueue/syncOne/syncPending/
+│                         updateSyncButton (#262, first piece of #261's
+│                         follow-up to #233) -- the offline-queue
+│                         *orchestration* half: localStorage read/write,
+│                         the sync button, and replaying queued writes
+│                         against the server. Needed localStorage, which
+│                         the Vitest pool (a Workers runtime, not a
+│                         browser) doesn't provide, so it stayed in
+│                         main.js from #206 all the way through #233 --
+│                         "not testable without solving a browser
+│                         environment too" reasoning as other DOM-heavy
+│                         code, tracked loosely by #218 but never actually
+│                         picked up as its own #233 sub-issue. Covered by
+│                         e2e/offline-sync.spec.js (#249) rather than
+│                         Vitest, same as every DOM-heavy module in this
+│                         list. A factory, same reasoning as the rest of
+│                         #233/#261's modules -- owns the sync button's
+│                         DOM refs and a document-level `online` listener.
+│                         `applyPendingQueue` (above) is a plain import,
+│                         not injected -- stateless, same #242 pattern as
+│                         createDisclosure
+└── content-overlays.js Notes-view + "or not" footnote modals (#263,
+                          second piece of #261's follow-up). Two small,
+                          self-contained content overlays that don't
+                          belong to any other view module -- notes shows
+                          one entry's free-text notes field (its
+                          `.notes-btn` click delegation lives here too,
+                          not in logbook-view.js, since this module's only
+                          stake in the table is reading store.getEntries()
+                          by id -- same "reacts to a click on markup it
+                          doesn't own" relationship main.js's own
+                          `.edit-btn` delegation has with entry-form.js);
+                          the footnote is fully static. Citations/
+                          evidence-tier overlays are deliberately NOT
+                          here -- see pyramid-view.js above, which already
+                          owned opening them and now owns closing them too
+                          (#263). No return value -- pure wiring, nothing
+                          else in main.js needs this module's instance
+                          for anything afterward.
 
 src/
 ├── index.js           Router — matches pathname+method, dispatches

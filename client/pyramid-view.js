@@ -2,10 +2,13 @@
 // modularization epic. Reads through the Store module (#234); builds on
 // client/pyramid-stats.js's pure send-counting/promotion logic (#231).
 //
-// A factory, same reasoning as logbook-view.js/map-view.js. `openModal`
-// is injected (from client/modal-utils.js, #241) -- the citations/
-// evidence-tier overlays this module opens are generic modals owned by
-// that shared helper, not this one.
+// A factory, same reasoning as logbook-view.js/map-view.js. `openModal`/
+// `closeModal` are injected (from client/modal-utils.js, #241) -- the
+// underlying focus-trap/Escape-to-close mechanism is generic and shared,
+// but this module owns the citations/evidence-tier overlays' full open
+// *and* close lifecycle itself (#263 moved their close wiring here from
+// main.js, joining the open wiring that already lived here -- one owner
+// for both, rather than split across two files).
 import { escapeHtml } from "./escape-html.js";
 import { gradeColor } from "./grade-data.js";
 import {
@@ -24,9 +27,15 @@ const PYRAMID_ICON_MISSING  = `<circle cx="12" cy="12" r="9"></circle><path d="M
 const PYRAMID_ICON_PROMOTED = `<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"></path>`;
 const PYRAMID_GOLD = "#eab308"; // achievement/celebratory accent (#131) -- literal hex, matching the existing good/missing icons' style rather than a CSS var
 
-export function createPyramidView({ store, openModal }) {
+export function createPyramidView({ store, openModal, closeModal }) {
   const citationsOverlay = document.getElementById("citations-overlay");
   const evidenceOverlay = document.getElementById("evidence-overlay");
+
+  document.getElementById("citations-close").addEventListener("click", () => closeModal(citationsOverlay));
+  citationsOverlay.addEventListener("click", e => { if (e.target === citationsOverlay) closeModal(citationsOverlay); });
+
+  document.getElementById("evidence-close").addEventListener("click", () => closeModal(evidenceOverlay));
+  evidenceOverlay.addEventListener("click", e => { if (e.target === evidenceOverlay) closeModal(evidenceOverlay); });
 
   // Sticks at false until toggled -- Pyramid-local UI state, not Store
   // state (#234's own scoping note: this was deliberately left out of
@@ -234,7 +243,7 @@ export function createPyramidView({ store, openModal }) {
 
   return {
     render,
-    // Called externally by the discipline picker (still in main.js,
+    // Called externally by the discipline picker (client/header-chrome.js,
     // #240) when switching disciplines -- lowerGradesExpanded is
     // module-private now, so it can't reach in and reset the field
     // directly the way the pre-#237 code did.
