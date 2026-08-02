@@ -2,14 +2,13 @@
 // the World Map tab (#17, #168, #169) -- zoom, pan, clamping, and screen-
 // to-map-space conversion. Every function takes its inputs (current view,
 // map height, viewport aspect, a DOMRect-shaped object) as explicit
-// parameters instead of reading main.js's module-global mapView/mapData/
+// parameters instead of reading module-global mapView/mapData/
 // mapNarrowQuery directly, so none of it needs a browser environment to
-// test. main.js keeps thin same-named wrapper functions that close over
-// those globals, so its existing call sites are unchanged.
-//
-// Loading (fetch/localStorage/progress UI) and DOM-touching code
+// test. client/map-view.js (#236) keeps thin same-named wrapper functions
+// that close over those globals -- moved there along with all the
+// loading (fetch/localStorage/progress UI) and DOM-touching code
 // (applyMapView, applyPinScale, getMapSvg, the drag/wheel event
-// listeners) stay in main.js -- not geometry.
+// listeners) this file deliberately never owned.
 
 export const MAP_WIDTH = 960; // fixed across all variants -- only height varies per variant, see generate-world-map.mjs
 export const MAP_NARROW_ASPECT = 3 / 4; // width:height on narrow (<=600px) viewports -- taller than wide
