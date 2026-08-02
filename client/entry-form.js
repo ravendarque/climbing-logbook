@@ -234,14 +234,20 @@ export function createEntryForm({
     } catch (err) {
       // Offline, server unreachable, or the Access session lapsed (see
       // adminFetch above) — queue for later sync either way, and reflect
-      // the change locally so it shows up right away.
+      // the change locally so it shows up right away. Always appended,
+      // never collapsed onto an existing queue item for this id (#268) --
+      // a genuine event log (add, then edit, then edit again all queue
+      // separately) replays in order and resolves correctly, since
+      // syncPending() already replays every queue item unconditionally
+      // and applyPendingQueue() already processes them as a sequential
+      // reducer; queue length in this app is always small enough that a
+      // few extra harmless replayed requests cost nothing worth the
+      // collapsing logic's complexity.
       if (err.message === "not-authenticated") {
         store.setLoggedIn(false); // Store mutation -- notify() covers the admin-bar update (#264)
       }
       const queue = getQueue();
-      const existingIdx = queue.findIndex(item => item.kind === "entry" && item.record.id === entry.id);
-      if (existingIdx !== -1) queue[existingIdx] = { kind: "entry", op: queue[existingIdx].op, record: entry };
-      else queue.push({ kind: "entry", op, record: entry });
+      queue.push({ kind: "entry", op, record: entry });
       setQueue(queue);
       store.applyPendingQueue(getQueue());
       closeModal(entryOverlay);
@@ -260,17 +266,12 @@ export function createEntryForm({
     const id = editingId;
     const entrySnapshot = store.getEntries().find(e => e.id === id);
 
-    // If this entry only ever existed as a queued, unsynced "add", there's
-    // nothing on the server to delete — just drop it from the queue.
-    const queuedAdd = getQueue().find(item => item.kind === "entry" && item.record.id === id && item.op === "add");
-    if (queuedAdd) {
-      setQueue(getQueue().filter(item => !(item.kind === "entry" && item.record.id === id)));
-      store.setEntries(store.getEntries().filter(e => e.id !== id));
-      closeModal(entryOverlay);
-      entryDeleteBtn.disabled = false;
-      return;
-    }
-
+    // Always attempts the real DELETE now, even for an entry that only
+    // ever existed as a queued, never-synced add (#268) -- the old
+    // queuedAdd short-circuit avoided a doomed round-trip back when
+    // handleDelete 404d on a missing id; now that it's idempotent
+    // (src/api/logbook.js, #268), a delete for something the server
+    // never saw just no-ops successfully, same as any other delete.
     try {
       const res = await adminFetch(`${adminDataUrl}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
       if (isAuthRedirect(res)) throw new Error("not-authenticated");
@@ -282,6 +283,13 @@ export function createEntryForm({
         return;
       }
       store.setEntries(data.entries);
+      // The delete is now the authoritative final word on this entity --
+      // purge any queue items still referencing it (most notably a
+      // queued "add" that never got a chance to sync) before reapplying
+      // whatever's left. Without this, a still-queued add would survive
+      // and get replayed on the next sync, resurrecting an entry the
+      // user just explicitly deleted.
+      setQueue(getQueue().filter(item => !(item.kind === "entry" && item.record.id === id)));
       store.applyPendingQueue(getQueue());
       closeModal(entryOverlay);
     } catch (err) {
@@ -289,11 +297,15 @@ export function createEntryForm({
       // adminFetch above) — queue for later sync either way. Keep the
       // entry visible (marked pending-delete via applyPendingQueue)
       // rather than removing it locally; it only disappears once the
-      // delete actually syncs.
+      // delete actually syncs. Appended, not filtered against prior
+      // items for this id (#268) -- a genuine event log (e.g. a queued
+      // add followed by a queued delete for the same never-synced entry)
+      // replays in order and resolves correctly: the add creates it,
+      // then the delete removes it, on the next sync.
       if (err.message === "not-authenticated") {
         store.setLoggedIn(false); // Store mutation -- notify() covers the admin-bar update (#264)
       }
-      const queue = getQueue().filter(item => !(item.kind === "entry" && item.record.id === id));
+      const queue = getQueue();
       queue.push({ kind: "entry", op: "delete", record: entrySnapshot ?? { id } });
       setQueue(queue);
       store.applyPendingQueue(getQueue());
