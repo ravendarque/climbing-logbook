@@ -19,6 +19,7 @@ import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
 import { createModalHelpers } from "./modal-utils.js";
 import { createOfflineSync } from "./offline-sync.js";
+import { createContentOverlays } from "./content-overlays.js";
 
   // ── Config ───────────────────────────────────────────────────────────
   const DATA_URL = "/logbook/api/logbook";
@@ -114,7 +115,7 @@ import { createOfflineSync } from "./offline-sync.js";
   // ── Grade Pyramid (#12) -- see client/pyramid-view.js (#237). Owns
   // rendering the pyramid, the health-card message, and the citation/
   // evidence-tier modal triggers.
-  const pyramidView = createPyramidView({ store, openModal });
+  const pyramidView = createPyramidView({ store, openModal, closeModal });
 
   // ── World Map (#236) -- see client/map-view.js. Owns rendering, variant
   // loading/switching, zoom/pan/drag, and the pin popover.
@@ -137,20 +138,6 @@ import { createOfflineSync } from "./offline-sync.js";
   const panelLogbook = document.getElementById("panel-logbook");
   const panelPyramid = document.getElementById("panel-pyramid");
   const panelMap = document.getElementById("panel-map");
-
-  // entryOverlay/addPlaceOverlay are still referenced here too (not just
-  // client/entry-form.js and client/place-picker.js, which each look them
-  // up independently) -- Modal helpers' Escape/Tab-trap handler below
-  // needs direct references to every overlay in the app, entry-form's
-  // included.
-  const entryOverlay   = document.getElementById("entry-overlay");
-  const addPlaceOverlay = document.getElementById("add-place-overlay");
-
-  const notesOverlay  = document.getElementById("notes-overlay");
-  const notesModalText = document.getElementById("notes-modal-text");
-  const footnoteOverlay = document.getElementById("footnote-overlay");
-  const citationsOverlay = document.getElementById("citations-overlay");
-  const evidenceOverlay = document.getElementById("evidence-overlay");
 
   // ── Admin bar ────────────────────────────────────────────────────────
   function updateAdminBar() {
@@ -208,18 +195,12 @@ import { createOfflineSync } from "./offline-sync.js";
   // createDisclosure is a plain import there too, used directly by every
   // module that needs it rather than passed through from here.
 
-  document.getElementById("notes-close").addEventListener("click", () => closeModal(notesOverlay));
-  notesOverlay.addEventListener("click", e => { if (e.target === notesOverlay) closeModal(notesOverlay); });
-
-  document.getElementById("footnote-trigger").addEventListener("click", () => openModal(footnoteOverlay));
-  document.getElementById("footnote-close").addEventListener("click", () => closeModal(footnoteOverlay));
-  footnoteOverlay.addEventListener("click", e => { if (e.target === footnoteOverlay) closeModal(footnoteOverlay); });
-
-  document.getElementById("citations-close").addEventListener("click", () => closeModal(citationsOverlay));
-  citationsOverlay.addEventListener("click", e => { if (e.target === citationsOverlay) closeModal(citationsOverlay); });
-
-  document.getElementById("evidence-close").addEventListener("click", () => closeModal(evidenceOverlay));
-  evidenceOverlay.addEventListener("click", e => { if (e.target === evidenceOverlay) closeModal(evidenceOverlay); });
+  // ── Content overlays (#263) -- see client/content-overlays.js. Owns the
+  // notes-view and "or not" footnote modals. Citations/evidence-tier
+  // overlays' close wiring moved into client/pyramid-view.js instead
+  // (#263) -- it already owned opening them and looked up their DOM refs
+  // itself, so it's now the sole owner of both halves.
+  createContentOverlays({ store, openModal, closeModal });
 
   // ── Header chrome (#240) -- see client/header-chrome.js. Owns the
   // discipline picker popover, the header menu (Athlete Mode/theme
@@ -230,21 +211,16 @@ import { createOfflineSync } from "./offline-sync.js";
     resetPyramidExpansion: () => pyramidView.resetExpansion(),
   });
 
+  // .notes-btn's own click handling now lives in client/content-overlays.js
+  // (#263) -- this delegation bridges logbook-view.js's rendered table
+  // markup to entry-form.js's API, a genuine cross-module concern that
+  // belongs in the composition root, unlike notes (a self-contained
+  // overlay with no other module's involvement).
   document.addEventListener("click", e => {
     const editBtn = e.target.closest(".edit-btn");
     if (editBtn) {
       const entry = store.getEntries().find(x => x.id === editBtn.dataset.editId);
       if (entry) entryForm.open(entry);
-      return;
-    }
-
-    const notesBtn = e.target.closest(".notes-btn");
-    if (notesBtn) {
-      const entry = store.getEntries().find(x => x.id === notesBtn.dataset.notesId);
-      if (entry) {
-        notesModalText.textContent = entry.notes;
-        openModal(notesOverlay);
-      }
     }
   });
 
@@ -268,16 +244,25 @@ import { createOfflineSync } from "./offline-sync.js";
   }
 
   // ── Boot ─────────────────────────────────────────────────────────────
+  // Fetch + parse + ok-check ceremony shared by all three of boot()'s
+  // resource loads below (#263) -- each caller still handles its own
+  // failure differently (entries aborts boot on a cache miss, places/
+  // locations silently fall back), so only the genuinely-identical part
+  // moved here, not the differing behavior around it.
+  async function loadResource(url, key) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return data[key] ?? [];
+  }
+
   async function boot() {
     const sessionPromise = adminAuth.checkSession();
     const settingsPromise = adminAuth.fetchSettings();
 
     // Load data (fall back to last-cached entries when offline)
     try {
-      const res = await fetch(DATA_URL);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      store.setEntries(data.entries ?? []);
+      store.setEntries(await loadResource(DATA_URL, "entries"));
     } catch (err) {
       if (!store.loadEntriesFromCache()) {
         document.getElementById("loading").innerHTML =
@@ -292,18 +277,12 @@ import { createOfflineSync } from "./offline-sync.js";
     // that fails to resolve, so entries/table rendering degrades gracefully
     // rather than hard-failing).
     try {
-      const res = await fetch(PLACES_URL);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      store.setPlaces(data.places ?? []);
+      store.setPlaces(await loadResource(PLACES_URL, "places"));
     } catch {
       store.loadPlacesFromCache();
     }
     try {
-      const res = await fetch(LOCATIONS_URL);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      store.setLocations(data.locations ?? []);
+      store.setLocations(await loadResource(LOCATIONS_URL, "locations"));
     } catch {
       store.loadLocationsFromCache();
     }
