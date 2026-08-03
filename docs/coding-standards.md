@@ -139,10 +139,16 @@ quietly reversed without someone re-deciding on purpose.
 - **Validate URL schemes server-side** for any user-submitted URL field
   (e.g. `video`) — restrict to `http:`/`https:`. Client-side validation
   alone is not a trust boundary.
-- **Timing-safe comparison for secrets** — never a plain `===` on a token,
-  key, or signature.
-- **Rate-limit authentication attempts** against a shared secret or login
-  endpoint.
+- **If a shared-secret auth mechanism is ever reintroduced** (this app's
+  original design had one — a shared `ADMIN_KEY` compared via an
+  HMAC-signed session cookie — before it was replaced by Cloudflare
+  Access, which now gates all admin/write paths at the edge, entirely
+  outside this app's own code): use timing-safe comparison, never a plain
+  `===`, on the token/key/signature, and rate-limit attempts against the
+  endpoint that checks it. Not an active constraint on today's code —
+  there is currently no secret comparison or login endpoint of this
+  app's own to apply either rule to — kept here so the rule isn't lost if
+  the auth model ever changes again.
 - **Client-generated UUIDs for entity IDs**, not derived/slugified strings.
   A previous slug-based ID scheme caused a real desync bug between the
   offline queue and server-side collision-renaming; UUIDs make collisions
