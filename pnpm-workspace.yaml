@@ -3,3 +3,20 @@ allowBuilds:
   esbuild: true
   sharp: true
   workerd: true
+
+# undici (transitive, via miniflare -- wrangler/@cloudflare/vitest-pool-workers
+# dev/test tooling only, never shipped to the deployed app) has three
+# known vulnerabilities below 7.29.0 (GHSA advisories re: cookie-attribute
+# injection, response desync via retry interceptor, cross-user info
+# disclosure via cache directives). Pinned here rather than waiting for
+# miniflare to bump its own dependency, since a full wrangler/miniflare
+# upgrade pulls in a large workerd binary rebuild.
+#
+# Deliberately constrained to the 7.x line, not just '>=7.29.0' -- an
+# unconstrained floor let pnpm resolve undici@8.x, a major version
+# miniflare never declared support for and doesn't get exercised by
+# anything but this override. Getting the security fix shouldn't also
+# mean silently forcing a major bump on a dependency this project
+# doesn't control the compatibility contract for.
+overrides:
+  undici: '>=7.29.0 <8.0.0'
