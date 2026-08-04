@@ -94,8 +94,16 @@ quietly reversed without someone re-deciding on purpose.
 
 ### Tooling
 - **pnpm, not npm/npx.** `pnpm install`, `pnpm exec <bin>`, `pnpm-lock.yaml`
-  committed. New projects need `pnpm.onlyBuiltDependencies` in `package.json`
-  for packages with postinstall scripts (e.g. `wrangler`'s `workerd`).
+  committed. New projects need an explicit build-script allow-list for
+  packages with postinstall scripts (e.g. `wrangler`'s `workerd`) — pnpm
+  blocks any dependency's install scripts by default unless allow-listed.
+  This project's list lives in `pnpm-workspace.yaml`'s `allowBuilds` field
+  (the current pnpm convention — `package.json`'s `onlyBuiltDependencies`
+  is the older location and no longer where this repo's list lives).
+  This is a real supply-chain control, not boilerplate: it's what stands
+  between a compromised dependency and its postinstall script running
+  arbitrary code during `pnpm install` — don't blanket-approve a package
+  here without knowing why it needs to run a build script.
 - **Feature branches + PRs, always** — no direct commits/pushes to `main`,
   even for small fixes, even from an agent. Merge only after review or
   explicit confirmation a dependent step (e.g. infra apply) succeeded.
