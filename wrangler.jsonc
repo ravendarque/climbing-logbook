@@ -3,12 +3,24 @@
   "name": "climbing-logbook",
   "main": "src/index.js",
   "compatibility_date": "2026-07-01",
+  // Better Auth (#20) depends on Node.js built-ins (e.g. node:crypto) not
+  // natively available in the Workers runtime otherwise.
+  "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
   "assets": {
     "directory": "./public"
   },
   "kv_namespaces": [
     { "binding": "LOGBOOK_KV", "id": "47bd45146334450f82ca7dcb69c34b15" }
+  ],
+  // Better Auth (#20) + the eventual multi-tenant app data (#21) -- id is a
+  // placeholder until infra/d1.tf's Terraform apply provisions the real
+  // database and infra.yml's sync step (same mechanism as the KV id below)
+  // rewrites it. Placeholder is harmless for local dev/Vitest -- both run
+  // against a local Miniflare-simulated D1, which doesn't need the id to
+  // correspond to a real remote database.
+  "d1_databases": [
+    { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook", "database_id": "PLACEHOLDER-set-by-infra-yml", "migrations_dir": "migrations" }
   ],
   "routes": [
     { "pattern": "ravendarque.com/logbook*", "zone_name": "ravendarque.com" }

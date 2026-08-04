@@ -33,11 +33,11 @@ this was treated as settled.
 only protects the custom route, so the default `*.workers.dev` preview URL
 would otherwise be a live, unprotected bypass around it.
 
-## Authentication: Cloudflare Access
+## Authentication: Cloudflare Access (single-user, transitional) + Better Auth (multi-user, #8)
 
-Write endpoints (`/logbook/api/admin/*`) are gated by a Cloudflare Access
-Application + Policy at Cloudflare's edge — unauthenticated requests never
-reach the Worker for those paths. Read endpoints (`/logbook/api/logbook`,
+Write endpoints (`/logbook/api/admin/*`) are still gated by a Cloudflare
+Access Application + Policy at Cloudflare's edge — unauthenticated requests
+never reach the Worker for those paths. Read endpoints (`/logbook/api/logbook`,
 GET only) stay public.
 
 This replaced an earlier design (a single shared `ADMIN_KEY` string,
@@ -50,13 +50,30 @@ calls with a generic 403 "Authentication error" regardless of permissions —
 a confirmed, open upstream issue. Use a classic user-owned API token (My
 Profile → API Tokens) for anything touching Access/Zero Trust.
 
+**Access is transitional, not the long-term auth mechanism** — epic #8 is
+turning this into a multi-user service, and Access is architecturally the
+wrong tool for self-service signup (it gates known identities the account
+owner manages, not a customer-facing registration flow). #20 added
+[Better Auth](https://www.better-auth.com/) (`src/lib/auth.js`), mounted at
+`/logbook/api/auth/*` with a real D1-backed user/session/account schema
+(`migrations/0001_better_auth_core.sql`, generated via `pnpm run
+auth:generate` — see that script and `auth.config.mjs`'s header comment,
+not hand-written) and email/password only (no GitHub/Google OAuth — this
+project's BDS-compliance policy, see `docs/ui-stack-evaluation.md`'s
+"Ethical/supply-chain check" section). Access and Better Auth coexist for
+now: Access still gates the legacy KV-backed `/admin/*` app-data routes,
+Better Auth owns only its own `/auth/*` routes. They don't overlap yet —
+#297/#298 (D1-backed app data + the production cutover) is what actually
+retires Access, at which point this section should be rewritten rather than
+patched further.
+
 ## Terraform-managed resources
 
 Everything provisionable is declarative and idempotent via Terraform in
 `infra/`:
 
 - `cloudflare_zero_trust_access_application` + `cloudflare_zero_trust_access_policy`
-  — the Access gate on `/logbook/api/admin*`
+  — the Access gate on `/logbook/api/admin*` (transitional, see above)
 - `cloudflare_workers_kv_namespace` — the KV namespace backing logbook data
   (one-time-imported into state from a pre-Terraform namespace via a
   declarative `import` block in `infra/kv.tf`; the block itself was
@@ -64,10 +81,14 @@ Everything provisionable is declarative and idempotent via Terraform in
   leaving it in place would have broken a from-scratch disaster-recovery
   apply, since it'd try importing an ID that no longer exists instead of
   just creating a fresh namespace)
+- `cloudflare_d1_database` (`infra/d1.tf`, #20) — backs Better Auth now,
+  and the rest of the app's multi-tenant data once #21/#297 land
 
 **Intentionally excluded from Terraform**, by design: the admin login email
-(a `sensitive` variable, supplied via a repo secret — never committed) and
-the logbook's actual data (KV values, not KV infrastructure).
+(a `sensitive` variable, supplied via a repo secret — never committed), the
+logbook's actual data (KV/D1 values, not the infrastructure holding them),
+and `BETTER_AUTH_SECRET` (a Worker runtime secret, not something Terraform
+itself consumes — see "Required secrets/variables" below).
 
 ### State backend
 
@@ -126,20 +147,29 @@ first `infra.yml` run after introducing it will fail if the state bucket
 doesn't exist yet (expected; nothing is applied before that failure). Order
 of operations for a from-scratch setup: merge → bootstrap → re-run infra.
 
-### KV namespace id sync
+### KV namespace / D1 database id sync
 
-`wrangler.jsonc`'s `kv_namespaces[0].id` must reference the *current*
-Terraform-managed namespace. `infra.yml` reads `terraform output -raw
-kv_namespace_id` after apply and rewrites `wrangler.jsonc` if it changed,
-then pushes a branch, opens a PR, labels it `release: none`, waits for the
-required `check-label` status, and merges it itself (squash, `[skip ci]` on
-the merge commit to avoid retriggering itself via the lockfile-in-`infra/**`
-path match). It used to commit straight to `main` directly, but the
-repo's branch-protection ruleset (`bypass_actors: []`, no exceptions —
-see #179/#181) rejects any direct push regardless of actor, so this has to
-go through a PR. Fully bot-driven, no human review gate — the same
-zero-touch automation level the direct-commit version had, just routed
-through the required PR mechanism.
+`wrangler.jsonc`'s `kv_namespaces[0].id` and `d1_databases[0].database_id`
+must reference the *current* Terraform-managed resources. `infra.yml` reads
+`terraform output -raw kv_namespace_id` / `-raw d1_database_id` after apply
+and rewrites `wrangler.jsonc` if either changed (two separate steps, same
+regex-replace mechanism), then pushes a branch, opens a PR, labels it
+`release: none`, waits for the required `check-label` status, and merges it
+itself (squash, `[skip ci]` on the merge commit to avoid retriggering itself
+via the lockfile-in-`infra/**` path match). It used to commit straight to
+`main` directly, but the repo's branch-protection ruleset (`bypass_actors:
+[]`, no exceptions — see #179/#181) rejects any direct push regardless of
+actor, so this has to go through a PR. Fully bot-driven, no human review
+gate — the same zero-touch automation level the direct-commit version had,
+just routed through the required PR mechanism.
+
+`wrangler.jsonc`'s `d1_databases[0].database_id` ships with a
+`"PLACEHOLDER-set-by-infra-yml"` value until this sync step's first real
+run after `infra/d1.tf` merges to `main` and applies — harmless for local
+dev/Vitest (both run against a local Miniflare-simulated D1, which doesn't
+need the id to correspond to a real remote database), but `wrangler deploy`
+against production needs the real id, which is why this sync has to happen
+before a real deploy, not just before local development.
 
 `deploy.yml` no longer triggers from any `main`-branch push at all (it's
 tag-gated — see `docs/versioning.md`), so a changed KV id is never picked up
@@ -250,14 +280,24 @@ covering production deploys already has Workers Scripts: Edit and Workers
 KV Storage: Edit account-wide (see permission table below), which covers
 the `-preview` script and its namespace too.
 
+**Known gap (#20):** unlike the KV preview namespace (manually bootstrapped
+once, see above), there's no preview D1 database yet — the `env.preview`
+block in `wrangler.jsonc` has no `d1_databases` entry. This doesn't break
+`preview.yml` itself (nothing in that workflow's CI run exercises
+`/logbook/api/auth/*`, it just builds and uploads a version), but a real
+PR preview visiting an auth route would fail at runtime with an undefined
+binding until a preview D1 is bootstrapped the same one-time manual way the
+preview KV namespace was.
+
 ## Required secrets/variables
 
 | Name | Type | Purpose |
 |---|---|---|
 | `CLOUDFLARE_API_TOKEN` | secret | User-owned token; see permission table below |
 | `TF_STATE_ACCESS_KEY_ID` / `TF_STATE_SECRET_ACCESS_KEY` | secrets | R2-specific S3-compatible credentials (Object Read & Write), for Terraform's state backend — a distinct credential type from `CLOUDFLARE_API_TOKEN`, created via R2's own "Manage R2 API Tokens" |
-| `ADMIN_EMAIL` | secret | Terraform variable — the email allowed to log in via Access |
+| `ADMIN_EMAIL` | secret | Terraform variable — the email allowed to log in via Access (transitional, see "Authentication" above) |
 | `CLOUDFLARE_ACCOUNT_ID` | **variable** (not secret — not confidential) | `4f63d74beb21402b8622361525ab4868` |
+| `BETTER_AUTH_SECRET` | secret (Worker runtime, not Terraform) | Better Auth's session-signing secret (#20). One-time manual `wrangler secret put BETTER_AUTH_SECRET` — not CI-managed, doesn't need to rotate on every deploy, same "bootstrapped once, outside Terraform" treatment as the R2 state bucket. Local dev uses `.dev.vars` (gitignored) instead. |
 
 ### `CLOUDFLARE_API_TOKEN` permissions
 
@@ -268,6 +308,7 @@ Account-scoped (the Cloudflare account above):
 - Workers Scripts: Edit
 - Workers KV Storage: Edit
 - Workers R2 Storage: Edit
+- D1: Edit (#20 — provisioning `infra/d1.tf` and applying migrations)
 - Access: Apps: Edit
 - Access: Policies: Edit
 - Zero Trust: Edit

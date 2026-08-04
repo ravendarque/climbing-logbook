@@ -4,6 +4,7 @@ import { handleGet as handleGetLocations, handlePost as handlePostLocations } fr
 import { handleGetSettings, handlePatchSettings } from "./api/settings.js";
 import { handleAdminSession } from "./api/admin-session.js";
 import { handleAdminLogin } from "./api/admin-login.js";
+import { createAuth } from "./lib/auth.js";
 
 // This Worker is only ever invoked for requests that don't match a static
 // asset under public/ (Workers Static Assets serves those directly) — so
@@ -17,6 +18,14 @@ export default {
   async fetch(request, env) {
     const { pathname } = new URL(request.url);
     const method = request.method;
+
+    // Better Auth (#20) -- the only prefix-matched route in this router;
+    // every other route below is an exact pathname match. Better Auth owns
+    // its own internal routing under this basePath (signup/login/logout/
+    // session-check/etc, see src/lib/auth.js) via a single handler.
+    if (pathname.startsWith("/logbook/api/auth/")) {
+      return createAuth(env).handler(request);
+    }
 
     if (pathname === "/logbook/api/logbook" && method === "GET") {
       return handleGet(request, env);

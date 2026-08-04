@@ -555,10 +555,20 @@ sees requests that *don't* match a static file — in practice, exactly the
 | `/logbook/api/admin/settings` | PATCH | Access-gated | `handlePatchSettings` |
 | `/logbook/api/admin/session` | GET | Access-gated | `handleAdminSession` |
 | `/logbook/api/admin/login` | GET | Access-gated | `handleAdminLogin` (redirect) |
+| `/logbook/api/auth/*` | any | Better Auth's own (#20) | `createAuth(env).handler` |
 
 Read and write are on **separate path prefixes** — not just separate HTTP
 methods on one path — because Cloudflare Access gates by path, not by
 method. See `docs/infra-architecture.md` for the Access configuration.
+
+`/logbook/api/auth/*` is the one **prefix**-matched route here — every
+other route above is an exact `pathname ===` match. Better Auth owns its
+own internal routing under that prefix (sign-up/sign-in/sign-out/session-
+check/etc, see `src/lib/auth.js`) via a single handler function; this
+router only needs to recognize the prefix and hand off. It's deliberately
+*not* Access-gated — Access can't do the self-service signup this route
+exists for (see `docs/infra-architecture.md`'s "Authentication" section)
+and Better Auth does its own authentication/authorization internally.
 
 ## Data model
 
@@ -675,7 +685,11 @@ response was probably lost to a flaky connection) rather than an error.
 ## Authentication flow
 
 There's no session cookie or login form in this app's own code — Cloudflare
-Access owns the entire authentication flow.
+Access owns the entire authentication flow. This describes that existing,
+still-in-use flow; it hasn't changed in this PR. Better Auth (#20, see
+"Request routing" above) exists alongside it at `/logbook/api/auth/*`, but
+nothing in `client/` calls it yet — the frontend (real login/signup UI,
+`adminFetch`/`isAuthRedirect` changes) is #22's job, not this one's.
 
 - **Checking login state:** the frontend `fetch`es
   `/logbook/api/admin/session`. If Access lets the request through, it's

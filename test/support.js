@@ -22,6 +22,26 @@ export async function resetKv() {
   await Promise.all(ALL_KV_KEYS.map(key => env.LOGBOOK_KV.delete(key)));
 }
 
+// D1 (#20) is isolated per test file the same way KV is (see resetKv()
+// above), but unlike KV -- one shared blob per resource, trivially
+// overwritten -- D1 rows accumulate across every it() in a file (e.g. two
+// signups in the same file would otherwise collide on a real unique-email
+// constraint), so any file with more than one auth test needs this between
+// them. `better-auth.session_token` cookies from an earlier test also stop
+// resolving to anything once their session row is gone, same as a real
+// logout would do.
+const AUTH_TABLES = ["session", "account", "verification", "user"];
+
+export async function resetAuthTables() {
+  // Delete in dependency order (child rows first) -- session/account both
+  // reference user via ON DELETE CASCADE, so this isn't strictly required
+  // for correctness, but avoids relying on cascade semantics in a reset
+  // helper whose only job is "leave every table empty."
+  for (const table of AUTH_TABLES) {
+    await env.LOGBOOK_DB.prepare(`DELETE FROM "${table}"`).run();
+  }
+}
+
 export function fetchJson(path, init) {
   return exports.default.fetch(`${BASE_URL}${path}`, init);
 }
