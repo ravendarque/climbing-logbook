@@ -1,9 +1,10 @@
 /**
- * Regenerates the COUNTRIES dataset embedded in public/logbook/index.html
- * (see #153) from the `world-countries` package. Prints a JS array literal
- * to stdout — paste it in manually, replacing the existing COUNTRIES
- * constant. Not wired into the build; countries change rarely enough that
- * on-demand regeneration is simpler than a live pipeline.
+ * Regenerates the COUNTRIES dataset in client/countries.js (see #153;
+ * moved out of index.html into its own module at #242) from the
+ * `world-countries` package. Prints a JS array literal to stdout — paste
+ * it in manually, replacing that file's existing COUNTRIES constant. Not
+ * wired into the build; countries change rarely enough that on-demand
+ * regeneration is simpler than a live pipeline.
  *
  * Deliberate overrides applied regardless of what the source package says,
  * per #153/#6 -- see scripts/lib/country-exclusions.mjs (shared with
@@ -36,6 +37,6 @@ const list = countries
   }))
   .sort((a, b) => a.name.localeCompare(b.name));
 
-const lines = list.map(c => `    { name: ${JSON.stringify(c.name)}, flag: ${JSON.stringify(c.flag)}, lat: ${c.lat}, lng: ${c.lng} },`);
+const lines = list.map(c => `  { name: ${JSON.stringify(c.name)}, flag: ${JSON.stringify(c.flag)}, lat: ${c.lat}, lng: ${c.lng} },`);
 
-console.log(`  const COUNTRIES = [\n${lines.join("\n")}\n  ];`);
+console.log(`export const COUNTRIES = [\n${lines.join("\n")}\n];`);

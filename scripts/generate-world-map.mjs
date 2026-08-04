@@ -80,9 +80,9 @@
  *
  * Each variant's JSON only carries {name, x, y} per country ("pins"), not
  * the full name/flag/lat/lng record -- those don't change per rotation,
- * so they stay in index.html's own bundled COUNTRIES const (source of
- * truth: generate-countries.mjs) rather than being duplicated three times
- * over. The exclusion list (scripts/lib/country-exclusions.mjs) is
+ * so they stay in client/countries.js's bundled COUNTRIES const (source
+ * of truth: generate-countries.mjs) rather than being duplicated three
+ * times over. The exclusion list (scripts/lib/country-exclusions.mjs) is
  * shared with generate-countries.mjs rather than each script keeping its
  * own copy, so the two can't drift apart and produce a pin here with no
  * COUNTRIES entry to join it against on the client.
@@ -124,8 +124,8 @@ const VARIANTS = [
 ];
 
 // Each variant's exact UNCOMPRESSED byte size, printed below for pasting
-// into index.html's MAP_VARIANT_SIZES -- see that constant's own comment
-// for why the client needs this baked in rather than reading it off the
+// into client/map-view.js's MAP_VARIANT_SIZES -- see that constant's own
+// comment for why the client needs this baked in rather than reading it off the
 // response (the server always serves these gzipped to a real browser
 // fetch, which strips Content-Length; the byte count fetch()'s stream
 // actually measures client-side is the DEcompressed size regardless, so
@@ -222,5 +222,5 @@ for (const { name, centralMeridian } of VARIANTS) {
   console.log(`Wrote ${outPath} (${(byteSize / 1024).toFixed(1)} KB)`);
 }
 
-console.log(`\nPaste into index.html's MAP_VARIANT_SIZES:`);
-console.log(`  const MAP_VARIANT_SIZES = ${JSON.stringify(sizes)};`);
+console.log(`\nPaste into client/map-view.js's MAP_VARIANT_SIZES:`);
+console.log(`const MAP_VARIANT_SIZES = ${JSON.stringify(sizes)};`);
