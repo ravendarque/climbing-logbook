@@ -1,0 +1,19 @@
+name: Set up pnpm + Node + install
+description: >
+  pnpm/action-setup + actions/setup-node (Node 22, pnpm cache) +
+  pnpm install --frozen-lockfile -- the identical post-checkout setup
+  every workflow that runs this project's JS toolchain needs. Checkout
+  itself deliberately stays out of this composite action and in each
+  calling workflow instead -- release.yml's checkout needs a specific
+  ref, fetch-depth, and PAT token (#197) that the other workflows don't,
+  so it can't be folded into a one-size-fits-all step here.
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: pnpm
+    - run: pnpm install --frozen-lockfile
+      shell: bash

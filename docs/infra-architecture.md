@@ -97,6 +97,18 @@ machinery, not infra-provisioning, and runs on every PR rather than on
 | `infra.yml` | `pull_request`/`push` on `infra/**`, plus manual | `terraform plan` on PRs, `apply` on merge to `main`. Also syncs `wrangler.jsonc`'s KV namespace id from Terraform's output (see below), opening and self-merging a PR if it changed. |
 | `deploy.yml` | `push` of a `vX.Y.Z` tag, plus manual | `wrangler deploy` — the Worker script and static assets. Tied to releases, not every merge — see `docs/versioning.md`. |
 
+**Shared pnpm/Node setup**: `deploy.yml`, `e2e.yml`, `preview.yml`,
+`release.yml`, and `test.yml` all need the same post-checkout setup
+(`pnpm/action-setup` + `actions/setup-node` at Node 22 with pnpm's cache +
+`pnpm install --frozen-lockfile`) — factored into a local composite action,
+`.github/actions/setup-node-pnpm/`, rather than five copies that could
+silently drift apart. `actions/checkout` itself deliberately stays
+**outside** the composite action and in each calling workflow — `release.yml`'s
+checkout needs a specific `ref`, `fetch-depth: 0`, and the
+`PROJECT_STATUS_PAT` token (see below), genuinely different from the other
+four workflows' plain checkout, so it can't be folded into a one-size-fits-all
+step.
+
 **Why three separate workflows, not one:** `bootstrap-state.yml` must be
 independently re-runnable with no dependency on Terraform even existing yet.
 `infra.yml` and `deploy.yml` are kept independent (not chained) so that an
