@@ -76,11 +76,7 @@ jobs:
           # minting a new secret. See #197.
           token: ${{ secrets.PROJECT_STATUS_PAT }}
 
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup-node-pnpm
 
       - name: Calculate new version from latest tag
         id: version
