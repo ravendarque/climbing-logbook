@@ -545,17 +545,28 @@ sees requests that *don't* match a static file — in practice, exactly the
 
 | Path | Method | Auth | Handler |
 |---|---|---|---|
-| `/logbook/api/logbook` | GET | public | `handleGet` |
-| `/logbook/api/admin/logbook` | POST/PUT/DELETE | Access-gated | `handlePost`/`handlePut`/`handleDelete` |
-| `/logbook/api/places` | GET | public | `handleGet` (places.js) |
-| `/logbook/api/admin/places` | POST | Access-gated | `handlePost` (places.js) |
-| `/logbook/api/locations` | GET | public | `handleGet` (locations.js) |
-| `/logbook/api/admin/locations` | POST | Access-gated | `handlePost` (locations.js) |
-| `/logbook/api/settings` | GET | public | `handleGetSettings` |
-| `/logbook/api/admin/settings` | PATCH | Access-gated | `handlePatchSettings` |
-| `/logbook/api/admin/session` | GET | Access-gated | `handleAdminSession` |
-| `/logbook/api/admin/login` | GET | Access-gated | `handleAdminLogin` (redirect) |
+| `/logbook/api/logbook` | GET | public, session-scoped | `handleGet` |
+| `/logbook/api/admin/logbook` | POST/PUT/DELETE | Access-gated (edge) + Better Auth session (#297) | `handlePost`/`handlePut`/`handleDelete` |
+| `/logbook/api/places` | GET | public, session-scoped | `handleGet` (places.js) |
+| `/logbook/api/admin/places` | POST | Access-gated (edge) + Better Auth session (#297) | `handlePost` (places.js) |
+| `/logbook/api/locations` | GET | public, session-scoped | `handleGet` (locations.js) |
+| `/logbook/api/admin/locations` | POST | Access-gated (edge) + Better Auth session (#297) | `handlePost` (locations.js) |
+| `/logbook/api/settings` | GET | public, session-scoped | `handleGetSettings` |
+| `/logbook/api/admin/settings` | PATCH | Access-gated (edge) + Better Auth session (#297) | `handlePatchSettings` |
+| `/logbook/api/admin/session` | GET | Access-gated (edge) only | `handleAdminSession` |
+| `/logbook/api/admin/login` | GET | Access-gated (edge) only | `handleAdminLogin` (redirect) |
 | `/logbook/api/auth/*` | any | Better Auth's own (#20) | `createAuth(env).handler` |
+
+"Public, session-scoped" means the route is reachable without a session,
+but the *response* isn't the same for everyone — see "Data model" above.
+The four D1-backed admin routes have **two independent gates** stacked:
+Access at Cloudflare's edge (unchanged since before #297) and, now,
+Better Auth's own session check inside the Worker itself (#297) — the
+first genuine in-Worker authorization this app has ever had, and the
+actual multi-tenant isolation boundary; Access alone was never going to
+scope writes per-user. `/admin/session` and `/admin/login` stay
+Access-only, untouched by #297 — see "Authentication flow" below for why
+that's a deliberate, temporary state, not an inconsistency.
 
 Read and write are on **separate path prefixes** — not just separate HTTP
 methods on one path — because Cloudflare Access gates by path, not by
@@ -572,12 +583,16 @@ and Better Auth does its own authentication/authorization internally.
 
 ## Data model
 
-Three KV keys hold three collections, each a single JSON blob (plus a
-fourth, `logbook:settings`, documented below):
+D1-backed (#21/#297), scoped per-user by `user_id` — every row belongs to
+exactly one account, resolved server-side from the caller's Better Auth
+session (see "Authentication flow" below), never taken from the request
+body. `migrations/0003_app_data.sql` is the source of truth for the real
+schema (columns, FKs, `CHECK` constraints); this section documents the
+JSON wire format the API actually speaks, which stays deliberately
+unchanged from the app's original design even though the storage
+underneath it isn't KV anymore.
 
-- `logbook:entries` — `{ entries: Entry[] }`
-- `logbook:places` — `{ places: Place[] }`
-- `logbook:locations` — `{ locations: Location[] }`
+The wire format:
 
 ```
 Location {
@@ -594,15 +609,19 @@ Location {
 
 Place {
   id: string,         // client-generated crypto.randomUUID()
-  locationId: string, // references Location.id
+  locationId: string, // references Location.id -- #297 checks this
+                       // location actually belongs to the same user, not
+                       // just that the row exists (the cross-user
+                       // isolation boundary)
   area: string,       // "" if unset, never null -- one row per area/
                        // sector within a location
 }
 
 Entry {
   id: string,        // client-generated crypto.randomUUID()
-  placeId: string,   // references Place.id -- no server-side referential
-                      // check that the place actually exists (#158; see
+  placeId: string,   // references Place.id -- #297 checks this place
+                      // actually belongs to the same user, same
+                      // reasoning as Place.locationId above (#158; see
                       // that issue for why location/area/country moved
                       // from per-entry fields to real shared entities)
   name, grade: string,
@@ -615,12 +634,16 @@ Entry {
 }
 ```
 
-`buildEntry()`/`buildPlace()`/`buildLocation()` (`src/api/logbook.js`,
-`src/api/places.js`, `src/api/locations.js`) reconstruct these fixed
-shapes from the incoming payload on every write rather than spreading the
-raw request body into storage — a deliberate allowlist that keeps
-arbitrary extra fields (or prototype-pollution-style keys) from ever
-reaching KV.
+`type`/`status` on the wire map directly onto D1's `discipline_id`/
+`status_id` columns (#21's lookup tables use the same slugs as natural
+keys) — a column rename at the boundary, not a value translation.
+
+`buildRow()`/`rowToJson()` (`src/api/logbook.js`, `src/api/places.js`,
+`src/api/locations.js`, alongside the shared `src/lib/d1-resource.js`
+factory) reconstruct these fixed shapes from the incoming payload on
+every write rather than spreading the raw request body into storage — a
+deliberate allowlist that keeps arbitrary extra fields (or prototype-
+pollution-style keys) from ever reaching D1.
 
 **Why a place is its own entity, not fields duplicated onto every entry
 at that place:** the earlier per-entry `place`/`area`/`country` strings
@@ -654,10 +677,11 @@ a single `get`/`put` avoids pagination or multi-key consistency concerns
 entirely. Revisit if this ever needs to support many concurrent writers
 or a much larger dataset — not preemptively.
 
-A second KV key, `logbook:settings`, holds a small settings blob separate
-from the entries data: `{ athleteMode: boolean, activeDiscipline:
-"boulder" | "lead" }`, defaulting to `{ athleteMode: false,
-activeDiscipline: "boulder" }` when the key is absent (so existing
+A `settings` table (one row per user, upserted on first `PATCH` -- #21's
+schema doesn't create it at signup) holds a small settings record
+separate from the entries data: `{ athleteMode: boolean,
+activeDiscipline: "boulder" | "lead" }`, defaulting to `{ athleteMode:
+false, activeDiscipline: "boulder" }` when no row exists yet (so existing
 behavior is unchanged until an admin explicitly opts in). It follows the
 same public-read/admin-write split as the entries API, gated the same
 way. Toggling Athlete Mode off hides (not deletes) the coaching-mode UI
@@ -665,6 +689,11 @@ it gates — the underlying data is unaffected by the toggle.
 `activeDiscipline` persists which discipline tab (#137) was last active,
 best-effort (only when logged in; a logged-out visitor's switch stays
 local for that session).
+
+`settings` also has a `logbook_public` column (default `1`) that isn't
+exposed through this API yet -- it exists for #113's per-user public
+routing and #301's settings-UI toggle, both separate, not-yet-built
+issues.
 
 `PATCH` merges onto the existing stored settings rather than replacing them
 wholesale (#137) — callers only ever send the one field they're changing
@@ -682,26 +711,28 @@ UUIDs make genuine collisions vanishingly rare, so a duplicate ID on `POST`
 is treated as an idempotent replay (the write already landed; the success
 response was probably lost to a flaky connection) rather than an error.
 
-**Multi-tenant migration in progress (#8):** the KV model above is still
-what the live API actually reads/writes today. `migrations/0003_app_data.sql`
-(#21) adds an equivalent, normalized D1 schema alongside it —
-`locations`/`places`/`entries`/`settings` tables scoped by `user_id`, plus
-`disciplines`/`statuses` lookup tables (real tables instead of `type`/
-`status` string enums, so a new discipline is an `INSERT`, not a schema
-migration). Nothing reads from it yet; #297 cuts the API handlers over to
-D1 and adds per-user authorization, after which this section describes a
-retired model rather than the live one. `firstAttempt`/`athleteMode`/
-`logbookPublic`-style flags are real `BOOLEAN ... CHECK (col IN (0,1))`
-columns in D1, not the bare integers KV's JSON blobs use.
+**KV code still exists but is dead** (#8/#299): `src/lib/kv-resource.js`
+and the `LOGBOOK_KV` binding are kept around, unused, as a rollback
+safety net for a window after the D1 cutover (#297) before #299 removes
+them for good — not a sign the app still reads/writes KV anywhere.
 
 ## Authentication flow
 
-There's no session cookie or login form in this app's own code — Cloudflare
-Access owns the entire authentication flow. This describes that existing,
-still-in-use flow; it hasn't changed in this PR. Better Auth (#20, see
-"Request routing" above) exists alongside it at `/logbook/api/auth/*`, but
-nothing in `client/` calls it yet — the frontend (real login/signup UI,
-`adminFetch`/`isAuthRedirect` changes) is #22's job, not this one's.
+There's no session cookie or login form in this app's own code —
+Cloudflare Access owns the entire *client-facing* authentication flow
+described below (login button, session check, logout), unchanged.
+
+Server-side, that's no longer the whole story (#297): `src/index.js`
+independently resolves a Better Auth session (`src/lib/session.js`)
+before dispatching to any `/logbook/api/admin/{logbook,places,locations,
+settings}` handler, 401ing without one — this is the actual per-user
+data-isolation boundary now, not Access. **`client/` has no way to
+produce a Better Auth session yet** (no login/signup UI calls it) — that
+gap is deliberate and tracked (#320), not an oversight; see #8's decision
+log for why #297 shipped ahead of the client bridge that makes it usable
+end-to-end again. `docs/app-architecture.md`'s own `wrangler dev`/E2E
+tooling works around this by bootstrapping a real session directly (see
+`scripts/lib/dev-session.mjs`), not by changing any client code.
 
 - **Checking login state:** the frontend `fetch`es
   `/logbook/api/admin/session`. If Access lets the request through, it's

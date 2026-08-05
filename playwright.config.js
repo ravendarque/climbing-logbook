@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { STORAGE_STATE_PATH } from "./e2e/global-setup.js";
 
 // Golden-path E2E coverage (#218) -- the layer of the test pyramid that
 // exercises the real rendered app in a real browser, which neither the
@@ -12,17 +13,23 @@ const BASE_URL = `http://localhost:${PORT}`;
 
 export default defineConfig({
   testDir: "./e2e",
-  // Every spec shares one `wrangler dev` instance and its KV-backed state
-  // (see globalSetup) -- discipline/athleteMode live in the shared
-  // settings record, not per-browser-context storage, so two spec files
-  // touching them concurrently would race regardless of per-test cleanup.
-  // Fully serial, not just per-file: workers: 1, not just fullyParallel.
+  // Every spec shares one `wrangler dev` instance and one bootstrapped
+  // dev user's D1-backed state (#297, see globalSetup) -- discipline/
+  // athleteMode live in that user's shared settings row, not per-browser-
+  // context storage, so two spec files touching them concurrently would
+  // race regardless of per-test cleanup. Fully serial, not just
+  // per-file: workers: 1, not just fullyParallel.
   fullyParallel: false,
   workers: 1,
   reporter: process.env.CI ? "list" : "html",
   use: {
     baseURL: BASE_URL,
     trace: "retain-on-failure",
+    // The bootstrapped dev user's session (#297, written by globalSetup)
+    // -- reads are scoped by session now, same as writes, so every
+    // browser context needs this to see the seeded data at all, not just
+    // to perform admin actions.
+    storageState: STORAGE_STATE_PATH,
   },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },

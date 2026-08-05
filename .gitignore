@@ -28,6 +28,11 @@ public/logbook/app.js
 test-results/
 playwright-report/
 blob-report/
+
+# Bootstrapped dev-session cookie (#297) -- generated fresh by
+# e2e/global-setup.js each run, not a real credential (local-only dev
+# user, never a real account), but still runtime state, not source.
+e2e/.auth/
 playwright/.cache/
 
 # Terraform

@@ -1,37 +1,51 @@
-import { createKvResourceHandlers } from "../lib/kv-resource.js";
+import { createD1ResourceHandlers } from "../lib/d1-resource.js";
 
-export const KV_KEY = "logbook:places";
-
-function validateFields(place) {
+// Unlike the pre-D1 version, locationId now gets a real referential check
+// -- not just "does this row exist" (the FK constraint alone already
+// covers that) but "does it belong to *this* user." Without this, user A
+// could create a place under user B's location by id -- the FK would
+// still pass (the row exists, just not owned by the caller), silently
+// breaking per-user isolation. This is the actual multi-tenant boundary
+// #297 exists to add.
+async function validateFields(place, env, userId) {
   if (!place.locationId) return "Missing required field: locationId";
+  const owned = await env.LOGBOOK_DB
+    .prepare(`SELECT id FROM locations WHERE id = ? AND user_id = ?`)
+    .bind(place.locationId, userId)
+    .first();
+  if (!owned) return "locationId does not reference one of your locations";
   return null;
 }
 
-// No referential check that locationId points at a real Location, or that
-// entries reference a real placeId -- consistent with this app's existing
-// light-validation style for free-text-ish fields (grade/type/status are
-// enum-checked, place/area/country never were and locationId/placeId
-// inherit that).
-//
 // No country field here -- it lives on Location, not duplicated per area
 // (location determines country, a real functional dependency; storing it
 // on every Place row would make it transitively dependent on location
 // rather than on this row's own key, i.e. not actually 3NF -- see #158).
-function buildPlace(place, id) {
+function buildRow(place, id, userId) {
   return {
     id,
-    locationId: place.locationId,
-    area:       place.area ?? "",
+    user_id: userId,
+    location_id: place.locationId,
+    area: place.area ?? "",
   };
 }
 
-// handleGet/handlePost (#270) -- see src/lib/kv-resource.js for the
-// shared shape every KV-backed create+list resource follows.
-export const { handleGet, handlePost } = createKvResourceHandlers({
-  kvKey: KV_KEY,
+function rowToJson(row) {
+  return {
+    id: row.id,
+    locationId: row.location_id,
+    area: row.area,
+  };
+}
+
+// handleGet/handlePost (#297) -- see src/lib/d1-resource.js for the
+// shared shape every D1-backed create+list resource follows.
+export const { handleGet, handlePost } = createD1ResourceHandlers({
+  table: "places",
   resourceKey: "places",
   validateFields,
-  buildRecord: buildPlace,
+  buildRow,
+  rowToJson,
 });
 
 // Editing (#159) and deleting (#160) a Place are deliberately not

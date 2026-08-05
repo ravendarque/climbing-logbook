@@ -1,7 +1,5 @@
 import { json } from "../lib/json.js";
-import { createKvResourceHandlers } from "../lib/kv-resource.js";
-
-export const KV_KEY = "logbook:entries";
+import { createD1ResourceHandlers } from "../lib/d1-resource.js";
 
 const VALID_TYPES    = ["boulder", "lead"];
 const VALID_STATUSES = ["send", "project", "abandoned", "wishlist"];
@@ -19,7 +17,7 @@ const VALID_GRADES = {
 // docs/app-architecture.md. date is optional (null when unset).
 const DATE_SHAPE = /^\d{4}(-\d{2}(-\d{2})?)?$/;
 
-function validateFields(entry) {
+function validateShape(entry) {
   for (const field of ["placeId", "name", "grade", "type", "status"]) {
     if (!entry[field]) return `Missing required field: ${field}`;
   }
@@ -47,35 +45,77 @@ function validateFields(entry) {
   return null;
 }
 
-function buildEntry(entry, id) {
+// placeId gets a real referential check -- not just "does this row
+// exist" (the FK constraint alone covers that) but "does it belong to
+// *this* user" -- same reasoning as places.js's locationId check. Without
+// it, user A could create an entry under user B's place by id.
+async function validateFields(entry, env, userId) {
+  const shapeErr = validateShape(entry);
+  if (shapeErr) return shapeErr;
+  const owned = await env.LOGBOOK_DB
+    .prepare(`SELECT id FROM places WHERE id = ? AND user_id = ?`)
+    .bind(entry.placeId, userId)
+    .first();
+  if (!owned) return "placeId does not reference one of your places";
+  return null;
+}
+
+// type/status map directly onto discipline_id/status_id -- #21's lookup
+// tables use the same slugs as natural keys, so this is a column rename,
+// not a value translation; the JSON wire format is unchanged.
+function buildRow(entry, id, userId) {
   return {
     id,
-    name:    entry.name,
-    grade:   entry.grade,
-    placeId: entry.placeId,
-    type:    entry.type,
-    status:  entry.status,
-    firstAttempt: entry.status === "send" ? Boolean(entry.firstAttempt) : false,
-    date:    entry.date   || null,
-    video:   entry.video  || null,
-    notes:   entry.notes  || null,
+    user_id: userId,
+    place_id: entry.placeId,
+    name: entry.name,
+    grade: entry.grade,
+    discipline_id: entry.type,
+    status_id: entry.status,
+    first_attempt: entry.status === "send" && entry.firstAttempt ? 1 : 0,
+    date: entry.date || null,
+    video: entry.video || null,
+    notes: entry.notes || null,
   };
 }
 
-// handleGet/handlePost (#270) -- see src/lib/kv-resource.js for the
-// shared shape every KV-backed create+list resource follows.
+function rowToJson(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    grade: row.grade,
+    placeId: row.place_id,
+    type: row.discipline_id,
+    status: row.status_id,
+    firstAttempt: !!row.first_attempt,
+    date: row.date,
+    video: row.video,
+    notes: row.notes,
+  };
+}
+
+async function listForUser(env, userId) {
+  const { results } = await env.LOGBOOK_DB
+    .prepare(`SELECT * FROM entries WHERE user_id = ? ORDER BY created_at`)
+    .bind(userId)
+    .all();
+  return results.map(rowToJson);
+}
+
+// handleGet/handlePost (#297) -- see src/lib/d1-resource.js for the
+// shared shape every D1-backed create+list resource follows.
 // handlePut/handleDelete stay logbook.js's own exports below -- entries
 // is the only resource with edit/delete (places/locations don't have
-// them yet, #159/#160), only reachable via /logbook/api/admin/logbook,
-// which Cloudflare Access gates at the edge.
-export const { handleGet, handlePost } = createKvResourceHandlers({
-  kvKey: KV_KEY,
+// them yet, #159/#160).
+export const { handleGet, handlePost } = createD1ResourceHandlers({
+  table: "entries",
   resourceKey: "entries",
   validateFields,
-  buildRecord: buildEntry,
+  buildRow,
+  rowToJson,
 });
 
-export async function handlePut(request, env) {
+export async function handlePut(request, env, userId) {
   let entry;
   try {
     entry = await request.json();
@@ -84,51 +124,41 @@ export async function handlePut(request, env) {
   }
 
   if (!entry.id) return json({ error: "Missing required field: id" }, 400);
-  const err = validateFields(entry);
+  const err = await validateFields(entry, env, userId);
   if (err) return json({ error: err }, 400);
 
-  const raw = await env.LOGBOOK_KV.get(KV_KEY);
-  const { entries = [] } = raw ? JSON.parse(raw) : {};
+  // Scoped to this user's own row -- a forged id belonging to another
+  // user simply doesn't match, same isolation guarantee as handleDelete
+  // below.
+  const existing = await env.LOGBOOK_DB
+    .prepare(`SELECT id FROM entries WHERE id = ? AND user_id = ?`)
+    .bind(entry.id, userId)
+    .first();
+  if (!existing) return json({ error: "Entry not found" }, 404);
 
-  const index = entries.findIndex(e => e.id === entry.id);
-  if (index === -1) return json({ error: "Entry not found" }, 404);
+  const row = buildRow(entry, entry.id, userId);
+  const columns = Object.keys(row).filter(c => c !== "id" && c !== "user_id");
+  await env.LOGBOOK_DB
+    .prepare(`UPDATE entries SET ${columns.map(c => `${c} = ?`).join(", ")}, updated_at = datetime('now') WHERE id = ? AND user_id = ?`)
+    .bind(...columns.map(c => row[c]), entry.id, userId)
+    .run();
 
-  entries[index] = buildEntry(entry, entry.id);
-  const updated = JSON.stringify({ entries });
-  await env.LOGBOOK_KV.put(KV_KEY, updated);
-
-  return new Response(updated, {
-    headers: { "Content-Type": "application/json" },
-  });
+  return json({ entries: await listForUser(env, userId) });
 }
 
-export async function handleDelete(request, env) {
+export async function handleDelete(request, env, userId) {
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return json({ error: "Missing required field: id" }, 400);
 
-  const raw = await env.LOGBOOK_KV.get(KV_KEY);
-  const { entries = [] } = raw ? JSON.parse(raw) : {};
+  // Scoped to this user's own row -- a missing id (never existed, already
+  // deleted, or belongs to another user entirely) is treated as "already
+  // gone" rather than an error, same idempotent-delete reasoning as
+  // before (#268) plus the added guarantee that user A's delete request
+  // can never remove user B's row even if A somehow learns its id.
+  await env.LOGBOOK_DB
+    .prepare(`DELETE FROM entries WHERE id = ? AND user_id = ?`)
+    .bind(id, userId)
+    .run();
 
-  const index = entries.findIndex(e => e.id === id);
-  // A missing id is treated as "already gone" rather than an error --
-  // mirrors handlePost's own duplicate-id idempotency above (#268). The
-  // client's offline queue replays a queued delete unconditionally now,
-  // including for an entry that only ever existed as a queued, never-
-  // synced add -- the server never saw it exist, so there's nothing to
-  // remove, and that's success, not failure. Also covers a retried
-  // delete whose success response was lost to a flaky connection, same
-  // as handlePost's case.
-  if (index === -1) {
-    return new Response(JSON.stringify({ entries }), {
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  entries.splice(index, 1);
-  const updated = JSON.stringify({ entries });
-  await env.LOGBOOK_KV.put(KV_KEY, updated);
-
-  return new Response(updated, {
-    headers: { "Content-Type": "application/json" },
-  });
+  return json({ entries: await listForUser(env, userId) });
 }
