@@ -58,7 +58,7 @@ export function jsonRequest(method, path, body, headers = {}) {
 // since this doesn't supply an invite code.
 export async function createAuthedSession({
   email = `user-${crypto.randomUUID()}@example.com`,
-  username = `user${Math.random().toString(36).slice(2, 10)}`,
+  username = `user${crypto.randomUUID().replace(/-/g, "").slice(0, 10)}`,
 } = {}) {
   let capturedHtml;
   vi.stubGlobal("fetch", vi.fn(async (input, init) => {

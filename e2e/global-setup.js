@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import { bootstrapDevSession, toPlaywrightCookie } from "../scripts/lib/dev-session.mjs";
 
 const BASE_URL = "http://localhost:8787";
@@ -40,6 +41,10 @@ export default async function globalSetup() {
   await waitForServer(`${BASE_URL}/logbook/api/logbook`);
 
   const setCookieHeader = await bootstrapDevSession(BASE_URL);
+  // e2e/.auth/ is gitignored (holds a bootstrapped, non-production
+  // session, not source) -- a fresh checkout (CI, or a first local
+  // clone) has no reason to already have it.
+  mkdirSync(dirname(STORAGE_STATE_PATH), { recursive: true });
   writeFileSync(
     STORAGE_STATE_PATH,
     JSON.stringify({ cookies: [toPlaywrightCookie(setCookieHeader, BASE_URL)], origins: [] })
