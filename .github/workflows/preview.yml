@@ -26,6 +26,15 @@ jobs:
       - uses: ./.github/actions/setup-node-pnpm
       - run: pnpm run tailwind:build
       - run: pnpm run client:build
+      # D1 migrations aren't auto-applied by `versions upload` any more
+      # than `wrangler dev` auto-applies them locally -- the preview D1
+      # database (own bootstrap, not Terraform-managed, same reasoning as
+      # the KV namespace below) needs this run explicitly or a PR adding a
+      # new migration would 500 on preview with "no such table."
+      - name: Apply D1 migrations to the preview database
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm exec wrangler d1 migrations apply climbing-logbook-preview --remote --env preview
       - name: Upload preview version
         id: upload
         env:
@@ -47,6 +56,6 @@ jobs:
           set -euo pipefail
           BODY="Preview: $PREVIEW_URL
 
-          Bound to a separate preview KV namespace, not production data."
+          Bound to separate preview KV/D1, not production data."
           gh pr comment "$PR_NUMBER" --edit-last --body "$BODY" \
             || gh pr comment "$PR_NUMBER" --body "$BODY"

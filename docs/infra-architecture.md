@@ -234,13 +234,14 @@ aren't bypassable via a public preview URL; the preview env has no
 Access-gated routes to bypass, since `routes` is empty and it never serves
 production traffic).
 
-**The preview KV namespace is *not* Terraform-managed** — unlike the
-production namespace (`infra/kv.tf`), it was a one-time manual bootstrap
-(`wrangler kv namespace create <NAME>_PREVIEW` or via the dashboard), on
-the reasoning that per-PR preview data is disposable and doesn't need
-disaster-recovery guarantees the way production data does. If replicating
-this in another repo, provisioning it manually (once) is the intended
-approach, not an oversight to fix.
+**The preview KV namespace and preview D1 database are *not*
+Terraform-managed** — unlike their production counterparts (`infra/kv.tf`,
+`infra/d1.tf`), both were one-time manual bootstraps (`wrangler kv
+namespace create <NAME>_PREVIEW` / `wrangler d1 create <name>-preview`, or
+via the dashboard), on the reasoning that per-PR preview data is disposable
+and doesn't need disaster-recovery guarantees the way production data
+does. If replicating this in another repo, provisioning both manually
+(once) is the intended approach, not an oversight to fix.
 
 **One-time bootstrap** (needed once per repo/Worker, before `preview.yml`
 can run — `versions upload` requires the target script to already exist):
@@ -287,18 +288,29 @@ the preview is bound to preview KV, not production data, so nobody mistakes
 a preview for a live look at real logbook entries.
 
 **No additional `CLOUDFLARE_API_TOKEN` scopes needed** — the same token
-covering production deploys already has Workers Scripts: Edit and Workers
-KV Storage: Edit account-wide (see permission table below), which covers
-the `-preview` script and its namespace too.
+covering production deploys already has Workers Scripts: Edit, Workers KV
+Storage: Edit, and D1: Edit account-wide (see permission table below),
+which covers the `-preview` script and its own namespace/database too.
 
-**Known gap (#20):** unlike the KV preview namespace (manually bootstrapped
-once, see above), there's no preview D1 database yet — the `env.preview`
-block in `wrangler.jsonc` has no `d1_databases` entry. This doesn't break
-`preview.yml` itself (nothing in that workflow's CI run exercises
-`/logbook/api/auth/*`, it just builds and uploads a version), but a real
-PR preview visiting an auth route would fail at runtime with an undefined
-binding until a preview D1 is bootstrapped the same one-time manual way the
-preview KV namespace was.
+**Fixed 2026-08-05 (originally flagged as a known gap in #20):** the
+`env.preview` block had no `d1_databases` entry at all for a while. The
+assumption at the time was that this was harmless — an undefined binding
+would just fail loudly. That stopped being true the moment `#21` gave the
+*production* `LOGBOOK_DB` binding a real id: `d1_databases` isn't
+inheritable-and-overridden the way `vars`/`routes` are documented to be in
+this file, it's inheritable-and-left-alone — so every PR preview silently
+inherited the real production database instead of erroring. Caught when
+Raven asked for #320's preview login credentials and there weren't any (no
+bootstrap had ever run against a preview database, because there wasn't
+one) — any signup attempted there would have written into production.
+Fixed by bootstrapping `climbing-logbook-preview` the same manual way as
+the KV namespace (see above), applying migrations to it directly
+(`wrangler d1 migrations apply climbing-logbook-preview --remote --env
+preview`), and adding an explicit `d1_databases` override to `env.preview`
+in `wrangler.jsonc`. `preview.yml` now also runs that same migrations-apply
+command on every PR — D1 migrations aren't auto-applied by `versions
+upload` any more than they are by `wrangler dev` locally, so a PR adding a
+new migration would otherwise 500 the preview with "no such table."
 
 ## Required secrets/variables
 
