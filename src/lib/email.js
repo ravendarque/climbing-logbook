@@ -4,11 +4,7 @@ import { Resend } from "resend";
 // only two email-sending needs Better Auth's config (src/lib/auth.js)
 // actually calls into.
 //
-// FROM_ADDRESS uses Resend's own sandbox sender (no domain verification
-// needed) until a real domain is verified in Resend's own dashboard -- see
-// docs/infra-architecture.md's "Required secrets/variables" table for what
-// production actually needs before this can send from a real address.
-const FROM_ADDRESS = "climbing-logbook <onboarding@resend.dev>";
+const FROM_ADDRESS = "climbing-logbook <myaccount@climbinglogbook.com>";
 
 // Every send is wrapped in its own try/catch, deliberately never throwing
 // or rejecting back to the caller -- confirmed live (#308) that Better
