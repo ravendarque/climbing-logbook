@@ -17,6 +17,17 @@ jobs:
       - uses: ./.github/actions/setup-node-pnpm
       - run: pnpm run tailwind:build
       - run: pnpm run client:build
+      # D1 migrations are never auto-applied by `wrangler deploy` (same
+      # gap `wrangler dev` has locally, and `versions upload` had for
+      # preview.yml until #323) -- found the hard way: production's D1
+      # database sat with zero migrations applied across several real
+      # deploys before this step existed. Must run before the deploy step
+      # below, not after -- new code landing before its schema exists
+      # would 500 on first request that touches the new tables.
+      - name: Apply D1 migrations to production
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm exec wrangler d1 migrations apply climbing-logbook --remote
       # --env="" is explicit, not decorative: wrangler.jsonc now defines a
       # second environment (env.preview, #222) alongside the top-level one,
       # and wrangler warns/refuses to guess which one you meant once more
