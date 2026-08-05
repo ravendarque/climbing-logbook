@@ -565,8 +565,11 @@ Better Auth's own session check inside the Worker itself (#297) — the
 first genuine in-Worker authorization this app has ever had, and the
 actual multi-tenant isolation boundary; Access alone was never going to
 scope writes per-user. `/admin/session` and `/admin/login` stay
-Access-only, untouched by #297 — see "Authentication flow" below for why
-that's a deliberate, temporary state, not an inconsistency.
+Access-only, untouched by #297 — and now genuinely unused by the client
+too, since #320 rewired `client/admin-auth.js` onto Better Auth's own
+session/sign-in/sign-out endpoints instead. Dead but present, same
+"rollback window before cleanup" treatment as the KV code (#299) — actual
+removal waits for #298, when Access itself comes down.
 
 Read and write are on **separate path prefixes** — not just separate HTTP
 methods on one path — because Cloudflare Access gates by path, not by
@@ -718,44 +721,44 @@ them for good — not a sign the app still reads/writes KV anywhere.
 
 ## Authentication flow
 
-There's no session cookie or login form in this app's own code —
-Cloudflare Access owns the entire *client-facing* authentication flow
-described below (login button, session check, logout), unchanged.
+The client-facing flow (login button, session check, logout) is Better
+Auth's now (#320) — Cloudflare Access still gates `/logbook/api/admin/*`
+at the edge in production (unchanged, not removed until #298), but the
+app's own UI no longer talks to it at all.
 
-Server-side, that's no longer the whole story (#297): `src/index.js`
-independently resolves a Better Auth session (`src/lib/session.js`)
-before dispatching to any `/logbook/api/admin/{logbook,places,locations,
-settings}` handler, 401ing without one — this is the actual per-user
-data-isolation boundary now, not Access. **`client/` has no way to
-produce a Better Auth session yet** (no login/signup UI calls it) — that
-gap is deliberate and tracked (#320), not an oversight; see #8's decision
-log for why #297 shipped ahead of the client bridge that makes it usable
-end-to-end again. `docs/app-architecture.md`'s own `wrangler dev`/E2E
-tooling works around this by bootstrapping a real session directly (see
-`scripts/lib/dev-session.mjs`), not by changing any client code.
+Server-side, `src/index.js` independently resolves a Better Auth session
+(`src/lib/session.js`) before dispatching to any `/logbook/api/admin/
+{logbook,places,locations,settings}` handler, 401ing without one (#297)
+— this is the actual per-user data-isolation boundary, not Access.
 
-- **Checking login state:** the frontend `fetch`es
-  `/logbook/api/admin/session`. If Access lets the request through, it's
-  authenticated by definition (Access already validated it before the
-  Worker ever ran) and the handler returns `{ loggedIn: true, email }`
-  read from the `Cf-Access-Authenticated-User-Email` header Access injects.
-  If Access intercepts the request instead (not logged in), the response is
-  Access's own hosted-login HTML, not JSON — `checkSession()` in
-  `index.html` treats a JSON-parse failure on that response as "not logged
-  in," while a genuine network exception (`fetch` itself throwing) is
-  handled separately as "offline," falling back to the last-known state in
-  `localStorage`. These have to stay distinct: conflating them would let a
-  stale "logged in" hint survive an actual logout.
-- **Logging in:** clicking "Log in" is a full-page navigation (`window.
-  location.href`) to `/logbook/api/admin/login`, not a `fetch` — Access's
-  login ceremony requires a real browser navigation to complete redirects
-  and set its session cookie. That endpoint's own handler just redirects to
-  `/logbook/`; Access intercepts the navigation before the handler ever
-  runs if not authenticated, shows its hosted login, and redirects back to
-  the same URL on success, landing on the redirect-to-app handler.
-- **Logging out:** navigates to Access's own logout endpoint
-  (`/cdn-cgi/access/logout` on the app's own domain), not anything this
-  app implements.
+- **Checking login state:** `checkSession()` in `client/admin-auth.js`
+  `fetch`es Better Auth's own `/logbook/api/auth/get-session`. It returns
+  `null` (valid JSON) when there's no session, `{ session, user }` when
+  there is — a genuine network exception (`fetch` itself throwing) is
+  handled separately as "offline," falling back to the last-known state
+  in `localStorage`. These have to stay distinct: conflating them would
+  let a stale "logged in" hint survive an actual logout.
+- **Logging in:** clicking "Log in" is a full-page navigation to
+  `/logbook/login/` — a small standalone page (`public/logbook/login/`,
+  outside the main app's module graph, its own `login.js`) with a plain
+  email/password form posting to Better Auth's `sign-in/email` endpoint.
+  On success it redirects to `/logbook/`. This is deliberately not a
+  fetch-based in-app modal — same architectural call the epic's own plan
+  already made for the eventual `/register` page (#22): auth entry lives
+  on its own page, not inside the SPA.
+- **Logging out:** a plain same-origin `POST` to Better Auth's
+  `sign-out` endpoint from `admin-auth.js` itself — no dedicated logout
+  page/redirect needed (unlike Access's own logout ceremony), so this
+  updates local state directly rather than navigating.
+
+**Why this page exists ahead of #22:** #297's authorization gate meant
+the live admin UI had no way to produce a valid session at all until
+something like this landed — #22 (apex marketing + `/register`) was
+still several issues away in the agreed order. Pulling just `/login`
+forward means `/register`'s account bootstrap for #298's production
+cutover, and general dogfooding of the real D1/Better-Auth system, don't
+have to wait. Not throwaway work: `#22` now shrinks to apex marketing +
+`/register` only, since login already exists.
 
 ## Offline-first design
 
@@ -834,3 +837,9 @@ through `escapeHtml()` before being interpolated into `innerHTML` template
 strings — this project had a stored-XSS finding early on from raw
 interpolation, and escaping is now the non-negotiable default rather than
 an opt-in.
+
+`public/logbook/login/` (#320) is deliberately **outside** this bundle
+and module graph entirely — its own `index.html` + `login.js`, not
+routed through `client/main.js` or esbuild. It has nothing to share with
+the main app (no store, no rendering, one form submit) and needs to work
+standing entirely alone as the thing you land on *before* the app boots.

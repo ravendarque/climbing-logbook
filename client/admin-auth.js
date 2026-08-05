@@ -1,7 +1,8 @@
 // Auth state and the Athlete Mode setting (#239, sixth piece of #233's
-// modularization epic). Owns checkSession() (Cloudflare Access session
-// check), fetchSettings() (the public Athlete Mode + persisted-discipline
-// read), and the login/logout + Athlete Mode toggle click handlers.
+// modularization epic). Owns checkSession() (Better Auth session check,
+// #320 -- was Cloudflare Access until here), fetchSettings() (the public
+// Athlete Mode + persisted-discipline read), and the login/logout +
+// Athlete Mode toggle click handlers.
 //
 // Scoped narrower than the issue's own rough estimate: updateAdminBar()
 // and setActiveView() (admin-gated UI visibility, view-tab switching)
@@ -11,10 +12,10 @@
 // themselves. This module exposes isAthleteMode() so main.js's
 // updateAdminBar() can still read the one piece of state that moved.
 export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettingsUrl, updateAdminBar }) {
-  const ADMIN_SESSION_URL = "/logbook/api/admin/session";
-  const ADMIN_LOGIN_URL = "/logbook/api/admin/login";
+  const AUTH_SESSION_URL = "/logbook/api/auth/get-session";
+  const AUTH_SIGN_OUT_URL = "/logbook/api/auth/sign-out";
+  const LOGIN_PAGE_URL = "/logbook/login/";
   const SETTINGS_URL = "/logbook/api/settings";
-  const ACCESS_LOGOUT_URL = "https://ravendarque.com/cdn-cgi/access/logout";
   const LOGIN_HINT_KEY = "logbook_logged_in_hint";
 
   const loginToggleBtn = document.getElementById("login-toggle-btn");
@@ -66,8 +67,11 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
         body: JSON.stringify({ athleteMode: next }),
       });
       if (res.status === 401 || isAuthRedirect(res)) {
-        // Access session lapsed since page load — same handling as
+        // Session lapsed since page load — same handling as
         // syncPending()'s 401 case: drop back to the logged-out view.
+        // isAuthRedirect() is a no-op against Better Auth's plain 401
+        // JSON response (never an opaque redirect) but stays harmless to
+        // check -- see adminFetch's own comment in main.js.
         store.setLoggedIn(false);
       } else if (res.ok) {
         const data = await res.json();
@@ -84,41 +88,53 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
     }
   });
 
-  // Cloudflare Access gates /logbook/api/admin/* at Cloudflare's edge, so
-  // "logged in" just means "the session fetch below wasn't intercepted by
-  // Access's own hosted login page." A genuine network failure (offline)
-  // is distinguished from "not authenticated" so the offline-queue hint
-  // doesn't get mistaken for a real session.
+  // Better Auth's own session-check endpoint (#320 -- was Cloudflare
+  // Access's /admin/session until here). Returns `null` (valid JSON) when
+  // there's no session, `{ session, user }` when there is -- unlike
+  // Access, it never intercepts with non-JSON hosted-login HTML, but the
+  // JSON-parse catch stays as a defensive fallback rather than assuming
+  // the response is always well-formed. A genuine network failure
+  // (offline) is distinguished from "not authenticated" so the
+  // offline-queue hint doesn't get mistaken for a real session.
   async function checkSession() {
     let res;
     try {
-      res = await adminFetch(ADMIN_SESSION_URL);
+      res = await adminFetch(AUTH_SESSION_URL);
     } catch {
       // Offline — fall back to the last known login state so the UI
       // still shows edit affordances; writes still get verified for
-      // real by Access once synced.
+      // real once synced.
       store.setLoggedIn(localStorage.getItem(LOGIN_HINT_KEY) === "1");
       return;
     }
     try {
       const data = await res.json();
-      store.setLoggedIn(res.ok && !!data.loggedIn);
+      store.setLoggedIn(res.ok && data !== null && !!data.user);
     } catch {
-      // Access intercepted with its own hosted login page (non-JSON) —
-      // not logged in.
       store.setLoggedIn(false);
     }
     localStorage.setItem(LOGIN_HINT_KEY, store.isLoggedIn() ? "1" : "0");
   }
 
-  loginToggleBtn.addEventListener("click", () => {
+  loginToggleBtn.addEventListener("click", async () => {
     if (store.isLoggedIn()) {
-      window.location.href = ACCESS_LOGOUT_URL;
+      // A plain same-origin POST, not a dedicated logout URL/page like
+      // Access's -- Better Auth doesn't need a redirect ceremony to
+      // clear its session cookie, so this can just fetch() and update
+      // local state directly rather than a full-page navigation.
+      await fetch(AUTH_SIGN_OUT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      store.setLoggedIn(false);
+      localStorage.setItem(LOGIN_HINT_KEY, "0");
+      updateAdminBar();
     } else {
-      // Full-page navigation (not fetch) so Cloudflare Access's hosted
-      // login redirect can actually complete; it bounces back to the app
-      // once you're authenticated.
-      window.location.href = ADMIN_LOGIN_URL;
+      // Full-page navigation to the login form (#320) -- there's no
+      // hosted-login ceremony to redirect through anymore, just a real
+      // page with its own form; login.js sends you back here on success.
+      window.location.href = LOGIN_PAGE_URL;
     }
   });
 
