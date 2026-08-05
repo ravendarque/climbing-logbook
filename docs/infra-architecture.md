@@ -56,9 +56,10 @@ wrong tool for self-service signup (it gates known identities the account
 owner manages, not a customer-facing registration flow). #20 added
 [Better Auth](https://www.better-auth.com/) (`src/lib/auth.js`), mounted at
 `/logbook/api/auth/*` with a real D1-backed user/session/account schema
-(`migrations/0001_better_auth_core.sql`, generated via `pnpm run
-auth:generate` — see that script and `auth.config.mjs`'s header comment,
-not hand-written) and email/password only (no GitHub/Google OAuth — this
+(`migrations/0001_better_auth_core.sql`, generated via the Better Auth CLI
+— see `auth.config.mjs`'s header comment for the exact (deliberately
+temporary-install, #305) command, not hand-written) and email/password
+only (no GitHub/Google OAuth — this
 project's BDS-compliance policy, see `docs/ui-stack-evaluation.md`'s
 "Ethical/supply-chain check" section). Access and Better Auth coexist for
 now: Access still gates the legacy KV-backed `/admin/*` app-data routes,

@@ -1,16 +1,13 @@
 allowBuilds:
   '@parcel/watcher': true
-  # Not used -- @better-auth/cli pulls this in as one of several optional
-  # adapter dependencies (postgres/mysql/prisma/mongodb/...), but nothing
-  # in this project's auth.config.mjs uses the Prisma generator.
+  # better-auth (real runtime dependency, #20) lists both of these as
+  # optional adapters it can auto-detect (native SQLite / Prisma) --
+  # irrelevant here, since src/lib/auth.js always passes the real D1
+  # binding as `database`, never a better-sqlite3 or Prisma instance, so
+  # neither dispatch branch ever runs. Declined, not approved -- no native
+  # build needed for a code path this app never exercises.
   '@prisma/client': false
-  # better-auth's CLI needs a live SQLite-shaped driver to diff migrations
-  # against for schema generation (see auth.config.mjs) -- an in-memory
-  # better-sqlite3 instance stands in for the real D1 binding, since D1
-  # and better-sqlite3 both speak plain SQLite and produce identical DDL.
-  # Generation-time-only; never imported by the deployed Worker (src/lib/
-  # auth.js uses the real D1 binding directly, no better-sqlite3 there).
-  better-sqlite3: true
+  better-sqlite3: false
   esbuild: true
   sharp: true
   workerd: true
