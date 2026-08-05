@@ -3,10 +3,19 @@
 // contract is what's under test. Real (Miniflare-backed) D1, not mocked --
 // see test/apply-migrations.js for why this file's first request always
 // runs against a freshly-migrated, empty `user` table.
-import { beforeEach, describe, expect, it } from "vitest";
+import { env } from "cloudflare:workers";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { BASE_URL, fetchJson, jsonRequest, resetAuthTables } from "./support.js";
 
 beforeEach(resetAuthTables);
+
+// This file exercises the underlying sign-up/session/sign-in/sign-out
+// machinery itself, not the beta gate layered in front of it (#296) --
+// that has its own dedicated test/beta-gate.test.js. Disabled here for the
+// whole file so every signUp() call below doesn't also need a seeded
+// invite code just to reach the behavior actually under test.
+beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
+afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
 
 const VALID_SIGNUP = { email: "nix@example.com", password: "correct-horse-battery-staple", name: "Nix", username: "nix" };
 

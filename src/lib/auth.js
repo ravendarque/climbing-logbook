@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { username } from "better-auth/plugins";
+import { createBetaGateHook, createBetaGateAfterHook } from "./beta-gate.js";
 
 // Better Auth (#20) -- replaces Cloudflare Access as the auth mechanism for
 // the multi-user rollout. A factory, not a module-scope singleton: `env`
@@ -39,5 +40,10 @@ export function createAuth(env) {
     // username, with server-side uniqueness validation. Username's own
     // case-insensitive lookup column is handled by the plugin itself.
     plugins: [username()],
+    // Beta invite/registration gate (#296) -- a temporary layer in front of
+    // sign-up/email, togglable off via BETA_GATE_ENABLED without a code
+    // change once the beta period ends. See src/lib/beta-gate.js.
+    hooks: { before: createBetaGateHook(env) },
+    databaseHooks: { user: { create: { after: createBetaGateAfterHook(env) } } },
   });
 }

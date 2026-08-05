@@ -22,6 +22,16 @@
   "d1_databases": [
     { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook", "database_id": "PLACEHOLDER-set-by-infra-yml", "migrations_dir": "migrations" }
   ],
+  // Beta invite/registration gate (#296) -- not a secret, so `vars` (not
+  // `.dev.vars`) is the right place. Left inheritable into env.preview
+  // (unlike routes/kv_namespaces below, which are explicitly overridden)
+  // -- a PR preview should enforce the same gate production does, not
+  // quietly bypass it. Flipping this to "false" here is the entire "go
+  // fully public" mechanism once the beta period ends (#296) -- no code
+  // change needed.
+  "vars": {
+    "BETA_GATE_ENABLED": "true"
+  },
   "routes": [
     { "pattern": "ravendarque.com/logbook*", "zone_name": "ravendarque.com" }
   ],
