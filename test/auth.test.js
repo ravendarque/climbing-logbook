@@ -3,21 +3,42 @@
 // contract is what's under test. Real (Miniflare-backed) D1, not mocked --
 // see test/apply-migrations.js for why this file's first request always
 // runs against a freshly-migrated, empty `user` table.
+//
+// Covers the underlying sign-up/session/sign-in/sign-out machinery itself,
+// not the two things layered in front of it: the beta gate (#296, disabled
+// below, own dedicated test/beta-gate.test.js) and email verification
+// (#308, its own required-behavior tests live in test/email.test.js --
+// this file just uses verification as a means to reach a real logged-in
+// state for its own sign-in/sign-out tests, the same way any test setup
+// uses other already-tested features to reach the state under test).
 import { env } from "cloudflare:workers";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { BASE_URL, fetchJson, jsonRequest, resetAuthTables } from "./support.js";
 
 beforeEach(resetAuthTables);
 
-// This file exercises the underlying sign-up/session/sign-in/sign-out
-// machinery itself, not the beta gate layered in front of it (#296) --
-// that has its own dedicated test/beta-gate.test.js. Disabled here for the
-// whole file so every signUp() call below doesn't also need a seeded
-// invite code just to reach the behavior actually under test.
 beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
 afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
 
 const VALID_SIGNUP = { email: "nix@example.com", password: "correct-horse-battery-staple", name: "Nix", username: "nix" };
+
+// Stubs the outbound call to Resend's API (a third-party boundary, not
+// this app's own runtime -- see test/email.test.js's own header comment
+// for why that distinction matters) so verification tokens can be
+// extracted without a real Resend account.
+let resendCalls;
+beforeEach(() => {
+  resendCalls = [];
+  vi.stubGlobal("fetch", vi.fn(async (input, init) => {
+    const url = typeof input === "string" ? input : input.url;
+    if (url.startsWith("https://api.resend.com/")) {
+      resendCalls.push({ body: init?.body ? JSON.parse(init.body) : null });
+      return new Response(JSON.stringify({ id: "fake-resend-id" }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    throw new Error(`Unexpected fetch to ${url}`);
+  }));
+});
+afterEach(() => { vi.unstubAllGlobals(); });
 
 function signUp(body = VALID_SIGNUP) {
   return jsonRequest("POST", "/logbook/api/auth/sign-up/email", body);
@@ -40,21 +61,43 @@ function getSession(cookie) {
   return fetchJson("/logbook/api/auth/get-session", cookie ? { headers: { Cookie: cookie } } : undefined);
 }
 
+// Signs up and clicks the emailed verification link -- see
+// test/email.test.js for dedicated coverage of the verification flow
+// itself; this just reaches a real logged-in state for tests below that
+// need one but aren't testing verification.
+async function signUpAndVerify(body = VALID_SIGNUP) {
+  await signUp(body);
+  const html = resendCalls.at(-1).body.html;
+  const token = decodeURIComponent(html.match(/token=([^"&<?]+)/)[1]);
+  const res = await fetchJson(`/logbook/api/auth/verify-email?token=${token}`);
+  return cookieFrom(res);
+}
+
 describe("sign-up", () => {
-  it("creates an account and returns a session", async () => {
+  it("creates an unverified account, no session yet", async () => {
     const res = await signUp();
     expect(res.status).toBe(200);
     const body = await res.json();
+    expect(body.token).toBeNull();
     expect(body.user.email).toBe(VALID_SIGNUP.email);
     expect(body.user.username).toBe(VALID_SIGNUP.username);
     // Password never echoed back in any form.
     expect(JSON.stringify(body)).not.toContain(VALID_SIGNUP.password);
   });
 
-  it("rejects a duplicate email", async () => {
+  it("returns a generic success for a duplicate email, without actually creating a second account", async () => {
+    // Deliberate anti-enumeration behavior (Better Auth's own
+    // `requireEmailVerification` implication) -- an attacker probing
+    // whether an email is already registered can't distinguish this from
+    // a genuine new signup by status code or shape alone.
     await signUp();
     const res = await signUp({ ...VALID_SIGNUP, username: "nix2" });
-    expect(res.status).toBe(422);
+    expect(res.status).toBe(200);
+
+    // The real behavior that actually matters: "nix2" never became a real,
+    // usable account -- only the original signup's own verification link
+    // (the first Resend call) can ever complete a real login for this email.
+    expect(resendCalls).toHaveLength(1);
   });
 
   it("rejects a duplicate username", async () => {
@@ -71,9 +114,8 @@ describe("session lifecycle", () => {
     expect(await res.json()).toBeNull();
   });
 
-  it("has a session immediately after signing up", async () => {
-    const signupRes = await signUp();
-    const cookie = cookieFrom(signupRes);
+  it("has a session once the emailed verification link is followed", async () => {
+    const cookie = await signUpAndVerify();
     const res = await getSession(cookie);
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -81,7 +123,7 @@ describe("session lifecycle", () => {
   });
 
   it("signs in with the correct password and rejects the wrong one", async () => {
-    await signUp();
+    await signUpAndVerify();
 
     const wrongRes = await signIn(VALID_SIGNUP.email, "not-the-password");
     expect(wrongRes.status).toBe(401);
@@ -94,8 +136,7 @@ describe("session lifecycle", () => {
   });
 
   it("clears the session on sign-out", async () => {
-    const signupRes = await signUp();
-    const cookie = cookieFrom(signupRes);
+    const cookie = await signUpAndVerify();
     expect((await (await getSession(cookie)).json()).user.email).toBe(VALID_SIGNUP.email);
 
     // Unlike sign-up/sign-in (no session to CSRF against yet), sign-out is
