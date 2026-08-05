@@ -1,11 +1,9 @@
 /**
- * Seeds the local dev server's KV with a handful of realistic locations,
- * places, and entries, so there's something to look at besides an empty
- * logbook when reviewing UI changes locally. Local-only by design —
- * /logbook/api/admin/* is open without auth under `wrangler dev` (see
- * docs/app-architecture.md), which is what makes this safe to run without
- * any credentials. Pointed at a real deployment it would just fail
- * (Access intercepts with its own hosted-login HTML instead of JSON).
+ * Seeds a bootstrapped dev user's D1-backed logbook (#297) with a
+ * handful of realistic locations, places, and entries, so there's
+ * something to look at besides an empty logbook when reviewing UI
+ * changes locally. Local-only by design. See scripts/lib/dev-session.mjs
+ * for how the dev user itself gets bootstrapped.
  *
  * Uses fixed IDs, so it's safe to re-run: POSTing an ID that already
  * exists is a documented no-op (src/api/logbook.js et al), not a
@@ -16,6 +14,7 @@
  *   node scripts/seed-dev-data.mjs [baseUrl]
  *   node scripts/seed-dev-data.mjs http://localhost:8788
  */
+import { bootstrapDevSession } from "./lib/dev-session.mjs";
 
 const baseUrl = process.argv[2] || "http://localhost:8787";
 
@@ -57,7 +56,7 @@ const ENTRIES = [
   { id: "seed-10", name: "Slab Happy", grade: "6a+", placeId: "seed-place-portland", type: "lead", status: "wishlist", firstAttempt: false, date: null, video: null, notes: null },
 ];
 
-async function seedAll(label, endpoint, records) {
+async function seedAll(label, endpoint, records, cookie) {
   let created = 0;
   let skipped = 0;
   let failed = 0;
@@ -66,7 +65,7 @@ async function seedAll(label, endpoint, records) {
     try {
       const res = await fetch(`${baseUrl}${endpoint}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Cookie: cookie },
         body: JSON.stringify(record),
       });
       if (res.status === 201) created++;
@@ -86,15 +85,19 @@ async function seedAll(label, endpoint, records) {
 }
 
 async function seed() {
+  console.log(`Bootstrapping a dev session against ${baseUrl}...`);
+  const setCookieHeader = await bootstrapDevSession(baseUrl);
+  const cookie = setCookieHeader.split(";")[0];
+
   console.log(`Seeding ${LOCATIONS.length} locations, ${PLACES.length} places, ${ENTRIES.length} entries into ${baseUrl}...`);
 
   // Locations before places (places reference locationId), places before
   // entries (entries reference placeId) -- same dependency order the
   // add-place modal itself writes in.
   let failed = 0;
-  failed += await seedAll("Locations", "/logbook/api/admin/locations", LOCATIONS);
-  failed += await seedAll("Places", "/logbook/api/admin/places", PLACES);
-  failed += await seedAll("Entries", "/logbook/api/admin/logbook", ENTRIES);
+  failed += await seedAll("Locations", "/logbook/api/admin/locations", LOCATIONS, cookie);
+  failed += await seedAll("Places", "/logbook/api/admin/places", PLACES, cookie);
+  failed += await seedAll("Entries", "/logbook/api/admin/logbook", ENTRIES, cookie);
 
   if (failed > 0) process.exit(1);
 }

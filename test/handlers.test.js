@@ -1,16 +1,41 @@
 // Exercises places.js/locations.js/settings.js/admin-session.js/admin-login.js
 // through the real Worker entrypoint, same rationale as logbook.test.js:
 // the public HTTP contract is what's under test, not module internals.
-import { beforeEach, describe, expect, it } from "vitest";
-import { fetchJson, jsonRequest, resetKv } from "./support.js";
+//
+// admin-session.js/admin-login.js are untouched by #297 -- still
+// Cloudflare-Access-gated at the edge, unrelated to Better Auth, until
+// #320 replaces the client's login flow -- so their tests below are
+// unchanged from before.
+import { env } from "cloudflare:workers";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables } from "./support.js";
 
-beforeEach(resetKv);
+beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
+afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
 
-function postJson(path, body) {
-  return jsonRequest("POST", path, body);
+let cookie;
+
+beforeEach(async () => {
+  await resetAuthTables();
+  ({ cookie } = await createAuthedSession());
+});
+
+function getList(path, extraCookie) {
+  return fetchJson(path, extraCookie ? { headers: { Cookie: extraCookie } } : undefined);
 }
-function patchJson(path, body) {
-  return jsonRequest("PATCH", path, body);
+function postJson(path, body, extraCookie = cookie) {
+  return jsonRequest("POST", path, body, { Cookie: extraCookie });
+}
+function patchJson(path, body, extraCookie = cookie) {
+  return jsonRequest("PATCH", path, body, { Cookie: extraCookie });
+}
+
+// A real location, owned by the current `cookie`'s user -- places needs
+// one to reference (#297's real ownership check, not just FK existence).
+async function seedLocation(extraCookie = cookie) {
+  const res = await postJson("/logbook/api/admin/locations", { name: "Magic Wood", country: "Switzerland" }, extraCookie);
+  const { locations } = await res.json();
+  return locations.at(-1).id;
 }
 
 // places and locations are structurally identical resources (create + list,
@@ -23,40 +48,57 @@ describe.each([
     listPath: "/logbook/api/places",
     createPath: "/logbook/api/admin/places",
     listKey: "places",
-    validBody: { locationId: "loc-1", area: "Sector 1" },
-    minimalBody: { locationId: "loc-1" },
+    buildValidBody: locationId => ({ locationId, area: "Sector 1" }),
+    buildMinimalBody: locationId => ({ locationId }),
     requiredField: "locationId",
     defaultField: "area",
+    needsLocation: true,
   },
   {
     resource: "locations",
     listPath: "/logbook/api/locations",
     createPath: "/logbook/api/admin/locations",
     listKey: "locations",
-    validBody: { name: "Magic Wood", country: "Switzerland" },
-    minimalBody: { name: "Magic Wood" },
+    buildValidBody: () => ({ name: "Magic Wood", country: "Switzerland" }),
+    buildMinimalBody: () => ({ name: "Magic Wood" }),
     requiredField: "name",
     defaultField: "country",
+    needsLocation: false,
   },
-])("$resource", ({ listPath, createPath, listKey, validBody, minimalBody, requiredField, defaultField }) => {
-  it(`returns an empty ${listKey} array when KV is unset`, async () => {
-    const res = await fetchJson(listPath);
+])("$resource", ({ listPath, createPath, listKey, buildValidBody, buildMinimalBody, requiredField, defaultField, needsLocation }) => {
+  async function validBody(extraCookie = cookie) {
+    const locationId = needsLocation ? await seedLocation(extraCookie) : undefined;
+    return buildValidBody(locationId);
+  }
+  async function minimalBody(extraCookie = cookie) {
+    const locationId = needsLocation ? await seedLocation(extraCookie) : undefined;
+    return buildMinimalBody(locationId);
+  }
+
+  it(`returns an empty ${listKey} array for an anonymous caller`, async () => {
+    const res = await getList(listPath);
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ [listKey]: [] });
   });
 
+  it("rejects an unauthenticated create request", async () => {
+    const res = await jsonRequest("POST", createPath, await validBody());
+    expect(res.status).toBe(401);
+  });
+
   it("creates on the happy path", async () => {
-    const res = await postJson(createPath, validBody);
+    const body = await validBody();
+    const res = await postJson(createPath, body);
     expect(res.status).toBe(201);
-    const body = await res.json();
-    expect(body[listKey]).toHaveLength(1);
-    expect(body[listKey][0]).toMatchObject(validBody);
-    expect(typeof body[listKey][0].id).toBe("string");
-    expect(body[listKey][0].id.length).toBeGreaterThan(0);
+    const responseBody = await res.json();
+    expect(responseBody[listKey]).toHaveLength(1);
+    expect(responseBody[listKey][0]).toMatchObject(body);
+    expect(typeof responseBody[listKey][0].id).toBe("string");
+    expect(responseBody[listKey][0].id.length).toBeGreaterThan(0);
   });
 
   it(`defaults ${defaultField} to an empty string when omitted`, async () => {
-    const res = await postJson(createPath, minimalBody);
+    const res = await postJson(createPath, await minimalBody());
     const body = await res.json();
     expect(body[listKey][0][defaultField]).toBe("");
   });
@@ -68,7 +110,7 @@ describe.each([
   });
 
   it(`rejects a missing ${requiredField}`, async () => {
-    const body = { ...validBody };
+    const body = await validBody();
     delete body[requiredField];
     const res = await postJson(createPath, body);
     expect(res.status).toBe(400);
@@ -76,7 +118,7 @@ describe.each([
   });
 
   it("replays an existing id idempotently instead of erroring or duplicating", async () => {
-    const withId = { ...validBody, id: "fixed-id-1" };
+    const withId = { ...(await validBody()), id: "fixed-id-1" };
     const first = await postJson(createPath, withId);
     expect(first.status).toBe(201);
 
@@ -85,13 +127,55 @@ describe.each([
     const body = await second.json();
     expect(body[listKey]).toHaveLength(1);
   });
+
+  if (needsLocation) {
+    it("rejects a locationId that doesn't exist", async () => {
+      const res = await postJson(createPath, { locationId: "does-not-exist", area: "Sector 1" });
+      expect(res.status).toBe(400);
+      expect((await res.json()).error).toBe("locationId does not reference one of your locations");
+    });
+  }
+
+  // The one genuinely new security boundary #297 introduces -- see
+  // test/logbook.test.js's own "cross-user isolation" describe block for
+  // the fuller rationale.
+  describe("cross-user isolation", () => {
+    it(`a second user's own GET never sees the first user's ${listKey}`, async () => {
+      await postJson(createPath, await validBody());
+
+      const userB = await createAuthedSession();
+      const res = await getList(listPath, userB.cookie);
+      expect(await res.json()).toEqual({ [listKey]: [] });
+    });
+
+    if (needsLocation) {
+      it("a second user cannot create a place against the first user's location", async () => {
+        const locationId = await seedLocation();
+        const userB = await createAuthedSession();
+        const res = await postJson(createPath, { locationId, area: "Sector 1" }, userB.cookie);
+        expect(res.status).toBe(400);
+        expect((await res.json()).error).toBe("locationId does not reference one of your locations");
+      });
+    }
+  });
 });
 
 describe("settings", () => {
-  it("returns default settings when KV is unset", async () => {
+  it("returns default settings for an anonymous caller", async () => {
     const res = await fetchJson("/logbook/api/settings");
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder" });
+  });
+
+  it("returns default settings for a logged-in user who's never set any", async () => {
+    const res = await fetchJson("/logbook/api/settings", { headers: { Cookie: cookie } });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder" });
+  });
+
+  it("rejects an unauthenticated update request", async () => {
+    const res = await jsonRequest("PATCH", "/logbook/api/admin/settings", { athleteMode: true });
+    expect(res.status).toBe(401);
   });
 
   it("updates athleteMode on the happy path", async () => {
@@ -137,6 +221,14 @@ describe("settings", () => {
     const res = await patchJson("/logbook/api/admin/settings", { activeDiscipline: "sport" });
     expect(res.status).toBe(400);
     expect((await res.json()).error).toBe("activeDiscipline must be 'boulder' or 'lead'");
+  });
+
+  it("a second user's settings are independent of the first user's", async () => {
+    await patchJson("/logbook/api/admin/settings", { athleteMode: true });
+
+    const userB = await createAuthedSession();
+    const res = await fetchJson("/logbook/api/settings", { headers: { Cookie: userB.cookie } });
+    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder" });
   });
 });
 
