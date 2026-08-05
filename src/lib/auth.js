@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { username } from "better-auth/plugins";
 import { createBetaGateHook, createBetaGateAfterHook } from "./beta-gate.js";
+import { createEmailSender } from "./email.js";
 
 // Better Auth (#20) -- replaces Cloudflare Access as the auth mechanism for
 // the multi-user rollout. A factory, not a module-scope singleton: `env`
@@ -30,12 +31,29 @@ import { createBetaGateHook, createBetaGateAfterHook } from "./beta-gate.js";
 const TRUSTED_ORIGINS = ["https://ravendarque.com"];
 
 export function createAuth(env) {
+  const emailSender = createEmailSender(env);
   return betterAuth({
     database: env.LOGBOOK_DB,
     basePath: "/logbook/api/auth",
     secret: env.BETTER_AUTH_SECRET,
     trustedOrigins: TRUSTED_ORIGINS,
-    emailAndPassword: { enabled: true },
+    emailAndPassword: {
+      enabled: true,
+      // requireEmailVerification (#308) changes sign-up/email's own
+      // response shape -- it returns { token: null, user } instead of a
+      // real session, so the client can't skip straight to "logged in"
+      // after signup. See #22's own scope for the "check your email"
+      // register-page state this requires.
+      requireEmailVerification: true,
+      sendResetPassword: ({ user, url }) => emailSender.sendPasswordResetEmail(user.email, url),
+    },
+    emailVerification: {
+      sendVerificationEmail: ({ user, url }) => emailSender.sendVerificationEmail(user.email, url),
+      // Clicking the verification link logs the user in directly, rather
+      // than requiring a separate manual sign-in step right after -- see
+      // #308's own notes on the exact API surface this relies on.
+      autoSignInAfterVerification: true,
+    },
     // Username plugin (#22) -- registration collects email, password, AND
     // username, with server-side uniqueness validation. Username's own
     // case-insensitive lookup column is handled by the plugin itself.
