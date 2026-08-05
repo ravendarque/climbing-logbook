@@ -682,6 +682,18 @@ UUIDs make genuine collisions vanishingly rare, so a duplicate ID on `POST`
 is treated as an idempotent replay (the write already landed; the success
 response was probably lost to a flaky connection) rather than an error.
 
+**Multi-tenant migration in progress (#8):** the KV model above is still
+what the live API actually reads/writes today. `migrations/0003_app_data.sql`
+(#21) adds an equivalent, normalized D1 schema alongside it —
+`locations`/`places`/`entries`/`settings` tables scoped by `user_id`, plus
+`disciplines`/`statuses` lookup tables (real tables instead of `type`/
+`status` string enums, so a new discipline is an `INSERT`, not a schema
+migration). Nothing reads from it yet; #297 cuts the API handlers over to
+D1 and adds per-user authorization, after which this section describes a
+retired model rather than the live one. `firstAttempt`/`athleteMode`/
+`logbookPublic`-style flags are real `BOOLEAN ... CHECK (col IN (0,1))`
+columns in D1, not the bare integers KV's JSON blobs use.
+
 ## Authentication flow
 
 There's no session cookie or login form in this app's own code — Cloudflare
