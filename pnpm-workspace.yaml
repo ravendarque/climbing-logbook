@@ -1,11 +1,12 @@
 allowBuilds:
   '@parcel/watcher': true
-  # better-auth (real runtime dependency, #20) lists this as one of several
-  # optional native SQLite adapters it can auto-detect -- irrelevant here,
-  # since src/lib/auth.js always passes the real D1 binding as `database`,
-  # never a better-sqlite3 instance, so this dispatch branch never runs.
-  # Declined, not approved -- no native build needed for a code path this
-  # app never exercises.
+  # better-auth (real runtime dependency, #20) lists both of these as
+  # optional adapters it can auto-detect (native SQLite / Prisma) --
+  # irrelevant here, since src/lib/auth.js always passes the real D1
+  # binding as `database`, never a better-sqlite3 or Prisma instance, so
+  # neither dispatch branch ever runs. Declined, not approved -- no native
+  # build needed for a code path this app never exercises.
+  '@prisma/client': false
   better-sqlite3: false
   esbuild: true
   sharp: true
