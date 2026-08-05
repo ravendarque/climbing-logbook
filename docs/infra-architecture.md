@@ -309,7 +309,7 @@ preview KV namespace was.
 | `ADMIN_EMAIL` | secret | Terraform variable — the email allowed to log in via Access (transitional, see "Authentication" above) |
 | `CLOUDFLARE_ACCOUNT_ID` | **variable** (not secret — not confidential) | `4f63d74beb21402b8622361525ab4868` |
 | `BETTER_AUTH_SECRET` | secret (Worker runtime, not Terraform) | Better Auth's session-signing secret (#20). One-time manual `wrangler secret put BETTER_AUTH_SECRET` — not CI-managed, doesn't need to rotate on every deploy, same "bootstrapped once, outside Terraform" treatment as the R2 state bucket. Local dev uses `.dev.vars` (gitignored) instead. |
-| `RESEND_API_KEY` | secret (Worker runtime, not Terraform) | [Resend](https://resend.com)'s API key, for signup verification + password reset emails (#308) — same one-time manual `wrangler secret put` treatment as `BETTER_AUTH_SECRET`. `src/lib/email.js` sends from Resend's own sandbox address (`onboarding@resend.dev`, no domain verification needed) until a real domain is verified in Resend's dashboard — verifying `climbinglogbook.com` there is a real outstanding step, independent of anything Terraform manages. |
+| `RESEND_API_KEY` | secret (Worker runtime, not Terraform) | [Resend](https://resend.com)'s API key, for signup verification + password reset emails (#308) — same one-time manual `wrangler secret put` treatment as `BETTER_AUTH_SECRET`. `climbinglogbook.com` is a verified Resend domain; `src/lib/email.js` sends from `myaccount@climbinglogbook.com` (#314). |
 
 ### `CLOUDFLARE_API_TOKEN` permissions
 
