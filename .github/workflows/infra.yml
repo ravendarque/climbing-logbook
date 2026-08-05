@@ -62,6 +62,27 @@ jobs:
             }
           "
 
+      - name: Sync wrangler.jsonc D1 database id
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        working-directory: .
+        run: |
+          D1_ID=$(cd infra && terraform output -raw d1_database_id)
+          node -e "
+            const fs = require('node:fs');
+            const path = 'wrangler.jsonc';
+            const current = fs.readFileSync(path, 'utf8');
+            const updated = current.replace(
+              /(\"binding\":\s*\"LOGBOOK_DB\",\s*\"database_name\":\s*\"[^\"]*\",\s*\"database_id\":\s*\")[^\"]*(\")/,
+              \`\$1${D1_ID}\$2\`
+            );
+            if (updated !== current) {
+              fs.writeFileSync(path, updated);
+              console.log('wrangler.jsonc updated with D1 database id ' + '${D1_ID}');
+            } else {
+              console.log('wrangler.jsonc already up to date');
+            }
+          "
+
       - name: Open and merge PR if generated files changed
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         working-directory: .

@@ -13,14 +13,17 @@
     "client:build": "esbuild client/main.js --bundle --format=esm --outfile=public/logbook/app.js --minify --external:./escape-html.js --external:./floating-ui-dom.js",
     "client:watch": "esbuild client/main.js --bundle --format=esm --outfile=public/logbook/app.js --watch --external:./escape-html.js --external:./floating-ui-dom.js",
     "seed": "node scripts/seed-dev-data.mjs",
+    "auth:generate": "better-auth generate --config auth.config.mjs --output migrations/0001_better_auth_core.sql -y",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "vendor:floating-ui": "node scripts/vendor-floating-ui.mjs"
   },
   "devDependencies": {
+    "@better-auth/cli": "^1.4.21",
     "@cloudflare/vitest-pool-workers": "^0.19.0",
     "@playwright/test": "^1.62.1",
     "@tailwindcss/cli": "^4.3.3",
+    "better-sqlite3": "^13.0.2",
     "concurrently": "^10.0.4",
     "d3-geo": "^3.1.1",
     "esbuild": "^0.28.1",
@@ -33,6 +36,7 @@
     "wrangler": "^4.115.0"
   },
   "dependencies": {
-    "@floating-ui/dom": "^1.8.0"
+    "@floating-ui/dom": "^1.8.0",
+    "better-auth": "^1.6.25"
   }
 }
