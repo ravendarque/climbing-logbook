@@ -23,12 +23,14 @@
     { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook", "database_id": "8f094438-520c-4a67-a685-aee3db6198ad", "migrations_dir": "migrations" }
   ],
   // Beta invite/registration gate (#296) -- not a secret, so `vars` (not
-  // `.dev.vars`) is the right place. Left inheritable into env.preview
-  // (unlike routes/kv_namespaces below, which are explicitly overridden)
-  // -- a PR preview should enforce the same gate production does, not
-  // quietly bypass it. Flipping this to "false" here is the entire "go
-  // fully public" mechanism once the beta period ends (#296) -- no code
-  // change needed.
+  // `.dev.vars`) is the right place. Flipping this to "false" here is the
+  // entire "go fully public" mechanism once the beta period ends (#296) --
+  // no code change needed. Explicitly duplicated into env.preview below,
+  // not left to inherit -- `vars` is NOT inherited by named environments
+  // (confirmed via `wrangler deploy --dry-run`'s own warning, 2026-08-06;
+  // a prior version of this comment claimed the opposite, which appears
+  // to have meant every PR preview silently ran with BETA_GATE_ENABLED
+  // undefined -- falsy, so the gate was never actually enforced there).
   "vars": {
     "BETA_GATE_ENABLED": "true"
   },
@@ -52,8 +54,28 @@
     "preview": {
       "workers_dev": true,
       "routes": [],
+      // Same value as the top-level `vars` above, duplicated deliberately
+      // -- `vars` is not inherited by named environments (see that
+      // block's own comment for how this was discovered).
+      "vars": {
+        "BETA_GATE_ENABLED": "true"
+      },
       "kv_namespaces": [
         { "binding": "LOGBOOK_KV", "id": "c09de14bab5142c58b6cb90b6072ba2f" }
+      ],
+      // Own D1 database, same disposable-preview-data reasoning as the KV
+      // namespace above -- manually bootstrapped (`wrangler d1 create
+      // climbing-logbook-preview`), not Terraform-managed, matching the KV
+      // precedent. Was previously missing entirely: `d1_databases` isn't
+      // inheritable-but-overridden like `vars`/`routes` are documented to
+      // be here, it's inheritable-and-left-alone, which silently pointed
+      // every PR preview at the *production* database once #21 gave
+      // LOGBOOK_DB a real id (harmless placeholder before that; a real
+      // shared-data risk after). Caught 2026-08-05 when Raven asked for
+      // #320's PR preview login credentials -- there weren't any, and
+      // signing up there would have written into production.
+      "d1_databases": [
+        { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook-preview", "database_id": "845753a5-abfc-4d74-995b-94d802b4964e", "migrations_dir": "migrations" }
       ]
     }
   }
