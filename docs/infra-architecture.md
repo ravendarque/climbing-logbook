@@ -68,6 +68,16 @@ Better Auth owns only its own `/auth/*` routes. They don't overlap yet —
 retires Access, at which point this section should be rewritten rather than
 patched further.
 
+**Closed beta gate (#296):** registration is public self-service in the end
+state, but the initial rollout is a closed beta — `src/lib/beta-gate.js`
+requires a valid, unused invite code on `sign-up/email` whenever
+`BETA_GATE_ENABLED` (`wrangler.jsonc`'s `vars`) is `"true"`. Going fully
+public is flipping that one value to `"false"` — no code change, no
+redeploy tied to a specific date. Invite codes are seeded by hand
+(`wrangler d1 execute climbing-logbook --command "INSERT INTO
+beta_invites (code) VALUES ('...')"` — add `--remote` for production) —
+there's no minting UI at this scale (#296).
+
 ## Terraform-managed resources
 
 Everything provisionable is declarative and idempotent via Terraform in

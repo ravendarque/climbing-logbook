@@ -33,6 +33,11 @@ export async function resetKv() {
 const AUTH_TABLES = ["session", "account", "verification", "user"];
 
 export async function resetAuthTables() {
+  // beta_invites (#296) references user too -- clear it first, or deleting
+  // "user" below fails its FOREIGN KEY constraint against any invite still
+  // pointing at a user this call is about to remove (confirmed empirically
+  // -- SQLITE_CONSTRAINT_FOREIGNKEY, not a hypothetical).
+  await env.LOGBOOK_DB.prepare(`DELETE FROM beta_invites`).run();
   // Delete in dependency order (child rows first) -- session/account both
   // reference user via ON DELETE CASCADE, so this isn't strictly required
   // for correctness, but avoids relying on cascade semantics in a reset
