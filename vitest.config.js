@@ -33,7 +33,18 @@ export default defineConfig({
         configPath: "./wrangler.jsonc",
       },
       miniflare: {
-        bindings: { TEST_D1_MIGRATIONS: migrations },
+        bindings: {
+          TEST_D1_MIGRATIONS: migrations,
+          // Never a real credential -- every test that sends email stubs
+          // the outbound fetch() to Resend's API (see test/email.test.js's
+          // own header comment), so the actual value here is never used
+          // for anything but satisfying `new Resend(...)`'s own
+          // synchronous "is this truthy" check at construction time. CI
+          // has no .dev.vars (correctly gitignored, never present there)
+          // and needs this to exist regardless of what real key local dev
+          // or production configure.
+          RESEND_API_KEY: "test-key-fetch-is-always-stubbed",
+        },
       },
     }),
   ],
