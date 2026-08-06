@@ -14,9 +14,11 @@ ravendarque.com
 climbinglogbook.com (#295 -- the dedicated domain, same Worker, hostname-
 dispatched inside src/index.js's own fetch() handler, not a separate
 deploy)
-├── /              → climbing-logbook (apex: marketing/register/login --
-│                    routing lands here first; the actual content is a
-│                    separate, follow-up PR, so this 404s for now)
+├── /                → climbing-logbook (apex: public/index.html --
+│                      marketing page, links to /register and /login)
+├── /register         → climbing-logbook (public/register/, #22/#295)
+├── /login            → climbing-logbook (public/login/, #320/#295)
+├── /reset-password   → climbing-logbook (public/reset-password/, #22/#295)
 └── my.climbinglogbook.com
     ├── /logbook*  → climbing-logbook (the real app -- same
     │                public/logbook/ assets and /logbook/api/* endpoints
@@ -27,11 +29,23 @@ deploy)
     └── /:username → climbing-logbook (#113's public per-user page)
 ```
 
-Both domains are live at once during the transition -- whether
-`ravendarque.com/logbook` is later removed or redirected to the new domain
-is still an open decision (see #295's own issue body), deliberately not
-resolved as part of adding the new routes, since it affects a link in a
-different repo (`my-limn`) and real, currently-working traffic.
+Both domains are live at once during the transition -- `ravendarque.com/
+logbook` keeps serving the app unchanged (own copy of the same static
+files, reachable at both hostnames since Workers Static Assets matches by
+path only, not hostname). `/register`/`/login`/`/reset-password` moved
+*off* `ravendarque.com/logbook` entirely rather than staying duplicated
+there -- confirmed with Raven there are no other active users yet (#295),
+so a clean cutover for these three pages was simpler than maintaining two
+copies indefinitely; visiting the old URLs now 404s. `client/
+admin-auth.js`'s login link and `public/login/login.js`'s post-login
+redirect are both hostname-conditional (absolute cross-origin URL in
+production, same-origin relative fallback for local dev/PR previews) to
+bridge the app's origin (`my.climbinglogbook.com` or still
+`ravendarque.com`) and the auth pages' new origin (`climbinglogbook.com`).
+Whether `ravendarque.com/logbook` itself (the app, not just
+register/login) is later removed or redirected, and removing/updating the
+link to it in the separate `my-limn` repo, is still open -- not resolved
+here.
 
 ## Why a Worker, not another Pages project
 
@@ -116,10 +130,11 @@ Everything provisionable is declarative and idempotent via Terraform in
 - `cloudflare_d1_database` (`infra/d1.tf`, #20) — backs Better Auth now,
   and the rest of the app's multi-tenant data since #21/#297
 - `cloudflare_turnstile_widget` (`infra/turnstile.tf`, #311) — form-level
-  bot check on `/register`, domain-restricted to `var.zone_name`
-  (`ravendarque.com` today, update alongside #295's domain cutover).
-  Outputs a public `sitekey` (synced into `public/logbook/register/
-  register.js` by `infra.yml`, same mechanism as the KV/D1 id sync below)
+  bot check on `/register`, domain-restricted to `var.app_zone_name`
+  (`climbinglogbook.com` since #295's apex cutover moved `/register`
+  there — was `var.zone_name`/`ravendarque.com` before).
+  Outputs a public `sitekey` (synced into `public/register/register.js`
+  by `infra.yml`, same mechanism as the KV/D1 id sync below)
   and a `sensitive` `secret` (read manually via `terraform output -raw
   turnstile_secret`, piped straight into `wrangler secret put
   TURNSTILE_SECRET_KEY`, never auto-synced or displayed)

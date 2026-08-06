@@ -22,7 +22,7 @@ function seedInviteCode(code) {
 // asynchronously -- register.js's client-side guard shows its own
 // "please complete the verification check" error if submitted before a
 // token exists, which would otherwise make every test here race against
-// widget load time. The test sitekey (register.js, non-ravendarque.com
+// widget load time. The test sitekey (register.js, non-climbinglogbook.com
 // hostnames) auto-completes with no interaction needed, so waiting for
 // getResponse() to go truthy is all that's needed, not a real click.
 async function waitForTurnstile(page) {
@@ -33,7 +33,7 @@ test("registers with a valid invite code, shows the check-your-email state", asy
   const code = `e2e-register-${Date.now()}`;
   seedInviteCode(code);
 
-  await page.goto("/logbook/register/");
+  await page.goto("/register/");
   await waitForTurnstile(page);
   await page.locator("#code").fill(code);
   await page.locator("#email").fill(`e2e-register-${Date.now()}@example.com`);
@@ -46,7 +46,7 @@ test("registers with a valid invite code, shows the check-your-email state", asy
 });
 
 test("rejects sign-up with no invite code", async ({ page }) => {
-  await page.goto("/logbook/register/");
+  await page.goto("/register/");
   await waitForTurnstile(page);
   await page.locator("#email").fill(`e2e-noinvite-${Date.now()}@example.com`);
   await page.locator("#username").fill(`e2enoinvite${Date.now()}`);

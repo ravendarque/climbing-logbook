@@ -23,7 +23,7 @@ function statusLabel(statusId, firstAttempt) {
 // username" and "username exists but logbook_public is off" -- telling
 // them apart would let a visitor enumerate registered usernames just by
 // comparing responses, same anti-enumeration reasoning already documented
-// on the password-reset flow (public/logbook/login/login.js).
+// on the password-reset flow (public/login/login.js).
 async function resolvePublicUser(env, username) {
   // Better Auth's username plugin normalizes to lowercase in the
   // `username` column and keeps original casing in `displayUsername`
@@ -74,7 +74,7 @@ function renderShell(title, bodyHtml) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${escapeHtml(title)}</title>
 <style>
-  /* Same token subset as public/logbook/login/index.html -- see that
+  /* Same token subset as public/login/index.html -- see that
      file's own comment for why this is duplicated rather than shared. */
   :root {
     --color-bg: #0f0f0f; --color-surface: #1a1a1a; --color-text: #f0f0f0;
