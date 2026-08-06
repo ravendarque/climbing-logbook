@@ -17,10 +17,16 @@ test("logs in via the login page, then logs out again", async ({ page }) => {
   await page.locator("#password").fill(DEV_USER.password);
   await page.locator("#login-submit-btn").click();
 
-  // login.js redirects to the app on success -- confirms the boot
-  // sequence itself, not just the URL, since a real Better Auth session
-  // is what makes admin controls appear below.
-  await page.waitForURL("**/logbook/");
+  // login.js redirects to the signed-in user's own public profile
+  // (#113), not the admin app directly -- matches the originally decided
+  // design ("successful login redirects to my.climbinglogbook.com/
+  // <username>"), not a fixed app-root target. The profile page itself
+  // has no admin affordances at all (it's #113's read-only page), so
+  // proving the session actually took needs a separate navigation to the
+  // real app, below.
+  await page.waitForURL(`**/${DEV_USER.username}`);
+
+  await page.goto("/logbook/");
   await page.locator("#loading").waitFor({ state: "hidden" });
   await page.locator("#app").waitFor({ state: "visible" });
 

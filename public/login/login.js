@@ -6,15 +6,11 @@
 // same-origin requests, unlike the Node-side scripts in
 // scripts/lib/dev-session.mjs that have to set it by hand.
 //
-// REDIRECT_URL is cross-origin in production (#295 -- this page moved to
-// the apex, climbinglogbook.com, while the app itself lives at
-// my.climbinglogbook.com/logbook) but same-origin everywhere else (local
-// dev, PR previews) -- those don't have a real my.<domain> subdomain to
-// send a browser to, and this page is still reachable at its new
-// root-relative path there regardless.
-const REDIRECT_URL = window.location.hostname === "climbinglogbook.com"
-  ? "https://my.climbinglogbook.com/logbook/"
-  : "/logbook/";
+// Cross-origin in production (#295 -- this page moved to the apex,
+// climbinglogbook.com) but same-origin everywhere else (local dev, PR
+// previews) -- those don't have a real my.<domain> subdomain to send a
+// browser to.
+const APP_ORIGIN = window.location.hostname === "climbinglogbook.com" ? "https://my.climbinglogbook.com" : "";
 const RESET_PASSWORD_URL = `${window.location.origin}/reset-password/`;
 
 const form = document.getElementById("login-form");
@@ -40,12 +36,18 @@ form.addEventListener("submit", async (event) => {
       }),
     });
 
+    const data = await res.json().catch(() => null);
+
     if (res.ok) {
-      window.location.href = REDIRECT_URL;
+      // Redirects to the signed-in user's own public profile (#113),
+      // matching the originally decided design ("successful login
+      // redirects to my.climbinglogbook.com/<username>") -- not a fixed
+      // /logbook/ target, which was this page's own bug (landed
+      // everyone on the same app-root URL regardless of who signed in).
+      window.location.href = `${APP_ORIGIN}/${data.user.username}`;
       return;
     }
 
-    const data = await res.json().catch(() => null);
     errorEl.textContent = data?.message || `Login failed (${res.status}).`;
     errorEl.hidden = false;
   } catch {

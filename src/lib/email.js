@@ -4,7 +4,7 @@ import { Resend } from "resend";
 // only two email-sending needs Better Auth's config (src/lib/auth.js)
 // actually calls into.
 //
-const FROM_ADDRESS = "climbing-logbook <myaccount@climbinglogbook.com>";
+const FROM_ADDRESS = "Climbing Logbook <myaccount@climbinglogbook.com>";
 
 // Every send is wrapped in its own try/catch, deliberately never throwing
 // or rejecting back to the caller -- confirmed live (#308) that Better
