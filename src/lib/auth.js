@@ -48,7 +48,8 @@ const TRUSTED_ORIGINS = ["https://ravendarque.com", "https://climbinglogbook.com
 // browser's actual current host is rejected outright by the browser, not
 // just harmless to set.
 function crossSubDomainCookies(hostname) {
-  if (!hostname?.endsWith("climbinglogbook.com")) return undefined;
+  const isRealDomain = hostname === "climbinglogbook.com" || hostname?.endsWith(".climbinglogbook.com");
+  if (!isRealDomain) return undefined;
   return { enabled: true, domain: "climbinglogbook.com" };
 }
 
