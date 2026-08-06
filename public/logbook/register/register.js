@@ -23,7 +23,7 @@ if (params.has("code")) codeInput.value = params.get("code");
 // once infra/turnstile.tf provisions the widget, same placeholder
 // pattern as wrangler.jsonc's KV/D1 ids -- not secret, sitekeys are
 // meant to be embedded in client-side code.
-const REAL_SITEKEY = "PLACEHOLDER-set-by-infra-yml";
+const REAL_SITEKEY = "0x4AAAAAAEH3RghUN6KSc-uy";
 const TEST_SITEKEY = "1x00000000000000000000AA";
 // TODO(#295): this becomes my.climbinglogbook.com once the domain
 // cutover lands -- infra/turnstile.tf's domains list needs updating
