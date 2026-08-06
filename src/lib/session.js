@@ -7,6 +7,7 @@ import { createAuth } from "./auth.js";
 // logged-out caller sees an empty result rather than 401ing, since a
 // multi-tenant app has no single global "the" owner to default to.
 export async function resolveUserId(request, env) {
-  const session = await createAuth(env).api.getSession({ headers: request.headers });
+  const { hostname } = new URL(request.url);
+  const session = await createAuth(env, hostname).api.getSession({ headers: request.headers });
   return session?.user?.id ?? null;
 }

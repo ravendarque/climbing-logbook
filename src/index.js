@@ -47,7 +47,7 @@ export default {
     // its own internal routing under this basePath (signup/login/logout/
     // session-check/etc, see src/lib/auth.js) via a single handler.
     if (pathname.startsWith("/logbook/api/auth/")) {
-      return createAuth(env).handler(request);
+      return createAuth(env, hostname).handler(request);
     }
 
     if (pathname === "/logbook/api/logbook" && method === "GET") {
