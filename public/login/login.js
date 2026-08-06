@@ -5,8 +5,17 @@
 // header handling of its own -- the browser sends one automatically for
 // same-origin requests, unlike the Node-side scripts in
 // scripts/lib/dev-session.mjs that have to set it by hand.
-const REDIRECT_URL = "/logbook/";
-const RESET_PASSWORD_URL = `${window.location.origin}/logbook/reset-password/`;
+//
+// REDIRECT_URL is cross-origin in production (#295 -- this page moved to
+// the apex, climbinglogbook.com, while the app itself lives at
+// my.climbinglogbook.com/logbook) but same-origin everywhere else (local
+// dev, PR previews) -- those don't have a real my.<domain> subdomain to
+// send a browser to, and this page is still reachable at its new
+// root-relative path there regardless.
+const REDIRECT_URL = window.location.hostname === "climbinglogbook.com"
+  ? "https://my.climbinglogbook.com/logbook/"
+  : "/logbook/";
+const RESET_PASSWORD_URL = `${window.location.origin}/reset-password/`;
 
 const form = document.getElementById("login-form");
 const errorEl = document.getElementById("login-error");

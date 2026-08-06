@@ -738,28 +738,41 @@ Server-side, `src/index.js` independently resolves a Better Auth session
   handled separately as "offline," falling back to the last-known state
   in `localStorage`. These have to stay distinct: conflating them would
   let a stale "logged in" hint survive an actual logout.
-- **Logging in:** clicking "Log in" is a full-page navigation to
-  `/logbook/login/` — a small standalone page (`public/logbook/login/`,
-  outside the main app's module graph, its own `login.js`) with a plain
-  email/password form posting to Better Auth's `sign-in/email` endpoint.
-  On success it redirects to `/logbook/`. This is deliberately not a
-  fetch-based in-app modal — auth entry lives on its own pages, not
-  inside the SPA.
-- **Signing up / resetting a password (#22):** `/logbook/register/` and
-  `/logbook/reset-password/` follow the exact same standalone-page
-  pattern as `/logbook/login/`. `/register` posts to `sign-up/email`
-  (email, password, username, plus a beta invite code while #296's gate
-  is active) and shows a "check your email" state rather than
-  redirecting — `requireEmailVerification: true` (#308) means sign-up
-  never returns a session. `/reset-password` is the `redirectTo` target
-  Better Auth's own `/reset-password/:token` GET handler redirects to
-  once it's validated the emailed token server-side, landing with either
-  `?token=...` (valid) or `?error=INVALID_TOKEN` — the page never
-  validates the raw token itself, only reacts to what that redirect
-  already decided. The "forgot password?" link lives on `/login/` itself
-  (reuses that page's own email field) rather than a separate page for
-  one action, calling `request-password-reset` with `redirectTo` pointed
-  at `/reset-password/`.
+- **Logging in:** clicking "Log in" is a full-page navigation to the
+  login page (`public/login/`, outside the main app's module graph, its
+  own `login.js`) with a plain email/password form posting to Better
+  Auth's `sign-in/email` endpoint. On success it redirects back to the
+  app. This is deliberately not a fetch-based in-app modal — auth entry
+  lives on its own pages, not inside the SPA. Since #295, the login page
+  lives at the apex of the new domain (`climbinglogbook.com/login/`)
+  while the app itself is reachable at `my.climbinglogbook.com/logbook`
+  (and, for now, still `ravendarque.com/logbook`) — a different origin,
+  so both the app's link to the login page (`client/admin-auth.js`'s
+  `LOGIN_PAGE_URL`) and the login page's post-login redirect
+  (`public/login/login.js`'s `REDIRECT_URL`) are hostname-conditional:
+  a fixed absolute cross-origin URL against the two known production
+  hostnames, falling back to a same-origin relative path everywhere else
+  (local dev, PR previews — neither has a real `climbinglogbook.com` to
+  navigate to, and the pages are still reachable at their new
+  root-relative paths there regardless).
+- **Signing up / resetting a password (#22):** `/register` and
+  `/reset-password` (`public/register/`, `public/reset-password/`) follow
+  the exact same standalone-page pattern as `/login/` — all three are
+  siblings at the apex root since #295, not nested under `/logbook`.
+  `/register` posts to `sign-up/email` (email, password, username, plus a
+  beta invite code while #296's gate is active) and shows a "check your
+  email" state rather than redirecting — `requireEmailVerification: true`
+  (#308) means sign-up never returns a session. `/reset-password` is the
+  `redirectTo` target Better Auth's own `/reset-password/:token` GET
+  handler redirects to once it's validated the emailed token
+  server-side, landing with either `?token=...` (valid) or
+  `?error=INVALID_TOKEN` — the page never validates the raw token
+  itself, only reacts to what that redirect already decided. The "forgot
+  password?" link lives on `/login/` itself (reuses that page's own
+  email field) rather than a separate page for one action, calling
+  `request-password-reset` with `redirectTo` pointed at
+  `${origin}/reset-password/` (same-origin — login and reset-password are
+  always co-located, on the apex in production or localhost in dev).
 - **Logging out:** a plain same-origin `POST` to Better Auth's
   `sign-out` endpoint from `admin-auth.js` itself — no dedicated logout
   page/redirect needed (unlike Access's own logout ceremony), so this
@@ -852,10 +865,12 @@ strings — this project had a stored-XSS finding early on from raw
 interpolation, and escaping is now the non-negotiable default rather than
 an opt-in.
 
-`public/logbook/login/`, `public/logbook/register/`, and
-`public/logbook/reset-password/` (#320/#22) are deliberately **outside**
+`public/login/`, `public/register/`, and `public/reset-password/`
+(#320/#22, moved to the apex root by #295) are deliberately **outside**
 this bundle and module graph entirely — each its own `index.html` + one
 small JS file, not routed through `client/main.js` or esbuild. They have
 nothing to share with the main app (no store, no rendering, one form
 submit each) and need to work standing entirely alone as the thing you
-land on *before* the app boots.
+land on *before* the app boots. `public/index.html` (the apex marketing
+page, #295) is the same: a standalone page with no JS at all beyond the
+shared pre-paint theme bootstrap inline script.

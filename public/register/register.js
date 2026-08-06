@@ -15,9 +15,10 @@ if (params.has("code")) codeInput.value = params.get("code");
 
 // Turnstile (#311) -- explicit render, not implicit auto-scan, since the
 // sitekey is a runtime decision: the real widget (infra/turnstile.tf) is
-// domain-restricted to ravendarque.com and would never render/validate
-// anywhere else. Everywhere that isn't that real hostname (local dev,
-// E2E, CI, PR previews) uses Cloudflare's own public "always passes"
+// domain-restricted to climbinglogbook.com (#295 -- was ravendarque.com
+// until this page moved to the apex here) and would never render/
+// validate anywhere else. Everywhere that isn't that real hostname (local
+// dev, E2E, CI, PR previews) uses Cloudflare's own public "always passes"
 // test sitekey instead -- there's no way, and no reason, for automated
 // tests to solve a real challenge. REAL_SITEKEY is synced by infra.yml
 // once infra/turnstile.tf provisions the widget, same placeholder
@@ -25,10 +26,7 @@ if (params.has("code")) codeInput.value = params.get("code");
 // meant to be embedded in client-side code.
 const REAL_SITEKEY = "0x4AAAAAAEH3RghUN6KSc-uy";
 const TEST_SITEKEY = "1x00000000000000000000AA";
-// TODO(#295): this becomes my.climbinglogbook.com once the domain
-// cutover lands -- infra/turnstile.tf's domains list needs updating
-// alongside this check when that happens.
-const sitekey = window.location.hostname === "ravendarque.com" ? REAL_SITEKEY : TEST_SITEKEY;
+const sitekey = window.location.hostname === "climbinglogbook.com" ? REAL_SITEKEY : TEST_SITEKEY;
 
 let turnstileWidgetId;
 window.onTurnstileLoad = () => {

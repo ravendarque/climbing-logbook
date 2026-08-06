@@ -90,7 +90,7 @@ jobs:
           SITEKEY=$(cd infra && terraform output -raw turnstile_sitekey)
           node -e "
             const fs = require('node:fs');
-            const path = 'public/logbook/register/register.js';
+            const path = 'public/register/register.js';
             const current = fs.readFileSync(path, 'utf8');
             const updated = current.replace(
               /const REAL_SITEKEY = \"[^\"]*\";/,
@@ -112,7 +112,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add wrangler.jsonc infra/.terraform.lock.hcl public/logbook/register/register.js
+          git add wrangler.jsonc infra/.terraform.lock.hcl public/register/register.js
           if git diff --cached --quiet; then
             echo "Nothing to commit."
             exit 0

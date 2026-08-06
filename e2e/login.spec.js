@@ -11,7 +11,7 @@ import { DEV_USER } from "../scripts/lib/dev-session.mjs";
 test.use({ storageState: { cookies: [], origins: [] } });
 
 test("logs in via the login page, then logs out again", async ({ page }) => {
-  await page.goto("/logbook/login/");
+  await page.goto("/login/");
 
   await page.locator("#email").fill(DEV_USER.email);
   await page.locator("#password").fill(DEV_USER.password);
@@ -36,14 +36,14 @@ test("logs in via the login page, then logs out again", async ({ page }) => {
 });
 
 test("shows an inline error for the wrong password, without navigating away", async ({ page }) => {
-  await page.goto("/logbook/login/");
+  await page.goto("/login/");
 
   await page.locator("#email").fill(DEV_USER.email);
   await page.locator("#password").fill("definitely-the-wrong-password");
   await page.locator("#login-submit-btn").click();
 
   await expect(page.locator("#login-error")).toBeVisible();
-  await expect(page).toHaveURL(/\/logbook\/login\/?$/);
+  await expect(page).toHaveURL(/\/login\/?$/);
 });
 
 test("forgot password requires an email first", async ({ page }) => {
@@ -52,7 +52,7 @@ test("forgot password requires an email first", async ({ page }) => {
   // dev (TRUSTED_ORIGINS, src/lib/auth.js, doesn't include localhost;
   // see #22's own PR description for how the success path was verified
   // manually instead).
-  await page.goto("/logbook/login/");
+  await page.goto("/login/");
 
   await page.locator("#forgot-password-btn").click();
 
