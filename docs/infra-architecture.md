@@ -9,7 +9,11 @@ even though both live on the same domain (`ravendarque.com`).
 ```
 ravendarque.com
 ├── /              → my-limn (Cloudflare Pages, dashboard git-integrated)
-└── /logbook/*     → climbing-logbook (Cloudflare Worker, zone route)
+└── /logbook/*     → 301 redirect to my.climbinglogbook.com/ravendarque
+                      (infra/redirects.tf, #295 -- retired; the Workers
+                      Route to climbing-logbook still exists in
+                      wrangler.jsonc underneath this, but the redirect
+                      ruleset runs first at the edge and always wins)
 
 climbinglogbook.com (#295 -- the dedicated domain, same Worker, hostname-
 dispatched inside src/index.js's own fetch() handler, not a separate
@@ -42,10 +46,13 @@ redirect are both hostname-conditional (absolute cross-origin URL in
 production, same-origin relative fallback for local dev/PR previews) to
 bridge the app's origin (`my.climbinglogbook.com` or still
 `ravendarque.com`) and the auth pages' new origin (`climbinglogbook.com`).
-Whether `ravendarque.com/logbook` itself (the app, not just
-register/login) is later removed or redirected, and removing/updating the
-link to it in the separate `my-limn` repo, is still open -- not resolved
-here.
+`ravendarque.com/logbook` itself now redirects (301, `infra/redirects.tf`)
+to `my.climbinglogbook.com/ravendarque` -- Raven's own eventual public
+profile page (#113) -- rather than the app; the app is still technically
+served there underneath (same static files, unreachable Workers Route),
+just never reached since the redirect ruleset wins first. Updating the
+link to the old URL in the separate `my-limn` repo is still open, not
+resolved here.
 
 ## Why a Worker, not another Pages project
 
@@ -147,6 +154,19 @@ Everything provisionable is declarative and idempotent via Terraform in
   hostname resolve before its Route can do anything. Looked up via a
   `cloudflare_zone` data source (`var.app_zone_name`, default
   `climbinglogbook.com`) rather than a hardcoded zone id.
+- `cloudflare_ruleset` (`infra/redirects.tf`, #295) — a zone-level
+  redirect ruleset (`kind = "zone"`, `phase = "http_request_redirect"`)
+  retiring `ravendarque.com/logbook*` in favor of a fixed 301 to
+  `my.climbinglogbook.com/ravendarque`. A zone-level redirect, not a
+  Worker-side one, deliberately: Cloudflare Static Assets matches by path
+  only (confirmed during #113/#335), so a redirect written inside
+  `src/index.js`'s own `fetch()` could never win against the real static
+  app files still sitting at `public/logbook/` (the same files that also
+  serve `my.climbinglogbook.com/logbook`) -- a redirect ruleset runs at
+  the edge, ahead of both Workers Routes and Static Assets, so it
+  intercepts cleanly regardless. The existing `ravendarque.com/logbook*`
+  Workers Route in `wrangler.jsonc` is left in place, now unreachable for
+  real traffic -- harmless dead config, not worth a separate cleanup PR.
 
 **Intentionally excluded from Terraform**, by design: the admin login email
 (a `sensitive` variable, supplied via a repo secret — never committed), the
@@ -399,6 +419,11 @@ Account-scoped (the Cloudflare account above):
 
 Zone-scoped (ravendarque.com):
 - Workers Routes: Edit
+- Zone Rulesets: Edit (added #295 -- `infra/redirects.tf`'s redirect
+  ruleset; not confirmed granted ahead of time, same "verify via a real
+  apply, don't assume" flag as Turnstile above -- Cloudflare's redirect
+  rulesets have been known to need a distinct permission from Page
+  Rules' older equivalent)
 
 Zone-scoped (climbinglogbook.com, added #295):
 - DNS: Edit (`infra/dns.tf`'s placeholder records)
