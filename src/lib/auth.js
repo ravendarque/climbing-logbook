@@ -61,7 +61,14 @@ export function createAuth(env) {
     // Username plugin (#22) -- registration collects email, password, AND
     // username, with server-side uniqueness validation. Username's own
     // case-insensitive lookup column is handled by the plugin itself.
-    plugins: [username()],
+    // Default validator allows mixed case plus `_`/`.`
+    // (/^[a-zA-Z0-9_.]+$/, confirmed against the installed package source)
+    // -- narrowed to lowercase letters/digits only, since usernames are a
+    // literal URL path segment (#113, my.climbinglogbook.com/:username)
+    // and a predictable, unpunctuated charset there is worth enforcing
+    // up front rather than silently normalizing/mangling whatever a user
+    // types.
+    plugins: [username({ usernameValidator: candidate => /^[a-z0-9]+$/.test(candidate) })],
     // Turnstile bot check (#311) runs before the beta gate (#296) --
     // reject non-human requests before spending an invite-code lookup on
     // them. hooks.before only accepts a single middleware (verified

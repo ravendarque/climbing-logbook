@@ -85,8 +85,15 @@
 
     <label class="block text-sm text-muted mb-1" for="username">Username</label>
     <input
-      class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full mb-4"
-      type="text" id="username" name="username" required autocomplete="username">
+      class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full mb-1"
+      type="text" id="username" name="username" required autocomplete="username"
+      pattern="[a-z0-9]+" title="Lowercase letters and numbers only">
+    <!-- Matches src/lib/auth.js's usernameValidator exactly -- this is a
+         client-side hint (nicer inline browser validation UX), the
+         server-side check is the real enforcement. Lowercase-only/no
+         punctuation since a username is a literal URL path segment
+         (#113, my.climbinglogbook.com/:username). -->
+    <p class="text-xs text-muted mb-4">Lowercase letters and numbers only.</p>
 
     <label class="block text-sm text-muted mb-1" for="password">Password</label>
     <input
