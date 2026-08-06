@@ -9,7 +9,9 @@
 # is never actually contacted" placeholder, since the Worker Route answers
 # every request before Cloudflare would ever reach out to `content`.
 data "cloudflare_zone" "app" {
-  name = var.app_zone_name
+  filter = {
+    name = var.app_zone_name
+  }
 }
 
 resource "cloudflare_dns_record" "app_apex" {
