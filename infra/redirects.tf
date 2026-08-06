@@ -33,7 +33,13 @@ resource "cloudflare_ruleset" "ravendarque_logbook_redirect" {
   rules = [
     {
       description = "Redirect the retired /logbook app to the new domain"
-      expression  = "http.request.uri.path starts_with \"/logbook\""
+      # Function-call syntax, not infix -- confirmed live via a real
+      # apply's 400 (Cloudflare's filter-expression parser rejected the
+      # infix form `... starts_with "..."` outright: "expected
+      # ComparisonOp"). This is Cloudflare's Rules language, not a
+      # general boolean-expression DSL that happens to support this
+      # syntax both ways.
+      expression = "starts_with(http.request.uri.path, \"/logbook\")"
       action      = "redirect"
       action_parameters = {
         from_value = {
