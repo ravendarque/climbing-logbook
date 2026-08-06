@@ -743,9 +743,23 @@ Server-side, `src/index.js` independently resolves a Better Auth session
   outside the main app's module graph, its own `login.js`) with a plain
   email/password form posting to Better Auth's `sign-in/email` endpoint.
   On success it redirects to `/logbook/`. This is deliberately not a
-  fetch-based in-app modal — same architectural call the epic's own plan
-  already made for the eventual `/register` page (#22): auth entry lives
-  on its own page, not inside the SPA.
+  fetch-based in-app modal — auth entry lives on its own pages, not
+  inside the SPA.
+- **Signing up / resetting a password (#22):** `/logbook/register/` and
+  `/logbook/reset-password/` follow the exact same standalone-page
+  pattern as `/logbook/login/`. `/register` posts to `sign-up/email`
+  (email, password, username, plus a beta invite code while #296's gate
+  is active) and shows a "check your email" state rather than
+  redirecting — `requireEmailVerification: true` (#308) means sign-up
+  never returns a session. `/reset-password` is the `redirectTo` target
+  Better Auth's own `/reset-password/:token` GET handler redirects to
+  once it's validated the emailed token server-side, landing with either
+  `?token=...` (valid) or `?error=INVALID_TOKEN` — the page never
+  validates the raw token itself, only reacts to what that redirect
+  already decided. The "forgot password?" link lives on `/login/` itself
+  (reuses that page's own email field) rather than a separate page for
+  one action, calling `request-password-reset` with `redirectTo` pointed
+  at `/reset-password/`.
 - **Logging out:** a plain same-origin `POST` to Better Auth's
   `sign-out` endpoint from `admin-auth.js` itself — no dedicated logout
   page/redirect needed (unlike Access's own logout ceremony), so this
@@ -838,8 +852,10 @@ strings — this project had a stored-XSS finding early on from raw
 interpolation, and escaping is now the non-negotiable default rather than
 an opt-in.
 
-`public/logbook/login/` (#320) is deliberately **outside** this bundle
-and module graph entirely — its own `index.html` + `login.js`, not
-routed through `client/main.js` or esbuild. It has nothing to share with
-the main app (no store, no rendering, one form submit) and needs to work
-standing entirely alone as the thing you land on *before* the app boots.
+`public/logbook/login/`, `public/logbook/register/`, and
+`public/logbook/reset-password/` (#320/#22) are deliberately **outside**
+this bundle and module graph entirely — each its own `index.html` + one
+small JS file, not routed through `client/main.js` or esbuild. They have
+nothing to share with the main app (no store, no rendering, one form
+submit each) and need to work standing entirely alone as the thing you
+land on *before* the app boots.

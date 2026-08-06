@@ -45,3 +45,17 @@ test("shows an inline error for the wrong password, without navigating away", as
   await expect(page.locator("#login-error")).toBeVisible();
   await expect(page).toHaveURL(/\/logbook\/login\/?$/);
 });
+
+test("forgot password requires an email first", async ({ page }) => {
+  // Only the client-side empty-email guard is covered here (#22) -- a
+  // real request-password-reset call would 403 against a local wrangler
+  // dev (TRUSTED_ORIGINS, src/lib/auth.js, doesn't include localhost;
+  // see #22's own PR description for how the success path was verified
+  // manually instead).
+  await page.goto("/logbook/login/");
+
+  await page.locator("#forgot-password-btn").click();
+
+  await expect(page.locator("#login-error")).toBeVisible();
+  await expect(page.locator("#login-info")).toBeHidden();
+});
