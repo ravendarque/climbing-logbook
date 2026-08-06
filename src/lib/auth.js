@@ -61,7 +61,20 @@ export function createAuth(env) {
     // Username plugin (#22) -- registration collects email, password, AND
     // username, with server-side uniqueness validation. Username's own
     // case-insensitive lookup column is handled by the plugin itself.
-    plugins: [username()],
+    // Default validator allows mixed case plus `_`/`.`
+    // (/^[a-zA-Z0-9_.]+$/, confirmed against the installed package source)
+    // -- narrowed to lowercase-only (uppercase still rejected, matching
+    // #341's original ask) while keeping `_`/`.` (#341, revised: same
+    // charset as Instagram, so people can reuse an existing handle).
+    // minUsernameLength/maxUsernameLength also matched to Instagram's
+    // real limits (1-30) rather than Better Auth's own defaults (3-30) --
+    // it doesn't publish an official minimum, but real single-character
+    // handles exist.
+    plugins: [username({
+      usernameValidator: candidate => /^[a-z0-9._]+$/.test(candidate),
+      minUsernameLength: 1,
+      maxUsernameLength: 30,
+    })],
     // Turnstile bot check (#311) runs before the beta gate (#296) --
     // reject non-human requests before spending an invite-code lookup on
     // them. hooks.before only accepts a single middleware (verified

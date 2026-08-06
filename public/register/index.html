@@ -85,8 +85,17 @@
 
     <label class="block text-sm text-muted mb-1" for="username">Username</label>
     <input
-      class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full mb-4"
-      type="text" id="username" name="username" required autocomplete="username">
+      class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full mb-1"
+      type="text" id="username" name="username" required autocomplete="username"
+      pattern="[a-z0-9._]+" minlength="1" maxlength="30"
+      title="Lowercase letters, numbers, periods, and underscores only">
+    <!-- Matches src/lib/auth.js's usernameValidator/min-maxUsernameLength
+         exactly -- this is a client-side hint (nicer inline browser
+         validation UX), the server-side check is the real enforcement.
+         Same charset/length as Instagram (#341), since a username is
+         also a literal URL path segment (#113,
+         my.climbinglogbook.com/:username). -->
+    <p class="text-xs text-muted mb-4">Lowercase letters, numbers, periods, and underscores only.</p>
 
     <label class="block text-sm text-muted mb-1" for="password">Password</label>
     <input
