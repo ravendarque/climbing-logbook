@@ -10,7 +10,28 @@ even though both live on the same domain (`ravendarque.com`).
 ravendarque.com
 ├── /              → my-limn (Cloudflare Pages, dashboard git-integrated)
 └── /logbook/*     → climbing-logbook (Cloudflare Worker, zone route)
+
+climbinglogbook.com (#295 -- the dedicated domain, same Worker, hostname-
+dispatched inside src/index.js's own fetch() handler, not a separate
+deploy)
+├── /              → climbing-logbook (apex: marketing/register/login --
+│                    routing lands here first; the actual content is a
+│                    separate, follow-up PR, so this 404s for now)
+└── my.climbinglogbook.com
+    ├── /logbook*  → climbing-logbook (the real app -- same
+    │                public/logbook/ assets and /logbook/api/* endpoints
+    │                already serving ravendarque.com/logbook, now also
+    │                reachable here; deliberately NOT moved to the bare
+    │                root, so nothing about the app's existing paths,
+    │                cookies, or client code needed to change)
+    └── /:username → climbing-logbook (#113's public per-user page)
 ```
+
+Both domains are live at once during the transition -- whether
+`ravendarque.com/logbook` is later removed or redirected to the new domain
+is still an open decision (see #295's own issue body), deliberately not
+resolved as part of adding the new routes, since it affects a link in a
+different repo (`my-limn`) and real, currently-working traffic.
 
 ## Why a Worker, not another Pages project
 
@@ -102,6 +123,15 @@ Everything provisionable is declarative and idempotent via Terraform in
   and a `sensitive` `secret` (read manually via `terraform output -raw
   turnstile_secret`, piped straight into `wrangler secret put
   TURNSTILE_SECRET_KEY`, never auto-synced or displayed)
+- `cloudflare_dns_record` (`infra/dns.tf`, #295) — two placeholder proxied
+  A records (`climbinglogbook.com`, `my.climbinglogbook.com`), both
+  pointing at `192.0.2.1` (RFC 5737 TEST-NET-1, never actually contacted).
+  A Worker Route only ever intercepts traffic that already reaches
+  Cloudflare's edge for a hostname; a zone with zero DNS records doesn't
+  resolve at all, so a brand-new zone needs *something* to make the
+  hostname resolve before its Route can do anything. Looked up via a
+  `cloudflare_zone` data source (`var.app_zone_name`, default
+  `climbinglogbook.com`) rather than a hardcoded zone id.
 
 **Intentionally excluded from Terraform**, by design: the admin login email
 (a `sensitive` variable, supplied via a repo secret — never committed), the
@@ -354,6 +384,12 @@ Account-scoped (the Cloudflare account above):
 
 Zone-scoped (ravendarque.com):
 - Workers Routes: Edit
+
+Zone-scoped (climbinglogbook.com, added #295):
+- DNS: Edit (`infra/dns.tf`'s placeholder records)
+- Workers Routes: Edit (the two new routes in `wrangler.jsonc` -- takes
+  effect on the next tagged `deploy.yml` run, not on merge to `main`, see
+  "Three-workflow structure" above)
 
 ## Disaster recovery
 

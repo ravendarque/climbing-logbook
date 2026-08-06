@@ -34,8 +34,19 @@
   "vars": {
     "BETA_GATE_ENABLED": "true"
   },
+  // #295 -- climbinglogbook.com/my.climbinglogbook.com are the new routes;
+  // ravendarque.com/logbook* stays alongside them for now -- whether it's
+  // later removed or redirected to the new domain is still an open
+  // decision (see #295's own body), deliberately not resolved here since
+  // it affects a link in a different repo (my-limn) and real live traffic.
+  // No apex content exists yet at climbinglogbook.com (marketing page is
+  // a separate, follow-up issue) -- this route is inert (404s) until then,
+  // same "safe to land ahead of the content that needs it" reasoning as
+  // #113's hostname dispatch.
   "routes": [
-    { "pattern": "ravendarque.com/logbook*", "zone_name": "ravendarque.com" }
+    { "pattern": "ravendarque.com/logbook*", "zone_name": "ravendarque.com" },
+    { "pattern": "climbinglogbook.com/*", "zone_name": "climbinglogbook.com" },
+    { "pattern": "my.climbinglogbook.com/*", "zone_name": "climbinglogbook.com" }
   ],
   "observability": {
     "enabled": true

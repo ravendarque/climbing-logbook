@@ -27,10 +27,12 @@ import { createTurnstileHook } from "./turnstile.js";
 // actual security boundary that matters here (Better Auth's origin-check
 // middleware 403s any state-changing request -- e.g. sign-out -- from an
 // origin not on this list, real CSRF protection, not just cosmetic).
-// ravendarque.com/logbook is still where this app is genuinely deployed as
-// of #20 -- extend this list once #295's domain migration actually adds
-// the new hostnames, rather than pre-declaring domains nothing serves yet.
-const TRUSTED_ORIGINS = ["https://ravendarque.com"];
+// ravendarque.com/logbook is still where the actual app is used day to day
+// (#295's real hostname dispatch for /register+/login at the apex is a
+// separate, follow-up PR) -- the two new origins below are added now that
+// #295's DNS/Worker Routes make them real, resolvable hostnames, even
+// though nothing serves real login/signup forms from them yet.
+const TRUSTED_ORIGINS = ["https://ravendarque.com", "https://climbinglogbook.com", "https://my.climbinglogbook.com"];
 
 export function createAuth(env) {
   const emailSender = createEmailSender(env);
