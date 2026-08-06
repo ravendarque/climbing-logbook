@@ -1,7 +1,9 @@
 import { betterAuth } from "better-auth";
+import { createAuthMiddleware } from "better-auth/api";
 import { username } from "better-auth/plugins";
 import { createBetaGateHook, createBetaGateAfterHook } from "./beta-gate.js";
 import { createEmailSender } from "./email.js";
+import { createTurnstileHook } from "./turnstile.js";
 
 // Better Auth (#20) -- replaces Cloudflare Access as the auth mechanism for
 // the multi-user rollout. A factory, not a module-scope singleton: `env`
@@ -58,10 +60,21 @@ export function createAuth(env) {
     // username, with server-side uniqueness validation. Username's own
     // case-insensitive lookup column is handled by the plugin itself.
     plugins: [username()],
-    // Beta invite/registration gate (#296) -- a temporary layer in front of
-    // sign-up/email, togglable off via BETA_GATE_ENABLED without a code
-    // change once the beta period ends. See src/lib/beta-gate.js.
-    hooks: { before: createBetaGateHook(env) },
+    // Turnstile bot check (#311) runs before the beta gate (#296) --
+    // reject non-human requests before spending an invite-code lookup on
+    // them. hooks.before only accepts a single middleware (verified
+    // against the installed better-auth/@better-auth/core source, not
+    // assumed), so these two independently-path-checked hooks
+    // (src/lib/turnstile.js, src/lib/beta-gate.js) are composed here
+    // rather than each trying to own the `hooks` config -- each
+    // createAuthMiddleware(...) call already returns a plain callable
+    // async function, so composing them is just calling both in order.
+    hooks: {
+      before: createAuthMiddleware(async ctx => {
+        await createTurnstileHook(env)(ctx);
+        await createBetaGateHook(env)(ctx);
+      }),
+    },
     databaseHooks: { user: { create: { after: createBetaGateAfterHook(env) } } },
   });
 }

@@ -13,6 +13,28 @@ const successEl = document.getElementById("register-success");
 const params = new URLSearchParams(window.location.search);
 if (params.has("code")) codeInput.value = params.get("code");
 
+// Turnstile (#311) -- explicit render, not implicit auto-scan, since the
+// sitekey is a runtime decision: the real widget (infra/turnstile.tf) is
+// domain-restricted to ravendarque.com and would never render/validate
+// anywhere else. Everywhere that isn't that real hostname (local dev,
+// E2E, CI, PR previews) uses Cloudflare's own public "always passes"
+// test sitekey instead -- there's no way, and no reason, for automated
+// tests to solve a real challenge. REAL_SITEKEY is synced by infra.yml
+// once infra/turnstile.tf provisions the widget, same placeholder
+// pattern as wrangler.jsonc's KV/D1 ids -- not secret, sitekeys are
+// meant to be embedded in client-side code.
+const REAL_SITEKEY = "PLACEHOLDER-set-by-infra-yml";
+const TEST_SITEKEY = "1x00000000000000000000AA";
+// TODO(#295): this becomes my.climbinglogbook.com once the domain
+// cutover lands -- infra/turnstile.tf's domains list needs updating
+// alongside this check when that happens.
+const sitekey = window.location.hostname === "ravendarque.com" ? REAL_SITEKEY : TEST_SITEKEY;
+
+let turnstileWidgetId;
+window.onTurnstileLoad = () => {
+  turnstileWidgetId = window.turnstile.render("#turnstile-widget", { sitekey });
+};
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   errorEl.hidden = true;
@@ -20,6 +42,19 @@ form.addEventListener("submit", async (event) => {
 
   const email = document.getElementById("email").value;
   const username = document.getElementById("username").value;
+
+  // #311 -- window.turnstile is only defined once Cloudflare's api.js
+  // (loaded async in index.html) has actually loaded; a slow connection
+  // could reach here first. Either way, no token means the server-side
+  // hook (src/lib/turnstile.js) would reject this anyway -- catching it
+  // here just gives a clearer message than a generic sign-up failure.
+  const turnstileToken = window.turnstile?.getResponse(turnstileWidgetId);
+  if (!turnstileToken) {
+    errorEl.textContent = "Please complete the verification check.";
+    errorEl.hidden = false;
+    submitBtn.disabled = false;
+    return;
+  }
 
   try {
     const res = await fetch("/logbook/api/auth/sign-up/email", {
@@ -36,6 +71,7 @@ form.addEventListener("submit", async (event) => {
         name: username,
         password: document.getElementById("password").value,
         code: codeInput.value || undefined,
+        turnstileToken,
       }),
     });
 
@@ -58,5 +94,10 @@ form.addEventListener("submit", async (event) => {
     errorEl.hidden = false;
   } finally {
     submitBtn.disabled = false;
+    // Turnstile tokens are single-use -- a failed submit (wrong invite
+    // code, duplicate username, etc.) needs a fresh one for the retry,
+    // or the server-side hook would reject an already-spent token even
+    // once the actual form error is fixed.
+    window.turnstile?.reset(turnstileWidgetId);
   }
 });

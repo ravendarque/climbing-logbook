@@ -18,11 +18,23 @@ function seedInviteCode(code) {
   );
 }
 
+// Turnstile's widget (#311) loads from Cloudflare's own CDN and renders
+// asynchronously -- register.js's client-side guard shows its own
+// "please complete the verification check" error if submitted before a
+// token exists, which would otherwise make every test here race against
+// widget load time. The test sitekey (register.js, non-ravendarque.com
+// hostnames) auto-completes with no interaction needed, so waiting for
+// getResponse() to go truthy is all that's needed, not a real click.
+async function waitForTurnstile(page) {
+  await page.waitForFunction(() => window.turnstile?.getResponse());
+}
+
 test("registers with a valid invite code, shows the check-your-email state", async ({ page }) => {
   const code = `e2e-register-${Date.now()}`;
   seedInviteCode(code);
 
   await page.goto("/logbook/register/");
+  await waitForTurnstile(page);
   await page.locator("#code").fill(code);
   await page.locator("#email").fill(`e2e-register-${Date.now()}@example.com`);
   await page.locator("#username").fill(`e2euser${Date.now()}`);
@@ -35,6 +47,7 @@ test("registers with a valid invite code, shows the check-your-email state", asy
 
 test("rejects sign-up with no invite code", async ({ page }) => {
   await page.goto("/logbook/register/");
+  await waitForTurnstile(page);
   await page.locator("#email").fill(`e2e-noinvite-${Date.now()}@example.com`);
   await page.locator("#username").fill(`e2enoinvite${Date.now()}`);
   await page.locator("#password").fill("correct-horse-battery-staple");

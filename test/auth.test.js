@@ -20,12 +20,13 @@ beforeEach(resetAuthTables);
 beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
 afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
 
-const VALID_SIGNUP = { email: "nix@example.com", password: "correct-horse-battery-staple", name: "Nix", username: "nix" };
+const VALID_SIGNUP = { email: "nix@example.com", password: "correct-horse-battery-staple", name: "Nix", username: "nix", turnstileToken: "test-token" };
 
-// Stubs the outbound call to Resend's API (a third-party boundary, not
-// this app's own runtime -- see test/email.test.js's own header comment
-// for why that distinction matters) so verification tokens can be
-// extracted without a real Resend account.
+// Stubs the outbound calls to Resend's API and Turnstile's siteverify
+// endpoint (both third-party boundaries, not this app's own runtime --
+// see test/email.test.js's own header comment for why that distinction
+// matters) so verification tokens can be extracted without a real Resend
+// account, and sign-up's #311 bot check always passes.
 let resendCalls;
 beforeEach(() => {
   resendCalls = [];
@@ -34,6 +35,9 @@ beforeEach(() => {
     if (url.startsWith("https://api.resend.com/")) {
       resendCalls.push({ body: init?.body ? JSON.parse(init.body) : null });
       return new Response(JSON.stringify({ id: "fake-resend-id" }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    if (url.startsWith("https://challenges.cloudflare.com/turnstile/")) {
+      return new Response(JSON.stringify({ success: true }), { status: 200, headers: { "Content-Type": "application/json" } });
     }
     throw new Error(`Unexpected fetch to ${url}`);
   }));

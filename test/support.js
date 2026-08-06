@@ -49,9 +49,10 @@ export function jsonRequest(method, path, body, headers = {}) {
 // Signs up + verifies a real Better Auth user (#297) and returns a usable
 // session cookie -- the fastest real path to an authenticated request for
 // tests that aren't themselves testing signup/verification (that's
-// test/auth.test.js's job). Stubs the outbound Resend call for the
-// duration of this one signup only -- a third-party network boundary, not
-// this app's own runtime, same reasoning as test/email.test.js.
+// test/auth.test.js's job). Stubs the outbound Resend and Turnstile-
+// siteverify calls for the duration of this one signup only -- both are
+// third-party network boundaries, not this app's own runtime, same
+// reasoning as test/email.test.js.
 //
 // Callers must disable the beta gate for their file (`env.BETA_GATE_ENABLED
 // = "false"` in beforeAll/afterAll, matching test/auth.test.js's pattern)
@@ -67,7 +68,10 @@ export async function createAuthedSession({
       capturedHtml = JSON.parse(init.body).html;
       return new Response(JSON.stringify({ id: "fake-resend-id" }), { status: 200, headers: { "Content-Type": "application/json" } });
     }
-    throw new Error(`Unexpected fetch to ${url} -- only Resend calls should reach real fetch() during createAuthedSession()`);
+    if (url.startsWith("https://challenges.cloudflare.com/turnstile/")) {
+      return new Response(JSON.stringify({ success: true }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    throw new Error(`Unexpected fetch to ${url} -- only Resend/Turnstile calls should reach real fetch() during createAuthedSession()`);
   }));
 
   await jsonRequest("POST", "/logbook/api/auth/sign-up/email", {
@@ -75,6 +79,7 @@ export async function createAuthedSession({
     password: "correct-horse-battery-staple",
     name: "Test User",
     username,
+    turnstileToken: "test-token",
   });
 
   const token = decodeURIComponent(capturedHtml.match(/token=([^"&<?]+)/)[1]);
