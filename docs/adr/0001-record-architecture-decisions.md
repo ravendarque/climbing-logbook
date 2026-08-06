@@ -54,6 +54,9 @@ obvious from reading the resulting code.
   ripped out to make room for this — that's a separate, deliberate
   follow-up (see the ADR backfill issue, #358, and its own follow-up #359)
   once the docs aren't mid-edit by other in-flight PRs.
-- Two ADRs are backfilled alongside this one, capturing decisions already
-  made but not yet permanently recorded: ADR-0002 (Access → Better Auth)
-  and ADR-0003 (Web Components + route split, #344).
+- Six ADRs are backfilled alongside this one, capturing decisions already
+  made but not yet permanently recorded: ADR-0002 (Access → Better Auth),
+  ADR-0003 (Web Components + route split, #344), ADR-0004 (Tailwind/
+  Radix/Floating UI), ADR-0005 (BDS boycott-list screening), ADR-0006
+  (poor-connectivity-first design), and ADR-0007 (single Cloudflare
+  Worker, not a separate Pages project).
