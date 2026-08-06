@@ -33,3 +33,10 @@ GitHub, the same treatment every other doc in this repo already gets.
 | [0005](0005-screen-dependencies-against-bds-boycott-lists.md) | Screen dependencies and vendors against BDS boycott lists | Accepted |
 | [0006](0006-design-for-poor-connectivity-first.md) | Design for poor connectivity as a first-class constraint | Accepted |
 | [0007](0007-single-cloudflare-worker-not-separate-pages-project.md) | A single Cloudflare Worker, not a separate Pages project per surface | Accepted |
+| [0008](0008-tag-based-semantic-versioning.md) | Tag-based semantic versioning, not package.json commits | Accepted |
+| [0009](0009-normalized-d1-schema-with-lookup-tables.md) | Normalized D1 schema with real lookup tables | Accepted |
+| [0010](0010-public-url-structure-my-domain-username.md) | Public URL structure: my.&lt;domain&gt;/username | Accepted |
+| [0011](0011-three-layer-test-pyramid.md) | Three-layer test pyramid: real Workers runtime, extracted-logic unit tests, Playwright E2E | Accepted |
+| [0012](0012-client-modularization-factories-no-framework.md) | Client-side modularization: esbuild + ES modules + factories, no framework | Accepted |
+| [0013](0013-pr-previews-via-wrangler-versions-upload.md) | PR preview deployments via wrangler versions upload | Accepted |
+| [0014](0014-closed-beta-invite-gate-togglable-not-removable.md) | Closed-beta invite gate, togglable off rather than removed | Accepted |

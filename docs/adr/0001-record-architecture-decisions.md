@@ -54,9 +54,15 @@ obvious from reading the resulting code.
   ripped out to make room for this — that's a separate, deliberate
   follow-up (see the ADR backfill issue, #358, and its own follow-up #359)
   once the docs aren't mid-edit by other in-flight PRs.
-- Six ADRs are backfilled alongside this one, capturing decisions already
-  made but not yet permanently recorded: ADR-0002 (Access → Better Auth),
-  ADR-0003 (Web Components + route split, #344), ADR-0004 (Tailwind/
-  Radix/Floating UI), ADR-0005 (BDS boycott-list screening), ADR-0006
-  (poor-connectivity-first design), and ADR-0007 (single Cloudflare
-  Worker, not a separate Pages project).
+- Thirteen ADRs are backfilled alongside this one, sourced from both the
+  active discussion at the time (ADR-0002 through ADR-0007) and a sweep
+  of every issue in the board's Done column looking for decisions that
+  hadn't been written down anywhere permanent (ADR-0008 through ADR-0014):
+  Access → Better Auth (0002), Web Components + route split (0003,
+  #344), Tailwind/Radix/Floating UI (0004), BDS boycott-list screening
+  (0005), poor-connectivity-first design (0006), single Cloudflare Worker
+  not a separate Pages project (0007), tag-based versioning (0008),
+  normalized D1 schema (0009), the `my.<domain>/username` URL structure
+  (0010), the three-layer test pyramid (0011), client-side modularization
+  (0012), PR previews via `wrangler versions upload` (0013), and the
+  closed-beta invite gate (0014).
