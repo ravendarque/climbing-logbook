@@ -83,6 +83,27 @@ jobs:
             }
           "
 
+      - name: Sync register.js Turnstile sitekey
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        working-directory: .
+        run: |
+          SITEKEY=$(cd infra && terraform output -raw turnstile_sitekey)
+          node -e "
+            const fs = require('node:fs');
+            const path = 'public/logbook/register/register.js';
+            const current = fs.readFileSync(path, 'utf8');
+            const updated = current.replace(
+              /const REAL_SITEKEY = \"[^\"]*\";/,
+              'const REAL_SITEKEY = \"${SITEKEY}\";'
+            );
+            if (updated !== current) {
+              fs.writeFileSync(path, updated);
+              console.log('register.js updated with Turnstile sitekey ' + '${SITEKEY}');
+            } else {
+              console.log('register.js already up to date');
+            }
+          "
+
       - name: Open and merge PR if generated files changed
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         working-directory: .
@@ -91,7 +112,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add wrangler.jsonc infra/.terraform.lock.hcl
+          git add wrangler.jsonc infra/.terraform.lock.hcl public/logbook/register/register.js
           if git diff --cached --quiet; then
             echo "Nothing to commit."
             exit 0

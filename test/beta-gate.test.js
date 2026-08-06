@@ -1,10 +1,32 @@
 // Exercises the beta invite/registration gate (#296) through the real
 // Worker entrypoint. Real D1, not mocked -- see test/apply-migrations.js.
 import { env } from "cloudflare:workers";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { jsonRequest, resetAuthTables } from "./support.js";
 
 beforeEach(resetAuthTables);
+
+// Turnstile's bot check (#311) runs before the beta gate in sign-up's
+// hook chain (src/lib/auth.js) -- every signUp() call below needs this
+// stubbed or it 403s before ever reaching the beta-gate logic these
+// tests actually exercise. Resend's real send is left unstubbed (as
+// before this file added any stub at all) -- email.js already swallows
+// that failure regardless of outcome, and nothing here asserts on email
+// content the way test/email.test.js does.
+beforeEach(() => {
+  // Captured before stubbing -- `fetch` inside the stub itself would
+  // otherwise resolve to the stub, recursing forever on the passthrough
+  // branch below.
+  const originalFetch = globalThis.fetch;
+  vi.stubGlobal("fetch", vi.fn(async (input, init) => {
+    const url = typeof input === "string" ? input : input.url;
+    if (url.startsWith("https://challenges.cloudflare.com/turnstile/")) {
+      return new Response(JSON.stringify({ success: true }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    return originalFetch(input, init);
+  }));
+});
+afterEach(() => { vi.unstubAllGlobals(); });
 
 async function seedInvite({ code = "test-code", email = null } = {}) {
   await env.LOGBOOK_DB
@@ -19,6 +41,7 @@ function signUp(body) {
     password: "correct-horse-battery-staple",
     name: "Nix",
     username: "nix",
+    turnstileToken: "test-token",
     ...body,
   });
 }

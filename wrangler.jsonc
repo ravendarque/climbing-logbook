@@ -54,11 +54,22 @@
     "preview": {
       "workers_dev": true,
       "routes": [],
-      // Same value as the top-level `vars` above, duplicated deliberately
-      // -- `vars` is not inherited by named environments (see that
-      // block's own comment for how this was discovered).
+      // BETA_GATE_ENABLED: same value as the top-level `vars` above,
+      // duplicated deliberately -- `vars` is not inherited by named
+      // environments (see that block's own comment for how this was
+      // discovered).
+      //
+      // TURNSTILE_SECRET_KEY (#311): Cloudflare's own public "always
+      // passes" test secret, not the real production one -- preview
+      // deployments are disposable/test data anyway (same reasoning as
+      // the preview KV/D1 above), and committing this specific value is
+      // safe since Cloudflare documents it publicly for exactly this
+      // purpose (never do this with the real secret). Deliberately has
+      // no equivalent at the top level -- production gets the real
+      // value via `wrangler secret put` only, no `vars` default.
       "vars": {
-        "BETA_GATE_ENABLED": "true"
+        "BETA_GATE_ENABLED": "true",
+        "TURNSTILE_SECRET_KEY": "1x0000000000000000000000000000000AA"
       },
       "kv_namespaces": [
         { "binding": "LOGBOOK_KV", "id": "c09de14bab5142c58b6cb90b6072ba2f" }

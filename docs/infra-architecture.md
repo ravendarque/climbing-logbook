@@ -93,13 +93,22 @@ Everything provisionable is declarative and idempotent via Terraform in
   apply, since it'd try importing an ID that no longer exists instead of
   just creating a fresh namespace)
 - `cloudflare_d1_database` (`infra/d1.tf`, #20) — backs Better Auth now,
-  and the rest of the app's multi-tenant data once #21/#297 land
+  and the rest of the app's multi-tenant data since #21/#297
+- `cloudflare_turnstile_widget` (`infra/turnstile.tf`, #311) — form-level
+  bot check on `/register`, domain-restricted to `var.zone_name`
+  (`ravendarque.com` today, update alongside #295's domain cutover).
+  Outputs a public `sitekey` (synced into `public/logbook/register/
+  register.js` by `infra.yml`, same mechanism as the KV/D1 id sync below)
+  and a `sensitive` `secret` (read manually via `terraform output -raw
+  turnstile_secret`, piped straight into `wrangler secret put
+  TURNSTILE_SECRET_KEY`, never auto-synced or displayed)
 
 **Intentionally excluded from Terraform**, by design: the admin login email
 (a `sensitive` variable, supplied via a repo secret — never committed), the
 logbook's actual data (KV/D1 values, not the infrastructure holding them),
-and `BETTER_AUTH_SECRET` (a Worker runtime secret, not something Terraform
-itself consumes — see "Required secrets/variables" below).
+and `BETTER_AUTH_SECRET`/`TURNSTILE_SECRET_KEY` (Worker runtime secrets,
+not something Terraform itself consumes — see "Required secrets/variables"
+below).
 
 ### State backend
 
@@ -322,6 +331,7 @@ new migration would otherwise 500 the preview with "no such table."
 | `CLOUDFLARE_ACCOUNT_ID` | **variable** (not secret — not confidential) | `4f63d74beb21402b8622361525ab4868` |
 | `BETTER_AUTH_SECRET` | secret (Worker runtime, not Terraform) | Better Auth's session-signing secret (#20). One-time manual `wrangler secret put BETTER_AUTH_SECRET` — not CI-managed, doesn't need to rotate on every deploy, same "bootstrapped once, outside Terraform" treatment as the R2 state bucket. Local dev uses `.dev.vars` (gitignored) instead. |
 | `RESEND_API_KEY` | secret (Worker runtime, not Terraform) | [Resend](https://resend.com)'s API key, for signup verification + password reset emails (#308) — same one-time manual `wrangler secret put` treatment as `BETTER_AUTH_SECRET`. `climbinglogbook.com` is a verified Resend domain; `src/lib/email.js` sends from `myaccount@climbinglogbook.com` (#314). |
+| `TURNSTILE_SECRET_KEY` | secret (Worker runtime, not Terraform) | Cloudflare Turnstile's server-side verification secret (#311) — same one-time manual `wrangler secret put` treatment, value read via `terraform output -raw turnstile_secret` after `infra/turnstile.tf` applies. `env.preview` and local dev (`.dev.vars`) instead use Cloudflare's own public "always passes" test secret (`1x0000000000000000000000000000000AA`, documented at [Turnstile testing](https://developers.cloudflare.com/turnstile/troubleshooting/testing/)) — not a real credential, safe to commit. |
 
 ### `CLOUDFLARE_API_TOKEN` permissions
 
@@ -333,6 +343,10 @@ Account-scoped (the Cloudflare account above):
 - Workers KV Storage: Edit
 - Workers R2 Storage: Edit
 - D1: Edit (#20 — provisioning `infra/d1.tf` and applying migrations)
+- Turnstile: Edit (#311 — provisioning `infra/turnstile.tf`; same
+  "confirm before assuming it's already granted" flag as D1 was — this
+  token's scope was last confirmed for D1, not Turnstile, verify before
+  relying on it)
 - Access: Apps: Edit
 - Access: Policies: Edit
 - Zero Trust: Edit

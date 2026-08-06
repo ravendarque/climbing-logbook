@@ -17,11 +17,13 @@ beforeEach(resetAuthTables);
 beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
 afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
 
-const SIGNUP = { email: "nix@example.com", password: "correct-horse-battery-staple", name: "Nix", username: "nix" };
+const SIGNUP = { email: "nix@example.com", password: "correct-horse-battery-staple", name: "Nix", username: "nix", turnstileToken: "test-token" };
 
 // Captures every Resend call this test file makes without hitting the real
 // network -- resolves with a fake-but-plausible success response, same
-// shape Resend's own `emails.send()` expects back.
+// shape Resend's own `emails.send()` expects back. Also stubs Turnstile's
+// siteverify endpoint (#311), always passing -- this file isn't testing
+// the bot check itself.
 let resendCalls;
 beforeEach(() => {
   resendCalls = [];
@@ -31,7 +33,10 @@ beforeEach(() => {
       resendCalls.push({ url, body: init?.body ? JSON.parse(init.body) : null });
       return new Response(JSON.stringify({ id: "fake-resend-id" }), { status: 200, headers: { "Content-Type": "application/json" } });
     }
-    throw new Error(`Unexpected fetch to ${url} -- only Resend calls should reach real fetch() in this test file`);
+    if (url.startsWith("https://challenges.cloudflare.com/turnstile/")) {
+      return new Response(JSON.stringify({ success: true }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    throw new Error(`Unexpected fetch to ${url} -- only Resend/Turnstile calls should reach real fetch() in this test file`);
   }));
 });
 afterEach(() => { vi.unstubAllGlobals(); });

@@ -74,10 +74,13 @@ export async function bootstrapDevSession(baseUrl) {
   // on these -- same requirement test/auth.test.js's sign-out coverage
   // already documented, just apparently enforced here too, not only on
   // already-authenticated requests.
+  // turnstileToken (#311): the actual value doesn't matter -- local dev's
+  // TURNSTILE_SECRET_KEY (.dev.vars) is Cloudflare's own "always passes"
+  // test secret, which accepts any response string.
   await fetchWithRetry(`${baseUrl}/logbook/api/auth/sign-up/email`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Origin: baseUrl },
-    body: JSON.stringify({ ...DEV_USER, code: inviteCode }),
+    body: JSON.stringify({ ...DEV_USER, code: inviteCode, turnstileToken: "test-token" }),
   });
 
   d1Execute(`UPDATE "user" SET emailVerified = 1 WHERE email = '${DEV_USER.email}'`);
