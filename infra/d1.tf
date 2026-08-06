@@ -11,7 +11,7 @@ resource "cloudflare_d1_database" "logbook" {
   # #311's Turnstile widget, unrelated to Turnstile itself). "auto" lets
   # D1 place read replicas automatically -- Cloudflare's own recommended
   # default, not a deliberate choice to disable replication.
-  read_replication {
+  read_replication = {
     mode = "auto"
   }
 }
