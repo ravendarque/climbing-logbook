@@ -9,6 +9,16 @@ variable "zone_name" {
   default     = "ravendarque.com"
 }
 
+# #295 -- the dedicated domain the app is moving to. Kept as a separate
+# variable rather than repointing `zone_name`, since both zones are live
+# at once during the transition (ravendarque.com/logbook keeps working
+# until its own removal-vs-redirect decision is made, separately).
+variable "app_zone_name" {
+  description = "Dedicated domain climbing-logbook is moving to (#295) -- apex for marketing/register/login, my.<this> for the app itself and #113's public per-user pages."
+  type        = string
+  default     = "climbinglogbook.com"
+}
+
 variable "admin_email" {
   description = "Email address allowed to log in to the logbook's admin endpoints via Access one-time-PIN. Supplied out-of-band (tfvars/CI secret) — never committed."
   type        = string
