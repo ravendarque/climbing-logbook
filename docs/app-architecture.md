@@ -465,9 +465,12 @@ src/
 │   │                     same reasoning as kv-resource.js's own GET); PATCH
 │   │                     uses the shared json() helper for its success
 │   │                     response now too
-│   ├── admin-session.js  GET — "am I authenticated" check for the frontend.
-│   │                       Uses the shared json() helper (#270)
-│   └── admin-login.js    GET — redirect target that kicks off Access's login flow
+│   ├── admin-session.js  GET — dead since #298 removed Cloudflare Access
+│   │                       (was an "am I authenticated" check for the
+│   │                       frontend, Access-gated at the edge)
+│   └── admin-login.js    GET — dead since #298 removed Cloudflare Access
+│                           (was the redirect target that kicked off
+│                           Access's login flow)
 └── lib/
     ├── json.js         Tiny JSON Response helper
     └── kv-resource.js  createKvResourceHandlers({ kvKey, resourceKey,
@@ -546,34 +549,28 @@ sees requests that *don't* match a static file — in practice, exactly the
 | Path | Method | Auth | Handler |
 |---|---|---|---|
 | `/logbook/api/logbook` | GET | public, session-scoped | `handleGet` |
-| `/logbook/api/admin/logbook` | POST/PUT/DELETE | Access-gated (edge) + Better Auth session (#297) | `handlePost`/`handlePut`/`handleDelete` |
+| `/logbook/api/admin/logbook` | POST/PUT/DELETE | Better Auth session (#297) | `handlePost`/`handlePut`/`handleDelete` |
 | `/logbook/api/places` | GET | public, session-scoped | `handleGet` (places.js) |
-| `/logbook/api/admin/places` | POST | Access-gated (edge) + Better Auth session (#297) | `handlePost` (places.js) |
+| `/logbook/api/admin/places` | POST | Better Auth session (#297) | `handlePost` (places.js) |
 | `/logbook/api/locations` | GET | public, session-scoped | `handleGet` (locations.js) |
-| `/logbook/api/admin/locations` | POST | Access-gated (edge) + Better Auth session (#297) | `handlePost` (locations.js) |
+| `/logbook/api/admin/locations` | POST | Better Auth session (#297) | `handlePost` (locations.js) |
 | `/logbook/api/settings` | GET | public, session-scoped | `handleGetSettings` |
-| `/logbook/api/admin/settings` | PATCH | Access-gated (edge) + Better Auth session (#297) | `handlePatchSettings` |
-| `/logbook/api/admin/session` | GET | Access-gated (edge) only | `handleAdminSession` |
-| `/logbook/api/admin/login` | GET | Access-gated (edge) only | `handleAdminLogin` (redirect) |
+| `/logbook/api/admin/settings` | PATCH | Better Auth session (#297) | `handlePatchSettings` |
+| `/logbook/api/admin/session` | GET | dead route, see below | `handleAdminSession` |
+| `/logbook/api/admin/login` | GET | dead route, see below | `handleAdminLogin` (redirect) |
 | `/logbook/api/auth/*` | any | Better Auth's own (#20) | `createAuth(env).handler` |
 
 "Public, session-scoped" means the route is reachable without a session,
 but the *response* isn't the same for everyone — see "Data model" above.
-The four D1-backed admin routes have **two independent gates** stacked:
-Access at Cloudflare's edge (unchanged since before #297) and, now,
-Better Auth's own session check inside the Worker itself (#297) — the
-first genuine in-Worker authorization this app has ever had, and the
-actual multi-tenant isolation boundary; Access alone was never going to
-scope writes per-user. `/admin/session` and `/admin/login` stay
-Access-only, untouched by #297 — and now genuinely unused by the client
-too, since #320 rewired `client/admin-auth.js` onto Better Auth's own
-session/sign-in/sign-out endpoints instead. Dead but present, same
-"rollback window before cleanup" treatment as the KV code (#299) — actual
-removal waits for #298, when Access itself comes down.
-
-Read and write are on **separate path prefixes** — not just separate HTTP
-methods on one path — because Cloudflare Access gates by path, not by
-method. See `docs/infra-architecture.md` for the Access configuration.
+The four D1-backed admin routes are gated by Better Auth's own session
+check inside the Worker itself (#297) — the actual multi-tenant isolation
+boundary; this app never had any other in-Worker authorization until #297
+added it. `/admin/session` and `/admin/login` were Cloudflare Access's own
+edge-authentication glue — dead since #320 rewired `client/admin-auth.js`
+onto Better Auth's own session/sign-in/sign-out endpoints instead, and now
+that #298 has removed Access itself entirely, nothing can ever reach them
+through a real authenticated flow. Left in place for now, same "rollback
+window before cleanup" treatment as the KV code (#299).
 
 `/logbook/api/auth/*` is the one **prefix**-matched route here — every
 other route above is an exact `pathname ===` match. Better Auth owns its
@@ -722,9 +719,8 @@ them for good — not a sign the app still reads/writes KV anywhere.
 ## Authentication flow
 
 The client-facing flow (login button, session check, logout) is Better
-Auth's now (#320) — Cloudflare Access still gates `/logbook/api/admin/*`
-at the edge in production (unchanged, not removed until #298), but the
-app's own UI no longer talks to it at all.
+Auth's now (#320) — Cloudflare Access is gone entirely (#298), so Better
+Auth's session check is the only gate `/logbook/api/admin/*` has.
 
 Server-side, `src/index.js` independently resolves a Better Auth session
 (`src/lib/session.js`) before dispatching to any `/logbook/api/admin/

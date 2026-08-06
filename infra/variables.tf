@@ -19,12 +19,6 @@ variable "app_zone_name" {
   default     = "climbinglogbook.com"
 }
 
-variable "admin_email" {
-  description = "Email address allowed to log in to the logbook's admin endpoints via Access one-time-PIN. Supplied out-of-band (tfvars/CI secret) — never committed."
-  type        = string
-  sensitive   = true
-}
-
 variable "kv_namespace_title" {
   description = "Title of the Workers KV namespace holding logbook entries."
   type        = string

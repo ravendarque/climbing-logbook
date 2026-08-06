@@ -1,12 +1,12 @@
 # Infrastructure
 
-Terraform-managed: the Cloudflare Access Application + Policy gating
-`/logbook/api/admin/*`, and the Workers KV namespace. Everything here is
+Terraform-managed: the Workers KV namespace, the D1 database, DNS, the
+redirect ruleset, and the Turnstile widget. Everything here is
 declarative, repeatable, and idempotent — re-running `terraform apply`
 with no changes is always a no-op.
 
-The only things *not* managed here, by design: the admin login email
-(a variable, supplied out-of-band) and the logbook's actual KV data.
+The only thing *not* managed here, by design: the logbook's actual data
+(KV/D1 values).
 
 ## One-time setup (per Cloudflare account)
 
@@ -20,11 +20,10 @@ The only things *not* managed here, by design: the admin login email
 
 2. **Set repo secrets/variables** (Settings → Secrets and variables →
    Actions):
-   - `CLOUDFLARE_API_TOKEN` (secret) — needs Access: Apps and Policies
-     (Edit), Workers R2 Storage (Edit), Workers KV Storage (Edit)
+   - `CLOUDFLARE_API_TOKEN` (secret) — see `docs/infra-architecture.md`'s
+     token permissions table for the full scope needed
    - `TF_STATE_ACCESS_KEY_ID` / `TF_STATE_SECRET_ACCESS_KEY` (secrets) —
      from step 1
-   - `ADMIN_EMAIL` (secret) — the email allowed to log in
    - `CLOUDFLARE_ACCOUNT_ID` (variable, not secret — not confidential)
 
 3. **Run the "Bootstrap Terraform state bucket" workflow** manually
@@ -52,8 +51,8 @@ terraform plan
 
 If the account/project is lost entirely:
 1. Re-run "Bootstrap Terraform state bucket" (recreates the state bucket).
-2. Merge/push to `infra/**` — Terraform recreates the Access app/policy
-   and KV namespace, and `wrangler.jsonc` is updated automatically.
+2. Merge/push to `infra/**` — Terraform recreates the KV namespace and D1
+   database, and `wrangler.jsonc` is updated automatically.
 3. Manually trigger the "Deploy" workflow (its sync commit from step 2
    is tagged `[skip ci]` to avoid an infra/deploy trigger loop, so this
    one step isn't automatic).

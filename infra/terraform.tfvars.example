@@ -3,4 +3,3 @@
 # instead of a committed tfvars file.
 
 cloudflare_account_id = "4f63d74beb21402b8622361525ab4868"
-admin_email            = "you@example.com"
