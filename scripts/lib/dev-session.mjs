@@ -39,6 +39,25 @@ function d1Execute(sql) {
   );
 }
 
+// Real, observed flakiness (locally and in CI): the request immediately
+// following a d1Execute() CLI subprocess call occasionally hits
+// `TypeError: fetch failed` / `SocketError: other side closed` --
+// `wrangler dev`'s local server briefly hiccups right around a D1 CLI
+// write, not something either side treats as a real request failure. A
+// few retries clears it every time observed so far; genuine failures
+// (a real 4xx/5xx) aren't retried here at all, only the network-level
+// exception.
+async function fetchWithRetry(url, init, attempts = 3) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fetch(url, init);
+    } catch (err) {
+      if (attempt >= attempts) throw err;
+      await new Promise(resolve => setTimeout(resolve, 500 * attempt));
+    }
+  }
+}
+
 export async function bootstrapDevSession(baseUrl) {
   // Migrations aren't auto-applied by `wrangler dev` -- nothing below
   // works without the schema actually existing first.
@@ -55,7 +74,7 @@ export async function bootstrapDevSession(baseUrl) {
   // on these -- same requirement test/auth.test.js's sign-out coverage
   // already documented, just apparently enforced here too, not only on
   // already-authenticated requests.
-  await fetch(`${baseUrl}/logbook/api/auth/sign-up/email`, {
+  await fetchWithRetry(`${baseUrl}/logbook/api/auth/sign-up/email`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Origin: baseUrl },
     body: JSON.stringify({ ...DEV_USER, code: inviteCode }),
@@ -63,7 +82,7 @@ export async function bootstrapDevSession(baseUrl) {
 
   d1Execute(`UPDATE "user" SET emailVerified = 1 WHERE email = '${DEV_USER.email}'`);
 
-  const signInRes = await fetch(`${baseUrl}/logbook/api/auth/sign-in/email`, {
+  const signInRes = await fetchWithRetry(`${baseUrl}/logbook/api/auth/sign-in/email`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Origin: baseUrl },
     body: JSON.stringify({ email: DEV_USER.email, password: DEV_USER.password }),
