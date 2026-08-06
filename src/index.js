@@ -4,13 +4,15 @@ import { handleGet as handleGetLocations, handlePost as handlePostLocations } fr
 import { handleGetSettings, handlePatchSettings } from "./api/settings.js";
 import { handleAdminSession } from "./api/admin-session.js";
 import { handleAdminLogin } from "./api/admin-login.js";
+import { handlePublicProfile } from "./api/public-profile.js";
 import { createAuth } from "./lib/auth.js";
 import { resolveUserId } from "./lib/session.js";
 import { json } from "./lib/json.js";
 
 // This Worker is only ever invoked for requests that don't match a static
 // asset under public/ (Workers Static Assets serves those directly) — so
-// everything reaching fetch() here is a /logbook/api/* call.
+// everything reaching fetch() here is a /logbook/api/* call, or (#113) a
+// my.<domain>/:username public-profile request.
 //
 // /logbook/api/logbook, places, locations, settings — GET is public
 //   (reachable without a session), admin writes require a real Better
@@ -21,8 +23,24 @@ import { json } from "./lib/json.js";
 //   replaces the client's login flow.
 export default {
   async fetch(request, env) {
-    const { pathname } = new URL(request.url);
+    const { hostname, pathname } = new URL(request.url);
     const method = request.method;
+
+    // #113 -- my.<domain> hosts each user's public profile at /:username,
+    // a single path segment with no further structure. Scoped narrowly on
+    // purpose: no real DNS route binds a my.-prefixed hostname to this
+    // Worker yet (#295 owns provisioning that), and exactly how the rest
+    // of the app gets served from that hostname (e.g. whether
+    // /logbook/api/* moves too) is #295's decision, not pre-empted here --
+    // anything that doesn't match this one route shape falls through to
+    // the normal routing below unchanged, same as it would on any other
+    // hostname. Untestable against real traffic until #295 lands, but
+    // fully testable by constructing a request with an explicit Host
+    // header, which is how test/public-profile.test.js exercises it.
+    if (hostname.startsWith("my.") && method === "GET") {
+      const match = pathname.match(/^\/([^/]+)\/?$/);
+      if (match) return handlePublicProfile(request, env, match[1]);
+    }
 
     // Better Auth (#20) -- the only prefix-matched route in this router;
     // every other route below is an exact pathname match. Better Auth owns
