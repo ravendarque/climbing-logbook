@@ -16,10 +16,18 @@ data "cloudflare_zone" "ravendarque" {
 }
 
 resource "cloudflare_ruleset" "ravendarque_logbook_redirect" {
-  zone_id     = data.cloudflare_zone.ravendarque.id
-  kind        = "zone"
-  phase       = "http_request_redirect"
-  name        = "climbing-logbook apex retirement redirect"
+  zone_id = data.cloudflare_zone.ravendarque.id
+  kind    = "zone"
+  # "http_request_redirect" (the docs-summarized value first tried here)
+  # is Bulk Redirects' phase, account-scoped only -- confirmed live, not
+  # assumed, after a real apply 400'd with 'phase "http_request_redirect"
+  # not allowed at zone level'. "http_request_dynamic_redirect" is Single/
+  # Dynamic Redirects' actual phase, the zone-level feature this needs --
+  # matches the "Rules & Configuration: Dynamic URL Redirects" token
+  # permission this resource actually needed (see docs/infra-
+  # architecture.md's permission table).
+  phase = "http_request_dynamic_redirect"
+  name  = "climbing-logbook apex retirement redirect"
   description = "ravendarque.com/logbook* -> my.climbinglogbook.com/ravendarque (#295)"
 
   rules = [

@@ -419,11 +419,11 @@ Account-scoped (the Cloudflare account above):
 
 Zone-scoped (ravendarque.com):
 - Workers Routes: Edit
-- Zone Rulesets: Edit (added #295 -- `infra/redirects.tf`'s redirect
-  ruleset; not confirmed granted ahead of time, same "verify via a real
-  apply, don't assume" flag as Turnstile above -- Cloudflare's redirect
-  rulesets have been known to need a distinct permission from Page
-  Rules' older equivalent)
+- Rules & Configuration: Dynamic URL Redirects (added #295 --
+  `infra/redirects.tf`'s redirect ruleset; the token permission's actual
+  name in Cloudflare's dashboard, confirmed by trial -- "Zone Rulesets:
+  Edit" doesn't exist as a distinct permission the way this doc first
+  guessed)
 
 Zone-scoped (climbinglogbook.com, added #295):
 - DNS: Edit (`infra/dns.tf`'s placeholder records)
