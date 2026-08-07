@@ -1,0 +1,53 @@
+name: Synthetic production check
+
+# #361: catches the exact "shipped but broken" class of bug #354 was --
+# a session cookie the server issues that a real browser would never
+# actually send cross-subdomain. Neither the Playwright E2E suite (only
+# ever runs against PR previews on a single origin, ADR-0011) nor a
+# manual post-deploy glance caught it; this would have, within seconds.
+#
+# Runs right after every successful Deploy (catches a bad deploy
+# immediately) and on a schedule (catches drift unrelated to any specific
+# deploy -- cert expiry, Cloudflare-side config changes).
+#
+# Requires SYNTHETIC_USER_EMAIL / SYNTHETIC_USER_PASSWORD secrets -- see
+# infra/README.md's "Synthetic monitoring account" section for the
+# one-time manual bootstrap. Set them yourself, not via an assistant, so
+# the credential never passes through a shared transcript:
+#   gh secret set SYNTHETIC_USER_EMAIL
+#   gh secret set SYNTHETIC_USER_PASSWORD
+#
+# Deliberately does NOT auto-file a GitHub issue on failure -- a failing
+# scheduled run is already loud (visible in the Actions tab, and GitHub
+# emails the repo owner on a scheduled-workflow failure by default);
+# auto-filing on top of that would spam an issue per flaky/transient
+# failure instead of a real deploy regression.
+on:
+  workflow_run:
+    workflows: [Deploy]
+    types: [completed]
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  check:
+    # workflow_run fires on every completion of Deploy, including a
+    # failed or skipped run -- only actually check after a real success
+    # (a failed deploy is already loud on its own, no need to also run
+    # this against whatever was live before it).
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # No pnpm/dependency install -- the script is plain Node fetch with
+      # zero npm dependencies, so the full setup-node-pnpm composite
+      # action (which also runs `pnpm install`) would just be wasted
+      # work here.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: node scripts/synthetic-check.mjs
+        env:
+          SYNTHETIC_USER_EMAIL: ${{ secrets.SYNTHETIC_USER_EMAIL }}
+          SYNTHETIC_USER_PASSWORD: ${{ secrets.SYNTHETIC_USER_PASSWORD }}
