@@ -166,6 +166,29 @@ data (KV/D1 values, not the infrastructure holding them), and
 something Terraform itself consumes — see "Required secrets/variables"
 below).
 
+### Bot / AI-crawler protection (dashboard-only, #300)
+
+Configured directly in the Cloudflare dashboard on the `climbinglogbook.com`
+zone, not Terraform-managed — the Terraform provider's `cloudflare_bot_
+management` resource only exposes the older, single-toggle `ai_bots_
+protection` field; Cloudflare's newer three-tier AI crawler system (below)
+isn't Terraform-expressible yet. Writing Terraform for just the old field
+risked resetting the rest of this zone's bot-management config (Terraform
+owns a resource's full state, not a merge patch) to defaults on apply,
+since `cloudflare_bot_management` is a single resource covering the whole
+zone's settings, not one resource per toggle — safer to leave the whole
+area dashboard-managed until the provider actually supports what's
+configured, rather than partially represent it and risk clobbering the
+rest.
+
+Current settings (2026-08-07): AI crawler categories — Search: Allow,
+Agent: Block, Training: Block; AI Labyrinth: enabled; Bot Fight Mode:
+enabled; JS Detections: on. Revisit moving this into Terraform once the
+provider adds the three-tier fields.
+
+`robots.txt` is Cloudflare's own managed version (dashboard toggle), not a
+file in this repo — no `public/robots.txt` needed alongside it.
+
 ### State backend
 
 State lives in an R2 bucket (`climbing-logbook-tfstate`), accessed via
