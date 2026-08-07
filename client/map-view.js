@@ -487,12 +487,15 @@ export function createMapView({ store }) {
     const zoomControls = document.getElementById("map-zoom-controls");
     const panControls = document.getElementById("map-pan-controls");
 
-    if (countsByCountry.size === 0) {
-      container.innerHTML = `<p class="text-[.9rem] text-muted">No ${DISCIPLINE_LABEL[store.getActiveType()]} entries logged yet -- log one to see it on the map.</p>`;
-      zoomControls.hidden = true;
-      panControls.hidden = true;
-      return;
-    }
+    // #226 -- no special-cased empty state here. The pin-rendering path
+    // below already handles a zero-length pinnedCountries array fine (an
+    // empty pins/srList string, real SVG landmass still rendered) -- the
+    // previous version replaced the whole map with a one-line text
+    // message instead, which collapsed #map-container's height while
+    // leaving #map-variant-picker (absolutely positioned, a sibling
+    // outside #map-container, never hidden by this branch) still visible,
+    // overlapping the description text/footer below it once the
+    // container it's positioned against had nothing left to size against.
 
     // #169: the active variant's data might not be loaded yet -- kick off
     // (or join) its fetch and paint a loading/error state in the
