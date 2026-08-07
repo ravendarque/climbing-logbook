@@ -21,6 +21,8 @@ GitHub, the same treatment every other doc in this repo already gets.
 - **Write one when a decision is genuinely hard to reverse, or when the
   reasoning isn't obvious from reading the resulting code** — not for
   every change. Routine feature work doesn't need one.
+- **Capture the decision when it's made, not when it ships** — implementation
+  can lag behind the ADR (see ADR-0015, written before its own #363).
 
 ## Index
 
