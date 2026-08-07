@@ -5,6 +5,7 @@ import { handleGetSettings, handlePatchSettings } from "./api/settings.js";
 import { handleAdminSession } from "./api/admin-session.js";
 import { handleAdminLogin } from "./api/admin-login.js";
 import { handlePublicProfile } from "./api/public-profile.js";
+import { handleOwnedRoute } from "./api/owned-routes.js";
 import { createAuth } from "./lib/auth.js";
 import { resolveUserId } from "./lib/session.js";
 import { json } from "./lib/json.js";
@@ -38,6 +39,15 @@ export default {
     // fully testable by constructing a request with an explicit Host
     // header, which is how test/public-profile.test.js exercises it.
     if (hostname.startsWith("my.") && method === "GET") {
+      // #347 -- the authenticated owner's own routes, checked first: a
+      // more specific path shape than the bare :username below, and this
+      // one needs a session/authorization decision the bare route doesn't.
+      const ownedRouteMatch = pathname.match(/^\/([^/]+)\/(log|map|performance)\/?$/);
+      if (ownedRouteMatch) {
+        const [, username, page] = ownedRouteMatch;
+        return handleOwnedRoute(request, env, username, page);
+      }
+
       const match = pathname.match(/^\/([^/]+)\/?$/);
       if (match) return handlePublicProfile(request, env, match[1]);
     }
