@@ -34,13 +34,33 @@ import { createTurnstileHook } from "./turnstile.js";
 // though nothing serves real login/signup forms from them yet.
 const TRUSTED_ORIGINS = ["https://ravendarque.com", "https://climbinglogbook.com", "https://my.climbinglogbook.com"];
 
-export function createAuth(env) {
+// #295's session cookie needs to be visible on BOTH climbinglogbook.com
+// (where sign-in/sign-up happen, at the apex) AND my.climbinglogbook.com
+// (where the app reads it) -- Better Auth's cookie is host-only by
+// default, scoped to the exact hostname that set it, so without this a
+// session established at the apex is never sent back on the my.
+// subdomain at all (confirmed live, 2026-08-06: my.climbinglogbook.com/
+// logbook showed no data post-migration despite a real, valid session --
+// resolveUserId() was correctly seeing no session, not a data problem).
+// Only enabled for the real climbinglogbook.com domain family -- local
+// dev/PR previews run everything on one origin already (no subdomain
+// split to bridge), and a cookie Domain attribute that doesn't match the
+// browser's actual current host is rejected outright by the browser, not
+// just harmless to set.
+function crossSubDomainCookies(hostname) {
+  const isRealDomain = hostname === "climbinglogbook.com" || hostname?.endsWith(".climbinglogbook.com");
+  if (!isRealDomain) return undefined;
+  return { enabled: true, domain: "climbinglogbook.com" };
+}
+
+export function createAuth(env, hostname) {
   const emailSender = createEmailSender(env);
   return betterAuth({
     database: env.LOGBOOK_DB,
     basePath: "/logbook/api/auth",
     secret: env.BETTER_AUTH_SECRET,
     trustedOrigins: TRUSTED_ORIGINS,
+    advanced: { crossSubDomainCookies: crossSubDomainCookies(hostname) },
     emailAndPassword: {
       enabled: true,
       // requireEmailVerification (#308) changes sign-up/email's own
