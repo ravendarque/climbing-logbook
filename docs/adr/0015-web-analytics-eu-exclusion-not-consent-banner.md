@@ -7,7 +7,7 @@ Accepted
 ## Context
 
 The app needed real-user-monitoring/traffic analytics (raised while
-scoping #300's "data-protection copy" work, later split out to #363).
+scoping #300's "data-protection copy" work, later split out to #190).
 The first framing was "gate analytics behind a cookie consent banner" —
 but that framing turned out to conflate two different legal questions.
 
@@ -65,5 +65,5 @@ not a decision to never do it.
   (a tracking pixel, a third-party embed), that's the actual trigger to
   revisit consent architecture generally — not Web Analytics, which stays
   cookie-free regardless of the `lite` setting.
-- The privacy page (#363) needs to state this plainly: analytics excludes
+- The privacy page (#190) needs to state this plainly: analytics excludes
   EU visitors for now, and describe the consent flow once #362 lands.
