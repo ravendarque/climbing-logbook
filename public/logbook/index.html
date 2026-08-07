@@ -189,9 +189,17 @@
          through to the next section. -->
     <div class="flex items-end gap-[.26rem] mb-4" id="brand-header-row">
       <div class="shrink-0 flex mb-[4.48px] max-[600px]:mb-[3.2px]">
+        <!-- fill="currentColor", not a hardcoded hex -- inherits
+             text-foreground's theme-aware color from <body> (#356: a
+             hardcoded fill equal to the dark theme's text color made the
+             logo nearly invisible in light mode). icon.svg (the separate
+             PWA/favicon file) intentionally keeps its own fixed color --
+             it renders outside any page's DOM/CSS cascade (OS chrome,
+             home-screen icon), where currentColor has nothing to inherit
+             from. -->
         <svg class="w-[54.272px] h-[42.4px] max-[600px]:w-[39.32px] max-[600px]:h-[30.72px]" viewBox="0 14.4 122.88 96" aria-hidden="true">
-          <path d="M45.6,14.4l23.718,48l-2.99,6l-21.689,0l10.843,21.6l-10.142,20.4l-45.342,0l45.6,-96Z" fill="#f0f0f0"/>
-          <path d="M85.203,37.2l16.333,31.2l-10.787,21.6l21.63,0l10.501,20.4l-74.042,0l36.364,-73.2Z" fill="#f0f0f0"/>
+          <path d="M45.6,14.4l23.718,48l-2.99,6l-21.689,0l10.843,21.6l-10.142,20.4l-45.342,0l45.6,-96Z" fill="currentColor"/>
+          <path d="M85.203,37.2l16.333,31.2l-10.787,21.6l21.63,0l10.501,20.4l-74.042,0l36.364,-73.2Z" fill="currentColor"/>
         </svg>
       </div>
       <div>
