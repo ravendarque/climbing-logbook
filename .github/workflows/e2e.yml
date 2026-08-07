@@ -5,11 +5,40 @@ name: E2E
 # local `wrangler dev` (Miniflare), not the Vitest backend/client layers'
 # in-process or extracted-logic coverage. See playwright.config.js for how
 # the dev server and seed data get spun up.
+#
+# `e2e` is a required status check -- see test.yml's own comment for why
+# the trigger stays unconditional and skipping instead happens via the
+# `changes` job + `e2e`'s own job-level `if:` below.
 on:
   pull_request:
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      relevant: ${{ steps.filter.outputs.relevant }}
+    steps:
+      - uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3.0.4 -- pinned to a commit, see test.yml's own comment for why
+        id: filter
+        with:
+          filters: |
+            relevant:
+              - 'src/**'
+              - 'client/**'
+              - 'public/**'
+              - 'e2e/**'
+              - 'scripts/lib/dev-session.mjs'
+              - 'migrations/**'
+              - 'wrangler.jsonc'
+              - 'playwright.config.js'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - '.github/workflows/e2e.yml'
+              - '.github/actions/setup-node-pnpm/**'
+
   e2e:
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

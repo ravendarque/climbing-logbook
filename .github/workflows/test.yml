@@ -2,11 +2,45 @@ name: Test
 
 # Runs the Vitest suite (@cloudflare/vitest-pool-workers -- real Workers
 # runtime via Miniflare, not hand-rolled mocks) on every PR. See #203/#26.
+#
+# `test` is a required status check (branch-protection ruleset) -- the
+# trigger below deliberately stays unconditional (`on: pull_request`, no
+# `paths:`). A required check that never runs never reports a status at
+# all, which blocks the PR forever (confirmed the hard way, #357/#360
+# during the 2026-08-06 GitHub Actions outage -- a different root cause,
+# same failure mode). Skipping cheaply for irrelevant changes (docs-only
+# PRs, #364) instead happens via the `changes` job below plus the `test`
+# job's own `if:` -- a job skipped by a job-level condition still reports
+# a real "success" conclusion for its context, satisfying the required
+# check, unlike a workflow that never triggered at all.
 on:
   pull_request:
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      relevant: ${{ steps.filter.outputs.relevant }}
+    steps:
+      - uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3.0.4 -- pinned to a commit, not a tag (third-party action, not a first-party/verified publisher like the other actions in this repo)
+        id: filter
+        with:
+          filters: |
+            relevant:
+              - 'src/**'
+              - 'client/**'
+              - 'test/**'
+              - 'migrations/**'
+              - 'wrangler.jsonc'
+              - 'vitest.config.js'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - '.github/workflows/test.yml'
+              - '.github/actions/setup-node-pnpm/**'
+
   test:
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

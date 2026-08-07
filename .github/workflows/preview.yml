@@ -8,8 +8,22 @@ name: Preview
 # comment gets updated across pushes instead of a new one piling up each
 # time (mirrors what Cloudflare Pages/native Workers Builds do natively --
 # see #222 for why this project uses its own workflow instead of that).
+#
+# Not a required status check (unlike test.yml/e2e.yml) -- safe to filter
+# at the trigger level, no risk of a permanently-blocked PR.
 on:
   pull_request:
+    paths:
+      - 'src/**'
+      - 'client/**'
+      - 'public/**'
+      - 'styles/**'
+      - 'migrations/**'
+      - 'wrangler.jsonc'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/preview.yml'
+      - '.github/actions/setup-node-pnpm/**'
 
 permissions:
   contents: read
