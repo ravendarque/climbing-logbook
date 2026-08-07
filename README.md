@@ -10,8 +10,8 @@ linked from) even though both share the `ravendarque.com` domain.
 
 ## Stack
 
-Cloudflare Workers (Static Assets + a small API), Workers KV for storage,
-Cloudflare Access for admin authentication, Terraform for infrastructure,
+Cloudflare Workers (Static Assets + a small API), Workers KV + D1 for
+storage, Better Auth for authentication, Terraform for infrastructure,
 GitHub Actions for CI/CD. No framework, no JS bundler — plain ES modules.
 Tailwind is used for styling (a CSS-only build step, see
 `docs/app-architecture.md`).
@@ -26,9 +26,8 @@ pnpm dev
 Runs `wrangler dev` and the Tailwind watcher together. Serves at
 `http://localhost:8788`. The app lives at `/logbook/`.
 
-No local secrets are needed — Cloudflare Access isn't simulated by
-`wrangler dev`, so `/logbook/api/admin/*` is open locally by design (see
-`docs/app-architecture.md`).
+See `docs/app-architecture.md` for local auth setup — `/logbook/api/admin/*`
+requires a real Better Auth session, same as production.
 
 ## Deploying
 

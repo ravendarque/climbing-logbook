@@ -71,44 +71,38 @@ precedence over a Pages project's custom-domain claim on the same hostname
 — which was empirically confirmed live (not just assumed from docs) before
 this was treated as settled.
 
-`workers_dev` is explicitly disabled (`workers_dev: false`) — Access (below)
-only protects the custom route, so the default `*.workers.dev` preview URL
-would otherwise be a live, unprotected bypass around it.
+`workers_dev` is explicitly disabled (`workers_dev: false`) — this project
+was originally built around a Cloudflare Access application that only
+protected the custom route, so the default `*.workers.dev` preview URL
+would otherwise have been a live, unprotected bypass around it. Access is
+gone now (see below), but the setting is left as-is — there's no reason to
+expose a second, unlisted hostname for the same Worker.
 
-## Authentication: Cloudflare Access (single-user, transitional) + Better Auth (multi-user, #8)
+## Authentication: Better Auth (#8, #20, #298)
 
-Write endpoints (`/logbook/api/admin/*`) are still gated by a Cloudflare
-Access Application + Policy at Cloudflare's edge — unauthenticated requests
-never reach the Worker for those paths. Read endpoints (`/logbook/api/logbook`,
-GET only) stay public.
+Write endpoints (`/logbook/api/admin/*`) are gated by a real, in-Worker
+Better Auth session check (`src/lib/session.js`, #297) — every admin
+handler resolves the caller's session and 401s without one, scoping the
+write to that session's own `user_id`. Read endpoints
+(`/logbook/api/logbook`, GET only) stay public.
 
-This replaced an earlier design (a single shared `ADMIN_KEY` string,
-compared via an HMAC-signed session cookie). See `docs/app-architecture.md`
-for how the frontend integrates with Access's hosted login/logout.
-
-**Known platform quirk:** Cloudflare API tokens created as *account-owned*
-tokens (`cloudflare_account_token`) currently fail Zero Trust/Access API
-calls with a generic 403 "Authentication error" regardless of permissions —
-a confirmed, open upstream issue. Use a classic user-owned API token (My
-Profile → API Tokens) for anything touching Access/Zero Trust.
-
-**Access is transitional, not the long-term auth mechanism** — epic #8 is
-turning this into a multi-user service, and Access is architecturally the
-wrong tool for self-service signup (it gates known identities the account
-owner manages, not a customer-facing registration flow). #20 added
-[Better Auth](https://www.better-auth.com/) (`src/lib/auth.js`), mounted at
-`/logbook/api/auth/*` with a real D1-backed user/session/account schema
-(`migrations/0001_better_auth_core.sql`, generated via the Better Auth CLI
-— see `auth.config.mjs`'s header comment for the exact (deliberately
-temporary-install, #305) command, not hand-written) and email/password
-only (no GitHub/Google OAuth — this
+This replaced two earlier designs in turn: a single shared `ADMIN_KEY`
+string compared via an HMAC-signed session cookie, then a Cloudflare
+Access Application + Policy gating `/logbook/api/admin/*` at the edge.
+Access was architecturally the wrong tool for self-service signup (it
+gates known identities the account owner manages by hand, not a
+customer-facing registration flow) — it was viable only as long as this
+was a single-user app. [Better Auth](https://www.better-auth.com/)
+(`src/lib/auth.js`) is mounted at `/logbook/api/auth/*` with a real
+D1-backed user/session/account schema (`migrations/0001_better_auth_core.sql`,
+generated via the Better Auth CLI — see `auth.config.mjs`'s header comment
+for the exact (deliberately temporary-install, #305) command, not
+hand-written) and email/password only (no GitHub/Google OAuth — this
 project's BDS-compliance policy, see `docs/ui-stack-evaluation.md`'s
-"Ethical/supply-chain check" section). Access and Better Auth coexist for
-now: Access still gates the legacy KV-backed `/admin/*` app-data routes,
-Better Auth owns only its own `/auth/*` routes. They don't overlap yet —
-#297/#298 (D1-backed app data + the production cutover) is what actually
-retires Access, at which point this section should be rewritten rather than
-patched further.
+"Ethical/supply-chain check" section). #298 completed the cutover: D1-backed
+app data went live, the real production account was migrated off KV, and
+`infra/access.tf` was removed once that was verified — Access no longer
+exists in this project in any form.
 
 **Closed beta gate (#296):** registration is public self-service in the end
 state, but the initial rollout is a closed beta — `src/lib/beta-gate.js`
@@ -125,8 +119,6 @@ there's no minting UI at this scale (#296).
 Everything provisionable is declarative and idempotent via Terraform in
 `infra/`:
 
-- `cloudflare_zero_trust_access_application` + `cloudflare_zero_trust_access_policy`
-  — the Access gate on `/logbook/api/admin*` (transitional, see above)
 - `cloudflare_workers_kv_namespace` — the KV namespace backing logbook data
   (one-time-imported into state from a pre-Terraform namespace via a
   declarative `import` block in `infra/kv.tf`; the block itself was
@@ -168,20 +160,19 @@ Everything provisionable is declarative and idempotent via Terraform in
   Workers Route in `wrangler.jsonc` is left in place, now unreachable for
   real traffic -- harmless dead config, not worth a separate cleanup PR.
 
-**Intentionally excluded from Terraform**, by design: the admin login email
-(a `sensitive` variable, supplied via a repo secret — never committed), the
-logbook's actual data (KV/D1 values, not the infrastructure holding them),
-and `BETTER_AUTH_SECRET`/`TURNSTILE_SECRET_KEY` (Worker runtime secrets,
-not something Terraform itself consumes — see "Required secrets/variables"
+**Intentionally excluded from Terraform**, by design: the logbook's actual
+data (KV/D1 values, not the infrastructure holding them), and
+`BETTER_AUTH_SECRET`/`TURNSTILE_SECRET_KEY` (Worker runtime secrets, not
+something Terraform itself consumes — see "Required secrets/variables"
 below).
 
 ### State backend
 
 State lives in an R2 bucket (`climbing-logbook-tfstate`), accessed via
 Terraform's S3-compatible backend. This avoids the alternative of committing
-`terraform.tfstate` to git, which would leak the admin email into git
-history even with `sensitive = true` (that flag only redacts CLI output, not
-the state file itself).
+`terraform.tfstate` to git, which would leak any sensitive resource values
+into git history even with `sensitive = true` on the Terraform variable
+(that flag only redacts CLI output, not the state file itself).
 
 The R2 bucket is *not* itself a Terraform resource — that would be circular
 (the bucket must exist before Terraform can use it as a backend). It's
@@ -392,7 +383,6 @@ new migration would otherwise 500 the preview with "no such table."
 |---|---|---|
 | `CLOUDFLARE_API_TOKEN` | secret | User-owned token; see permission table below |
 | `TF_STATE_ACCESS_KEY_ID` / `TF_STATE_SECRET_ACCESS_KEY` | secrets | R2-specific S3-compatible credentials (Object Read & Write), for Terraform's state backend — a distinct credential type from `CLOUDFLARE_API_TOKEN`, created via R2's own "Manage R2 API Tokens" |
-| `ADMIN_EMAIL` | secret | Terraform variable — the email allowed to log in via Access (transitional, see "Authentication" above) |
 | `CLOUDFLARE_ACCOUNT_ID` | **variable** (not secret — not confidential) | `4f63d74beb21402b8622361525ab4868` |
 | `BETTER_AUTH_SECRET` | secret (Worker runtime, not Terraform) | Better Auth's session-signing secret (#20). One-time manual `wrangler secret put BETTER_AUTH_SECRET` — not CI-managed, doesn't need to rotate on every deploy, same "bootstrapped once, outside Terraform" treatment as the R2 state bucket. Local dev uses `.dev.vars` (gitignored) instead. |
 | `RESEND_API_KEY` | secret (Worker runtime, not Terraform) | [Resend](https://resend.com)'s API key, for signup verification + password reset emails (#308) — same one-time manual `wrangler secret put` treatment as `BETTER_AUTH_SECRET`. `climbinglogbook.com` is a verified Resend domain; `src/lib/email.js` sends from `myaccount@climbinglogbook.com` (#314). |
@@ -412,9 +402,6 @@ Account-scoped (the Cloudflare account above):
   "confirm before assuming it's already granted" flag as D1 was — this
   token's scope was last confirmed for D1, not Turnstile, verify before
   relying on it)
-- Access: Apps: Edit
-- Access: Policies: Edit
-- Zero Trust: Edit
 - Cloudflare Pages: Edit
 
 Zone-scoped (ravendarque.com):
@@ -435,7 +422,7 @@ Zone-scoped (climbinglogbook.com, added #295):
 
 1. Re-run "Bootstrap Terraform state bucket" (recreates the state bucket if
    gone).
-2. Merge/push to `infra/**` — Terraform recreates the Access app/policy and
-   KV namespace; `wrangler.jsonc` is updated automatically.
+2. Merge/push to `infra/**` — Terraform recreates the KV namespace and D1
+   database; `wrangler.jsonc` is updated automatically.
 3. Manually trigger "Deploy" (`workflow_dispatch`) — the sync commit from
    step 2 is `[skip ci]`, so this step doesn't happen automatically.

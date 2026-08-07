@@ -109,33 +109,28 @@ quietly reversed without someone re-deciding on purpose.
   explicit confirmation a dependent step (e.g. infra apply) succeeded.
 
 ### Infrastructure
-- **All Cloudflare infra is Terraform-managed** — Access Applications/
-  Policies, KV namespaces, and anything else provisionable — declarative,
-  repeatable, idempotent. The *only* things that live outside that: the
-  admin login email (a variable, supplied out-of-band) and the logbook's
-  actual data. See `docs/infra-architecture.md`.
-- **Cloudflare API tokens: user-owned, not account-owned.** Account-owned
-  tokens (`cloudflare_account_token`) have a known, currently-unresolved
-  upstream bug causing 403 "Authentication error" on Zero Trust/Access API
-  calls regardless of permissions granted. Classic user API tokens (My
-  Profile → API Tokens) work correctly with identical permissions. This cost
-  real debugging time once already — don't reintroduce an account-owned
-  token for anything touching Access/Zero Trust.
+- **All Cloudflare infra is Terraform-managed** — KV namespaces, the D1
+  database, DNS, redirect rulesets, Turnstile, and anything else
+  provisionable — declarative, repeatable, idempotent. The *only* thing
+  that lives outside that: the logbook's actual data. See
+  `docs/infra-architecture.md`.
 - **Least-privilege token scoping**, split by resource type: most Workers/
-  KV/R2/Access/Zero Trust permissions are Account-scoped only (no zone
-  option exists); Workers Routes is Zone-scoped. Scope each permission row
-  to the narrowest resource that actually has that option — don't default to
+  KV/R2/D1 permissions are Account-scoped only (no zone option exists);
+  Workers Routes and DNS are Zone-scoped. Scope each permission row to the
+  narrowest resource that actually has that option — don't default to
   "all zones"/"all accounts" out of convenience.
 
 ### Authentication
-- **Cloudflare Access gates admin/write paths at the edge — not a shared
-  secret checked in application code.** Access can only gate by path, not by
-  HTTP method, so read (public) and write (admin) endpoints must live on
-  distinct path prefixes (`/api/logbook` vs `/api/admin/logbook`) rather than
-  sharing one path gated by method.
-- Anything Access is meant to protect must **not** also be reachable via the
-  Worker's default `workers_dev` preview URL — Access only attaches to the
-  custom route, so `workers_dev: false` is required, not optional.
+- **Better Auth sessions gate admin/write paths inside the Worker itself
+  (#297)** — not a shared secret checked ad hoc, and not an edge-only gate.
+  Read (public) and write (admin) endpoints still live on distinct path
+  prefixes (`/api/logbook` vs `/api/admin/logbook`) — a holdover from this
+  project's earlier Cloudflare-Access-gated design, kept because it's a
+  clear, self-documenting split, not because anything still requires it.
+- Every write endpoint resolves its session server-side
+  (`src/lib/session.js`) and scopes the operation to that session's own
+  `user_id` — the actual multi-tenant isolation boundary. Never trust a
+  `user_id` supplied in the request body.
 
 ### Application code
 - **Escape all user-controlled data before HTML interpolation.** Every
@@ -149,9 +144,9 @@ quietly reversed without someone re-deciding on purpose.
   alone is not a trust boundary.
 - **If a shared-secret auth mechanism is ever reintroduced** (this app's
   original design had one — a shared `ADMIN_KEY` compared via an
-  HMAC-signed session cookie — before it was replaced by Cloudflare
-  Access, which now gates all admin/write paths at the edge, entirely
-  outside this app's own code): use timing-safe comparison, never a plain
+  HMAC-signed session cookie — before it was replaced first by Cloudflare
+  Access, then by Better Auth, which now gates all admin/write paths via a
+  real in-Worker session check): use timing-safe comparison, never a plain
   `===`, on the token/key/signature, and rate-limit attempts against the
   endpoint that checks it. Not an active constraint on today's code —
   there is currently no secret comparison or login endpoint of this
