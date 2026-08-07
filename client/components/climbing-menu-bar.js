@@ -1,0 +1,74 @@
+// <climbing-menu-bar> (#346): the discipline picker + burger menu markup
+// currently hand-duplicated into `/logbook`'s own #header-row -- extracted
+// so #348's new `/:username/{log,map,performance}` bundles can share it
+// instead of copy-pasting the markup a second time.
+//
+// Deliberately markup-only, unlike client/header-chrome.js's full
+// behavior (discipline switching, Athlete Mode, login/logout, theme
+// toggle) -- that behavior is wired to client/store.js, adminFetch, and
+// resetPyramidExpansion, none of which exist in every future consumer of
+// this component (a public/read-only bundle, if this ever lands there,
+// never has store.js or adminFetch at all -- "security by absence",
+// #344's own decision). Keeping the markup and the behavior separate
+// means this component works the same way today's real consumer
+// (client/header-chrome.js, still wiring the untouched `/logbook` page)
+// and #348's future bundles both will: import this component for the
+// markup, then call whatever that bundle's own equivalent of
+// createHeaderChrome() is to wire it up, exactly like `/logbook` does
+// today via plain document.getElementById() calls against these same
+// ids -- light DOM means those calls work identically regardless of
+// which custom element the markup happens to live inside.
+//
+// A public/read-only variant (admin rows hidden entirely, not just
+// gated by login state) is explicit non-scope here -- #351 is the first
+// issue that actually has that consumer to design the attribute/property
+// contract against; guessing its shape now, with no real requirements in
+// hand, is exactly the kind of premature abstraction this project's
+// engineering standards call out.
+//
+// Ordinary ES module (not a classic script like <climbing-header>,
+// #345) -- that file's classic-script requirement was specific to
+// injecting global CSS tokens before first paint; this component is
+// pure interactive markup with no equivalent FOUC concern, so it follows
+// the same module convention as every other client/*.js file instead.
+const MARKUP = `
+  <div class="relative mr-auto" id="discipline-wrap">
+    <button type="button" class="group inline-flex items-center gap-[.35rem] h-[var(--field-h)] px-[.8rem] bg-surface border border-border rounded-app text-foreground text-[.85rem] font-semibold cursor-pointer hover:border-accent [&_svg]:stroke-current [&_svg]:fill-none [&_.chevron-icon]:transition-transform [&_.chevron-icon]:duration-150 aria-expanded:[&_.chevron-icon]:rotate-180" id="discipline-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Discipline: Boulder">
+      <span id="discipline-btn-label">Boulder</span>
+      <svg class="chevron-icon w-[.85rem] h-[.85rem]" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+    </button>
+    <div class="absolute top-[calc(100%+.4rem)] left-0 z-20 bg-background border border-border rounded-app p-[.35rem] min-w-[9rem] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="discipline-popover" role="listbox" aria-label="Discipline" hidden>
+      <button type="button" class="discipline-option flex items-center justify-between w-full font-sans text-[.85rem] font-semibold text-foreground bg-transparent border-0 rounded-[calc(var(--radius-app)-2px)] px-[.6rem] py-[.55rem] cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible" role="option" data-discipline="boulder" aria-selected="true">
+        Boulder
+        <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+      </button>
+      <button type="button" class="discipline-option flex items-center justify-between w-full font-sans text-[.85rem] font-semibold text-foreground bg-transparent border-0 rounded-[calc(var(--radius-app)-2px)] px-[.6rem] py-[.55rem] cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible" role="option" data-discipline="lead" aria-selected="false">
+        Lead
+        <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+      </button>
+    </div>
+  </div>
+  <div class="relative" id="header-menu-wrap">
+    <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="header-menu-btn" aria-haspopup="true" aria-expanded="false" aria-label="Menu">
+      <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="17" x2="20" y2="17"></line></svg>
+    </button>
+    <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 flex flex-col items-end gap-2 bg-background border border-border rounded-app p-3 min-w-[13rem] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="header-menu-popover" role="menu" aria-label="Menu" hidden>
+      <button type="button" class="group inline-flex items-center h-[var(--field-h)] gap-2 bg-transparent border border-transparent px-[.8rem] cursor-pointer text-[.82rem] font-semibold text-foreground disabled:opacity-60 disabled:cursor-not-allowed" id="athlete-mode-btn" role="switch" aria-checked="false" hidden>
+        <span class="transition-colors duration-150 group-aria-[checked=false]:text-muted">Athlete Mode</span>
+        <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
+      </button>
+      <div class="flex items-center justify-between self-stretch pt-2 mt-1 border-t border-border" id="header-menu-bottom-row">
+        <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="theme-toggle-btn" aria-label="Switch to light theme"></button>
+        <button type="button" class="admin-btn" id="login-toggle-btn">Log in</button>
+      </div>
+    </div>
+  </div>
+`;
+
+export class ClimbingMenuBar extends HTMLElement {
+  connectedCallback() {
+    this.innerHTML = MARKUP;
+  }
+}
+
+customElements.define("climbing-menu-bar", ClimbingMenuBar);
