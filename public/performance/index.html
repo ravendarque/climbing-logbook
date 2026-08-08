@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grade Pyramid – Climbing Logbook</title>
+  <link rel="manifest" href="/logbook/manifest.json">
+  <link rel="icon" type="image/png" sizes="32x32" href="/logbook/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/logbook/favicon-16.png">
+  <link rel="apple-touch-icon" href="/logbook/apple-touch-icon.png">
+  <meta name="theme-color" content="#ff2727">
+  <!-- Genuinely static shell (#348), same pattern as public/map/index.html
+       -- see that file's own comment for why every path below is absolute
+       and client/performance-main.js reads the username from
+       location.pathname itself rather than this file being templated. -->
+  <link rel="stylesheet" href="/logbook/tailwind.css">
+  <script src="/logbook/components/climbing-header.js"></script>
+  <script>
+    (function () {
+      var stored = localStorage.getItem("logbook_theme");
+      var theme = stored || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+</head>
+<body class="bg-background text-foreground font-sans px-4 pt-6 pb-16 min-w-[300px]">
+<div class="max-w-[960px] mx-auto">
+  <climbing-header variant="brand"></climbing-header>
+
+  <div class="flex items-center justify-end gap-2 mb-6" id="header-row">
+    <climbing-menu-bar></climbing-menu-bar>
+  </div>
+
+  <climbing-tab-bar active-page="performance"></climbing-tab-bar>
+
+  <!-- No visible heading here -- same "Grade Pyramid" tab-label-suffices
+       reasoning as /logbook's own #panel-pyramid (see that file's
+       comment); <climbing-grade-pyramid> renders its own window-note/
+       pyramid-card/health-card into itself. -->
+  <climbing-grade-pyramid></climbing-grade-pyramid>
+
+  <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>
+</div>
+
+<script type="module" src="/logbook/performance-app.js"></script>
+</body>
+</html>
