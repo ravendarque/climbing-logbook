@@ -20,7 +20,7 @@
     "vendor:floating-ui": "node scripts/vendor-floating-ui.mjs"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.19.0",
+    "@cloudflare/vitest-pool-workers": "^0.20.1",
     "@playwright/test": "^1.62.1",
     "@tailwindcss/cli": "^4.3.3",
     "concurrently": "^10.0.4",
@@ -32,11 +32,11 @@
     "vitest": "^4.1.10",
     "world-atlas": "^2.0.2",
     "world-countries": "^5.1.0",
-    "wrangler": "^4.115.0"
+    "wrangler": "^4.118.0"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.8.0",
-    "better-auth": "^1.6.25",
+    "better-auth": "^1.6.26",
     "resend": "^6.18.1"
   }
 }
