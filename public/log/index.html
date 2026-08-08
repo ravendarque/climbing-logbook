@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logbook – Climbing Logbook</title>
+  <link rel="manifest" href="/logbook/manifest.json">
+  <link rel="icon" type="image/png" sizes="32x32" href="/logbook/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/logbook/favicon-16.png">
+  <link rel="apple-touch-icon" href="/logbook/apple-touch-icon.png">
+  <meta name="theme-color" content="#ff2727">
+  <!-- Genuinely static shell (#348), same pattern as public/map/index.html
+       and public/performance/index.html -- see either file's own comment
+       for why every path below is absolute and client/log-main.js reads
+       the username from location.pathname itself rather than this file
+       being templated. -->
+  <link rel="stylesheet" href="/logbook/tailwind.css">
+  <script src="/logbook/components/climbing-header.js"></script>
+  <script>
+    (function () {
+      var stored = localStorage.getItem("logbook_theme");
+      var theme = stored || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+</head>
+<body class="bg-background text-foreground font-sans px-4 pt-6 pb-16 min-w-[300px]">
+<div class="max-w-[960px] mx-auto">
+  <climbing-header variant="brand"></climbing-header>
+
+  <div class="flex items-center justify-end gap-2 mb-6" id="header-row">
+    <climbing-menu-bar></climbing-menu-bar>
+  </div>
+
+  <climbing-tab-bar active-page="log"></climbing-tab-bar>
+
+  <!-- add-btn/sync-btn stay outside <climbing-entries-table> -- they're
+       owned by client/entry-form.js/client/offline-sync.js, not the
+       table's own search/filter/collapse controls (which the component
+       already renders itself, see its own SHELL). -->
+  <div class="flex items-center justify-between mb-2">
+    <div class="flex flex-wrap items-center gap-2">
+      <button type="button" class="admin-btn admin-btn-primary min-w-24 justify-center" id="add-btn" hidden>
+        <svg class="w-4 h-4 stroke-current fill-none shrink-0" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M8 12h8"></path><path d="M12 8v8"></path></svg>
+        <span>Add</span>
+      </button>
+      <button type="button" class="admin-btn min-w-24 justify-center" id="sync-btn" hidden>
+        <svg class="w-4 h-4 stroke-current fill-none shrink-0" id="sync-btn-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 9 3-3 3 3"></path><path d="M13 18H7a2 2 0 0 1-2-2V6"></path><path d="m22 15-3 3-3-3"></path><path d="M11 6h6a2 2 0 0 1 2 2v10"></path></svg>
+        <span id="sync-btn-label">Sync</span>
+      </button>
+    </div>
+  </div>
+
+  <climbing-entries-table editable></climbing-entries-table>
+
+  <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>
+</div>
+
+<!-- ══ Add / edit entry modal ════════════════════════════════════════ -->
+<div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-start justify-center px-4 py-6 overflow-y-auto" id="entry-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="entry-modal-title" tabindex="-1">
+  <div class="bg-background border border-border rounded-app p-5 w-full max-w-[460px]">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-[1.15rem] font-bold text-accent" id="entry-modal-title">Add entry</h2>
+      <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-[1.1rem] leading-none p-[.2rem] hover:text-foreground" id="entry-close" aria-label="Close">✕</button>
+    </div>
+
+    <form id="entry-form" autocomplete="off">
+      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 first:mt-0 mt-[1.1rem]" id="form-name-label">Problem name</div>
+      <div class="mb-3">
+        <input type="text" class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full" id="entry-name" required>
+      </div>
+
+      <div class="mb-3">
+        <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Place</div>
+        <div class="relative" id="place-wrap">
+          <button type="button" class="w-full flex items-center gap-[.6rem] bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] cursor-pointer hover:border-accent text-left [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:shrink-0" id="place-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Place: none selected">
+            <span class="flex items-center justify-center shrink-0" id="place-btn-flag" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20Z"></path></svg></span>
+            <span class="truncate text-muted" id="place-btn-label">Select a place…</span>
+          </button>
+          <div class="absolute top-[calc(100%+.4rem)] left-0 z-20 bg-background border border-border rounded-app p-[.5rem] w-full max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="place-popover" hidden>
+            <input type="text" class="bg-surface border border-border rounded-app px-[.7rem] py-[.5rem] text-foreground text-[.9rem] outline-none focus:border-accent w-full" id="place-search" placeholder="Search places…" autocomplete="off" aria-label="Search places" aria-controls="place-listbox">
+            <button type="button" class="flex items-center gap-[.5rem] w-full mt-[.4rem] px-[.6rem] py-[.5rem] rounded-[calc(var(--radius-app)-2px)] cursor-pointer text-[.9rem] font-semibold text-accent bg-transparent border-0 hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-current [&_svg]:fill-none" id="place-add-new-btn">
+              <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
+              Add new place
+            </button>
+            <ul class="max-h-[13rem] overflow-y-auto m-0 mt-[.4rem] p-0 list-none" id="place-listbox" role="listbox" aria-label="Place"></ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-[.6rem] mb-3 mt-[1.1rem]">
+        <div class="flex-1 min-w-[9rem]">
+          <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Grade</div>
+          <div class="h-[var(--field-h)] flex items-stretch gap-2">
+            <button type="button" class="flex-[0_0_var(--field-h)] flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent active:scale-[.94]" id="grade-prev" aria-label="Previous grade">
+              <svg class="w-[.8rem] h-[.8rem] fill-current" viewBox="0 0 24 24"><polygon points="16 5 6 12 16 19"></polygon></svg>
+            </button>
+            <select class="grade-select flex-1 min-w-0 h-[var(--field-h)]" id="grade-select"></select>
+            <button type="button" class="flex-[0_0_var(--field-h)] flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent active:scale-[.94]" id="grade-next" aria-label="Next grade">
+              <svg class="w-[.8rem] h-[.8rem] fill-current" viewBox="0 0 24 24"><polygon points="8 5 18 12 8 19"></polygon></svg>
+            </button>
+          </div>
+        </div>
+        <div class="flex-1 min-w-[9rem]">
+          <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Date</div>
+          <div class="flex items-stretch gap-2">
+            <input type="text" class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent flex-1 min-w-0" id="entry-date">
+            <button type="button" class="flex-[0_0_2.75rem] flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent" id="date-picker-btn" aria-label="Pick a date">
+              <svg class="w-[1.1rem] h-[1.1rem] stroke-current" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+                <line x1="8" y1="3" x2="8" y2="7"></line>
+                <line x1="16" y1="3" x2="16" y2="7"></line>
+              </svg>
+            </button>
+            <input type="date" id="date-native" class="absolute w-px h-px opacity-0 pointer-events-none" tabindex="-1" aria-hidden="true">
+          </div>
+          <div class="text-[.75rem] text-muted mt-[.3rem]">YYYY-MM or YYYY-MM-DD</div>
+        </div>
+      </div>
+
+      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]" id="status-group-label">Status</div>
+      <fieldset class="border border-border rounded-app overflow-x-auto flex flex-nowrap w-full mb-3 min-w-0" id="status-group" aria-labelledby="status-group-label">
+        <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
+          <input type="radio" name="entry-status" value="flash" class="sr-only">
+          <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="flash"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]" id="form-flash-label">Flash</span>
+        </label>
+        <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
+          <input type="radio" name="entry-status" value="send" class="sr-only" checked>
+          <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="send"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]" id="form-send-label">Send</span>
+        </label>
+        <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
+          <input type="radio" name="entry-status" value="project" class="sr-only">
+          <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="project"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Project</span>
+        </label>
+        <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
+          <input type="radio" name="entry-status" value="wishlist" class="sr-only">
+          <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="wishlist"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Check out</span>
+        </label>
+        <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
+          <input type="radio" name="entry-status" value="abandoned" class="sr-only">
+          <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="abandoned"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Abandoned</span>
+        </label>
+      </fieldset>
+
+      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]">Notes</div>
+      <div class="mb-3">
+        <textarea class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground font-sans text-[1rem] outline-none focus:border-accent w-full resize-y min-h-[72px]" id="entry-notes"></textarea>
+      </div>
+
+      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]">Video URL</div>
+      <div class="mb-3">
+        <input type="url" class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full" id="entry-video">
+      </div>
+
+      <button type="submit" class="w-full mt-4 bg-accent text-accent-foreground border-none rounded-app py-[.9rem] text-[1rem] font-bold cursor-pointer disabled:opacity-[.45] disabled:cursor-not-allowed" id="entry-submit-btn">Add to logbook</button>
+      <button type="button" class="w-full mt-[.6rem] bg-transparent text-red-400 border border-red-400/40 rounded-app py-[.7rem] text-[.9rem] font-semibold cursor-pointer hover:bg-red-400/10 disabled:opacity-[.45] disabled:cursor-not-allowed" id="entry-delete-btn" hidden>Delete entry</button>
+      <div class="hidden" id="entry-msg"></div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ Add place modal (#158) ═══════════════════════════════════════════
+     Stacks on top of entry-overlay -- see /logbook's own copy of this
+     comment for the full z-index/inheritance rationale, unchanged here. -->
+<div class="fixed inset-0 z-[110] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-start justify-center px-4 py-6 overflow-y-auto" id="add-place-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="add-place-modal-title" tabindex="-1">
+  <div class="bg-background border border-border rounded-app p-5 w-full max-w-[380px]">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-[1.15rem] font-bold text-accent" id="add-place-modal-title">Add place</h2>
+      <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-[1.1rem] leading-none p-[.2rem] hover:text-foreground" id="add-place-close" aria-label="Close">✕</button>
+    </div>
+
+    <form id="add-place-form" autocomplete="off">
+      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Location</div>
+      <div class="mb-3">
+        <input type="text" class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full" id="add-place-location" list="add-place-location-list" required>
+        <datalist id="add-place-location-list"></datalist>
+      </div>
+
+      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Area</div>
+      <div class="mb-3">
+        <input type="text" class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full" id="add-place-area">
+      </div>
+
+      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Country</div>
+      <div class="relative mb-1" id="add-place-country-wrap">
+        <button type="button" class="w-full flex items-center gap-[.6rem] bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] cursor-pointer hover:border-accent text-left disabled:cursor-not-allowed disabled:opacity-70 [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:shrink-0" id="add-place-country-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Country: none selected">
+          <span class="flex items-center justify-center shrink-0" id="add-place-country-flag" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20Z"></path></svg></span>
+          <span class="truncate text-muted" id="add-place-country-label">Select a country…</span>
+        </button>
+        <div class="absolute top-[calc(100%+.4rem)] left-0 z-20 bg-background border border-border rounded-app p-[.5rem] w-full max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="add-place-country-popover" hidden>
+          <input type="text" class="bg-surface border border-border rounded-app px-[.7rem] py-[.5rem] text-foreground text-[.9rem] outline-none focus:border-accent w-full" id="add-place-country-search" placeholder="Search countries…" autocomplete="off" aria-label="Search countries" aria-controls="add-place-country-listbox">
+          <ul class="max-h-[13rem] overflow-y-auto m-0 mt-[.4rem] p-0 list-none" id="add-place-country-listbox" role="listbox" aria-label="Country"></ul>
+        </div>
+      </div>
+      <p class="text-[.78rem] text-muted mt-1 mb-3" id="add-place-country-hint" hidden>Inherited from the existing location — edit the location itself to change it.</p>
+
+      <button type="submit" class="w-full mt-4 bg-accent text-accent-foreground border-none rounded-app py-[.9rem] text-[1rem] font-bold cursor-pointer disabled:opacity-[.45] disabled:cursor-not-allowed" id="add-place-submit-btn">Add place</button>
+      <div class="hidden" id="add-place-msg"></div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ Notes view modal ═══════════════════════════════════════════════ -->
+<div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-center justify-center px-4 py-6 overflow-y-auto" id="notes-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="notes-modal-title" tabindex="-1">
+  <div class="bg-background border border-border rounded-app p-5 w-full max-w-[380px]">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-[1.15rem] font-bold text-accent" id="notes-modal-title">Notes</h2>
+      <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-[1.1rem] leading-none p-[.2rem] hover:text-foreground" id="notes-close" aria-label="Close">✕</button>
+    </div>
+    <p class="text-foreground text-[.95rem] whitespace-pre-wrap" id="notes-modal-text"></p>
+  </div>
+</div>
+
+<script type="module" src="/logbook/log-app.js"></script>
+</body>
+</html>
