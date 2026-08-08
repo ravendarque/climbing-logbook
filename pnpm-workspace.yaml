@@ -26,5 +26,20 @@ allowBuilds:
 # anything but this override. Getting the security fix shouldn't also
 # mean silently forcing a major bump on a dependency this project
 # doesn't control the compatibility contract for.
+#
+# nanoid (transitive, via postcss -- itself pulled in by vite, a
+# dependency of vitest/@cloudflare/vitest-pool-workers and, via
+# better-auth, this app's real `dependencies`) has GHSA-2v37-7h3g-55p8
+# below 3.3.17: customAlphabet/customRandom loop indefinitely when called
+# with size 0, a DoS if that size is ever attacker-controlled (Dependabot
+# alert #18). postcss's own declared range (^3.3.16) already permits the
+# fix -- pnpm just never re-resolves a non-direct dependency to a newer
+# version within an already-satisfied range on its own, hence the
+# override rather than waiting on postcss/vite to bump their own lockfile
+# entries. Constrained to the 3.x line postcss actually declared, not the
+# unrelated 5.x/6.x lines nanoid has since released, same "don't silently
+# force a major bump this project doesn't control the compatibility
+# contract for" reasoning as the undici override below.
 overrides:
   undici: '>=7.29.0 <8.0.0'
+  nanoid: '^3.3.17'
