@@ -40,9 +40,9 @@ function loginUrl(hostname) {
 // literal Workers Static Assets path, so this Worker fetches the shell
 // itself via the ASSETS binding and returns it, rather than letting Static
 // Assets try to match /:username/log directly (it can't -- static assets
-// only match literal paths). /log lands in its own follow-up PR; the
-// placeholder below covers it until then.
+// only match literal paths).
 const SHELL_PATHS = {
+  log: "/log/index.html",
   map: "/map/index.html",
   performance: "/performance/index.html",
 };
@@ -66,13 +66,9 @@ export async function handleOwnedRoute(request, env, username, page) {
     return Response.redirect(new URL(loginUrl(hostname), request.url), 302);
   }
 
-  const shellPath = SHELL_PATHS[page];
-  if (!shellPath) {
-    // /log and /performance -- not built yet, own follow-up PRs.
-    return new Response(`<!DOCTYPE html><html><body>${page} -- coming soon (#348)</body></html>`, {
-      headers: { "Content-Type": "text/html; charset=utf-8" },
-    });
-  }
-
-  return env.ASSETS.fetch(new Request(new URL(shellPath, request.url)));
+  // SHELL_PATHS[page] is never undefined here -- src/index.js's own regex
+  // only ever passes "log"/"map"/"performance" through as `page`, and all
+  // three have real shells now (#348's #347 placeholder branch is gone,
+  // its job done).
+  return env.ASSETS.fetch(new Request(new URL(SHELL_PATHS[page], request.url)));
 }

@@ -24,7 +24,7 @@ beforeEach(async () => {
 });
 
 describe("owned route authorization", () => {
-  it("serves the (placeholder) page when the session's own username matches the URL", async () => {
+  it("serves the page when the session's own username matches the URL", async () => {
     const { cookie } = await createAuthedSession({ username: "ownerofthis" });
     const res = await fetchOwnedRoute("ownerofthis", "log", { cookie });
     expect(res.status).toBe(200);
@@ -66,38 +66,36 @@ describe("owned route authorization", () => {
     }
   });
 
-  // #348 -- map and performance now have real shells (fetched via the
-  // ASSETS binding, see src/api/owned-routes.js's SHELL_PATHS); log still
-  // gets #347's original placeholder until its own follow-up PR lands.
-  // Asserting each real shell's actual content here (not just a 200,
-  // which the test above already covers) is what would have caught the
-  // shell/bundle wiring being wrong even though the auth decision itself
-  // was right.
-  it("serves the real static shell for map, not the placeholder", async () => {
+  // #348 -- all three pages now have real shells (fetched via the ASSETS
+  // binding, see src/api/owned-routes.js's SHELL_PATHS). Asserting each
+  // real shell's actual content here (not just a 200, which the test
+  // above already covers) is what would have caught the shell/bundle
+  // wiring being wrong even though the auth decision itself was right.
+  it("serves the real static shell for map", async () => {
     const { cookie } = await createAuthedSession({ username: "mapshelluser" });
     const res = await fetchOwnedRoute("mapshelluser", "map", { cookie });
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("<climbing-tab-bar");
     expect(html).toContain('src="/logbook/map-app.js"');
-    expect(html).not.toContain("coming soon");
   });
 
-  it("serves the real static shell for performance, not the placeholder", async () => {
+  it("serves the real static shell for performance", async () => {
     const { cookie } = await createAuthedSession({ username: "performanceshelluser" });
     const res = await fetchOwnedRoute("performanceshelluser", "performance", { cookie });
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("<climbing-grade-pyramid");
     expect(html).toContain('src="/logbook/performance-app.js"');
-    expect(html).not.toContain("coming soon");
   });
 
-  it("still serves the #347 placeholder for log (no shell built yet)", async () => {
-    const { cookie } = await createAuthedSession({ username: "placeholderuser" });
-    const res = await fetchOwnedRoute("placeholderuser", "log", { cookie });
+  it("serves the real static shell for log", async () => {
+    const { cookie } = await createAuthedSession({ username: "logshelluser" });
+    const res = await fetchOwnedRoute("logshelluser", "log", { cookie });
     expect(res.status).toBe(200);
-    expect(await res.text()).toContain("coming soon");
+    const html = await res.text();
+    expect(html).toContain("<climbing-entries-table");
+    expect(html).toContain('src="/logbook/log-app.js"');
   });
 
   it("falls through (404) for a fourth path segment that isn't log/map/performance", async () => {
