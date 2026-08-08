@@ -34,6 +34,18 @@ function loginUrl(hostname) {
     : "/login/";
 }
 
+// #348 -- one fixed-path static shell per page type, genuinely identical
+// content for every user (the client bundle reads :username off
+// location.pathname itself, not server-templated). :username can't be a
+// literal Workers Static Assets path, so this Worker fetches the shell
+// itself via the ASSETS binding and returns it, rather than letting Static
+// Assets try to match /:username/log directly (it can't -- static assets
+// only match literal paths). /log and /performance land in their own
+// follow-up PRs; the placeholder below covers them until then.
+const SHELL_PATHS = {
+  map: "/map/index.html",
+};
+
 export async function handleOwnedRoute(request, env, username, page) {
   const { hostname } = new URL(request.url);
 
@@ -53,12 +65,13 @@ export async function handleOwnedRoute(request, env, username, page) {
     return Response.redirect(new URL(loginUrl(hostname), request.url), 302);
   }
 
-  // #348 hasn't landed yet -- there's no real /log, /map, /performance
-  // bundle to serve (and couldn't be a plain static asset anyway, since
-  // :username is a dynamic path segment Workers Static Assets can't match
-  // by itself). This placeholder only proves the authorization decision
-  // above; #348 replaces this whole branch with real asset-serving.
-  return new Response(`<!DOCTYPE html><html><body>${page} -- coming soon (#348)</body></html>`, {
-    headers: { "Content-Type": "text/html; charset=utf-8" },
-  });
+  const shellPath = SHELL_PATHS[page];
+  if (!shellPath) {
+    // /log and /performance -- not built yet, own follow-up PRs.
+    return new Response(`<!DOCTYPE html><html><body>${page} -- coming soon (#348)</body></html>`, {
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
+  }
+
+  return env.ASSETS.fetch(new Request(new URL(shellPath, request.url)));
 }

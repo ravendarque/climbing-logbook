@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Map – Climbing Logbook</title>
+  <link rel="manifest" href="/logbook/manifest.json">
+  <link rel="icon" type="image/png" sizes="32x32" href="/logbook/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/logbook/favicon-16.png">
+  <link rel="apple-touch-icon" href="/logbook/apple-touch-icon.png">
+  <meta name="theme-color" content="#ff2727">
+  <!-- This is a genuinely static shell (#348) -- identical content for
+       every user, served by src/api/owned-routes.js via env.ASSETS.fetch()
+       for the dynamic /:username/map path Workers Static Assets can't
+       match by pattern. Every path below is absolute, not relative to
+       this file's location on disk -- the browser resolves relative URLs
+       against the actual visited address (/:username/map), not
+       /map/index.html, so a relative path here would 404 depending on
+       the username in the URL. client/map-main.js reads the username
+       itself from location.pathname at runtime. -->
+  <link rel="stylesheet" href="/logbook/tailwind.css">
+  <script src="/logbook/components/climbing-header.js"></script>
+  <script>
+    (function () {
+      var stored = localStorage.getItem("logbook_theme");
+      var theme = stored || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+</head>
+<body class="bg-background text-foreground font-sans px-4 pt-6 pb-16 min-w-[300px]">
+<div class="max-w-[960px] mx-auto">
+  <climbing-header variant="brand"></climbing-header>
+
+  <div class="flex items-center justify-end gap-2 mb-6" id="header-row">
+    <climbing-menu-bar></climbing-menu-bar>
+  </div>
+
+  <climbing-tab-bar active-page="map"></climbing-tab-bar>
+
+  <p class="text-[.95rem] mb-4" id="subtitle"></p>
+  <div class="relative" id="map-wrap">
+    <div id="map-container"></div>
+    <div class="absolute top-6 left-6 max-[480px]:top-3 max-[480px]:left-3" id="map-variant-picker">
+      <select class="bg-surface border border-border rounded-app px-[.6rem] py-[.35rem] max-[480px]:px-[.4rem] max-[480px]:py-[.25rem] text-foreground text-[.82rem] max-[480px]:text-[.7rem] outline-none cursor-pointer hover:border-accent focus:border-accent" id="map-variant-select" aria-label="Map projection">
+        <option value="greenwich">Greenwich</option>
+        <option value="americas">Americas</option>
+        <option value="oceania">Oceania</option>
+      </select>
+    </div>
+    <div class="absolute top-6 right-6 max-[480px]:top-3 max-[480px]:right-3 flex flex-col gap-[.35rem] max-[480px]:gap-[.25rem]" id="map-zoom-controls" hidden>
+      <button type="button" class="w-8 h-8 max-[480px]:w-6 max-[480px]:h-6 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[1.1rem] max-[480px]:text-[.85rem] font-bold leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-zoom-in" aria-label="Zoom in">+</button>
+      <button type="button" class="w-8 h-8 max-[480px]:w-6 max-[480px]:h-6 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[1.1rem] max-[480px]:text-[.85rem] font-bold leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-zoom-out" aria-label="Zoom out">−</button>
+    </div>
+    <div class="absolute bottom-6 right-6 max-[480px]:bottom-3 max-[480px]:right-3 grid grid-cols-3 grid-rows-3 gap-[2px] w-[84px] h-[84px] max-[480px]:w-[64px] max-[480px]:h-[64px]" id="map-pan-controls" hidden>
+      <button type="button" class="col-start-2 row-start-1 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[.8rem] max-[480px]:text-[.65rem] leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-pan-up" aria-label="Pan up">▲</button>
+      <button type="button" class="col-start-1 row-start-2 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[.8rem] max-[480px]:text-[.65rem] leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-pan-left" aria-label="Pan left">◀</button>
+      <button type="button" class="col-start-3 row-start-2 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[.8rem] max-[480px]:text-[.65rem] leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-pan-right" aria-label="Pan right">▶</button>
+      <button type="button" class="col-start-2 row-start-3 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[.8rem] max-[480px]:text-[.65rem] leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-pan-down" aria-label="Pan down">▼</button>
+    </div>
+  </div>
+  <p class="text-[.78rem] text-muted leading-[1.6] mt-3">This map uses the <a class="text-accent" href="https://equal-earth.com/equal-earth-projection.html" target="_blank" rel="noopener">Equal Earth projection ↗</a> instead of the more common Mercator, which inflates countries near the poles (mostly the Global North) while shrinking those near the equator (mostly the Global South) — Greenland, for instance, appears larger than Africa on Mercator despite being 14 times smaller. Equal Earth is equal-area throughout, so every country's size on the map reflects its true relative size. Powered by <a class="text-accent" href="https://d3js.org/d3-geo" target="_blank" rel="noopener">d3-geo ↗</a>, a free library for exactly this kind of thing.</p>
+
+  <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>
+</div>
+
+<div class="fixed z-30 bg-background border border-border rounded-app p-3 shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)] text-[.85rem] max-w-[240px]" id="map-pin-popover" hidden role="group"></div>
+
+<script type="module" src="/logbook/map-app.js"></script>
+</body>
+</html>

@@ -59,7 +59,19 @@ function focusableEls(overlay) {
 // Escape/Tab-trap keydown handler needs `lastFocusedEl`, shared state
 // across every openModal/closeModal call site regardless of which module
 // calls them.
-export function createModalHelpers() {
+// Default list -- every overlay /logbook's own page has, in
+// stacking-priority order -- NOT the same as DOM source order (confirmed:
+// add-place-overlay's markup actually comes *after* entry-overlay's), so
+// this can't be simplified to a generic `[id$="-overlay"]` query without
+// also reproducing the priority by z-index. add-place-overlay is listed
+// first because it's the one real case where two can be open at once --
+// opened from the place picker without closing the entry form behind it,
+// stacking on top (z-[110] vs entry-overlay's z-[100]) -- so Escape needs
+// to close the topmost one first, not whichever happens to appear first
+// in the markup.
+const DEFAULT_OVERLAY_IDS = ["add-place-overlay", "entry-overlay", "notes-overlay", "footnote-overlay", "citations-overlay", "evidence-overlay"];
+
+export function createModalHelpers(overlayIds = DEFAULT_OVERLAY_IDS) {
   let lastFocusedEl = null;
 
   function openModal(overlay) {
@@ -73,20 +85,15 @@ export function createModalHelpers() {
     if (lastFocusedEl) lastFocusedEl.focus();
   }
 
-  // Every overlay in the app, in stacking-priority order -- NOT the same
-  // as DOM source order (confirmed: add-place-overlay's markup actually
-  // comes *after* entry-overlay's), so this can't be simplified to a
-  // generic `[id$="-overlay"]` query without also reproducing the
-  // priority by z-index. add-place-overlay is listed first because it's
-  // the one real case where two can be open at once -- opened from the
-  // place picker without closing the entry form behind it, stacking on
-  // top (z-[110] vs entry-overlay's z-[100]) -- so Escape needs to close
-  // the topmost one first, not whichever happens to appear first in the
-  // markup.
-  const overlayIds = ["add-place-overlay", "entry-overlay", "notes-overlay", "footnote-overlay", "citations-overlay", "evidence-overlay"];
-
   document.addEventListener("keydown", e => {
-    const overlays = overlayIds.map(id => document.getElementById(id));
+    // filter(Boolean), not a bare map -- callers other than /logbook's
+    // own (#348) pass a narrower list scoped to overlays that actually
+    // exist on their page (e.g. no citations/evidence-overlay outside
+    // <climbing-grade-pyramid>, no footnote-overlay since
+    // <climbing-header> already owns that one itself), but getElementById
+    // returning null for an id that's never going to exist on any given
+    // page shouldn't throw on the next line's .hidden access.
+    const overlays = overlayIds.map(id => document.getElementById(id)).filter(Boolean);
     const openOverlay = overlays.find(o => !o.hidden);
     if (!openOverlay) return;
 

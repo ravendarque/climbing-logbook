@@ -37,9 +37,9 @@ export default defineConfig({
   globalSetup: "./e2e/global-setup.js",
   webServer: {
     // Rebuilds assets before serving, since public/logbook/{tailwind.css,
-    // app.js} are gitignored build output (see .gitignore) -- wrangler
-    // dev would otherwise serve a stale or missing bundle.
-    command: "pnpm run tailwind:build && pnpm run client:build && wrangler dev",
+    // app.js,map-app.js} are gitignored build output (see .gitignore) --
+    // wrangler dev would otherwise serve a stale or missing bundle.
+    command: "pnpm run tailwind:build && pnpm run client:build && pnpm run map:build && wrangler dev",
     url: `${BASE_URL}/logbook/`,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,

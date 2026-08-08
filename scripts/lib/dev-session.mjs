@@ -31,7 +31,7 @@ export const DEV_USER = {
   username: "devuser",
 };
 
-function d1Execute(sql) {
+export function d1Execute(sql) {
   execFileSync(
     "pnpm",
     ["exec", "wrangler", "d1", "execute", D1_DATABASE, "--local", "--command", sql],

@@ -7,8 +7,17 @@
   // natively available in the Workers runtime otherwise.
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
+  // binding: "ASSETS" (#348) -- lets src/api/owned-routes.js fetch a
+  // fixed-path static shell (e.g. public/log/index.html) from inside the
+  // Worker for the dynamic-:username routes Static Assets can't match by
+  // itself (it only matches literal paths). Doesn't change existing
+  // routing priority: without run_worker_first (left unset, default
+  // false), a request that DOES match a real static file is still served
+  // directly without invoking the Worker at all, exactly as before --
+  // confirmed against Cloudflare's own docs, not assumed.
   "assets": {
-    "directory": "./public"
+    "directory": "./public",
+    "binding": "ASSETS"
   },
   "kv_namespaces": [
     { "binding": "LOGBOOK_KV", "id": "47bd45146334450f82ca7dcb69c34b15" }

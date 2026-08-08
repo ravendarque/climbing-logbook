@@ -12,17 +12,29 @@
 // already owned end-to-end by client/pyramid-view.js (#237), which looks
 // up their DOM refs and opens them itself; this module would just be a
 // second, redundant owner of the same elements.
-export function createContentOverlays({ store, openModal, closeModal }) {
+//
+// includeFootnote (#348, default true): /logbook (this function's
+// original and still-only caller with the default) hand-rolls its own
+// brand-header-row + footnote markup, so this module is genuinely the
+// footnote's one owner there. public/logbook/components/climbing-header.js
+// (#345) now renders that same markup on every other consumer, wired
+// self-contained -- a second owner here would double-wire the same
+// button/overlay. New composition roots that use the component pass
+// includeFootnote: false, since there's nothing left here for them to
+// own.
+export function createContentOverlays({ store, openModal, closeModal, includeFootnote = true }) {
   const notesOverlay = document.getElementById("notes-overlay");
   const notesModalText = document.getElementById("notes-modal-text");
-  const footnoteOverlay = document.getElementById("footnote-overlay");
 
   document.getElementById("notes-close").addEventListener("click", () => closeModal(notesOverlay));
   notesOverlay.addEventListener("click", e => { if (e.target === notesOverlay) closeModal(notesOverlay); });
 
-  document.getElementById("footnote-trigger").addEventListener("click", () => openModal(footnoteOverlay));
-  document.getElementById("footnote-close").addEventListener("click", () => closeModal(footnoteOverlay));
-  footnoteOverlay.addEventListener("click", e => { if (e.target === footnoteOverlay) closeModal(footnoteOverlay); });
+  if (includeFootnote) {
+    const footnoteOverlay = document.getElementById("footnote-overlay");
+    document.getElementById("footnote-trigger").addEventListener("click", () => openModal(footnoteOverlay));
+    document.getElementById("footnote-close").addEventListener("click", () => closeModal(footnoteOverlay));
+    footnoteOverlay.addEventListener("click", e => { if (e.target === footnoteOverlay) closeModal(footnoteOverlay); });
+  }
 
   document.addEventListener("click", e => {
     const notesBtn = e.target.closest(".notes-btn");
