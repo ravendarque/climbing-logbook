@@ -66,13 +66,13 @@ describe("owned route authorization", () => {
     }
   });
 
-  // #348 -- map is the first page with a real shell (fetched via the
-  // ASSETS binding, see src/api/owned-routes.js's SHELL_PATHS); log and
-  // performance still get #347's original placeholder until their own
-  // follow-up PRs land. Asserting the real shell's actual content here
-  // (not just a 200, which the test above already covers) is what would
-  // have caught the shell/bundle wiring being wrong even though the
-  // auth decision itself was right.
+  // #348 -- map and performance now have real shells (fetched via the
+  // ASSETS binding, see src/api/owned-routes.js's SHELL_PATHS); log still
+  // gets #347's original placeholder until its own follow-up PR lands.
+  // Asserting each real shell's actual content here (not just a 200,
+  // which the test above already covers) is what would have caught the
+  // shell/bundle wiring being wrong even though the auth decision itself
+  // was right.
   it("serves the real static shell for map, not the placeholder", async () => {
     const { cookie } = await createAuthedSession({ username: "mapshelluser" });
     const res = await fetchOwnedRoute("mapshelluser", "map", { cookie });
@@ -83,13 +83,21 @@ describe("owned route authorization", () => {
     expect(html).not.toContain("coming soon");
   });
 
-  it("still serves the #347 placeholder for log and performance (no shell built yet)", async () => {
+  it("serves the real static shell for performance, not the placeholder", async () => {
+    const { cookie } = await createAuthedSession({ username: "performanceshelluser" });
+    const res = await fetchOwnedRoute("performanceshelluser", "performance", { cookie });
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain("<climbing-grade-pyramid");
+    expect(html).toContain('src="/logbook/performance-app.js"');
+    expect(html).not.toContain("coming soon");
+  });
+
+  it("still serves the #347 placeholder for log (no shell built yet)", async () => {
     const { cookie } = await createAuthedSession({ username: "placeholderuser" });
-    for (const page of ["log", "performance"]) {
-      const res = await fetchOwnedRoute("placeholderuser", page, { cookie });
-      expect(res.status).toBe(200);
-      expect(await res.text()).toContain("coming soon");
-    }
+    const res = await fetchOwnedRoute("placeholderuser", "log", { cookie });
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain("coming soon");
   });
 
   it("falls through (404) for a fourth path segment that isn't log/map/performance", async () => {

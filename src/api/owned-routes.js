@@ -40,10 +40,11 @@ function loginUrl(hostname) {
 // literal Workers Static Assets path, so this Worker fetches the shell
 // itself via the ASSETS binding and returns it, rather than letting Static
 // Assets try to match /:username/log directly (it can't -- static assets
-// only match literal paths). /log and /performance land in their own
-// follow-up PRs; the placeholder below covers them until then.
+// only match literal paths). /log lands in its own follow-up PR; the
+// placeholder below covers it until then.
 const SHELL_PATHS = {
   map: "/map/index.html",
+  performance: "/performance/index.html",
 };
 
 export async function handleOwnedRoute(request, env, username, page) {

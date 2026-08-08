@@ -23,7 +23,20 @@
 // entries (property) and active-discipline (attribute) come in from
 // whichever page's composition root owns that state -- this component
 // doesn't know about client/store.js.
-import { escapeHtml } from "../escape-html.js";
+// escape-html.js is deliberately imported as "./escape-html.js", not the
+// "../escape-html.js" this file's own real nesting (client/components/)
+// would suggest -- it's always built --external (see e.g. client/main.js's
+// own comment on why: shared/individually-cacheable across every bundle),
+// which means esbuild never resolves it on disk at all, just copies the
+// import specifier verbatim into the output bundle. Every composition-root
+// bundle this component ends up in (client/performance-main.js today) is
+// output flatly into public/logbook/*.js, right alongside the one real
+// escape-html.js copy -- so the specifier has to be written relative to
+// that eventual flat output location, not this file's own source location,
+// or it resolves to a 404 in the browser (caught building #348's
+// /performance page: esbuild failed outright on "../escape-html.js" since
+// no such file exists at client/escape-html.js either).
+import { escapeHtml } from "./escape-html.js";
 import { gradeColor } from "../grade-data.js";
 import { PYRAMID_IDEAL_BY_POSITION, pyramidSplitRows } from "../pyramid-stats.js";
 
