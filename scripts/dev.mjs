@@ -61,11 +61,12 @@ console.log("==> Starting dev server");
 // `pnpm run dev:raw` here doubled that noise. `dev:raw` stays in
 // package.json for anyone who wants to run it standalone.
 const dev = spawn("concurrently", [
-  "-n", "wrangler,tailwind,client",
-  "-c", "blue,magenta,green",
+  "-n", "wrangler,tailwind,client,map",
+  "-c", "blue,magenta,green,yellow",
   "wrangler dev",
   "tailwindcss -i ./styles/tailwind.css -o ./public/logbook/tailwind.css --watch",
   "pnpm run client:watch",
+  "pnpm run map:watch",
 ], {
   stdio: ["inherit", "pipe", "inherit"],
   shell: WIN,

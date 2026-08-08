@@ -1,10 +1,33 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { bootstrapDevSession, toPlaywrightCookie } from "../scripts/lib/dev-session.mjs";
+import { applyMigrations, bootstrapDevSession, d1Execute, toPlaywrightCookie } from "../scripts/lib/dev-session.mjs";
 
 const BASE_URL = "http://localhost:8787";
 export const STORAGE_STATE_PATH = "e2e/.auth/dev-session.json";
+
+// Clears every table a test could have mutated, in FK-safe (children
+// before parents) order -- not relying on ON DELETE CASCADE alone (most
+// of these do cascade from "user", per migrations/0003_app_data.sql, but
+// beta_invites' created_by/used_by columns deliberately don't, and
+// explicit is more robust than trusting a cascade config not to
+// silently change). disciplines/statuses are untouched -- static lookup
+// data, seeded once by migration, never mutated by any test.
+//
+// Runs before every suite invocation (not just once ever), so no
+// individual spec's cleanup discipline is load-bearing for every other
+// spec's determinism -- a real, reproduced failure class this project
+// hit directly: one spec's real persisted-setting side effect (a
+// discipline-picker PATCH it forgot to revert) silently broke unrelated
+// /logbook specs on the next run, and kept failing across multiple
+// re-seeds because seeding is deliberately idempotent (only creates
+// what's missing) and has no way to know a *setting*, as opposed to a
+// missing row, drifted from its expected value.
+function resetDatabase() {
+  for (const table of ["session", "account", "entries", "places", "locations", "settings", "beta_invites", "verification", "user"]) {
+    d1Execute(`DELETE FROM "${table}"`);
+  }
+}
 
 // Polls independently of Playwright's own webServer readiness check
 // (config's `use.url`) rather than assuming an ordering between the two --
@@ -24,11 +47,13 @@ async function waitForServer(url, timeoutMs = 60_000) {
   throw new Error(`Server at ${url} did not become ready within ${timeoutMs}ms`);
 }
 
-// Seeds the same fixed-ID dataset used for local manual verification
-// (scripts/seed-dev-data.mjs, #227) so specs have a known baseline to
-// assert against -- POSTing an ID that already exists is a documented
-// no-op, so re-running the suite against a warm --reuseExistingServer
-// instance is safe without any explicit reset step.
+// resetDatabase() first, then seeds the same fixed-ID dataset used for
+// local manual verification (scripts/seed-dev-data.mjs, #227) so specs
+// have a known, deterministic baseline to assert against -- explicit
+// reset, not just seeding's own "POST an ID that already exists is a
+// no-op" idempotency, which only guarantees *rows* aren't missing, not
+// that no *setting* (e.g. the discipline picker's persisted choice) has
+// drifted from what a fresh run would produce.
 //
 // Reads (#297) are scoped by session now, same as writes -- the rendered
 // app needs the *browser* to carry the bootstrapped dev user's session,
@@ -39,6 +64,12 @@ async function waitForServer(url, timeoutMs = 60_000) {
 // browser contexts are separate processes/contexts entirely.
 export default async function globalSetup() {
   await waitForServer(`${BASE_URL}/logbook/api/logbook`);
+
+  // Schema must exist before resetDatabase() can DELETE FROM its tables --
+  // a fresh checkout/CI runner has none yet at this point (see
+  // applyMigrations()'s own comment in scripts/lib/dev-session.mjs).
+  applyMigrations();
+  resetDatabase();
 
   const setCookieHeader = await bootstrapDevSession(BASE_URL);
   // e2e/.auth/ is gitignored (holds a bootstrapped, non-production

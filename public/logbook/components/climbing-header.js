@@ -9,16 +9,20 @@
 // <climbing-header> itself appears in the body.
 //
 // Consumers: public/login/, public/register/, public/reset-password/, and
-// public/index.html (apex) only. public/logbook/index.html is deliberately
-// left untouched -- per #344's parallel-migration decision, nothing in
+// public/index.html (apex) originally (#345); #348 adds
+// /:username/{log,map,performance} as further consumers, using the exact
+// same brand markup (logo/title/tagline) -- the brand header is meant to
+// be consistent everywhere, app pages included, not just marketing/
+// auxiliary ones. public/logbook/index.html is deliberately left
+// untouched -- per #344's parallel-migration decision, nothing in
 // Phase A-D of that epic modifies the live admin SPA; it stays a working
 // reference/fallback until Phase E (#375) decides its fate, which may be
 // well after this component exists. Because logbook/index.html never
 // consumes this component, its markup below doesn't need to match
 // logbook's own brand-header-row pixel-for-pixel -- it's designed for
-// these four centered, single-column auxiliary pages instead (hence
-// justify-center below, where logbook's own version is left-aligned for
-// its wider dashboard layout).
+// these centered, single-column pages instead (hence justify-center
+// below, where logbook's own version is left-aligned for its wider
+// dashboard layout).
 (function () {
   var TOKENS_STYLE_ID = "climbing-header-tokens";
 
@@ -88,9 +92,12 @@
   // component (it only ever appears as part of it, per Raven, 2026-08-07)
   // so its open/close/focus-trap behavior is wired below, self-contained
   // -- not sharing client/modal-utils.js's createModalHelpers(), which
-  // coordinates a fixed multi-overlay stacking list that's specific to
-  // the logbook app bundle and doesn't apply to any of this component's
-  // four consumers.
+  // coordinates a fixed multi-overlay stacking list specific to whichever
+  // page instantiates it. Consuming pages that also use that shared
+  // modal machinery for other overlays (client/content-overlays.js,
+  // client/modal-utils.js) need to leave the footnote out of their own
+  // config, since this component already owns it end to end -- see
+  // those files' own comments (#348).
   var BRAND_HTML =
     '<div class="flex items-end justify-center gap-[.26rem] mb-4" id="brand-header-row">' +
     '  <div class="shrink-0 flex mb-[4.48px] max-[600px]:mb-[3.2px]">' +
