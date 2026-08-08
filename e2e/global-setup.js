@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { bootstrapDevSession, d1Execute, toPlaywrightCookie } from "../scripts/lib/dev-session.mjs";
+import { applyMigrations, bootstrapDevSession, d1Execute, toPlaywrightCookie } from "../scripts/lib/dev-session.mjs";
 
 const BASE_URL = "http://localhost:8787";
 export const STORAGE_STATE_PATH = "e2e/.auth/dev-session.json";
@@ -65,6 +65,10 @@ async function waitForServer(url, timeoutMs = 60_000) {
 export default async function globalSetup() {
   await waitForServer(`${BASE_URL}/logbook/api/logbook`);
 
+  // Schema must exist before resetDatabase() can DELETE FROM its tables --
+  // a fresh checkout/CI runner has none yet at this point (see
+  // applyMigrations()'s own comment in scripts/lib/dev-session.mjs).
+  applyMigrations();
   resetDatabase();
 
   const setCookieHeader = await bootstrapDevSession(BASE_URL);

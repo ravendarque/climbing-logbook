@@ -58,14 +58,26 @@ async function fetchWithRetry(url, init, attempts = 3) {
   }
 }
 
-export async function bootstrapDevSession(baseUrl) {
-  // Migrations aren't auto-applied by `wrangler dev` -- nothing below
-  // works without the schema actually existing first.
+// Migrations aren't auto-applied by `wrangler dev` -- nothing in this file
+// or its callers works without the schema actually existing first. Exported
+// separately (not just run inside bootstrapDevSession() below) so
+// e2e/global-setup.js can apply migrations before its resetDatabase() step
+// -- a fresh checkout/CI runner has no schema at all yet at that point
+// (unlike a local dev machine, which already has one from a prior session),
+// and `DELETE FROM "session"` on a table that doesn't exist yet is a hard
+// SQLITE_ERROR, not a no-op. Safe to call more than once per process --
+// `wrangler d1 migrations apply` is itself idempotent (only applies
+// migrations not already recorded as applied).
+export function applyMigrations() {
   execFileSync(
     "pnpm",
     ["exec", "wrangler", "d1", "migrations", "apply", D1_DATABASE, "--local"],
     { stdio: "inherit" }
   );
+}
+
+export async function bootstrapDevSession(baseUrl) {
+  applyMigrations();
 
   const inviteCode = `dev-seed-${crypto.randomUUID()}`;
   d1Execute(`INSERT OR IGNORE INTO beta_invites (code) VALUES ('${inviteCode}')`);
