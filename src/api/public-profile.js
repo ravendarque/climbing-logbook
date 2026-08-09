@@ -47,6 +47,20 @@ export async function resolvePublicUser(env, username) {
   return { id: user.id, displayUsername: user.displayUsername };
 }
 
+// Real shared design tokens + <climbing-header> (#345), not a hand-copied
+// subset -- this used to duplicate a stale, incomplete token list behind a
+// comment citing public/login/index.html as precedent, which was wrong:
+// that page (like every other real page in the app) just loads
+// climbing-header.js normally, same as this now does. Fixes two real bugs
+// that duplication caused: the old inline copy only ever themed via
+// prefers-color-scheme, ignoring a visitor's actual stored logbook_theme
+// choice (every other page respects it via the data-theme attribute
+// climbing-header.js's tokens are keyed on); and it was missing
+// --color-accent-text/--radius-app, silently drifting from the canonical
+// set with nothing to catch it. Absolute paths (not relative) -- this
+// response is served for literally any /:username path, so a relative
+// path would resolve against whatever :username happened to be in the
+// visited URL, not a fixed location on disk.
 function renderMessage(message) {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -54,27 +68,21 @@ function renderMessage(message) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Climbing Logbook</title>
-<style>
-  /* Same token subset as public/login/index.html -- see that
-     file's own comment for why this is duplicated rather than shared.
-     Only ever used for this 404 case now (#351) -- a real profile page
-     is a genuinely static shell served via ASSETS.fetch() instead. */
-  :root {
-    --color-bg: #0f0f0f; --color-surface: #1a1a1a; --color-text: #f0f0f0;
-    --color-text-muted: #a0a0a0; --color-accent: #ff2727; --color-border: #2e2e2e;
-    --font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  }
-  @media (prefers-color-scheme: light) {
-    :root { --color-bg:#f5f5f5; --color-surface:#fff; --color-text:#1a1a1a; --color-text-muted:#6b6b6b; --color-border:#dcdcdc; }
-  }
-  * { box-sizing: border-box; }
-  body { background: var(--color-bg); color: var(--color-text); font-family: var(--font-body); margin: 0; padding: 2rem 1rem; }
-  main { max-width: 640px; margin: 0 auto; }
-  .empty { color: var(--color-text-muted); }
-</style>
+<link rel="stylesheet" href="/logbook/tailwind.css">
+<script src="/logbook/components/climbing-header.js"></script>
+<script>
+  (function () {
+    var stored = localStorage.getItem("logbook_theme");
+    var theme = stored || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+    document.documentElement.dataset.theme = theme;
+  })();
+</script>
 </head>
-<body>
-<main><p class="empty">${escapeHtml(message)}</p></main>
+<body class="bg-background text-foreground font-sans min-h-screen flex items-center justify-center px-4">
+<main class="w-full max-w-[440px] text-center">
+  <climbing-header variant="brand"></climbing-header>
+  <p class="text-muted">${escapeHtml(message)}</p>
+</main>
 </body>
 </html>`;
 }
@@ -84,7 +92,7 @@ export async function handlePublicProfile(request, env, username) {
   if (!target) {
     return new Response(renderMessage("This logbook doesn't exist or isn't public."), {
       status: 404,
-      headers: { "Content-Type": "text/html; charset=utf-8" },
+      headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
     });
   }
 

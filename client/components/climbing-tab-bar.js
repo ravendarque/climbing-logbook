@@ -24,10 +24,32 @@
 // coupling" reasoning as #346: this component doesn't know the current
 // user or whether Athlete Mode is on, so those are properties/attributes
 // set from outside by whichever page's composition root uses it.
+// "./escape-html.js", not "../escape-html.js" -- see
+// climbing-entries-table.js's own comment for why (esbuild's --external
+// bundling convention needs the literal specifier to match the flat
+// output layout, not this file's own real nesting).
+import { escapeHtml } from "./escape-html.js";
+
+// encodeURIComponent alone makes the URL correct (and, incidentally,
+// already can't break out of the href="..." attribute either -- its
+// output charset excludes every HTML metacharacter), but escapeHtml on
+// top is the actual documented policy (docs/coding-standards.md: every
+// field landing in a template string bound for innerHTML goes through
+// escapeHtml first) -- every sibling component in this epic
+// (climbing-entries-table.js, climbing-grade-pyramid.js) applies it
+// unconditionally too, not just where a specific character set analysis
+// says it's currently needed. Found via code review (2026-08-09): this
+// was the one component that had drifted from that policy.
 function encodePathSegment(value) {
-  return encodeURIComponent(value ?? "");
+  return escapeHtml(encodeURIComponent(value ?? ""));
 }
 
+// log and map are always present regardless of show-performance -- unlike
+// /logbook's own #view-tabs (whose visibility rule this component
+// originally carried forward verbatim), there's never a state where fewer
+// than 2 tabs are visible here, so this component doesn't hide itself the
+// way that one does; that check was dead code (removed via code review,
+// 2026-08-09) on every one of this component's three real consumers.
 const TABS = [
   { page: "log", label: "Logbook" },
   { page: "map", label: "Map" },
@@ -59,17 +81,13 @@ export class ClimbingTabBar extends HTMLElement {
 
     const visibleTabs = TABS.filter(t => !t.requiresPerformance || showPerformance);
 
-    // Same rule as /logbook's own updateAdminBar(): the bar itself only
-    // makes sense once there's something to choose between.
-    const hidden = visibleTabs.length < 2;
-
     const links = visibleTabs
       .map(t => `
         <a href="/${encodePathSegment(username)}/${t.page}" class="${LINK_CLASSES}"${t.page === activePage ? ' aria-current="page"' : ""}>${t.label}</a>
       `)
       .join("");
 
-    this.innerHTML = `<nav class="flex gap-5 mb-5" aria-label="View"${hidden ? " hidden" : ""}>${links}</nav>`;
+    this.innerHTML = `<nav class="flex gap-5 mb-5" aria-label="View">${links}</nav>`;
   }
 }
 
