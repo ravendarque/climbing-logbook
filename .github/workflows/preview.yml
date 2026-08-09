@@ -47,6 +47,7 @@ jobs:
       - run: pnpm run map:build
       - run: pnpm run performance:build
       - run: pnpm run log:build
+      - run: pnpm run profile:build
       # D1 migrations aren't auto-applied by `versions upload` any more
       # than `wrangler dev` auto-applies them locally -- the preview D1
       # database (own bootstrap, not Terraform-managed, same reasoning as

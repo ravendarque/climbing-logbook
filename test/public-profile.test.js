@@ -1,9 +1,18 @@
-// #113 -- my.<domain>/:username, the read-only public profile page.
+// #113/#351 -- my.<domain>/:username, the read-only public profile page.
 // Exercised via a constructed request with an explicit Host header
 // against the real Worker entrypoint (exports.default.fetch), the same
 // "public HTTP contract, not module internals" philosophy as every other
 // test/*.test.js file -- no real DNS/route is needed since this calls the
 // exported fetch() handler directly.
+//
+// #351 replaced the original server-rendered implementation with a
+// genuinely static shell (env.ASSETS.fetch(), same pattern
+// test/owned-routes.test.js already exercises for the owner-only pages) +
+// a separate JSON data API (test/public-data.test.js). This file now only
+// covers the routing/visibility/anti-enumeration gate in front of that
+// shell -- entry/place/location content assertions live in
+// test/public-data.test.js instead, since that's the layer that actually
+// carries the data now.
 import { env, exports } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
@@ -13,15 +22,6 @@ afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
 
 function fetchProfile(username, hostname = "my.example.com") {
   return exports.default.fetch(`https://${hostname}/${username}`);
-}
-
-async function addEntry(cookie, placeId, overrides = {}) {
-  await jsonRequest(
-    "POST",
-    "/logbook/api/admin/logbook",
-    { placeId, name: "Sleepwalker", grade: "7A", type: "boulder", status: "send", ...overrides },
-    { Cookie: cookie }
-  );
 }
 
 beforeEach(async () => {
@@ -52,17 +52,14 @@ describe("public profile routing", () => {
 });
 
 describe("public profile visibility", () => {
-  it("serves the public logbook by default (logbook_public defaults to 1)", async () => {
-    const { cookie } = await createAuthedSession({ username: "publicuser" });
-    const placeId = await seedPlace(cookie);
-    await addEntry(cookie, placeId);
+  it("serves the real static shell by default (logbook_public defaults to 1)", async () => {
+    await createAuthedSession({ username: "publicuser" });
 
     const res = await fetchProfile("publicuser");
     expect(res.status).toBe(200);
     const html = await res.text();
-    expect(html).toContain("Sleepwalker");
-    expect(html).toContain("7A");
-    expect(html).toContain("Magic Wood");
+    expect(html).toContain("<climbing-entries-table");
+    expect(html).toContain('src="/logbook/profile-app.js"');
   });
 
   it("looks up the username case-insensitively", async () => {
@@ -71,10 +68,10 @@ describe("public profile visibility", () => {
     expect(res.status).toBe(200);
   });
 
-  it("404s (not the data) once logbook_public is turned off", async () => {
+  it("404s (not the shell) once logbook_public is turned off", async () => {
     const { cookie } = await createAuthedSession({ username: "privateuser" });
     const placeId = await seedPlace(cookie);
-    await addEntry(cookie, placeId);
+    await jsonRequest("POST", "/logbook/api/admin/logbook", { placeId, name: "Sleepwalker", grade: "7A", type: "boulder", status: "send" }, { Cookie: cookie });
 
     await jsonRequest("PATCH", "/logbook/api/admin/settings", {}, { Cookie: cookie }); // creates the settings row
     await env.LOGBOOK_DB.prepare(`UPDATE settings SET logbook_public = 0 WHERE user_id = (SELECT id FROM "user" WHERE username = 'privateuser')`).run();
@@ -82,26 +79,5 @@ describe("public profile visibility", () => {
     const res = await fetchProfile("privateuser");
     expect(res.status).toBe(404);
     expect(await res.text()).toContain("doesn&#39;t exist");
-  });
-
-  it("shows an empty-state message for a public user with no entries", async () => {
-    await createAuthedSession({ username: "emptyuser" });
-    const res = await fetchProfile("emptyuser");
-    expect(res.status).toBe(200);
-    expect(await res.text()).toContain("No sends logged yet");
-  });
-});
-
-describe("public profile content safety", () => {
-  it("escapes user-controlled fields in the rendered HTML", async () => {
-    const { cookie } = await createAuthedSession({ username: "xssuser" });
-    const placeId = await seedPlace(cookie, { locationName: '<script>alert(1)</script>' });
-    await addEntry(cookie, placeId, { name: '<img src=x onerror=alert(1)>' });
-
-    const res = await fetchProfile("xssuser");
-    const html = await res.text();
-    expect(html).not.toContain("<script>alert(1)</script>");
-    expect(html).not.toContain("<img src=x onerror=alert(1)>");
-    expect(html).toContain("&lt;script&gt;");
   });
 });

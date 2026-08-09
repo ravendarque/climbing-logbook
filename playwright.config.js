@@ -39,7 +39,7 @@ export default defineConfig({
     // Rebuilds assets before serving, since public/logbook/{tailwind.css,
     // app.js,map-app.js} are gitignored build output (see .gitignore) --
     // wrangler dev would otherwise serve a stale or missing bundle.
-    command: "pnpm run tailwind:build && pnpm run client:build && pnpm run map:build && pnpm run performance:build && pnpm run log:build && wrangler dev",
+    command: "pnpm run tailwind:build && pnpm run client:build && pnpm run map:build && pnpm run performance:build && pnpm run log:build && pnpm run profile:build && wrangler dev",
     url: `${BASE_URL}/logbook/`,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
