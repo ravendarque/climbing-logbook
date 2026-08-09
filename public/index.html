@@ -25,7 +25,14 @@
   </script>
 </head>
 <body class="bg-background text-foreground font-sans min-h-screen flex items-center justify-center px-4">
-  <div class="w-full max-w-[440px] text-center">
+  <!-- #352 -- hidden until session-redirect.js's get-session check
+       resolves: a logged-in visitor never sees this marketing content at
+       all (redirected straight to their own /log), a logged-out one gets
+       it revealed. display:none (not the [hidden] attribute) so this
+       works without depending on styles/tailwind.css's own [hidden]
+       override (public/logbook/index.html's own comment on that same
+       subtlety) having loaded yet. -->
+  <div class="w-full max-w-[440px] text-center" id="page-content" style="display:none">
     <climbing-header variant="brand"></climbing-header>
     <p class="text-muted mb-8">
       Track your boulder and lead sends and projects, by grade and by
@@ -47,5 +54,9 @@
       Currently in a closed beta — signing up needs an invite code.
     </p>
   </div>
+  <script type="module">
+    import { redirectIfLoggedIn } from "./session-redirect.js";
+    redirectIfLoggedIn(document.getElementById("page-content"));
+  </script>
 </body>
 </html>
