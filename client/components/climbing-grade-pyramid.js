@@ -39,6 +39,12 @@
 import { escapeHtml } from "./escape-html.js";
 import { gradeColor } from "../grade-data.js";
 import { PYRAMID_IDEAL_BY_POSITION, pyramidSplitRows } from "../pyramid-stats.js";
+// focusableEls is a stateless utility with no dependency on
+// createModalHelpers()'s overlay-coordination logic (which this
+// component deliberately doesn't use, see this file's own header
+// comment) -- imported directly rather than hand-copied a second time
+// (found via code review, 2026-08-09).
+import { focusableEls } from "../modal-utils.js";
 
 const DISCIPLINE_LABEL = { boulder: "Boulder", lead: "Lead" };
 
@@ -139,11 +145,6 @@ function pyramidBarRow(row, { ideal = null, scaleMax, lower = false, type, promo
       </div>
       <div class="${countClasses}">${countText}${iconHtml}</div>
     </div>`;
-}
-
-function focusableEls(overlay) {
-  return [...overlay.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
-    .filter(el => !el.disabled && el.offsetParent !== null);
 }
 
 export class ClimbingGradePyramid extends HTMLElement {

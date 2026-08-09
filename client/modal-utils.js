@@ -49,7 +49,14 @@ export function createDisclosure(trigger, panel, containerSelector, { escapeTarg
   return { open, close };
 }
 
-function focusableEls(overlay) {
+// Exported (not just used internally below) -- climbing-grade-pyramid.js
+// (#374) has its own self-contained overlay open/close/focus-trap logic
+// (deliberately not sharing createModalHelpers() itself, see that
+// component's own comment on why), but this specific stateless piece has
+// no dependency on createModalHelpers()'s overlay-coordination logic and
+// was hand-copied byte-for-byte rather than imported (found via code
+// review, 2026-08-09).
+export function focusableEls(overlay) {
   return [...overlay.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
     .filter(el => !el.disabled && el.offsetParent !== null);
 }

@@ -125,6 +125,34 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
     localStorage.setItem(LOGIN_HINT_KEY, store.isLoggedIn() ? "1" : "0");
   }
 
+  // Shared by #348's newer composition roots' boot() sequences
+  // (map-main.js, performance-main.js, log-main.js) -- default to
+  // whichever discipline actually has entries (boulder wins if both/
+  // neither do), then let a persisted choice override that default once
+  // both concurrent requests (checkSession()/fetchSettings(), kicked off
+  // by the caller before its own resource loads) are known complete.
+  // Order matters: applying the persisted override before the has-entries
+  // default would let the default silently clobber it. This exact
+  // sequence was hand-copied identically across all three composition
+  // roots (found via code review, 2026-08-09) -- exposed as a method here
+  // rather than a standalone function since store/persistedDiscipline are
+  // already in this factory's own closure, nothing extra to inject.
+  //
+  // Not used by client/main.js (/logbook's own, still-untouched
+  // composition root, which keeps its own equivalent logic inline) --
+  // #344's parallel-migration decision holds /logbook stable throughout
+  // this epic; adding this method doesn't change main.js's behavior at
+  // all (it simply never calls it), same reasoning as this file's other
+  // exposed methods below.
+  async function resolveActiveType(sessionPromise, settingsPromise) {
+    const hasBoulder = store.getEntries().some(e => e.type === "boulder");
+    const hasLead = store.getEntries().some(e => e.type === "lead");
+    store.setActiveType(hasBoulder || !hasLead ? "boulder" : "lead");
+
+    await Promise.all([sessionPromise, settingsPromise]);
+    if (persistedDiscipline) store.setActiveType(persistedDiscipline);
+  }
+
   loginToggleBtn.addEventListener("click", async () => {
     if (store.isLoggedIn()) {
       // A plain same-origin POST, not a dedicated logout URL/page like
@@ -152,5 +180,6 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
     fetchSettings,
     isAthleteMode: () => athleteMode,
     getPersistedDiscipline: () => persistedDiscipline,
+    resolveActiveType,
   };
 }

@@ -18,6 +18,8 @@ import { createStore } from "./store.js";
 import { createMapView } from "./map-view.js";
 import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
+import { loadResource } from "./fetch-json.js";
+import { syncAdminBar } from "./admin-bar.js";
 import "./components/climbing-menu-bar.js";
 import "./components/climbing-tab-bar.js";
 
@@ -65,17 +67,7 @@ function render() {
 }
 
 function updateAdminBar() {
-  const loginToggleBtn = document.getElementById("login-toggle-btn");
-  const athleteModeBtn = document.getElementById("athlete-mode-btn");
-  loginToggleBtn.textContent = store.isLoggedIn() ? "Log out" : "Log in";
-  athleteModeBtn.hidden = !store.isLoggedIn();
-  athleteModeBtn.setAttribute("aria-checked", String(adminAuth.isAthleteMode()));
-  headerChrome.updateMenuDivider();
-  // Grade Pyramid requires BOTH being logged in AND Athlete Mode on
-  // (#151) -- same rule client/main.js's own updateAdminBar() applies,
-  // now expressed as an attribute on the shared tab-bar instead of
-  // toggling a local #view-tab-pyramid element's hidden state directly.
-  tabBar.toggleAttribute("show-performance", store.isLoggedIn() && adminAuth.isAthleteMode());
+  syncAdminBar({ store, adminAuth, headerChrome, tabBar });
 }
 
 const adminAuth = createAdminAuth({
@@ -96,16 +88,6 @@ const headerChrome = createHeaderChrome({
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/logbook/sw.js").catch(() => {});
-}
-
-// Same fetch+parse+ok-check ceremony as client/main.js's own
-// loadResource() -- unchanged copy, not worth sharing for two call sites
-// each.
-async function loadResource(url, key) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const data = await res.json();
-  return data[key] ?? [];
 }
 
 async function boot() {
@@ -137,13 +119,7 @@ async function boot() {
     store.loadLocationsFromCache();
   }
 
-  const hasBoulder = store.getEntries().some(e => e.type === "boulder");
-  const hasLead = store.getEntries().some(e => e.type === "lead");
-  store.setActiveType(hasBoulder || !hasLead ? "boulder" : "lead");
-
-  await Promise.all([sessionPromise, settingsPromise]);
-  const persistedDiscipline = adminAuth.getPersistedDiscipline();
-  if (persistedDiscipline) store.setActiveType(persistedDiscipline);
+  await adminAuth.resolveActiveType(sessionPromise, settingsPromise);
 
   render();
 }
