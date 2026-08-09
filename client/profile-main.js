@@ -13,6 +13,8 @@
 // public-data.js) instead of the session-scoped /logbook/api/* ones, and
 // never given the `editable` attribute.
 import { createDisclosure } from "./modal-utils.js";
+import { loadResource } from "./fetch-json.js";
+import { createThemeToggle } from "./theme-toggle.js";
 import "./components/climbing-menu-bar.js";
 import "./components/climbing-entries-table.js";
 
@@ -82,51 +84,22 @@ disciplinePopover.addEventListener("click", e => {
 // makes, no injected dependencies needed for this half of it either.
 createDisclosure(document.getElementById("header-menu-btn"), document.getElementById("header-menu-popover"), "#header-menu-wrap");
 
-// Theme toggle -- same self-contained logic as client/header-chrome.js's
-// own copy (see that file's own comment on the deferred-update/detached-
-// node subtlety this mirrors), duplicated directly rather than shared:
-// header-chrome.js's factory bundles this together with the discipline
-// picker/Athlete Mode/admin-bar behavior this page doesn't have, so
-// reusing it would mean threading no-op stand-ins through parameters
-// that exist for other pages' real needs.
-const SUN_ICON = `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>`;
-const MOON_ICON = `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>`;
-const themeToggleBtn = document.getElementById("theme-toggle-btn");
-function updateThemeToggleButton() {
-  const theme = document.documentElement.dataset.theme;
-  themeToggleBtn.innerHTML = theme === "light" ? MOON_ICON : SUN_ICON;
-  themeToggleBtn.setAttribute("aria-label", theme === "light" ? "Switch to dark theme" : "Switch to light theme");
-}
-updateThemeToggleButton();
-themeToggleBtn.addEventListener("click", () => {
-  const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
-  document.documentElement.dataset.theme = next;
-  localStorage.setItem("logbook_theme", next);
-  // Deferred via setTimeout, not called inline -- same detached-click-
-  // target-confuses-the-outside-click-listener hazard client/
-  // header-chrome.js's own identical copy documents (this page wires the
-  // same createDisclosure()-based outside-click behavior on
-  // #header-menu-wrap above), and the same reason a queueMicrotask isn't
-  // enough -- see that file's own comment for the full empirical detail.
-  setTimeout(updateThemeToggleButton, 0);
-});
-
-// Same fetch+parse+ok-check ceremony as every other composition root's
-// loadResource() -- unchanged copy, not worth sharing for four call sites
-// each. A failed/404 fetch here (private or nonexistent user) can't
-// actually happen in practice -- src/api/public-profile.js's own gate
-// already 404s before this shell is ever served -- but the empty-array
-// fallback keeps this page inert rather than throwing if that assumption
-// is ever wrong.
-async function loadResource(url, key) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const data = await res.json();
-  return data[key] ?? [];
-}
+// Theme toggle -- shared with client/header-chrome.js's own copy (#399's
+// theme-toggle.js extraction, found duplicated including the deferred-
+// update/detached-node workaround via code review, 2026-08-09). No
+// injected dependencies needed for this piece either, same as the header
+// menu popover above -- unlike the rest of header-chrome.js's factory
+// (discipline picker/Athlete Mode/admin-bar), which does assume a
+// store.js/adminFetch this page doesn't have.
+createThemeToggle();
 
 async function boot() {
   const base = `/logbook/api/public/${encodeURIComponent(USERNAME)}`;
+  // .catch(() => []) on each: a failed/404 fetch here (private or
+  // nonexistent user) can't actually happen in practice --
+  // src/api/public-profile.js's own gate already 404s before this shell
+  // is ever served -- but the empty-array fallback keeps this page inert
+  // rather than throwing if that assumption is ever wrong.
   const [entries, places, locations] = await Promise.all([
     loadResource(`${base}/logbook`, "entries").catch(() => []),
     loadResource(`${base}/places`, "places").catch(() => []),

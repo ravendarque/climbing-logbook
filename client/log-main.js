@@ -29,6 +29,8 @@ import { createHeaderChrome } from "./header-chrome.js";
 import { createModalHelpers } from "./modal-utils.js";
 import { createOfflineSync } from "./offline-sync.js";
 import { createContentOverlays } from "./content-overlays.js";
+import { loadResource } from "./fetch-json.js";
+import { syncAdminBar } from "./admin-bar.js";
 import "./components/climbing-menu-bar.js";
 import "./components/climbing-tab-bar.js";
 import "./components/climbing-entries-table.js";
@@ -91,16 +93,7 @@ function render() {
 }
 
 function updateAdminBar() {
-  const loginToggleBtn = document.getElementById("login-toggle-btn");
-  const athleteModeBtn = document.getElementById("athlete-mode-btn");
-  const addBtn = document.getElementById("add-btn");
-  loginToggleBtn.textContent = store.isLoggedIn() ? "Log out" : "Log in";
-  addBtn.hidden = !store.isLoggedIn();
-  athleteModeBtn.hidden = !store.isLoggedIn();
-  athleteModeBtn.setAttribute("aria-checked", String(adminAuth.isAthleteMode()));
-  headerChrome.updateMenuDivider();
-  offlineSync.updateSyncButton();
-  tabBar.toggleAttribute("show-performance", store.isLoggedIn() && adminAuth.isAthleteMode());
+  syncAdminBar({ store, adminAuth, headerChrome, tabBar, addBtn: document.getElementById("add-btn"), offlineSync });
 }
 
 const adminAuth = createAdminAuth({
@@ -141,16 +134,6 @@ if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/logbook/sw.js").catch(() => {});
 }
 
-// Same fetch+parse+ok-check ceremony as client/main.js's own
-// loadResource() -- unchanged copy, not worth sharing for two call sites
-// each (same call map-main.js/performance-main.js made).
-async function loadResource(url, key) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const data = await res.json();
-  return data[key] ?? [];
-}
-
 async function boot() {
   store.setActiveView("logbook");
 
@@ -184,13 +167,7 @@ async function boot() {
   // reasoning as client/main.js's own boot().
   store.applyPendingQueue(offlineSync.getQueue());
 
-  const hasBoulder = store.getEntries().some(e => e.type === "boulder");
-  const hasLead = store.getEntries().some(e => e.type === "lead");
-  store.setActiveType(hasBoulder || !hasLead ? "boulder" : "lead");
-
-  await Promise.all([sessionPromise, settingsPromise]);
-  const persistedDiscipline = adminAuth.getPersistedDiscipline();
-  if (persistedDiscipline) store.setActiveType(persistedDiscipline);
+  await adminAuth.resolveActiveType(sessionPromise, settingsPromise);
 
   render();
 }
