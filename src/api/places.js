@@ -1,4 +1,4 @@
-import { createD1ResourceHandlers } from "../lib/d1-resource.js";
+import { createD1ResourceHandlers, findOwnedRow } from "../lib/d1-resource.js";
 
 // Unlike the pre-D1 version, locationId now gets a real referential check
 // -- not just "does this row exist" (the FK constraint alone already
@@ -9,10 +9,7 @@ import { createD1ResourceHandlers } from "../lib/d1-resource.js";
 // #297 exists to add.
 async function validateFields(place, env, userId) {
   if (!place.locationId) return "Missing required field: locationId";
-  const owned = await env.LOGBOOK_DB
-    .prepare(`SELECT id FROM locations WHERE id = ? AND user_id = ?`)
-    .bind(place.locationId, userId)
-    .first();
+  const owned = await findOwnedRow(env, "locations", place.locationId, userId);
   if (!owned) return "locationId does not reference one of your locations";
   return null;
 }

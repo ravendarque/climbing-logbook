@@ -1,5 +1,5 @@
-import { json } from "../lib/json.js";
-import { createD1ResourceHandlers } from "../lib/d1-resource.js";
+import { json, parseJsonBody } from "../lib/json.js";
+import { createD1ResourceHandlers, findOwnedRow, listForUser } from "../lib/d1-resource.js";
 
 const VALID_TYPES    = ["boulder", "lead"];
 const VALID_STATUSES = ["send", "project", "abandoned", "wishlist"];
@@ -52,10 +52,7 @@ function validateShape(entry) {
 async function validateFields(entry, env, userId) {
   const shapeErr = validateShape(entry);
   if (shapeErr) return shapeErr;
-  const owned = await env.LOGBOOK_DB
-    .prepare(`SELECT id FROM places WHERE id = ? AND user_id = ?`)
-    .bind(entry.placeId, userId)
-    .first();
+  const owned = await findOwnedRow(env, "places", entry.placeId, userId);
   if (!owned) return "placeId does not reference one of your places";
   return null;
 }
@@ -94,14 +91,6 @@ function rowToJson(row) {
   };
 }
 
-async function listForUser(env, userId) {
-  const { results } = await env.LOGBOOK_DB
-    .prepare(`SELECT * FROM entries WHERE user_id = ? ORDER BY created_at`)
-    .bind(userId)
-    .all();
-  return results.map(rowToJson);
-}
-
 // handleGet/handlePost (#297) -- see src/lib/d1-resource.js for the
 // shared shape every D1-backed create+list resource follows.
 // handlePut/handleDelete stay logbook.js's own exports below -- entries
@@ -116,12 +105,9 @@ export const { handleGet, handlePost } = createD1ResourceHandlers({
 });
 
 export async function handlePut(request, env, userId) {
-  let entry;
-  try {
-    entry = await request.json();
-  } catch {
-    return json({ error: "Invalid JSON" }, 400);
-  }
+  const parsed = await parseJsonBody(request);
+  if (!parsed.ok) return parsed.response;
+  const entry = parsed.body;
 
   if (!entry.id) return json({ error: "Missing required field: id" }, 400);
   const err = await validateFields(entry, env, userId);
@@ -130,10 +116,7 @@ export async function handlePut(request, env, userId) {
   // Scoped to this user's own row -- a forged id belonging to another
   // user simply doesn't match, same isolation guarantee as handleDelete
   // below.
-  const existing = await env.LOGBOOK_DB
-    .prepare(`SELECT id FROM entries WHERE id = ? AND user_id = ?`)
-    .bind(entry.id, userId)
-    .first();
+  const existing = await findOwnedRow(env, "entries", entry.id, userId);
   if (!existing) return json({ error: "Entry not found" }, 404);
 
   const row = buildRow(entry, entry.id, userId);
@@ -143,7 +126,7 @@ export async function handlePut(request, env, userId) {
     .bind(...columns.map(c => row[c]), entry.id, userId)
     .run();
 
-  return json({ entries: await listForUser(env, userId) });
+  return json({ entries: await listForUser(env, "entries", userId, rowToJson) });
 }
 
 export async function handleDelete(request, env, userId) {
@@ -160,5 +143,5 @@ export async function handleDelete(request, env, userId) {
     .bind(id, userId)
     .run();
 
-  return json({ entries: await listForUser(env, userId) });
+  return json({ entries: await listForUser(env, "entries", userId, rowToJson) });
 }

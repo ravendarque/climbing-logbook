@@ -1,7 +1,8 @@
-import { json } from "./json.js";
+import { json, parseJsonBody } from "./json.js";
 
-// D1-backed analog of kv-resource.js's createKvResourceHandlers (#297) --
-// same GET(list)+POST(create) contract, idempotent-replay via
+// D1-backed analog of the pre-D1 KV version's createKvResourceHandlers
+// (#297, that file long since deleted -- see git history if it's ever
+// needed) -- same GET(list)+POST(create) contract, idempotent-replay via
 // client-minted UUIDs -- but every row scoped by user_id instead of one
 // global KV blob, since D1 (#21) is per-user, not per-app.
 //
@@ -11,49 +12,61 @@ import { json } from "./json.js";
 // what #113's per-user public page is for). POST always has a real
 // userId by the time it's called -- src/index.js's authorization step
 // already 401s before dispatching to any admin path.
-export function createD1ResourceHandlers({ table, resourceKey, validateFields, buildRow, rowToJson }) {
-  async function listForUser(env, userId) {
-    if (!userId) return [];
-    const { results } = await env.LOGBOOK_DB
-      .prepare(`SELECT * FROM ${table} WHERE user_id = ? ORDER BY created_at`)
-      .bind(userId)
-      .all();
-    return results.map(rowToJson);
-  }
 
+// Exported standalone (not just used internally below) -- src/api/
+// logbook.js's handlePut/handleDelete need the exact same "list this
+// user's rows, shaped for the wire" query after their own writes, and
+// used to hand-copy it rather than share it (found via code review,
+// 2026-08-09).
+export async function listForUser(env, table, userId, rowToJson) {
+  if (!userId) return [];
+  const { results } = await env.LOGBOOK_DB
+    .prepare(`SELECT * FROM ${table} WHERE user_id = ? ORDER BY created_at`)
+    .bind(userId)
+    .all();
+  return results.map(rowToJson);
+}
+
+// Exported standalone -- this is the actual multi-tenant isolation
+// boundary ("does this id belong to this user"), used two ways across
+// src/api/*.js: (1) here, as an idempotent-replay check ("does a row with
+// this exact id already exist for this user"); (2) by places.js/
+// logbook.js's own validateFields, as a foreign-key ownership check
+// ("does this placeId/locationId reference a row owned by this user").
+// Same query shape either way -- previously hand-copied at each call site
+// rather than shared, which is exactly the kind of duplication a real fix
+// to this check landing in only one copy would leave the others silently
+// vulnerable to (found via code review, 2026-08-09).
+export async function findOwnedRow(env, table, id, userId) {
+  return env.LOGBOOK_DB
+    .prepare(`SELECT id FROM ${table} WHERE id = ? AND user_id = ?`)
+    .bind(id, userId)
+    .first();
+}
+
+export function createD1ResourceHandlers({ table, resourceKey, validateFields, buildRow, rowToJson }) {
   async function handleGet(request, env, userId) {
-    const list = await listForUser(env, userId);
-    return new Response(JSON.stringify({ [resourceKey]: list }), {
-      headers: {
-        "Content-Type": "application/json",
-        "Cache-Control": "no-store",
-      },
-    });
+    const list = await listForUser(env, table, userId, rowToJson);
+    return json({ [resourceKey]: list }, 200, { "Cache-Control": "no-store" });
   }
 
   async function handlePost(request, env, userId) {
-    let record;
-    try {
-      record = await request.json();
-    } catch {
-      return json({ error: "Invalid JSON" }, 400);
-    }
+    const parsed = await parseJsonBody(request);
+    if (!parsed.ok) return parsed.response;
+    const record = parsed.body;
 
     const err = await validateFields(record, env, userId);
     if (err) return json({ error: err }, 400);
 
-    // Client-minted UUID (same reasoning as kv-resource.js) -- a stable
-    // identity across the offline-queue's whole add/sync lifecycle.
+    // Client-minted UUID -- a stable identity across the offline-queue's
+    // whole add/sync lifecycle.
     const id = typeof record.id === "string" && record.id ? record.id : crypto.randomUUID();
 
     // Scoped to this user's own rows -- a forged id colliding with another
     // user's row is a different row entirely here, not a replay.
-    const existing = await env.LOGBOOK_DB
-      .prepare(`SELECT id FROM ${table} WHERE id = ? AND user_id = ?`)
-      .bind(id, userId)
-      .first();
+    const existing = await findOwnedRow(env, table, id, userId);
     if (existing) {
-      return json({ [resourceKey]: await listForUser(env, userId) }, 200);
+      return json({ [resourceKey]: await listForUser(env, table, userId, rowToJson) }, 200);
     }
 
     const row = buildRow(record, id, userId);
@@ -63,10 +76,7 @@ export function createD1ResourceHandlers({ table, resourceKey, validateFields, b
       .bind(...columns.map(c => row[c]))
       .run();
 
-    return new Response(JSON.stringify({ [resourceKey]: await listForUser(env, userId) }), {
-      status: 201,
-      headers: { "Content-Type": "application/json" },
-    });
+    return json({ [resourceKey]: await listForUser(env, table, userId, rowToJson) }, 201);
   }
 
   return { handleGet, handlePost };

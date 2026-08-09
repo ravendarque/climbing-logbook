@@ -1,4 +1,4 @@
-import { json } from "../lib/json.js";
+import { json, parseJsonBody } from "../lib/json.js";
 
 const DEFAULT_SETTINGS = { athleteMode: false, activeDiscipline: "boulder" };
 
@@ -42,12 +42,9 @@ export async function handleGetSettings(request, env, userId) {
 // disciplines); a blind overwrite would silently wipe out whichever field
 // wasn't included.
 export async function handlePatchSettings(request, env, userId) {
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return json({ error: "Invalid JSON" }, 400);
-  }
+  const parsed = await parseJsonBody(request);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.body;
 
   // request.json() only fails to parse malformed text -- `null`, `42`, or
   // `"a string"` all parse fine but aren't objects, and `"x" in body` throws

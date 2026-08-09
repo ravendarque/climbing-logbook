@@ -1,4 +1,5 @@
 import { escapeHtml } from "../lib/html-escape.js";
+import { lookupUserByUsername } from "../lib/user.js";
 
 // #113/#351 -- my.<domain>/:username, a read-only public page for one
 // user's Logbook. #351 replaced the original server-rendered
@@ -22,15 +23,7 @@ import { escapeHtml } from "../lib/html-escape.js";
 // check for the new JSON endpoints the client bundle fetches, not just
 // this page's own initial-load gate.
 export async function resolvePublicUser(env, username) {
-  // Better Auth's username plugin normalizes to lowercase in the
-  // `username` column and keeps original casing in `displayUsername`
-  // (migrations/0001_better_auth_core.sql) -- looking up by the raw path
-  // segment would miss any user whose real username has uppercase
-  // characters.
-  const user = await env.LOGBOOK_DB
-    .prepare(`SELECT "id", "displayUsername" FROM "user" WHERE "username" = ?`)
-    .bind(username.toLowerCase())
-    .first();
+  const user = await lookupUserByUsername(env, username);
   if (!user) return null;
 
   const settings = await env.LOGBOOK_DB
