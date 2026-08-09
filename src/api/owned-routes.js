@@ -1,4 +1,5 @@
 import { resolveUserId } from "../lib/session.js";
+import { lookupUserByUsername } from "../lib/user.js";
 
 // #347 -- the per-user equivalent of what Cloudflare Access used to do for
 // the single, global /logbook URL: my.<domain>/:username/{log,map,performance}
@@ -8,17 +9,8 @@ import { resolveUserId } from "../lib/session.js";
 // login -- not a 403, matching this app's existing full-page-redirect UX
 // (see e.g. public/logbook/app.js's own login-redirect handling) rather
 // than an error page.
-
-// Same lookup shape as src/api/public-profile.js's resolvePublicUser --
-// Better Auth's username plugin normalizes to lowercase in the `username`
-// column (migrations/0001_better_auth_core.sql), so the lookup has to
-// lowercase the path segment too, or a real user with an uppercase-typed
-// URL would incorrectly mismatch.
 async function resolveUserIdByUsername(env, username) {
-  const user = await env.LOGBOOK_DB
-    .prepare(`SELECT "id" FROM "user" WHERE "username" = ?`)
-    .bind(username.toLowerCase())
-    .first();
+  const user = await lookupUserByUsername(env, username);
   return user?.id ?? null;
 }
 

@@ -23,6 +23,30 @@ import { json } from "./lib/json.js";
 // /logbook/api/admin/session, /admin/login — still Cloudflare-Access-
 //   gated at the edge, unrelated to Better Auth, unchanged until #320
 //   replaces the client's login flow.
+
+// GET is public (reachable without a session, see each handler's own
+// "userId may be null" comment) -- keyed by pathname only, since every
+// entry here is GET-only.
+const PUBLIC_GET_ROUTES = {
+  "/logbook/api/logbook": handleGet,
+  "/logbook/api/places": handleGetPlaces,
+  "/logbook/api/locations": handleGetLocations,
+  "/logbook/api/settings": handleGetSettings,
+};
+
+// Every write here requires a real Better Auth session -- keyed by
+// pathname, then by method (some resources handle more than one).
+const ADMIN_ROUTES = {
+  "/logbook/api/admin/logbook": {
+    POST: handlePost,
+    PUT: handlePut,
+    DELETE: handleDelete,
+  },
+  "/logbook/api/admin/places": { POST: handlePostPlaces },
+  "/logbook/api/admin/locations": { POST: handlePostLocations },
+  "/logbook/api/admin/settings": { PATCH: handlePatchSettings },
+};
+
 export default {
   async fetch(request, env) {
     const { hostname, pathname } = new URL(request.url);
@@ -61,16 +85,14 @@ export default {
       return createAuth(env, hostname).handler(request);
     }
 
-    if (pathname === "/logbook/api/logbook" && method === "GET") {
-      return handleGet(request, env, await resolveUserId(request, env));
-    }
-
-    if (pathname === "/logbook/api/places" && method === "GET") {
-      return handleGetPlaces(request, env, await resolveUserId(request, env));
-    }
-
-    if (pathname === "/logbook/api/locations" && method === "GET") {
-      return handleGetLocations(request, env, await resolveUserId(request, env));
+    // Every public (session-optional) GET resource follows the identical
+    // "look up the caller's own session, hand it to the handler" shape --
+    // a lookup table here (not four copy-pasted if-blocks) means the next
+    // simple GET resource is a one-line entry, not a new if-block (found
+    // via code review, 2026-08-09).
+    const publicGetHandler = method === "GET" && PUBLIC_GET_ROUTES[pathname];
+    if (publicGetHandler) {
+      return publicGetHandler(request, env, await resolveUserId(request, env));
     }
 
     // #351 -- read-only data for the public /:username page, scoped to
@@ -83,36 +105,18 @@ export default {
       return handlePublicResource(request, env, username, resource);
     }
 
-    if (pathname === "/logbook/api/settings" && method === "GET") {
-      return handleGetSettings(request, env, await resolveUserId(request, env));
-    }
-
-    if (
-      pathname === "/logbook/api/admin/logbook" ||
-      pathname === "/logbook/api/admin/places" ||
-      pathname === "/logbook/api/admin/locations" ||
-      pathname === "/logbook/api/admin/settings"
-    ) {
+    // Same one-auth-check-then-dispatch shape as PUBLIC_GET_ROUTES above,
+    // but keyed by path *and* method (some of these resources handle more
+    // than one) -- also replaces what used to be a re-check of the same
+    // four pathnames twice (once in the outer OR guard, once again inside)
+    // with a single lookup (found via code review, 2026-08-09).
+    const adminRoute = ADMIN_ROUTES[pathname];
+    if (adminRoute) {
       const userId = await resolveUserId(request, env);
       if (!userId) return json({ error: "Unauthorized" }, 401);
 
-      if (pathname === "/logbook/api/admin/logbook") {
-        if (method === "POST")   return handlePost(request, env, userId);
-        if (method === "PUT")    return handlePut(request, env, userId);
-        if (method === "DELETE") return handleDelete(request, env, userId);
-      }
-
-      if (pathname === "/logbook/api/admin/places" && method === "POST") {
-        return handlePostPlaces(request, env, userId);
-      }
-
-      if (pathname === "/logbook/api/admin/locations" && method === "POST") {
-        return handlePostLocations(request, env, userId);
-      }
-
-      if (pathname === "/logbook/api/admin/settings" && method === "PATCH") {
-        return handlePatchSettings(request, env, userId);
-      }
+      const handler = adminRoute[method];
+      if (handler) return handler(request, env, userId);
     }
 
     if (pathname === "/logbook/api/admin/session" && method === "GET") {
