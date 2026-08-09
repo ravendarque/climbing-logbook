@@ -33,7 +33,7 @@ const HANDLERS = {
 
 export async function handlePublicResource(request, env, username, resource) {
   const target = await resolvePublicUser(env, username);
-  if (!target) return json({ error: "Not found" }, 404);
+  if (!target) return json({ error: "Not found" }, 404, { "Cache-Control": "no-store" });
 
   return HANDLERS[resource](request, env, target.id);
 }

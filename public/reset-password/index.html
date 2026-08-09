@@ -25,9 +25,14 @@
 </head>
 <body class="bg-background text-foreground font-sans min-h-screen flex flex-col items-center justify-center gap-6 px-4">
   <climbing-header variant="brand"></climbing-header>
+  <!-- No in-form heading here -- same pattern login/index.html and
+       register/index.html's own initial forms use (the shared brand
+       header + <title> already identify the page); reserved for terminal/
+       status states below (#reset-invalid/#reset-success), matching
+       register/index.html's own "Check your email" success state. Found
+       inconsistent (a stray heading here, and at a different margin than
+       its own sibling states below) via code review, 2026-08-09. -->
   <form class="w-full max-w-[360px] bg-surface border border-border rounded-app p-6" id="reset-form" novalidate>
-    <h1 class="font-display text-3xl mb-6 text-center tracking-wide">Reset password</h1>
-
     <label class="block text-sm text-muted mb-1" for="password">New password</label>
     <input
       class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full mb-4"
