@@ -39,12 +39,15 @@ form.addEventListener("submit", async (event) => {
     const data = await res.json().catch(() => null);
 
     if (res.ok) {
-      // Redirects to the signed-in user's own public profile (#113),
-      // matching the originally decided design ("successful login
-      // redirects to my.climbinglogbook.com/<username>") -- not a fixed
-      // /logbook/ target, which was this page's own bug (landed
-      // everyone on the same app-root URL regardless of who signed in).
-      window.location.href = `${APP_ORIGIN}/${data.user.username}`;
+      // Redirects to the signed-in user's own /log page (#352) -- not a
+      // fixed /logbook/ target, which was this page's original bug
+      // (landed everyone on the same app-root URL regardless of who
+      // signed in). Previously targeted the user's public profile page
+      // (#113) instead of /log -- that was the only real page #348/#351
+      // had built yet at the time; landing an owner on their own
+      // read-only view right after logging in is exactly the friction
+      // #352 removes now that /log exists.
+      window.location.href = `${APP_ORIGIN}/${data.user.username}/log`;
       return;
     }
 

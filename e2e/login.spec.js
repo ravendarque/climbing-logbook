@@ -17,14 +17,16 @@ test("logs in via the login page, then logs out again", async ({ page }) => {
   await page.locator("#password").fill(DEV_USER.password);
   await page.locator("#login-submit-btn").click();
 
-  // login.js redirects to the signed-in user's own public profile
-  // (#113), not the admin app directly -- matches the originally decided
-  // design ("successful login redirects to my.climbinglogbook.com/
-  // <username>"), not a fixed app-root target. The profile page itself
-  // has no admin affordances at all (it's #113's read-only page), so
-  // proving the session actually took needs a separate navigation to the
-  // real app, below.
-  await page.waitForURL(`**/${DEV_USER.username}`);
+  // login.js redirects to the signed-in user's own /log page (#352), not
+  // a fixed app-root target -- previously the public profile page
+  // (#113), before #348/#351 gave it somewhere real to land. That target
+  // is itself gated on the real my.<domain> hostname (owned-routes.js),
+  // which this suite has no way to reach locally (same limitation every
+  // other #348/#351 e2e spec already documents) -- waitForURL only
+  // proves the redirect *target* is correct, not that the destination
+  // renders; proving the session actually took needs a separate
+  // navigation to the real app, below.
+  await page.waitForURL(`**/${DEV_USER.username}/log`);
 
   await page.goto("/logbook/");
   await page.locator("#loading").waitFor({ state: "hidden" });

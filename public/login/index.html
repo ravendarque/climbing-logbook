@@ -27,36 +27,56 @@
     })();
   </script>
 </head>
-<body class="bg-background text-foreground font-sans min-h-screen flex flex-col items-center justify-center gap-6 px-4">
-  <climbing-header variant="brand"></climbing-header>
-  <form class="w-full max-w-[360px] bg-surface border border-border rounded-app p-6" id="login-form" novalidate>
-    <label class="block text-sm text-muted mb-1" for="email">Email</label>
-    <input
-      class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full mb-4"
-      type="email" id="email" name="email" required autocomplete="email">
+<body class="bg-background text-foreground font-sans min-h-screen flex items-center justify-center px-4">
+  <!-- #352 -- hidden until session-redirect.js's get-session check
+       resolves: an already-authenticated visitor hitting this URL
+       directly never sees the form at all (redirected straight to their
+       own /log), matching the same principle applied to the apex page --
+       see public/index.html's own comment for the display:none-not-
+       [hidden] reasoning. flex/flex-col/gap-6 moved here from <body>
+       (originally applied to climbing-header + the form as two direct
+       flex-item siblings) -- now that both live inside this one wrapper
+       div instead, the layout classes have to move with them or the gap
+       between header and form collapses. Clearing the inline
+       style="display:none" (session-redirect.js's contentEl.style.display
+       = "") falls through to this class's flex, not the div's block
+       default, since the inline style is what's overriding it in the
+       first place. -->
+  <div class="flex flex-col items-center gap-6" id="page-content" style="display:none">
+    <climbing-header variant="brand"></climbing-header>
+    <form class="w-full max-w-[360px] bg-surface border border-border rounded-app p-6" id="login-form" novalidate>
+      <label class="block text-sm text-muted mb-1" for="email">Email</label>
+      <input
+        class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full mb-4"
+        type="email" id="email" name="email" required autocomplete="email">
 
-    <label class="block text-sm text-muted mb-1" for="password">Password</label>
-    <input
-      class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full mb-2"
-      type="password" id="password" name="password" required autocomplete="current-password">
+      <label class="block text-sm text-muted mb-1" for="password">Password</label>
+      <input
+        class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full mb-2"
+        type="password" id="password" name="password" required autocomplete="current-password">
 
-    <p class="text-sm text-right mb-4">
-      <button type="button" class="text-accent bg-transparent border-0 p-0 cursor-pointer" id="forgot-password-btn">Forgot password?</button>
-    </p>
+      <p class="text-sm text-right mb-4">
+        <button type="button" class="text-accent bg-transparent border-0 p-0 cursor-pointer" id="forgot-password-btn">Forgot password?</button>
+      </p>
 
-    <p class="text-sm text-accent mb-4" id="login-error" hidden></p>
-    <!-- Reused for both the "check your email" confirmation after
-         forgot-password and any error from that same request -- they're
-         mutually exclusive with #login-error/the form fields, never
-         shown at the same time, see login.js. -->
-    <p class="text-sm text-muted mb-4" id="login-info" hidden></p>
+      <p class="text-sm text-accent mb-4" id="login-error" hidden></p>
+      <!-- Reused for both the "check your email" confirmation after
+           forgot-password and any error from that same request -- they're
+           mutually exclusive with #login-error/the form fields, never
+           shown at the same time, see login.js. -->
+      <p class="text-sm text-muted mb-4" id="login-info" hidden></p>
 
-    <button type="submit" class="admin-btn admin-btn-primary w-full" id="login-submit-btn">Log in</button>
+      <button type="submit" class="admin-btn admin-btn-primary w-full" id="login-submit-btn">Log in</button>
 
-    <p class="text-sm text-muted mt-4 text-center">
-      Don't have an account? <a class="text-accent" href="../register/">Sign up</a>
-    </p>
-  </form>
+      <p class="text-sm text-muted mt-4 text-center">
+        Don't have an account? <a class="text-accent" href="../register/">Sign up</a>
+      </p>
+    </form>
+  </div>
+  <script type="module">
+    import { redirectIfLoggedIn } from "../session-redirect.js";
+    redirectIfLoggedIn(document.getElementById("page-content"));
+  </script>
   <script type="module" src="./login.js"></script>
 </body>
 </html>
