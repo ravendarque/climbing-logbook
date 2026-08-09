@@ -19,19 +19,24 @@
 // ids -- light DOM means those calls work identically regardless of
 // which custom element the markup happens to live inside.
 //
-// A public/read-only variant (admin rows hidden entirely, not just
-// gated by login state) is explicit non-scope here -- #351 is the first
-// issue that actually has that consumer to design the attribute/property
-// contract against; guessing its shape now, with no real requirements in
-// hand, is exactly the kind of premature abstraction this project's
-// engineering standards call out.
+// admin-hidden (#351): the public/read-only page's own consumer -- login/
+// logout and Athlete Mode are genuinely never reachable there (no
+// admin-auth.js/store.js session wiring exists on that composition root
+// at all, "security by absence" per #344's decision), so those rows are
+// removed from the markup entirely rather than left present-but-inert.
+// Read once at connectedCallback time, not observed/reactive -- every
+// real consumer sets this as a static attribute in its own shell markup
+// before the component ever connects; nothing needs to toggle it after
+// the fact. Discipline picker and theme toggle stay either way -- both
+// are plain view preferences, meaningful and non-destructive for an
+// anonymous visitor too, not "admin" in the way login/Athlete Mode are.
 //
 // Ordinary ES module (not a classic script like <climbing-header>,
 // #345) -- that file's classic-script requirement was specific to
 // injecting global CSS tokens before first paint; this component is
 // pure interactive markup with no equivalent FOUC concern, so it follows
 // the same module convention as every other client/*.js file instead.
-const MARKUP = `
+const DISCIPLINE_PICKER = `
   <div class="relative mr-auto" id="discipline-wrap">
     <button type="button" class="group inline-flex items-center gap-[.35rem] h-[var(--field-h)] px-[.8rem] bg-surface border border-border rounded-app text-foreground text-[.85rem] font-semibold cursor-pointer hover:border-accent [&_svg]:stroke-current [&_svg]:fill-none [&_.chevron-icon]:transition-transform [&_.chevron-icon]:duration-150 aria-expanded:[&_.chevron-icon]:rotate-180" id="discipline-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Discipline: Boulder">
       <span id="discipline-btn-label">Boulder</span>
@@ -48,26 +53,43 @@ const MARKUP = `
       </button>
     </div>
   </div>
+`;
+
+function menuPopover(adminHidden) {
+  const adminRows = adminHidden ? "" : `
+      <button type="button" class="group inline-flex items-center h-[var(--field-h)] gap-2 bg-transparent border border-transparent px-[.8rem] cursor-pointer text-[.82rem] font-semibold text-foreground disabled:opacity-60 disabled:cursor-not-allowed" id="athlete-mode-btn" role="switch" aria-checked="false" hidden>
+        <span class="transition-colors duration-150 group-aria-[checked=false]:text-muted">Athlete Mode</span>
+        <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
+      </button>`;
+  const loginBtn = adminHidden ? "" : `<button type="button" class="admin-btn" id="login-toggle-btn">Log in</button>`;
+  // The divider (border-t/pt-2/mt-1) only makes sense when Athlete Mode
+  // occupies the row above it -- with admin-hidden, that row doesn't
+  // exist in the DOM at all, and nothing calls client/header-chrome.js's
+  // updateMenuDivider() on this page to strip the classes at runtime (see
+  // client/profile-main.js, this component's only admin-hidden consumer),
+  // so they're simply never added here in the first place, same effect
+  // updateMenuDivider() achieves for the non-admin-hidden case whenever
+  // Athlete Mode is hidden.
+  const bottomRowClasses = adminHidden
+    ? "flex items-center justify-between self-stretch"
+    : "flex items-center justify-between self-stretch pt-2 mt-1 border-t border-border";
+
+  return `
   <div class="relative" id="header-menu-wrap">
     <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="header-menu-btn" aria-haspopup="true" aria-expanded="false" aria-label="Menu">
       <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="17" x2="20" y2="17"></line></svg>
     </button>
-    <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 flex flex-col items-end gap-2 bg-background border border-border rounded-app p-3 min-w-[13rem] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="header-menu-popover" role="menu" aria-label="Menu" hidden>
-      <button type="button" class="group inline-flex items-center h-[var(--field-h)] gap-2 bg-transparent border border-transparent px-[.8rem] cursor-pointer text-[.82rem] font-semibold text-foreground disabled:opacity-60 disabled:cursor-not-allowed" id="athlete-mode-btn" role="switch" aria-checked="false" hidden>
-        <span class="transition-colors duration-150 group-aria-[checked=false]:text-muted">Athlete Mode</span>
-        <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
-      </button>
-      <div class="flex items-center justify-between self-stretch pt-2 mt-1 border-t border-border" id="header-menu-bottom-row">
-        <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="theme-toggle-btn" aria-label="Switch to light theme"></button>
-        <button type="button" class="admin-btn" id="login-toggle-btn">Log in</button>
+    <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 flex flex-col items-end gap-2 bg-background border border-border rounded-app p-3 min-w-[13rem] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="header-menu-popover" role="menu" aria-label="Menu" hidden>${adminRows}
+      <div class="${bottomRowClasses}" id="header-menu-bottom-row">
+        <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="theme-toggle-btn" aria-label="Switch to light theme"></button>${loginBtn}
       </div>
     </div>
-  </div>
-`;
+  </div>`;
+}
 
 export class ClimbingMenuBar extends HTMLElement {
   connectedCallback() {
-    this.innerHTML = MARKUP;
+    this.innerHTML = DISCIPLINE_PICKER + menuPopover(this.hasAttribute("admin-hidden"));
   }
 }
 

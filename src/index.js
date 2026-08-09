@@ -5,6 +5,7 @@ import { handleGetSettings, handlePatchSettings } from "./api/settings.js";
 import { handleAdminSession } from "./api/admin-session.js";
 import { handleAdminLogin } from "./api/admin-login.js";
 import { handlePublicProfile } from "./api/public-profile.js";
+import { handlePublicResource } from "./api/public-data.js";
 import { handleOwnedRoute } from "./api/owned-routes.js";
 import { createAuth } from "./lib/auth.js";
 import { resolveUserId } from "./lib/session.js";
@@ -70,6 +71,16 @@ export default {
 
     if (pathname === "/logbook/api/locations" && method === "GET") {
       return handleGetLocations(request, env, await resolveUserId(request, env));
+    }
+
+    // #351 -- read-only data for the public /:username page, scoped to
+    // whichever *target* user the path names, not the caller's own
+    // session (see src/api/public-data.js's own comment). Not
+    // hostname-gated, same as every other /logbook/api/* route here.
+    const publicDataMatch = pathname.match(/^\/logbook\/api\/public\/([^/]+)\/(logbook|places|locations)$/);
+    if (publicDataMatch && method === "GET") {
+      const [, username, resource] = publicDataMatch;
+      return handlePublicResource(request, env, username, resource);
     }
 
     if (pathname === "/logbook/api/settings" && method === "GET") {
