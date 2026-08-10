@@ -4,6 +4,7 @@
 // Pure DOM utilities -- no state coupling beyond what's passed in, so this
 // could have landed independently of the Store (#234) or any other module
 // in the epic.
+import { escapeHtml } from "./escape-html.js";
 
 // Common trigger-button + panel interaction shared by every dropdown-style
 // popover in the app -- discipline picker, header menu, place picker,
@@ -47,6 +48,96 @@ export function createDisclosure(trigger, panel, containerSelector, { escapeTarg
     trigger.focus();
   });
   return { open, close };
+}
+
+// Searchable single-select combobox popover (#403): filter a list, render
+// role="option" rows with active-descendant highlighting, ArrowUp/
+// ArrowDown/Enter navigation, click-to-select -- extracted from
+// client/place-picker.js's two structurally identical copies (the entry
+// form's place picker, the add-place modal's country picker), found via
+// code review (2026-08-09), split out from #399 into its own issue (#403)
+// since it's a single-file internal refactor of accessibility-critical
+// keyboard-nav code, not cross-file boilerplate -- see that issue's own
+// body for the e2e keyboard-nav coverage added as a prerequisite
+// (e2e/place-picker-keyboard-nav.spec.js) before this extraction, so the
+// refactor is verified against tests that actually exercise the behavior
+// being moved, not just "still renders."
+//
+// Composes createDisclosure above for the open/close/outside-click/
+// Escape mechanics -- trigger/panel/containerSelector/escapeTarget are
+// passed straight through. onSelect receives the selected item's key
+// (getItemKey(item)'s return value), not the item itself: both real call
+// sites only ever needed the key (setPlace(placeId)/
+// setAddPlaceCountry(countryName) both take a plain string), so there's
+// no reason to make every caller re-derive it back out of an item object.
+export function createSearchableListbox({
+  trigger, popover, containerSelector, searchInput, listboxEl, idPrefix,
+  filterItems,       // (query: string) => item[] -- caller owns the data source and match predicate
+  getItemKey,        // (item) => string
+  isSelected,        // (item) => boolean
+  renderItemContent, // (item) => inner html string (pre-escaped by the caller, same policy as every other template string in this codebase)
+  onSelect,          // (key: string) => void
+}) {
+  let filtered = [];
+  let activeIndex = -1;
+
+  function optionId(i) { return `${idPrefix}-${i}`; }
+
+  function updateActiveDescendant() {
+    searchInput.setAttribute("aria-activedescendant", activeIndex >= 0 ? optionId(activeIndex) : "");
+    listboxEl.querySelectorAll("[role=option]").forEach((el, i) =>
+      el.classList.toggle("bg-[color-mix(in_srgb,var(--color-accent)_16%,transparent)]", i === activeIndex));
+    listboxEl.querySelector(`#${optionId(activeIndex)}`)?.scrollIntoView({ block: "nearest" });
+  }
+
+  function render(filterText) {
+    filtered = filterItems(filterText.trim().toLowerCase());
+    activeIndex = filtered.length ? 0 : -1;
+    listboxEl.innerHTML = filtered.length
+      ? filtered.map((item, i) => `
+          <li id="${optionId(i)}" role="option" data-key="${escapeHtml(getItemKey(item))}" aria-selected="${isSelected(item)}" class="flex items-center justify-between gap-[.5rem] px-[.6rem] py-[.5rem] rounded-[calc(var(--radius-app)-2px)] cursor-pointer text-[.9rem] text-foreground hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible">
+            ${renderItemContent(item)}
+            <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+          </li>`).join("")
+      : `<li class="px-[.6rem] py-[.5rem] text-[.85rem] text-muted">No matches</li>`;
+    updateActiveDescendant();
+  }
+
+  const { close } = createDisclosure(trigger, popover, containerSelector, {
+    escapeTarget: searchInput,
+    onOpen() {
+      searchInput.value = "";
+      render("");
+      searchInput.focus();
+    },
+  });
+
+  searchInput.addEventListener("input", () => render(searchInput.value));
+  searchInput.addEventListener("keydown", e => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (filtered.length) { activeIndex = (activeIndex + 1) % filtered.length; updateActiveDescendant(); }
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (filtered.length) { activeIndex = (activeIndex - 1 + filtered.length) % filtered.length; updateActiveDescendant(); }
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (activeIndex >= 0) {
+        onSelect(getItemKey(filtered[activeIndex]));
+        close();
+        trigger.focus();
+      }
+    }
+  });
+  listboxEl.addEventListener("click", e => {
+    const opt = e.target.closest("[role=option][data-key]");
+    if (!opt) return;
+    onSelect(opt.dataset.key);
+    close();
+    trigger.focus();
+  });
+
+  return { close };
 }
 
 // Exported (not just used internally below) -- climbing-grade-pyramid.js

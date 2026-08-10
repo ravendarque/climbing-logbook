@@ -23,7 +23,7 @@ test("add-place modal: brand-new location leaves the country field open", async 
   await page.locator("#add-place-area").fill("Test Sector");
   await page.locator("#add-place-country-btn").click();
   await page.locator("#add-place-country-search").fill("Norway");
-  await page.locator('#add-place-country-listbox li[data-name="Norway"]').click();
+  await page.locator('#add-place-country-listbox li[data-key="Norway"]').click();
 
   await Promise.all([
     page.waitForResponse(res => res.url().includes("/logbook/api/admin/locations") && res.request().method() === "POST"),

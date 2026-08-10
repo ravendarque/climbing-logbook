@@ -15,7 +15,7 @@ test("queues an entry while offline, then syncs it once back online", async ({ p
   await page.locator("#add-btn").click();
   await page.locator("#entry-name").fill(entryName);
   await page.locator("#place-btn").click();
-  await page.locator('#place-listbox li[data-id="seed-place-font-bas-cuvier"]').click();
+  await page.locator('#place-listbox li[data-key="seed-place-font-bas-cuvier"]').click();
   await page.locator("#entry-submit-btn").click();
 
   // Queued and rendered optimistically, no network round trip involved.
@@ -52,7 +52,7 @@ test("queues an add then a delete for the same never-synced entry, replays both 
   await page.locator("#add-btn").click();
   await page.locator("#entry-name").fill(entryName);
   await page.locator("#place-btn").click();
-  await page.locator('#place-listbox li[data-id="seed-place-font-bas-cuvier"]').click();
+  await page.locator('#place-listbox li[data-key="seed-place-font-bas-cuvier"]').click();
   await page.locator("#entry-submit-btn").click();
 
   await expect(page.locator("#entry-overlay")).toBeHidden();

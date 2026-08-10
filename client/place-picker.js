@@ -24,7 +24,7 @@
 // instance from main.js's single createModalHelpers() call, not its own.
 import { escapeHtml } from "./escape-html.js";
 import { COUNTRY_BY_NAME, COUNTRIES } from "./countries.js";
-import { createDisclosure } from "./modal-utils.js";
+import { createSearchableListbox } from "./modal-utils.js";
 
 export function createPlacePicker({
   store,
@@ -47,10 +47,6 @@ export function createPlacePicker({
 
   const PLACE_PLACEHOLDER_ICON = `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20Z"></path></svg>`;
   let placeCommittedValue = ""; // the committed placeId, "" if none
-  let placeFilteredList = [];
-  let placeActiveIndex = -1;
-
-  function placeOptionId(i) { return `place-option-${i}`; }
 
   // Every selectable Place, joined against its Location, sorted by
   // location then area -- rebuilt on each render rather than cached,
@@ -60,35 +56,6 @@ export function createPlacePicker({
       const loc = store.locationOf(p);
       return { id: p.id, location: loc.name, area: p.area, country: loc.country };
     }).sort((a, b) => a.location.localeCompare(b.location) || a.area.localeCompare(b.area));
-  }
-
-  function updatePlaceActiveDescendant() {
-    placeSearch.setAttribute("aria-activedescendant", placeActiveIndex >= 0 ? placeOptionId(placeActiveIndex) : "");
-    placeListbox.querySelectorAll("[role=option]").forEach((el, i) =>
-      el.classList.toggle("bg-[color-mix(in_srgb,var(--color-accent)_16%,transparent)]", i === placeActiveIndex));
-    placeListbox.querySelector(`#${placeOptionId(placeActiveIndex)}`)?.scrollIntoView({ block: "nearest" });
-  }
-
-  function renderPlaceOptions(filterText) {
-    const q = filterText.trim().toLowerCase();
-    const all = joinedPlaces();
-    placeFilteredList = q
-      ? all.filter(p => p.location.toLowerCase().includes(q) || p.area.toLowerCase().includes(q))
-      : all;
-    placeActiveIndex = placeFilteredList.length ? 0 : -1;
-    placeListbox.innerHTML = placeFilteredList.length
-      ? placeFilteredList.map((p, i) => {
-          const c = COUNTRY_BY_NAME[p.country];
-          const flag = c ? escapeHtml(c.flag) : PLACE_PLACEHOLDER_ICON;
-          const label = p.area ? `${escapeHtml(p.location)}, ${escapeHtml(p.area)}` : escapeHtml(p.location);
-          return `
-          <li id="${placeOptionId(i)}" role="option" data-id="${escapeHtml(p.id)}" aria-selected="${p.id === placeCommittedValue}" class="flex items-center justify-between gap-[.5rem] px-[.6rem] py-[.5rem] rounded-[calc(var(--radius-app)-2px)] cursor-pointer text-[.9rem] text-foreground hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible">
-            <span class="flex items-center gap-[.5rem] min-w-0"><span class="flex items-center justify-center shrink-0" aria-hidden="true">${flag}</span><span class="truncate">${label}</span></span>
-            <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
-          </li>`;
-        }).join("")
-      : `<li class="px-[.6rem] py-[.5rem] text-[.85rem] text-muted">No matches</li>`;
-    updatePlaceActiveDescendant();
   }
 
   // Reflects the committed value into the trigger button.
@@ -111,41 +78,24 @@ export function createPlacePicker({
     placeBtnLabel.classList.remove("text-muted");
   }
 
-  // Escape is bound to placeSearch, not document -- see createDisclosure's
-  // own header comment for why (this popover lives inside the entry
-  // modal).
-  const { close: closePlacePopover } = createDisclosure(placeBtn, placePopover, "#place-wrap", {
-    escapeTarget: placeSearch,
-    onOpen() {
-      // Always starts from a fresh, unfiltered search, not whatever was
-      // last typed -- matches every other search-to-filter control in this
-      // app, none of which remember a stale query across opens.
-      placeSearch.value = "";
-      renderPlaceOptions("");
-      placeSearch.focus();
+  const { close: closePlacePopover } = createSearchableListbox({
+    trigger: placeBtn, popover: placePopover, containerSelector: "#place-wrap",
+    searchInput: placeSearch, listboxEl: placeListbox, idPrefix: "place-option",
+    filterItems: q => {
+      const all = joinedPlaces();
+      return q ? all.filter(p => p.location.toLowerCase().includes(q) || p.area.toLowerCase().includes(q)) : all;
     },
+    getItemKey: p => p.id,
+    isSelected: p => p.id === placeCommittedValue,
+    renderItemContent: p => {
+      const c = COUNTRY_BY_NAME[p.country];
+      const flag = c ? escapeHtml(c.flag) : PLACE_PLACEHOLDER_ICON;
+      const label = p.area ? `${escapeHtml(p.location)}, ${escapeHtml(p.area)}` : escapeHtml(p.location);
+      return `<span class="flex items-center gap-[.5rem] min-w-0"><span class="flex items-center justify-center shrink-0" aria-hidden="true">${flag}</span><span class="truncate">${label}</span></span>`;
+    },
+    onSelect: setPlace,
   });
 
-  placeSearch.addEventListener("input", () => renderPlaceOptions(placeSearch.value));
-  placeSearch.addEventListener("keydown", e => {
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      if (placeFilteredList.length) { placeActiveIndex = (placeActiveIndex + 1) % placeFilteredList.length; updatePlaceActiveDescendant(); }
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      if (placeFilteredList.length) { placeActiveIndex = (placeActiveIndex - 1 + placeFilteredList.length) % placeFilteredList.length; updatePlaceActiveDescendant(); }
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      if (placeActiveIndex >= 0) { setPlace(placeFilteredList[placeActiveIndex].id); closePlacePopover(); placeBtn.focus(); }
-    }
-  });
-  placeListbox.addEventListener("click", e => {
-    const opt = e.target.closest("[role=option][data-id]");
-    if (!opt) return;
-    setPlace(opt.dataset.id);
-    closePlacePopover();
-    placeBtn.focus();
-  });
   placeAddNewBtn.addEventListener("click", () => {
     closePlacePopover();
     openAddPlaceModal();
@@ -177,37 +127,12 @@ export function createPlacePicker({
   const addPlaceMsg = document.getElementById("add-place-msg");
 
   let addPlaceCountryCommitted = ""; // committed country name, "" if none
-  let addPlaceCountryFiltered = COUNTRIES;
-  let addPlaceCountryActiveIndex = -1;
   let addPlaceMatchedLocation = null; // the existing Location the typed name matches, or null
 
   function findMatchingLocation(name) {
     const q = name.trim().toLowerCase();
     if (!q) return null;
     return store.getLocations().find(l => l.name.toLowerCase() === q) ?? null;
-  }
-
-  function addPlaceCountryOptionId(i) { return `add-place-country-option-${i}`; }
-
-  function updateAddPlaceCountryActiveDescendant() {
-    addPlaceCountrySearch.setAttribute("aria-activedescendant", addPlaceCountryActiveIndex >= 0 ? addPlaceCountryOptionId(addPlaceCountryActiveIndex) : "");
-    addPlaceCountryListbox.querySelectorAll("[role=option]").forEach((el, i) =>
-      el.classList.toggle("bg-[color-mix(in_srgb,var(--color-accent)_16%,transparent)]", i === addPlaceCountryActiveIndex));
-    addPlaceCountryListbox.querySelector(`#${addPlaceCountryOptionId(addPlaceCountryActiveIndex)}`)?.scrollIntoView({ block: "nearest" });
-  }
-
-  function renderAddPlaceCountryOptions(filterText) {
-    const q = filterText.trim().toLowerCase();
-    addPlaceCountryFiltered = q ? COUNTRIES.filter(c => c.name.toLowerCase().includes(q)) : COUNTRIES;
-    addPlaceCountryActiveIndex = addPlaceCountryFiltered.length ? 0 : -1;
-    addPlaceCountryListbox.innerHTML = addPlaceCountryFiltered.length
-      ? addPlaceCountryFiltered.map((c, i) => `
-          <li id="${addPlaceCountryOptionId(i)}" role="option" data-name="${escapeHtml(c.name)}" aria-selected="${c.name === addPlaceCountryCommitted}" class="flex items-center justify-between gap-[.5rem] px-[.6rem] py-[.5rem] rounded-[calc(var(--radius-app)-2px)] cursor-pointer text-[.9rem] text-foreground hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible">
-            <span class="flex items-center gap-[.5rem] min-w-0"><span aria-hidden="true">${escapeHtml(c.flag)}</span><span class="truncate">${escapeHtml(c.name)}</span></span>
-            <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
-          </li>`).join("")
-      : `<li class="px-[.6rem] py-[.5rem] text-[.85rem] text-muted">No matches</li>`;
-    updateAddPlaceCountryActiveDescendant();
   }
 
   function setAddPlaceCountry(name) {
@@ -221,37 +146,18 @@ export function createPlacePicker({
 
   // No explicit addPlaceCountryBtn.disabled guard needed here -- a real
   // disabled <button> never dispatches click events in the first place,
-  // so createDisclosure's trigger listener below simply never fires
-  // while it's locked (see setAddPlaceCountry/updateAddPlaceLocationMatch
-  // for where .disabled gets toggled).
-  const { close: closeAddPlaceCountryPopover } = createDisclosure(addPlaceCountryBtn, addPlaceCountryPopover, "#add-place-country-wrap", {
-    escapeTarget: addPlaceCountrySearch,
-    onOpen() {
-      addPlaceCountrySearch.value = "";
-      renderAddPlaceCountryOptions("");
-      addPlaceCountrySearch.focus();
-    },
-  });
-
-  addPlaceCountrySearch.addEventListener("input", () => renderAddPlaceCountryOptions(addPlaceCountrySearch.value));
-  addPlaceCountrySearch.addEventListener("keydown", e => {
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      if (addPlaceCountryFiltered.length) { addPlaceCountryActiveIndex = (addPlaceCountryActiveIndex + 1) % addPlaceCountryFiltered.length; updateAddPlaceCountryActiveDescendant(); }
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      if (addPlaceCountryFiltered.length) { addPlaceCountryActiveIndex = (addPlaceCountryActiveIndex - 1 + addPlaceCountryFiltered.length) % addPlaceCountryFiltered.length; updateAddPlaceCountryActiveDescendant(); }
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      if (addPlaceCountryActiveIndex >= 0) { setAddPlaceCountry(addPlaceCountryFiltered[addPlaceCountryActiveIndex].name); closeAddPlaceCountryPopover(); addPlaceCountryBtn.focus(); }
-    }
-  });
-  addPlaceCountryListbox.addEventListener("click", e => {
-    const opt = e.target.closest("[role=option][data-name]");
-    if (!opt) return;
-    setAddPlaceCountry(opt.dataset.name);
-    closeAddPlaceCountryPopover();
-    addPlaceCountryBtn.focus();
+  // so createSearchableListbox's internal trigger listener (via
+  // createDisclosure) simply never fires while it's locked (see
+  // setAddPlaceCountry/updateAddPlaceLocationMatch for where .disabled
+  // gets toggled).
+  const { close: closeAddPlaceCountryPopover } = createSearchableListbox({
+    trigger: addPlaceCountryBtn, popover: addPlaceCountryPopover, containerSelector: "#add-place-country-wrap",
+    searchInput: addPlaceCountrySearch, listboxEl: addPlaceCountryListbox, idPrefix: "add-place-country-option",
+    filterItems: q => q ? COUNTRIES.filter(c => c.name.toLowerCase().includes(q)) : COUNTRIES,
+    getItemKey: c => c.name,
+    isSelected: c => c.name === addPlaceCountryCommitted,
+    renderItemContent: c => `<span class="flex items-center gap-[.5rem] min-w-0"><span aria-hidden="true">${escapeHtml(c.flag)}</span><span class="truncate">${escapeHtml(c.name)}</span></span>`,
+    onSelect: setAddPlaceCountry,
   });
 
   function updateAddPlaceLocationMatch() {
