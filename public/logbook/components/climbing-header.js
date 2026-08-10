@@ -38,6 +38,28 @@
     "  --r: 8px;",
     '  --font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;',
     '  --font-display: "Bebas Neue", sans-serif;',
+    // Carried over from public/logbook/index.html's own second :root
+    // block (predates #345 -- these never made it into this shared token
+    // set when it was created, so every /:username/{log,map,performance}
+    // page and the public profile page had .admin-btn/the discipline
+    // picker/grade prev-next buttons collapse to zero vertical padding
+    // (var(--field-h) resolving to nothing), and every grade badge/
+    // evidence-tier color (client/grade-data.js, the citations/evidence-
+    // tier overlays) silently fall back to unstyled text color. Found via
+    // Raven's production report, 2026-08-10 -- values copied exactly, not
+    // re-derived, to keep these pages pixel-identical to /logbook's own.
+    "  --field-h:     2.25rem;",
+    "  --grade-easy:  #94a3b8;",
+    "  --grade-6a:    #22d3ee;",
+    "  --grade-6b:    #4ade80;",
+    "  --grade-6c:    #a3e635;",
+    "  --grade-7a:    #facc15;",
+    "  --grade-7b:    #fb923c;",
+    "  --grade-7c:    #f87171;",
+    "  --grade-8a:    #c084fc;",
+    "  --tier-peer:      #5b8def;",
+    "  --tier-heuristic: #dba43a;",
+    "  --tier-community: #cd7cae;",
     "}",
     // Bebas Neue, SIL OFL 1.1, (c) Dharma Type -- sourced directly from
     // https://github.com/dharmatype/Bebas-Neue, not Google Fonts. Absolute
@@ -60,6 +82,17 @@
     "  --color-accent:      #ff2727;",
     "  --color-accent-text: #ffffff;",
     "  --color-border:      #dcdcdc;",
+    "  --grade-easy:  #64748b;",
+    "  --grade-6a:    #0891b2;",
+    "  --grade-6b:    #16a34a;",
+    "  --grade-6c:    #65a30d;",
+    "  --grade-7a:    #ca8a04;",
+    "  --grade-7b:    #ea580c;",
+    "  --grade-7c:    #b91c1c;",
+    "  --grade-8a:    #9333ea;",
+    "  --tier-peer:      #2e5fb8;",
+    "  --tier-heuristic: #a6740a;",
+    "  --tier-community: #a34a7a;",
     "}",
     "[hidden] { display: none; }",
     // Custom elements are `display: inline` by default with no UA
@@ -67,7 +100,19 @@
     // block-level (a header row plus a hidden modal overlay), and
     // consumers rely on being able to apply block-level margin utilities
     // (e.g. mb-4) directly to <climbing-header> itself.
-    "climbing-header { display: block; }"
+    "climbing-header { display: block; }",
+    // <climbing-menu-bar> (#346) is markup-only by design (see its own
+    // file comment) -- its two children (the discipline picker, the
+    // burger menu) relied on being direct children of /logbook's own flex
+    // #header-row to lay out side by side. Extracted into a custom
+    // element (default display: inline), that layout broke: both children
+    // just stack as plain blocks now, since neither establishes flex
+    // layout on its own. Fixed here rather than in climbing-menu-bar.js
+    // itself since every consumer of that component already loads this
+    // classic script first for exactly this class of fix (see
+    // climbing-header's own rule above) -- no new <script> tag needed on
+    // any consuming page. Found via Raven's production report, 2026-08-10.
+    "climbing-menu-bar { display: flex; align-items: center; gap: .5rem; width: 100%; }"
   ].join("\n");
 
   function injectTokens() {
@@ -98,27 +143,44 @@
   // client/modal-utils.js) need to leave the footnote out of their own
   // config, since this component already owns it end to end -- see
   // those files' own comments (#348).
-  var BRAND_HTML =
-    '<div class="flex items-end justify-center gap-[.26rem] mb-4" id="brand-header-row">' +
-    '  <div class="shrink-0 flex mb-[4.48px] max-[600px]:mb-[3.2px]">' +
-    '    <svg class="w-[54.272px] h-[42.4px] max-[600px]:w-[39.32px] max-[600px]:h-[30.72px]" viewBox="0 14.4 122.88 96" aria-hidden="true">' +
-    '      <path d="M45.6,14.4l23.718,48l-2.99,6l-21.689,0l10.843,21.6l-10.142,20.4l-45.342,0l45.6,-96Z" fill="currentColor"/>' +
-    '      <path d="M85.203,37.2l16.333,31.2l-10.787,21.6l21.63,0l10.501,20.4l-74.042,0l36.364,-73.2Z" fill="currentColor"/>' +
-    '    </svg>' +
-    '  </div>' +
-    '  <div>' +
-    '    <h1 class="font-display font-normal uppercase tracking-wide text-[2.4rem] leading-none mb-[-.3rem] max-[600px]:text-[1.8rem]"><span class="text-accent">Climbing</span> <span class="text-foreground">Logbook</span></h1>' +
-    '    <p class="font-display font-normal uppercase tracking-wide leading-none text-[0.8512rem] max-[600px]:text-[0.6384rem] text-muted mb-0 text-center">Log your climbs, visualise your progress (<button type="button" class="inline [font-size:inherit] bg-transparent border-0 p-0 cursor-pointer text-accent no-underline hover:underline" id="footnote-trigger">or not</button>)</p>' +
-    '  </div>' +
-    '</div>' +
-    '<div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-center justify-center px-4 py-6 overflow-y-auto" id="footnote-overlay" hidden role="dialog" aria-modal="true" aria-label="Or not" tabindex="-1">' +
-    '  <div class="bg-background border border-border rounded-app p-5 w-full max-w-[380px]">' +
-    '    <div class="flex justify-end mb-1">' +
-    '      <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-[1.1rem] leading-none p-[.2rem] hover:text-foreground" id="footnote-close" aria-label="Close">✕</button>' +
-    '    </div>' +
-    '    <p class="text-foreground text-[.95rem]">...or just keep a list because who can remember All The Stuffs™️ these days? Share it with friends, rivals, concerned family members, or internet strangers. See it on a map. Celebrate your success whether it\'s pulling on the first moves scared or sending your big proj. Just get out there and have fun climbing rocks &lt;3.</p>' +
-    '  </div>' +
-    '</div>';
+  //
+  // alignLeft (new, 2026-08-10): login/register/reset-password/apex are
+  // narrow single-column pages, where centering this row (the default)
+  // is correct -- but #348 later added /:username/{log,map,performance}
+  // and the public profile page as consumers, and those are left-aligned
+  // dashboard layouts matching /logbook's own #brand-header-row (no
+  // justify-center there, no text-center on the tagline). Reusing the
+  // centered markup unmodified for those four was wrong -- found via
+  // Raven's production report. alignLeft is opt-in (default false) so
+  // the four original, unaffected consumers don't change at all.
+  function brandHtml(alignLeft) {
+    var rowClass = alignLeft
+      ? "flex items-end gap-[.26rem] mb-4"
+      : "flex items-end justify-center gap-[.26rem] mb-4";
+    var taglineClass = "font-display font-normal uppercase tracking-wide leading-none text-[0.8512rem] max-[600px]:text-[0.6384rem] text-muted mb-0" + (alignLeft ? "" : " text-center");
+    return (
+      '<div class="' + rowClass + '" id="brand-header-row">' +
+      '  <div class="shrink-0 flex mb-[4.48px] max-[600px]:mb-[3.2px]">' +
+      '    <svg class="w-[54.272px] h-[42.4px] max-[600px]:w-[39.32px] max-[600px]:h-[30.72px]" viewBox="0 14.4 122.88 96" aria-hidden="true">' +
+      '      <path d="M45.6,14.4l23.718,48l-2.99,6l-21.689,0l10.843,21.6l-10.142,20.4l-45.342,0l45.6,-96Z" fill="currentColor"/>' +
+      '      <path d="M85.203,37.2l16.333,31.2l-10.787,21.6l21.63,0l10.501,20.4l-74.042,0l36.364,-73.2Z" fill="currentColor"/>' +
+      '    </svg>' +
+      '  </div>' +
+      '  <div>' +
+      '    <h1 class="font-display font-normal uppercase tracking-wide text-[2.4rem] leading-none mb-[-.3rem] max-[600px]:text-[1.8rem]"><span class="text-accent">Climbing</span> <span class="text-foreground">Logbook</span></h1>' +
+      '    <p class="' + taglineClass + '">Log your climbs, visualise your progress (<button type="button" class="inline [font-size:inherit] bg-transparent border-0 p-0 cursor-pointer text-accent no-underline hover:underline" id="footnote-trigger">or not</button>)</p>' +
+      '  </div>' +
+      '</div>' +
+      '<div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-center justify-center px-4 py-6 overflow-y-auto" id="footnote-overlay" hidden role="dialog" aria-modal="true" aria-label="Or not" tabindex="-1">' +
+      '  <div class="bg-background border border-border rounded-app p-5 w-full max-w-[380px]">' +
+      '    <div class="flex justify-end mb-1">' +
+      '      <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-[1.1rem] leading-none p-[.2rem] hover:text-foreground" id="footnote-close" aria-label="Close">✕</button>' +
+      '    </div>' +
+      '    <p class="text-foreground text-[.95rem]">...or just keep a list because who can remember All The Stuffs™️ these days? Share it with friends, rivals, concerned family members, or internet strangers. See it on a map. Celebrate your success whether it\'s pulling on the first moves scared or sending your big proj. Just get out there and have fun climbing rocks &lt;3.</p>' +
+      '  </div>' +
+      '</div>'
+    );
+  }
 
   function focusableEls(overlay) {
     return [].slice.call(overlay.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'))
@@ -128,7 +190,7 @@
   class ClimbingHeader extends HTMLElement {
     connectedCallback() {
       if (this.getAttribute("variant") !== "brand") return;
-      this.innerHTML = BRAND_HTML;
+      this.innerHTML = brandHtml(this.hasAttribute("align-left"));
       this._wireFootnote();
     }
 

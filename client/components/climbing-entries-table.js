@@ -116,6 +116,7 @@ export class ClimbingEntriesTable extends HTMLElement {
   #gradeRange = null;
   #sortByLocation = {};
   #collapsed = new Set();
+  #collapseInitialized = false;
   #dragThumb = null; // "min" | "max" | null
   #wired = false;
 
@@ -296,9 +297,31 @@ export class ClimbingEntriesTable extends HTMLElement {
   }
 
   #update() {
+    this.#maybeInitCollapse();
     this.#updateFilterUI();
     this.#renderSections();
     this.#updateCollapseAllBtn();
+  }
+
+  // client/main.js explicitly seeds store.setCollapsed() with every
+  // location id once at boot, so /logbook always starts with every group
+  // collapsed. This component has no equivalent caller-driven hook
+  // (#collapsed is private, unlike store.js's own setCollapsed()) -- both
+  // real consumers (client/log-main.js, client/profile-main.js) were
+  // missing the same default, so every group rendered fully expanded on
+  // first load. Fixed here, once, rather than in each composition root,
+  // since the gap is genuinely this component's own (found via Raven's
+  // production report, 2026-08-10). One-time: seeds only while entries/
+  // places are still empty going non-empty for the first time, so a
+  // user's own expand/collapse choices survive later re-renders (e.g.
+  // after adding an entry) instead of being clobbered back to all-
+  // collapsed on every #update().
+  #maybeInitCollapse() {
+    if (this.#collapseInitialized) return;
+    if (this.#entries.length === 0 || this.#places.length === 0) return;
+    const locationIds = groupByPlace(this.#filteredEntries(), this.#entries, this.#places).map(([locationId]) => locationId);
+    this.#collapsed = new Set(locationIds);
+    this.#collapseInitialized = true;
   }
 
   #updateFilterUI() {
