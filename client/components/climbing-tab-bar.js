@@ -59,7 +59,11 @@ const TABS = [
   { page: "performance", label: "Grade Pyramid", requiresPerformance: true },
 ];
 
-const LINK_CLASSES = "whitespace-nowrap text-[.95rem] font-semibold text-muted pb-2 border-b-2 border-transparent transition-colors duration-150 hover:text-foreground aria-[current=page]:text-foreground aria-[current=page]:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2";
+// no-underline: these are real <a> links (unlike /logbook's own <button>-
+// based tabs, which never needed it) -- nothing in this codebase's global
+// CSS strips the browser's default anchor underline, so without it every
+// tab renders underlined. Found via Raven's production report, 2026-08-10.
+const LINK_CLASSES = "no-underline whitespace-nowrap text-[.95rem] font-semibold text-muted pb-2 border-b-2 border-transparent transition-colors duration-150 hover:text-foreground aria-[current=page]:text-foreground aria-[current=page]:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2";
 
 export class ClimbingTabBar extends HTMLElement {
   static get observedAttributes() {

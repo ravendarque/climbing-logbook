@@ -57,6 +57,10 @@ test("adds and then deletes an entry via the Add/Edit modal", async ({ page }) =
   await expect(page.locator("#entry-overlay")).toBeHidden();
   await expect(page.locator("#sections")).toContainText(entryName);
 
+  // <climbing-entries-table> now starts every location group collapsed
+  // (#409, matching /logbook's own default) -- same "Expand all" click
+  // e2e/entry-edit-delete.spec.js's openEditModal() already uses.
+  await page.locator("#collapse-all-btn").click();
   const row = page.locator("tr", { has: page.getByText(entryName, { exact: true }) });
   await row.locator(".edit-btn").click();
   await expect(page.locator("#entry-delete-btn")).toBeVisible();
@@ -73,6 +77,8 @@ test("adds and then deletes an entry via the Add/Edit modal", async ({ page }) =
 test("notes overlay opens and closes on Escape", async ({ page }) => {
   await gotoLogPage(page);
 
+  // Same default-collapsed reasoning as the test above.
+  await page.locator("#collapse-all-btn").click();
   await page.locator(".notes-btn").first().click();
   await expect(page.locator("#notes-overlay")).toBeVisible();
 

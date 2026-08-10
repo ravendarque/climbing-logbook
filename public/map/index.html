@@ -30,11 +30,16 @@
 </head>
 <body class="bg-background text-foreground font-sans px-4 pt-6 pb-16 min-w-[300px]">
 <div class="max-w-[960px] mx-auto">
-  <climbing-header variant="brand"></climbing-header>
-
+  <!-- Picker/menu row before the brand row, and align-left on
+       <climbing-header> -- matches /logbook's own layout (left-aligned
+       brand row below the header row, not centered above it). Found via
+       Raven's production report, 2026-08-10 -- see climbing-header.js's
+       own comment on the align-left attribute. -->
   <div class="flex items-center justify-end gap-2 mb-6" id="header-row">
     <climbing-menu-bar></climbing-menu-bar>
   </div>
+
+  <climbing-header variant="brand" align-left></climbing-header>
 
   <climbing-tab-bar active-page="map"></climbing-tab-bar>
 
