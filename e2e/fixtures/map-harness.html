@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>map-view.js harness (test-only, #407 Tier 1)</title>
+<!-- Test-only fixture -- exercises the real client/map-view.js against a
+     real client/store.js instance seeded with fabricated data, entirely
+     outside the app's real routing/auth (#407 closed the bare /map path
+     this used to reach it through). Markup below is copied from
+     public/map/index.html's own #map-wrap block -- map-view.js queries
+     these ids directly (getElementById, not scoped to a component root),
+     so it needs the real structure, not a simplified stand-in. Not part
+     of any real page shell -- never shipped (see .gitignore's own
+     comment on public/e2e-fixtures/). -->
+<link rel="stylesheet" href="/logbook/tailwind.css">
+<script src="/logbook/components/climbing-header.js"></script>
+</head>
+<body class="bg-background text-foreground font-sans px-4 pt-6 pb-16 min-w-[300px]">
+<div class="max-w-[960px] mx-auto">
+  <p class="text-[.95rem] mb-4" id="subtitle"></p>
+  <div class="relative" id="map-wrap">
+    <div id="map-container"></div>
+    <div class="absolute top-6 left-6 max-[480px]:top-3 max-[480px]:left-3" id="map-variant-picker">
+      <select class="bg-surface border border-border rounded-app px-[.6rem] py-[.35rem] max-[480px]:px-[.4rem] max-[480px]:py-[.25rem] text-foreground text-[.82rem] max-[480px]:text-[.7rem] outline-none cursor-pointer hover:border-accent focus:border-accent" id="map-variant-select" aria-label="Map projection">
+        <option value="greenwich">Greenwich</option>
+        <option value="americas">Americas</option>
+        <option value="oceania">Oceania</option>
+      </select>
+    </div>
+    <div class="absolute top-6 right-6 max-[480px]:top-3 max-[480px]:right-3 flex flex-col gap-[.35rem] max-[480px]:gap-[.25rem]" id="map-zoom-controls" hidden>
+      <button type="button" class="w-8 h-8 max-[480px]:w-6 max-[480px]:h-6 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[1.1rem] max-[480px]:text-[.85rem] font-bold leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-zoom-in" aria-label="Zoom in">+</button>
+      <button type="button" class="w-8 h-8 max-[480px]:w-6 max-[480px]:h-6 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[1.1rem] max-[480px]:text-[.85rem] font-bold leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-zoom-out" aria-label="Zoom out">−</button>
+    </div>
+    <div class="absolute bottom-6 right-6 max-[480px]:bottom-3 max-[480px]:right-3 grid grid-cols-3 grid-rows-3 gap-[2px] w-[84px] h-[84px] max-[480px]:w-[64px] max-[480px]:h-[64px]" id="map-pan-controls" hidden>
+      <button type="button" class="col-start-2 row-start-1 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[.8rem] max-[480px]:text-[.65rem] leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-pan-up" aria-label="Pan up">▲</button>
+      <button type="button" class="col-start-1 row-start-2 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[.8rem] max-[480px]:text-[.65rem] leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-pan-left" aria-label="Pan left">◀</button>
+      <button type="button" class="col-start-3 row-start-2 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[.8rem] max-[480px]:text-[.65rem] leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-pan-right" aria-label="Pan right">▶</button>
+      <button type="button" class="col-start-2 row-start-3 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[.8rem] max-[480px]:text-[.65rem] leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-pan-down" aria-label="Pan down">▼</button>
+    </div>
+  </div>
+  <!-- map-view.js's updateSubtitle() unconditionally clears #footer too
+       (always empty in the real page -- see that function's own comment)
+       -- needs to exist here or it throws before ever reaching the
+       zoom/pan-controls code this fixture actually tests. -->
+  <div id="footer"></div>
+</div>
+<div class="fixed z-30 bg-background border border-border rounded-app p-3 shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)] text-[.85rem] max-w-[240px]" id="map-pin-popover" hidden role="group"></div>
+<script type="module" src="/e2e-fixtures/map-harness.js"></script>
+</body>
+</html>
