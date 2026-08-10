@@ -10,6 +10,36 @@ import { expect, test } from "@playwright/test";
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
+// #376 -- Turnstile's real widget script loads (async) from Cloudflare's
+// own CDN with no test-time mock; a real, previously-observed source of
+// flake (2026-08-07, across 5 full e2e runs: one page.goto() itself timed
+// out waiting for `load`, root-caused to that async script fetch
+// occasionally hanging rather than failing fast against
+// challenges.cloudflare.com from this environment). Intercepted and
+// stubbed here instead of letting the real network request happen at
+// all. Mirrors exactly what register.js's own onTurnstileLoad callback
+// needs: window.turnstile.render()/getResponse()/reset() (the same three
+// methods that file calls), and the onload query-param convention
+// Cloudflare's real script also follows (invoking window[onload] once
+// ready) -- register.js's own #turnstile-widget render call and
+// waitForTurnstile()'s getResponse() wait below both still exercise the
+// exact same code paths they did against the real widget, just without
+// the real network dependency.
+async function mockTurnstile(page) {
+  await page.route("https://challenges.cloudflare.com/turnstile/v0/api.js**", route =>
+    route.fulfill({
+      contentType: "application/javascript",
+      body: `
+        window.turnstile = {
+          render: () => "e2e-stub-widget-id",
+          getResponse: () => "e2e-stub-token",
+          reset: () => {},
+        };
+        if (typeof window.onTurnstileLoad === "function") window.onTurnstileLoad();
+      `,
+    }));
+}
+
 function seedInviteCode(code) {
   execFileSync(
     "pnpm",
@@ -33,6 +63,7 @@ test("registers with a valid invite code, shows the check-your-email state", asy
   const code = `e2e-register-${Date.now()}`;
   seedInviteCode(code);
 
+  await mockTurnstile(page);
   await page.goto("/register/");
   await waitForTurnstile(page);
   await page.locator("#code").fill(code);
@@ -46,6 +77,7 @@ test("registers with a valid invite code, shows the check-your-email state", asy
 });
 
 test("rejects sign-up with no invite code", async ({ page }) => {
+  await mockTurnstile(page);
   await page.goto("/register/");
   await waitForTurnstile(page);
   await page.locator("#email").fill(`e2e-noinvite-${Date.now()}@example.com`);
