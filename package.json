@@ -23,7 +23,7 @@
     "seed": "node scripts/seed-dev-data.mjs",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "e2e:build-fixtures": "mkdir -p public/e2e-fixtures && cp e2e/fixtures/*.html public/e2e-fixtures/ && cp public/logbook/escape-html.js public/logbook/floating-ui-dom.js public/logbook/floating-ui-core.js public/e2e-fixtures/ && esbuild e2e/fixtures/map-harness-entry.js --bundle --format=esm --outfile=public/e2e-fixtures/map-harness.js --external:./escape-html.js --external:./floating-ui-dom.js && esbuild client/components/climbing-grade-pyramid.js --bundle --format=esm --outfile=public/e2e-fixtures/climbing-grade-pyramid.js --external:./escape-html.js",
+    "e2e:build-fixtures": "mkdir -p public/e2e-fixtures && cp e2e/fixtures/*.html public/e2e-fixtures/ && cp public/logbook/escape-html.js public/logbook/floating-ui-dom.js public/logbook/floating-ui-core.js public/e2e-fixtures/ && esbuild e2e/fixtures/map-harness-entry.js --bundle --format=esm --outfile=public/e2e-fixtures/map-harness.js --external:./escape-html.js --external:./floating-ui-dom.js && esbuild client/components/climbing-grade-pyramid.js --bundle --format=esm --outfile=public/e2e-fixtures/climbing-grade-pyramid.js --external:./escape-html.js && esbuild client/components/climbing-entries-table.js --bundle --format=esm --outfile=public/e2e-fixtures/climbing-entries-table.js --external:./escape-html.js",
     "vendor:floating-ui": "node scripts/vendor-floating-ui.mjs"
   },
   "devDependencies": {
