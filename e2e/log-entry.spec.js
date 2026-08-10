@@ -14,7 +14,7 @@ test("logs a new climb via the entry form", async ({ page }) => {
   // Place, grade, date, and status all get sane defaults from
   // openEntryModal() (client/main.js) -- only the place needs picking.
   await page.locator("#place-btn").click();
-  await page.locator('#place-listbox li[data-id="seed-place-font-bas-cuvier"]').click();
+  await page.locator('#place-listbox li[data-key="seed-place-font-bas-cuvier"]').click();
 
   const [response] = await Promise.all([
     page.waitForResponse(res => res.url().includes("/logbook/api/admin/logbook") && res.request().method() === "POST"),

@@ -48,7 +48,7 @@ test("deletes an entry created for this test, via the entry form's delete button
   await page.locator("#add-btn").click();
   await page.locator("#entry-name").fill(entryName);
   await page.locator("#place-btn").click();
-  await page.locator('#place-listbox li[data-id="seed-place-font-bas-cuvier"]').click();
+  await page.locator('#place-listbox li[data-key="seed-place-font-bas-cuvier"]').click();
   await Promise.all([
     page.waitForResponse(res => res.url().includes("/logbook/api/admin/logbook") && res.request().method() === "POST"),
     page.locator("#entry-submit-btn").click(),
