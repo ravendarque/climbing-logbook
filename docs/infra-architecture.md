@@ -19,9 +19,14 @@ climbinglogbook.com (#295 -- the dedicated domain, same Worker, hostname-
 dispatched inside src/index.js's own fetch() handler, not a separate
 deploy)
 ├── /                → climbing-logbook (apex: public/index.html --
-│                      marketing page, links to /register and /login)
+│                      marketing page, links to /register and /login.
+│                      Since #352, an already-logged-in visitor is
+│                      redirected straight to their own my.climbinglogbook
+│                      .com/:username/log instead -- see
+│                      docs/app-architecture.md's "Authentication flow")
 ├── /register         → climbing-logbook (public/register/, #22/#295)
-├── /login            → climbing-logbook (public/login/, #320/#295)
+├── /login            → climbing-logbook (public/login/, #320/#295 --
+│                      same #352 already-logged-in redirect as the apex)
 ├── /reset-password   → climbing-logbook (public/reset-password/, #22/#295)
 └── my.climbinglogbook.com
     ├── /logbook*  → climbing-logbook (the real app -- same
@@ -30,7 +35,13 @@ deploy)
     │                reachable here; deliberately NOT moved to the bare
     │                root, so nothing about the app's existing paths,
     │                cookies, or client code needed to change)
-    └── /:username → climbing-logbook (#113's public per-user page)
+    ├── /:username/{log,map,performance} → climbing-logbook (#347/#348 --
+    │                the owner's own session-gated pages, epic #344's
+    │                route split; a session mismatch/absence redirects to
+    │                /login rather than erroring, see
+    │                docs/app-architecture.md's "Request routing")
+    └── /:username → climbing-logbook (#113/#351's public per-user page --
+                     `logbook_public`-gated, not session-gated)
 ```
 
 Both domains are live at once during the transition -- `ravendarque.com/
