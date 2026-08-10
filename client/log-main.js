@@ -83,6 +83,21 @@ tabBar.setAttribute("username", USERNAME);
 
 const entriesTable = document.querySelector("climbing-entries-table");
 
+// Reparent, not declared here directly (see public/log/index.html's own
+// comment) -- <climbing-entries-table> is already connected and its
+// SHELL already rendered by the time this module-scope code runs (its
+// own customElements.define() call happens at this file's earlier
+// `import "./components/climbing-entries-table.js"`, and custom-element
+// upgrade is synchronous during initial parsing, both well before this
+// deferred module script executes), so #entries-table-actions
+// reliably exists here. Lands add-btn/sync-btn in the same row as the
+// component's own collapse-all-btn, matching /logbook's layout (#409-
+// adjacent fix, found via Raven's production report, 2026-08-11).
+document.getElementById("entries-table-actions").append(
+  document.getElementById("add-btn"),
+  document.getElementById("sync-btn"),
+);
+
 function render() {
   headerChrome.updateDisciplinePicker();
   entriesTable.entries = store.getEntries();

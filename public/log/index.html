@@ -39,22 +39,23 @@
 
   <climbing-tab-bar active-page="log"></climbing-tab-bar>
 
-  <!-- add-btn/sync-btn stay outside <climbing-entries-table> -- they're
-       owned by client/entry-form.js/client/offline-sync.js, not the
-       table's own search/filter/collapse controls (which the component
-       already renders itself, see its own SHELL). -->
-  <div class="flex items-center justify-between mb-2">
-    <div class="flex flex-wrap items-center gap-2">
-      <button type="button" class="admin-btn admin-btn-primary min-w-24 justify-center" id="add-btn" hidden>
-        <svg class="w-4 h-4 stroke-current fill-none shrink-0" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M8 12h8"></path><path d="M12 8v8"></path></svg>
-        <span>Add</span>
-      </button>
-      <button type="button" class="admin-btn min-w-24 justify-center" id="sync-btn" hidden>
-        <svg class="w-4 h-4 stroke-current fill-none shrink-0" id="sync-btn-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 9 3-3 3 3"></path><path d="M13 18H7a2 2 0 0 1-2-2V6"></path><path d="m22 15-3 3-3-3"></path><path d="M11 6h6a2 2 0 0 1 2 2v10"></path></svg>
-        <span id="sync-btn-label">Sync</span>
-      </button>
-    </div>
-  </div>
+  <!-- add-btn/sync-btn are owned by client/entry-form.js/client/
+       offline-sync.js, not <climbing-entries-table> itself -- declared
+       here as plain markup (no layout classes needed; the component's
+       own SHELL owns that), then reparented by client/log-main.js into
+       the component's #entries-table-actions slot once it's connected,
+       landing in the same row as its own collapse-all-btn (matching
+       /logbook's own layout -- found via Raven's production report,
+       2026-08-11: these used to sit in their own row above the search/
+       filter bar instead). -->
+  <button type="button" class="admin-btn admin-btn-primary min-w-24 justify-center" id="add-btn" hidden>
+    <svg class="w-4 h-4 stroke-current fill-none shrink-0" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M8 12h8"></path><path d="M12 8v8"></path></svg>
+    <span>Add</span>
+  </button>
+  <button type="button" class="admin-btn min-w-24 justify-center" id="sync-btn" hidden>
+    <svg class="w-4 h-4 stroke-current fill-none shrink-0" id="sync-btn-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 9 3-3 3 3"></path><path d="M13 18H7a2 2 0 0 1-2-2V6"></path><path d="m22 15-3 3-3-3"></path><path d="M11 6h6a2 2 0 0 1 2 2v10"></path></svg>
+    <span id="sync-btn-label">Sync</span>
+  </button>
 
   <climbing-entries-table editable></climbing-entries-table>
 
