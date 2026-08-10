@@ -319,7 +319,17 @@ export class ClimbingEntriesTable extends HTMLElement {
   #maybeInitCollapse() {
     if (this.#collapseInitialized) return;
     if (this.#entries.length === 0 || this.#places.length === 0) return;
-    const locationIds = groupByPlace(this.#filteredEntries(), this.#entries, this.#places).map(([locationId]) => locationId);
+    // Unfiltered this.#entries, not this.#filteredEntries() -- the
+    // latter is scoped to whichever discipline happens to be active at
+    // seed time (Boulder, at boot), so a location with only Lead entries
+    // and zero Boulder ones was never added to the seeded set, and
+    // defaulted to expanded the first time the Lead view revealed it
+    // (#411, found immediately after #409 shipped this seeding). Every
+    // location with entries in *either* discipline needs to start
+    // collapsed regardless of which discipline loads first -- matching
+    // client/main.js's own original seed, which mapped over
+    // store.getEntries() with no discipline filtering at all.
+    const locationIds = groupByPlace(this.#entries, this.#entries, this.#places).map(([locationId]) => locationId);
     this.#collapsed = new Set(locationIds);
     this.#collapseInitialized = true;
   }

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>climbing-entries-table harness (test-only, #411)</title>
+<!-- Test-only fixture -- mounts the real <climbing-entries-table>
+     against fabricated entries spanning both disciplines, entirely
+     outside the app's real routing/auth (same #407 Tier 1 pattern as
+     pyramid-harness.html/map-harness.html -- see either file's own
+     comment for the full rationale). Specifically exercises #411: a
+     location with entries in only one discipline must still start
+     collapsed the first time that discipline's view renders it, not
+     just the discipline that happened to be active at first load. Not
+     part of any real page shell -- never shipped (see .gitignore's own
+     comment on public/e2e-fixtures/). -->
+<link rel="stylesheet" href="/logbook/tailwind.css">
+<script src="/logbook/components/climbing-header.js"></script>
+<script type="module" src="/e2e-fixtures/climbing-entries-table.js"></script>
+</head>
+<body class="bg-background text-foreground font-sans px-4 pt-6 pb-16 min-w-[300px]">
+<div class="max-w-[960px] mx-auto">
+  <climbing-entries-table editable active-discipline="boulder"></climbing-entries-table>
+</div>
+<script type="module">
+  const el = document.querySelector("climbing-entries-table");
+  el.locations = [
+    { id: "loc-both", name: "Both Crag", country: "United Kingdom" },
+    { id: "loc-lead-only", name: "Lead Only Crag", country: "France" },
+  ];
+  el.places = [
+    { id: "place-both", locationId: "loc-both", area: "" },
+    { id: "place-lead-only", locationId: "loc-lead-only", area: "" },
+  ];
+  el.entries = [
+    { id: "e1", placeId: "place-both", type: "boulder", status: "send", grade: "6A", date: "2026-05-01", name: "Boulder problem" },
+    { id: "e2", placeId: "place-lead-only", type: "lead", status: "send", grade: "6a", date: "2026-05-02", name: "Lead route" },
+  ];
+</script>
+</body>
+</html>
