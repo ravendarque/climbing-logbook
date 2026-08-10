@@ -100,7 +100,19 @@ const SHELL = `
     </div>
   </div>
 
-  <div class="flex items-center justify-end mb-2">
+  <div class="flex items-center justify-between mb-2">
+    <!-- Empty unless a consuming page's own composition root reparents
+         external action buttons in here (e.g. client/log-main.js's
+         Add/Sync buttons, owned by entry-form.js/offline-sync.js, not
+         this component) -- same slot position/classes as /logbook's own
+         hand-authored equivalent row (public/logbook/index.html), so a
+         page that fills it gets an identical layout, and a page that
+         doesn't (the read-only public profile page) just sees an empty,
+         invisible div next to collapse-all-btn. Found via Raven's
+         production report, 2026-08-11: log-main.js's own Add/Sync
+         buttons were left as page-level siblings positioned above the
+         search/filter row instead of here. -->
+    <div class="flex flex-wrap items-center gap-2" id="entries-table-actions"></div>
     <button type="button" class="bg-transparent border-0 text-muted text-[.8rem] font-semibold cursor-pointer px-[.3rem] py-[.2rem] hover:text-accent" id="collapse-all-btn">Expand all</button>
   </div>
 
