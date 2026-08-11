@@ -20,10 +20,11 @@
 // which custom element the markup happens to live inside.
 //
 // admin-hidden (#351): the public/read-only page's own consumer -- login/
-// logout and Athlete Mode are genuinely never reachable there (no
-// admin-auth.js/store.js session wiring exists on that composition root
-// at all, "security by absence" per #344's decision), so those rows are
-// removed from the markup entirely rather than left present-but-inert.
+// logout, Athlete Mode, and the Public Logbook toggle (#301) are
+// genuinely never reachable there (no admin-auth.js/store.js session
+// wiring exists on that composition root at all, "security by absence"
+// per #344's decision), so those rows are removed from the markup
+// entirely rather than left present-but-inert.
 // Read once at connectedCallback time, not observed/reactive -- every
 // real consumer sets this as a static attribute in its own shell markup
 // before the component ever connects; nothing needs to toggle it after
@@ -59,6 +60,10 @@ function menuPopover(adminHidden) {
   const adminRows = adminHidden ? "" : `
       <button type="button" class="group inline-flex items-center h-[var(--field-h)] gap-2 bg-transparent border border-transparent px-[.8rem] cursor-pointer text-[.82rem] font-semibold text-foreground disabled:opacity-60 disabled:cursor-not-allowed" id="athlete-mode-btn" role="switch" aria-checked="false" hidden>
         <span class="transition-colors duration-150 group-aria-[checked=false]:text-muted">Athlete Mode</span>
+        <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
+      </button>
+      <button type="button" class="group inline-flex items-center h-[var(--field-h)] gap-2 bg-transparent border border-transparent px-[.8rem] cursor-pointer text-[.82rem] font-semibold text-foreground disabled:opacity-60 disabled:cursor-not-allowed" id="public-toggle-btn" role="switch" aria-checked="false" hidden>
+        <span class="transition-colors duration-150 group-aria-[checked=false]:text-muted">Public Logbook</span>
         <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
       </button>`;
   const loginBtn = adminHidden ? "" : `<button type="button" class="admin-btn" id="login-toggle-btn">Log in</button>`;

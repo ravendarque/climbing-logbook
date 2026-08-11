@@ -1,16 +1,16 @@
 import { json, parseJsonBody } from "../lib/json.js";
 
-const DEFAULT_SETTINGS = { athleteMode: false, activeDiscipline: "boulder" };
+// logbookPublic default matches the schema's own DEFAULT 1 (migrations/
+// 0003_app_data.sql) -- an anonymous caller or a logged-in user who's
+// never touched settings both see the same effective default src/api/
+// public-profile.js's own resolvePublicUser() already falls back to.
+const DEFAULT_SETTINGS = { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true };
 
-// logbook_public (#21) exists in the DB with a real default, but isn't
-// exposed through this API yet -- nothing reads/writes it until #113
-// (public per-user routing) and #301 (the settings-UI toggle), both
-// separate, deferred issues. Keeping the wire contract exactly as it was
-// avoids inventing an API shape ahead of the feature that needs it.
 function rowToJson(row) {
   return {
     athleteMode: !!row.athlete_mode,
     activeDiscipline: row.active_discipline,
+    logbookPublic: !!row.logbook_public,
   };
 }
 
@@ -59,6 +59,9 @@ export async function handlePatchSettings(request, env, userId) {
   if ("activeDiscipline" in body && body.activeDiscipline !== "boulder" && body.activeDiscipline !== "lead") {
     return json({ error: "activeDiscipline must be 'boulder' or 'lead'" }, 400);
   }
+  if ("logbookPublic" in body && typeof body.logbookPublic !== "boolean") {
+    return json({ error: "logbookPublic must be a boolean" }, 400);
+  }
 
   // Upsert: #21's schema doesn't create a settings row at signup, only a
   // DEFAULT clause for once a row exists -- a user's first PATCH is what
@@ -77,6 +80,10 @@ export async function handlePatchSettings(request, env, userId) {
   if ("activeDiscipline" in body) {
     sets.push("active_discipline = ?");
     values.push(body.activeDiscipline);
+  }
+  if ("logbookPublic" in body) {
+    sets.push("logbook_public = ?");
+    values.push(body.logbookPublic ? 1 : 0);
   }
 
   if (sets.length > 0) {

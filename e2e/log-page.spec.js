@@ -47,6 +47,29 @@ test("renders the shared chrome and a real entries table, and switches disciplin
   await expect(page.locator("#discipline-btn-label")).toHaveText("Boulder");
 });
 
+test("Public Logbook toggle (#301) switches and persists via the settings PATCH", async ({ page }) => {
+  await gotoLogHarness(page);
+
+  await page.locator("#header-menu-btn").click();
+  const publicToggle = page.locator("#public-toggle-btn");
+  await expect(publicToggle).toBeVisible();
+  await expect(publicToggle).toHaveAttribute("aria-checked", "true");
+
+  await Promise.all([
+    page.waitForResponse(res => res.url().includes("/logbook/api/admin/settings") && res.request().method() === "PATCH"),
+    publicToggle.click(),
+  ]);
+  await expect(publicToggle).toHaveAttribute("aria-checked", "false");
+
+  // Reload -- the mocked GET /logbook/api/settings now reflects the PATCH
+  // (mockApi() mutates its in-memory settings on every write), proving
+  // the toggle's state actually round-trips through the backend rather
+  // than just flipping client-side.
+  await page.reload();
+  await page.locator("#header-menu-btn").click();
+  await expect(page.locator("#public-toggle-btn")).toHaveAttribute("aria-checked", "false");
+});
+
 test("adds and then deletes an entry via the Add/Edit modal", async ({ page }) => {
   await gotoLogHarness(page);
 

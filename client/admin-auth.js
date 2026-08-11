@@ -29,8 +29,17 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
 
   const loginToggleBtn = document.getElementById("login-toggle-btn");
   const athleteModeBtn = document.getElementById("athlete-mode-btn");
+  // null on /logbook -- the Public Logbook toggle (#301) is scoped to
+  // the newer /log, /map, /performance pages only (Raven's own call,
+  // 2026-08-11: /logbook is daily-driver-retired but still the
+  // untouched reference page #344's parallel-migration policy protects,
+  // so its markup was never given this element). Every use below is
+  // null-guarded because of this -- unlike athleteModeBtn above, which
+  // every consumer's markup has always included.
+  const publicToggleBtn = document.getElementById("public-toggle-btn");
 
   let athleteMode = false;
+  let logbookPublic = true;
 
   // Set (not directly via store.setActiveType()) by fetchSettings() below,
   // then applied in boot() after both it and the entries load are known
@@ -57,6 +66,11 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
       if (data.activeDiscipline === "boulder" || data.activeDiscipline === "lead") {
         persistedDiscipline = data.activeDiscipline;
       }
+      // Always updated, even on /logbook where publicToggleBtn is null and
+      // nothing reads isLogbookPublic() -- harmless unused state there,
+      // same as persistedDiscipline being tracked regardless of whether a
+      // given page's UI surfaces it.
+      logbookPublic = !!data.logbookPublic;
     } catch {
       // Offline — keep the last-known in-memory defaults rather than
       // guessing; the Athlete Mode toggle is only interactive when logged
@@ -96,6 +110,37 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
       updateAdminBar();
     }
   });
+
+  // #301 -- new-pages-only (see publicToggleBtn's own comment above).
+  // Same shape as athleteModeBtn's click handler immediately above,
+  // PATCHing the one field that changed.
+  if (publicToggleBtn) {
+    publicToggleBtn.addEventListener("click", async () => {
+      const next = !logbookPublic;
+      publicToggleBtn.disabled = true;
+      try {
+        const res = await adminFetch(adminSettingsUrl, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ logbookPublic: next }),
+        });
+        if (res.status === 401 || isAuthRedirect(res)) {
+          store.setLoggedIn(false);
+        } else if (res.ok) {
+          const data = await res.json();
+          logbookPublic = !!data.logbookPublic;
+          publicToggleBtn.title = "";
+        } else {
+          publicToggleBtn.title = `Failed to update Public Logbook (${res.status})`;
+        }
+      } catch (err) {
+        publicToggleBtn.title = `Failed to update Public Logbook: ${err.message}`;
+      } finally {
+        publicToggleBtn.disabled = false;
+        updateAdminBar();
+      }
+    });
+  }
 
   // Better Auth's own session-check endpoint (#320 -- was Cloudflare
   // Access's /admin/session until here). Returns `null` (valid JSON) when
@@ -179,6 +224,7 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
     checkSession,
     fetchSettings,
     isAthleteMode: () => athleteMode,
+    isLogbookPublic: () => logbookPublic,
     getPersistedDiscipline: () => persistedDiscipline,
     resolveActiveType,
   };
