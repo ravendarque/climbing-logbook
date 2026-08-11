@@ -130,13 +130,6 @@ there's no minting UI at this scale (#296).
 Everything provisionable is declarative and idempotent via Terraform in
 `infra/`:
 
-- `cloudflare_workers_kv_namespace` — the KV namespace backing logbook data
-  (one-time-imported into state from a pre-Terraform namespace via a
-  declarative `import` block in `infra/kv.tf`; the block itself was
-  removed once the import completed, per Terraform's own guidance —
-  leaving it in place would have broken a from-scratch disaster-recovery
-  apply, since it'd try importing an ID that no longer exists instead of
-  just creating a fresh namespace)
 - `cloudflare_d1_database` (`infra/d1.tf`, #20) — backs Better Auth now,
   and the rest of the app's multi-tenant data since #21/#297
 - `cloudflare_turnstile_widget` (`infra/turnstile.tf`, #311) — form-level
@@ -144,7 +137,7 @@ Everything provisionable is declarative and idempotent via Terraform in
   (`climbinglogbook.com` since #295's apex cutover moved `/register`
   there — was `var.zone_name`/`ravendarque.com` before).
   Outputs a public `sitekey` (synced into `public/register/register.js`
-  by `infra.yml`, same mechanism as the KV/D1 id sync below)
+  by `infra.yml`, same mechanism as the D1 id sync below)
   and a `sensitive` `secret` (read manually via `terraform output -raw
   turnstile_secret`, piped straight into `wrangler secret put
   TURNSTILE_SECRET_KEY`, never auto-synced or displayed)
@@ -172,7 +165,7 @@ Everything provisionable is declarative and idempotent via Terraform in
   real traffic -- harmless dead config, not worth a separate cleanup PR.
 
 **Intentionally excluded from Terraform**, by design: the logbook's actual
-data (KV/D1 values, not the infrastructure holding them), and
+data (D1's row data, not the infrastructure holding it), and
 `BETTER_AUTH_SECRET`/`TURNSTILE_SECRET_KEY` (Worker runtime secrets, not
 something Terraform itself consumes — see "Required secrets/variables"
 below).
@@ -225,7 +218,7 @@ machinery, not infra-provisioning, and runs on every PR rather than on
 | Workflow | Trigger | Job |
 |---|---|---|
 | `bootstrap-state.yml` | Manual only (`workflow_dispatch`) | Creates the R2 state bucket if missing. Safe to re-run any time, including full disaster recovery. |
-| `infra.yml` | `pull_request`/`push` on `infra/**`, plus manual | `terraform plan` on PRs, `apply` on merge to `main`. Also syncs `wrangler.jsonc`'s KV namespace id from Terraform's output (see below), opening and self-merging a PR if it changed. |
+| `infra.yml` | `pull_request`/`push` on `infra/**`, plus manual | `terraform plan` on PRs, `apply` on merge to `main`. Also syncs `wrangler.jsonc`'s D1 database id from Terraform's output (see below), opening and self-merging a PR if it changed. |
 | `deploy.yml` | `push` of a `vX.Y.Z` tag, plus manual | `wrangler deploy` — the Worker script and static assets. Tied to releases, not every merge — see `docs/versioning.md`. |
 
 **Shared pnpm/Node setup**: `deploy.yml`, `e2e.yml`, `preview.yml`,
@@ -257,13 +250,12 @@ first `infra.yml` run after introducing it will fail if the state bucket
 doesn't exist yet (expected; nothing is applied before that failure). Order
 of operations for a from-scratch setup: merge → bootstrap → re-run infra.
 
-### KV namespace / D1 database id sync
+### D1 database id sync
 
-`wrangler.jsonc`'s `kv_namespaces[0].id` and `d1_databases[0].database_id`
-must reference the *current* Terraform-managed resources. `infra.yml` reads
-`terraform output -raw kv_namespace_id` / `-raw d1_database_id` after apply
-and rewrites `wrangler.jsonc` if either changed (two separate steps, same
-regex-replace mechanism), then pushes a branch, opens a PR, labels it
+`wrangler.jsonc`'s `d1_databases[0].database_id` must reference the
+*current* Terraform-managed resource. `infra.yml` reads `terraform output
+-raw d1_database_id` after apply and rewrites `wrangler.jsonc` if it
+changed (regex-replace), then pushes a branch, opens a PR, labels it
 `release: none`, waits for the required `check-label` status, and merges it
 itself (squash, `[skip ci]` on the merge commit to avoid retriggering itself
 via the lockfile-in-`infra/**` path match). It used to commit straight to
@@ -271,7 +263,9 @@ via the lockfile-in-`infra/**` path match). It used to commit straight to
 []`, no exceptions — see #179/#181) rejects any direct push regardless of
 actor, so this has to go through a PR. Fully bot-driven, no human review
 gate — the same zero-touch automation level the direct-commit version had,
-just routed through the required PR mechanism.
+just routed through the required PR mechanism. (Same mechanism/step used to
+also sync a `kv_namespaces[0].id` — removed along with the rest of the KV
+infra, #299.)
 
 `wrangler.jsonc`'s `d1_databases[0].database_id` ships with a
 `"PLACEHOLDER-set-by-infra-yml"` value until this sync step's first real
@@ -282,7 +276,7 @@ against production needs the real id, which is why this sync has to happen
 before a real deploy, not just before local development.
 
 `deploy.yml` no longer triggers from any `main`-branch push at all (it's
-tag-gated — see `docs/versioning.md`), so a changed KV id is never picked up
+tag-gated — see `docs/versioning.md`), so a changed D1 id is never picked up
 automatically by this merge. That's only a concern after a full
 disaster-recovery rebuild (the id doesn't otherwise change), and
 `deploy.yml` has `workflow_dispatch` specifically so it can be forced in
@@ -290,7 +284,7 @@ that case.
 
 ## PR preview deployments
 
-Every PR gets a real, working preview URL bound to its own KV namespace —
+Every PR gets a real, working preview URL bound to its own D1 database —
 never production data — via `.github/workflows/preview.yml`. This was built
 as a deliberate alternative to Cloudflare's native Git-linked Workers
 Builds (dashboard-configured, would run as a second deploy path alongside
@@ -314,46 +308,46 @@ script.
   "preview": {
     "workers_dev": true,
     "routes": [],
-    "kv_namespaces": [
-      { "binding": "LOGBOOK_KV", "id": "<preview namespace id>" }
+    "d1_databases": [
+      { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook-preview", "database_id": "<preview database id>", "migrations_dir": "migrations" }
     ]
   }
 }
 ```
 
-`routes` and `kv_namespaces` are explicitly overridden rather than left to
-inherit from the top-level config (both are inheritable by default) —
-`versions upload` never attaches a route regardless, but there's no reason
-to leave the production route pattern or KV namespace sitting in the
-preview env's config. `workers_dev: true` is what makes the preview env's
-`*.workers.dev` URL reachable at all, deliberately the opposite of the
-top-level `workers_dev: false` (see "Why a Worker, not another Pages
-project" above — that `false` exists specifically so Access-gated routes
-aren't bypassable via a public preview URL; the preview env has no
-Access-gated routes to bypass, since `routes` is empty and it never serves
-production traffic).
+`routes` is explicitly overridden rather than left to inherit from the
+top-level config (inheritable by default) — `versions upload` never
+attaches a route regardless, but there's no reason to leave the
+production route pattern sitting in the preview env's config.
+`workers_dev: true` is what makes the preview env's `*.workers.dev` URL
+reachable at all, deliberately the opposite of the top-level
+`workers_dev: false` (see "Why a Worker, not another Pages project" above
+— that `false` exists specifically so Access-gated routes aren't
+bypassable via a public preview URL; the preview env has no Access-gated
+routes to bypass, since `routes` is empty and it never serves production
+traffic).
 
-**The preview KV namespace and preview D1 database are *not*
-Terraform-managed** — unlike their production counterparts (`infra/kv.tf`,
-`infra/d1.tf`), both were one-time manual bootstraps (`wrangler kv
-namespace create <NAME>_PREVIEW` / `wrangler d1 create <name>-preview`, or
-via the dashboard), on the reasoning that per-PR preview data is disposable
-and doesn't need disaster-recovery guarantees the way production data
-does. If replicating this in another repo, provisioning both manually
-(once) is the intended approach, not an oversight to fix.
+**The preview D1 database is *not* Terraform-managed** — unlike its
+production counterpart (`infra/d1.tf`), it was a one-time manual bootstrap
+(`wrangler d1 create <name>-preview`, or via the dashboard), on the
+reasoning that per-PR preview data is disposable and doesn't need
+disaster-recovery guarantees the way production data does. If replicating
+this in another repo, provisioning it manually (once) is the intended
+approach, not an oversight to fix. (A preview KV namespace used to exist
+here too, same manual-bootstrap reasoning -- removed along with the rest
+of the KV infra, #299, since nothing in the app read or wrote it anymore.)
 
 **One-time bootstrap** (needed once per repo/Worker, before `preview.yml`
 can run — `versions upload` requires the target script to already exist):
 
-1. Create the preview KV namespace (dashboard or `wrangler kv namespace
-   create`).
+1. Create the preview D1 database (dashboard or `wrangler d1 create`).
 2. Add the `env.preview` block to `wrangler.jsonc` (above), with the new
-   namespace's id.
+   database's id.
 3. `wrangler deploy --env preview` once, manually, to create the
    `<name>-preview` script itself.
 4. Verify: `wrangler versions upload --env preview --preview-alias
    test-setup`, then curl the resulting URL and confirm it reflects the
-   *preview* namespace's (empty/test) data, not production's.
+   *preview* database's (empty/test) data, not production's.
 5. Add `.github/workflows/preview.yml` (below) — from this point on,
    every PR provisions and updates its own preview automatically.
 
@@ -383,13 +377,13 @@ number (not per-commit), so `gh pr comment --edit-last` updates the same
 comment across pushes to that PR instead of a new comment piling up on
 every push — falling back to a fresh comment if `--edit-last` fails
 (nothing to edit yet, i.e. the first push). Comment body explicitly notes
-the preview is bound to preview KV, not production data, so nobody mistakes
-a preview for a live look at real logbook entries.
+the preview is bound to a preview D1 database, not production data, so
+nobody mistakes a preview for a live look at real logbook entries.
 
 **No additional `CLOUDFLARE_API_TOKEN` scopes needed** — the same token
-covering production deploys already has Workers Scripts: Edit, Workers KV
-Storage: Edit, and D1: Edit account-wide (see permission table below),
-which covers the `-preview` script and its own namespace/database too.
+covering production deploys already has Workers Scripts: Edit and D1: Edit
+account-wide (see permission table below), which covers the `-preview`
+script and its own database too.
 
 **Fixed 2026-08-05 (originally flagged as a known gap in #20):** the
 `env.preview` block had no `d1_databases` entry at all for a while. The
@@ -402,8 +396,8 @@ inherited the real production database instead of erroring. Caught when
 Raven asked for #320's preview login credentials and there weren't any (no
 bootstrap had ever run against a preview database, because there wasn't
 one) — any signup attempted there would have written into production.
-Fixed by bootstrapping `climbing-logbook-preview` the same manual way as
-the KV namespace (see above), applying migrations to it directly
+Fixed by manually bootstrapping `climbing-logbook-preview` (see above),
+applying migrations to it directly
 (`wrangler d1 migrations apply climbing-logbook-preview --remote --env
 preview`), and adding an explicit `d1_databases` override to `env.preview`
 in `wrangler.jsonc`. `preview.yml` now also runs that same migrations-apply
@@ -429,7 +423,6 @@ same account/zone.
 
 Account-scoped (the Cloudflare account above):
 - Workers Scripts: Edit
-- Workers KV Storage: Edit
 - Workers R2 Storage: Edit
 - D1: Edit (#20 — provisioning `infra/d1.tf` and applying migrations)
 - Turnstile: Edit (#311 — provisioning `infra/turnstile.tf`; same
@@ -456,7 +449,7 @@ Zone-scoped (climbinglogbook.com, added #295):
 
 1. Re-run "Bootstrap Terraform state bucket" (recreates the state bucket if
    gone).
-2. Merge/push to `infra/**` — Terraform recreates the KV namespace and D1
-   database; `wrangler.jsonc` is updated automatically.
+2. Merge/push to `infra/**` — Terraform recreates the D1 database;
+   `wrangler.jsonc` is updated automatically.
 3. Manually trigger "Deploy" (`workflow_dispatch`) — the sync commit from
    step 2 is `[skip ci]`, so this step doesn't happen automatically.

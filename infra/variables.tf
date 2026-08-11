@@ -19,12 +19,6 @@ variable "app_zone_name" {
   default     = "climbinglogbook.com"
 }
 
-variable "kv_namespace_title" {
-  description = "Title of the Workers KV namespace holding logbook entries."
-  type        = string
-  default     = "LOGBOOK_KV"
-}
-
 variable "d1_database_name" {
   description = "Name of the D1 database backing Better Auth and (eventually, #21) multi-tenant logbook data."
   type        = string

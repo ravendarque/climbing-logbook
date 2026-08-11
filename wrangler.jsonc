@@ -42,15 +42,12 @@
       "/profile", "/profile/*"
     ]
   },
-  "kv_namespaces": [
-    { "binding": "LOGBOOK_KV", "id": "47bd45146334450f82ca7dcb69c34b15" }
-  ],
   // Better Auth (#20) + the eventual multi-tenant app data (#21) -- id is a
   // placeholder until infra/d1.tf's Terraform apply provisions the real
-  // database and infra.yml's sync step (same mechanism as the KV id below)
-  // rewrites it. Placeholder is harmless for local dev/Vitest -- both run
-  // against a local Miniflare-simulated D1, which doesn't need the id to
-  // correspond to a real remote database.
+  // database and infra.yml's sync step rewrites it. Placeholder is
+  // harmless for local dev/Vitest -- both run against a local
+  // Miniflare-simulated D1, which doesn't need the id to correspond to a
+  // real remote database.
   "d1_databases": [
     { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook", "database_id": "8f094438-520c-4a67-a685-aee3db6198ad", "migrations_dir": "migrations" }
   ],
@@ -87,12 +84,12 @@
   // in CI (see .github/workflows/preview.yml) uploads a version of a
   // *separate* Worker script (Wrangler appends the environment name --
   // this becomes "climbing-logbook-preview", not "climbing-logbook") bound
-  // to its own KV namespace, never the production one. `routes` and
-  // `kv_namespaces` are both explicitly overridden rather than left to
-  // inherit from the top level -- routes/workers_dev are inheritable by
-  // default, and while `versions upload` (unlike `deploy`) never actually
-  // attaches a route to traffic, there's no reason to leave the production
-  // route pattern sitting in the preview env's config at all.
+  // to its own D1 database, never the production one. `routes` is
+  // explicitly overridden rather than left to inherit from the top level
+  // -- routes/workers_dev are inheritable by default, and while `versions
+  // upload` (unlike `deploy`) never actually attaches a route to traffic,
+  // there's no reason to leave the production route pattern sitting in
+  // the preview env's config at all.
   "env": {
     "preview": {
       "workers_dev": true,
@@ -105,22 +102,19 @@
       // TURNSTILE_SECRET_KEY (#311): Cloudflare's own public "always
       // passes" test secret, not the real production one -- preview
       // deployments are disposable/test data anyway (same reasoning as
-      // the preview KV/D1 above), and committing this specific value is
-      // safe since Cloudflare documents it publicly for exactly this
-      // purpose (never do this with the real secret). Deliberately has
-      // no equivalent at the top level -- production gets the real
+      // the preview D1 database below), and committing this specific
+      // value is safe since Cloudflare documents it publicly for exactly
+      // this purpose (never do this with the real secret). Deliberately
+      // has no equivalent at the top level -- production gets the real
       // value via `wrangler secret put` only, no `vars` default.
       "vars": {
         "BETA_GATE_ENABLED": "true",
         "TURNSTILE_SECRET_KEY": "1x0000000000000000000000000000000AA"
       },
-      "kv_namespaces": [
-        { "binding": "LOGBOOK_KV", "id": "c09de14bab5142c58b6cb90b6072ba2f" }
-      ],
-      // Own D1 database, same disposable-preview-data reasoning as the KV
-      // namespace above -- manually bootstrapped (`wrangler d1 create
-      // climbing-logbook-preview`), not Terraform-managed, matching the KV
-      // precedent. Was previously missing entirely: `d1_databases` isn't
+      // Own D1 database, disposable preview data -- manually bootstrapped
+      // (`wrangler d1 create climbing-logbook-preview`), not
+      // Terraform-managed (unlike production's own `infra/d1.tf`). Was
+      // previously missing entirely: `d1_databases` isn't
       // inheritable-but-overridden like `vars`/`routes` are documented to
       // be here, it's inheritable-and-left-alone, which silently pointed
       // every PR preview at the *production* database once #21 gave

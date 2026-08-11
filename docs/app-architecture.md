@@ -5,9 +5,8 @@
 A single Cloudflare Worker serving five separate static-shell frontend
 pages (`public/logbook/`, `public/log/`, `public/map/`, `public/performance/`,
 `public/profile/`, plus the standalone auth/marketing pages) and a JSON
-API (`src/`), backed by D1 (#21/#297; a Workers KV namespace still exists
-in config for one legacy Terraform-provisioning reason, see "Data model"
-below, but nothing in the app reads or writes it anymore). No frontend
+API (`src/`), backed by D1 (#21/#297 -- the earlier Workers KV data model
+is fully gone, code and infra both, #299). No frontend
 framework — plain ES modules, direct DOM manipulation, and a handful of
 framework-free Web Components (`client/components/*.js`,
 `public/logbook/components/climbing-header.js`) shared across pages.
@@ -547,11 +546,10 @@ src/
     │                      request-body helpers shared across every handler
     ├── d1-resource.js   D1-backed analog of the pre-D1 KV version's
     │                      createKvResourceHandlers (kv-resource.js, #270
-    │                      -- fully deleted, #398; see git history if it's
-    │                      ever needed again, the LOGBOOK_KV binding
-    │                      itself stays in wrangler.jsonc for one
-    │                      unrelated Terraform-provisioning reason, see
-    │                      "Data model" below). Same GET(list)+POST(create)
+    │                      -- fully deleted, #398; the LOGBOOK_KV binding
+    │                      itself and its Terraform provisioning are gone
+    │                      too, #299; see git history if any of it's ever
+    │                      needed again). Same GET(list)+POST(create)
     │                      contract, idempotent-replay via client-minted
     │                      UUIDs, but every row scoped by user_id instead
     │                      of one global KV blob. listForUser()/
@@ -897,7 +895,9 @@ edge-authentication glue — dead since #320 rewired `client/admin-auth.js`
 onto Better Auth's own session/sign-in/sign-out endpoints instead, and now
 that #298 has removed Access itself entirely, nothing can ever reach them
 through a real authenticated flow. Left in place for now, same "rollback
-window before cleanup" treatment as the deleted KV code (#299) once was.
+window before cleanup" treatment #299 applied to the KV code -- a real,
+distinct dead-code cleanup candidate of its own, not yet tracked by an
+issue.
 
 `/logbook/api/auth/*` is the one **prefix**-matched `/logbook/api/*`
 route here — every other route above (that isn't hostname-gated) is an
@@ -1072,15 +1072,13 @@ UUIDs make genuine collisions vanishingly rare, so a duplicate ID on `POST`
 is treated as an idempotent replay (the write already landed; the success
 response was probably lost to a flaky connection) rather than an error.
 
-**The old KV code is fully gone** (#398): `src/lib/kv-resource.js` and
+**The old KV code and infra are fully gone.** `src/lib/kv-resource.js` and
 every KV branch in `src/api/*.js` were deleted once the D1 cutover's
-(#297) rollback window closed — see git history if any of it's ever
-needed again. The `LOGBOOK_KV` binding itself is still declared in
-`wrangler.jsonc` (both the production and preview environments) — that's
-a separate, deliberately-not-yet-made decision, kept because
-`.github/workflows/infra.yml`'s real Terraform-provisioning automation and
-`docs/infra-architecture.md` still reference it, not because the app
-reads or writes KV anywhere anymore.
+(#297) rollback window closed (#398). The `LOGBOOK_KV` binding, its
+Terraform provisioning (`infra/kv.tf`), and the one-off
+`scripts/migrate-kv-to-d1.mjs` cutover script followed once the rollback
+window closed a second time over (#299) — see git history if any of it's
+ever needed again.
 
 ## Authentication flow
 
