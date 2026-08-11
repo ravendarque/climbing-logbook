@@ -19,7 +19,7 @@
 // adds an entry then re-reads the list sees its own write reflected --
 // same "fake but stateful for the test's own duration" contract a real
 // backend would give, without actually hitting one.
-export async function mockApi(page, { entries = [], places = [], locations = [], settings = { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true }, loggedIn = true, username = "fixtureuser" } = {}) {
+export async function mockApi(page, { entries = [], places = [], locations = [], settings = { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true }, loggedIn = true, username = "fixtureuser", email = "fixtureuser@example.com" } = {}) {
   let _entries = [...entries];
   let _places = [...places];
   let _locations = [...locations];
@@ -31,7 +31,17 @@ export async function mockApi(page, { entries = [], places = [], locations = [],
   await page.addInitScript(() => localStorage.clear());
 
   await page.route("**/logbook/api/auth/get-session", route =>
-    route.fulfill({ json: loggedIn ? { session: { id: "s1" }, user: { id: "u1", username } } : null }));
+    route.fulfill({ json: loggedIn ? { session: { id: "s1" }, user: { id: "u1", username, email } } : null }));
+
+  // #302 -- canned success responses matching Better Auth's own real
+  // response shapes (confirmed against the installed source), not
+  // exercising Better Auth itself -- e2e/account-edit-page.spec.js's job
+  // is proving client/account-edit-main.js's own wiring (view/form
+  // toggle, request, display update), same "fake but stateful enough for
+  // the test's own duration" scope as every other route here.
+  await page.route("**/logbook/api/auth/update-user", route => route.fulfill({ json: { status: true } }));
+  await page.route("**/logbook/api/auth/change-password", route => route.fulfill({ json: { status: true, user: { id: "u1", email } } }));
+  await page.route("**/logbook/api/auth/change-email", route => route.fulfill({ json: { status: true } }));
 
   await page.route("**/logbook/api/logbook", route => route.fulfill({ json: { entries: _entries } }));
   await page.route("**/logbook/api/places", route => route.fulfill({ json: { places: _places } }));

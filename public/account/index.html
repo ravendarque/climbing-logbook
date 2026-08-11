@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My account – Climbing Logbook</title>
+  <link rel="manifest" href="/logbook/manifest.json">
+  <link rel="icon" type="image/png" sizes="32x32" href="/logbook/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/logbook/favicon-16.png">
+  <link rel="apple-touch-icon" href="/logbook/apple-touch-icon.png">
+  <meta name="theme-color" content="#ff2727">
+  <!-- Genuinely static shell (#348), same pattern as public/log/index.html
+       -- see that file's own comment for why every path below is absolute
+       and client/account-main.js reads the username from
+       location.pathname itself rather than this file being templated. -->
+  <link rel="stylesheet" href="/logbook/tailwind.css">
+  <script src="/logbook/components/climbing-header.js"></script>
+  <script>
+    (function () {
+      var stored = localStorage.getItem("logbook_theme");
+      var theme = stored || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+</head>
+<body class="bg-background text-foreground font-sans px-4 pt-6 pb-16 min-w-[300px]">
+<div class="max-w-[960px] mx-auto">
+  <div class="flex items-center justify-end gap-2 mb-6" id="header-row">
+    <climbing-menu-bar no-discipline></climbing-menu-bar>
+  </div>
+
+  <climbing-header variant="brand" align-left></climbing-header>
+
+  <!-- No active-page -- this page isn't one of <climbing-tab-bar>'s three
+       TABS (log/map/performance), so none of them render as current, which
+       is the correct state here: the tab bar stays as a way back to the
+       app, not a claim that "account" is one of its views. Same reasoning
+       "My account" itself lives in the burger menu, not the tab bar
+       (Raven's own placement call, 2026-08-11) -- this is a settings
+       section, not a climbing-data view. -->
+  <climbing-tab-bar></climbing-tab-bar>
+
+  <p class="text-[.78rem] text-muted uppercase tracking-wide font-semibold mb-3">My account</p>
+  <div class="flex flex-col gap-2 max-w-[420px]" id="account-options">
+    <a class="flex items-center justify-between bg-surface border border-border rounded-app px-4 py-3 text-foreground text-[.9rem] font-semibold hover:border-accent" id="edit-account-link" href="#">
+      Edit account details
+      <svg class="w-4 h-4 stroke-muted fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+    </a>
+    <!-- Coming soon (#302's own scope notes) -- not built yet, listed here
+         as a preview of where they'll land. Not real links (no href), so
+         nothing to wire up yet either. -->
+    <div class="flex items-center justify-between bg-surface border border-border rounded-app px-4 py-3 text-foreground text-[.9rem] font-semibold opacity-50">
+      Display preferences
+      <span class="text-[.72rem] text-muted font-semibold">Coming soon</span>
+    </div>
+    <div class="flex items-center justify-between bg-surface border border-border rounded-app px-4 py-3 text-foreground text-[.9rem] font-semibold opacity-50">
+      Import and export
+      <span class="text-[.72rem] text-muted font-semibold">Coming soon</span>
+    </div>
+  </div>
+
+  <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>
+</div>
+
+<script type="module" src="/logbook/account-app.js"></script>
+</body>
+</html>

@@ -27,6 +27,13 @@ jobs:
       - run: pnpm run performance:build
       - run: pnpm run log:build
       - run: pnpm run profile:build
+      # #302 adds two more (account, account/edit) -- same #405 gap this
+      # file's own comment above already describes, caught before merge
+      # this time by CI's e2e job actually failing (playwright.config.js's
+      # webServer build chain has to list every bundle too, and briefly
+      # didn't), not after a real deploy shipped broken pages again.
+      - run: pnpm run account:build
+      - run: pnpm run account-edit:build
       # D1 migrations are never auto-applied by `wrangler deploy` (same
       # gap `wrangler dev` has locally, and `versions upload` had for
       # preview.yml until #323) -- found the hard way: production's D1

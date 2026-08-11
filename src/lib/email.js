@@ -1,8 +1,7 @@
 import { Resend } from "resend";
 
-// Transactional email (#308) -- signup verification + password reset, the
-// only two email-sending needs Better Auth's config (src/lib/auth.js)
-// actually calls into.
+// Transactional email (#308) -- signup verification + password reset,
+// plus (#302) the change-email confirmation link.
 //
 const FROM_ADDRESS = "Climbing Logbook <myaccount@climbinglogbook.com>";
 
@@ -43,6 +42,24 @@ export function createEmailSender(env) {
         to,
         subject: "Reset your password",
         html: `<p>Click the link below to reset your password. If you didn't request this, you can ignore this email.</p><p><a href="${url}">${url}</a></p>`,
+      });
+    },
+    // #302 -- sent to the CURRENT (already-verified) email address, not
+    // the new one -- Better Auth's own changeEmail handler only takes
+    // this branch when the account's existing email is verified
+    // (src/lib/auth.js's user.changeEmail.sendChangeEmailConfirmation),
+    // so this is the account-takeover check: if someone with a stolen
+    // session tries to redirect the account to an address they control,
+    // the real owner sees the request land in their own current inbox
+    // rather than the change happening silently. The actual new-address
+    // verification email is a separate Better Auth send once this link
+    // is clicked, not this one.
+    sendChangeEmailConfirmation(to, newEmail, url) {
+      return send(env.RESEND_API_KEY, {
+        from: FROM_ADDRESS,
+        to,
+        subject: "Confirm your email change",
+        html: `<p>Someone requested changing this account's email to <strong>${newEmail}</strong>. Click the link below to confirm. If you didn't request this, you can ignore this email -- your email won't change.</p><p><a href="${url}">${url}</a></p>`,
       });
     },
   };
