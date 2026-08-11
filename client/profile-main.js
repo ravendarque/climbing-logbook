@@ -1,17 +1,31 @@
 // Composition root for the public, read-only /:username page (#351) --
-// bundled by esbuild into public/logbook/profile-app.js. The smallest of
-// the four composition roots by design: no client/store.js (this page has
-// no admin/auth/discipline-persistence state to own -- it's a single,
-// anonymous, read-only render of one target user's data), no adminFetch/
-// isAuthRedirect, no entry-form.js/place-picker.js/offline-sync.js/
-// content-overlays.js/modal-utils.js at all. "Security by absence" per
-// #344's decision: this bundle genuinely cannot write anything, not just
-// UI-hidden from doing so.
+// bundled by esbuild into public/logbook/profile-app.js. Still no
+// adminFetch/isAuthRedirect, no entry-form.js/place-picker.js/
+// offline-sync.js/content-overlays.js/modal-utils.js's write-side
+// counterparts at all -- "Security by absence" per #344's decision: this
+// bundle genuinely cannot write anything, not just UI-hidden from doing
+// so.
+//
+// client/store.js *is* used here now (#333, unlike this file's original
+// #351 cut) -- purely as the read-only state client/map-view.js already
+// expects (getEntries/getActiveType/entryLocation/etc via its existing
+// factory contract), not for anything this page would ever persist or
+// mutate server-side. Given a no-op storage stub (below), not the real
+// localStorage default -- store.js's cache keys (logbook_entries_cache
+// etc) are global, unscoped to a user, so a real visitor who's also a
+// logged-in owner viewing someone else's public map on the same browser
+// would otherwise have their own /log page's offline cache silently
+// overwritten with the *other* user's public data. This page has no
+// offline-queue concept to begin with (no reason a public visitor's map
+// view needs to survive a reload from cache), so simply not persisting is
+// correct, not a workaround.
 //
 // <climbing-entries-table> (#350) is used exactly as client/log-main.js
 // uses it, just fed from the new public data endpoints (src/api/
 // public-data.js) instead of the session-scoped /logbook/api/* ones, and
 // never given the `editable` attribute.
+import { createStore } from "./store.js";
+import { createMapView } from "./map-view.js";
 import { createDisclosure } from "./modal-utils.js";
 import { loadResource } from "./fetch-json.js";
 import { createThemeToggle } from "./theme-toggle.js";
@@ -28,12 +42,8 @@ document.title = `${USERNAME} – Climbing Logbook`;
 
 const entriesTable = document.querySelector("climbing-entries-table");
 
-// Local, single-purpose state -- no client/store.js here at all (see this
-// file's own header comment). activeDiscipline is genuinely just UI
-// state for this one render, not anything persisted anywhere (there's no
-// session to persist it to, and no reason a public visitor's discipline
-// choice should survive a reload the way the owner's own does).
-let activeDiscipline = "boulder";
+const store = createStore({ storage: { getItem: () => null, setItem: () => {} } });
+const mapView = createMapView({ store });
 
 // Same discipline-picker wiring client/header-chrome.js owns for every
 // other page, trimmed to what this page actually has: no Athlete Mode, no
@@ -45,26 +55,29 @@ let activeDiscipline = "boulder";
 // parameters that exist for other pages' real needs, not genuinely
 // sharing behavior.
 function updateDisciplinePicker() {
-  const label = activeDiscipline === "boulder" ? "Boulder" : "Lead";
+  const active = store.getActiveType();
+  const label = active === "boulder" ? "Boulder" : "Lead";
   document.getElementById("discipline-btn-label").textContent = label;
   document.getElementById("discipline-btn").setAttribute("aria-label", `Discipline: ${label}`);
   document.querySelectorAll(".discipline-option").forEach(opt => {
-    opt.setAttribute("aria-selected", String(opt.dataset.discipline === activeDiscipline));
+    opt.setAttribute("aria-selected", String(opt.dataset.discipline === active));
   });
 }
 
 function render() {
   updateDisciplinePicker();
-  entriesTable.activeDiscipline = activeDiscipline;
+  entriesTable.activeDiscipline = store.getActiveType();
+  if (store.getActiveView() === "map") mapView.render();
 }
+
+store.subscribe(render);
 
 // Same open/close/outside-click/Escape mechanics as
 // client/header-chrome.js's own discipline picker, via the same shared
 // createDisclosure() (#171) -- only the click-to-switch handler itself is
 // reimplemented (not injected from header-chrome.js), since that
-// module's contract assumes a store.js/resetPyramidExpansion/
-// adminSettingsUrl this page will never have -- see this file's own
-// header comment on why.
+// module's contract assumes an adminSettingsUrl this page will never
+// have -- see this file's own header comment on why.
 const disciplineBtn = document.getElementById("discipline-btn");
 const disciplinePopover = document.getElementById("discipline-popover");
 const { close: closeDisciplinePopover } = createDisclosure(disciplineBtn, disciplinePopover, "#discipline-wrap");
@@ -72,10 +85,33 @@ const { close: closeDisciplinePopover } = createDisclosure(disciplineBtn, discip
 disciplinePopover.addEventListener("click", e => {
   const opt = e.target.closest(".discipline-option");
   if (!opt) return;
-  activeDiscipline = opt.dataset.discipline;
+  store.setActiveType(opt.dataset.discipline);
   closeDisciplinePopover();
   disciplineBtn.focus();
-  render();
+});
+
+// Real WAI-ARIA Tabs, not <climbing-tab-bar>'s links -- see
+// public/profile/index.html's own comment on #view-tabs for why. Same
+// setActiveView() shape as client/main.js's own (/logbook), trimmed to
+// logbook+map only (no pyramid tab, no hiding logic -- Grade Pyramid never
+// appears on this page at all).
+const viewTabs = document.getElementById("view-tabs");
+const panelLogbook = document.getElementById("panel-logbook");
+const panelMap = document.getElementById("panel-map");
+
+function setActiveView(view) {
+  store.setActiveView(view);
+  document.querySelectorAll("#view-tabs [role=tab]").forEach(t =>
+    t.setAttribute("aria-selected", String(t.dataset.view === view))
+  );
+  panelLogbook.hidden = view !== "logbook";
+  panelMap.hidden = view !== "map";
+  if (view !== "map") mapView.closePinPopover();
+}
+
+viewTabs.addEventListener("click", e => {
+  const tab = e.target.closest("[role=tab]");
+  if (tab) setActiveView(tab.dataset.view);
 });
 
 // Header menu popover (theme toggle only, with admin-hidden -- see
@@ -108,11 +144,16 @@ async function boot() {
 
   const hasBoulder = entries.some(e => e.type === "boulder");
   const hasLead = entries.some(e => e.type === "lead");
-  activeDiscipline = hasBoulder || !hasLead ? "boulder" : "lead";
+  store.setActiveType(hasBoulder || !hasLead ? "boulder" : "lead");
 
   entriesTable.entries = entries;
   entriesTable.places = places;
   entriesTable.locations = locations;
+
+  store.setEntries(entries);
+  store.setPlaces(places);
+  store.setLocations(locations);
+
   render();
 }
 
