@@ -20,11 +20,10 @@
  *
  * Usage: node scripts/synthetic-check.mjs
  *
- * APEX_URL/APP_URL env vars override the production defaults below --
- * same escape hatch scripts/migrate-kv-to-d1.mjs uses for its own
- * production defaults, here letting this script's request/response
- * plumbing be exercised against a local `wrangler dev` before ever
- * running it for real. Locally both resolve to the same single origin
+ * APEX_URL/APP_URL env vars override the production defaults below,
+ * letting this script's request/response plumbing be exercised against a
+ * local `wrangler dev` before ever running it for real. Locally both
+ * resolve to the same single origin
  * (no real subdomain split), so Better Auth issues a host-only cookie
  * with no Domain attribute at all -- the Domain-matching check below
  * will correctly refuse to reuse it, which is the check doing its job,

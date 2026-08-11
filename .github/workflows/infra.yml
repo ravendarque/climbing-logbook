@@ -40,27 +40,6 @@ jobs:
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: terraform apply -auto-approve -no-color
 
-      - name: Sync wrangler.jsonc KV namespace id
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-        working-directory: .
-        run: |
-          KV_ID=$(cd infra && terraform output -raw kv_namespace_id)
-          node -e "
-            const fs = require('node:fs');
-            const path = 'wrangler.jsonc';
-            const current = fs.readFileSync(path, 'utf8');
-            const updated = current.replace(
-              /(\"binding\":\s*\"LOGBOOK_KV\",\s*\"id\":\s*\")[^\"]*(\")/,
-              \`\$1${KV_ID}\$2\`
-            );
-            if (updated !== current) {
-              fs.writeFileSync(path, updated);
-              console.log('wrangler.jsonc updated with KV id ' + '${KV_ID}');
-            } else {
-              console.log('wrangler.jsonc already up to date');
-            }
-          "
-
       - name: Sync wrangler.jsonc D1 database id
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         working-directory: .
