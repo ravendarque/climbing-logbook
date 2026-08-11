@@ -1,7 +1,6 @@
 import { betterAuth } from "better-auth";
-import { createAuthMiddleware } from "better-auth/api";
 import { username } from "better-auth/plugins";
-import { createBetaGateHook, createBetaGateAfterHook } from "./beta-gate.js";
+import { createBetaGateAfterHook } from "./beta-gate.js";
 import { createEmailSender } from "./email.js";
 import { createTurnstileHook } from "./turnstile.js";
 
@@ -95,20 +94,15 @@ export function createAuth(env, hostname) {
       minUsernameLength: 1,
       maxUsernameLength: 30,
     })],
-    // Turnstile bot check (#311) runs before the beta gate (#296) --
-    // reject non-human requests before spending an invite-code lookup on
-    // them. hooks.before only accepts a single middleware (verified
-    // against the installed better-auth/@better-auth/core source, not
-    // assumed), so these two independently-path-checked hooks
-    // (src/lib/turnstile.js, src/lib/beta-gate.js) are composed here
-    // rather than each trying to own the `hooks` config -- each
-    // createAuthMiddleware(...) call already returns a plain callable
-    // async function, so composing them is just calling both in order.
+    // Turnstile bot check (#311) -- reject non-human requests. The beta
+    // gate (#296) used to run here too, as a second hooks.before entry,
+    // but #379 moved its claim/release logic to a request-level wrapper
+    // in src/index.js instead (see src/lib/beta-gate.js's own header
+    // comment for why a hooks.before/after design can't reliably release
+    // a claimed invite code when a later plugin before-hook, e.g. the
+    // username plugin's own validation, is what actually fails).
     hooks: {
-      before: createAuthMiddleware(async ctx => {
-        await createTurnstileHook(env)(ctx);
-        await createBetaGateHook(env)(ctx);
-      }),
+      before: createTurnstileHook(env),
     },
     databaseHooks: { user: { create: { after: createBetaGateAfterHook(env) } } },
   });

@@ -8,6 +8,7 @@ import { handlePublicProfile } from "./api/public-profile.js";
 import { handlePublicResource } from "./api/public-data.js";
 import { handleOwnedRoute } from "./api/owned-routes.js";
 import { createAuth } from "./lib/auth.js";
+import { handleBetaGatedSignUp } from "./lib/beta-gate.js";
 import { resolveUserId } from "./lib/session.js";
 import { json } from "./lib/json.js";
 
@@ -81,6 +82,16 @@ export default {
     // every other route below is an exact pathname match. Better Auth owns
     // its own internal routing under this basePath (signup/login/logout/
     // session-check/etc, see src/lib/auth.js) via a single handler.
+    //
+    // sign-up/email is special-cased ahead of the generic passthrough --
+    // #379's beta-gate claim/release wrapper needs to sit *outside*
+    // Better Auth's own hook pipeline (see src/lib/beta-gate.js's own
+    // header comment for why), so it needs to be the thing that decides
+    // whether Better Auth's real handler runs at all, not something
+    // wired into that handler's own hooks.
+    if (pathname === "/logbook/api/auth/sign-up/email" && method === "POST") {
+      return handleBetaGatedSignUp(request, env, createAuth(env, hostname));
+    }
     if (pathname.startsWith("/logbook/api/auth/")) {
       return createAuth(env, hostname).handler(request);
     }

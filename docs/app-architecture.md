@@ -574,17 +574,21 @@ src/
     │                      404 message page
     ├── auth.js          createAuth(env, hostname) — mounts Better Auth
     │                      (#20/#320) under /logbook/api/auth/*, wiring
-    │                      beta-gate.js/turnstile.js as sign-up hooks and
+    │                      turnstile.js as a sign-up before-hook and
     │                      email.js for verification/reset mail
-    ├── beta-gate.js     (#296) a before-hook on Better Auth's sign-up
-    │                      endpoint requiring a valid, unused invite code
-    │                      -- a temporary layer in front of Better Auth,
-    │                      not part of its own schema
+    ├── beta-gate.js     (#296) requires a valid, unused invite code on
+    │                      sign-up -- a temporary layer in front of Better
+    │                      Auth, not part of its own schema. A request-level
+    │                      wrapper in src/index.js (not a Better Auth
+    │                      before-hook like turnstile.js), since #379 found
+    │                      a before-hook can't reliably release a claimed
+    │                      code when a *later* hook (e.g. the username
+    │                      plugin's own validation) is what actually fails
+    │                      -- see the file's own header comment for why
     ├── turnstile.js     (#311) form-level bot defense on sign-up,
     │                      complementing #300's domain-level bot/AI-
-    │                      crawler restrictions -- same before-hook shape
-    │                      as beta-gate.js, a genuinely separate concern
-    │                      that happens to attach to the same endpoint
+    │                      crawler restrictions -- a real Better Auth
+    │                      before-hook, unlike beta-gate.js above
     └── email.js         (#308) transactional email (signup verification +
                             password reset) via Resend -- the only two
                             email-sending needs Better Auth's config
