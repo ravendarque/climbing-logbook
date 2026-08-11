@@ -22,8 +22,6 @@ const PUBLIC_ROUTES = {
   "/logbook/api/places": ["GET"],
   "/logbook/api/locations": ["GET"],
   "/logbook/api/settings": ["GET"],
-  "/logbook/api/admin/session": ["GET"],
-  "/logbook/api/admin/login": ["GET"],
 };
 
 const ADMIN_ROUTES = {

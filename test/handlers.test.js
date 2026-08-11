@@ -1,11 +1,6 @@
-// Exercises places.js/locations.js/settings.js/admin-session.js/admin-login.js
-// through the real Worker entrypoint, same rationale as logbook.test.js:
-// the public HTTP contract is what's under test, not module internals.
-//
-// admin-session.js/admin-login.js are untouched by #297 -- still
-// Cloudflare-Access-gated at the edge, unrelated to Better Auth, until
-// #320 replaces the client's login flow -- so their tests below are
-// unchanged from before.
+// Exercises places.js/locations.js/settings.js through the real Worker
+// entrypoint, same rationale as logbook.test.js: the public HTTP contract
+// is what's under test, not module internals.
 import { env } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables } from "./support.js";
@@ -241,29 +236,5 @@ describe("settings", () => {
     const userB = await createAuthedSession();
     const res = await fetchJson("/logbook/api/settings", { headers: { Cookie: userB.cookie } });
     expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder", logbookPublic: true });
-  });
-});
-
-describe("admin-session", () => {
-  it("echoes the Access-authenticated user's email", async () => {
-    const res = await fetchJson("/logbook/api/admin/session", {
-      headers: { "Cf-Access-Authenticated-User-Email": "nix@ravendarque.com" },
-    });
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ loggedIn: true, email: "nix@ravendarque.com" });
-  });
-
-  it("returns a null email when the header is absent", async () => {
-    const res = await fetchJson("/logbook/api/admin/session");
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ loggedIn: true, email: null });
-  });
-});
-
-describe("admin-login", () => {
-  it("redirects to the app", async () => {
-    const res = await fetchJson("/logbook/api/admin/login", { redirect: "manual" });
-    expect(res.status).toBe(302);
-    expect(res.headers.get("Location")).toBe("https://ravendarque.com/logbook/");
   });
 });

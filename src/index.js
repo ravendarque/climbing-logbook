@@ -2,8 +2,6 @@ import { handleGet, handlePost, handlePut, handleDelete } from "./api/logbook.js
 import { handleGet as handleGetPlaces, handlePost as handlePostPlaces } from "./api/places.js";
 import { handleGet as handleGetLocations, handlePost as handlePostLocations } from "./api/locations.js";
 import { handleGetSettings, handlePatchSettings } from "./api/settings.js";
-import { handleAdminSession } from "./api/admin-session.js";
-import { handleAdminLogin } from "./api/admin-login.js";
 import { handlePublicProfile } from "./api/public-profile.js";
 import { handlePublicResource } from "./api/public-data.js";
 import { handleOwnedRoute } from "./api/owned-routes.js";
@@ -21,9 +19,6 @@ import { json } from "./lib/json.js";
 //   (reachable without a session), admin writes require a real Better
 //   Auth session (#297) resolved below, scoped server-side to that
 //   session's own user_id -- the actual multi-tenant isolation boundary.
-// /logbook/api/admin/session, /admin/login — still Cloudflare-Access-
-//   gated at the edge, unrelated to Better Auth, unchanged until #320
-//   replaces the client's login flow.
 
 // GET is public (reachable without a session, see each handler's own
 // "userId may be null" comment) -- keyed by pathname only, since every
@@ -128,14 +123,6 @@ export default {
 
       const handler = adminRoute[method];
       if (handler) return handler(request, env, userId);
-    }
-
-    if (pathname === "/logbook/api/admin/session" && method === "GET") {
-      return handleAdminSession(request);
-    }
-
-    if (pathname === "/logbook/api/admin/login" && method === "GET") {
-      return handleAdminLogin();
     }
 
     return new Response("Not found", { status: 404 });
