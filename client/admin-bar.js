@@ -13,10 +13,18 @@
 export function syncAdminBar({ store, adminAuth, headerChrome, tabBar, addBtn, offlineSync }) {
   const loginToggleBtn = document.getElementById("login-toggle-btn");
   const athleteModeBtn = document.getElementById("athlete-mode-btn");
+  const publicToggleBtn = document.getElementById("public-toggle-btn");
   loginToggleBtn.textContent = store.isLoggedIn() ? "Log out" : "Log in";
   if (addBtn) addBtn.hidden = !store.isLoggedIn();
   athleteModeBtn.hidden = !store.isLoggedIn();
   athleteModeBtn.setAttribute("aria-checked", String(adminAuth.isAthleteMode()));
+  // #301 -- same visibility rule as athleteModeBtn above (both share the
+  // same "logged-in admin only" row); unguarded, unlike admin-auth.js's
+  // own null-checked wiring, since this function itself is never called
+  // by /logbook (see this file's own header comment) -- the element is
+  // guaranteed to exist on every page that does call it.
+  publicToggleBtn.hidden = !store.isLoggedIn();
+  publicToggleBtn.setAttribute("aria-checked", String(adminAuth.isLogbookPublic()));
   headerChrome.updateMenuDivider();
   if (offlineSync) offlineSync.updateSyncButton();
   tabBar.toggleAttribute("show-performance", store.isLoggedIn() && adminAuth.isAthleteMode());

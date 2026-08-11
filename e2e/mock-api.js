@@ -19,7 +19,7 @@
 // adds an entry then re-reads the list sees its own write reflected --
 // same "fake but stateful for the test's own duration" contract a real
 // backend would give, without actually hitting one.
-export async function mockApi(page, { entries = [], places = [], locations = [], settings = { athleteMode: false, activeDiscipline: "boulder" }, loggedIn = true, username = "fixtureuser" } = {}) {
+export async function mockApi(page, { entries = [], places = [], locations = [], settings = { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true }, loggedIn = true, username = "fixtureuser" } = {}) {
   let _entries = [...entries];
   let _places = [...places];
   let _locations = [...locations];
