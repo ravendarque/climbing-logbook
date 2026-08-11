@@ -58,6 +58,8 @@ const DISCIPLINE_PICKER = `
 
 function menuPopover(adminHidden) {
   const adminRows = adminHidden ? "" : `
+      <div class="self-stretch px-[.8rem] text-[.78rem] font-semibold text-muted truncate" id="menu-username" hidden></div>
+      <a class="admin-btn self-stretch justify-start" id="my-account-link" href="#" hidden>My account</a>
       <button type="button" class="group inline-flex items-center h-[var(--field-h)] gap-2 bg-transparent border border-transparent px-[.8rem] cursor-pointer text-[.82rem] font-semibold text-foreground disabled:opacity-60 disabled:cursor-not-allowed" id="athlete-mode-btn" role="switch" aria-checked="false" hidden>
         <span class="transition-colors duration-150 group-aria-[checked=false]:text-muted">Athlete Mode</span>
         <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
@@ -94,7 +96,13 @@ function menuPopover(adminHidden) {
 
 export class ClimbingMenuBar extends HTMLElement {
   connectedCallback() {
-    this.innerHTML = DISCIPLINE_PICKER + menuPopover(this.hasAttribute("admin-hidden"));
+    // no-discipline (#302): the account pages have no discipline-scoped
+    // content anywhere on screen -- switching Boulder/Lead there would
+    // visibly do nothing, so the picker is omitted rather than shipped
+    // present-but-inert (same "don't ship dead UI" reasoning admin-hidden
+    // already applies to the rows below it).
+    const disciplinePicker = this.hasAttribute("no-discipline") ? "" : DISCIPLINE_PICKER;
+    this.innerHTML = disciplinePicker + menuPopover(this.hasAttribute("admin-hidden"));
   }
 }
 

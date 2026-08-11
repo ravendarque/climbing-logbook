@@ -37,6 +37,15 @@ const SHELL_PATHS = {
   log: "/log/index.html",
   map: "/map/index.html",
   performance: "/performance/index.html",
+  // #302 -- the first of the account section's own sub-pages
+  // (/:username/account/edit); the bare /:username/account landing page
+  // is its own separate entry ("account", no slash) rather than a
+  // redirect to /edit -- see src/index.js's own regex for how both are
+  // matched. Later sub-pages (display/import/export) each get one more
+  // entry here, same as this one -- no shared nav component needed until
+  // a second one actually exists (see #302's own scope notes).
+  account: "/account/index.html",
+  "account/edit": "/account/edit/index.html",
 };
 
 export async function handleOwnedRoute(request, env, username, page) {

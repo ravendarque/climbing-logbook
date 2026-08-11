@@ -77,6 +77,22 @@ export function createAuth(env, hostname) {
       // #308's own notes on the exact API surface this relies on.
       autoSignInAfterVerification: true,
     },
+    // #302 -- lets a signed-in user change their own email
+    // (POST /change-email). sendChangeEmailConfirmation only fires when
+    // the account's *current* email is already verified (confirmed
+    // against the installed source, src/api/routes/update-user.mjs) --
+    // true for every real user here, since requireEmailVerification above
+    // means no unverified account ever holds a usable session in the
+    // first place. updateEmailWithoutVerification is deliberately left
+    // unset (default off): this app never wants a silent, unconfirmed
+    // email swap.
+    user: {
+      changeEmail: {
+        enabled: true,
+        sendChangeEmailConfirmation: ({ user, newEmail, url }) =>
+          emailSender.sendChangeEmailConfirmation(user.email, newEmail, url),
+      },
+    },
     // Username plugin (#22) -- registration collects email, password, AND
     // username, with server-side uniqueness validation. Username's own
     // case-insensitive lookup column is handled by the plugin itself.

@@ -65,6 +65,15 @@ function getSession(cookie) {
   return fetchJson("/logbook/api/auth/get-session", cookie ? { headers: { Cookie: cookie } } : undefined);
 }
 
+// update-user/change-password/change-email (#302) are all authenticated
+// state changes, same Origin-header requirement as sign-out above (Better
+// Auth's origin-check middleware, real CSRF protection -- see sign-out's
+// own comment for why a real browser's same-origin fetch() always sends
+// this anyway).
+function authedPost(path, body, cookie) {
+  return jsonRequest("POST", path, body, { Cookie: cookie, Origin: BASE_URL });
+}
+
 // Signs up and clicks the emailed verification link -- see
 // test/email.test.js for dedicated coverage of the verification flow
 // itself; this just reaches a real logged-in state for tests below that
@@ -164,5 +173,62 @@ describe("session lifecycle", () => {
     // that the client forgot the cookie.
     const clearedCookie = cookieFrom(signOutRes);
     expect(await (await getSession(clearedCookie)).json()).toBeNull();
+  });
+});
+
+// #302 -- the account-settings page's three independent server calls
+// (client/account-edit-main.js), all Better Auth's own built-in
+// endpoints, exercised here for real rather than assumed from reading the
+// installed source alone.
+describe("account settings (#302)", () => {
+  it("changes the username, reusing the same uniqueness check as sign-up", async () => {
+    const cookie = await signUpAndVerify();
+    await signUpAndVerify({ ...VALID_SIGNUP, email: "someone-else@example.com", username: "taken" });
+
+    const takenRes = await authedPost("/logbook/api/auth/update-user", { username: "taken" }, cookie);
+    expect(takenRes.status).toBe(400);
+
+    const okRes = await authedPost("/logbook/api/auth/update-user", { username: "newname" }, cookie);
+    expect(okRes.status).toBe(200);
+    const session = await (await getSession(cookie)).json();
+    expect(session.user.username).toBe("newname");
+  });
+
+  it("changes the password, rejecting the wrong current password", async () => {
+    const cookie = await signUpAndVerify();
+
+    const wrongRes = await authedPost("/logbook/api/auth/change-password", {
+      currentPassword: "not-the-password",
+      newPassword: "a-brand-new-password",
+    }, cookie);
+    expect(wrongRes.status).toBe(400);
+    expect((await wrongRes.json()).code).toBe("INVALID_PASSWORD");
+
+    const okRes = await authedPost("/logbook/api/auth/change-password", {
+      currentPassword: VALID_SIGNUP.password,
+      newPassword: "a-brand-new-password",
+    }, cookie);
+    expect(okRes.status).toBe(200);
+
+    const signInRes = await signIn(VALID_SIGNUP.email, "a-brand-new-password");
+    expect(signInRes.status).toBe(200);
+  });
+
+  it("sends the change-email confirmation to the CURRENT address, and doesn't change the email until it's clicked", async () => {
+    const cookie = await signUpAndVerify();
+    resendCalls.length = 0;
+
+    const res = await authedPost("/logbook/api/auth/change-email", { newEmail: "new@example.com" }, cookie);
+    expect(res.status).toBe(200);
+
+    // Sent to the account's own (old) address -- src/lib/email.js's own
+    // comment on why -- not the new one, which never receives anything
+    // until this link is clicked.
+    expect(resendCalls).toHaveLength(1);
+    expect(resendCalls[0].body.to).toBe(VALID_SIGNUP.email);
+    expect(resendCalls[0].body.html).toContain("new@example.com");
+
+    const session = await (await getSession(cookie)).json();
+    expect(session.user.email).toBe(VALID_SIGNUP.email);
   });
 });

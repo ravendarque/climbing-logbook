@@ -58,9 +58,9 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(200);
   });
 
-  it("accepts all three page shapes: log, map, performance", async () => {
+  it("accepts all page shapes: log, map, performance, account, account/edit", async () => {
     const { cookie } = await createAuthedSession({ username: "allpagesuser" });
-    for (const page of ["log", "map", "performance"]) {
+    for (const page of ["log", "map", "performance", "account", "account/edit"]) {
       const res = await fetchOwnedRoute("allpagesuser", page, { cookie });
       expect(res.status).toBe(200);
     }
@@ -96,6 +96,24 @@ describe("owned route authorization", () => {
     const html = await res.text();
     expect(html).toContain("<climbing-entries-table");
     expect(html).toContain('src="/logbook/log-app.js"');
+  });
+
+  it("serves the real static shell for account", async () => {
+    const { cookie } = await createAuthedSession({ username: "accountshelluser" });
+    const res = await fetchOwnedRoute("accountshelluser", "account", { cookie });
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain("My account");
+    expect(html).toContain('src="/logbook/account-app.js"');
+  });
+
+  it("serves the real static shell for account/edit", async () => {
+    const { cookie } = await createAuthedSession({ username: "accounteditshelluser" });
+    const res = await fetchOwnedRoute("accounteditshelluser", "account/edit", { cookie });
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain("Edit account details");
+    expect(html).toContain('src="/logbook/account-edit-app.js"');
   });
 
   it("falls through (404) for a fourth path segment that isn't log/map/performance", async () => {

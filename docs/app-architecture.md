@@ -2,9 +2,10 @@
 
 ## Overview
 
-A single Cloudflare Worker serving five separate static-shell frontend
+A single Cloudflare Worker serving seven separate static-shell frontend
 pages (`public/logbook/`, `public/log/`, `public/map/`, `public/performance/`,
-`public/profile/`, plus the standalone auth/marketing pages) and a JSON
+`public/profile/`, `public/account/`, `public/account/edit/`, plus the
+standalone auth/marketing pages) and a JSON
 API (`src/`), backed by D1 (#21/#297 -- the earlier Workers KV data model
 is fully gone, code and infra both, #299). No frontend
 framework — plain ES modules, direct DOM manipulation, and a handful of
@@ -17,7 +18,11 @@ and split its owner-facing views into three separate real pages
 (`/:username/log`, `/map`, `/performance`) plus a public read-only
 `/:username` page, each with its own small esbuild bundle and composition
 root, sharing markup/behavior through Web Components instead of one
-monolithic `main.js`. `/logbook` itself (`client/main.js` and everything
+monolithic `main.js`. #302 later added the owner's own account-settings
+section (`/:username/account`, `/account/edit`) as two more pages in this
+same split-page family -- not part of #344's original scope, but built on
+its established pattern (own shell, own composition root, own esbuild
+bundle) rather than inventing a new one. `/logbook` itself (`client/main.js` and everything
 it composes) is **deliberately left untouched** throughout this epic — a
 stable, working reference/fallback — until #375 (tracked separately,
 not yet started) decides whether/when to retire it. Reading the module
@@ -501,23 +506,24 @@ src/
 │   │                      implemented for either (#159, #160)
 │   ├── settings.js      GET (public) / PATCH (admin) — Athlete Mode +
 │   │                      persisted-discipline settings row
-│   ├── owned-routes.js  (#347) my.<domain>/:username/{log,map,performance}
-│   │                      -- the owner-only equivalent of what Cloudflare
-│   │                      Access used to gate for the single, global
-│   │                      /logbook URL. Resolves :username to a user id,
-│   │                      compares it against the caller's own Better
-│   │                      Auth session (redirect to login on any
-│   │                      mismatch or missing session -- deliberately the
-│   │                      same response for "not logged in," "no such
-│   │                      username," and "logged in as someone else," so
-│   │                      a visitor can't enumerate real usernames by
-│   │                      comparing responses), then serves one of three
-│   │                      fixed-path static shells via env.ASSETS.fetch()
-│   │                      (`public/{log,map,performance}/index.html` --
-│   │                      :username can't be a literal Workers Static
-│   │                      Assets path, so this Worker fetches the shell
-│   │                      itself rather than letting Static Assets try to
-│   │                      match it directly)
+│   ├── owned-routes.js  (#347, +#302) my.<domain>/:username/{log,map,
+│   │                      performance,account,account/edit} -- the
+│   │                      owner-only equivalent of what Cloudflare Access
+│   │                      used to gate for the single, global /logbook
+│   │                      URL. Resolves :username to a user id, compares
+│   │                      it against the caller's own Better Auth session
+│   │                      (redirect to login on any mismatch or missing
+│   │                      session -- deliberately the same response for
+│   │                      "not logged in," "no such username," and
+│   │                      "logged in as someone else," so a visitor can't
+│   │                      enumerate real usernames by comparing
+│   │                      responses), then serves one of five fixed-path
+│   │                      static shells via env.ASSETS.fetch()
+│   │                      (`public/{log,map,performance,account,
+│   │                      account/edit}/index.html` -- :username can't be
+│   │                      a literal Workers Static Assets path, so this
+│   │                      Worker fetches the shell itself rather than
+│   │                      letting Static Assets try to match it directly)
 │   ├── public-profile.js (#113/#351) my.<domain>/:username — the public,
 │   │                      read-only equivalent, gated on the target
 │   │                      user's own `settings.logbook_public` flag
@@ -569,7 +575,13 @@ src/
     ├── auth.js          createAuth(env, hostname) — mounts Better Auth
     │                      (#20/#320) under /logbook/api/auth/*, wiring
     │                      turnstile.js as a sign-up before-hook and
-    │                      email.js for verification/reset mail
+    │                      email.js for verification/reset/change-email
+    │                      mail. user.changeEmail (#302) is enabled here --
+    │                      always takes Better Auth's confirm-via-link
+    │                      branch for this app (requireEmailVerification
+    │                      means no unverified account ever holds a usable
+    │                      session), sent to the account's CURRENT email,
+    │                      not the new one (see email.js's own comment)
     ├── beta-gate.js     (#296) requires a valid, unused invite code on
     │                      sign-up -- a temporary layer in front of Better
     │                      Auth, not part of its own schema. A request-level
@@ -744,7 +756,14 @@ client/
     │                             connectedCallback) strips the login/
     │                             Athlete-Mode rows entirely for the
     │                             public profile page's own consumer --
-    │                             "security by absence," not CSS-hidden
+    │                             "security by absence," not CSS-hidden.
+    │                             no-discipline attribute (#302) similarly
+    │                             omits the discipline picker for the
+    │                             account pages, nothing on which is
+    │                             discipline-scoped. Also owns the
+    │                             logged-in username label + "My account"
+    │                             link (#302), wired by client/admin-bar.js
+    │                             from adminAuth.getUsername()
     ├── climbing-tab-bar.js     <climbing-tab-bar> (#349) -- route-aware
     │                             navigation links between the four newer
     │                             pages (real <a href> links to different
@@ -801,6 +820,22 @@ below)
 ├── map/index.html          Shell for /:username/map (#348)
 ├── performance/index.html  Shell for /:username/performance (#348)
 ├── profile/index.html      Shell for the public /:username page (#351)
+├── account/index.html      Shell for /:username/account (#302) -- a plain
+│                              landing page listing the account section's
+│                              own sub-pages (just "Edit account details"
+│                              for now; Display/Import/Export listed as
+│                              "Coming soon," not built yet). No shared nav
+│                              component between sub-pages until a second
+│                              one actually exists
+├── account/edit/index.html Shell for /:username/account/edit (#302) --
+│                              username/email/password, each independently
+│                              editable/submittable against Better Auth's
+│                              own update-user/change-email/change-password
+│                              endpoints (deliberately not one combined
+│                              form -- Raven's call: resubmitting fields
+│                              you didn't touch reads as risky even when
+│                              harmless, and these three endpoints don't
+│                              depend on each other server-side either)
 └── e2e-fixtures/           Test-only component-harness bundles (#407
                                Tier 1) -- gitignored, generated by `pnpm
                                run e2e:build-fixtures`, never part of
@@ -823,15 +858,16 @@ below)
                                comment
 ```
 
-**Why `run_worker_first` matters here too:** the four shell files above
-are also, incidentally, real files under `public/` -- reachable directly
-at their own literal disk path (`/log`, `/map`, `/performance`,
-`/profile`, no `:username` segment, no session check) under Workers
-Static Assets' asset-first-by-default serving, until #407 closed that off
-(see "Request routing" below). This is the same asset-first behavior the
-build-output files above rely on being served *without* it (`app.js`,
-`map-app.js`, etc. — real files, meant to be reachable directly, unlike
-the four HTML shells).
+**Why `run_worker_first` matters here too:** the shell files above are
+also, incidentally, real files under `public/` -- reachable directly at
+their own literal disk path (`/log`, `/map`, `/performance`, `/profile`,
+`/account`, `/account/edit`, no `:username` segment, no session check)
+under Workers Static Assets' asset-first-by-default serving, until #407
+(and #302 for the two account paths) closed that off (see "Request
+routing" below). This is the same asset-first behavior the build-output
+files above rely on being served *without* it (`app.js`, `map-app.js`,
+etc. — real files, meant to be reachable directly, unlike the HTML
+shells).
 
 ### Map tab data
 
@@ -878,7 +914,7 @@ static file — in practice, the `/logbook/api/*` routes plus two
 | `/logbook/api/admin/settings` | any | PATCH | Better Auth session (#297) | `handlePatchSettings` |
 | `/logbook/api/public/:username/{logbook,places,locations}` | any | GET | public, target-user-scoped (#351) | `handlePublicResource` |
 | `/logbook/api/auth/*` | any | any | Better Auth's own (#20) | `createAuth(env, hostname).handler` |
-| `/:username/{log,map,performance}` | `my.*` only | GET | owner's own Better Auth session (#347) | `handleOwnedRoute` |
+| `/:username/{log,map,performance,account,account/edit}` | `my.*` only | GET | owner's own Better Auth session (#347, +#302) | `handleOwnedRoute` |
 | `/:username` | `my.*` only | GET | public, `logbook_public`-gated (#113/#351) | `handlePublicProfile` |
 
 "Public, session-scoped" means the route is reachable without a session,
@@ -903,8 +939,8 @@ Better Auth does its own authentication/authorization internally.
 
 **The two `my.*`-only routes** are checked *before* everything above,
 first thing in `fetch()`, via `hostname.startsWith("my.")` (#113/#347) —
-`my.climbinglogbook.com/:username/{log,map,performance}`
-(`owned-routes.js`) and `my.climbinglogbook.com/:username`
+`my.climbinglogbook.com/:username/{log,map,performance,account,
+account/edit}` (`owned-routes.js`) and `my.climbinglogbook.com/:username`
 (`public-profile.js`), see the "The newer split pages" module inventory
 above for what each actually serves. No real DNS route binds a
 `my.`-prefixed hostname to this Worker until #295's domain-cutover work
@@ -917,18 +953,21 @@ at all, regardless of how it's sent (curl header spoofing, Playwright
 request interception, and genuine DNS-backed navigation to a real
 `my.localhost` subdomain all hit the same wall).
 
-**`run_worker_first` (#407):** the four shell files `owned-routes.js`
-serves via `env.ASSETS.fetch()` (`public/{log,map,performance,profile}/
-index.html`) were also, incidentally, reachable directly at their own
-literal disk path — `/log`, `/map`, `/performance`, `/profile`, no
-`:username` segment, no session check, asset-first serving having no way
-to know these files are meant to be fetched only from inside the routes
-above. `wrangler.jsonc`'s `assets.run_worker_first` is scoped to exactly
-these four paths (an array of path patterns, not the global `true`),
-forcing them through the Worker — which has no route matching a bare
-pathname, so they fall through to the same final 404 every other
-unmatched path gets. Every other static file (including the marketing
-pages) keeps the default asset-first behavior, untouched. This is
+**`run_worker_first` (#407, +#302):** the shell files `owned-routes.js`
+serves via `env.ASSETS.fetch()` (`public/{log,map,performance,account,
+account/edit}/index.html`) were also, incidentally, reachable directly at
+their own literal disk path — `/log`, `/map`, `/performance`, `/account`,
+`/account/edit`, no `:username` segment, no session check, asset-first
+serving having no way to know these files are meant to be fetched only
+from inside the routes above. (`/profile` gets the same treatment for the
+same reason, but is served by `public-profile.js` separately, not one of
+`owned-routes.js`'s own `SHELL_PATHS`.) `wrangler.jsonc`'s
+`assets.run_worker_first` is scoped to exactly these paths (an array of
+path patterns, not the global `true`), forcing them through the Worker —
+which has no route matching a bare pathname, so they fall through to the
+same final 404 every other unmatched path gets. Every other static file
+(including the marketing pages) keeps the default asset-first behavior,
+untouched. This is
 env.ASSETS.fetch()-transparent — that's a direct binding call from inside
 the Worker's own code, unaffected by `run_worker_first`, which only
 governs how *incoming* HTTP requests are routed between the Worker and

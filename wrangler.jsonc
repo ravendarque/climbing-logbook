@@ -16,22 +16,24 @@
   // is still served directly without invoking the Worker at all, exactly
   // as before -- confirmed against Cloudflare's own docs, not assumed.
   //
-  // run_worker_first (#407): the four shell files above were also
-  // incidentally reachable directly at their own literal disk path
-  // (/log, /map, /performance, /profile, with no :username segment) --
-  // asset-first serving doesn't know these files are meant only to be
-  // fetched internally via the ASSETS binding, from inside the session-
-  // checked routes above. Scoped to just these four paths (an array, not
-  // the global `true`) so every other static file keeps today's free
+  // run_worker_first (#407): the shell files above were also incidentally
+  // reachable directly at their own literal disk path (/log, /map,
+  // /performance, /profile, with no :username segment) -- asset-first
+  // serving doesn't know these files are meant only to be fetched
+  // internally via the ASSETS binding, from inside the session-checked
+  // routes above. #302 adds /account, /account/edit to this same list --
+  // same bare-path-reachability gap, since owned-routes.js's SHELL_PATHS
+  // now serves those too. Scoped to just these paths (an array, not the
+  // global `true`) so every other static file keeps today's free
   // asset-first perf/cost -- confirmed the array form is supported at
   // the pinned wrangler version (4.115.0) via
   // node_modules/wrangler/config-schema.json, not assumed. Forcing these
   // through the Worker is enough on its own: src/index.js has no route
-  // matching a bare "/log"/"/map"/"/performance"/"/profile" pathname (the
-  // dynamic my.<domain>/:username/{log,map,performance} regex always
-  // requires a username segment first), so these now simply fall through
-  // to the same final "Not found" 404 every other unmatched path gets --
-  // no new route-matching code needed.
+  // matching a bare "/log"/"/map"/"/performance"/"/profile"/"/account"
+  // pathname (the dynamic my.<domain>/:username/{log,map,performance,
+  // account(/edit)?} regex always requires a username segment first), so
+  // these now simply fall through to the same final "Not found" 404 every
+  // other unmatched path gets -- no new route-matching code needed.
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
@@ -39,7 +41,8 @@
       "/log", "/log/*",
       "/map", "/map/*",
       "/performance", "/performance/*",
-      "/profile", "/profile/*"
+      "/profile", "/profile/*",
+      "/account", "/account/*"
     ]
   },
   // Better Auth (#20) + the eventual multi-tenant app data (#21) -- id is a

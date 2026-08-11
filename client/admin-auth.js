@@ -40,6 +40,17 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
 
   let athleteMode = false;
   let logbookPublic = true;
+  // #302 -- the "My account" link needs the caller's own username to build
+  // its href (/:username/account); the menu-username label needs it to
+  // display; client/account-edit-main.js's own username/email rows need
+  // both, read from this same already-fetched session response rather
+  // than that page making its own second get-session call. Only ever set
+  // from a real session response below, never guessed -- stays null
+  // across the offline fallback branch (no real session data available
+  // there), same as every other piece of state checkSession() can't
+  // determine offline.
+  let username = null;
+  let email = null;
 
   // Set (not directly via store.setActiveType()) by fetchSettings() below,
   // then applied in boot() after both it and the entries load are known
@@ -163,9 +174,14 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
     }
     try {
       const data = await res.json();
-      store.setLoggedIn(res.ok && data !== null && !!data.user);
+      const ok = res.ok && data !== null && !!data.user;
+      store.setLoggedIn(ok);
+      username = ok ? data.user.username : null;
+      email = ok ? data.user.email : null;
     } catch {
       store.setLoggedIn(false);
+      username = null;
+      email = null;
     }
     localStorage.setItem(LOGIN_HINT_KEY, store.isLoggedIn() ? "1" : "0");
   }
@@ -225,6 +241,8 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
     fetchSettings,
     isAthleteMode: () => athleteMode,
     isLogbookPublic: () => logbookPublic,
+    getUsername: () => username,
+    getEmail: () => email,
     getPersistedDiscipline: () => persistedDiscipline,
     resolveActiveType,
   };

@@ -14,10 +14,22 @@ export function syncAdminBar({ store, adminAuth, headerChrome, tabBar, addBtn, o
   const loginToggleBtn = document.getElementById("login-toggle-btn");
   const athleteModeBtn = document.getElementById("athlete-mode-btn");
   const publicToggleBtn = document.getElementById("public-toggle-btn");
+  const menuUsername = document.getElementById("menu-username");
+  const myAccountLink = document.getElementById("my-account-link");
   loginToggleBtn.textContent = store.isLoggedIn() ? "Log out" : "Log in";
   if (addBtn) addBtn.hidden = !store.isLoggedIn();
   athleteModeBtn.hidden = !store.isLoggedIn();
   athleteModeBtn.setAttribute("aria-checked", String(adminAuth.isAthleteMode()));
+  // #302 -- hidden whenever the username isn't known yet, not just when
+  // logged out: checkSession()'s offline fallback branch can leave
+  // store.isLoggedIn() true from a stale hint with no real username to
+  // build /:username/account from, and a broken href is worse than a
+  // briefly-missing link.
+  const username = adminAuth.getUsername();
+  menuUsername.hidden = !username;
+  menuUsername.textContent = username ?? "";
+  myAccountLink.hidden = !username;
+  if (username) myAccountLink.href = `/${encodeURIComponent(username)}/account`;
   // #301 -- same visibility rule as athleteModeBtn above (both share the
   // same "logged-in admin only" row); unguarded, unlike admin-auth.js's
   // own null-checked wiring, since this function itself is never called
