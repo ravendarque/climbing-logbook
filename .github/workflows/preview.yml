@@ -48,6 +48,10 @@ jobs:
       - run: pnpm run performance:build
       - run: pnpm run log:build
       - run: pnpm run profile:build
+      # #302 adds two more (account, account/edit) -- same #391 gap this
+      # file's own comment above already describes.
+      - run: pnpm run account:build
+      - run: pnpm run account-edit:build
       # D1 migrations aren't auto-applied by `versions upload` any more
       # than `wrangler dev` auto-applies them locally -- the preview D1
       # database (own bootstrap, not Terraform-managed) needs this run
