@@ -527,20 +527,14 @@ src/
 │   │                      on failure, a real client/main.js/climbing-
 │   │                      header.js-consistent 404 message page
 │   │                      (renderMessage()), not a bare Response
-│   ├── public-data.js   (#351) GET /logbook/api/public/:username/
-│   │                      {logbook,places,locations} — the read-only JSON
-│   │                      API the public profile page's own client bundle
-│   │                      (client/profile-main.js) fetches from. Scoped
-│   │                      to whichever *target* user the path names, not
-│   │                      the caller's own session -- not hostname-gated,
-│   │                      reachable from any origin same as every other
-│   │                      /logbook/api/* route
-│   ├── admin-session.js  GET — dead since #298 removed Cloudflare Access
-│   │                       (was an "am I authenticated" check for the
-│   │                       frontend, Access-gated at the edge)
-│   └── admin-login.js    GET — dead since #298 removed Cloudflare Access
-│                           (was the redirect target that kicked off
-│                           Access's login flow)
+│   └── public-data.js   (#351) GET /logbook/api/public/:username/
+│                          {logbook,places,locations} — the read-only JSON
+│                          API the public profile page's own client bundle
+│                          (client/profile-main.js) fetches from. Scoped
+│                          to whichever *target* user the path names, not
+│                          the caller's own session -- not hostname-gated,
+│                          reachable from any origin same as every other
+│                          /logbook/api/* route
 └── lib/
     ├── json.js          json()/parseJsonBody() -- tiny JSON Response/
     │                      request-body helpers shared across every handler
@@ -883,8 +877,6 @@ static file — in practice, the `/logbook/api/*` routes plus two
 | `/logbook/api/settings` | any | GET | public, session-scoped | `handleGetSettings` |
 | `/logbook/api/admin/settings` | any | PATCH | Better Auth session (#297) | `handlePatchSettings` |
 | `/logbook/api/public/:username/{logbook,places,locations}` | any | GET | public, target-user-scoped (#351) | `handlePublicResource` |
-| `/logbook/api/admin/session` | any | GET | dead route, see below | `handleAdminSession` |
-| `/logbook/api/admin/login` | any | GET | dead route, see below | `handleAdminLogin` (redirect) |
 | `/logbook/api/auth/*` | any | any | Better Auth's own (#20) | `createAuth(env, hostname).handler` |
 | `/:username/{log,map,performance}` | `my.*` only | GET | owner's own Better Auth session (#347) | `handleOwnedRoute` |
 | `/:username` | `my.*` only | GET | public, `logbook_public`-gated (#113/#351) | `handlePublicProfile` |
@@ -894,14 +886,10 @@ but the *response* isn't the same for everyone — see "Data model" above.
 The admin routes are gated by Better Auth's own session check inside the
 Worker itself (#297) — the actual multi-tenant isolation boundary; this
 app never had any other in-Worker authorization until #297 added it.
-`/admin/session` and `/admin/login` were Cloudflare Access's own
-edge-authentication glue — dead since #320 rewired `client/admin-auth.js`
-onto Better Auth's own session/sign-in/sign-out endpoints instead, and now
-that #298 has removed Access itself entirely, nothing can ever reach them
-through a real authenticated flow. Left in place for now, same "rollback
-window before cleanup" treatment #299 applied to the KV code -- a real,
-distinct dead-code cleanup candidate of its own, not yet tracked by an
-issue.
+Cloudflare Access's own edge-authentication glue (`/admin/session`,
+`/admin/login`) was removed entirely (#427) once #298's removal of Access
+itself and #320's rewire of `client/admin-auth.js` onto Better Auth's own
+session/sign-in/sign-out endpoints left both permanently unreachable.
 
 `/logbook/api/auth/*` is the one **prefix**-matched `/logbook/api/*`
 route here — every other route above (that isn't hostname-gated) is an
