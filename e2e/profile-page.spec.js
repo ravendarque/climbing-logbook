@@ -37,7 +37,7 @@ test("renders the shared chrome readonly -- no edit affordances or admin rows an
   await expect(page.locator("#theme-toggle-btn")).toBeVisible();
 });
 
-test("Grade Pyramid is never present -- no tab bar, no pyramid markup, no performance bundle request", async ({ page }) => {
+test("Grade Pyramid is never present -- no <climbing-tab-bar>, no pyramid tab/markup, no performance bundle request", async ({ page }) => {
   const requests = [];
   page.on("request", req => requests.push(req.url()));
 
@@ -45,10 +45,36 @@ test("Grade Pyramid is never present -- no tab bar, no pyramid markup, no perfor
   await page.goto("/e2e-fixtures/pages/profile.html");
   await expect(page.locator("climbing-entries-table")).toBeVisible();
 
+  // #view-tabs (Logbook/Map, #333) is a real, plain in-page tablist, not
+  // the <climbing-tab-bar> custom element (that one's real links between
+  // separate pages -- see public/profile/index.html's own comment on why
+  // that's the wrong pattern here). Grade Pyramid never gets a tab among
+  // them, even though Logbook/Map now do.
   await expect(page.locator("climbing-tab-bar")).toHaveCount(0);
+  await expect(page.locator('#view-tabs [data-view="pyramid"]')).toHaveCount(0);
   await expect(page.locator("climbing-grade-pyramid")).toHaveCount(0);
   await expect(page.locator("#citations-overlay")).toHaveCount(0);
   expect(requests.some(url => url.includes("performance-app.js"))).toBe(false);
+});
+
+test("Map tab (#333) switches to a real read-only map and back, without a page navigation", async ({ page }) => {
+  await mockApi(page, SEED);
+  await page.goto("/e2e-fixtures/pages/profile.html");
+  await expect(page.locator("climbing-entries-table")).toBeVisible();
+
+  await expect(page.locator("#panel-map")).toBeHidden();
+  await page.locator('#view-tabs [data-view="map"]').click();
+
+  await expect(page.locator("#panel-logbook")).toBeHidden();
+  await expect(page.locator('#view-tabs [data-view="map"]')).toHaveAttribute("aria-selected", "true");
+  // A real map, not the "you need to be online" fallback.
+  await expect(page.locator("#map-container svg")).toBeVisible();
+  await expect(page.locator("#map-load-retry")).toHaveCount(0);
+  await expect(page.locator("#subtitle")).not.toHaveText("");
+
+  await page.locator('#view-tabs [data-view="logbook"]').click();
+  await expect(page.locator("#panel-map")).toBeHidden();
+  await expect(page.locator("climbing-entries-table")).toBeVisible();
 });
 
 test("discipline picker switches correctly", async ({ page }) => {

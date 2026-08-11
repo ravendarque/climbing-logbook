@@ -47,20 +47,68 @@
 
   <climbing-header variant="brand" align-left></climbing-header>
 
-  <!-- No <climbing-tab-bar> here -- Map isn't included yet (own
-       follow-up, see #351's body) and Grade Pyramid never is, so there's
-       only ever this one page to link to; a tab bar with a single tab
-       would be meaningless. -->
+  <!-- Real WAI-ARIA Tabs (role=tablist/tab/tabpanel), not
+       <climbing-tab-bar>'s nav-landmark links -- this switches between two
+       panels *within* this one page, not between separate URLs, so the
+       Tabs pattern is the correct one here (see climbing-tab-bar.js's own
+       comment on why it's the wrong pattern *there*). Same markup shape as
+       /logbook's own #view-tabs (client/main.js's setActiveView()),
+       trimmed to Logbook + Map only -- Grade Pyramid never appears on this
+       page at all (#8's decision), so there's no third tab and no hiding
+       logic needed. No deep link per tab (#333, Raven's call, 2026-08-11)
+       -- a public visitor switching views client-side is fine; this isn't
+       the owner's own bookmarkable-per-view pages. -->
+  <div class="flex gap-5 mb-5" id="view-tabs" role="tablist" aria-label="View">
+    <button type="button" class="bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer whitespace-nowrap text-[.95rem] font-semibold text-muted pb-2 border-b-2 border-transparent transition-colors duration-150 hover:text-foreground aria-selected:text-foreground aria-selected:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" id="view-tab-logbook" role="tab" data-view="logbook" aria-selected="true" aria-controls="panel-logbook">Logbook</button>
+    <button type="button" class="bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer whitespace-nowrap text-[.95rem] font-semibold text-muted pb-2 border-b-2 border-transparent transition-colors duration-150 hover:text-foreground aria-selected:text-foreground aria-selected:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" id="view-tab-map" role="tab" data-view="map" aria-selected="false" aria-controls="panel-map">Map</button>
+  </div>
 
-  <!-- Not `editable` -- readonly by construction, matching this page's
-       whole point. No entry-form.js/place-picker.js/offline-sync.js
-       import anywhere in client/profile-main.js either ("security by
-       absence", #344's decision), so there'd be nothing to wire an
-       edit-btn click to even if this were set. -->
-  <climbing-entries-table></climbing-entries-table>
+  <div id="panel-logbook" role="tabpanel" aria-labelledby="view-tab-logbook">
+    <!-- Not `editable` -- readonly by construction, matching this page's
+         whole point. No entry-form.js/place-picker.js/offline-sync.js
+         import anywhere in client/profile-main.js either ("security by
+         absence", #344's decision), so there'd be nothing to wire an
+         edit-btn click to even if this were set. -->
+    <climbing-entries-table></climbing-entries-table>
+  </div>
+
+  <!-- Same markup shape as public/map/index.html's own #map-wrap block --
+       see that file's comments for what each id is for (client/map-view.js
+       queries all of them directly, unaware of which page it's running
+       on). #subtitle lives here (map-scoped stats), not page-level --
+       map-view.js's own updateSubtitle() comment notes it's genuinely
+       different data from any Logbook-tab subtitle, despite the similar
+       name. #footer stays the single page-level element below (map-view.js
+       always clears it to "", a confirmed no-op either way). -->
+  <div id="panel-map" role="tabpanel" aria-labelledby="view-tab-map" hidden>
+    <p class="text-[.95rem] mb-4" id="subtitle"></p>
+    <div class="relative" id="map-wrap">
+      <div id="map-container"></div>
+      <div class="absolute top-6 left-6 max-[480px]:top-3 max-[480px]:left-3" id="map-variant-picker">
+        <select class="bg-surface border border-border rounded-app px-[.6rem] py-[.35rem] max-[480px]:px-[.4rem] max-[480px]:py-[.25rem] text-foreground text-[.82rem] max-[480px]:text-[.7rem] outline-none cursor-pointer hover:border-accent focus:border-accent" id="map-variant-select" aria-label="Map projection">
+          <option value="greenwich">Greenwich</option>
+          <option value="americas">Americas</option>
+          <option value="oceania">Oceania</option>
+        </select>
+      </div>
+      <div class="absolute top-6 right-6 max-[480px]:top-3 max-[480px]:right-3 flex flex-col gap-[.35rem] max-[480px]:gap-[.25rem]" id="map-zoom-controls" hidden>
+        <button type="button" class="w-8 h-8 max-[480px]:w-6 max-[480px]:h-6 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[1.1rem] max-[480px]:text-[.85rem] font-bold leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-zoom-in" aria-label="Zoom in">+</button>
+        <button type="button" class="w-8 h-8 max-[480px]:w-6 max-[480px]:h-6 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[1.1rem] max-[480px]:text-[.85rem] font-bold leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-zoom-out" aria-label="Zoom out">−</button>
+      </div>
+      <div class="absolute bottom-6 right-6 max-[480px]:bottom-3 max-[480px]:right-3 grid grid-cols-3 grid-rows-3 gap-[2px] w-[84px] h-[84px] max-[480px]:w-[64px] max-[480px]:h-[64px]" id="map-pan-controls" hidden>
+        <button type="button" class="col-start-2 row-start-1 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[.8rem] max-[480px]:text-[.65rem] leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-pan-up" aria-label="Pan up">▲</button>
+        <button type="button" class="col-start-1 row-start-2 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[.8rem] max-[480px]:text-[.65rem] leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-pan-left" aria-label="Pan left">◀</button>
+        <button type="button" class="col-start-3 row-start-2 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[.8rem] max-[480px]:text-[.65rem] leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-pan-right" aria-label="Pan right">▶</button>
+        <button type="button" class="col-start-2 row-start-3 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[.8rem] max-[480px]:text-[.65rem] leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-pan-down" aria-label="Pan down">▼</button>
+      </div>
+    </div>
+    <p class="text-[.78rem] text-muted leading-[1.6] mt-3">This map uses the <a class="text-accent" href="https://equal-earth.com/equal-earth-projection.html" target="_blank" rel="noopener">Equal Earth projection ↗</a> instead of the more common Mercator, which inflates countries near the poles (mostly the Global North) while shrinking those near the equator (mostly the Global South) — Greenland, for instance, appears larger than Africa on Mercator despite being 14 times smaller. Equal Earth is equal-area throughout, so every country's size on the map reflects its true relative size. Powered by <a class="text-accent" href="https://d3js.org/d3-geo" target="_blank" rel="noopener">d3-geo ↗</a>, a free library for exactly this kind of thing.</p>
+  </div>
 
   <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>
 </div>
+
+<div class="fixed z-30 bg-background border border-border rounded-app p-3 shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)] text-[.85rem] max-w-[240px]" id="map-pin-popover" hidden role="group"></div>
 
 <script type="module" src="/logbook/profile-app.js"></script>
 </body>
