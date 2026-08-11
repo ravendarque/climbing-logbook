@@ -41,5 +41,6 @@ GitHub, the same treatment every other doc in this repo already gets.
 | [0011](0011-three-layer-test-pyramid.md) | Three-layer test pyramid: real Workers runtime, extracted-logic unit tests, Playwright E2E | Accepted |
 | [0012](0012-client-modularization-factories-no-framework.md) | Client-side modularization: esbuild + ES modules + factories, no framework | Accepted |
 | [0013](0013-pr-previews-via-wrangler-versions-upload.md) | PR preview deployments via wrangler versions upload | Accepted |
-| [0014](0014-closed-beta-invite-gate-togglable-not-removable.md) | Closed-beta invite gate, togglable off rather than removed | Accepted |
+| [0014](0014-closed-beta-invite-gate-togglable-not-removable.md) | Closed-beta invite gate, togglable off rather than removed | Accepted, partially superseded by 0016 |
 | [0015](0015-web-analytics-eu-exclusion-not-consent-banner.md) | Cloudflare Web Analytics with EU exclusion, not a cookie consent banner | Accepted |
+| [0016](0016-beta-gate-request-level-wrapper-not-hook.md) | Beta invite claim/release runs as a request-level wrapper, not a Better Auth hook | Accepted |

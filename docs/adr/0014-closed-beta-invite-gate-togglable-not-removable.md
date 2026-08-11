@@ -2,7 +2,10 @@
 
 ## Status
 
-Accepted
+Accepted. The enforcement-mechanism detail below (a Better Auth `before`
+hook) is superseded by
+[ADR-0016](0016-beta-gate-request-level-wrapper-not-hook.md) — the rest of
+this decision (config-flag toggle, schema, no minting UI) is unaffected.
 
 ## Context
 
