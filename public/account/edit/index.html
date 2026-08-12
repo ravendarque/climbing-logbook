@@ -30,14 +30,13 @@
   </div>
 
   <climbing-header variant="brand" align-left></climbing-header>
-  <climbing-tab-bar></climbing-tab-bar>
 
   <a class="inline-flex items-center gap-1 text-[.85rem] font-semibold text-muted hover:text-foreground mb-5" id="back-to-account-link" href="#">
     <svg class="w-[.9rem] h-[.9rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
     Back to my account
   </a>
 
-  <p class="text-[.78rem] text-muted uppercase tracking-wide font-semibold mb-3">Edit account details</p>
+  <h2 class="text-[1.3rem] font-bold text-foreground mb-4">Edit account details</h2>
 
   <!-- Three independently-submittable rows, each its own request against
        Better Auth's own update-user/change-password/change-email
@@ -47,61 +46,74 @@
        reads as risky even when it's actually harmless, and there's no
        real need for it here -- these three endpoints already don't
        depend on each other server-side, so the UI shouldn't invent a
-       dependency between them either. -->
+       dependency between them either.
+
+       Each row's readonly value box and its own edit-mode <input> share
+       an identical box model (border-width, padding, font-size,
+       leading-normal) -- one real border, one invisible (border-
+       transparent) -- so switching between them doesn't change the row's
+       height at all. Found janky otherwise (Raven, 2026-08-11): the
+       un-matched heights made the form visibly grow/shrink on every
+       Edit/Cancel click. Save/Cancel sit on the same line as the input
+       (not stacked below it), matching the readonly state's own
+       value+Edit-button row shape; both collapse to icon-only at
+       max-[480px] (checkmark/X, same stroke-based SVG style as this
+       page's own back-link/discipline-picker icons) since "Save"/"Cancel"
+       plus a live input don't comfortably fit one line at phone widths. -->
   <div class="max-w-[420px] flex flex-col" id="account-fields">
 
     <div class="border-b border-border py-4" id="username-row">
-      <div class="flex items-center justify-between gap-3" id="username-view">
-        <div>
-          <div class="text-[.72rem] text-muted font-semibold uppercase tracking-wide">Username</div>
-          <div class="text-[.9rem] text-foreground font-semibold mt-0.5" id="username-value"></div>
-        </div>
-        <button type="button" class="admin-btn" id="username-edit-btn">Edit</button>
+      <div class="text-[.72rem] text-muted font-semibold uppercase tracking-wide mb-1">Username</div>
+      <div class="flex items-center gap-2" id="username-view">
+        <div class="flex-1 min-w-0 border border-transparent px-3 py-2 text-foreground text-[1rem] leading-normal font-semibold truncate" id="username-value"></div>
+        <button type="button" class="admin-btn shrink-0" id="username-edit-btn">Edit</button>
       </div>
-      <form class="mt-2" id="username-form" hidden>
-        <label class="text-[.72rem] text-muted font-semibold uppercase tracking-wide" for="username-input">Username</label>
-        <input class="w-full mt-1 mb-2 bg-background border border-border rounded-app px-3 py-2 text-foreground text-[.9rem]" id="username-input" name="username" type="text" required>
-        <p class="text-[.85rem] text-accent mb-2" id="username-error" hidden></p>
-        <div class="flex gap-2">
-          <button type="submit" class="admin-btn admin-btn-primary" id="username-save-btn">Save</button>
-          <button type="button" class="admin-btn" id="username-cancel-btn">Cancel</button>
-        </div>
+      <form class="flex items-center gap-2" id="username-form" hidden>
+        <input class="flex-1 min-w-0 bg-background border border-border rounded-app px-3 py-2 text-foreground text-[1rem] leading-normal" id="username-input" name="username" type="text" required>
+        <button type="submit" class="admin-btn admin-btn-primary shrink-0 max-[480px]:w-9 max-[480px]:px-0 max-[480px]:justify-center" id="username-save-btn" aria-label="Save">
+          <span class="max-[480px]:hidden">Save</span>
+          <svg class="hidden max-[480px]:block w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+        </button>
+        <button type="button" class="admin-btn shrink-0 max-[480px]:w-9 max-[480px]:px-0 max-[480px]:justify-center" id="username-cancel-btn" aria-label="Cancel">
+          <span class="max-[480px]:hidden">Cancel</span>
+          <svg class="hidden max-[480px]:block w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>
+        </button>
       </form>
+      <p class="text-[.85rem] text-accent mt-2" id="username-error" hidden></p>
     </div>
 
     <div class="border-b border-border py-4" id="email-row">
-      <div class="flex items-center justify-between gap-3" id="email-view">
-        <div>
-          <div class="text-[.72rem] text-muted font-semibold uppercase tracking-wide">Email</div>
-          <div class="text-[.9rem] text-foreground font-semibold mt-0.5" id="email-value"></div>
-        </div>
-        <button type="button" class="admin-btn" id="email-edit-btn">Edit</button>
+      <div class="text-[.72rem] text-muted font-semibold uppercase tracking-wide mb-1">Email</div>
+      <div class="flex items-center gap-2" id="email-view">
+        <div class="flex-1 min-w-0 border border-transparent px-3 py-2 text-foreground text-[1rem] leading-normal font-semibold truncate" id="email-value"></div>
+        <button type="button" class="admin-btn shrink-0" id="email-edit-btn">Edit</button>
       </div>
-      <form class="mt-2" id="email-form" hidden>
-        <label class="text-[.72rem] text-muted font-semibold uppercase tracking-wide" for="email-input">Email</label>
-        <input class="w-full mt-1 mb-2 bg-background border border-border rounded-app px-3 py-2 text-foreground text-[.9rem]" id="email-input" name="email" type="email" required>
-        <p class="text-[.85rem] text-accent mb-2" id="email-error" hidden></p>
-        <div class="flex gap-2">
-          <button type="submit" class="admin-btn admin-btn-primary" id="email-save-btn">Save</button>
-          <button type="button" class="admin-btn" id="email-cancel-btn">Cancel</button>
-        </div>
+      <form class="flex items-center gap-2" id="email-form" hidden>
+        <input class="flex-1 min-w-0 bg-background border border-border rounded-app px-3 py-2 text-foreground text-[1rem] leading-normal" id="email-input" name="email" type="email" required>
+        <button type="submit" class="admin-btn admin-btn-primary shrink-0 max-[480px]:w-9 max-[480px]:px-0 max-[480px]:justify-center" id="email-save-btn" aria-label="Save">
+          <span class="max-[480px]:hidden">Save</span>
+          <svg class="hidden max-[480px]:block w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+        </button>
+        <button type="button" class="admin-btn shrink-0 max-[480px]:w-9 max-[480px]:px-0 max-[480px]:justify-center" id="email-cancel-btn" aria-label="Cancel">
+          <span class="max-[480px]:hidden">Cancel</span>
+          <svg class="hidden max-[480px]:block w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>
+        </button>
       </form>
+      <p class="text-[.85rem] text-accent mt-2" id="email-error" hidden></p>
       <p class="text-[.82rem] text-foreground bg-surface border border-border rounded-app px-3 py-2 mt-2" id="email-pending" hidden></p>
     </div>
 
     <div class="py-4" id="password-row">
-      <div class="flex items-center justify-between gap-3" id="password-view">
-        <div>
-          <div class="text-[.72rem] text-muted font-semibold uppercase tracking-wide">Password</div>
-          <div class="text-[.9rem] text-foreground font-semibold mt-0.5">••••••••••</div>
-        </div>
-        <button type="button" class="admin-btn" id="password-edit-btn">Change</button>
+      <div class="text-[.72rem] text-muted font-semibold uppercase tracking-wide mb-1">Password</div>
+      <div class="flex items-center gap-2" id="password-view">
+        <div class="flex-1 min-w-0 border border-transparent px-3 py-2 text-foreground text-[1rem] leading-normal font-semibold" id="password-value">••••••••••</div>
+        <button type="button" class="admin-btn shrink-0" id="password-edit-btn">Change</button>
       </div>
       <form class="mt-2" id="password-form" hidden>
         <label class="text-[.72rem] text-muted font-semibold uppercase tracking-wide" for="current-password-input">Current password</label>
-        <input class="w-full mt-1 mb-2 bg-background border border-border rounded-app px-3 py-2 text-foreground text-[.9rem]" id="current-password-input" name="currentPassword" type="password" autocomplete="current-password" required>
+        <input class="w-full mt-1 mb-2 bg-background border border-border rounded-app px-3 py-2 text-foreground text-[1rem] leading-normal" id="current-password-input" name="currentPassword" type="password" autocomplete="current-password" required>
         <label class="text-[.72rem] text-muted font-semibold uppercase tracking-wide" for="new-password-input">New password</label>
-        <input class="w-full mt-1 mb-2 bg-background border border-border rounded-app px-3 py-2 text-foreground text-[.9rem]" id="new-password-input" name="newPassword" type="password" autocomplete="new-password" minlength="8" required>
+        <input class="w-full mt-1 mb-2 bg-background border border-border rounded-app px-3 py-2 text-foreground text-[1rem] leading-normal" id="new-password-input" name="newPassword" type="password" autocomplete="new-password" minlength="8" required>
         <p class="text-[.85rem] text-accent mb-2" id="password-error" hidden></p>
         <div class="flex gap-2">
           <button type="submit" class="admin-btn admin-btn-primary" id="password-save-btn">Save</button>

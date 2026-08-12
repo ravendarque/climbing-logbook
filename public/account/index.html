@@ -31,16 +31,7 @@
 
   <climbing-header variant="brand" align-left></climbing-header>
 
-  <!-- No active-page -- this page isn't one of <climbing-tab-bar>'s three
-       TABS (log/map/performance), so none of them render as current, which
-       is the correct state here: the tab bar stays as a way back to the
-       app, not a claim that "account" is one of its views. Same reasoning
-       "My account" itself lives in the burger menu, not the tab bar
-       (Raven's own placement call, 2026-08-11) -- this is a settings
-       section, not a climbing-data view. -->
-  <climbing-tab-bar></climbing-tab-bar>
-
-  <p class="text-[.78rem] text-muted uppercase tracking-wide font-semibold mb-3">My account</p>
+  <h2 class="text-[1.3rem] font-bold text-foreground mb-4">My account</h2>
   <div class="flex flex-col gap-2 max-w-[420px]" id="account-options">
     <a class="flex items-center justify-between bg-surface border border-border rounded-app px-4 py-3 text-foreground text-[.9rem] font-semibold hover:border-accent" id="edit-account-link" href="#">
       Edit account details

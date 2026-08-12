@@ -21,7 +21,6 @@ import { createDisclosure } from "./modal-utils.js";
 import { createThemeToggle } from "./theme-toggle.js";
 import { syncAdminBar } from "./admin-bar.js";
 import "./components/climbing-menu-bar.js";
-import "./components/climbing-tab-bar.js";
 
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
 const AUTH_BASE = "/logbook/api/auth";
@@ -39,9 +38,6 @@ const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 
 const store = createStore();
 
-const tabBar = document.querySelector("climbing-tab-bar");
-tabBar.setAttribute("username", USERNAME);
-
 document.getElementById("back-to-account-link").href = `/${encodeURIComponent(USERNAME)}/account`;
 
 const athleteModeBtn = document.getElementById("athlete-mode-btn");
@@ -54,7 +50,7 @@ function updateMenuDivider() {
 }
 
 function updateAdminBar() {
-  syncAdminBar({ store, adminAuth, headerChrome: { updateMenuDivider }, tabBar });
+  syncAdminBar({ store, adminAuth, headerChrome: { updateMenuDivider } });
 }
 
 const adminAuth = createAdminAuth({
@@ -137,12 +133,11 @@ wireEditableRow({
     const username = formData.get("username");
     await authPost("/update-user", { username });
     // Full navigation, not an in-place display update -- every link on
-    // this page (tab bar, back-to-account, the menu bar's own My
-    // account link) is built from this page's own URL segment
-    // (USERNAME above), which is now stale the moment the username
-    // actually changes server-side. Landing on the fresh URL re-derives
-    // all of them correctly, and doubles as visible confirmation the
-    // change took.
+    // this page (back-to-account, the menu bar's own My account link) is
+    // built from this page's own URL segment (USERNAME above), which is
+    // now stale the moment the username actually changes server-side.
+    // Landing on the fresh URL re-derives all of them correctly, and
+    // doubles as visible confirmation the change took.
     location.href = `/${encodeURIComponent(username)}/account/edit`;
   },
 });

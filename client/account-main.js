@@ -21,7 +21,6 @@ import { createDisclosure } from "./modal-utils.js";
 import { createThemeToggle } from "./theme-toggle.js";
 import { syncAdminBar } from "./admin-bar.js";
 import "./components/climbing-menu-bar.js";
-import "./components/climbing-tab-bar.js";
 
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
 
@@ -37,9 +36,6 @@ function isAuthRedirect(res) {
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 
 const store = createStore();
-
-const tabBar = document.querySelector("climbing-tab-bar");
-tabBar.setAttribute("username", USERNAME);
 
 document.getElementById("edit-account-link").href = `/${encodeURIComponent(USERNAME)}/account/edit`;
 
@@ -57,7 +53,7 @@ function updateMenuDivider() {
 }
 
 function updateAdminBar() {
-  syncAdminBar({ store, adminAuth, headerChrome: { updateMenuDivider }, tabBar });
+  syncAdminBar({ store, adminAuth, headerChrome: { updateMenuDivider } });
 }
 
 const adminAuth = createAdminAuth({
