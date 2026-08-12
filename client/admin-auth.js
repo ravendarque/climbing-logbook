@@ -1,8 +1,14 @@
 // Auth state and the Athlete Mode setting (#239, sixth piece of #233's
 // modularization epic). Owns checkSession() (Better Auth session check,
 // #320 -- was Cloudflare Access until here), fetchSettings() (the public
-// Athlete Mode + persisted-discipline read), and the login/logout +
-// Athlete Mode toggle click handlers.
+// Athlete Mode + persisted-discipline read), and the login/logout click
+// handler. Athlete Mode/Public Logbook expose plain setAthleteMode()/
+// setLogbookPublic() mutators (#445) rather than owning a click handler
+// themselves -- their UI lives on the My account page now, not a fixed
+// element this module can assume exists; /logbook's own still-independent
+// Athlete Mode button is the one exception, wired the old DOM-coupled way
+// (#344's parallel-migration policy -- see athleteModeBtn's own comment
+// below).
 //
 // Scoped narrower than the issue's own rough estimate: updateAdminBar()
 // and setActiveView() (admin-gated UI visibility, view-tab switching)
@@ -28,14 +34,13 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
   const LOGIN_HINT_KEY = "logbook_logged_in_hint";
 
   const loginToggleBtn = document.getElementById("login-toggle-btn");
+  // #445 moved both toggles' UI off the shared burger menu onto the My
+  // account page -- <climbing-menu-bar> no longer renders either element
+  // at all, so both are null on every page except /logbook, which keeps
+  // its own independent, pre-#346 markup untouched (#344's parallel-
+  // migration policy). Every use of either below is null-guarded because
+  // of this.
   const athleteModeBtn = document.getElementById("athlete-mode-btn");
-  // null on /logbook -- the Public Logbook toggle (#301) is scoped to
-  // the newer /log, /map, /performance pages only (Raven's own call,
-  // 2026-08-11: /logbook is daily-driver-retired but still the
-  // untouched reference page #344's parallel-migration policy protects,
-  // so its markup was never given this element). Every use below is
-  // null-guarded because of this -- unlike athleteModeBtn above, which
-  // every consumer's markup has always included.
   const publicToggleBtn = document.getElementById("public-toggle-btn");
 
   let athleteMode = false;
@@ -91,64 +96,80 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
     }
   }
 
-  athleteModeBtn.addEventListener("click", async () => {
-    const next = !athleteMode;
-    athleteModeBtn.disabled = true;
-    try {
-      const res = await adminFetch(adminSettingsUrl, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ athleteMode: next }),
-      });
-      if (res.status === 401 || isAuthRedirect(res)) {
-        // Session lapsed since page load — same handling as
-        // syncPending()'s 401 case: drop back to the logged-out view.
-        // isAuthRedirect() is a no-op against Better Auth's plain 401
-        // JSON response (never an opaque redirect) but stays harmless to
-        // check -- see adminFetch's own comment in main.js.
-        store.setLoggedIn(false);
-      } else if (res.ok) {
-        const data = await res.json();
-        athleteMode = !!data.athleteMode;
-        athleteModeBtn.title = "";
-      } else {
-        athleteModeBtn.title = `Failed to update Athlete Mode (${res.status})`;
-      }
-    } catch (err) {
-      athleteModeBtn.title = `Failed to update Athlete Mode: ${err.message}`;
-    } finally {
-      athleteModeBtn.disabled = false;
-      updateAdminBar();
+  // Shared PATCH-one-field core, used both by /logbook's own still-DOM-
+  // coupled click handler below and by the My account page's own toggle
+  // UI (#445, client/account-main.js) calling setAthleteMode()/
+  // setLogbookPublic() directly -- no DOM lookup of any kind in here, so
+  // it works identically regardless of where (or whether) a clickable
+  // control for it currently exists. Returns `{ok, status?}` rather than
+  // throwing on a non-2xx response -- a failed settings PATCH is an
+  // expected, displayable outcome (shown as the control's own error
+  // state), not an exceptional one; a thrown network/parse error still
+  // propagates normally to the caller's own try/catch.
+  async function patchSetting(field, value) {
+    const res = await adminFetch(adminSettingsUrl, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [field]: value }),
+    });
+    if (res.status === 401 || isAuthRedirect(res)) {
+      // Session lapsed since page load — same handling as
+      // syncPending()'s 401 case: drop back to the logged-out view.
+      // isAuthRedirect() is a no-op against Better Auth's plain 401
+      // JSON response (never an opaque redirect) but stays harmless to
+      // check -- see adminFetch's own comment in main.js.
+      store.setLoggedIn(false);
+      return { ok: false };
     }
-  });
+    if (!res.ok) return { ok: false, status: res.status };
+    return { ok: true, data: await res.json() };
+  }
 
-  // #301 -- new-pages-only (see publicToggleBtn's own comment above).
-  // Same shape as athleteModeBtn's click handler immediately above,
-  // PATCHing the one field that changed.
+  async function setAthleteMode(next) {
+    const result = await patchSetting("athleteMode", next);
+    if (result.ok) athleteMode = !!result.data.athleteMode;
+    updateAdminBar();
+    return result;
+  }
+
+  async function setLogbookPublic(next) {
+    const result = await patchSetting("logbookPublic", next);
+    if (result.ok) logbookPublic = !!result.data.logbookPublic;
+    updateAdminBar();
+    return result;
+  }
+
+  // /logbook's own still-independent Athlete Mode button (#344 parallel-
+  // migration policy -- see athleteModeBtn's own comment above for why
+  // this is null, and this whole block a no-op, everywhere else).
+  if (athleteModeBtn) {
+    athleteModeBtn.addEventListener("click", async () => {
+      const next = !athleteMode;
+      athleteModeBtn.disabled = true;
+      try {
+        const result = await setAthleteMode(next);
+        athleteModeBtn.title = result.ok ? "" : `Failed to update Athlete Mode (${result.status ?? "network error"})`;
+      } catch (err) {
+        athleteModeBtn.title = `Failed to update Athlete Mode: ${err.message}`;
+      } finally {
+        athleteModeBtn.disabled = false;
+      }
+    });
+  }
+  // publicToggleBtn is always null now (#445) -- kept null-guarded rather
+  // than deleted outright in case a future page ever wants this exact
+  // DOM-coupled shape again; harmless dead branch until then.
   if (publicToggleBtn) {
     publicToggleBtn.addEventListener("click", async () => {
       const next = !logbookPublic;
       publicToggleBtn.disabled = true;
       try {
-        const res = await adminFetch(adminSettingsUrl, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ logbookPublic: next }),
-        });
-        if (res.status === 401 || isAuthRedirect(res)) {
-          store.setLoggedIn(false);
-        } else if (res.ok) {
-          const data = await res.json();
-          logbookPublic = !!data.logbookPublic;
-          publicToggleBtn.title = "";
-        } else {
-          publicToggleBtn.title = `Failed to update Public Logbook (${res.status})`;
-        }
+        const result = await setLogbookPublic(next);
+        publicToggleBtn.title = result.ok ? "" : `Failed to update Public Logbook (${result.status ?? "network error"})`;
       } catch (err) {
         publicToggleBtn.title = `Failed to update Public Logbook: ${err.message}`;
       } finally {
         publicToggleBtn.disabled = false;
-        updateAdminBar();
       }
     });
   }
@@ -240,7 +261,9 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
     checkSession,
     fetchSettings,
     isAthleteMode: () => athleteMode,
+    setAthleteMode,
     isLogbookPublic: () => logbookPublic,
+    setLogbookPublic,
     getUsername: () => username,
     getEmail: () => email,
     getPersistedDiscipline: () => persistedDiscipline,

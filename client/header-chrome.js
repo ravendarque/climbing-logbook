@@ -104,15 +104,19 @@ export function createHeaderChrome({
   const headerMenuBtn = document.getElementById("header-menu-btn");
   const headerMenuPopover = document.getElementById("header-menu-popover");
   const headerMenuBottomRow = document.getElementById("header-menu-bottom-row");
-  const athleteModeBtn = document.getElementById("athlete-mode-btn");
+  // menu-username, not athleteModeBtn -- Athlete Mode/Public Logbook moved
+  // off this menu to the My account page (#445); menu-username is the one
+  // that's now hidden entirely when logged out, same signal this check
+  // always needed (some real content above the divider or not).
+  const menuUsername = document.getElementById("menu-username");
 
   // The bottom row's top divider only makes sense when something is
-  // actually visible above it -- Athlete Mode is the only thing that can
+  // actually visible above it -- menu-username is the only thing that can
   // occupy the top section, and it's hidden entirely when logged out
   // (main.js's updateAdminBar(), which calls this), which would
   // otherwise leave the divider floating above nothing (#138).
   function updateMenuDivider() {
-    const hasTopContent = !athleteModeBtn.hidden;
+    const hasTopContent = !menuUsername.hidden;
     headerMenuBottomRow.classList.toggle("border-t", hasTopContent);
     headerMenuBottomRow.classList.toggle("pt-2", hasTopContent);
     headerMenuBottomRow.classList.toggle("mt-1", hasTopContent);
