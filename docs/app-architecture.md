@@ -933,10 +933,19 @@ below)
                                navigation to a real my.localhost
                                subdomain), so e2e/*.spec.js can't reach
                                these pages' real gated routes in a
-                               browser at all. These fixtures mount the
-                               real production Web Components/view
-                               modules directly against fabricated data
-                               instead, entirely outside routing/auth --
+                               browser at all -- still true of `pnpm run
+                               dev`/`test:e2e`'s own wrangler-dev-based
+                               default (#442's Vite-plugin dev server
+                               does honor the real Host header, confirmed
+                               via a real my.localhost browser test, but
+                               `pnpm run dev:vite` is a separate, opt-in
+                               script -- Playwright's own webServer
+                               staying on wrangler dev is a deliberate,
+                               separate follow-up, not assumed here).
+                               These fixtures mount the real production
+                               Web Components/view modules directly
+                               against fabricated data instead, entirely
+                               outside routing/auth --
                                see e2e/fixtures/ and each spec file's own
                                comment
 ```
