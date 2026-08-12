@@ -38,7 +38,7 @@
 // pure interactive markup with no equivalent FOUC concern, so it follows
 // the same module convention as every other client/*.js file instead.
 const DISCIPLINE_PICKER = `
-  <div class="relative mr-auto" id="discipline-wrap">
+  <div class="relative" id="discipline-wrap">
     <button type="button" class="group inline-flex items-center gap-[.35rem] h-[var(--field-h)] px-[.8rem] bg-surface border border-border rounded-app text-foreground text-[.85rem] font-semibold cursor-pointer hover:border-accent [&_svg]:stroke-current [&_svg]:fill-none [&_.chevron-icon]:transition-transform [&_.chevron-icon]:duration-150 aria-expanded:[&_.chevron-icon]:rotate-180" id="discipline-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Discipline: Boulder">
       <span id="discipline-btn-label">Boulder</span>
       <svg class="chevron-icon w-[.85rem] h-[.85rem]" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
@@ -57,9 +57,18 @@ const DISCIPLINE_PICKER = `
 `;
 
 function menuPopover(adminHidden) {
+  // Neither of these two carries self-stretch (unlike the toggle rows
+  // below) -- the popover's own flex-col items-end already right-aligns
+  // any child that's just its natural content width, which is what "pop
+  // more" (Raven, 2026-08-11) actually needed: real weight/size, not a
+  // full-width bordered row like the toggles below. my-account-link
+  // deliberately isn't admin-btn (that's the bordered/filled "card" look
+  // Raven flagged) -- styled as a plain accent link instead, same
+  // text-accent/hover:underline treatment as climbing-header.js's own
+  // footnote-trigger link.
   const adminRows = adminHidden ? "" : `
-      <div class="self-stretch px-[.8rem] text-[.78rem] font-semibold text-muted truncate" id="menu-username" hidden></div>
-      <a class="admin-btn self-stretch justify-start" id="my-account-link" href="#" hidden>My account</a>
+      <div class="max-w-[11rem] truncate text-[.9rem] font-bold text-foreground text-right" id="menu-username" hidden></div>
+      <a class="text-[.9rem] font-bold text-accent hover:underline" id="my-account-link" href="#" hidden>My account</a>
       <button type="button" class="group inline-flex items-center h-[var(--field-h)] gap-2 bg-transparent border border-transparent px-[.8rem] cursor-pointer text-[.82rem] font-semibold text-foreground disabled:opacity-60 disabled:cursor-not-allowed" id="athlete-mode-btn" role="switch" aria-checked="false" hidden>
         <span class="transition-colors duration-150 group-aria-[checked=false]:text-muted">Athlete Mode</span>
         <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
@@ -82,7 +91,13 @@ function menuPopover(adminHidden) {
     : "flex items-center justify-between self-stretch pt-2 mt-1 border-t border-border";
 
   return `
-  <div class="relative" id="header-menu-wrap">
+  <!-- ml-auto lives here (not mr-auto on the discipline picker, which
+       used to be the only thing pushing this button right) because
+       no-discipline pages (#302) don't render that picker at all --
+       without its own right-push, this button fell back to flex-start
+       and rendered flush left. Pushing from this side works regardless
+       of whether the discipline picker exists. -->
+  <div class="relative ml-auto" id="header-menu-wrap">
     <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="header-menu-btn" aria-haspopup="true" aria-expanded="false" aria-label="Menu">
       <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="17" x2="20" y2="17"></line></svg>
     </button>

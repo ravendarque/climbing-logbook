@@ -4,7 +4,10 @@
 // needs BOTH login AND Athlete Mode on) were hand-copied identically
 // across all three, with no comment acknowledging the duplication (found
 // via code review, 2026-08-09). addBtn/offlineSync are optional -- only
-// log-main.js has them (the one page that actually writes data).
+// log-main.js has them (the one page that actually writes data). tabBar
+// is optional too (#302) -- the account pages have no <climbing-tab-bar>
+// at all (not one of its log/map/performance views), same "don't wire up
+// something that isn't on this page" reasoning as the other two.
 //
 // Not used by client/main.js (/logbook's own, still-untouched composition
 // root, which keeps its own equivalent logic inline) -- #344's parallel-
@@ -39,5 +42,5 @@ export function syncAdminBar({ store, adminAuth, headerChrome, tabBar, addBtn, o
   publicToggleBtn.setAttribute("aria-checked", String(adminAuth.isLogbookPublic()));
   headerChrome.updateMenuDivider();
   if (offlineSync) offlineSync.updateSyncButton();
-  tabBar.toggleAttribute("show-performance", store.isLoggedIn() && adminAuth.isAthleteMode());
+  if (tabBar) tabBar.toggleAttribute("show-performance", store.isLoggedIn() && adminAuth.isAthleteMode());
 }
