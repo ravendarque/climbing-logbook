@@ -31,12 +31,12 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.51.3",
-    "@cloudflare/vitest-pool-workers": "^0.19.0",
+    "@cloudflare/vitest-pool-workers": "^0.20.3",
     "@playwright/test": "^1.62.1",
     "@tailwindcss/cli": "^4.3.3",
     "concurrently": "^10.0.4",
     "d3-geo": "^3.1.1",
-    "esbuild": "^0.28.1",
+    "esbuild": "^0.28.2",
     "semver": "^7.8.5",
     "tailwindcss": "^4.3.3",
     "topojson-client": "^3.1.0",
@@ -48,7 +48,7 @@
   },
   "dependencies": {
     "@floating-ui/dom": "^1.8.0",
-    "better-auth": "^1.6.25",
+    "better-auth": "^1.6.26",
     "resend": "^6.18.1"
   }
 }
