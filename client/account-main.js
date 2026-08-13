@@ -40,20 +40,63 @@ const store = createStore();
 document.getElementById("edit-account-link").href = `/${encodeURIComponent(USERNAME)}/account/edit`;
 
 // Same divider rule as client/header-chrome.js's own updateMenuDivider()
-// (border only makes sense when Athlete Mode occupies the row above it),
+// (border only makes sense when menu-username occupies the row above it --
+// #445 moved Athlete Mode off this menu, same "menu-username is the one
+// real signal" fix header-chrome.js's own version already made),
 // reimplemented directly rather than imported -- see this file's own
 // header comment for why that factory can't be used here at all.
-const athleteModeBtn = document.getElementById("athlete-mode-btn");
+const menuUsername = document.getElementById("menu-username");
 const headerMenuBottomRow = document.getElementById("header-menu-bottom-row");
 function updateMenuDivider() {
-  const hasTopContent = !athleteModeBtn.hidden;
+  const hasTopContent = !menuUsername.hidden;
   headerMenuBottomRow.classList.toggle("border-t", hasTopContent);
   headerMenuBottomRow.classList.toggle("pt-2", hasTopContent);
   headerMenuBottomRow.classList.toggle("mt-1", hasTopContent);
 }
 
+// Athlete Mode/Public Logbook toggle rows (#445) -- this page is the one
+// real consumer of adminAuth's setAthleteMode()/setLogbookPublic()
+// mutators; no other composition root renders this UI at all. Both rows
+// start `hidden` in markup and only appear once a real session is
+// confirmed, same reasoning as menu-username/my-account-link.
+const athleteModeRow = document.getElementById("athlete-mode-row");
+const athleteModeToggle = document.getElementById("athlete-mode-toggle");
+const publicLogbookRow = document.getElementById("public-logbook-row");
+const publicLogbookToggle = document.getElementById("public-logbook-toggle");
+
+function syncSettingsToggles() {
+  const loggedIn = store.isLoggedIn();
+  athleteModeRow.hidden = !loggedIn;
+  publicLogbookRow.hidden = !loggedIn;
+  athleteModeToggle.setAttribute("aria-checked", String(adminAuth.isAthleteMode()));
+  publicLogbookToggle.setAttribute("aria-checked", String(adminAuth.isLogbookPublic()));
+}
+
+// Same disable-while-saving + title-on-failure shape admin-auth.js's own
+// pre-#445 DOM-coupled click handlers used, carried over here since it's
+// the one place that wiring still applies. setter's own updateAdminBar()
+// callback (below) re-syncs aria-checked on success; a failed PATCH
+// leaves the toggle showing its last-known-good state instead of
+// optimistically flipping.
+async function handleSettingToggle(btn, setter, label) {
+  const next = btn.getAttribute("aria-checked") !== "true";
+  btn.disabled = true;
+  try {
+    const result = await setter(next);
+    btn.title = result.ok ? "" : `Failed to update ${label} (${result.status ?? "network error"})`;
+  } catch (err) {
+    btn.title = `Failed to update ${label}: ${err.message}`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+athleteModeToggle.addEventListener("click", () => handleSettingToggle(athleteModeToggle, adminAuth.setAthleteMode, "Athlete Mode"));
+publicLogbookToggle.addEventListener("click", () => handleSettingToggle(publicLogbookToggle, adminAuth.setLogbookPublic, "Public Logbook"));
+
 function updateAdminBar() {
   syncAdminBar({ store, adminAuth, headerChrome: { updateMenuDivider } });
+  syncSettingsToggles();
 }
 
 const adminAuth = createAdminAuth({

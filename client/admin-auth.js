@@ -1,14 +1,14 @@
-// Auth state and the Athlete Mode setting (#239, sixth piece of #233's
-// modularization epic). Owns checkSession() (Better Auth session check,
-// #320 -- was Cloudflare Access until here), fetchSettings() (the public
-// Athlete Mode + persisted-discipline read), and the login/logout click
-// handler. Athlete Mode/Public Logbook expose plain setAthleteMode()/
-// setLogbookPublic() mutators (#445) rather than owning a click handler
-// themselves -- their UI lives on the My account page now, not a fixed
-// element this module can assume exists; /logbook's own still-independent
-// Athlete Mode button is the one exception, wired the old DOM-coupled way
-// (#344's parallel-migration policy -- see athleteModeBtn's own comment
-// below).
+// Auth state and the Athlete Mode/Public Logbook settings (#239, sixth
+// piece of #233's modularization epic). Owns checkSession() (Better Auth
+// session check, #320 -- was Cloudflare Access until here), fetchSettings()
+// (the public Athlete Mode/Public Logbook + persisted-discipline read),
+// and the login/logout click handler. Athlete Mode/Public Logbook expose
+// plain setAthleteMode()/setLogbookPublic() mutators (#445) with no DOM
+// coupling of their own -- client/account-main.js is the only caller,
+// wiring them to its own toggle rows. (Used to also carry a DOM-coupled
+// click handler for /logbook's own independent Athlete Mode button,
+// #344's parallel-migration policy -- removed once #375 retired
+// /logbook entirely, so that compat shim had no remaining consumer.)
 //
 // Scoped narrower than the issue's own rough estimate: updateAdminBar()
 // and setActiveView() (admin-gated UI visibility, view-tab switching)
@@ -21,12 +21,12 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
   const AUTH_SESSION_URL = "/logbook/api/auth/get-session";
   const AUTH_SIGN_OUT_URL = "/logbook/api/auth/sign-out";
   // Cross-origin in production (#295 -- /login moved to the apex,
-  // climbinglogbook.com, while this app is reachable at
-  // my.climbinglogbook.com/logbook and, for now, still ravendarque.com/
-  // logbook too). Same-origin fallback for local dev/PR previews, which
-  // don't have a real climbinglogbook.com to send a browser to and never
-  // served /logbook/login/ in the first place -- see login.js's own
-  // REDIRECT_URL comment for the mirror-image version of this check.
+  // climbinglogbook.com, while the app itself is reachable at
+  // my.climbinglogbook.com/:username/{log,map,performance,...}, and
+  // ravendarque.com now just 301-redirects to a public profile page, not
+  // the app). Same-origin fallback for local dev/PR previews, which don't
+  // have a real climbinglogbook.com to send a browser to -- see login.js's
+  // own REDIRECT_URL comment for the mirror-image version of this check.
   const LOGIN_PAGE_URL = ["my.climbinglogbook.com", "ravendarque.com"].includes(window.location.hostname)
     ? "https://climbinglogbook.com/login/"
     : "/login/";
@@ -34,14 +34,6 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
   const LOGIN_HINT_KEY = "logbook_logged_in_hint";
 
   const loginToggleBtn = document.getElementById("login-toggle-btn");
-  // #445 moved both toggles' UI off the shared burger menu onto the My
-  // account page -- <climbing-menu-bar> no longer renders either element
-  // at all, so both are null on every page except /logbook, which keeps
-  // its own independent, pre-#346 markup untouched (#344's parallel-
-  // migration policy). Every use of either below is null-guarded because
-  // of this.
-  const athleteModeBtn = document.getElementById("athlete-mode-btn");
-  const publicToggleBtn = document.getElementById("public-toggle-btn");
 
   let athleteMode = false;
   let logbookPublic = true;
@@ -82,10 +74,10 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
       if (data.activeDiscipline === "boulder" || data.activeDiscipline === "lead") {
         persistedDiscipline = data.activeDiscipline;
       }
-      // Always updated, even on /logbook where publicToggleBtn is null and
-      // nothing reads isLogbookPublic() -- harmless unused state there,
-      // same as persistedDiscipline being tracked regardless of whether a
-      // given page's UI surfaces it.
+      // Always updated, even on pages with no Public Logbook toggle UI
+      // (only client/account-main.js has one, #445) -- harmless unused
+      // state elsewhere, same as persistedDiscipline being tracked
+      // regardless of whether a given page's UI surfaces it.
       logbookPublic = !!data.logbookPublic;
     } catch {
       // Offline — keep the last-known in-memory defaults rather than
@@ -96,11 +88,10 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
     }
   }
 
-  // Shared PATCH-one-field core, used both by /logbook's own still-DOM-
-  // coupled click handler below and by the My account page's own toggle
-  // UI (#445, client/account-main.js) calling setAthleteMode()/
-  // setLogbookPublic() directly -- no DOM lookup of any kind in here, so
-  // it works identically regardless of where (or whether) a clickable
+  // Shared PATCH-one-field core, called by the My account page's own
+  // toggle UI (#445, client/account-main.js) via setAthleteMode()/
+  // setLogbookPublic() below -- no DOM lookup of any kind in here, so it
+  // works identically regardless of where (or whether) a clickable
   // control for it currently exists. Returns `{ok, status?}` rather than
   // throwing on a non-2xx response -- a failed settings PATCH is an
   // expected, displayable outcome (shown as the control's own error
@@ -137,41 +128,6 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
     if (result.ok) logbookPublic = !!result.data.logbookPublic;
     updateAdminBar();
     return result;
-  }
-
-  // /logbook's own still-independent Athlete Mode button (#344 parallel-
-  // migration policy -- see athleteModeBtn's own comment above for why
-  // this is null, and this whole block a no-op, everywhere else).
-  if (athleteModeBtn) {
-    athleteModeBtn.addEventListener("click", async () => {
-      const next = !athleteMode;
-      athleteModeBtn.disabled = true;
-      try {
-        const result = await setAthleteMode(next);
-        athleteModeBtn.title = result.ok ? "" : `Failed to update Athlete Mode (${result.status ?? "network error"})`;
-      } catch (err) {
-        athleteModeBtn.title = `Failed to update Athlete Mode: ${err.message}`;
-      } finally {
-        athleteModeBtn.disabled = false;
-      }
-    });
-  }
-  // publicToggleBtn is always null now (#445) -- kept null-guarded rather
-  // than deleted outright in case a future page ever wants this exact
-  // DOM-coupled shape again; harmless dead branch until then.
-  if (publicToggleBtn) {
-    publicToggleBtn.addEventListener("click", async () => {
-      const next = !logbookPublic;
-      publicToggleBtn.disabled = true;
-      try {
-        const result = await setLogbookPublic(next);
-        publicToggleBtn.title = result.ok ? "" : `Failed to update Public Logbook (${result.status ?? "network error"})`;
-      } catch (err) {
-        publicToggleBtn.title = `Failed to update Public Logbook: ${err.message}`;
-      } finally {
-        publicToggleBtn.disabled = false;
-      }
-    });
   }
 
   // Better Auth's own session-check endpoint (#320 -- was Cloudflare
@@ -219,13 +175,6 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
   // roots (found via code review, 2026-08-09) -- exposed as a method here
   // rather than a standalone function since store/persistedDiscipline are
   // already in this factory's own closure, nothing extra to inject.
-  //
-  // Not used by client/main.js (/logbook's own, still-untouched
-  // composition root, which keeps its own equivalent logic inline) --
-  // #344's parallel-migration decision holds /logbook stable throughout
-  // this epic; adding this method doesn't change main.js's behavior at
-  // all (it simply never calls it), same reasoning as this file's other
-  // exposed methods below.
   async function resolveActiveType(sessionPromise, settingsPromise) {
     const hasBoulder = store.getEntries().some(e => e.type === "boulder");
     const hasLead = store.getEntries().some(e => e.type === "lead");
