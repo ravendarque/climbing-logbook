@@ -17,7 +17,17 @@ GitHub, the same treatment every other doc in this repo already gets.
 - **Never edited after acceptance** — if a decision changes, write a new
   ADR and have it supersede the old one by reference (link both ways).
   The old ADR's "Status" becomes "Superseded by ADR-000X"; its content
-  stays as a historical record of what was believed true at the time.
+  stays as a historical record of what was believed true at the time. A
+  pure transcription fix (removing content that duplicates a living doc
+  elsewhere, with the underlying decision itself unchanged) is a narrow
+  exception to this, not a loophole for touching up reasoning or
+  conclusions after the fact — see ADR-0006's own edit for a real example
+  (found and corrected during #359).
+- **Don't duplicate an actively-maintained checklist inside a Decision
+  section** (e.g. `docs/coding-standards.md`'s Part 2, an intentionally
+  living document) — link to it instead. A copy frozen inside an ADR
+  drifts silently out of sync the moment the real checklist changes,
+  since the ADR itself can't be updated to match.
 - **Write one when a decision is genuinely hard to reverse, or when the
   reasoning isn't obvious from reading the resulting code** — not for
   every change. Routine feature work doesn't need one.
