@@ -64,25 +64,22 @@
        recompute on a resize/orientation change, just layout. -->
   <div class="grid grid-cols-2 gap-x-8 max-[600px]:grid-cols-1" id="account-sections">
     <div>
-      <!-- #457 -- brand-style section heading (font-display/uppercase/
-           tracking-wide), matching <climbing-header>'s own h1 treatment
-           rather than a plain bold sans-serif label. pl-4 left-aligns the
-           heading text with the row cards' own inner text (px-4), not
-           just the cards' outer edge. -->
-      <h2 class="font-display font-normal uppercase tracking-wide text-[1.3rem] text-foreground pl-4 mb-4">My account</h2>
+      <!-- section-heading/row-card/row-card-title (styles/tailwind.css)
+           -- extracted #457, see that file's own comments for why. -->
+      <h2 class="section-heading">My account</h2>
       <div class="flex flex-col gap-2 max-w-[420px]" id="account-options">
-        <a class="flex items-center justify-between bg-surface border border-border rounded-app px-4 py-3 text-foreground text-[.9rem] font-semibold hover:border-accent" id="edit-account-link" href="#">
+        <a class="row-card flex items-center justify-between row-card-title hover:border-accent" id="edit-account-link" href="#">
           Edit account details
           <svg class="w-4 h-4 stroke-muted fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
         </a>
         <!-- Coming soon (#302's own scope notes) -- not built yet, listed
              here as a preview of where they'll land. Not real links (no
              href), so nothing to wire up yet either. -->
-        <div class="flex items-center justify-between bg-surface border border-border rounded-app px-4 py-3 text-foreground text-[.9rem] font-semibold opacity-50">
+        <div class="row-card flex items-center justify-between row-card-title opacity-50">
           Display preferences
           <span class="text-[.72rem] text-muted font-semibold">Coming soon</span>
         </div>
-        <div class="flex items-center justify-between bg-surface border border-border rounded-app px-4 py-3 text-foreground text-[.9rem] font-semibold opacity-50">
+        <div class="row-card flex items-center justify-between row-card-title opacity-50">
           Import and export
           <span class="text-[.72rem] text-muted font-semibold">Coming soon</span>
         </div>
@@ -99,11 +96,11 @@
          degrade gracefully if a session lapses mid-visit, same reasoning
          as every other adminAuth-derived element on this page. -->
     <div class="max-[600px]:mt-8">
-      <h2 class="font-display font-normal uppercase tracking-wide text-[1.3rem] text-foreground pl-4 mb-4">Settings</h2>
+      <h2 class="section-heading">Settings</h2>
       <div class="flex flex-col gap-2 max-w-[420px]" id="account-settings">
-        <div class="bg-surface border border-border rounded-app px-4 py-3" id="athlete-mode-row" hidden>
+        <div class="row-card" id="athlete-mode-row" hidden>
           <div class="flex items-center justify-between gap-3">
-            <span class="text-foreground text-[.9rem] font-semibold">Athlete Mode</span>
+            <span class="row-card-title">Athlete Mode</span>
             <!-- #457 -- bg-transparent/border-transparent restore the same
                  native-<button>-chrome override /logbook's own pre-#445
                  athlete-mode-btn markup always had; missing here since
@@ -120,9 +117,9 @@
                epic -- don't name it here. -->
           <p class="text-[.82rem] text-muted mt-2">Unlocks performance insights on your Performance page, visible only to you.</p>
         </div>
-        <div class="bg-surface border border-border rounded-app px-4 py-3" id="public-logbook-row" hidden>
+        <div class="row-card" id="public-logbook-row" hidden>
           <div class="flex items-center justify-between gap-3">
-            <span class="text-foreground text-[.9rem] font-semibold">Public Logbook</span>
+            <span class="row-card-title">Public Logbook</span>
             <button type="button" class="group inline-flex items-center bg-transparent border border-transparent cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" id="public-logbook-toggle" role="switch" aria-checked="true">
               <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
             </button>

@@ -31,12 +31,17 @@
 
   <climbing-header variant="brand" align-left></climbing-header>
 
-  <a class="inline-flex items-center gap-1 text-[.85rem] font-semibold text-muted hover:text-foreground mb-5" id="back-to-account-link" href="#">
+  <!-- #457 -- same treatment as public/account/index.html's
+       back-to-logbook-link: a real button (admin-btn admin-btn-primary),
+       not plain muted link text, with the same mt-4/mb-5 spacing. -->
+  <a class="admin-btn admin-btn-primary mt-4 mb-5" id="back-to-account-link" href="#">
     <svg class="w-[.9rem] h-[.9rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
-    Back to my account
+    My Account
   </a>
 
-  <h2 class="text-[1.3rem] font-bold text-foreground mb-4">Edit account details</h2>
+  <!-- section-heading (styles/tailwind.css) -- extracted #457, matches
+       public/account/index.html's "My account"/"Settings" headings. -->
+  <h2 class="section-heading">Edit account details</h2>
 
   <!-- Three independently-submittable rows, each its own request against
        Better Auth's own update-user/change-password/change-email
@@ -60,12 +65,17 @@
        max-[480px] (checkmark/X, same stroke-based SVG style as this
        page's own back-link/discipline-picker icons) since "Save"/"Cancel"
        plus a live input don't comfortably fit one line at phone widths. -->
-  <div class="max-w-[420px] flex flex-col" id="account-fields">
+  <!-- row-card/row-card-title (styles/tailwind.css) -- extracted #457,
+       each row is now its own card matching public/account/index.html's
+       settings cards, not the old tiny uppercase muted micro-label +
+       border-b divider-row stacking. Wrapped in flex flex-col gap-2, same
+       as account-options/account-settings. -->
+  <div class="max-w-[420px] flex flex-col gap-2" id="account-fields">
 
-    <div class="border-b border-border py-4" id="username-row">
-      <div class="text-[.72rem] text-muted font-semibold uppercase tracking-wide mb-1">Username</div>
+    <div class="row-card" id="username-row">
+      <div class="row-card-title mb-1">Username</div>
       <div class="flex items-center gap-2" id="username-view">
-        <div class="flex-1 min-w-0 border border-transparent px-3 py-2 text-foreground text-[1rem] leading-normal font-semibold truncate" id="username-value"></div>
+        <div class="flex-1 min-w-0 border border-transparent px-3 py-2 text-foreground text-[1rem] leading-normal truncate" id="username-value"></div>
         <button type="button" class="admin-btn shrink-0" id="username-edit-btn">Change</button>
       </div>
       <form class="flex items-center gap-2" id="username-form" hidden>
@@ -82,10 +92,10 @@
       <p class="text-[.85rem] text-accent mt-2" id="username-error" hidden></p>
     </div>
 
-    <div class="border-b border-border py-4" id="email-row">
-      <div class="text-[.72rem] text-muted font-semibold uppercase tracking-wide mb-1">Email</div>
+    <div class="row-card" id="email-row">
+      <div class="row-card-title mb-1">Email</div>
       <div class="flex items-center gap-2" id="email-view">
-        <div class="flex-1 min-w-0 border border-transparent px-3 py-2 text-foreground text-[1rem] leading-normal font-semibold truncate" id="email-value"></div>
+        <div class="flex-1 min-w-0 border border-transparent px-3 py-2 text-foreground text-[1rem] leading-normal truncate" id="email-value"></div>
         <button type="button" class="admin-btn shrink-0" id="email-edit-btn">Change</button>
       </div>
       <form class="flex items-center gap-2" id="email-form" hidden>
@@ -100,13 +110,13 @@
         </button>
       </form>
       <p class="text-[.85rem] text-accent mt-2" id="email-error" hidden></p>
-      <p class="text-[.82rem] text-foreground bg-surface border border-border rounded-app px-3 py-2 mt-2" id="email-pending" hidden></p>
+      <p class="text-[.82rem] text-foreground bg-background border border-border rounded-app px-3 py-2 mt-2" id="email-pending" hidden></p>
     </div>
 
-    <div class="py-4" id="password-row">
-      <div class="text-[.72rem] text-muted font-semibold uppercase tracking-wide mb-1">Password</div>
+    <div class="row-card" id="password-row">
+      <div class="row-card-title mb-1">Password</div>
       <div class="flex items-center gap-2" id="password-view">
-        <div class="flex-1 min-w-0 border border-transparent px-3 py-2 text-foreground text-[1rem] leading-normal font-semibold" id="password-value">••••••••••</div>
+        <div class="flex-1 min-w-0 border border-transparent px-3 py-2 text-foreground text-[1rem] leading-normal" id="password-value">••••••••••</div>
         <button type="button" class="admin-btn shrink-0" id="password-edit-btn">Change</button>
       </div>
       <form class="mt-2" id="password-form" hidden>
