@@ -16,7 +16,6 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node-pnpm
       - run: pnpm run tailwind:build
-      - run: pnpm run client:build
       # #391 fixed this exact gap for PR previews (preview.yml) but never
       # got ported here -- production never built these four bundles at
       # all, so /:username/{log,map,performance} and the public

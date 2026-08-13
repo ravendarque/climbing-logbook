@@ -29,12 +29,11 @@ deploy)
 │                      same #352 already-logged-in redirect as the apex)
 ├── /reset-password   → climbing-logbook (public/reset-password/, #22/#295)
 └── my.climbinglogbook.com
-    ├── /logbook*  → climbing-logbook (the real app -- same
-    │                public/logbook/ assets and /logbook/api/* endpoints
-    │                already serving ravendarque.com/logbook, now also
-    │                reachable here; deliberately NOT moved to the bare
-    │                root, so nothing about the app's existing paths,
-    │                cookies, or client code needed to change)
+    ├── /logbook*  → 404 (retired, #375 -- the legacy single-page app that
+    │                used to live here is gone once every page below was
+    │                live and proven; `public/logbook/` itself is now just
+    │                the shared asset directory every page below still
+    │                resolves absolute paths against, not a page)
     ├── /:username/{log,map,performance} → climbing-logbook (#347/#348 --
     │                the owner's own session-gated pages, epic #344's
     │                route split; a session mismatch/absence redirects to
@@ -44,25 +43,23 @@ deploy)
                      `logbook_public`-gated, not session-gated)
 ```
 
-Both domains are live at once during the transition -- `ravendarque.com/
-logbook` keeps serving the app unchanged (own copy of the same static
-files, reachable at both hostnames since Workers Static Assets matches by
-path only, not hostname). `/register`/`/login`/`/reset-password` moved
-*off* `ravendarque.com/logbook` entirely rather than staying duplicated
-there -- confirmed with Raven there are no other active users yet (#295),
-so a clean cutover for these three pages was simpler than maintaining two
-copies indefinitely; visiting the old URLs now 404s. `client/
-admin-auth.js`'s login link and `public/login/login.js`'s post-login
-redirect are both hostname-conditional (absolute cross-origin URL in
-production, same-origin relative fallback for local dev/PR previews) to
-bridge the app's origin (`my.climbinglogbook.com` or still
-`ravendarque.com`) and the auth pages' new origin (`climbinglogbook.com`).
-`ravendarque.com/logbook` itself now redirects (301, `infra/redirects.tf`)
-to `my.climbinglogbook.com/ravendarque` -- Raven's own eventual public
-profile page (#113) -- rather than the app; the app is still technically
-served there underneath (same static files, unreachable Workers Route),
-just never reached since the redirect ruleset wins first. Updating the
-link to the old URL in the separate `my-limn` repo is still open, not
+`/register`/`/login`/`/reset-password` moved *off* `ravendarque.com/
+logbook` entirely rather than staying duplicated there -- confirmed with
+Raven there are no other active users yet (#295), so a clean cutover for
+these three pages was simpler than maintaining two copies indefinitely;
+visiting the old URLs now 404s. `client/admin-auth.js`'s login link and
+`public/login/login.js`'s post-login redirect are both hostname-
+conditional (absolute cross-origin URL in production, same-origin
+relative fallback for local dev/PR previews) to bridge the app's origin
+(`my.climbinglogbook.com` or still `ravendarque.com`) and the auth pages'
+new origin (`climbinglogbook.com`). `ravendarque.com/logbook` itself
+redirects (301, `infra/redirects.tf`) to `my.climbinglogbook.com/
+ravendarque` -- Raven's own public profile page (#113) -- rather than the
+app; `my.climbinglogbook.com/logbook` genuinely 404s now (#375, no
+redirect -- Raven's own call, clean removal over a legacy alias) rather
+than falling through to a still-served-underneath app the way it briefly
+did during the parallel-migration period. Updating the link to the old
+URL in the separate `my-limn` repo is still open, not
 resolved here.
 
 ## Why a Worker, not another Pages project
@@ -157,12 +154,13 @@ Everything provisionable is declarative and idempotent via Terraform in
   Worker-side one, deliberately: Cloudflare Static Assets matches by path
   only (confirmed during #113/#335), so a redirect written inside
   `src/index.js`'s own `fetch()` could never win against the real static
-  app files still sitting at `public/logbook/` (the same files that also
-  serve `my.climbinglogbook.com/logbook`) -- a redirect ruleset runs at
-  the edge, ahead of both Workers Routes and Static Assets, so it
-  intercepts cleanly regardless. The existing `ravendarque.com/logbook*`
-  Workers Route in `wrangler.jsonc` is left in place, now unreachable for
-  real traffic -- harmless dead config, not worth a separate cleanup PR.
+  app files that sat at `public/logbook/` at the time (also reachable at
+  `my.climbinglogbook.com/logbook` -- both since retired, #375) -- a
+  redirect ruleset runs at the edge, ahead of both Workers Routes and
+  Static Assets, so it intercepted cleanly regardless. The existing
+  `ravendarque.com/logbook*` Workers Route in `wrangler.jsonc` is left in
+  place, unreachable for real traffic either way now -- harmless dead
+  config, not worth a separate cleanup PR.
 
 **Intentionally excluded from Terraform**, by design: the logbook's actual
 data (D1's row data, not the infrastructure holding it), and

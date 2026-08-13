@@ -24,23 +24,29 @@ test("logs in via the login page, then logs out again", async ({ page }) => {
   // which this suite has no way to reach locally (same limitation every
   // other #348/#351 e2e spec already documents) -- waitForURL only
   // proves the redirect *target* is correct, not that the destination
-  // renders; proving the session actually took needs a separate
-  // navigation to the real app, below.
+  // renders.
   await page.waitForURL(`**/${DEV_USER.username}/log`);
 
-  await page.goto("/logbook/");
-  await page.locator("#loading").waitFor({ state: "hidden" });
-  await page.locator("#app").waitFor({ state: "visible" });
+  // Proving the session actually took (#375 -- /logbook, the one
+  // locally-reachable page this used to navigate to for a UI-level
+  // check, is retired; every real page left is hostname-gated the same
+  // way /log itself is). A direct get-session/sign-out round trip against
+  // Better Auth's own real endpoints is more direct proof than a UI
+  // toggle ever was anyway -- it confirms the session is genuinely valid
+  // server-side, not just that some cookie is present.
+  const session = await page.evaluate(() => fetch("/logbook/api/auth/get-session").then(r => r.json()));
+  expect(session?.user?.email).toBe(DEV_USER.email);
 
-  await expect(page.locator("#add-btn")).toBeVisible();
-
-  await page.locator("#header-menu-btn").click();
-  await expect(page.locator("#login-toggle-btn")).toHaveText("Log out");
-  await page.locator("#login-toggle-btn").click();
-
-  await expect(page.locator("#add-btn")).toBeHidden();
-  await page.locator("#header-menu-btn").click();
-  await expect(page.locator("#login-toggle-btn")).toHaveText("Log in");
+  // Same shape client/admin-auth.js's own sign-out call uses -- a bare
+  // POST with no body/content-type silently fails to end the session
+  // (found while writing this test, not assumed).
+  await page.evaluate(() => fetch("/logbook/api/auth/sign-out", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  }));
+  const afterSignOut = await page.evaluate(() => fetch("/logbook/api/auth/get-session").then(r => r.json()));
+  expect(afterSignOut).toBeNull();
 });
 
 test("shows an inline error for the wrong password, without navigating away", async ({ page }) => {

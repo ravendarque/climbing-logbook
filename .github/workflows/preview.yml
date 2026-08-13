@@ -39,11 +39,10 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node-pnpm
       - run: pnpm run tailwind:build
-      - run: pnpm run client:build
       # #391 -- these were missing entirely, so /map and /performance 404'd
       # on their JS bundle on every preview deployment (public/logbook/
-      # map-app.js and performance-app.js are gitignored build output, same
-      # as app.js above -- nothing else ever produces them).
+      # map-app.js and performance-app.js are gitignored build output --
+      # nothing else ever produces them).
       - run: pnpm run map:build
       - run: pnpm run performance:build
       - run: pnpm run log:build
