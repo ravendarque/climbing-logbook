@@ -37,13 +37,16 @@ export default defineConfig({
   globalSetup: "./e2e/global-setup.js",
   webServer: {
     // Rebuilds assets before serving, since public/logbook/{tailwind.css,
-    // app.js,map-app.js} are gitignored build output (see .gitignore) --
+    // map-app.js,...} are gitignored build output (see .gitignore) --
     // wrangler dev would otherwise serve a stale or missing bundle. Same
     // reasoning for e2e:build-fixtures (#407 Tier 1) -- public/
     // e2e-fixtures/ is gitignored too, deliberately never part of `pnpm
     // run deploy`'s own build list (see .gitignore's own comment).
-    command: "pnpm run tailwind:build && pnpm run client:build && pnpm run map:build && pnpm run performance:build && pnpm run log:build && pnpm run profile:build && pnpm run account:build && pnpm run account-edit:build && pnpm run e2e:build-fixtures && wrangler dev",
-    url: `${BASE_URL}/logbook/`,
+    command: "pnpm run tailwind:build && pnpm run map:build && pnpm run performance:build && pnpm run log:build && pnpm run profile:build && pnpm run account:build && pnpm run account-edit:build && pnpm run e2e:build-fixtures && wrangler dev",
+    // /login/, not /logbook/ (retired, #375) -- just needs a real, always-
+    // reachable static page to poll for readiness, unrelated to what any
+    // individual spec actually tests.
+    url: `${BASE_URL}/login/`,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
   },

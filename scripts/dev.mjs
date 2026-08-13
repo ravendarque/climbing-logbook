@@ -1,8 +1,7 @@
 /**
  * Starts the local dev server (wrangler + Tailwind watcher + client JS
- * bundle watcher, via `concurrently` directly), waits for it to be ready,
- * seeds some test data, and opens the app in a browser at the actual
- * /logbook path --
+ * bundle watchers, via `concurrently` directly), waits for it to be ready,
+ * seeds some test data, and opens the login page in a browser --
  * all in one terminal, Ctrl+C stops everything together.
  *
  * This used to be `pnpm run review`-only behavior (see #72/#88/#116);
@@ -61,11 +60,10 @@ console.log("==> Starting dev server");
 // `pnpm run dev:raw` here doubled that noise. `dev:raw` stays in
 // package.json for anyone who wants to run it standalone.
 const dev = spawn("concurrently", [
-  "-n", "wrangler,tailwind,client,map,performance,log,profile,account,account-edit",
-  "-c", "blue,magenta,green,yellow,cyan,white,gray,blue,magenta",
+  "-n", "wrangler,tailwind,map,performance,log,profile,account,account-edit",
+  "-c", "blue,magenta,yellow,cyan,white,gray,blue,magenta",
   "wrangler dev",
   "tailwindcss -i ./styles/tailwind.css -o ./public/logbook/tailwind.css --watch",
-  "pnpm run client:watch",
   "pnpm run map:watch",
   "pnpm run performance:watch",
   "pnpm run log:watch",
@@ -118,7 +116,13 @@ dev.stdout.on("data", chunk => {
   ready = true;
   clearTimeout(readyTimer);
   const url = match[1];
-  const logbookUrl = `${url}/logbook`;
+  // /logbook is retired (#375) -- the real app pages (/:username/log etc)
+  // are my.<domain>-hostname-gated, which plain `wrangler dev` (this
+  // script) has no way to reach at all (confirmed, #407); `pnpm run
+  // dev:vite` does support it, see that script's own comment. Opening
+  // /login/ here is the most useful thing this script can still do on its
+  // own -- a real, reachable page, and the natural next step regardless.
+  const loginUrl = `${url}/login/`;
   console.log(`\n==> Dev server ready at ${url}`);
 
   if (!noSeed) {
@@ -129,10 +133,10 @@ dev.stdout.on("data", chunk => {
   }
 
   // Printed unconditionally, regardless of --no-open or whether the OS
-  // opener actually works -- a clickable link beats retyping /logbook by
-  // hand every time either way.
-  console.log(`==> Logbook: ${logbookUrl}`);
-  if (!noOpen) openBrowser(logbookUrl);
+  // opener actually works -- a clickable link beats retyping it by hand
+  // either way.
+  console.log(`==> Login: ${loginUrl}`);
+  if (!noOpen) openBrowser(loginUrl);
 });
 
 for (const sig of ["SIGINT", "SIGTERM"]) {

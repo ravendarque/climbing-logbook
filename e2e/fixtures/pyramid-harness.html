@@ -21,11 +21,16 @@
 </div>
 <script type="module">
   const today = new Date().toISOString().slice(0, 10);
+  // Spans wider than the pyramid's default top-4-grades window (5C through
+  // 8A) -- e2e/component-harnesses.spec.js's show/hide-lower-grades test
+  // needs #show-lower-link to definitely exist, not conditionally.
   document.querySelector("climbing-grade-pyramid").entries = [
+    { id: "e0", type: "boulder", status: "send", grade: "5C", date: today },
     { id: "e1", type: "boulder", status: "send", grade: "6A", date: today },
     { id: "e2", type: "boulder", status: "send", grade: "6B", date: today },
     { id: "e3", type: "boulder", status: "send", grade: "6C", date: today },
     { id: "e4", type: "boulder", status: "send", grade: "7A", date: today },
+    { id: "e5", type: "boulder", status: "send", grade: "8A", date: today },
   ];
 </script>
 </body>

@@ -1,9 +1,18 @@
-const CACHE_NAME = "logbook-shell-v1";
+// v2 (#375) -- /logbook (the page) is retired; the entries below that
+// named its own shell (/logbook/, index.html, app.js) are gone, and
+// nothing replaced them with a single fixed page to precache -- every
+// real page now lives at /:username/{log,map,performance,account,
+// account/edit}, a different URL per user, not something this shared,
+// path-fixed script can hardcode. Version bump forces any already-
+// installed client to drop its stale cache (which still held those now-
+// 404ing entries) rather than serving them forever. The fetch handler
+// below still network-first/cache-falls-back every real page and its own
+// JS bundle the first time it's visited online, same as always -- this
+// list is only a *pre*-cache optimization for the very first offline
+// visit before any online one, not what makes offline work at all.
+const CACHE_NAME = "logbook-shell-v2";
 
 const APP_SHELL = [
-  "/logbook/",
-  "/logbook/index.html",
-  "/logbook/app.js",
   "/logbook/escape-html.js",
   "/logbook/floating-ui-core.js",
   "/logbook/floating-ui-dom.js",
@@ -31,7 +40,7 @@ self.addEventListener("activate", event => {
 // header is about preventing HTTP-level caching upstream, not about this
 // SW's own Cache Storage fallback -- that endpoint is deliberately cached
 // here for offline reads. Session/login checks are different: caching them
-// lets a stale "logged in" response get served back after the real Access
+// lets a stale "logged in" response get served back after the real
 // session has ended, so they're excluded by path instead.
 const NEVER_CACHE_PREFIXES = ["/logbook/api/admin/", "/logbook/api/settings"];
 
