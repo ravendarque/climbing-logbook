@@ -31,7 +31,7 @@
 
   <climbing-header variant="brand" align-left></climbing-header>
 
-  <!-- SPIKE: two-column layout above the app's existing 600px narrow/wide
+  <!-- #457 -- two-column layout above the app's existing 600px narrow/wide
        breakpoint (see client/map-view.js's mapNarrowQuery/client/
        components/climbing-entries-table.js's own max-[600px]: usage --
        same breakpoint value, reused rather than inventing a new one).
@@ -41,7 +41,10 @@
        recompute on a resize/orientation change, just layout. -->
   <div class="grid grid-cols-2 gap-x-8 max-[600px]:grid-cols-1" id="account-sections">
     <div>
-      <h2 class="text-[1.3rem] font-bold text-foreground mb-4">My account</h2>
+      <!-- #457 -- brand-style section heading (font-display/uppercase/
+           tracking-wide), matching <climbing-header>'s own h1 treatment
+           rather than a plain bold sans-serif label. -->
+      <h2 class="font-display font-normal uppercase tracking-wide text-[1.3rem] text-foreground mb-4">My account</h2>
       <div class="flex flex-col gap-2 max-w-[420px]" id="account-options">
         <a class="flex items-center justify-between bg-surface border border-border rounded-app px-4 py-3 text-foreground text-[.9rem] font-semibold hover:border-accent" id="edit-account-link" href="#">
           Edit account details
@@ -71,21 +74,31 @@
          degrade gracefully if a session lapses mid-visit, same reasoning
          as every other adminAuth-derived element on this page. -->
     <div class="max-[600px]:mt-8">
-      <h2 class="text-[1.3rem] font-bold text-foreground mb-4">Settings</h2>
+      <h2 class="font-display font-normal uppercase tracking-wide text-[1.3rem] text-foreground mb-4">Settings</h2>
       <div class="flex flex-col gap-2 max-w-[420px]" id="account-settings">
         <div class="bg-surface border border-border rounded-app px-4 py-3" id="athlete-mode-row" hidden>
           <div class="flex items-center justify-between gap-3">
             <span class="text-foreground text-[.9rem] font-semibold">Athlete Mode</span>
-            <button type="button" class="group inline-flex items-center cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" id="athlete-mode-toggle" role="switch" aria-checked="false">
+            <!-- #457 -- bg-transparent/border-transparent restore the same
+                 native-<button>-chrome override /logbook's own pre-#445
+                 athlete-mode-btn markup always had; missing here since
+                 #445 (a real bug -- without them the browser's own default
+                 button background/border show through as a plain white,
+                 bordered box). -->
+            <button type="button" class="group inline-flex items-center bg-transparent border border-transparent cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" id="athlete-mode-toggle" role="switch" aria-checked="false">
               <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
             </button>
           </div>
-          <p class="text-[.82rem] text-muted mt-1">Unlocks your Performance page -- the Grade Pyramid and other performance insights, visible only to you.</p>
+          <!-- #457 -- "performance insights" is the umbrella term for this
+               feature area; Grade Pyramid is one view under it, not the
+               thing itself, per Raven's explicit correction elsewhere this
+               epic -- don't name it here. -->
+          <p class="text-[.82rem] text-muted mt-1">Unlocks performance insights on your Performance page, visible only to you.</p>
         </div>
         <div class="bg-surface border border-border rounded-app px-4 py-3" id="public-logbook-row" hidden>
           <div class="flex items-center justify-between gap-3">
             <span class="text-foreground text-[.9rem] font-semibold">Public Logbook</span>
-            <button type="button" class="group inline-flex items-center cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" id="public-logbook-toggle" role="switch" aria-checked="true">
+            <button type="button" class="group inline-flex items-center bg-transparent border border-transparent cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" id="public-logbook-toggle" role="switch" aria-checked="true">
               <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
             </button>
           </div>
