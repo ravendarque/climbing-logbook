@@ -66,17 +66,22 @@
   "vars": {
     "BETA_GATE_ENABLED": "true"
   },
-  // #295 -- climbinglogbook.com/my.climbinglogbook.com are the new routes;
-  // ravendarque.com/logbook* stays alongside them for now -- whether it's
-  // later removed or redirected to the new domain is still an open
-  // decision (see #295's own body), deliberately not resolved here since
-  // it affects a link in a different repo (my-limn) and real live traffic.
-  // No apex content exists yet at climbinglogbook.com (marketing page is
-  // a separate, follow-up issue) -- this route is inert (404s) until then,
-  // same "safe to land ahead of the content that needs it" reasoning as
-  // #113's hostname dispatch.
+  // #295 -- climbinglogbook.com/my.climbinglogbook.com are the real
+  // routes. The ravendarque.com/logbook* Workers Route that used to sit
+  // alongside them is gone (#453) -- it was already confirmed dead for
+  // real traffic (infra/redirects.tf's own Terraform-managed, zone-level
+  // redirect ruleset runs ahead of Workers Routes at the edge and always
+  // wins, so this entry never actually served anything once that
+  // ruleset existed), and once #316 narrowed CLOUDFLARE_API_TOKEN's
+  // scope back to climbinglogbook.com only, `wrangler deploy`'s routine
+  // per-deploy route reconciliation against the ravendarque.com zone
+  // started failing outright on every deploy (confirmed: the token can
+  // no longer authenticate for that zone at all). Removing the entry
+  // stops wrangler from ever needing to touch that zone again -- no
+  // Terraform change needed, nothing depended on this Workers Route
+  // existing (confirmed via grep: no cloudflare_workers_route resource
+  // anywhere, redirects.tf only mentions it in a comment).
   "routes": [
-    { "pattern": "ravendarque.com/logbook*", "zone_name": "ravendarque.com" },
     { "pattern": "climbinglogbook.com/*", "zone_name": "climbinglogbook.com" },
     { "pattern": "my.climbinglogbook.com/*", "zone_name": "climbinglogbook.com" }
   ],

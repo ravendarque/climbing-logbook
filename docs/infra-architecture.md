@@ -157,10 +157,14 @@ Everything provisionable is declarative and idempotent via Terraform in
   app files that sat at `public/logbook/` at the time (also reachable at
   `my.climbinglogbook.com/logbook` -- both since retired, #375) -- a
   redirect ruleset runs at the edge, ahead of both Workers Routes and
-  Static Assets, so it intercepted cleanly regardless. The existing
-  `ravendarque.com/logbook*` Workers Route in `wrangler.jsonc` is left in
-  place, unreachable for real traffic either way now -- harmless dead
-  config, not worth a separate cleanup PR.
+  Static Assets, so it intercepted cleanly regardless. The
+  `ravendarque.com/logbook*` Workers Route in `wrangler.jsonc` that used
+  to sit alongside it, confirmed unreachable for real traffic, was
+  removed entirely once it turned from "harmless dead config" into an
+  active deploy-breaker (#453) -- #316's narrowing of
+  `CLOUDFLARE_API_TOKEN`'s scope back to `climbinglogbook.com` only means
+  `wrangler deploy`'s routine per-deploy route reconciliation can no
+  longer authenticate against the `ravendarque.com` zone at all.
 
 **Intentionally excluded from Terraform**, by design: the logbook's actual
 data (D1's row data, not the infrastructure holding it), and
@@ -429,7 +433,12 @@ Account-scoped (the Cloudflare account above):
   relying on it)
 - Cloudflare Pages: Edit
 
-Zone-scoped (ravendarque.com):
+Zone-scoped (ravendarque.com): none -- narrowed back to climbinglogbook.com
+only (#316, resolved 2026-08-13). Confirmed the hard way: `wrangler
+deploy`'s routine per-deploy route reconciliation started failing outright
+right after, since `wrangler.jsonc` still declared a
+`ravendarque.com`-zoned Workers Route at the time (#453 removed it). The
+zone previously carried:
 - Workers Routes: Edit
 - Rules & Configuration: Dynamic URL Redirects (added #295 --
   `infra/redirects.tf`'s redirect ruleset; the token permission's actual
