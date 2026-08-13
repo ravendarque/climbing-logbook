@@ -63,8 +63,10 @@ function menuPopover(adminHidden) {
   // actually needed: real weight/size, not a full-width bordered row.
   // my-account-link deliberately isn't admin-btn (that's the bordered/
   // filled "card" look Raven flagged) -- styled as a plain accent link
-  // instead, same text-accent/hover:underline treatment as
-  // climbing-header.js's own footnote-trigger link.
+  // instead. No hover:underline (Raven flagged links underlining as
+  // "creeping in" and unwanted, #457) -- styles/tailwind.css's own
+  // `a { text-decoration: none }` base reset already keeps this one
+  // underline-free by default.
   //
   // Athlete Mode/Public Logbook toggles used to live here as two more
   // adminRows entries -- moved to the My account page instead (#445,
@@ -75,7 +77,7 @@ function menuPopover(adminHidden) {
   // the mechanical fallout.
   const adminRows = adminHidden ? "" : `
       <div class="max-w-[11rem] truncate text-[.9rem] font-bold text-foreground text-right" id="menu-username" hidden></div>
-      <a class="text-[.9rem] font-bold text-accent hover:underline" id="my-account-link" href="#" hidden>My account</a>`;
+      <a class="text-[.9rem] font-bold text-accent" id="my-account-link" href="#" hidden>My account</a>`;
   const loginBtn = adminHidden ? "" : `<button type="button" class="admin-btn" id="login-toggle-btn">Log in</button>`;
   // The divider (border-t/pt-2/mt-1) only makes sense when something is
   // actually visible above it -- menu-username/my-account-link are the

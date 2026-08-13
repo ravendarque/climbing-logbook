@@ -98,8 +98,16 @@ function wireEditableRow({ prefix, onSubmit }) {
   const cancelBtn = document.getElementById(`${prefix}-cancel-btn`);
   const saveBtn = document.getElementById(`${prefix}-save-btn`);
   const errorEl = document.getElementById(`${prefix}-error`);
+  // Only username/email follow the `${prefix}-input` id shape -- password
+  // has two separate inputs (current-password-input/new-password-input),
+  // neither of which should ever be pre-filled with a real password.
+  const inputEl = document.getElementById(`${prefix}-input`);
 
   function open() {
+    // #457 -- pre-populate with the current value rather than opening a
+    // blank field; the value's already right there in valueEl, just not
+    // being reused.
+    if (inputEl) inputEl.value = valueEl.textContent;
     errorEl.hidden = true;
     view.hidden = true;
     form.hidden = false;

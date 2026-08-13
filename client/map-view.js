@@ -527,7 +527,7 @@ export function createMapView({ store }) {
         container.innerHTML = `
           <div class="bg-surface border border-border rounded-app p-6 mb-5 text-center">
             <p class="text-[.85rem] text-muted mb-3">You need to be online to view the map.</p>
-            <button type="button" class="text-[.85rem] font-semibold text-accent bg-transparent border-0 cursor-pointer hover:underline" id="map-load-retry">Retry</button>
+            <button type="button" class="text-[.85rem] font-semibold text-accent bg-transparent border-0 cursor-pointer" id="map-load-retry">Retry</button>
           </div>`;
         document.getElementById("map-load-retry").addEventListener("click", () => {
           mapLoadError = null;

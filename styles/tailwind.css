@@ -45,6 +45,19 @@
      this is that same fix, generalized to every button instead of
      leaving it as a one-off. */
   button { appearance: none; }
+
+  /* <a href> defaults to text-decoration: underline in every browser's
+     UA stylesheet. This app never wants that -- every real link is
+     already distinguished by text-accent or its own card/button
+     chrome -- but without a global reset, each one needs its own
+     no-underline override or the browser default leaks through
+     (climbing-tab-bar.js's own no-underline class exists for exactly
+     this reason, found via a 2026-08-10 production report; #457 found
+     it recurring on public/account/index.html's edit-account-link,
+     which had no override at all). Fixing it here once, the same
+     "generalize instead of N one-offs" reasoning as the button resets
+     above, rather than auditing every <a> in the app by hand. */
+  a { text-decoration: none; }
 }
 
 /* ── Theme tokens ──────────────────────────────────────────────────
