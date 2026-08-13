@@ -40,8 +40,8 @@ export function createOfflineSync({
   }
   function updateSyncButton() {
     const n = getQueue().length;
-    // A sync while logged out is a guaranteed no-op (Access rejects it) --
-    // same rule as addBtn/athleteModeBtn in main.js's updateAdminBar(). The
+    // A sync while logged out is a guaranteed no-op (no session to write
+    // under) -- same rule as addBtn in admin-bar.js's syncAdminBar(). The
     // pending entries themselves still show their own badges, so this
     // doesn't hide the fact that changes are queued, just the button that
     // can't act on them yet.

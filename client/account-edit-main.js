@@ -40,10 +40,13 @@ const store = createStore();
 
 document.getElementById("back-to-account-link").href = `/${encodeURIComponent(USERNAME)}/account`;
 
-const athleteModeBtn = document.getElementById("athlete-mode-btn");
+// #445 -- menu-username is the one real signal now, same fix
+// header-chrome.js's own updateMenuDivider() and client/account-main.js's
+// copy already made.
+const menuUsername = document.getElementById("menu-username");
 const headerMenuBottomRow = document.getElementById("header-menu-bottom-row");
 function updateMenuDivider() {
-  const hasTopContent = !athleteModeBtn.hidden;
+  const hasTopContent = !menuUsername.hidden;
   headerMenuBottomRow.classList.toggle("border-t", hasTopContent);
   headerMenuBottomRow.classList.toggle("pt-2", hasTopContent);
   headerMenuBottomRow.classList.toggle("mt-1", hasTopContent);

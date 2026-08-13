@@ -50,6 +50,37 @@
     </div>
   </div>
 
+  <!-- Athlete Mode/Public Logbook (#445) -- moved here from the shared
+       burger menu (previously two more adminRows entries in
+       climbing-menu-bar.js) since each is a real setting worth a sentence
+       of explanation, not a quick menu row. Both rows start `hidden` in
+       markup, same as menu-username/my-account-link above -- this page is
+       already session-gated server-side (owned-routes.js), but the
+       composition root itself still has to degrade gracefully if a
+       session lapses mid-visit, same reasoning as every other
+       adminAuth-derived element on this page. -->
+  <h2 class="text-[1.3rem] font-bold text-foreground mt-8 mb-4">Settings</h2>
+  <div class="flex flex-col gap-2 max-w-[420px]" id="account-settings">
+    <div class="bg-surface border border-border rounded-app px-4 py-3" id="athlete-mode-row" hidden>
+      <div class="flex items-center justify-between gap-3">
+        <span class="text-foreground text-[.9rem] font-semibold">Athlete Mode</span>
+        <button type="button" class="group inline-flex items-center cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" id="athlete-mode-toggle" role="switch" aria-checked="false">
+          <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
+        </button>
+      </div>
+      <p class="text-[.82rem] text-muted mt-1">Unlocks your Performance page -- the Grade Pyramid and other performance insights, visible only to you.</p>
+    </div>
+    <div class="bg-surface border border-border rounded-app px-4 py-3" id="public-logbook-row" hidden>
+      <div class="flex items-center justify-between gap-3">
+        <span class="text-foreground text-[.9rem] font-semibold">Public Logbook</span>
+        <button type="button" class="group inline-flex items-center cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" id="public-logbook-toggle" role="switch" aria-checked="true">
+          <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
+        </button>
+      </div>
+      <p class="text-[.82rem] text-muted mt-1">When on, anyone can view your logbook and map at your public profile page. Turn off to keep them private -- only you can see them.</p>
+    </div>
+  </div>
+
   <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>
 </div>
 

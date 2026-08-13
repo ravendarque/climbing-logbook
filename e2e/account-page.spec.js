@@ -2,7 +2,9 @@
 // fixture-harness pattern as e2e/log-page.spec.js (see that file's own
 // header comment) -- the real client/account-main.js -> account-app.js
 // bundle against a verbatim copy of public/account/index.html, with
-// fabricated /logbook/api/* responses.
+// fabricated /logbook/api/* responses. Athlete Mode/Public Logbook toggle
+// coverage (#445) lives here too, ported from e2e/log-page.spec.js's own
+// pre-#445 version once that UI moved off the shared menu onto this page.
 import { expect, test } from "@playwright/test";
 import { mockApi } from "./mock-api.js";
 
@@ -35,12 +37,58 @@ test("renders the shared chrome, no discipline picker, and the My account link/u
   await expect(page.locator("#edit-account-link")).toHaveAttribute("href", "/e2e-fixtures/account/edit");
 });
 
-test("logged out -- username/My account link/admin rows all hidden", async ({ page }) => {
+test("logged out -- username/My account link/settings rows all hidden", async ({ page }) => {
   await mockApi(page, { loggedIn: false });
   await page.goto("/e2e-fixtures/pages/account.html");
 
   await page.locator("#header-menu-btn").click();
   await expect(page.locator("#menu-username")).toBeHidden();
   await expect(page.locator("#my-account-link")).toBeHidden();
-  await expect(page.locator("#athlete-mode-btn")).toBeHidden();
+  // #445 -- Athlete Mode/Public Logbook toggles live on this page now, not
+  // the shared menu (climbing-menu-bar.js no longer renders either row at
+  // all, on any page); both start `hidden` in markup and only appear once
+  // a real session is confirmed, same as menu-username/my-account-link.
+  await expect(page.locator("#athlete-mode-row")).toBeHidden();
+  await expect(page.locator("#public-logbook-row")).toBeHidden();
+});
+
+test("Athlete Mode toggle (#445) switches and persists via the settings PATCH", async ({ page }) => {
+  await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true } });
+  await page.goto("/e2e-fixtures/pages/account.html");
+
+  const athleteToggle = page.locator("#athlete-mode-toggle");
+  await expect(page.locator("#athlete-mode-row")).toBeVisible();
+  await expect(athleteToggle).toHaveAttribute("aria-checked", "false");
+
+  await Promise.all([
+    page.waitForResponse(res => res.url().includes("/logbook/api/admin/settings") && res.request().method() === "PATCH"),
+    athleteToggle.click(),
+  ]);
+  await expect(athleteToggle).toHaveAttribute("aria-checked", "true");
+
+  // Reload -- the mocked GET /logbook/api/settings now reflects the PATCH
+  // (mockApi() mutates its in-memory settings on every write), proving
+  // the toggle's state actually round-trips through the backend rather
+  // than just flipping client-side.
+  await page.reload();
+  await expect(page.locator("#athlete-mode-toggle")).toHaveAttribute("aria-checked", "true");
+});
+
+test("Public Logbook toggle (#301, moved to this page by #445) switches and persists via the settings PATCH", async ({ page }) => {
+  await mockApi(page);
+
+  await page.goto("/e2e-fixtures/pages/account.html");
+
+  const publicToggle = page.locator("#public-logbook-toggle");
+  await expect(page.locator("#public-logbook-row")).toBeVisible();
+  await expect(publicToggle).toHaveAttribute("aria-checked", "true");
+
+  await Promise.all([
+    page.waitForResponse(res => res.url().includes("/logbook/api/admin/settings") && res.request().method() === "PATCH"),
+    publicToggle.click(),
+  ]);
+  await expect(publicToggle).toHaveAttribute("aria-checked", "false");
+
+  await page.reload();
+  await expect(page.locator("#public-logbook-toggle")).toHaveAttribute("aria-checked", "false");
 });

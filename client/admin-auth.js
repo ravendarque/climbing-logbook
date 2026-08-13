@@ -1,8 +1,14 @@
-// Auth state and the Athlete Mode setting (#239, sixth piece of #233's
-// modularization epic). Owns checkSession() (Better Auth session check,
-// #320 -- was Cloudflare Access until here), fetchSettings() (the public
-// Athlete Mode + persisted-discipline read), and the login/logout +
-// Athlete Mode toggle click handlers.
+// Auth state and the Athlete Mode/Public Logbook settings (#239, sixth
+// piece of #233's modularization epic). Owns checkSession() (Better Auth
+// session check, #320 -- was Cloudflare Access until here), fetchSettings()
+// (the public Athlete Mode/Public Logbook + persisted-discipline read),
+// and the login/logout click handler. Athlete Mode/Public Logbook expose
+// plain setAthleteMode()/setLogbookPublic() mutators (#445) with no DOM
+// coupling of their own -- client/account-main.js is the only caller,
+// wiring them to its own toggle rows. (Used to also carry a DOM-coupled
+// click handler for /logbook's own independent Athlete Mode button,
+// #344's parallel-migration policy -- removed once #375 retired
+// /logbook entirely, so that compat shim had no remaining consumer.)
 //
 // Scoped narrower than the issue's own rough estimate: updateAdminBar()
 // and setActiveView() (admin-gated UI visibility, view-tab switching)
@@ -15,12 +21,12 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
   const AUTH_SESSION_URL = "/logbook/api/auth/get-session";
   const AUTH_SIGN_OUT_URL = "/logbook/api/auth/sign-out";
   // Cross-origin in production (#295 -- /login moved to the apex,
-  // climbinglogbook.com, while this app is reachable at
-  // my.climbinglogbook.com/logbook and, for now, still ravendarque.com/
-  // logbook too). Same-origin fallback for local dev/PR previews, which
-  // don't have a real climbinglogbook.com to send a browser to and never
-  // served /logbook/login/ in the first place -- see login.js's own
-  // REDIRECT_URL comment for the mirror-image version of this check.
+  // climbinglogbook.com, while the app itself is reachable at
+  // my.climbinglogbook.com/:username/{log,map,performance,...}, and
+  // ravendarque.com now just 301-redirects to a public profile page, not
+  // the app). Same-origin fallback for local dev/PR previews, which don't
+  // have a real climbinglogbook.com to send a browser to -- see login.js's
+  // own REDIRECT_URL comment for the mirror-image version of this check.
   const LOGIN_PAGE_URL = ["my.climbinglogbook.com", "ravendarque.com"].includes(window.location.hostname)
     ? "https://climbinglogbook.com/login/"
     : "/login/";
@@ -28,15 +34,6 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
   const LOGIN_HINT_KEY = "logbook_logged_in_hint";
 
   const loginToggleBtn = document.getElementById("login-toggle-btn");
-  const athleteModeBtn = document.getElementById("athlete-mode-btn");
-  // null on /logbook -- the Public Logbook toggle (#301) is scoped to
-  // the newer /log, /map, /performance pages only (Raven's own call,
-  // 2026-08-11: /logbook is daily-driver-retired but still the
-  // untouched reference page #344's parallel-migration policy protects,
-  // so its markup was never given this element). Every use below is
-  // null-guarded because of this -- unlike athleteModeBtn above, which
-  // every consumer's markup has always included.
-  const publicToggleBtn = document.getElementById("public-toggle-btn");
 
   let athleteMode = false;
   let logbookPublic = true;
@@ -77,10 +74,10 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
       if (data.activeDiscipline === "boulder" || data.activeDiscipline === "lead") {
         persistedDiscipline = data.activeDiscipline;
       }
-      // Always updated, even on /logbook where publicToggleBtn is null and
-      // nothing reads isLogbookPublic() -- harmless unused state there,
-      // same as persistedDiscipline being tracked regardless of whether a
-      // given page's UI surfaces it.
+      // Always updated, even on pages with no Public Logbook toggle UI
+      // (only client/account-main.js has one, #445) -- harmless unused
+      // state elsewhere, same as persistedDiscipline being tracked
+      // regardless of whether a given page's UI surfaces it.
       logbookPublic = !!data.logbookPublic;
     } catch {
       // Offline — keep the last-known in-memory defaults rather than
@@ -91,66 +88,46 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
     }
   }
 
-  athleteModeBtn.addEventListener("click", async () => {
-    const next = !athleteMode;
-    athleteModeBtn.disabled = true;
-    try {
-      const res = await adminFetch(adminSettingsUrl, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ athleteMode: next }),
-      });
-      if (res.status === 401 || isAuthRedirect(res)) {
-        // Session lapsed since page load — same handling as
-        // syncPending()'s 401 case: drop back to the logged-out view.
-        // isAuthRedirect() is a no-op against Better Auth's plain 401
-        // JSON response (never an opaque redirect) but stays harmless to
-        // check -- see adminFetch's own comment in main.js.
-        store.setLoggedIn(false);
-      } else if (res.ok) {
-        const data = await res.json();
-        athleteMode = !!data.athleteMode;
-        athleteModeBtn.title = "";
-      } else {
-        athleteModeBtn.title = `Failed to update Athlete Mode (${res.status})`;
-      }
-    } catch (err) {
-      athleteModeBtn.title = `Failed to update Athlete Mode: ${err.message}`;
-    } finally {
-      athleteModeBtn.disabled = false;
-      updateAdminBar();
-    }
-  });
-
-  // #301 -- new-pages-only (see publicToggleBtn's own comment above).
-  // Same shape as athleteModeBtn's click handler immediately above,
-  // PATCHing the one field that changed.
-  if (publicToggleBtn) {
-    publicToggleBtn.addEventListener("click", async () => {
-      const next = !logbookPublic;
-      publicToggleBtn.disabled = true;
-      try {
-        const res = await adminFetch(adminSettingsUrl, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ logbookPublic: next }),
-        });
-        if (res.status === 401 || isAuthRedirect(res)) {
-          store.setLoggedIn(false);
-        } else if (res.ok) {
-          const data = await res.json();
-          logbookPublic = !!data.logbookPublic;
-          publicToggleBtn.title = "";
-        } else {
-          publicToggleBtn.title = `Failed to update Public Logbook (${res.status})`;
-        }
-      } catch (err) {
-        publicToggleBtn.title = `Failed to update Public Logbook: ${err.message}`;
-      } finally {
-        publicToggleBtn.disabled = false;
-        updateAdminBar();
-      }
+  // Shared PATCH-one-field core, called by the My account page's own
+  // toggle UI (#445, client/account-main.js) via setAthleteMode()/
+  // setLogbookPublic() below -- no DOM lookup of any kind in here, so it
+  // works identically regardless of where (or whether) a clickable
+  // control for it currently exists. Returns `{ok, status?}` rather than
+  // throwing on a non-2xx response -- a failed settings PATCH is an
+  // expected, displayable outcome (shown as the control's own error
+  // state), not an exceptional one; a thrown network/parse error still
+  // propagates normally to the caller's own try/catch.
+  async function patchSetting(field, value) {
+    const res = await adminFetch(adminSettingsUrl, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [field]: value }),
     });
+    if (res.status === 401 || isAuthRedirect(res)) {
+      // Session lapsed since page load — same handling as
+      // syncPending()'s 401 case: drop back to the logged-out view.
+      // isAuthRedirect() is a no-op against Better Auth's plain 401
+      // JSON response (never an opaque redirect) but stays harmless to
+      // check -- see adminFetch's own comment in main.js.
+      store.setLoggedIn(false);
+      return { ok: false };
+    }
+    if (!res.ok) return { ok: false, status: res.status };
+    return { ok: true, data: await res.json() };
+  }
+
+  async function setAthleteMode(next) {
+    const result = await patchSetting("athleteMode", next);
+    if (result.ok) athleteMode = !!result.data.athleteMode;
+    updateAdminBar();
+    return result;
+  }
+
+  async function setLogbookPublic(next) {
+    const result = await patchSetting("logbookPublic", next);
+    if (result.ok) logbookPublic = !!result.data.logbookPublic;
+    updateAdminBar();
+    return result;
   }
 
   // Better Auth's own session-check endpoint (#320 -- was Cloudflare
@@ -198,13 +175,6 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
   // roots (found via code review, 2026-08-09) -- exposed as a method here
   // rather than a standalone function since store/persistedDiscipline are
   // already in this factory's own closure, nothing extra to inject.
-  //
-  // Not used by client/main.js (/logbook's own, still-untouched
-  // composition root, which keeps its own equivalent logic inline) --
-  // #344's parallel-migration decision holds /logbook stable throughout
-  // this epic; adding this method doesn't change main.js's behavior at
-  // all (it simply never calls it), same reasoning as this file's other
-  // exposed methods below.
   async function resolveActiveType(sessionPromise, settingsPromise) {
     const hasBoulder = store.getEntries().some(e => e.type === "boulder");
     const hasLead = store.getEntries().some(e => e.type === "lead");
@@ -240,7 +210,9 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
     checkSession,
     fetchSettings,
     isAthleteMode: () => athleteMode,
+    setAthleteMode,
     isLogbookPublic: () => logbookPublic,
+    setLogbookPublic,
     getUsername: () => username,
     getEmail: () => email,
     getPersistedDiscipline: () => persistedDiscipline,

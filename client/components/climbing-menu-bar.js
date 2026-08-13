@@ -57,35 +57,37 @@ const DISCIPLINE_PICKER = `
 `;
 
 function menuPopover(adminHidden) {
-  // Neither of these two carries self-stretch (unlike the toggle rows
-  // below) -- the popover's own flex-col items-end already right-aligns
-  // any child that's just its natural content width, which is what "pop
-  // more" (Raven, 2026-08-11) actually needed: real weight/size, not a
-  // full-width bordered row like the toggles below. my-account-link
-  // deliberately isn't admin-btn (that's the bordered/filled "card" look
-  // Raven flagged) -- styled as a plain accent link instead, same
-  // text-accent/hover:underline treatment as climbing-header.js's own
-  // footnote-trigger link.
+  // Neither of these two carries self-stretch -- the popover's own
+  // flex-col items-end already right-aligns any child that's just its
+  // natural content width, which is what "pop more" (Raven, 2026-08-11)
+  // actually needed: real weight/size, not a full-width bordered row.
+  // my-account-link deliberately isn't admin-btn (that's the bordered/
+  // filled "card" look Raven flagged) -- styled as a plain accent link
+  // instead, same text-accent/hover:underline treatment as
+  // climbing-header.js's own footnote-trigger link.
+  //
+  // Athlete Mode/Public Logbook toggles used to live here as two more
+  // adminRows entries -- moved to the My account page instead (#445,
+  // Raven's call: they're settings worth a sentence of explanation each,
+  // not something a quick burger-menu row can carry). Nothing in this
+  // component's own markup references either any more; the divider
+  // condition below and admin-auth.js/admin-bar.js's own comments explain
+  // the mechanical fallout.
   const adminRows = adminHidden ? "" : `
       <div class="max-w-[11rem] truncate text-[.9rem] font-bold text-foreground text-right" id="menu-username" hidden></div>
-      <a class="text-[.9rem] font-bold text-accent hover:underline" id="my-account-link" href="#" hidden>My account</a>
-      <button type="button" class="group inline-flex items-center h-[var(--field-h)] gap-2 bg-transparent border border-transparent px-[.8rem] cursor-pointer text-[.82rem] font-semibold text-foreground disabled:opacity-60 disabled:cursor-not-allowed" id="athlete-mode-btn" role="switch" aria-checked="false" hidden>
-        <span class="transition-colors duration-150 group-aria-[checked=false]:text-muted">Athlete Mode</span>
-        <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
-      </button>
-      <button type="button" class="group inline-flex items-center h-[var(--field-h)] gap-2 bg-transparent border border-transparent px-[.8rem] cursor-pointer text-[.82rem] font-semibold text-foreground disabled:opacity-60 disabled:cursor-not-allowed" id="public-toggle-btn" role="switch" aria-checked="false" hidden>
-        <span class="transition-colors duration-150 group-aria-[checked=false]:text-muted">Public Logbook</span>
-        <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
-      </button>`;
+      <a class="text-[.9rem] font-bold text-accent hover:underline" id="my-account-link" href="#" hidden>My account</a>`;
   const loginBtn = adminHidden ? "" : `<button type="button" class="admin-btn" id="login-toggle-btn">Log in</button>`;
-  // The divider (border-t/pt-2/mt-1) only makes sense when Athlete Mode
-  // occupies the row above it -- with admin-hidden, that row doesn't
+  // The divider (border-t/pt-2/mt-1) only makes sense when something is
+  // actually visible above it -- menu-username/my-account-link are the
+  // only things that can occupy the top section now (#445), and both are
+  // hidden entirely when logged out, which would otherwise leave the
+  // divider floating above nothing. With admin-hidden, that row doesn't
   // exist in the DOM at all, and nothing calls client/header-chrome.js's
   // updateMenuDivider() on this page to strip the classes at runtime (see
   // client/profile-main.js, this component's only admin-hidden consumer),
   // so they're simply never added here in the first place, same effect
   // updateMenuDivider() achieves for the non-admin-hidden case whenever
-  // Athlete Mode is hidden.
+  // menu-username is hidden.
   const bottomRowClasses = adminHidden
     ? "flex items-center justify-between self-stretch"
     : "flex items-center justify-between self-stretch pt-2 mt-1 border-t border-border";
