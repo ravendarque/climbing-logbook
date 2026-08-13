@@ -43,6 +43,9 @@ deploy)
                      `logbook_public`-gated, not session-gated)
 ```
 
+`my.climbinglogbook.com/:username` is the public URL structure decided in
+[ADR-0010](adr/0010-public-url-structure-my-domain-username.md).
+
 `/register`/`/login`/`/reset-password` moved *off* `ravendarque.com/
 logbook` entirely rather than staying duplicated there -- confirmed with
 Raven there are no other active users yet (#295), so a clean cutover for
@@ -64,20 +67,15 @@ resolved here.
 
 ## Why a Worker, not another Pages project
 
-The first design considered was a thin proxy Function inside my-limn
-forwarding to a separate Pages project. That was rejected: it kept a live
-runtime dependency on my-limn (a redeploy of the "independent" product would
-still route through my-limn's code) and added an unnecessary network hop.
+See [ADR-0007](adr/0007-single-cloudflare-worker-not-separate-pages-project.md)
+for the full decision and reasoning (why a genuine Worker over a proxy
+Function inside my-limn, and why one Worker serves both hostnames rather
+than two) -- not reproduced here since the ADR already covers it in full.
 
-Instead, climbing-logbook is a genuine Cloudflare Worker (Workers Static
-Assets model — a static frontend under `public/` plus a `fetch` handler for
-API routes) that owns its own [zone route](https://developers.cloudflare.com/workers/configuration/routing/routes/)
-directly: `ravendarque.com/logbook*` in `wrangler.jsonc`. **This requires
-zero code or awareness in my-limn.** Cloudflare's route matching is
-specificity-based — a Worker Route for a specific path pattern takes
-precedence over a Pages project's custom-domain claim on the same hostname
-— which was empirically confirmed live (not just assumed from docs) before
-this was treated as settled.
+climbing-logbook owns its own [zone route](https://developers.cloudflare.com/workers/configuration/routing/routes/)
+directly: `ravendarque.com/logbook*` was the original route in
+`wrangler.jsonc`, since superseded by the two `climbinglogbook.com`/
+`my.climbinglogbook.com` routes added by #295 (see the Overview above).
 
 `workers_dev` is explicitly disabled (`workers_dev: false`) — this project
 was originally built around a Cloudflare Access application that only
@@ -87,6 +85,9 @@ gone now (see below), but the setting is left as-is — there's no reason to
 expose a second, unlisted hostname for the same Worker.
 
 ## Authentication: Better Auth (#8, #20, #298)
+
+See [ADR-0002](adr/0002-replace-cloudflare-access-with-better-auth.md) for
+why Better Auth replaced Cloudflare Access as the mechanism itself.
 
 Write endpoints (`/logbook/api/admin/*`) are gated by a real, in-Worker
 Better Auth session check (`src/lib/session.js`, #297) — every admin
@@ -221,7 +222,7 @@ machinery, not infra-provisioning, and runs on every PR rather than on
 |---|---|---|
 | `bootstrap-state.yml` | Manual only (`workflow_dispatch`) | Creates the R2 state bucket if missing. Safe to re-run any time, including full disaster recovery. |
 | `infra.yml` | `pull_request`/`push` on `infra/**`, plus manual | `terraform plan` on PRs, `apply` on merge to `main`. Also syncs `wrangler.jsonc`'s D1 database id from Terraform's output (see below), opening and self-merging a PR if it changed. |
-| `deploy.yml` | `push` of a `vX.Y.Z` tag, plus manual | `wrangler deploy` — the Worker script and static assets. Tied to releases, not every merge — see `docs/versioning.md`. |
+| `deploy.yml` | `push` of a `vX.Y.Z` tag, plus manual | `wrangler deploy` — the Worker script and static assets. Tied to releases, not every merge — see `docs/versioning.md` and [ADR-0008](adr/0008-tag-based-semantic-versioning.md) for why. |
 
 **Shared pnpm/Node setup**: `deploy.yml`, `e2e.yml`, `preview.yml`,
 `release.yml`, and `test.yml` all need the same post-checkout setup
@@ -285,6 +286,9 @@ disaster-recovery rebuild (the id doesn't otherwise change), and
 that case.
 
 ## PR preview deployments
+
+See [ADR-0013](adr/0013-pr-previews-via-wrangler-versions-upload.md) for
+the decision record.
 
 Every PR gets a real, working preview URL bound to its own D1 database —
 never production data — via `.github/workflows/preview.yml`. This was built

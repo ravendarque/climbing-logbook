@@ -2,7 +2,11 @@
 
 ## Status
 
-Accepted
+Accepted. Decision section trimmed 2026-08-13 (#359) -- it duplicated
+`docs/coding-standards.md`'s Connectivity Resilience checklist almost
+verbatim; the checklist itself is unchanged and still lives there. A pure
+transcription fix, not a changed decision -- see `docs/adr/README.md`'s
+rule on this.
 
 ## Context
 
@@ -16,40 +20,17 @@ decisions across the app rather than living as a single implementation.
 
 ## Decision
 
-**"This app is built for bad connections, not despite them"**
-(`docs/coding-standards.md`) governs several standing rules, applied
-consistently rather than case-by-case:
-
-- **Offline-first as the default, not a fallback.** The service worker
-  (`sw.js`) is network-first with cache-fallback for GETs; writes made
-  offline (or when a request throws) queue in `localStorage` as an
-  append-only event log (#268) and replay in order once back online —
-  manually, after login, or on the browser's `online` event.
-- **Don't put a network request at the moment of interaction for
-  something that could be available upfront instead.** A lazy/on-demand
-  fetch that saves bytes on the common case is still the wrong tradeoff
-  here — it places the network dependency exactly where it's most likely
-  to fail (mid-interaction on a flaky connection), not at initial load,
-  which the service worker/offline queue already treat as the resilience
-  boundary.
-- **Bundle small, static, rarely-changing datasets directly into the
-  app** (e.g. the `COUNTRIES` list) rather than fetching them on demand.
-  Larger datasets that don't justify always-loading (the World Map's
-  per-projection JSON) are still fetched once and cached after first
-  load via the service worker, never left as an uncached fetch-on-open —
-  and, when a fetch genuinely is necessary and can't be pre-cached, fail
-  visibly with a plain "you need to be online" message and a Retry,
-  rather than pretending to work offline.
-- **No CDN dependencies at runtime.** Third-party browser code
-  (`@floating-ui/dom`, ADR-0004) is vendored into the repo and served
-  from this app's own origin rather than fetched from a CDN — a CDN
-  fetch is exactly the kind of uncached network dependency this standard
-  rules out, same reasoning as bundling static data inline.
-- **Client-generated UUIDs for entity IDs**, not server-derived/slugified
-  strings — a queued offline write's identity has to be stable from
-  creation through however long it takes to actually sync, and a
-  previous slug-based scheme caused a real desync bug between the
-  offline queue and server-side collision-renaming.
+**"This app is built for bad connections, not despite them."** The actual
+standing rules this governs (offline-first as the default rather than a
+fallback, no network request at the moment of interaction for something
+that could be available upfront, bundle-or-precache over fetch-on-open,
+no CDN dependencies at runtime, client-generated UUIDs so a queued
+offline write's identity is stable from creation to eventual sync) live
+in `docs/coding-standards.md`'s Connectivity Resilience section — an
+intentionally living checklist, not reproduced here, since a copy frozen
+inside this ADR would silently drift out of sync the moment that section
+is updated (see `docs/adr/README.md`'s own rule on this, added after this
+duplication was found and corrected, #359).
 
 This is stated as an ongoing design constraint applied to new work, not a
 single feature that shipped once — #111 tracks the broader initiative

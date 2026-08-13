@@ -121,6 +121,10 @@ quietly reversed without someone re-deciding on purpose.
   "all zones"/"all accounts" out of convenience.
 
 ### Authentication
+
+See [ADR-0002](adr/0002-replace-cloudflare-access-with-better-auth.md) for
+why Better Auth replaced Cloudflare Access as the mechanism itself.
+
 - **Better Auth sessions gate admin/write paths inside the Worker itself
   (#297)** — not a shared secret checked ad hoc, and not an edge-only gate.
   Read (public) and write (admin) endpoints still live on distinct path
@@ -168,6 +172,10 @@ quietly reversed without someone re-deciding on purpose.
   genuinely-offline visit.
 
 ### Connectivity resilience
+
+See [ADR-0006](adr/0006-design-for-poor-connectivity-first.md) for the full
+decision and why it's an ongoing constraint, not a single shipped feature.
+
 - **This app is built for bad connections, not despite them** — "signal at
   the crag is usually bad" (#111). That's the actual operating condition to
   design for, not an edge case.
@@ -198,6 +206,12 @@ quietly reversed without someone re-deciding on purpose.
   results match your filters") — it reads as something being broken.
 
 ### Verification
+
+See [ADR-0011](adr/0011-three-layer-test-pyramid.md) for the three-layer
+test strategy (real-runtime Vitest, extracted-logic unit tests, Playwright
+E2E) this section's manual-verification ask formalized into an automated,
+CI-enforced check.
+
 - For anything user-facing, verify in an actual browser (or `wrangler dev` +
   the preview tools), not just by reading the code — type-checking and unit
   tests confirm correctness, not that the feature works.
