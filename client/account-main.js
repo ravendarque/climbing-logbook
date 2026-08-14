@@ -38,6 +38,7 @@ const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 const store = createStore();
 
 document.getElementById("edit-account-link").href = `/${encodeURIComponent(USERNAME)}/account/edit`;
+document.getElementById("back-to-logbook-link").href = `/${encodeURIComponent(USERNAME)}/log`;
 
 // Same divider rule as client/header-chrome.js's own updateMenuDivider()
 // (border only makes sense when menu-username occupies the row above it --

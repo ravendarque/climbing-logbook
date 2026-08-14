@@ -45,6 +45,19 @@
      this is that same fix, generalized to every button instead of
      leaving it as a one-off. */
   button { appearance: none; }
+
+  /* <a href> defaults to text-decoration: underline in every browser's
+     UA stylesheet. This app never wants that -- every real link is
+     already distinguished by text-accent or its own card/button
+     chrome -- but without a global reset, each one needs its own
+     no-underline override or the browser default leaks through
+     (climbing-tab-bar.js's own no-underline class exists for exactly
+     this reason, found via a 2026-08-10 production report; #457 found
+     it recurring on public/account/index.html's edit-account-link,
+     which had no override at all). Fixing it here once, the same
+     "generalize instead of N one-offs" reasoning as the button resets
+     above, rather than auditing every <a> in the app by hand. */
+  a { text-decoration: none; }
 }
 
 /* ── Theme tokens ──────────────────────────────────────────────────
@@ -204,4 +217,47 @@
   background: var(--color-accent);
   color: var(--color-accent-foreground);
   border-color: var(--color-accent);
+}
+
+/* #457 -- the same box (bg-surface/border/rounded-app/px-4/py-3) was
+   getting hand-repeated verbatim on every row of both account pages
+   (edit-account-link, the two "Coming soon" placeholders, athlete-mode-
+   row, public-logbook-row, username/email/password-row -- eight
+   occurrences before this existed) -- extracted once rather than kept
+   as a copy-pasted utility string per occurrence, same reasoning as
+   admin-btn above. */
+@utility row-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-app);
+  padding: .75rem 1rem;
+}
+
+/* #457 -- brand-style section heading (matching <climbing-header>'s own
+   h1 treatment: font-display, uppercase, tracking-wide), used by every
+   "My account"/"Settings"/"Edit account details" heading across the
+   account pages. pl-4 (baked in, not a separate utility on each h2)
+   aligns the heading text with row-card's own inner text -- see
+   public/account/index.html's own comment on why that indent, and its
+   flush-left back-button, exist together. */
+@utility section-heading {
+  font-family: var(--font-display);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: .025em;
+  font-size: 1.3rem;
+  color: var(--color-foreground);
+  padding-left: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* #457 -- the settings-card title text style (Athlete Mode/Public
+   Logbook's own span, and now username/email/password's row labels on
+   the edit page) -- kept separate from row-card since not every
+   row-card consumer wants a title styled this way (the "Coming soon"
+   placeholders don't use it at all). */
+@utility row-card-title {
+  color: var(--color-foreground);
+  font-size: .9rem;
+  font-weight: 600;
 }

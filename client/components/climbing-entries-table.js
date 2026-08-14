@@ -95,7 +95,7 @@ const SHELL = `
           <div class="text-center text-[.75rem] text-foreground font-semibold mt-[.4rem]" id="grade-slider-label"></div>
         </div>
 
-        <button type="button" class="block w-full mt-[.9rem] bg-transparent border-0 text-muted text-[.78rem] underline cursor-pointer text-center hover:text-foreground" id="filter-clear-btn">Clear filters</button>
+        <button type="button" class="block w-full mt-[.9rem] bg-transparent border-0 text-muted text-[.78rem] cursor-pointer text-center hover:text-foreground" id="filter-clear-btn">Clear filters</button>
       </div>
     </div>
   </div>

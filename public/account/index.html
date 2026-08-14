@@ -31,53 +31,102 @@
 
   <climbing-header variant="brand" align-left></climbing-header>
 
-  <h2 class="text-[1.3rem] font-bold text-foreground mb-4">My account</h2>
-  <div class="flex flex-col gap-2 max-w-[420px]" id="account-options">
-    <a class="flex items-center justify-between bg-surface border border-border rounded-app px-4 py-3 text-foreground text-[.9rem] font-semibold hover:border-accent" id="edit-account-link" href="#">
-      Edit account details
-      <svg class="w-4 h-4 stroke-muted fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
-    </a>
-    <!-- Coming soon (#302's own scope notes) -- not built yet, listed here
-         as a preview of where they'll land. Not real links (no href), so
-         nothing to wire up yet either. -->
-    <div class="flex items-center justify-between bg-surface border border-border rounded-app px-4 py-3 text-foreground text-[.9rem] font-semibold opacity-50">
-      Display preferences
-      <span class="text-[.72rem] text-muted font-semibold">Coming soon</span>
-    </div>
-    <div class="flex items-center justify-between bg-surface border border-border rounded-app px-4 py-3 text-foreground text-[.9rem] font-semibold opacity-50">
-      Import and export
-      <span class="text-[.72rem] text-muted font-semibold">Coming soon</span>
-    </div>
-  </div>
+  <!-- #457 -- a real button (admin-btn admin-btn-primary, the app's
+       actual red filled-button look -- Raven's own call, plain muted
+       link text "isn't visibly a button"), not the same treatment as
+       public/account/edit/index.html's back-to-account-link. Flush left
+       against the cards' own outer edge (no pl-4 -- Raven's explicit
+       correction: aligns with the cards themselves, not with the
+       pl-4-indented section headings below it). That offset between this
+       button's flush-left edge and the headings' own indent is the
+       visual break that makes the indent read as intentional, rather
+       than the headings looking arbitrarily offset from the flush-left
+       brand header above. mt-4 (not the account-sections grid's own
+       margin/padding, tried and reverted earlier) is what actually
+       widens the header-to-content gap Raven asked for -- admin-btn is
+       inline-flex, so unlike a block-level element its margin doesn't
+       collapse with #brand-header-row's own mb-4 above it (confirmed
+       empirically: measured gap grew from 16px to 32px). href set in
+       client/account-main.js (needs USERNAME, not available at
+       static-shell time). -->
+  <a class="admin-btn admin-btn-primary mt-4 mb-5" id="back-to-logbook-link" href="#">
+    <svg class="w-[.9rem] h-[.9rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+    My Climbing Logbook
+  </a>
 
-  <!-- Athlete Mode/Public Logbook (#445) -- moved here from the shared
-       burger menu (previously two more adminRows entries in
-       climbing-menu-bar.js) since each is a real setting worth a sentence
-       of explanation, not a quick menu row. Both rows start `hidden` in
-       markup, same as menu-username/my-account-link above -- this page is
-       already session-gated server-side (owned-routes.js), but the
-       composition root itself still has to degrade gracefully if a
-       session lapses mid-visit, same reasoning as every other
-       adminAuth-derived element on this page. -->
-  <h2 class="text-[1.3rem] font-bold text-foreground mt-8 mb-4">Settings</h2>
-  <div class="flex flex-col gap-2 max-w-[420px]" id="account-settings">
-    <div class="bg-surface border border-border rounded-app px-4 py-3" id="athlete-mode-row" hidden>
-      <div class="flex items-center justify-between gap-3">
-        <span class="text-foreground text-[.9rem] font-semibold">Athlete Mode</span>
-        <button type="button" class="group inline-flex items-center cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" id="athlete-mode-toggle" role="switch" aria-checked="false">
-          <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
-        </button>
+  <!-- #457 -- two-column layout above the app's existing 600px narrow/wide
+       breakpoint (see client/map-view.js's mapNarrowQuery/client/
+       components/climbing-entries-table.js's own max-[600px]: usage --
+       same breakpoint value, reused rather than inventing a new one).
+       Below 600px this collapses back to the original single stacked
+       column exactly as before. Purely CSS (grid-template-columns), no
+       JS needed -- unlike map-view.js this page has no geometry to
+       recompute on a resize/orientation change, just layout. -->
+  <div class="grid grid-cols-2 gap-x-8 max-[600px]:grid-cols-1" id="account-sections">
+    <div>
+      <!-- section-heading/row-card/row-card-title (styles/tailwind.css)
+           -- extracted #457, see that file's own comments for why. -->
+      <h2 class="section-heading">My account</h2>
+      <div class="flex flex-col gap-2 max-w-[420px]" id="account-options">
+        <a class="row-card flex items-center justify-between row-card-title hover:border-accent" id="edit-account-link" href="#">
+          Edit account details
+          <svg class="w-4 h-4 stroke-muted fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+        </a>
+        <!-- Coming soon (#302's own scope notes) -- not built yet, listed
+             here as a preview of where they'll land. Not real links (no
+             href), so nothing to wire up yet either. -->
+        <div class="row-card flex items-center justify-between row-card-title opacity-50">
+          Display preferences
+          <span class="text-[.72rem] text-muted font-semibold">Coming soon</span>
+        </div>
+        <div class="row-card flex items-center justify-between row-card-title opacity-50">
+          Import and export
+          <span class="text-[.72rem] text-muted font-semibold">Coming soon</span>
+        </div>
       </div>
-      <p class="text-[.82rem] text-muted mt-1">Unlocks your Performance page -- the Grade Pyramid and other performance insights, visible only to you.</p>
     </div>
-    <div class="bg-surface border border-border rounded-app px-4 py-3" id="public-logbook-row" hidden>
-      <div class="flex items-center justify-between gap-3">
-        <span class="text-foreground text-[.9rem] font-semibold">Public Logbook</span>
-        <button type="button" class="group inline-flex items-center cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" id="public-logbook-toggle" role="switch" aria-checked="true">
-          <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
-        </button>
+
+    <!-- Athlete Mode/Public Logbook (#445) -- moved here from the shared
+         burger menu (previously two more adminRows entries in
+         climbing-menu-bar.js) since each is a real setting worth a
+         sentence of explanation, not a quick menu row. Both rows start
+         `hidden` in markup, same as menu-username/my-account-link above
+         -- this page is already session-gated server-side
+         (owned-routes.js), but the composition root itself still has to
+         degrade gracefully if a session lapses mid-visit, same reasoning
+         as every other adminAuth-derived element on this page. -->
+    <div class="max-[600px]:mt-8">
+      <h2 class="section-heading">Settings</h2>
+      <div class="flex flex-col gap-2 max-w-[420px]" id="account-settings">
+        <div class="row-card" id="athlete-mode-row" hidden>
+          <div class="flex items-center justify-between gap-3">
+            <span class="row-card-title">Athlete Mode</span>
+            <!-- #457 -- bg-transparent/border-transparent restore the same
+                 native-<button>-chrome override /logbook's own pre-#445
+                 athlete-mode-btn markup always had; missing here since
+                 #445 (a real bug -- without them the browser's own default
+                 button background/border show through as a plain white,
+                 bordered box). -->
+            <button type="button" class="group inline-flex items-center bg-transparent border border-transparent cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" id="athlete-mode-toggle" role="switch" aria-checked="false">
+              <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
+            </button>
+          </div>
+          <!-- #457 -- "performance insights" is the umbrella term for this
+               feature area; Grade Pyramid is one view under it, not the
+               thing itself, per Raven's explicit correction elsewhere this
+               epic -- don't name it here. -->
+          <p class="text-[.82rem] text-muted mt-2">Unlocks performance insights on your Performance page, visible only to you.</p>
+        </div>
+        <div class="row-card" id="public-logbook-row" hidden>
+          <div class="flex items-center justify-between gap-3">
+            <span class="row-card-title">Public Logbook</span>
+            <button type="button" class="group inline-flex items-center bg-transparent border border-transparent cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" id="public-logbook-toggle" role="switch" aria-checked="true">
+              <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
+            </button>
+          </div>
+          <p class="text-[.82rem] text-muted mt-2">When on, anyone can view your logbook and map at your public profile page. Turn off to keep them private -- only you can see them.</p>
+        </div>
       </div>
-      <p class="text-[.82rem] text-muted mt-1">When on, anyone can view your logbook and map at your public profile page. Turn off to keep them private -- only you can see them.</p>
     </div>
   </div>
 
