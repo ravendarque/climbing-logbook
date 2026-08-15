@@ -36,13 +36,19 @@
        the DOM entirely, not just CSS-hidden -- see that component's own
        comment.
 
+       no-discipline (#460): this page combines both disciplines into one
+       view now (no single active discipline to pick) -- discipline
+       selection moved into <climbing-entries-table>'s own filter panel
+       instead, same pattern the account pages already use for this
+       attribute.
+
        Picker/menu row before the brand row, and align-left on
        <climbing-header> -- matches /logbook's own layout (left-aligned
        brand row below the header row, not centered above it). Found via
        Raven's production report, 2026-08-10 -- see climbing-header.js's
        own comment on the align-left attribute. -->
   <div class="flex items-center justify-end gap-2 mb-6" id="header-row">
-    <climbing-menu-bar admin-hidden></climbing-menu-bar>
+    <climbing-menu-bar admin-hidden no-discipline></climbing-menu-bar>
   </div>
 
   <climbing-header variant="brand" align-left></climbing-header>
@@ -68,8 +74,13 @@
          whole point. No entry-form.js/place-picker.js/offline-sync.js
          import anywhere in client/profile-main.js either ("security by
          absence", #344's decision), so there'd be nothing to wire an
-         edit-btn click to even if this were set. -->
-    <climbing-entries-table></climbing-entries-table>
+         edit-btn click to even if this were set.
+
+         all-disciplines (#460): both disciplines combined into one view,
+         separate per-discipline table sections rather than a single
+         active-discipline table -- see that attribute's own comment in
+         client/components/climbing-entries-table.js. -->
+    <climbing-entries-table all-disciplines></climbing-entries-table>
   </div>
 
   <!-- Same markup shape as public/map/index.html's own #map-wrap block --
@@ -108,7 +119,13 @@
   <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>
 </div>
 
-<div class="fixed z-30 bg-background border border-border rounded-app p-3 shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)] text-[.85rem] max-w-[240px]" id="map-pin-popover" hidden role="group"></div>
+<!-- #460 -- wider than public/map/index.html's own copy (max-w-[240px]):
+     this page's pin popover shows both disciplines' stat breakdown side
+     by side above 600px (client/map-view.js's own allDisciplines mode),
+     which doesn't fit in a single-discipline-width popover. Narrows back
+     to the same 240px cap below 600px, where the two blocks stack
+     vertically instead and don't need the extra width. -->
+<div class="fixed z-30 bg-background border border-border rounded-app p-3 shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)] text-[.85rem] max-w-[420px] max-[600px]:max-w-[240px]" id="map-pin-popover" hidden role="group"></div>
 
 <script type="module" src="/logbook/profile-app.js"></script>
 </body>

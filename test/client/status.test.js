@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { flashLabel, nameLabel, sendLabel, statusBadge } from "../../client/status.js";
+import {
+  combinedFlashLabel,
+  combinedSendLabel,
+  disciplineLabel,
+  flashLabel,
+  nameLabel,
+  sendLabel,
+  statusBadge,
+} from "../../client/status.js";
 
 describe("flashLabel/sendLabel/nameLabel", () => {
   it("use bouldering terms by default", () => {
@@ -17,6 +25,33 @@ describe("flashLabel/sendLabel/nameLabel", () => {
   it("pluralize when asked", () => {
     expect(flashLabel("boulder", true)).toBe("Flashes");
     expect(sendLabel("lead", true)).toBe("Redpoints");
+  });
+});
+
+describe("disciplineLabel", () => {
+  it("capitalizes each discipline, defaulting to boulder", () => {
+    expect(disciplineLabel("boulder")).toBe("Boulder");
+    expect(disciplineLabel("lead")).toBe("Lead");
+    expect(disciplineLabel()).toBe("Boulder");
+  });
+});
+
+describe("combinedFlashLabel/combinedSendLabel", () => {
+  it("joins each discipline's own wording with a slash", () => {
+    expect(combinedFlashLabel(["boulder", "lead"])).toBe("Flash / Onsight");
+    expect(combinedSendLabel(["boulder", "lead"])).toBe("Send / Redpoint");
+  });
+
+  it("pluralizes when asked", () => {
+    expect(combinedFlashLabel(["boulder", "lead"], true)).toBe("Flashes / Onsights");
+  });
+
+  it("de-duplicates when disciplines share identical wording", () => {
+    expect(combinedFlashLabel(["boulder", "boulder"])).toBe("Flash");
+  });
+
+  it("works for a single discipline (no slash)", () => {
+    expect(combinedFlashLabel(["lead"])).toBe("Onsight");
   });
 });
 

@@ -14,6 +14,18 @@ const SEED = {
   locations: [{ id: "l1", name: "Test Crag", country: "United Kingdom" }],
 };
 
+// #460 -- both disciplines at the same location, so the combined-view
+// tests below can exercise the real "Location (Boulder)"/"Location
+// (Lead)" split rather than just a single-discipline location.
+const MIXED_SEED = {
+  entries: [
+    { id: "e1", placeId: "p1", type: "boulder", status: "send", firstAttempt: true, grade: "6A", date: "2026-05-01", name: "Boulder Seed" },
+    { id: "e2", placeId: "p1", type: "lead", status: "send", firstAttempt: false, grade: "6a", date: "2026-05-02", name: "Lead Seed" },
+  ],
+  places: [{ id: "p1", locationId: "l1", area: "" }],
+  locations: [{ id: "l1", name: "Test Crag", country: "United Kingdom" }],
+};
+
 test("renders the shared chrome readonly -- no edit affordances or admin rows anywhere", async ({ page }) => {
   await mockApi(page, SEED);
   await page.goto("/e2e-fixtures/pages/profile.html");
@@ -77,18 +89,69 @@ test("Map tab (#333) switches to a real read-only map and back, without a page n
   await expect(page.locator("climbing-entries-table")).toBeVisible();
 });
 
-test("discipline picker switches correctly", async ({ page }) => {
-  await mockApi(page, SEED);
+test("no discipline picker anymore -- combined view shows both disciplines as separate table sections", async ({ page }) => {
+  await mockApi(page, MIXED_SEED);
   await page.goto("/e2e-fixtures/pages/profile.html");
   await expect(page.locator("climbing-entries-table")).toBeVisible();
 
-  await page.locator("#discipline-btn").click();
-  await page.locator('.discipline-option[data-discipline="lead"]').click();
-  await expect(page.locator("#discipline-btn-label")).toHaveText("Lead");
+  // #460 -- discipline selection moved into the entries-table's own
+  // filter panel; the header picker is gone entirely on this page.
+  await expect(page.locator("#discipline-btn")).toHaveCount(0);
 
-  await page.locator("#discipline-btn").click();
-  await page.locator('.discipline-option[data-discipline="boulder"]').click();
-  await expect(page.locator("#discipline-btn-label")).toHaveText("Boulder");
+  await expect(page.locator("#sections")).toContainText("Test Crag (Boulder)");
+  await expect(page.locator("#sections")).toContainText("Test Crag (Lead)");
+  await expect(page.locator("#sections")).toContainText("Boulder Seed");
+  await expect(page.locator("#sections")).toContainText("Lead Seed");
+});
+
+test("discipline filter (#460) narrows to just the checked discipline's table section", async ({ page }) => {
+  await mockApi(page, MIXED_SEED);
+  await page.goto("/e2e-fixtures/pages/profile.html");
+  await expect(page.locator("climbing-entries-table")).toBeVisible();
+
+  await page.locator("#filter-btn").click();
+  // The checkbox itself is sr-only (same toggle-btn pattern the status
+  // filter already uses) -- click its wrapping <label>, standard native
+  // label-toggles-input behavior, rather than trying to .check() a
+  // visually-hidden element directly.
+  await page.locator('#filter-discipline-group label:has(input[data-discipline="lead"])').click();
+
+  await expect(page.locator("#sections")).toContainText("Lead Seed");
+  await expect(page.locator("#sections")).not.toContainText("Boulder Seed");
+  await expect(page.locator("#sections")).not.toContainText("Test Crag (Boulder)");
+});
+
+test("combined status filter labels span both disciplines, and there's no grade-range filter", async ({ page }) => {
+  await mockApi(page, MIXED_SEED);
+  await page.goto("/e2e-fixtures/pages/profile.html");
+  await expect(page.locator("climbing-entries-table")).toBeVisible();
+
+  await page.locator("#filter-btn").click();
+  await expect(page.locator("#filter-flash-label")).toHaveText("Flash / Onsight");
+  await expect(page.locator("#filter-send-label")).toHaveText("Send / Redpoint");
+  // #460 -- no cross-discipline grade scale exists yet, deliberately out
+  // of scope; the grade slider isn't just hidden, it's absent from the
+  // DOM entirely (client/components/climbing-entries-table.js's own
+  // shellHtml(allDisciplines)).
+  await expect(page.locator("#grade-slider-track")).toHaveCount(0);
+});
+
+test("map pin popover (#460) shows both disciplines' own status breakdown together", async ({ page }) => {
+  await mockApi(page, MIXED_SEED);
+  await page.goto("/e2e-fixtures/pages/profile.html");
+  await page.locator('#view-tabs [data-view="map"]').click();
+  await expect(page.locator("#map-container svg")).toBeVisible();
+
+  await page.locator('[data-pin-country="United Kingdom"]').click();
+  const popover = page.locator("#map-pin-popover");
+  await expect(popover).toBeVisible();
+  await expect(popover).toContainText("Boulder");
+  await expect(popover).toContainText("Lead");
+  // Boulder Seed is a flash (firstAttempt: true), Lead Seed a send
+  // (firstAttempt: false) -- confirms the breakdown is genuinely
+  // per-discipline, not one combined count.
+  await expect(popover).toContainText("Flash");
+  await expect(popover).toContainText("Send");
 });
 
 test("shows the entries table's own empty state when the target user has no data", async ({ page }) => {

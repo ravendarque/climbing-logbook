@@ -8,9 +8,12 @@
 //
 // client/store.js *is* used here now (#333, unlike this file's original
 // #351 cut) -- purely as the read-only state client/map-view.js already
-// expects (getEntries/getActiveType/entryLocation/etc via its existing
-// factory contract), not for anything this page would ever persist or
-// mutate server-side. Given a no-op storage stub (below), not the real
+// expects (getEntries/entryLocation/etc via its existing factory
+// contract), not for anything this page would ever persist or mutate
+// server-side. getActiveType()/setActiveType() specifically are never
+// called here at all (#460) -- this page has no single active discipline
+// anymore, and map-view.js's own allDisciplines mode never reads them.
+// Given a no-op storage stub (below), not the real
 // localStorage default -- store.js's cache keys (logbook_entries_cache
 // etc) are global, unscoped to a user, so a real visitor who's also a
 // logged-in owner viewing someone else's public map on the same browser
@@ -43,52 +46,19 @@ document.title = `${USERNAME} – Climbing Logbook`;
 const entriesTable = document.querySelector("climbing-entries-table");
 
 const store = createStore({ storage: { getItem: () => null, setItem: () => {} } });
-const mapView = createMapView({ store });
-
-// Same discipline-picker wiring client/header-chrome.js owns for every
-// other page, trimmed to what this page actually has: no Athlete Mode, no
-// adminFetch persistence call, no resetPyramidExpansion (no pyramid here
-// at all). Reimplemented directly rather than injected from
-// header-chrome.js -- that module's whole contract (adminSettingsUrl,
-// resetPyramidExpansion) assumes a session/pyramid this page will never
-// have; trying to reuse it here would mean threading no-ops through
-// parameters that exist for other pages' real needs, not genuinely
-// sharing behavior.
-function updateDisciplinePicker() {
-  const active = store.getActiveType();
-  const label = active === "boulder" ? "Boulder" : "Lead";
-  document.getElementById("discipline-btn-label").textContent = label;
-  document.getElementById("discipline-btn").setAttribute("aria-label", `Discipline: ${label}`);
-  document.querySelectorAll(".discipline-option").forEach(opt => {
-    opt.setAttribute("aria-selected", String(opt.dataset.discipline === active));
-  });
-}
+// #460 -- allDisciplines: true, since this page has no single active
+// discipline anymore (combined public profile). No discipline-picker
+// wiring here at all now -- <climbing-menu-bar no-discipline> (public/
+// profile/index.html) doesn't render one, and entries-table manages its
+// own discipline filtering internally via its own all-disciplines
+// attribute (public/profile/index.html) + filter-panel checkboxes.
+const mapView = createMapView({ store, allDisciplines: true });
 
 function render() {
-  updateDisciplinePicker();
-  entriesTable.activeDiscipline = store.getActiveType();
   if (store.getActiveView() === "map") mapView.render();
 }
 
 store.subscribe(render);
-
-// Same open/close/outside-click/Escape mechanics as
-// client/header-chrome.js's own discipline picker, via the same shared
-// createDisclosure() (#171) -- only the click-to-switch handler itself is
-// reimplemented (not injected from header-chrome.js), since that
-// module's contract assumes an adminSettingsUrl this page will never
-// have -- see this file's own header comment on why.
-const disciplineBtn = document.getElementById("discipline-btn");
-const disciplinePopover = document.getElementById("discipline-popover");
-const { close: closeDisciplinePopover } = createDisclosure(disciplineBtn, disciplinePopover, "#discipline-wrap");
-
-disciplinePopover.addEventListener("click", e => {
-  const opt = e.target.closest(".discipline-option");
-  if (!opt) return;
-  store.setActiveType(opt.dataset.discipline);
-  closeDisciplinePopover();
-  disciplineBtn.focus();
-});
 
 // Real WAI-ARIA Tabs, not <climbing-tab-bar>'s links -- see
 // public/profile/index.html's own comment on #view-tabs for why. Same
@@ -141,10 +111,6 @@ async function boot() {
     loadResource(`${base}/places`, "places").catch(() => []),
     loadResource(`${base}/locations`, "locations").catch(() => []),
   ]);
-
-  const hasBoulder = entries.some(e => e.type === "boulder");
-  const hasLead = entries.some(e => e.type === "lead");
-  store.setActiveType(hasBoulder || !hasLead ? "boulder" : "lead");
 
   entriesTable.entries = entries;
   entriesTable.places = places;

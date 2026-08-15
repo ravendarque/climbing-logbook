@@ -7,10 +7,27 @@ import { STATUS_ICONS } from "./status-icons.js";
 const FLASH_LABEL = { boulder: ["Flash", "Flashes"], lead: ["Onsight", "Onsights"] };
 const SEND_LABEL  = { boulder: ["Send", "Sends"],    lead: ["Redpoint", "Redpoints"] };
 const NAME_LABEL  = { boulder: "Problem name", lead: "Route name" };
+const DISCIPLINE_LABEL = { boulder: "Boulder", lead: "Lead" };
 
 export const flashLabel = (type, plural) => FLASH_LABEL[type ?? "boulder"][plural ? 1 : 0];
 export const sendLabel  = (type, plural) => SEND_LABEL[type ?? "boulder"][plural ? 1 : 0];
 export const nameLabel  = type => NAME_LABEL[type ?? "boulder"];
+// Was duplicated verbatim in map-view.js/header-chrome.js/
+// climbing-grade-pyramid.js -- centralized here (#460) once a fourth
+// consumer (climbing-entries-table.js's combined-discipline mode) needed
+// the same lookup.
+export const disciplineLabel = type => DISCIPLINE_LABEL[type ?? "boulder"];
+
+// #460 -- combined wording for a filter/stat that spans multiple
+// disciplines at once (e.g. a "Flash" checkbox that now also needs to
+// match a Lead entry's "Onsight"). Driven by whichever discipline keys
+// are actually passed in, not hardcoded to exactly two -- a future third
+// discipline (#429/#430) only needs its own FLASH_LABEL/SEND_LABEL entry
+// above, nothing here changes. De-duplicates identical wording (two
+// disciplines that happened to share a term wouldn't show it twice).
+const combinedLabel = (labelFn, types, plural) => [...new Set(types.map(t => labelFn(t, plural)))].join(" / ");
+export const combinedFlashLabel = (types, plural) => combinedLabel(flashLabel, types, plural);
+export const combinedSendLabel  = (types, plural) => combinedLabel(sendLabel, types, plural);
 
 const STATUS_ICON_CLASS = "inline-flex align-middle cursor-default [&_svg]:w-[1.4rem] [&_svg]:h-[1.4rem]";
 
