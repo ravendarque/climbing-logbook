@@ -44,7 +44,7 @@ deploy (`.github/workflows/deploy.yml`):
 - **CSS**: Tailwind (adopted per the design decision in issue #45/PR #46,
   see `styles/tailwind.css`), compiled to `public/logbook/tailwind.css` via
   `pnpm run tailwind:build` (one-shot) or `tailwind:watch` (used by `pnpm
-  dev` alongside `wrangler dev`) — shared by every page.
+  dev` alongside vite, #468) — shared by every page.
 - **Client JS, one bundle per page**: `map:build`
   (`client/map-main.js` → `map-app.js`), `performance:build`
   (`client/performance-main.js` → `performance-app.js`), `log:build`
@@ -836,15 +836,23 @@ below)
                                navigation to a real my.localhost
                                subdomain), so e2e/*.spec.js can't reach
                                these pages' real gated routes in a
-                               browser at all -- still true of `pnpm run
-                               dev`/`test:e2e`'s own wrangler-dev-based
-                               default (#442's Vite-plugin dev server
-                               does honor the real Host header, confirmed
-                               via a real my.localhost browser test, but
-                               `pnpm run dev:vite` is a separate, opt-in
-                               script -- Playwright's own webServer
-                               staying on wrangler dev is a deliberate,
-                               separate follow-up, not assumed here).
+                               browser at all -- still true of
+                               `test:e2e`'s own wrangler-dev-based
+                               webServer (playwright.config.js calls
+                               `wrangler dev` directly, not `pnpm run
+                               dev`/`dev:vite`) -- #442's Vite-plugin dev
+                               server does honor the real Host header,
+                               confirmed via a real my.localhost browser
+                               test, and is what `pnpm run dev`/`dev:vite`
+                               both run on (#468 moved `pnpm run dev`
+                               itself off plain `wrangler dev`, which
+                               turned out to silently rewrite the request
+                               origin against a `routes`-configured
+                               Worker and break Better Auth locally, on
+                               top of the my.-hostname gap here) --
+                               Playwright's own webServer staying on
+                               wrangler dev is still a deliberate,
+                               separate follow-up, not assumed here.
                                These fixtures mount the real production
                                Web Components/view modules directly
                                against fabricated data instead, entirely

@@ -60,7 +60,20 @@ export function jsonRequest(method, path, body, headers = {}) {
 export async function createAuthedSession({
   email = `user-${crypto.randomUUID()}@example.com`,
   username = `user${crypto.randomUUID().replace(/-/g, "").slice(0, 10)}`,
+  // #468 -- signing up on a real climbinglogbook.com-family hostname
+  // (rather than the default example.com) exercises the same
+  // crossSubDomainCookies-enabled cookie-naming path a real apex signup
+  // goes through in production. Needed by callers (e.g.
+  // test/owned-routes.test.js) that reuse the returned cookie against a
+  // *different* climbinglogbook.com-family hostname -- example.com isn't
+  // a "real domain" for crossSubDomainCookies purposes, so a session
+  // created there gets a differently-prefixed cookie name than one
+  // created on the real domain family, and the two don't match.
+  hostname,
 } = {}) {
+  const base = hostname ? `https://${hostname}` : BASE_URL;
+  const request = (path, init) => exports.default.fetch(`${base}${path}`, init);
+
   let capturedHtml;
   vi.stubGlobal("fetch", vi.fn(async (input, init) => {
     const url = typeof input === "string" ? input : input.url;
@@ -74,16 +87,20 @@ export async function createAuthedSession({
     throw new Error(`Unexpected fetch to ${url} -- only Resend/Turnstile calls should reach real fetch() during createAuthedSession()`);
   }));
 
-  await jsonRequest("POST", "/logbook/api/auth/sign-up/email", {
-    email,
-    password: "correct-horse-battery-staple",
-    name: "Test User",
-    username,
-    turnstileToken: "test-token",
+  await request("/logbook/api/auth/sign-up/email", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email,
+      password: "correct-horse-battery-staple",
+      name: "Test User",
+      username,
+      turnstileToken: "test-token",
+    }),
   });
 
   const token = decodeURIComponent(capturedHtml.match(/token=([^"&<?]+)/)[1]);
-  const res = await fetchJson(`/logbook/api/auth/verify-email?token=${token}`);
+  const res = await request(`/logbook/api/auth/verify-email?token=${token}`);
   const cookie = res.headers.get("set-cookie").split(";")[0];
 
   vi.unstubAllGlobals();

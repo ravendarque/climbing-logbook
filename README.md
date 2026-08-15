@@ -23,8 +23,11 @@ pnpm install
 pnpm dev
 ```
 
-Runs `wrangler dev` and the Tailwind watcher together. Serves at
-`http://localhost:8788`. The app lives at `/logbook/`.
+Runs `vite dev` (via `@cloudflare/vite-plugin`) and the Tailwind watcher
+together (#468 -- not plain `wrangler dev`, which can't honor a
+`my.`-prefixed hostname and silently rewrites the request origin against
+a `routes`-configured Worker, breaking Better Auth locally). Serves at
+`http://localhost:5173`.
 
 See `docs/app-architecture.md` for local auth setup — `/logbook/api/admin/*`
 requires a real Better Auth session, same as production.
