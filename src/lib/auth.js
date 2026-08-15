@@ -19,19 +19,76 @@ import { createTurnstileHook } from "./turnstile.js";
 // Email/password only -- no socialProviders (GitHub/Google) block at all.
 // Deliberate: excluded on this project's BDS-compliance policy, see
 // docs/ui-stack-evaluation.md's "Ethical/supply-chain check" section.
-// No fixed `baseURL` -- deliberately left for Better Auth to derive per-
-// request, since this Worker is designed to serve more than one hostname
-// once #22/#295 land (climbinglogbook.com for marketing/register/login,
-// my.climbinglogbook.com for the app itself). `trustedOrigins` is the
-// actual security boundary that matters here (Better Auth's origin-check
-// middleware 403s any state-changing request -- e.g. sign-out -- from an
-// origin not on this list, real CSRF protection, not just cosmetic).
+// `trustedOrigins` is the actual CSRF security boundary that matters here
+// (Better Auth's origin-check middleware 403s any state-changing request
+// -- e.g. sign-out -- from an origin not on this list, real protection,
+// not just cosmetic).
 // ravendarque.com/logbook is still where the actual app is used day to day
 // (#295's real hostname dispatch for /register+/login at the apex is a
 // separate, follow-up PR) -- the two new origins below are added now that
 // #295's DNS/Worker Routes make them real, resolvable hostnames, even
 // though nothing serves real login/signup forms from them yet.
-const TRUSTED_ORIGINS = ["https://ravendarque.com", "https://climbinglogbook.com", "https://my.climbinglogbook.com"];
+// #468 -- http://localhost:*/http://my.localhost:* added alongside the
+// real https origins above for local dev (scripts/lib/dev-session.mjs's
+// own sign-in bootstrap sends a real Origin header and needs to pass this
+// same check). Deliberately explicit here rather than relying on
+// baseURL.allowedHosts' own origin auto-derivation (getTrustedOrigins,
+// node_modules/better-auth/dist/context/helpers.mjs) to produce these --
+// confirmed empirically that its isLoopbackHost(host) gate doesn't
+// recognize a wildcarded host string like "localhost:*", so it never adds
+// the http:// variant for that entry, only the useless https:// one.
+//
+// http://climbinglogbook.com/http://my.climbinglogbook.com (plain HTTP,
+// the real production domains) are ALSO listed, for a different reason:
+// `wrangler dev`'s local simulation of a `routes`-configured Worker
+// silently rewrites the request's own hostname/origin to the first
+// configured production route while keeping the real (local, non-TLS)
+// "http" scheme -- confirmed empirically (2026-08-15) that e2e/global-
+// setup.js's dev-session bootstrap, which runs through Playwright's own
+// wrangler-dev-based webServer (playwright.config.js), sends a real
+// Origin header that arrives at the Worker as "http://climbinglogbook.
+// com" regardless of what's actually sent. This is safe to trust: in
+// real production, this exact string can never be a genuine request's
+// origin, since Cloudflare's edge redirects plain HTTP to HTTPS before
+// any request reaches the Worker (confirmed empirically the same day --
+// `curl http://climbinglogbook.com/` 301s to https, `Server: cloudflare`
+// on the redirect itself) -- so these two entries are dead code for real
+// traffic, not a live weakening, and only matter for this CI/local
+// wrangler-dev testing quirk.
+const TRUSTED_ORIGINS = [
+  "https://ravendarque.com",
+  "https://climbinglogbook.com",
+  "https://my.climbinglogbook.com",
+  "http://localhost:*",
+  "http://my.localhost:*",
+  "http://climbinglogbook.com",
+  "http://my.climbinglogbook.com",
+];
+
+// #468 -- this Worker really does serve more than one hostname
+// (climbinglogbook.com + my.climbinglogbook.com), but the actual set is
+// bounded and known, not arbitrary: two production hostnames, PR previews
+// (always pr-<N>-climbing-logbook-preview.ravendarque.workers.dev --
+// confirmed against .github/workflows/preview.yml's own --preview-alias
+// naming and real preview URLs posted on past PRs), and local dev
+// (localhost / my.localhost, confirmed against vite.config.js's #442
+// comment). A static allowlist covers this fine -- verified by installed
+// better-auth source (node_modules/better-auth/dist/utils/url.mjs) that
+// `*.ravendarque.workers.dev`/`localhost:*`-style entries wildcard-match
+// correctly, not assumed. example.com is test/support.js's own BASE_URL
+// (RFC 2606 reserved test domain) -- included so direct auth.api calls in
+// Vitest can resolve a host at all; Cloudflare's edge (see below) means
+// this can never be a real inbound hostname for this Worker regardless.
+const ALLOWED_HOSTS = [
+  "climbinglogbook.com",
+  "my.climbinglogbook.com",
+  "*.ravendarque.workers.dev",
+  "localhost",
+  "localhost:*",
+  "my.localhost",
+  "my.localhost:*",
+  "example.com",
+];
 
 // #295's session cookie needs to be visible on BOTH climbinglogbook.com
 // (where sign-in/sign-up happen, at the apex) AND my.climbinglogbook.com
@@ -59,7 +116,23 @@ export function createAuth(env, hostname) {
     basePath: "/logbook/api/auth",
     secret: env.BETTER_AUTH_SECRET,
     trustedOrigins: TRUSTED_ORIGINS,
-    advanced: { crossSubDomainCookies: crossSubDomainCookies(hostname) },
+    baseURL: { allowedHosts: ALLOWED_HOSTS },
+    advanced: {
+      // Dynamic baseURL (allowedHosts) defaults trustedProxyHeaders to
+      // true (confirmed against better-auth's own installed source,
+      // resolveDynamicTrustedProxyHeaders in context/helpers.mjs) -- i.e.
+      // it would trust X-Forwarded-Host/X-Forwarded-Proto for host
+      // derivation unless told not to. This Worker is the origin sitting
+      // directly behind Cloudflare's edge, not behind some other reverse
+      // proxy -- there's no legitimate hop that needs those headers
+      // trusted, and Cloudflare itself validates the real Host header
+      // against the TLS SNI at the edge (confirmed empirically, 2026-08-
+      // 15: a mismatched Host header gets a 403 straight from Cloudflare,
+      // never reaches this Worker). Explicitly false so host derivation
+      // only ever uses that already-validated Host header/request URL.
+      trustedProxyHeaders: false,
+      crossSubDomainCookies: crossSubDomainCookies(hostname),
+    },
     emailAndPassword: {
       enabled: true,
       // requireEmailVerification (#308) changes sign-up/email's own

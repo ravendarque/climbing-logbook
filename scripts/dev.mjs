@@ -1,8 +1,8 @@
 /**
- * Starts the local dev server (wrangler + Tailwind watcher + client JS
- * bundle watchers, via `concurrently` directly), waits for it to be ready,
- * seeds some test data, and opens the login page in a browser --
- * all in one terminal, Ctrl+C stops everything together.
+ * Starts the local dev server (vite + Tailwind watcher + client JS bundle
+ * watchers, via `concurrently` directly), waits for it to be ready, seeds
+ * some test data, and opens the login page in a browser -- all in one
+ * terminal, Ctrl+C stops everything together.
  *
  * This used to be `pnpm run review`-only behavior (see #72/#88/#116);
  * moved here so plain `pnpm dev` gets the same experience. The old
@@ -14,10 +14,25 @@
  * every `pnpm run <script>` layer directly exposed to the terminal's
  * SIGINT prints its own "[ELIFECYCLE] Command failed" line, regardless
  * of what its child actually exits with -- so this used to spawn
- * `pnpm run dev:raw` as a second such layer, doubling the noise. It now
- * spawns `concurrently` (dev:raw's actual command) directly instead,
+ * `pnpm run dev:vite` as a second such layer, doubling the noise. It now
+ * spawns `concurrently` (dev:vite's actual command) directly instead,
  * leaving only the one, unavoidable line from the outer `pnpm dev`
- * invocation itself. `dev:raw` stays in package.json for standalone use.
+ * invocation itself. `dev:vite` stays in package.json for standalone use.
+ *
+ * vite, not `wrangler dev` (#468, was `dev:raw`'s command until this
+ * changed) -- confirmed empirically that `wrangler dev`'s local
+ * simulation of a `routes`-configured Worker silently rewrites the
+ * request's own hostname/origin to the first configured production route
+ * (climbinglogbook.com), regardless of what you actually connect to on
+ * localhost. That's harmless for most of this app, but it breaks Better
+ * Auth's origin/CSRF check outright (a real https-only trusted origin
+ * doesn't match the rewritten http://climbinglogbook.com), on top of
+ * `wrangler dev` already being unable to honor a `my.`-prefixed hostname
+ * at all (#407/#442). `@cloudflare/vite-plugin`'s dev server doesn't have
+ * either problem -- see vite.config.js's own #442 comment. `dev:raw`
+ * (plain `wrangler dev`) still exists in package.json for anyone who
+ * specifically needs it, but expect both quirks above if you reach for it
+ * instead of this script.
  *
  * Usage:
  *   pnpm dev [--no-seed] [--no-open]
@@ -27,7 +42,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { platform } from "node:os";
 
 const WIN = platform() === "win32";
-const READY_RE = /Ready on (https?:\/\/\S+)/;
+const READY_RE = /Local:\s+(https?:\/\/\S+)/;
 const READY_TIMEOUT_MS = 60_000;
 const ANSI_RE = /\x1b\[[0-9;]*m/g;
 const stripAnsi = s => s.replace(ANSI_RE, "");
@@ -53,16 +68,16 @@ function openBrowser(url) {
 }
 
 console.log("==> Starting dev server");
-// Spawning `concurrently` directly (rather than `pnpm run dev:raw`) skips
+// Spawning `concurrently` directly (rather than `pnpm run dev:vite`) skips
 // a second nested pnpm layer -- each pnpm layer that's directly exposed to
 // the terminal's Ctrl+C prints its own "[ELIFECYCLE] Command failed" line
 // on SIGINT independent of its child's actual exit code, so going through
-// `pnpm run dev:raw` here doubled that noise. `dev:raw` stays in
+// `pnpm run dev:vite` here doubled that noise. `dev:vite` stays in
 // package.json for anyone who wants to run it standalone.
 const dev = spawn("concurrently", [
-  "-n", "wrangler,tailwind,map,performance,log,profile,account,account-edit",
+  "-n", "vite,tailwind,map,performance,log,profile,account,account-edit",
   "-c", "blue,magenta,yellow,cyan,white,gray,blue,magenta",
-  "wrangler dev",
+  "vite dev",
   "tailwindcss -i ./styles/tailwind.css -o ./public/logbook/tailwind.css --watch",
   "pnpm run map:watch",
   "pnpm run performance:watch",
@@ -115,13 +130,17 @@ dev.stdout.on("data", chunk => {
 
   ready = true;
   clearTimeout(readyTimer);
-  const url = match[1];
-  // /logbook is retired (#375) -- the real app pages (/:username/log etc)
-  // are my.<domain>-hostname-gated, which plain `wrangler dev` (this
-  // script) has no way to reach at all (confirmed, #407); `pnpm run
-  // dev:vite` does support it, see that script's own comment. Opening
-  // /login/ here is the most useful thing this script can still do on its
-  // own -- a real, reachable page, and the natural next step regardless.
+  // vite's own "Local:" line ends in a trailing slash (e.g.
+  // "http://localhost:5173/") unlike wrangler's old "Ready on <url>"
+  // message -- stripped so `${url}/login/` below doesn't end up with a
+  // doubled slash.
+  const url = match[1].replace(/\/+$/, "");
+  // /logbook is retired (#375) -- opening /login/ here is a real,
+  // reachable, useful next step regardless of what page you actually
+  // want; the my.<domain>-hostname-gated app pages (/:username/log etc,
+  // #375) are reachable too now that this runs on vite rather than plain
+  // `wrangler dev` (#468/#407/#442), just not a single fixed URL this
+  // script could open on your behalf without knowing your username.
   const loginUrl = `${url}/login/`;
   console.log(`\n==> Dev server ready at ${url}`);
 

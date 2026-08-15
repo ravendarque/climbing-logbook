@@ -25,7 +25,7 @@ beforeEach(async () => {
 
 describe("owned route authorization", () => {
   it("serves the page when the session's own username matches the URL", async () => {
-    const { cookie } = await createAuthedSession({ username: "ownerofthis" });
+    const { cookie } = await createAuthedSession({ username: "ownerofthis", hostname: "climbinglogbook.com" });
     const res = await fetchOwnedRoute("ownerofthis", "log", { cookie });
     expect(res.status).toBe(200);
     expect(await res.text()).toContain("log");
@@ -38,28 +38,28 @@ describe("owned route authorization", () => {
   });
 
   it("redirects to login when logged in as a *different* user", async () => {
-    await createAuthedSession({ username: "targetuser" });
-    const { cookie: otherCookie } = await createAuthedSession({ username: "differentuser" });
+    await createAuthedSession({ username: "targetuser", hostname: "climbinglogbook.com" });
+    const { cookie: otherCookie } = await createAuthedSession({ username: "differentuser", hostname: "climbinglogbook.com" });
     const res = await fetchOwnedRoute("targetuser", "log", { cookie: otherCookie });
     expect(res.status).toBe(302);
     expect(res.headers.get("Location")).toBe("https://climbinglogbook.com/login/");
   });
 
   it("redirects to login for a username that doesn't exist at all -- same response as a wrong user (anti-enumeration)", async () => {
-    const { cookie } = await createAuthedSession({ username: "realuser" });
+    const { cookie } = await createAuthedSession({ username: "realuser", hostname: "climbinglogbook.com" });
     const res = await fetchOwnedRoute("nobody-by-this-name", "log", { cookie });
     expect(res.status).toBe(302);
     expect(res.headers.get("Location")).toBe("https://climbinglogbook.com/login/");
   });
 
   it("looks up the username case-insensitively", async () => {
-    const { cookie } = await createAuthedSession({ username: "mixedcaseowner" });
+    const { cookie } = await createAuthedSession({ username: "mixedcaseowner", hostname: "climbinglogbook.com" });
     const res = await fetchOwnedRoute("MixedCaseOwner", "map", { cookie });
     expect(res.status).toBe(200);
   });
 
   it("accepts all page shapes: log, map, performance, account, account/edit", async () => {
-    const { cookie } = await createAuthedSession({ username: "allpagesuser" });
+    const { cookie } = await createAuthedSession({ username: "allpagesuser", hostname: "climbinglogbook.com" });
     for (const page of ["log", "map", "performance", "account", "account/edit"]) {
       const res = await fetchOwnedRoute("allpagesuser", page, { cookie });
       expect(res.status).toBe(200);
@@ -72,7 +72,7 @@ describe("owned route authorization", () => {
   // above already covers) is what would have caught the shell/bundle
   // wiring being wrong even though the auth decision itself was right.
   it("serves the real static shell for map", async () => {
-    const { cookie } = await createAuthedSession({ username: "mapshelluser" });
+    const { cookie } = await createAuthedSession({ username: "mapshelluser", hostname: "climbinglogbook.com" });
     const res = await fetchOwnedRoute("mapshelluser", "map", { cookie });
     expect(res.status).toBe(200);
     const html = await res.text();
@@ -81,7 +81,7 @@ describe("owned route authorization", () => {
   });
 
   it("serves the real static shell for performance", async () => {
-    const { cookie } = await createAuthedSession({ username: "performanceshelluser" });
+    const { cookie } = await createAuthedSession({ username: "performanceshelluser", hostname: "climbinglogbook.com" });
     const res = await fetchOwnedRoute("performanceshelluser", "performance", { cookie });
     expect(res.status).toBe(200);
     const html = await res.text();
@@ -90,7 +90,7 @@ describe("owned route authorization", () => {
   });
 
   it("serves the real static shell for log", async () => {
-    const { cookie } = await createAuthedSession({ username: "logshelluser" });
+    const { cookie } = await createAuthedSession({ username: "logshelluser", hostname: "climbinglogbook.com" });
     const res = await fetchOwnedRoute("logshelluser", "log", { cookie });
     expect(res.status).toBe(200);
     const html = await res.text();
@@ -99,7 +99,7 @@ describe("owned route authorization", () => {
   });
 
   it("serves the real static shell for account", async () => {
-    const { cookie } = await createAuthedSession({ username: "accountshelluser" });
+    const { cookie } = await createAuthedSession({ username: "accountshelluser", hostname: "climbinglogbook.com" });
     const res = await fetchOwnedRoute("accountshelluser", "account", { cookie });
     expect(res.status).toBe(200);
     const html = await res.text();
@@ -108,7 +108,7 @@ describe("owned route authorization", () => {
   });
 
   it("serves the real static shell for account/edit", async () => {
-    const { cookie } = await createAuthedSession({ username: "accounteditshelluser" });
+    const { cookie } = await createAuthedSession({ username: "accounteditshelluser", hostname: "climbinglogbook.com" });
     const res = await fetchOwnedRoute("accounteditshelluser", "account/edit", { cookie });
     expect(res.status).toBe(200);
     const html = await res.text();
@@ -117,14 +117,14 @@ describe("owned route authorization", () => {
   });
 
   it("falls through (404) for a fourth path segment that isn't log/map/performance", async () => {
-    const { cookie } = await createAuthedSession({ username: "unknownpageuser" });
+    const { cookie } = await createAuthedSession({ username: "unknownpageuser", hostname: "climbinglogbook.com" });
     const res = await fetchOwnedRoute("unknownpageuser", "settings", { cookie });
     expect(res.status).toBe(404);
   });
 
-  it("redirects same-origin on hostnames without a real climbinglogbook.com apex (local dev/PR previews)", async () => {
-    const res = await exports.default.fetch("https://my.example.com/someone/log", { redirect: "manual" });
+  it("redirects same-origin on hostnames without a real climbinglogbook.com apex (local dev)", async () => {
+    const res = await exports.default.fetch("https://my.localhost/someone/log", { redirect: "manual" });
     expect(res.status).toBe(302);
-    expect(res.headers.get("Location")).toBe("https://my.example.com/login/");
+    expect(res.headers.get("Location")).toBe("https://my.localhost/login/");
   });
 });
