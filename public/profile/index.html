@@ -124,8 +124,18 @@
      by side above 600px (client/map-view.js's own allDisciplines mode),
      which doesn't fit in a single-discipline-width popover. Narrows back
      to the same 240px cap below 600px, where the two blocks stack
-     vertically instead and don't need the extra width. -->
-<div class="fixed z-30 bg-background border border-border rounded-app p-3 shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)] text-[.85rem] max-w-[420px] max-[600px]:max-w-[240px]" id="map-pin-popover" hidden role="group"></div>
+     vertically instead and don't need the extra width.
+
+     min-w matches max-w deliberately (not just a max-width alone) --
+     the two-column content's flex-basis:0% children (flex-1) don't
+     contribute their own content width to this fixed-position element's
+     shrink-to-fit calculation the way max-w-[420px] alone implied they
+     would, so without an explicit min-width this was empirically
+     measured shrinking to ~214px regardless of the 420px cap, wrapping
+     "Onsights"/"Redpoints" (Raven's own report, 2026-08-15). Confirmed
+     via a live min-width-only patch that this fixes it before landing
+     the fix here. -->
+<div class="fixed z-30 bg-background border border-border rounded-app p-3 shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)] text-[.85rem] max-w-[420px] min-w-[420px] max-[600px]:max-w-[240px] max-[600px]:min-w-0" id="map-pin-popover" hidden role="group"></div>
 
 <script type="module" src="/logbook/profile-app.js"></script>
 </body>
