@@ -37,12 +37,32 @@ import { createTurnstileHook } from "./turnstile.js";
 // confirmed empirically that its isLoopbackHost(host) gate doesn't
 // recognize a wildcarded host string like "localhost:*", so it never adds
 // the http:// variant for that entry, only the useless https:// one.
+//
+// http://climbinglogbook.com/http://my.climbinglogbook.com (plain HTTP,
+// the real production domains) are ALSO listed, for a different reason:
+// `wrangler dev`'s local simulation of a `routes`-configured Worker
+// silently rewrites the request's own hostname/origin to the first
+// configured production route while keeping the real (local, non-TLS)
+// "http" scheme -- confirmed empirically (2026-08-15) that e2e/global-
+// setup.js's dev-session bootstrap, which runs through Playwright's own
+// wrangler-dev-based webServer (playwright.config.js), sends a real
+// Origin header that arrives at the Worker as "http://climbinglogbook.
+// com" regardless of what's actually sent. This is safe to trust: in
+// real production, this exact string can never be a genuine request's
+// origin, since Cloudflare's edge redirects plain HTTP to HTTPS before
+// any request reaches the Worker (confirmed empirically the same day --
+// `curl http://climbinglogbook.com/` 301s to https, `Server: cloudflare`
+// on the redirect itself) -- so these two entries are dead code for real
+// traffic, not a live weakening, and only matter for this CI/local
+// wrangler-dev testing quirk.
 const TRUSTED_ORIGINS = [
   "https://ravendarque.com",
   "https://climbinglogbook.com",
   "https://my.climbinglogbook.com",
   "http://localhost:*",
   "http://my.localhost:*",
+  "http://climbinglogbook.com",
+  "http://my.climbinglogbook.com",
 ];
 
 // #468 -- this Worker really does serve more than one hostname
