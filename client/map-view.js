@@ -13,7 +13,7 @@
 // open/close/outside-click/Escape logic, predating that shared helper,
 // left as-is rather than unified here (out of scope for this extraction).
 import { escapeHtml } from "./escape-html.js";
-import { flashLabel, sendLabel } from "./status.js";
+import { combinedFlashLabel, combinedSendLabel, disciplineLabel, flashLabel, sendLabel } from "./status.js";
 import { STATUS_ICONS } from "./status-icons.js";
 import { computePosition, autoUpdate, offset, flip, shift } from "./floating-ui-dom.js";
 import {
@@ -30,11 +30,6 @@ import {
   mapClientPointToUserSpace as mapClientPointToUserSpacePure,
 } from "./map-geometry.js";
 import { COUNTRY_BY_NAME } from "./countries.js";
-
-// Duplicated from client/header-chrome.js's own copy (the discipline
-// picker's true owner, #240) rather than shared -- two hardcoded labels
-// isn't worth a dedicated module or an injected dependency for.
-const DISCIPLINE_LABEL = { boulder: "Boulder", lead: "Lead" };
 
 const MAP_VARIANTS = {
   greenwich: { label: "Greenwich" },
@@ -62,7 +57,38 @@ const PIN_BASE_R = 9;
 const PIN_BASE_STROKE = 1.5;
 const PIN_BASE_FONT = 9;
 
-export function createMapView({ store }) {
+// #460 -- allDisciplines (default false, only ever set by
+// client/profile-main.js) switches every discipline-scoped computation
+// below (pin counts, the subtitle stat line, the map's own aria-label)
+// from "whichever discipline is currently active" to "every discipline
+// combined" -- the public profile has no single active discipline
+// anymore. The owner's own /map page (client/map-main.js) never passes
+// this, so its behavior is unchanged byte-for-byte. The one exception is
+// the pin popover's own status breakdown (see renderPinPopoverContent),
+// which always shows a per-discipline breakdown when allDisciplines is
+// set, rather than one combined count -- that's the one place "combined"
+// would actually lose information Raven specifically wanted kept
+// (2026-08-14: "breakdown the statuses by discipline when we click on
+// the pin").
+export function createMapView({ store, allDisciplines = false }) {
+  // Whichever entries count toward pins/subtitle stats -- every entry in
+  // allDisciplines mode, just the active discipline's own otherwise. Not
+  // used by the pin popover, which always splits by discipline
+  // regardless of this flag (see this factory's own header comment).
+  function relevantEntries() {
+    return allDisciplines ? store.getEntries() : store.getEntries().filter(e => e.type === store.getActiveType());
+  }
+
+  // Distinct discipline keys actually present in a set of entries, in
+  // canonical (boulder, lead) order -- drives the combined-label wording
+  // below without hardcoding "boulder and lead" anywhere. A future third
+  // discipline (#429/#430) needs no change here, same reasoning as
+  // status.js's own combinedFlashLabel/combinedSendLabel.
+  function presentDisciplines(entries) {
+    const present = new Set(entries.map(e => e.type));
+    return ["boulder", "lead"].filter(t => present.has(t));
+  }
+
   // Best-effort only -- picks a reasonable *default* the first time the
   // map's opened; the user can always switch explicitly afterward, and
   // that choice then persists (see getActiveMapVariant). Buckets the
@@ -366,9 +392,13 @@ export function createMapView({ store }) {
   // ── Pin popover (#18) ──────────────────────────────────────────────────
   // Reuses the exact same flash/send/project categories the subtitle stat
   // line shows (flashLabel/sendLabel included), just scoped to one
-  // country instead of every logged entry.
-  function countryStatusBreakdown(countryName) {
-    const entries = store.getEntries().filter(e => e.type === store.getActiveType() && store.entryLocation(e).country === countryName);
+  // country instead of every logged entry. Takes an explicit type rather
+  // than reading store.getActiveType() -- #460's allDisciplines mode
+  // calls this once per discipline, always both, regardless of the
+  // owner-only single-active-discipline concept this factory otherwise
+  // still has.
+  function countryStatusBreakdown(countryName, type) {
+    const entries = store.getEntries().filter(e => e.type === type && store.entryLocation(e).country === countryName);
     return {
       flashes:  entries.filter(e => e.status === "send" && e.firstAttempt).length,
       sends:    entries.filter(e => e.status === "send" && !e.firstAttempt).length,
@@ -376,17 +406,46 @@ export function createMapView({ store }) {
     };
   }
 
-  function renderPinPopoverContent(countryName) {
-    const c = COUNTRY_BY_NAME[countryName];
-    const { flashes, sends, projects } = countryStatusBreakdown(countryName);
-    // Reuses STATUS_ICONS/STATUS_ICON_CLASS's icon markup, same as the
-    // table's own statusBadge() -- just a smaller icon size to fit a
-    // compact popover row.
-    const statRow = (icon, title, n, singular, plural) => `
+  // Reuses STATUS_ICONS/STATUS_ICON_CLASS's icon markup, same as the
+  // table's own statusBadge() -- just a smaller icon size to fit a
+  // compact popover row.
+  function statRow(icon, title, n, singular, plural) {
+    return `
       <div class="flex items-center gap-[.45rem]">
         <span class="inline-flex align-middle shrink-0 cursor-default [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem]" title="${escapeHtml(title)}">${icon}</span>
         <span><span class="text-foreground font-semibold">${n}</span> <span class="text-muted">${n === 1 ? singular : plural}</span></span>
       </div>`;
+  }
+
+  function statBlock(type, countryName) {
+    const { flashes, sends, projects } = countryStatusBreakdown(countryName, type);
+    return `
+      <div class="flex flex-col gap-[.35rem] text-[.82rem]">
+        ${statRow(STATUS_ICONS.flash, flashLabel(type), flashes, flashLabel(type), flashLabel(type, true))}
+        ${statRow(STATUS_ICONS.send, sendLabel(type), sends, sendLabel(type), sendLabel(type, true))}
+        ${statRow(STATUS_ICONS.project, "Project", projects, "Project", "Projects")}
+      </div>`;
+  }
+
+  function renderPinPopoverContent(countryName) {
+    const c = COUNTRY_BY_NAME[countryName];
+    // #460 -- always both disciplines' own breakdown side by side (above
+    // the app's existing 600px breakpoint, stacked below it), never one
+    // combined count -- Raven's own call, 2026-08-14: this is the one
+    // place in allDisciplines mode where combining would actually lose
+    // information ("breakdown the statuses by discipline when we click
+    // on the pin"). The owner's own /map page (allDisciplines unset)
+    // keeps today's single-block-for-the-active-discipline layout,
+    // unchanged.
+    const body = allDisciplines
+      ? `<div class="flex gap-4 max-[600px]:flex-col max-[600px]:gap-[.6rem]">
+          ${["boulder", "lead"].map(type => `
+            <div class="flex-1 min-w-0">
+              <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mb-[.3rem]">${disciplineLabel(type)}</div>
+              ${statBlock(type, countryName)}
+            </div>`).join("")}
+        </div>`
+      : statBlock(store.getActiveType(), countryName);
     return `
       <div class="flex items-center justify-between gap-3 mb-[.5rem]">
         <span class="font-semibold text-foreground flex items-center gap-[.35rem]">
@@ -395,11 +454,7 @@ export function createMapView({ store }) {
         </span>
         <button type="button" class="bg-transparent border-0 text-muted cursor-pointer p-0 leading-none text-[1rem] hover:text-foreground" id="map-pin-popover-close" aria-label="Close">✕</button>
       </div>
-      <div class="flex flex-col gap-[.35rem] text-[.82rem]">
-        ${statRow(STATUS_ICONS.flash, flashLabel(store.getActiveType()), flashes, flashLabel(store.getActiveType()), flashLabel(store.getActiveType(), true))}
-        ${statRow(STATUS_ICONS.send, sendLabel(store.getActiveType()), sends, sendLabel(store.getActiveType()), sendLabel(store.getActiveType(), true))}
-        ${statRow(STATUS_ICONS.project, "Project", projects, "Project", "Projects")}
-      </div>`;
+      ${body}`;
   }
 
   let pinPopoverCleanup = null; // floating-ui autoUpdate teardown for the currently-open popover, if any
@@ -451,23 +506,35 @@ export function createMapView({ store }) {
   });
 
   // The "your Boulder/Lead stats" caption line above the map -- lives in
-  // #subtitle, which sits inside the Map tab's own panel in the markup
-  // (public/logbook/index.html), not the Logbook tab's, despite the
-  // similarly-named data. Discovered while scoping #235; deferred here.
+  // #subtitle, which sits inside each map-having page's own markup
+  // (public/map/index.html, public/profile/index.html), not any Logbook
+  // tab's, despite the similarly-named data. Discovered while scoping
+  // #235; deferred here. #460: combined across disciplines (both the
+  // counts and the flash/send wording) when allDisciplines is set.
   function updateSubtitle() {
-    const typeEntries = store.getEntries().filter(e => e.type === store.getActiveType());
+    const typeEntries = relevantEntries();
+    // Falls back to every known discipline when there's nothing logged
+    // yet at all -- presentDisciplines() would otherwise return an empty
+    // list, and combinedFlashLabel/combinedSendLabel of an empty list is
+    // an empty string, which would render as a bare "0 " with no label.
+    const disciplines = presentDisciplines(typeEntries).length > 0 ? presentDisciplines(typeEntries) : ["boulder", "lead"];
     const countries = new Set(typeEntries.map(e => store.entryLocation(e).country).filter(Boolean)).size;
     const flashes   = typeEntries.filter(e => e.status === "send" && e.firstAttempt).length;
     const sends     = typeEntries.filter(e => e.status === "send" && !e.firstAttempt).length;
     const projects  = typeEntries.filter(e => e.status === "project").length;
+
+    const flashLabelText = allDisciplines ? combinedFlashLabel(disciplines) : flashLabel(store.getActiveType());
+    const flashLabelPlural = allDisciplines ? combinedFlashLabel(disciplines, true) : flashLabel(store.getActiveType(), true);
+    const sendLabelText = allDisciplines ? combinedSendLabel(disciplines) : sendLabel(store.getActiveType());
+    const sendLabelPlural = allDisciplines ? combinedSendLabel(disciplines, true) : sendLabel(store.getActiveType(), true);
 
     const stat = (n, singular, plural) =>
       `<span class="text-foreground font-semibold">${n}</span> <span class="text-muted">${n === 1 ? singular : plural}</span>`;
 
     document.getElementById("subtitle").innerHTML = [
       stat(countries, "Country", "Countries"),
-      stat(flashes, flashLabel(store.getActiveType()), flashLabel(store.getActiveType(), true)),
-      stat(sends, sendLabel(store.getActiveType()), sendLabel(store.getActiveType(), true)),
+      stat(flashes, flashLabelText, flashLabelPlural),
+      stat(sends, sendLabelText, sendLabelPlural),
       stat(projects, "Project", "Projects"),
     ].join(`<span class="text-muted"> · </span>`);
     // Always empty -- no code writes #footer otherwise (confirmed via
@@ -483,7 +550,7 @@ export function createMapView({ store }) {
     const variant = getActiveMapVariant();
     mapVariantSelect.value = variant;
 
-    const typeEntries = store.getEntries().filter(e => e.type === store.getActiveType());
+    const typeEntries = relevantEntries();
 
     const countsByCountry = new Map();
     for (const entry of typeEntries) {
@@ -574,9 +641,16 @@ export function createMapView({ store }) {
       `<li>${escapeHtml(c.name)}: ${countsByCountry.get(c.name)} ${countsByCountry.get(c.name) === 1 ? "entry" : "entries"}</li>`
     ).join("");
 
+    // #460 -- generic wording in allDisciplines mode (no single active
+    // discipline to name); today's exact discipline-specific wording
+    // otherwise, unchanged.
+    const mapAriaLabel = allDisciplines
+      ? "World map of logged climbing entries by country"
+      : `World map of logged ${disciplineLabel(store.getActiveType()).toLowerCase()} entries by country`;
+
     container.innerHTML = `
       <div class="bg-surface border border-border rounded-app overflow-hidden mb-5">
-        <svg viewBox="0 0 ${MAP_WIDTH} ${mapData.height}" role="img" aria-label="World map of logged ${DISCIPLINE_LABEL[store.getActiveType()].toLowerCase()} entries by country" class="w-full h-auto block touch-none cursor-grab">
+        <svg viewBox="0 0 ${MAP_WIDTH} ${mapData.height}" role="img" aria-label="${mapAriaLabel}" class="w-full h-auto block touch-none cursor-grab">
           <path d="${mapData.graticulePath}" class="stroke-border fill-none" stroke-width="0.5"></path>
           <path d="${mapData.worldLandPath}" class="fill-border stroke-none"></path>
           <path d="${mapData.countryBordersPath}" class="stroke-[color-mix(in_srgb,var(--color-accent)_20%,var(--color-muted)_80%)] fill-none" stroke-width="0.35" stroke-linejoin="round"></path>

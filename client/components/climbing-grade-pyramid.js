@@ -45,8 +45,7 @@ import { PYRAMID_IDEAL_BY_POSITION, pyramidSplitRows } from "../pyramid-stats.js
 // comment) -- imported directly rather than hand-copied a second time
 // (found via code review, 2026-08-09).
 import { focusableEls } from "../modal-utils.js";
-
-const DISCIPLINE_LABEL = { boulder: "Boulder", lead: "Lead" };
+import { disciplineLabel } from "../status.js";
 
 const PYRAMID_ICON_GOOD     = `<circle cx="12" cy="12" r="9"></circle><path d="m8.5 12.5 2.5 2.5 5-5"></path>`;
 const PYRAMID_ICON_LOW      = `<path d="M12 3 2 20h20L12 3Z"></path><path d="M12 9v5"></path><path d="M12 17h.01"></path>`;
@@ -232,7 +231,7 @@ export class ClimbingGradePyramid extends HTMLElement {
     const windowNoteEl = this.querySelector("#window-note");
 
     if (!hasSends) {
-      pyramidEl.innerHTML = `<p class="text-[.9rem] text-muted">No ${DISCIPLINE_LABEL[type]} sends logged in the last 12 months yet -- log a send to see your pyramid.</p>`;
+      pyramidEl.innerHTML = `<p class="text-[.9rem] text-muted">No ${disciplineLabel(type)} sends logged in the last 12 months yet -- log a send to see your pyramid.</p>`;
       healthEl.innerHTML = "";
       windowNoteEl.innerHTML = "";
       return;

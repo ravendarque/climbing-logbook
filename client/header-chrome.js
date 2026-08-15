@@ -14,6 +14,7 @@
 // automatically.
 import { createDisclosure } from "./modal-utils.js";
 import { createThemeToggle } from "./theme-toggle.js";
+import { disciplineLabel } from "./status.js";
 
 export function createHeaderChrome({
   store,
@@ -34,16 +35,15 @@ export function createHeaderChrome({
   const disciplinePopover = document.getElementById("discipline-popover");
   const { close: closeDisciplinePopover } = createDisclosure(disciplineBtn, disciplinePopover, "#discipline-wrap");
 
-  const DISCIPLINE_LABEL = { boulder: "Boulder", lead: "Lead" };
   // Called every render() cycle (not just on switch) to keep the label/
   // aria-label/aria-selected state in sync with the Store's active type.
   function updateDisciplinePicker() {
-    document.getElementById("discipline-btn-label").textContent = DISCIPLINE_LABEL[store.getActiveType()];
+    document.getElementById("discipline-btn-label").textContent = disciplineLabel(store.getActiveType());
     // Kept in sync even though the visible label above covers most widths --
     // aria-label always wins over visible text content for the accessible
     // name, so this is what a screen reader announces once the label span
     // itself is hidden below the icon-collapse breakpoint (#114).
-    disciplineBtn.setAttribute("aria-label", `Discipline: ${DISCIPLINE_LABEL[store.getActiveType()]}`);
+    disciplineBtn.setAttribute("aria-label", `Discipline: ${disciplineLabel(store.getActiveType())}`);
     document.querySelectorAll(".discipline-option").forEach(opt =>
       opt.setAttribute("aria-selected", String(opt.dataset.discipline === store.getActiveType()))
     );
