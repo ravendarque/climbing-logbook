@@ -3,8 +3,8 @@
 // client/performance-main.js (see either file's own comment for the
 // general "trimmed from client/main.js" reasoning). This is the largest
 // of the three: it's the one page that actually writes data, so it pulls
-// in entry-form.js/place-picker.js/offline-sync.js/content-overlays.js
-// on top of what map/performance needed.
+// in entry-form.js/place-picker.js/offline-sync.js on top of what
+// map/performance needed.
 //
 // <climbing-entries-table> (#350) replaces client/logbook-view.js
 // entirely -- same "no old view-module import" pattern as
@@ -14,21 +14,21 @@
 // session check), unlike a hypothetical future public/read-only consumer
 // of the same component.
 //
-// content-overlays.js gets includeFootnote: false (climbing-header
-// already self-contains that overlay) and modal-utils.js gets an explicit
-// overlayIds list scoped to this page's three real overlays -- no
-// citations/evidence-overlay (no pyramid here), no footnote-overlay (see
-// above). Same "opt out of what climbing-header already owns" pattern
-// #348 established for content-overlays.js on /map, now actually
-// exercised by modal-utils.js's own overlayIds parameter for the first
-// time (map/performance never needed a modal stack at all).
+// content-overlays.js is gone (#425) -- <climbing-entries-table> now owns
+// its own notes overlay self-contained (see that component's own header
+// comment), and the footnote overlay was already climbing-header.js's
+// (#345), so nothing was left calling it once notes moved. modal-utils.js
+// still gets an explicit overlayIds list scoped to this page's two
+// remaining real overlays (add-place-overlay/entry-overlay) -- no
+// citations/evidence-overlay (no pyramid here), no notes-overlay
+// (the component's own now), no footnote-overlay (climbing-header owns
+// it).
 import { createStore } from "./store.js";
 import { createEntryForm } from "./entry-form.js";
 import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
 import { createModalHelpers } from "./modal-utils.js";
 import { createOfflineSync } from "./offline-sync.js";
-import { createContentOverlays } from "./content-overlays.js";
 import { loadResource } from "./fetch-json.js";
 import { syncAdminBar } from "./admin-bar.js";
 import "./components/climbing-menu-bar.js";
@@ -67,10 +67,9 @@ store.subscribe(render);
 // hazard map-main.js's own comment documents (a real crash caught during
 // #348's manual verification of that page). Set inside boot() instead.
 
-// Scoped to this page's three real overlays -- no citations/
-// evidence-overlay (no pyramid here), no footnote-overlay (climbing-header
-// owns it, see this file's own header comment).
-const { openModal, closeModal } = createModalHelpers(["add-place-overlay", "entry-overlay", "notes-overlay"]);
+// Scoped to this page's two remaining real overlays -- see this file's
+// own header comment on why notes-overlay isn't listed here anymore.
+const { openModal, closeModal } = createModalHelpers(["add-place-overlay", "entry-overlay"]);
 
 const offlineSync = createOfflineSync({
   store, adminFetch, isAuthRedirect,
@@ -124,8 +123,6 @@ const headerChrome = createHeaderChrome({
   // map-main.js's own createHeaderChrome() call already established.
   resetPyramidExpansion: () => {},
 });
-
-createContentOverlays({ store, openModal, closeModal, includeFootnote: false });
 
 // Same edit-btn -> entry-form.js delegation as client/main.js's own --
 // a genuine cross-module concern that belongs in the composition root,

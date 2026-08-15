@@ -352,57 +352,36 @@ client/
 │                         value to reassign its own closure variables to
 │                         and notify() subscribers from, the same pattern
 │                         every other Store mutation follows
-├── offline-sync.js     getQueue/setQueue/syncOne/syncPending/
-│                         updateSyncButton (#262, first piece of #261's
-│                         follow-up to #233) -- the offline-queue
-│                         *orchestration* half: localStorage read/write,
-│                         the sync button, and replaying queued writes
-│                         against the server. Needed localStorage, which
-│                         the Vitest pool (a Workers runtime, not a
-│                         browser) doesn't provide, so it stayed in
-│                         main.js from #206 all the way through #233 --
-│                         "not testable without solving a browser
-│                         environment too" reasoning as other DOM-heavy
-│                         code, tracked loosely by #218 but never actually
-│                         picked up as its own #233 sub-issue. Covered by
-│                         e2e/offline-sync.spec.js (#249) rather than
-│                         Vitest, same as every DOM-heavy module in this
-│                         list. A factory, same reasoning as the rest of
-│                         #233/#261's modules -- owns the sync button's
-│                         DOM refs and a document-level `online` listener.
-│                         `render`/`updateAdminBar` used to be injected
-│                         too, but aren't anymore (#264) -- every store
-│                         mutation here (setLoggedIn()/setLocations()/
-│                         setPlaces()/setEntries()/applyPendingQueue())
-│                         notifies render() on its own; syncPending()'s
-│                         own trailing render() call was removed
-│                         accordingly (the sync button's own disabled/
-│                         spin reset is plain DOM, handled directly, not
-│                         via render()). `applyPendingQueue` moved from a
-│                         plain import here to a store.js method for the
-│                         same reason (#264) -- see store.js's own entry
-│                         above
-└── content-overlays.js Notes-view + "or not" footnote modals (#263,
-                          second piece of #261's follow-up). Two small,
-                          self-contained content overlays that don't
-                          belong to any other view module -- notes shows
-                          one entry's free-text notes field (its
-                          `.notes-btn` click delegation lives here too,
-                          since this module's only stake in the table is
-                          reading store.getEntries() by id, the same
-                          "reacts to a click on markup it doesn't own"
-                          relationship climbing-entries-table.js's own
-                          `.edit-btn` delegation has with entry-form.js);
-                          the footnote is fully static. Citations/
-                          evidence-tier overlays are deliberately NOT
-                          here -- originally pyramid-view.js's own (#263),
-                          now <climbing-grade-pyramid>'s (#374), which owns
-                          opening and closing both itself. No return value
-                          -- pure wiring, nothing else needs this module's
-                          instance for anything afterward. Used today by
-                          log-main.js only (#348) -- the one newer page
-                          that writes entries at all.
-
+└── offline-sync.js     getQueue/setQueue/syncOne/syncPending/
+                          updateSyncButton (#262, first piece of #261's
+                          follow-up to #233) -- the offline-queue
+                          *orchestration* half: localStorage read/write,
+                          the sync button, and replaying queued writes
+                          against the server. Needed localStorage, which
+                          the Vitest pool (a Workers runtime, not a
+                          browser) doesn't provide, so it stayed in
+                          main.js from #206 all the way through #233 --
+                          "not testable without solving a browser
+                          environment too" reasoning as other DOM-heavy
+                          code, tracked loosely by #218 but never actually
+                          picked up as its own #233 sub-issue. Covered by
+                          e2e/offline-sync.spec.js (#249) rather than
+                          Vitest, same as every DOM-heavy module in this
+                          list. A factory, same reasoning as the rest of
+                          #233/#261's modules -- owns the sync button's
+                          DOM refs and a document-level `online` listener.
+                          `render`/`updateAdminBar` used to be injected
+                          too, but aren't anymore (#264) -- every store
+                          mutation here (setLoggedIn()/setLocations()/
+                          setPlaces()/setEntries()/applyPendingQueue())
+                          notifies render() on its own; syncPending()'s
+                          own trailing render() call was removed
+                          accordingly (the sync button's own disabled/
+                          spin reset is plain DOM, handled directly, not
+                          via render()). `applyPendingQueue` moved from a
+                          plain import here to a store.js method for the
+                          same reason (#264) -- see store.js's own entry
+                          above
 src/
 ├── index.js            Router — hostname + pathname + method, dispatches.
 │                         Route tables (PUBLIC_GET_ROUTES/ADMIN_ROUTES,
@@ -606,9 +585,12 @@ client/
 │                           bundled into public/logbook/log-app.js. The
 │                           largest of the six: the one page that
 │                           actually writes data, so it pulls in
-│                           entry-form.js/place-picker.js/offline-sync.js/
-│                           content-overlays.js on top of what map/
-│                           performance need. Registers sw.js
+│                           entry-form.js/place-picker.js/offline-sync.js
+│                           on top of what map/performance need
+│                           (content-overlays.js is gone, #425 --
+│                           <climbing-entries-table> owns the notes
+│                           overlay itself now, see that component's own
+│                           entry below). Registers sw.js
 ├── map-main.js           Composition root for /:username/map (#348) --
 │                           bundled into map-app.js. Reuses store.js/
 │                           admin-auth.js/header-chrome.js/map-view.js
@@ -789,7 +771,17 @@ client/
     │                             /logbook's own boot-time default (#409;
     │                             #411 fixed a related bug where that seed
     │                             was wrongly scoped to only the
-    │                             discipline active at seed time)
+    │                             discipline active at seed time). Owns
+    │                             its own notes-view overlay self-
+    │                             contained (#425 -- same own-focus-trap/
+    │                             Escape/backdrop-click pattern
+    │                             <climbing-grade-pyramid>'s own
+    │                             citations/evidence overlays already use,
+    │                             see that component's own entry below),
+    │                             rather than leaving each consuming page
+    │                             to duplicate the markup/wiring or,
+    │                             as the public profile page did until
+    │                             #425, simply not wire it up at all
     └── climbing-grade-pyramid.js <climbing-grade-pyramid> (#374) -- wraps
                                   pyramid-view.js's existing rendering
                                   (send-counting, 8-4-2-1 promotion tiers,

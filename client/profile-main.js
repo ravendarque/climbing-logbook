@@ -1,10 +1,13 @@
 // Composition root for the public, read-only /:username page (#351) --
 // bundled by esbuild into public/logbook/profile-app.js. Still no
 // adminFetch/isAuthRedirect, no entry-form.js/place-picker.js/
-// offline-sync.js/content-overlays.js/modal-utils.js's write-side
-// counterparts at all -- "Security by absence" per #344's decision: this
-// bundle genuinely cannot write anything, not just UI-hidden from doing
-// so.
+// offline-sync.js/content-overlays.js at all -- "Security by absence"
+// per #344's decision: this bundle genuinely cannot write anything, not
+// just UI-hidden from doing so. Notes-viewing (#425) needs no wiring
+// here at all -- <climbing-entries-table> owns its own notes overlay
+// now, self-contained (see that component's own header comment), fixing
+// a real bug this page used to have (the notes-btn rendered with
+// nothing to open when clicked, since nothing here ever wired it up).
 //
 // client/store.js *is* used here now (#333, unlike this file's original
 // #351 cut) -- purely as the read-only state client/map-view.js already
