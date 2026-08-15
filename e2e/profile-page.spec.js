@@ -154,6 +154,23 @@ test("map pin popover (#460) shows both disciplines' own status breakdown togeth
   await expect(popover).toContainText("Send");
 });
 
+test("notes overlay shows the entry's real notes text (#425 -- previously did nothing at all on this page)", async ({ page }) => {
+  await mockApi(page, {
+    ...SEED,
+    entries: [{ ...SEED.entries[0], notes: "A real note to display" }],
+  });
+  await page.goto("/e2e-fixtures/pages/profile.html");
+  await expect(page.locator("climbing-entries-table")).toBeVisible();
+
+  await page.locator("#collapse-all-btn").click();
+  await page.locator(".notes-btn").first().click();
+  await expect(page.locator("#notes-overlay")).toBeVisible();
+  await expect(page.locator("#notes-modal-text")).toHaveText("A real note to display");
+
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#notes-overlay")).toBeHidden();
+});
+
 test("shows the entries table's own empty state when the target user has no data", async ({ page }) => {
   await mockApi(page, { entries: [], places: [], locations: [] });
   await page.goto("/e2e-fixtures/pages/profile.html");
