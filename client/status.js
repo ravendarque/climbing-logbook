@@ -39,6 +39,23 @@ export function statusBadge(entry) {
   if (entry.status === "project")
     return `<span class="${STATUS_ICON_CLASS}" title="Project">${STATUS_ICONS.project}</span>`;
   if (entry.status === "abandoned")
-    return `<span class="${STATUS_ICON_CLASS}" title="Abandoned">${STATUS_ICONS.abandoned}</span>`;
+    return `<span class="${STATUS_ICON_CLASS}" title="Archived">${STATUS_ICONS.abandoned}</span>`;
   return `<span class="${STATUS_ICON_CLASS}" title="Check out">${STATUS_ICONS.wishlist}</span>`;
+}
+
+// #63 -- fills every `data-icon` placeholder under `root` with its real
+// STATUS_ICONS SVG (used by toggle-button markup -- entry-form.js's own
+// status radios, climbing-entries-table.js's filter panel -- where the
+// icon is injected after the fact rather than inlined via statusBadge()
+// above). Takes an explicit root and is called by each consumer scoped to
+// its own container, not document-wide: a prior version of this lived
+// only in entry-form.js against `document`, which happened to also
+// hydrate climbing-entries-table.js's filter-panel icons *when* a page
+// also loaded entry-form.js (true on /log) but silently left them
+// unhydrated on pages that don't (the read-only /profile page never
+// imports entry-form.js at all -- confirmed live, 2026-08-16).
+export function hydrateStatusIcons(root) {
+  root.querySelectorAll("[data-icon]").forEach(el => {
+    el.innerHTML = STATUS_ICONS[el.dataset.icon];
+  });
 }

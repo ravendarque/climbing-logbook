@@ -88,6 +88,12 @@ describe("filteredEntries", () => {
     expect(result.map(e => e.id)).toEqual(["e1"]);
   });
 
+  it("with no statusFilters selected, shows every status including archived (#63 -- excluding archived by default is climbing-entries-table.js's own default #statusFilters state, not this pure function's job)", () => {
+    const archived = { id: "e4", type: "boulder", status: "abandoned", firstAttempt: false, grade: "6B", name: "Old Project", placeId: "p1" };
+    const result = filteredEntries([...entries, archived], PLACES, noFilters);
+    expect(result.map(e => e.id)).toContain("e4");
+  });
+
   it("filters by grade range", () => {
     const list = activeGradeList("boulder");
     const sixAIdx = list.findIndex(g => g.g === "6A");

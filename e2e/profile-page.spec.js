@@ -136,6 +136,17 @@ test("combined status filter labels span both disciplines, and there's no grade-
   await expect(page.locator("#grade-slider-track")).toHaveCount(0);
 });
 
+test("filter panel status icons render real SVG content (#63 -- this page never loads entry-form.js, which used to be the only thing hydrating them)", async ({ page }) => {
+  await mockApi(page, MIXED_SEED);
+  await page.goto("/e2e-fixtures/pages/profile.html");
+  await expect(page.locator("climbing-entries-table")).toBeVisible();
+
+  await page.locator("#filter-btn").click();
+  for (const status of ["flash", "send", "project", "wishlist", "abandoned"]) {
+    await expect(page.locator(`#filter-status-group [data-icon="${status}"] svg`)).toBeVisible();
+  }
+});
+
 test("map pin popover (#460) shows both disciplines' own status breakdown together", async ({ page }) => {
   await mockApi(page, MIXED_SEED);
   await page.goto("/e2e-fixtures/pages/profile.html");

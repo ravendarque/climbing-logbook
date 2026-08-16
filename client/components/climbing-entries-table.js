@@ -40,7 +40,7 @@ import { escapeHtml } from "./escape-html.js";
 import { formatDate } from "../date-helpers.js";
 import { activeGradeList, filteredEntries, groupByPlace, placeOf, sortEntries } from "../entries.js";
 import { gradeColor } from "../grade-data.js";
-import { combinedFlashLabel, combinedSendLabel, disciplineLabel, flashLabel, sendLabel, statusBadge } from "../status.js";
+import { combinedFlashLabel, combinedSendLabel, disciplineLabel, flashLabel, hydrateStatusIcons, sendLabel, statusBadge } from "../status.js";
 import { COUNTRY_BY_NAME } from "../countries.js";
 import { createDisclosure, focusableEls } from "../modal-utils.js";
 
@@ -51,6 +51,12 @@ const TH_BASE = "text-left px-[.65rem] py-[.35rem] text-muted font-medium text-[
 const TH_SORTABLE = "cursor-pointer hover:text-foreground";
 const TD_BASE = "px-[.65rem] py-[.35rem] align-middle";
 const DEFAULT_SORT = { col: "grade", dir: "asc" };
+// #63 -- archived climbs are excluded from view by default (checked in
+// #statusFilters below means "shown", same convention every other status
+// filter checkbox already uses); this is the one status that starts
+// unchecked. Checking "Archived" explicitly surfaces it, same as any
+// other status filter.
+const DEFAULT_STATUS_FILTERS = ["flash", "send", "project", "wishlist"];
 // #460 -- canonical order for the two known disciplines, used wherever
 // "all disciplines" needs a deterministic iteration order (filter-panel
 // checkboxes, section ordering). A third discipline (#429/#430) is just
@@ -104,7 +110,7 @@ function shellHtml(allDisciplines) {
           ${toggleBtn("filter", "send", `<span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="send"></span>`, { id: "filter-send-label", text: "Send" })}
           ${toggleBtn("filter", "project", `<span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="project"></span>`, { text: "Project" })}
           ${toggleBtn("filter", "wishlist", `<span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="wishlist"></span>`, { text: "Check out" })}
-          ${toggleBtn("filter", "abandoned", `<span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="abandoned"></span>`, { text: "Abandoned" })}
+          ${toggleBtn("filter", "abandoned", `<span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="abandoned"></span>`, { text: "Archived" })}
         </fieldset>
         ${gradeFilter}
 
@@ -164,8 +170,12 @@ export class ClimbingEntriesTable extends HTMLElement {
   #places = [];
   #locations = [];
   #search = "";
-  #statusFilters = new Set();
-  #disciplineFilters = new Set(); // #460 -- allDisciplines mode only; empty = show every discipline, same "all off = all" convention as #statusFilters
+  #statusFilters = new Set(DEFAULT_STATUS_FILTERS);
+  // #460 -- allDisciplines mode only; empty = show every discipline. Was
+  // "same convention as #statusFilters" until #63 gave that one a
+  // non-empty default (archived opts out) -- this one's still genuinely
+  // empty-by-default, nothing analogous to archived here.
+  #disciplineFilters = new Set();
   #gradeRange = null;
   #sortByLocation = {};
   #collapsed = new Set();
@@ -345,6 +355,7 @@ export class ClimbingEntriesTable extends HTMLElement {
     const filterBtn = this.querySelector("#filter-btn");
     const filterPanel = this.querySelector("#filter-panel");
 
+    hydrateStatusIcons(this);
     createDisclosure(filterBtn, filterPanel, ".filter-wrap");
     this.#wireNotesOverlay();
 
@@ -406,7 +417,7 @@ export class ClimbingEntriesTable extends HTMLElement {
 
     this.addEventListener("click", e => {
       if (e.target.closest("#filter-clear-btn")) {
-        this.#statusFilters.clear();
+        this.#statusFilters = new Set(DEFAULT_STATUS_FILTERS);
         this.#disciplineFilters.clear();
         this.#gradeRange = null;
         this.#update();
@@ -550,7 +561,12 @@ export class ClimbingEntriesTable extends HTMLElement {
       this.querySelector("#filter-send-label").textContent = sendLabel(this.activeDiscipline);
       this.#updateGradeSlider();
     }
-    const anyActive = this.#statusFilters.size > 0 || this.#disciplineFilters.size > 0 || this.#gradeRange !== null;
+    // #63 -- #statusFilters is no longer "empty = inactive" (its default
+    // is DEFAULT_STATUS_FILTERS, not an empty set), so "active" means
+    // "differs from the default," not merely "non-empty."
+    const statusFiltersChanged = this.#statusFilters.size !== DEFAULT_STATUS_FILTERS.length ||
+      DEFAULT_STATUS_FILTERS.some(f => !this.#statusFilters.has(f));
+    const anyActive = statusFiltersChanged || this.#disciplineFilters.size > 0 || this.#gradeRange !== null;
     const filterBtn = this.querySelector("#filter-btn");
     filterBtn.classList.toggle("active", anyActive);
     filterBtn.setAttribute("aria-pressed", String(anyActive));

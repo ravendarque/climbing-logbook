@@ -13,8 +13,7 @@
 // its own; nothing in this module needs to trigger it manually.
 import { escapeHtml } from "./escape-html.js";
 import { BOULDER_GRADES, LEAD_GRADES } from "./grade-data.js";
-import { flashLabel, sendLabel, nameLabel } from "./status.js";
-import { STATUS_ICONS } from "./status-icons.js";
+import { flashLabel, sendLabel, nameLabel, hydrateStatusIcons } from "./status.js";
 import { createPlacePicker } from "./place-picker.js";
 
 export function createEntryForm({
@@ -128,9 +127,7 @@ export function createEntryForm({
     selectedStatus = value === "flash" ? "send" : value;
     isFlash = value === "flash";
   });
-  document.querySelectorAll("[data-icon]").forEach(el => {
-    el.innerHTML = STATUS_ICONS[el.dataset.icon];
-  });
+  hydrateStatusIcons(entryOverlay);
 
   function setStatusToggle(status, flash) {
     const value = flash ? "flash" : status;
