@@ -690,16 +690,16 @@ export class ClimbingEntriesTable extends HTMLElement {
           <span class="text-muted text-[.8rem] transition-transform duration-200 shrink-0 ${isCollapsed ? "-rotate-90" : ""}">▾</span>
         </div>
         <div class="overflow-x-auto ${isCollapsed ? "hidden" : ""}">
-          <table class="w-full border-collapse text-[.88rem] min-w-[40.5rem]" style="table-layout:fixed">
+          <table class="w-full border-collapse text-[.88rem] min-w-[42.5rem]" style="table-layout:fixed">
             <colgroup>
               <col style="width:2.5rem">
               <col style="width:3.75rem">
               <col>
               <col style="width:7.5rem">
               <col style="width:5.75rem">
-              <col style="width:2rem">
-              <col style="width:2rem">
-              <col style="width:2rem">
+              <col style="width:2.65rem">
+              <col style="width:2.65rem">
+              <col style="width:2.65rem">
             </colgroup>
             <thead>
               <tr>
