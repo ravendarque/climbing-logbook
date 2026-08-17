@@ -40,7 +40,7 @@ import { escapeHtml } from "./escape-html.js";
 import { formatDate } from "../date-helpers.js";
 import { activeGradeList, filteredEntries, groupByPlace, placeOf, sortEntries } from "../entries.js";
 import { gradeColor } from "../grade-data.js";
-import { combinedFlashLabel, combinedSendLabel, disciplineLabel, flashLabel, sendLabel, statusBadge } from "../status.js";
+import { combinedFlashLabel, combinedSendLabel, disciplineLabel, flashLabel, hydrateStatusIcons, sendLabel, statusBadge } from "../status.js";
 import { COUNTRY_BY_NAME } from "../countries.js";
 import { createDisclosure, focusableEls } from "../modal-utils.js";
 
@@ -51,12 +51,23 @@ const TH_BASE = "text-left px-[.65rem] py-[.35rem] text-muted font-medium text-[
 const TH_SORTABLE = "cursor-pointer hover:text-foreground";
 const TD_BASE = "px-[.65rem] py-[.35rem] align-middle";
 const DEFAULT_SORT = { col: "grade", dir: "asc" };
+// #63 -- archived climbs are excluded from view by default (checked in
+// #statusFilters below means "shown", same convention every other status
+// filter checkbox already uses); this is the one status that starts
+// unchecked. Checking "Archived" explicitly surfaces it, same as any
+// other status filter.
+const DEFAULT_STATUS_FILTERS = ["flash", "send", "project", "wishlist"];
 // #460 -- canonical order for the two known disciplines, used wherever
 // "all disciplines" needs a deterministic iteration order (filter-panel
 // checkboxes, section ordering). A third discipline (#429/#430) is just
 // one more entry here -- nothing else in this file hardcodes "boulder"
 // and "lead" as two fixed slots.
 const DISCIPLINE_ORDER = ["boulder", "lead"];
+
+// #63 -- both #statusFilters and #disciplineFilters default to their full
+// set rather than empty, so "has the user changed this filter" needs a
+// real comparison against that default, not just a size > 0 check.
+const setDiffersFrom = (set, defaults) => set.size !== defaults.length || defaults.some(v => !set.has(v));
 
 // #460 -- a function of allDisciplines rather than a static const, same
 // pattern climbing-menu-bar.js's own menuPopover(adminHidden) already
@@ -65,10 +76,22 @@ const DISCIPLINE_ORDER = ["boulder", "lead"];
 // hidden -- an element genuinely absent from a mode that can't use it,
 // not just present-but-inert.
 function shellHtml(allDisciplines) {
+  // A solid has-checked:bg-accent fill (every other status) read as too
+  // visually intense across a whole row (Raven's call) -- replaced with
+  // the same subtle accent tint #filter-btn's own .active state already
+  // uses elsewhere in this file, plus a small checkbox indicator so
+  // "checked" still has a clear, unambiguous signal rather than relying
+  // on a text-color change alone. The indicator/checkmark react to the
+  // checkbox via peer-checked (direct-sibling selector, works today
+  // since the input renders before them) -- has-checked (works through
+  // arbitrary nesting) still handles the label's own row-wide tint.
   const toggleBtn = (dataAttr, value, iconOrLabelId, label) => `
-    <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left first:rounded-t-app last:rounded-b-app shadow-[inset_0_-1px_0_var(--color-border)] last:shadow-none">
-      <input type="checkbox" class="sr-only" data-${dataAttr}="${value}">
+    <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-[color-mix(in_srgb,var(--color-accent)_10%,var(--color-surface))] has-checked:text-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] min-h-[2.6rem] text-left first:rounded-t-app last:rounded-b-app shadow-[inset_0_-1px_0_var(--color-border)] last:shadow-none">
+      <input type="checkbox" class="peer sr-only" data-${dataAttr}="${value}">
       ${iconOrLabelId}<span class="text-[.58rem] font-bold uppercase tracking-[.03em] whitespace-nowrap"${label.id ? ` id="${label.id}"` : ""}>${label.text}</span>
+      <span class="ml-auto inline-flex items-center justify-center w-4 h-4 rounded-[3px] border border-border shrink-0 text-transparent peer-checked:bg-accent peer-checked:border-accent peer-checked:text-white transition-colors duration-150">
+        <svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>
+      </span>
     </label>`;
 
   const disciplineGroup = allDisciplines ? `
@@ -104,11 +127,11 @@ function shellHtml(allDisciplines) {
           ${toggleBtn("filter", "send", `<span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="send"></span>`, { id: "filter-send-label", text: "Send" })}
           ${toggleBtn("filter", "project", `<span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="project"></span>`, { text: "Project" })}
           ${toggleBtn("filter", "wishlist", `<span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="wishlist"></span>`, { text: "Check out" })}
-          ${toggleBtn("filter", "abandoned", `<span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="abandoned"></span>`, { text: "Abandoned" })}
+          ${toggleBtn("filter", "abandoned", `<span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="abandoned"></span>`, { text: "Archived" })}
         </fieldset>
         ${gradeFilter}
 
-        <button type="button" class="block w-full mt-[.9rem] bg-transparent border-0 text-muted text-[.78rem] cursor-pointer text-center hover:text-foreground" id="filter-clear-btn">Clear filters</button>
+        <button type="button" class="block w-full mt-[.9rem] bg-transparent border-0 text-muted text-[.78rem] cursor-pointer text-center hover:text-foreground" id="filter-clear-btn">Reset filters</button>
       </div>
     </div>
   </div>
@@ -164,8 +187,14 @@ export class ClimbingEntriesTable extends HTMLElement {
   #places = [];
   #locations = [];
   #search = "";
-  #statusFilters = new Set();
-  #disciplineFilters = new Set(); // #460 -- allDisciplines mode only; empty = show every discipline, same "all off = all" convention as #statusFilters
+  #statusFilters = new Set(DEFAULT_STATUS_FILTERS);
+  // #460 -- allDisciplines mode only. #63: every known discipline starts
+  // checked, same "checked reflects what's shown" convention
+  // #statusFilters uses -- DISCIPLINE_ORDER itself, not a separate
+  // DEFAULT_DISCIPLINE_FILTERS constant, so a future third discipline
+  // (#429/#430) defaults to shown too, with no second place to remember
+  // to update.
+  #disciplineFilters = new Set(DISCIPLINE_ORDER);
   #gradeRange = null;
   #sortByLocation = {};
   #collapsed = new Set();
@@ -236,12 +265,15 @@ export class ClimbingEntriesTable extends HTMLElement {
 
   // Which disciplines actually get their own section, in canonical
   // order -- every discipline present in this.#entries, narrowed by
-  // #disciplineFilters if any are checked (empty = show all, same
-  // convention as #statusFilters). allDisciplines mode only.
+  // #disciplineFilters (defaults to every known discipline checked, #63
+  // -- same "checked reflects what's shown" convention as
+  // #statusFilters, including the same deliberate absence of an
+  // "empty = show everything" shortcut: unchecking both disciplines
+  // shows neither, not both).
   #activeDisciplines() {
     const present = new Set(this.#entries.map(e => e.type));
     const inPlay = DISCIPLINE_ORDER.filter(d => present.has(d));
-    return this.#disciplineFilters.size > 0 ? inPlay.filter(d => this.#disciplineFilters.has(d)) : inPlay;
+    return inPlay.filter(d => this.#disciplineFilters.has(d));
   }
 
   // The ordered list of sections that should actually render right now
@@ -345,6 +377,7 @@ export class ClimbingEntriesTable extends HTMLElement {
     const filterBtn = this.querySelector("#filter-btn");
     const filterPanel = this.querySelector("#filter-panel");
 
+    hydrateStatusIcons(this);
     createDisclosure(filterBtn, filterPanel, ".filter-wrap");
     this.#wireNotesOverlay();
 
@@ -406,8 +439,8 @@ export class ClimbingEntriesTable extends HTMLElement {
 
     this.addEventListener("click", e => {
       if (e.target.closest("#filter-clear-btn")) {
-        this.#statusFilters.clear();
-        this.#disciplineFilters.clear();
+        this.#statusFilters = new Set(DEFAULT_STATUS_FILTERS);
+        this.#disciplineFilters = new Set(DISCIPLINE_ORDER);
         this.#gradeRange = null;
         this.#update();
         return;
@@ -550,7 +583,13 @@ export class ClimbingEntriesTable extends HTMLElement {
       this.querySelector("#filter-send-label").textContent = sendLabel(this.activeDiscipline);
       this.#updateGradeSlider();
     }
-    const anyActive = this.#statusFilters.size > 0 || this.#disciplineFilters.size > 0 || this.#gradeRange !== null;
+    // #63 -- neither #statusFilters nor #disciplineFilters is "empty =
+    // inactive" any more (both default to their full set, not an empty
+    // one), so "active" means "differs from the default," not merely
+    // "non-empty."
+    const anyActive = setDiffersFrom(this.#statusFilters, DEFAULT_STATUS_FILTERS) ||
+      setDiffersFrom(this.#disciplineFilters, DISCIPLINE_ORDER) ||
+      this.#gradeRange !== null;
     const filterBtn = this.querySelector("#filter-btn");
     filterBtn.classList.toggle("active", anyActive);
     filterBtn.setAttribute("aria-pressed", String(anyActive));

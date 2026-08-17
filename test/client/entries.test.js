@@ -76,28 +76,38 @@ describe("filteredEntries", () => {
     { id: "e2", type: "boulder", status: "project", firstAttempt: false, grade: "7A", name: "Karma", placeId: "p1" },
     { id: "e3", type: "lead", status: "send", firstAttempt: false, grade: "6a", name: "Voie des Dalles", placeId: "p2" },
   ];
-  const noFilters = { activeType: "boulder", statusFilters: new Set(), gradeRange: null, search: "" };
+  // #63 -- statusFilters has no "empty = show every status" shortcut, so
+  // a base fixture for tests that aren't themselves testing status
+  // filtering needs to explicitly list every status these entries use
+  // (flash+send+project cover all three above), not rely on an empty set
+  // meaning "no constraint."
+  const baseFilters = { activeType: "boulder", statusFilters: new Set(["flash", "send", "project"]), gradeRange: null, search: "" };
 
   it("filters to only the active discipline", () => {
-    const result = filteredEntries(entries, PLACES, noFilters);
+    const result = filteredEntries(entries, PLACES, baseFilters);
     expect(result.map(e => e.id)).toEqual(["e1", "e2"]);
   });
 
   it("filters by status (using entryMatchesStatusFilter semantics)", () => {
-    const result = filteredEntries(entries, PLACES, { ...noFilters, statusFilters: new Set(["flash"]) });
+    const result = filteredEntries(entries, PLACES, { ...baseFilters, statusFilters: new Set(["flash"]) });
     expect(result.map(e => e.id)).toEqual(["e1"]);
+  });
+
+  it("an empty statusFilters shows nothing -- no 'empty = show every status' shortcut (#63)", () => {
+    const result = filteredEntries(entries, PLACES, { ...baseFilters, statusFilters: new Set() });
+    expect(result).toEqual([]);
   });
 
   it("filters by grade range", () => {
     const list = activeGradeList("boulder");
     const sixAIdx = list.findIndex(g => g.g === "6A");
-    const result = filteredEntries(entries, PLACES, { ...noFilters, gradeRange: { min: sixAIdx, max: sixAIdx } });
+    const result = filteredEntries(entries, PLACES, { ...baseFilters, gradeRange: { min: sixAIdx, max: sixAIdx } });
     expect(result.map(e => e.id)).toEqual(["e1"]);
   });
 
   it("filters by search text against name or area", () => {
-    expect(filteredEntries(entries, PLACES, { ...noFilters, search: "karma" }).map(e => e.id)).toEqual(["e2"]);
-    expect(filteredEntries(entries, PLACES, { ...noFilters, search: "cuvier" }).map(e => e.id)).toEqual(["e1", "e2"]);
+    expect(filteredEntries(entries, PLACES, { ...baseFilters, search: "karma" }).map(e => e.id)).toEqual(["e2"]);
+    expect(filteredEntries(entries, PLACES, { ...baseFilters, search: "cuvier" }).map(e => e.id)).toEqual(["e1", "e2"]);
   });
 });
 

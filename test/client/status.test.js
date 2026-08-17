@@ -75,8 +75,8 @@ describe("statusBadge", () => {
     expect(statusBadge({ status: "project" })).toContain('title="Project"');
   });
 
-  it("shows Abandoned for an abandoned entry", () => {
-    expect(statusBadge({ status: "abandoned" })).toContain('title="Abandoned"');
+  it("shows Archived for an abandoned entry", () => {
+    expect(statusBadge({ status: "abandoned" })).toContain('title="Archived"');
   });
 
   it("defaults to Check out for any other status (e.g. wishlist)", () => {

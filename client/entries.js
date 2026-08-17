@@ -45,8 +45,15 @@ export function filteredEntries(entries, places, { activeType, statusFilters, gr
   const q = search.toLowerCase();
   return entries.filter(e => {
     if (e.type !== activeType) return false;
-    if (statusFilters.size > 0 &&
-        ![...statusFilters].some(f => entryMatchesStatusFilter(e, f))) return false;
+    // #63 -- deliberately no "empty statusFilters = show every status"
+    // shortcut: statusFilters means exactly what it contains, full stop.
+    // A caller wanting "no constraint from this facet" passes every
+    // status it wants shown, not an empty set -- keeps a facet that
+    // genuinely defaults to non-empty (climbing-entries-table.js's own
+    // #statusFilters, since archived opts out by default) from being
+    // indistinguishable, in this function's own semantics, from a facet
+    // that's been emptied out entirely.
+    if (![...statusFilters].some(f => entryMatchesStatusFilter(e, f))) return false;
     if (gradeRange) {
       const list = activeGradeList(activeType);
       const r = gradeRank(e.grade);

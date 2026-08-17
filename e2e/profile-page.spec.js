@@ -110,11 +110,13 @@ test("discipline filter (#460) narrows to just the checked discipline's table se
   await expect(page.locator("climbing-entries-table")).toBeVisible();
 
   await page.locator("#filter-btn").click();
-  // The checkbox itself is sr-only (same toggle-btn pattern the status
+  // Both disciplines start checked (#63) -- narrowing to just Lead means
+  // unchecking Boulder, not checking Lead (already checked). The
+  // checkbox itself is sr-only (same toggle-btn pattern the status
   // filter already uses) -- click its wrapping <label>, standard native
-  // label-toggles-input behavior, rather than trying to .check() a
+  // label-toggles-input behavior, rather than trying to .uncheck() a
   // visually-hidden element directly.
-  await page.locator('#filter-discipline-group label:has(input[data-discipline="lead"])').click();
+  await page.locator('#filter-discipline-group label:has(input[data-discipline="boulder"])').click();
 
   await expect(page.locator("#sections")).toContainText("Lead Seed");
   await expect(page.locator("#sections")).not.toContainText("Boulder Seed");
@@ -134,6 +136,17 @@ test("combined status filter labels span both disciplines, and there's no grade-
   // DOM entirely (client/components/climbing-entries-table.js's own
   // shellHtml(allDisciplines)).
   await expect(page.locator("#grade-slider-track")).toHaveCount(0);
+});
+
+test("filter panel status icons render real SVG content (#63 -- this page never loads entry-form.js, which used to be the only thing hydrating them)", async ({ page }) => {
+  await mockApi(page, MIXED_SEED);
+  await page.goto("/e2e-fixtures/pages/profile.html");
+  await expect(page.locator("climbing-entries-table")).toBeVisible();
+
+  await page.locator("#filter-btn").click();
+  for (const status of ["flash", "send", "project", "wishlist", "abandoned"]) {
+    await expect(page.locator(`#filter-status-group [data-icon="${status}"] svg`)).toBeVisible();
+  }
 });
 
 test("map pin popover (#460) shows both disciplines' own status breakdown together", async ({ page }) => {
