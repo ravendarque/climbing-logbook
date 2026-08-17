@@ -64,6 +64,11 @@ const DEFAULT_STATUS_FILTERS = ["flash", "send", "project", "wishlist"];
 // and "lead" as two fixed slots.
 const DISCIPLINE_ORDER = ["boulder", "lead"];
 
+// #63 -- both #statusFilters and #disciplineFilters default to their full
+// set rather than empty, so "has the user changed this filter" needs a
+// real comparison against that default, not just a size > 0 check.
+const setDiffersFrom = (set, defaults) => set.size !== defaults.length || defaults.some(v => !set.has(v));
+
 // #460 -- a function of allDisciplines rather than a static const, same
 // pattern climbing-menu-bar.js's own menuPopover(adminHidden) already
 // uses: the two modes' filter panels are genuinely different markup
@@ -72,7 +77,7 @@ const DISCIPLINE_ORDER = ["boulder", "lead"];
 // not just present-but-inert.
 function shellHtml(allDisciplines) {
   const toggleBtn = (dataAttr, value, iconOrLabelId, label) => `
-    <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] text-left first:rounded-t-app last:rounded-b-app shadow-[inset_0_-1px_0_var(--color-border)] last:shadow-none">
+    <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] min-h-[2.6rem] text-left first:rounded-t-app last:rounded-b-app shadow-[inset_0_-1px_0_var(--color-border)] last:shadow-none">
       <input type="checkbox" class="sr-only" data-${dataAttr}="${value}">
       ${iconOrLabelId}<span class="text-[.58rem] font-bold uppercase tracking-[.03em] whitespace-nowrap"${label.id ? ` id="${label.id}"` : ""}>${label.text}</span>
     </label>`;
@@ -114,7 +119,7 @@ function shellHtml(allDisciplines) {
         </fieldset>
         ${gradeFilter}
 
-        <button type="button" class="block w-full mt-[.9rem] bg-transparent border-0 text-muted text-[.78rem] cursor-pointer text-center hover:text-foreground" id="filter-clear-btn">Clear filters</button>
+        <button type="button" class="block w-full mt-[.9rem] bg-transparent border-0 text-muted text-[.78rem] cursor-pointer text-center hover:text-foreground" id="filter-clear-btn">Reset filters</button>
       </div>
     </div>
   </div>
@@ -171,11 +176,13 @@ export class ClimbingEntriesTable extends HTMLElement {
   #locations = [];
   #search = "";
   #statusFilters = new Set(DEFAULT_STATUS_FILTERS);
-  // #460 -- allDisciplines mode only; empty = show every discipline. Was
-  // "same convention as #statusFilters" until #63 gave that one a
-  // non-empty default (archived opts out) -- this one's still genuinely
-  // empty-by-default, nothing analogous to archived here.
-  #disciplineFilters = new Set();
+  // #460 -- allDisciplines mode only. #63: every known discipline starts
+  // checked, same "checked reflects what's shown" convention
+  // #statusFilters uses -- DISCIPLINE_ORDER itself, not a separate
+  // DEFAULT_DISCIPLINE_FILTERS constant, so a future third discipline
+  // (#429/#430) defaults to shown too, with no second place to remember
+  // to update.
+  #disciplineFilters = new Set(DISCIPLINE_ORDER);
   #gradeRange = null;
   #sortByLocation = {};
   #collapsed = new Set();
@@ -246,8 +253,9 @@ export class ClimbingEntriesTable extends HTMLElement {
 
   // Which disciplines actually get their own section, in canonical
   // order -- every discipline present in this.#entries, narrowed by
-  // #disciplineFilters if any are checked (empty = show all, same
-  // convention as #statusFilters). allDisciplines mode only.
+  // #disciplineFilters (defaults to every known discipline checked, #63
+  // -- same "checked reflects what's shown" convention as
+  // #statusFilters). allDisciplines mode only.
   #activeDisciplines() {
     const present = new Set(this.#entries.map(e => e.type));
     const inPlay = DISCIPLINE_ORDER.filter(d => present.has(d));
@@ -418,7 +426,7 @@ export class ClimbingEntriesTable extends HTMLElement {
     this.addEventListener("click", e => {
       if (e.target.closest("#filter-clear-btn")) {
         this.#statusFilters = new Set(DEFAULT_STATUS_FILTERS);
-        this.#disciplineFilters.clear();
+        this.#disciplineFilters = new Set(DISCIPLINE_ORDER);
         this.#gradeRange = null;
         this.#update();
         return;
@@ -561,12 +569,13 @@ export class ClimbingEntriesTable extends HTMLElement {
       this.querySelector("#filter-send-label").textContent = sendLabel(this.activeDiscipline);
       this.#updateGradeSlider();
     }
-    // #63 -- #statusFilters is no longer "empty = inactive" (its default
-    // is DEFAULT_STATUS_FILTERS, not an empty set), so "active" means
-    // "differs from the default," not merely "non-empty."
-    const statusFiltersChanged = this.#statusFilters.size !== DEFAULT_STATUS_FILTERS.length ||
-      DEFAULT_STATUS_FILTERS.some(f => !this.#statusFilters.has(f));
-    const anyActive = statusFiltersChanged || this.#disciplineFilters.size > 0 || this.#gradeRange !== null;
+    // #63 -- neither #statusFilters nor #disciplineFilters is "empty =
+    // inactive" any more (both default to their full set, not an empty
+    // one), so "active" means "differs from the default," not merely
+    // "non-empty."
+    const anyActive = setDiffersFrom(this.#statusFilters, DEFAULT_STATUS_FILTERS) ||
+      setDiffersFrom(this.#disciplineFilters, DISCIPLINE_ORDER) ||
+      this.#gradeRange !== null;
     const filterBtn = this.querySelector("#filter-btn");
     filterBtn.classList.toggle("active", anyActive);
     filterBtn.setAttribute("aria-pressed", String(anyActive));
