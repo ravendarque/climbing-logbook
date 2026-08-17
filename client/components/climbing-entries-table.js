@@ -255,11 +255,13 @@ export class ClimbingEntriesTable extends HTMLElement {
   // order -- every discipline present in this.#entries, narrowed by
   // #disciplineFilters (defaults to every known discipline checked, #63
   // -- same "checked reflects what's shown" convention as
-  // #statusFilters). allDisciplines mode only.
+  // #statusFilters, including the same deliberate absence of an
+  // "empty = show everything" shortcut: unchecking both disciplines
+  // shows neither, not both).
   #activeDisciplines() {
     const present = new Set(this.#entries.map(e => e.type));
     const inPlay = DISCIPLINE_ORDER.filter(d => present.has(d));
-    return this.#disciplineFilters.size > 0 ? inPlay.filter(d => this.#disciplineFilters.has(d)) : inPlay;
+    return inPlay.filter(d => this.#disciplineFilters.has(d));
   }
 
   // The ordered list of sections that should actually render right now

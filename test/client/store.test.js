@@ -114,11 +114,9 @@ describe("activeType", () => {
     expect(store.getActiveType()).toBe("boulder");
   });
 
-  it("setActiveType also resets gradeRange, since boulder/lead grades aren't the same scale", () => {
-    store.setGradeRange({ min: 1, max: 3 });
+  it("reflects the last value set", () => {
     store.setActiveType("lead");
     expect(store.getActiveType()).toBe("lead");
-    expect(store.getGradeRange()).toBeNull();
   });
 });
 
@@ -130,107 +128,20 @@ describe("activeView", () => {
   });
 });
 
-describe("status filters", () => {
-  it("hasStatusFilter is false for everything until set", () => {
-    expect(store.hasStatusFilter("send")).toBe(false);
-  });
-
-  it("setStatusFilter(f, true) adds, setStatusFilter(f, false) removes", () => {
-    store.setStatusFilter("send", true);
-    expect(store.hasStatusFilter("send")).toBe(true);
-    store.setStatusFilter("send", false);
-    expect(store.hasStatusFilter("send")).toBe(false);
-  });
-
-  it("hasActiveFilters is true when a status filter or a grade range is set", () => {
-    expect(store.hasActiveFilters()).toBe(false);
-    store.setStatusFilter("send", true);
-    expect(store.hasActiveFilters()).toBe(true);
-  });
-
-  it("clearFilters clears status filters and the grade range together", () => {
-    store.setStatusFilter("send", true);
-    store.setGradeRange({ min: 0, max: 2 });
-    store.clearFilters();
-    expect(store.hasStatusFilter("send")).toBe(false);
-    expect(store.getGradeRange()).toBeNull();
-    expect(store.hasActiveFilters()).toBe(false);
-  });
-});
-
-describe("gradeRange", () => {
-  it("defaults to null (full range)", () => {
-    expect(store.getGradeRange()).toBeNull();
-  });
-
-  it("reflects the last value set", () => {
-    store.setGradeRange({ min: 2, max: 5 });
-    expect(store.getGradeRange()).toEqual({ min: 2, max: 5 });
-  });
-});
-
-describe("search", () => {
-  it("defaults to empty and reflects the last value set", () => {
-    expect(store.getSearch()).toBe("");
-    store.setSearch("digitalis");
-    expect(store.getSearch()).toBe("digitalis");
-  });
-});
-
-describe("getSort/toggleSort", () => {
-  it("defaults to grade ascending for a location with no explicit sort", () => {
-    expect(store.getSort("l1")).toEqual({ col: "grade", dir: "asc" });
-  });
-
-  it("toggling the same column flips direction; a different column resets to ascending", () => {
-    store.toggleSort("l1", "grade");
-    expect(store.getSort("l1")).toEqual({ col: "grade", dir: "desc" });
-    store.toggleSort("l1", "name");
-    expect(store.getSort("l1")).toEqual({ col: "name", dir: "asc" });
-  });
-
-  it("tracks sort independently per location", () => {
-    store.toggleSort("l1", "name");
-    expect(store.getSort("l2")).toEqual({ col: "grade", dir: "asc" });
-  });
-});
-
-describe("collapsed", () => {
-  it("isCollapsed is false until a location is toggled/set collapsed", () => {
-    expect(store.isCollapsed("l1")).toBe(false);
-  });
-
-  it("toggleCollapse flips membership", () => {
-    store.toggleCollapse("l1");
-    expect(store.isCollapsed("l1")).toBe(true);
-    store.toggleCollapse("l1");
-    expect(store.isCollapsed("l1")).toBe(false);
-  });
-
-  it("toggleAllCollapsed collapses all when not all are collapsed, expands all when they are", () => {
-    store.toggleAllCollapsed(["l1", "l2"]);
-    expect(store.isCollapsed("l1")).toBe(true);
-    expect(store.isCollapsed("l2")).toBe(true);
-    store.toggleAllCollapsed(["l1", "l2"]);
-    expect(store.isCollapsed("l1")).toBe(false);
-    expect(store.isCollapsed("l2")).toBe(false);
-  });
-
-  it("setCollapsed replaces the whole collapsed set", () => {
-    store.toggleCollapse("l1");
-    store.setCollapsed(["l2"]);
-    expect(store.isCollapsed("l1")).toBe(false);
-    expect(store.isCollapsed("l2")).toBe(true);
-  });
-});
+// #63 -- status filters/gradeRange/search/sort/collapsed state (and their
+// tests) used to live here, but that state itself was removed from
+// store.js -- climbing-entries-table.js has carried its own independent,
+// live copies for a while now (see store.js's own updated header
+// comment), and nothing outside store.js's tests still called these
+// methods.
 
 describe("subscribe/notify (#264)", () => {
   it("calls every subscriber once per mutating call", () => {
     let calls = 0;
     store.subscribe(() => { calls++; });
-    store.setSearch("digitalis");
+    store.setActiveType("lead");
     expect(calls).toBe(1);
-    store.toggleCollapse("l1");
+    store.setActiveView("map");
     expect(calls).toBe(2);
   });
 
@@ -248,7 +159,7 @@ describe("subscribe/notify (#264)", () => {
     store.subscribe(() => { calls++; });
     store.isLoggedIn();
     store.getEntries();
-    store.hasActiveFilters();
+    store.getActiveType();
     expect(calls).toBe(0);
   });
 
@@ -261,16 +172,8 @@ describe("subscribe/notify (#264)", () => {
     store.setLoggedIn(true);
     store.setActiveType("lead");
     store.setActiveView("map");
-    store.setStatusFilter("send", true);
-    store.setGradeRange({ min: 0, max: 1 });
-    store.setSearch("x");
-    store.toggleSort("l1", "name");
-    store.toggleCollapse("l1");
-    store.toggleAllCollapsed(["l2"]);
-    store.setCollapsed(["l1"]);
-    store.clearFilters();
     store.applyPendingQueue([]);
-    expect(calls).toBe(15);
+    expect(calls).toBe(7);
   });
 });
 
@@ -304,10 +207,12 @@ describe("applyPendingQueue (#264)", () => {
   });
 });
 
-describe("join/filter/sort delegation to client/entries.js", () => {
+describe("join delegation to client/entries.js", () => {
   // Thin coverage only -- client/entries.js's own test file exhaustively
   // covers the underlying pure logic. This just proves the Store wires
-  // the right store-held data through to it.
+  // its own held data through to it. filter/sort/group delegation used
+  // to be covered here too, until that state (and these wrapper methods)
+  // was removed from store.js (#63) -- see this file's own note above.
   beforeEach(() => {
     store.setEntries(ENTRIES);
     store.setPlaces(PLACES);
@@ -318,25 +223,5 @@ describe("join/filter/sort delegation to client/entries.js", () => {
     expect(store.placeOf(ENTRIES[0])).toEqual(PLACES[0]);
     expect(store.locationOf(PLACES[1])).toEqual(LOCATIONS[1]);
     expect(store.entryLocation(ENTRIES[1])).toEqual(LOCATIONS[1]);
-  });
-
-  it("activeGradeList reflects the current activeType", () => {
-    expect(store.activeGradeList().length).toBeGreaterThan(0);
-  });
-
-  it("filteredEntries applies activeType/statusFilters/gradeRange/search together", () => {
-    expect(store.filteredEntries()).toEqual(ENTRIES); // boulder, no filters -- both match
-    store.setSearch("Digitalis");
-    expect(store.filteredEntries()).toEqual([ENTRIES[1]]);
-  });
-
-  it("groupByPlace groups the given subset by locationId", () => {
-    const groups = store.groupByPlace(ENTRIES);
-    expect(groups.map(([locationId]) => locationId).sort()).toEqual(["l1", "l2"]);
-  });
-
-  it("sortEntries sorts the given subset using that location's sort preference", () => {
-    const sorted = store.sortEntries(ENTRIES, "l1");
-    expect(sorted[0].grade).toBe("6B"); // ascending by default
   });
 });

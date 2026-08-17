@@ -35,18 +35,12 @@ import {
   placeOf as placeOfPure,
   locationOf as locationOfPure,
   entryLocation as entryLocationPure,
-  activeGradeList as activeGradeListPure,
-  filteredEntries as filteredEntriesPure,
-  groupByPlace as groupByPlacePure,
-  sortEntries as sortEntriesPure,
 } from "./entries.js";
 import { applyPendingQueue as applyPendingQueuePure } from "./offline-queue.js";
 
 const ENTRIES_CACHE_KEY = "logbook_entries_cache";
 const PLACES_CACHE_KEY = "logbook_places_cache";
 const LOCATIONS_CACHE_KEY = "logbook_locations_cache";
-
-const DEFAULT_SORT = { col: "grade", dir: "asc" };
 
 // `storage` defaults to the real localStorage but is injectable -- the
 // Workers pool Vitest runs client/ tests under (see vitest.config.js) has
@@ -61,11 +55,12 @@ export function createStore({ storage = typeof localStorage !== "undefined" ? lo
 
   let activeType = "boulder"; // real value set once entries load, see boot()
   let activeView = "logbook"; // "logbook" | "pyramid" | "map"
-  let statusFilters = new Set(); // empty = "all"
-  let gradeRange = null; // null = full range; otherwise { min, max } indices
-  let search = "";
-  let sortByPlace = {}; // { [locationId]: { col, dir } }
-  let collapsed = new Set(); // locationIds
+  // #63 -- search/statusFilters/gradeRange/sortByPlace/collapsed used to
+  // live here too, but climbing-entries-table.js (#350/#351) has carried
+  // its own independent copies of all of them for a while now (see that
+  // file's own header comment) -- confirmed empirically that nothing
+  // outside store.js/its own tests still called the methods that read or
+  // wrote them, so removed rather than left as unreachable dead weight.
 
   // #264's subscribe/notify mechanism -- a plain array of callbacks, no
   // pub/sub library needed at this scale. subscribe() returns nothing;
@@ -153,69 +148,14 @@ export function createStore({ storage = typeof localStorage !== "undefined" ? lo
   function entryLocation(entry) {
     return entryLocationPure(entry, places, locations);
   }
-  function activeGradeList() {
-    return activeGradeListPure(activeType);
-  }
-  function filteredEntries() {
-    return filteredEntriesPure(entries, places, { activeType, statusFilters, gradeRange, search });
-  }
-  function groupByPlace(subset) {
-    return groupByPlacePure(subset, entries, places);
-  }
-  function getSort(locationId) {
-    return sortByPlace[locationId] ?? DEFAULT_SORT;
-  }
-  function sortEntries(subset, locationId) {
-    return sortEntriesPure(subset, getSort(locationId), places);
-  }
 
   function setActiveType(type) {
     activeType = type;
-    // Boulder and lead grades aren't the same scale, so a grade filter
-    // from one discipline is meaningless for the other -- same paired
-    // reset the pre-Store discipline-picker handler did directly.
-    gradeRange = null;
-    notify();
-  }
-
-  function setStatusFilter(filter, isActive) {
-    if (isActive) statusFilters.add(filter);
-    else statusFilters.delete(filter);
-    notify();
-  }
-  function clearFilters() {
-    statusFilters.clear();
-    gradeRange = null;
-    notify();
-  }
-  function hasActiveFilters() {
-    return statusFilters.size > 0 || gradeRange !== null;
-  }
-
-  function toggleSort(locationId, col) {
-    const cur = getSort(locationId);
-    const dir = cur.col === col && cur.dir === "asc" ? "desc" : "asc";
-    sortByPlace[locationId] = { col, dir };
-    notify();
-  }
-
-  function toggleCollapse(locationId) {
-    if (collapsed.has(locationId)) collapsed.delete(locationId);
-    else collapsed.add(locationId);
-    notify();
-  }
-  function toggleAllCollapsed(locationIds) {
-    const allCollapsed = locationIds.length > 0 && locationIds.every(id => collapsed.has(id));
-    if (allCollapsed) locationIds.forEach(id => collapsed.delete(id));
-    else locationIds.forEach(id => collapsed.add(id));
     notify();
   }
 
   function setLoggedIn(v) { loggedIn = v; notify(); }
   function setActiveView(v) { activeView = v; notify(); }
-  function setGradeRange(r) { gradeRange = r; notify(); }
-  function setSearch(v) { search = v; notify(); }
-  function setCollapsed(ids) { collapsed = new Set(ids); notify(); }
 
   return {
     subscribe,
@@ -239,30 +179,8 @@ export function createStore({ storage = typeof localStorage !== "undefined" ? lo
     getActiveView: () => activeView,
     setActiveView,
 
-    hasStatusFilter: f => statusFilters.has(f),
-    setStatusFilter,
-    clearFilters,
-    hasActiveFilters,
-    getGradeRange: () => gradeRange,
-    setGradeRange,
-
-    getSearch: () => search,
-    setSearch,
-
-    getSort,
-    toggleSort,
-
-    isCollapsed: id => collapsed.has(id),
-    toggleCollapse,
-    toggleAllCollapsed,
-    setCollapsed,
-
     placeOf,
     locationOf,
     entryLocation,
-    activeGradeList,
-    filteredEntries,
-    groupByPlace,
-    sortEntries,
   };
 }
