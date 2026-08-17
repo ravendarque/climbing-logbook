@@ -76,10 +76,22 @@ const setDiffersFrom = (set, defaults) => set.size !== defaults.length || defaul
 // hidden -- an element genuinely absent from a mode that can't use it,
 // not just present-but-inert.
 function shellHtml(allDisciplines) {
+  // A solid has-checked:bg-accent fill (every other status) read as too
+  // visually intense across a whole row (Raven's call) -- replaced with
+  // the same subtle accent tint #filter-btn's own .active state already
+  // uses elsewhere in this file, plus a small checkbox indicator so
+  // "checked" still has a clear, unambiguous signal rather than relying
+  // on a text-color change alone. The indicator/checkmark react to the
+  // checkbox via peer-checked (direct-sibling selector, works today
+  // since the input renders before them) -- has-checked (works through
+  // arbitrary nesting) still handles the label's own row-wide tint.
   const toggleBtn = (dataAttr, value, iconOrLabelId, label) => `
-    <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] min-h-[2.6rem] text-left first:rounded-t-app last:rounded-b-app shadow-[inset_0_-1px_0_var(--color-border)] last:shadow-none">
-      <input type="checkbox" class="sr-only" data-${dataAttr}="${value}">
+    <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-[color-mix(in_srgb,var(--color-accent)_10%,var(--color-surface))] has-checked:text-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] min-h-[2.6rem] text-left first:rounded-t-app last:rounded-b-app shadow-[inset_0_-1px_0_var(--color-border)] last:shadow-none">
+      <input type="checkbox" class="peer sr-only" data-${dataAttr}="${value}">
       ${iconOrLabelId}<span class="text-[.58rem] font-bold uppercase tracking-[.03em] whitespace-nowrap"${label.id ? ` id="${label.id}"` : ""}>${label.text}</span>
+      <span class="ml-auto inline-flex items-center justify-center w-4 h-4 rounded-[3px] border border-border shrink-0 text-transparent peer-checked:bg-accent peer-checked:border-accent peer-checked:text-white transition-colors duration-150">
+        <svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>
+      </span>
     </label>`;
 
   const disciplineGroup = allDisciplines ? `
