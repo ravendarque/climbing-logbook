@@ -44,6 +44,20 @@ export async function findOwnedRow(env, table, id, userId) {
     .first();
 }
 
+// Exported standalone -- src/api/logbook-import.js's bulk write (#224
+// phase 3) needs the exact same "insert this already-built row" step for
+// locations/places/entries in a loop, not just handlePost's single-record
+// case below (found while building that handler -- this was inlined here
+// only, the same duplication findOwnedRow/listForUser's own header
+// comments already describe for the rest of this file).
+export async function insertRow(env, table, row) {
+  const columns = Object.keys(row);
+  await env.LOGBOOK_DB
+    .prepare(`INSERT INTO ${table} (${columns.join(", ")}) VALUES (${columns.map(() => "?").join(", ")})`)
+    .bind(...columns.map(c => row[c]))
+    .run();
+}
+
 export function createD1ResourceHandlers({ table, resourceKey, validateFields, buildRow, rowToJson }) {
   async function handleGet(request, env, userId) {
     const list = await listForUser(env, table, userId, rowToJson);
@@ -69,12 +83,7 @@ export function createD1ResourceHandlers({ table, resourceKey, validateFields, b
       return json({ [resourceKey]: await listForUser(env, table, userId, rowToJson) }, 200);
     }
 
-    const row = buildRow(record, id, userId);
-    const columns = Object.keys(row);
-    await env.LOGBOOK_DB
-      .prepare(`INSERT INTO ${table} (${columns.join(", ")}) VALUES (${columns.map(() => "?").join(", ")})`)
-      .bind(...columns.map(c => row[c]))
-      .run();
+    await insertRow(env, table, buildRow(record, id, userId));
 
     return json({ [resourceKey]: await listForUser(env, table, userId, rowToJson) }, 201);
   }

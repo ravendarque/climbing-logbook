@@ -35,6 +35,8 @@ test("renders the shared chrome, no discipline picker, and the My account link/u
   // loads), but nothing in this fixture harness makes that true, same
   // limitation e2e/log-page.spec.js's own header comment documents.
   await expect(page.locator("#edit-account-link")).toHaveAttribute("href", "/e2e-fixtures/account/edit");
+  // #224 -- same page-URL-derived wiring as edit-account-link above.
+  await expect(page.locator("#import-link")).toHaveAttribute("href", "/e2e-fixtures/account/import");
   // #457 -- same page-URL-derived wiring as edit-account-link above.
   await expect(page.locator("#back-to-logbook-link")).toHaveAttribute("href", "/e2e-fixtures/log");
 });

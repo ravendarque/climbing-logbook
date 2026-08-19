@@ -18,7 +18,10 @@ async function validateFields(place, env, userId) {
 // (location determines country, a real functional dependency; storing it
 // on every Place row would make it transitively dependent on location
 // rather than on this row's own key, i.e. not actually 3NF -- see #158).
-function buildRow(place, id, userId) {
+// Exported -- #224 phase 3's bulk import (src/api/logbook-import.js)
+// mints new Place rows the exact same way as this single-record POST
+// path, not a second copy.
+export function buildRow(place, id, userId) {
   return {
     id,
     user_id: userId,
@@ -27,7 +30,7 @@ function buildRow(place, id, userId) {
   };
 }
 
-function rowToJson(row) {
+export function rowToJson(row) {
   return {
     id: row.id,
     locationId: row.location_id,
