@@ -15,6 +15,9 @@ import { escapeHtml } from "./escape-html.js";
 import { BOULDER_GRADES, LEAD_GRADES } from "./grade-data.js";
 import { flashLabel, sendLabel, nameLabel, hydrateStatusIcons } from "./status.js";
 import { createPlacePicker } from "./place-picker.js";
+import { validateEntryShape } from "../shared/entry-schema.js";
+
+const ERROR_MSG_CLASS = "mt-[.85rem] px-4 py-3 rounded-app text-[.9rem] bg-[color-mix(in_srgb,#f87171_12%,var(--color-surface))] border border-[color-mix(in_srgb,#f87171_40%,transparent)] text-red-400";
 
 export function createEntryForm({
   store,
@@ -209,6 +212,20 @@ export function createEntryForm({
       notes:  notesInput.value.trim() || null,
       video:  videoInput.value.trim() || null,
     };
+
+    // #224 -- shape/rule check against the same schema the server enforces,
+    // before ever touching the network or the offline queue. Unlike a
+    // network failure below, a shape problem (e.g. no place selected, a
+    // malformed video URL) won't fix itself on retry/sync, so it's
+    // reported immediately rather than queued to fail again later.
+    const shapeErr = validateEntryShape(entry);
+    if (shapeErr) {
+      entryMsg.textContent = shapeErr;
+      entryMsg.className = ERROR_MSG_CLASS;
+      entrySubmitBtn.disabled = false;
+      return;
+    }
+
     const op = editingId ? "edit" : "add";
 
     try {
@@ -221,7 +238,7 @@ export function createEntryForm({
       const data = await res.json();
       if (!res.ok) {
         entryMsg.textContent = data.error ?? `Error ${res.status}`;
-        entryMsg.className = "mt-[.85rem] px-4 py-3 rounded-app text-[.9rem] bg-[color-mix(in_srgb,#f87171_12%,var(--color-surface))] border border-[color-mix(in_srgb,#f87171_40%,transparent)] text-red-400";
+        entryMsg.className = ERROR_MSG_CLASS;
         entrySubmitBtn.disabled = false;
         return;
       }
@@ -275,7 +292,7 @@ export function createEntryForm({
       const data = await res.json();
       if (!res.ok) {
         entryMsg.textContent = data.error ?? `Error ${res.status}`;
-        entryMsg.className = "mt-[.85rem] px-4 py-3 rounded-app text-[.9rem] bg-[color-mix(in_srgb,#f87171_12%,var(--color-surface))] border border-[color-mix(in_srgb,#f87171_40%,transparent)] text-red-400";
+        entryMsg.className = ERROR_MSG_CLASS;
         entryDeleteBtn.disabled = false;
         return;
       }

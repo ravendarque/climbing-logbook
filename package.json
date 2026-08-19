@@ -49,6 +49,7 @@
   "dependencies": {
     "@floating-ui/dom": "^1.8.0",
     "better-auth": "^1.6.25",
-    "resend": "^6.18.1"
+    "resend": "^6.18.1",
+    "valibot": "^1.4.2"
   }
 }
