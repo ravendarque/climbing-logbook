@@ -21,6 +21,9 @@ importers:
       resend:
         specifier: ^6.18.1
         version: 6.18.1
+      valibot:
+        specifier: ^1.4.2
+        version: 1.4.2
     devDependencies:
       '@cloudflare/vite-plugin':
         specifier: ^1.51.3
@@ -1695,6 +1698,14 @@ packages:
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
 
+  valibot@1.4.2:
+    resolution: {integrity: sha512-gjdCvJ6d3RyHAneqxMYMW9QMCwYMb3jpOO0IyHZV1bnRHFBHrX3VkIILt5XYR0WhwHiH7Mty8ovuPZ/O3gamrg==}
+    peerDependencies:
+      typescript: '>=5'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   vite@8.2.1:
     resolution: {integrity: sha512-EU/eS7BH3XROHh2YnBefjM6DBKA6ZeMZEYQbj7NLWg5wHYlhB8B/Mayd5XsgWq+NFYccDOTemRpdETWR6Ka/lw==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -3193,6 +3204,8 @@ snapshots:
 
   util-deprecate@1.0.2:
     optional: true
+
+  valibot@1.4.2: {}
 
   vite@8.2.1(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0):
     dependencies:

@@ -1,56 +1,13 @@
 import { json, parseJsonBody } from "../lib/json.js";
 import { createD1ResourceHandlers, findOwnedRow, listForUser } from "../lib/d1-resource.js";
-
-const VALID_TYPES    = ["boulder", "lead"];
-const VALID_STATUSES = ["send", "project", "abandoned", "wishlist"];
-
-// Mirrors BOULDER_GRADES/LEAD_GRADES in public/logbook/index.html -- the
-// client only ever offers a closed set via a dropdown, so any other value
-// reaching here is a malformed write (bad client state, a hand-crafted API
-// call, or a stale offline-queue replay), not a legitimate grade.
-const VALID_GRADES = {
-  boulder: ["5", "5+", "5A", "5B", "5C", "6A", "6A+", "6B", "6B+", "6C", "6C+", "7A", "7A+", "7B", "7B+", "7C", "7C+", "8A", "8A+", "8B", "8B+"],
-  lead:    ["5c", "6a", "6a+", "6b", "6b+", "6c", "6c+", "7a", "7a+", "7b", "7b+", "7c", "7c+", "8a"],
-};
-
-// "YYYY", "YYYY-MM", or "YYYY-MM-DD" -- matches the shape documented in
-// docs/app-architecture.md. date is optional (null when unset).
-const DATE_SHAPE = /^\d{4}(-\d{2}(-\d{2})?)?$/;
-
-function validateShape(entry) {
-  for (const field of ["placeId", "name", "grade", "type", "status"]) {
-    if (!entry[field]) return `Missing required field: ${field}`;
-  }
-  if (!VALID_TYPES.includes(entry.type)) {
-    return `type must be one of: ${VALID_TYPES.join(", ")}`;
-  }
-  if (!VALID_GRADES[entry.type].includes(entry.grade)) {
-    return `grade must be one of: ${VALID_GRADES[entry.type].join(", ")}`;
-  }
-  if (!VALID_STATUSES.includes(entry.status)) {
-    return `status must be one of: ${VALID_STATUSES.join(", ")}`;
-  }
-  if (entry.date && !DATE_SHAPE.test(entry.date)) {
-    return "date must be YYYY, YYYY-MM, or YYYY-MM-DD";
-  }
-  if (entry.video) {
-    try {
-      if (!["http:", "https:"].includes(new URL(entry.video).protocol)) {
-        return "video must be an http(s) URL";
-      }
-    } catch {
-      return "video must be a valid URL";
-    }
-  }
-  return null;
-}
+import { validateEntryShape } from "../../shared/entry-schema.js";
 
 // placeId gets a real referential check -- not just "does this row
 // exist" (the FK constraint alone covers that) but "does it belong to
 // *this* user" -- same reasoning as places.js's locationId check. Without
 // it, user A could create an entry under user B's place by id.
 async function validateFields(entry, env, userId) {
-  const shapeErr = validateShape(entry);
+  const shapeErr = validateEntryShape(entry);
   if (shapeErr) return shapeErr;
   const owned = await findOwnedRow(env, "places", entry.placeId, userId);
   if (!owned) return "placeId does not reference one of your places";
