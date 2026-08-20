@@ -170,6 +170,27 @@ describe("buildEntriesCsv (#27)", () => {
     expect(buildEntriesCsv(rows)).toContain('"Line one\nLine two"');
   });
 
+  // #487 -- CSV/formula injection: a field starting with one of these
+  // would otherwise be interpreted as a formula by Excel/Sheets/
+  // LibreOffice when the exported file is opened.
+  it.each(["=1+1", "+1", "-1", "@SUM(A1)", "\tA1", "\rA1"])(
+    "neutralizes a field starting with a formula-trigger character (%j)",
+    notes => {
+      const rows = [{ name: "N", grade: "6B", discipline: "boulder", status: "send", firstAttempt: false, date: "", location: "L", area: "A", country: "C", video: "", notes }];
+      expect(buildEntriesCsv(rows)).toContain(`,'${notes}\n`);
+    }
+  );
+
+  it("does not neutralize a field that merely contains, but doesn't start with, a trigger character", () => {
+    const rows = [{ name: "N", grade: "6B", discipline: "boulder", status: "send", firstAttempt: false, date: "", location: "L", area: "A", country: "C", video: "", notes: "5.12a - The Nose" }];
+    expect(buildEntriesCsv(rows)).toContain(",5.12a - The Nose\n");
+  });
+
+  it("neutralizes a formula-triggering field that also needs RFC4180 quoting", () => {
+    const rows = [{ name: "N", grade: "6B", discipline: "boulder", status: "send", firstAttempt: false, date: "", location: "L", area: "A", country: "C", video: "", notes: '=HYPERLINK("http://evil.com","click"), nice' }];
+    expect(buildEntriesCsv(rows)).toContain('"\'=HYPERLINK(""http://evil.com"",""click""), nice"');
+  });
+
   it("round-trips through parseCsvText -- export then reimport produces the same rows", () => {
     const entries = [
       { name: "La Marie-Rose", grade: "6B", type: "boulder", status: "send", placeId: "place1", firstAttempt: true, date: "2026-07-30", video: "https://example.com", notes: "Comma, quote \" and all" },

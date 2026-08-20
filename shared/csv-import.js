@@ -131,12 +131,30 @@ export function resolveExportRows(entries, places, locations) {
   });
 }
 
+// #487 -- CSV/formula injection: a field value starting with =, +, -, @,
+// a tab, or a CR is interpreted as a formula by Excel/Sheets/LibreOffice
+// when the exported file is opened -- a real, distinct attack class from
+// CSV *parsing* correctness (e.g. a stored name of
+// =HYPERLINK("http://evil.com","click") would otherwise pass straight
+// through untouched, and execute when whoever exports their own data
+// opens the file). Neutralized here, at the output boundary, rather than
+// blocked at input -- same "escape at the dangerous boundary, don't
+// restrict what a user can type" principle this app already applies to
+// HTML injection (escapeHtml() at DOM-injection sites, not banning </>
+// from being typed into a name field). A single leading quote defuses
+// the formula interpretation in every major spreadsheet app while
+// keeping the rest of the value intact and visible in the cell.
+const FORMULA_TRIGGER = /^[-=+@\t\r]/;
+
 // RFC4180 field escaping -- the serialization-side mirror of parseRows'
 // own reader above. Quotes a field only when it needs it (a bare comma/
 // quote/newline), matching how most real spreadsheet-app CSV writers
-// behave, rather than unconditionally quoting every field.
+// behave, rather than unconditionally quoting every field. Formula
+// neutralization happens first -- a field can need both (e.g.
+// `=A1,"B1"` starts with a trigger char AND contains a comma).
 function escapeCsvField(value) {
-  const text = String(value);
+  let text = String(value);
+  if (FORMULA_TRIGGER.test(text)) text = `'${text}`;
   return /["\n,]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
