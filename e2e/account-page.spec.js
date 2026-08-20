@@ -96,3 +96,58 @@ test("Public Logbook toggle (#301, moved to this page by #445) switches and pers
   await page.reload();
   await expect(page.locator("#public-logbook-toggle")).toHaveAttribute("aria-checked", "false");
 });
+
+// #27 -- "a simple one-click process" (Raven's own call, unlike #224's
+// import which got a whole wizard page): no navigation, just a download.
+// The real CSV/JSON serialization logic is Vitest's job
+// (test/shared/csv-import.test.js, including a full export-then-reimport
+// round-trip) -- this only proves the client's own wiring: fetching this
+// user's own data and triggering the right download.
+const EXPORT_FIXTURE = {
+  entries: [{ id: "e1", name: "La Marie-Rose", grade: "6B", placeId: "p1", type: "boulder", status: "send", firstAttempt: true, date: "2026-07-30", video: null, notes: null }],
+  places: [{ id: "p1", locationId: "l1", area: "Bas Cuvier" }],
+  locations: [{ id: "l1", name: "Fontainebleau", country: "France" }],
+};
+
+test("Export CSV downloads a file built from this user's own entries/places/locations", async ({ page }) => {
+  await mockApi(page, EXPORT_FIXTURE);
+  await page.goto("/e2e-fixtures/pages/account.html");
+
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.locator("#export-csv-btn").click(),
+  ]);
+  expect(download.suggestedFilename()).toBe("climbing-logbook-export.csv");
+  const fs = await import("node:fs/promises");
+  const csv = await fs.readFile(await download.path(), "utf8");
+  expect(csv).toContain("name,grade,discipline,status,firstAttempt,date,location,area,country,video,notes");
+  expect(csv).toContain("La Marie-Rose,6B,boulder,send,true,2026-07-30,Fontainebleau,Bas Cuvier,France,,");
+});
+
+test("Export JSON downloads the resolved rows as JSON", async ({ page }) => {
+  await mockApi(page, EXPORT_FIXTURE);
+  await page.goto("/e2e-fixtures/pages/account.html");
+
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.locator("#export-json-btn").click(),
+  ]);
+  expect(download.suggestedFilename()).toBe("climbing-logbook-export.json");
+  const fs = await import("node:fs/promises");
+  const json = JSON.parse(await fs.readFile(await download.path(), "utf8"));
+  expect(json).toEqual([{
+    name: "La Marie-Rose", grade: "6B", discipline: "boulder", status: "send",
+    firstAttempt: true, date: "2026-07-30", location: "Fontainebleau",
+    area: "Bas Cuvier", country: "France", video: "", notes: "",
+  }]);
+});
+
+test("Export shows an error message instead of a download when the data fetch fails", async ({ page }) => {
+  await mockApi(page, EXPORT_FIXTURE);
+  await page.route("**/logbook/api/logbook", route => route.fulfill({ status: 500 }));
+  await page.goto("/e2e-fixtures/pages/account.html");
+
+  await page.locator("#export-csv-btn").click();
+  await expect(page.locator("#export-error")).toBeVisible();
+  await expect(page.locator("#export-error")).toHaveText("Export failed -- check your connection and try again.");
+});
