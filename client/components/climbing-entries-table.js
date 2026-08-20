@@ -56,7 +56,7 @@ const DEFAULT_SORT = { col: "grade", dir: "asc" };
 // filter checkbox already uses); this is the one status that starts
 // unchecked. Checking "Archived" explicitly surfaces it, same as any
 // other status filter.
-const DEFAULT_STATUS_FILTERS = ["flash", "send", "project", "wishlist"];
+const DEFAULT_STATUS_FILTERS = ["flash", "send", "project", "checkout"];
 // #460 -- canonical order for the two known disciplines, used wherever
 // "all disciplines" needs a deterministic iteration order (filter-panel
 // checkboxes, section ordering). A third discipline (#429/#430) is just
@@ -126,8 +126,8 @@ function shellHtml(allDisciplines) {
           ${toggleBtn("filter", "flash", `<span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="flash"></span>`, { id: "filter-flash-label", text: "Flash" })}
           ${toggleBtn("filter", "send", `<span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="send"></span>`, { id: "filter-send-label", text: "Send" })}
           ${toggleBtn("filter", "project", `<span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="project"></span>`, { text: "Project" })}
-          ${toggleBtn("filter", "wishlist", `<span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="wishlist"></span>`, { text: "Check out" })}
-          ${toggleBtn("filter", "abandoned", `<span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="abandoned"></span>`, { text: "Archived" })}
+          ${toggleBtn("filter", "checkout", `<span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="checkout"></span>`, { text: "Check out" })}
+          ${toggleBtn("filter", "archived", `<span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="archived"></span>`, { text: "Archived" })}
         </fieldset>
         ${gradeFilter}
 

@@ -49,7 +49,7 @@ describe("lookup tables", () => {
 
   it("seeds statuses", async () => {
     const { results } = await env.LOGBOOK_DB.prepare(`SELECT id FROM statuses ORDER BY id`).all();
-    expect(results.map(r => r.id)).toEqual(["abandoned", "project", "send", "wishlist"]);
+    expect(results.map(r => r.id)).toEqual(["archived", "checkout", "project", "send"]);
   });
 });
 

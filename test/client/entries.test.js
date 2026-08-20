@@ -59,7 +59,7 @@ describe("entryMatchesStatusFilter", () => {
 
   it("matches any other status directly", () => {
     expect(entryMatchesStatusFilter({ status: "project" }, "project")).toBe(true);
-    expect(entryMatchesStatusFilter({ status: "abandoned" }, "project")).toBe(false);
+    expect(entryMatchesStatusFilter({ status: "archived" }, "project")).toBe(false);
   });
 });
 

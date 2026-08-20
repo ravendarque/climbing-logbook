@@ -1026,7 +1026,7 @@ Entry {
                       // from per-entry fields to real shared entities)
   name, grade: string,
   type: "boulder" | "lead",
-  status: "send" | "project" | "abandoned" | "wishlist",
+  status: "send" | "project" | "archived" | "checkout",
   firstAttempt: boolean,   // only meaningful when status === "send" -- discipline-neutral name for flash/onsight
   date: string | null,   // "YYYY", "YYYY-MM", or "YYYY-MM-DD"
   video: string | null,  // http(s) URL, validated server-side

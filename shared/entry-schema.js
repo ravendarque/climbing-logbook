@@ -19,7 +19,10 @@
 import * as v from "valibot";
 
 export const VALID_TYPES = ["boulder", "lead"];
-export const VALID_STATUSES = ["send", "project", "abandoned", "wishlist"];
+// checkout/archived (#483) -- renamed from wishlist/abandoned, deferred
+// from #63/#473's icon redesign. Display text already said "Check out"/
+// "Archived" everywhere; this is the internal id catching up to match.
+export const VALID_STATUSES = ["send", "project", "archived", "checkout"];
 
 // Mirrors BOULDER_GRADES/LEAD_GRADES in public/logbook/index.html -- the
 // client only ever offers a closed set via a dropdown, so any other value

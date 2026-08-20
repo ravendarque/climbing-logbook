@@ -25,7 +25,9 @@ ad hoc choice per column.
 **Real lookup tables** (`disciplines`, `statuses`) with **natural `TEXT`
 primary keys**, not opaque surrogate ids — the same slugs already used
 across the client/API (`grade-data.js`, `status.js`: `'boulder'`,
-`'lead'`, `'send'`, `'project'`, `'abandoned'`, `'wishlist'`). This keeps
+`'lead'`, `'send'`, `'project'`, `'archived'`, `'checkout'` -- the latter
+two renamed by #483, natural keys are exactly what made that a plain
+`INSERT`/`UPDATE`/`DELETE` migration rather than a schema change). This keeps
 the JSON wire format (`"type": "boulder"`) completely unchanged; the
 resource-handler layer (`server/lib/d1-resource.js`) maps the JSON field to
 the FK column internally — a column rename at the boundary, not a value
