@@ -31,10 +31,13 @@
  * icon), lilac, and indigo. Reshaped so the body ("front") sits shorter,
  * letting the tab ("back") show across the whole top edge.
  *
- * wishlist/abandoned keep their existing keys here -- the "Checkout"/
- * "Archive" rename mentioned in #63's original body is a separate,
- * bigger decision (touches label copy across the app, not just the
- * icon), not part of this pass.
+ * wishlist/abandoned kept their original keys here when this file was
+ * first written -- the "Checkout"/"Archive" rename mentioned in #63's
+ * original body was a separate, bigger decision (touches label copy
+ * across the app, not just the icon), not part of that pass. Done now,
+ * as checkout/archived (#483) -- the STATUS_ICONS keys below, same eye/
+ * folder artwork, no new icons (that half of #63's original mockups was
+ * never adopted either).
  *
  * Used by logbook/index.html (list badges, stats bar, and the entry form).
  */
@@ -79,7 +82,7 @@ export const STATUS_ICONS = {
     </g>
   </svg>`,
 
-  wishlist: `<svg width="14" height="14" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  checkout: `<svg width="14" height="14" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
     <path d="M46.561,73.054C45.555,72.856 34.223,71.466 28.693,59.412C25.474,52.394 25.877,42.028 32.567,34.56C41.013,25.131 52.161,26.495 55.539,27.35C71.749,31.457 77.252,49.616 70.312,61.394C61.853,75.75 46.904,73.075 46.561,73.054ZM49.477,40.089C47.325,40.41 47.231,40.129 45.364,41.238C34.359,47.778 42.293,62.434 52.529,59.603C62.296,56.901 62.241,43.059 52.531,40.39C51.033,39.979 51.024,40.157 49.477,40.089Z" style="fill:white;"/>
     <g id="Background" transform="matrix(1,0,0,1,0,14)">
         <path d="M100,35.269L100,36.757C100,36.757 98.362,39.723 97.737,40.65C97.023,41.711 97.019,41.705 96.958,41.798C96.052,43.174 91.007,50.845 83.209,57.135C80.782,59.093 76.314,61.988 76.225,62.039C73.052,63.849 51.092,77.012 25.323,62.834C9.037,53.874 0,36.727 0,36.727L0,35.268C0,35.268 2.235,31.176 7.313,25.342C32.429,-3.518 64.782,-5.687 91.753,24.278C96.642,29.709 100,35.269 100,35.269ZM46.561,59.054C45.555,58.856 34.223,57.466 28.693,45.412C25.474,38.394 25.877,28.028 32.567,20.56C41.013,11.131 52.161,12.495 55.539,13.35C71.749,17.457 77.252,35.616 70.312,47.394C61.853,61.75 46.904,59.075 46.561,59.054Z" style="fill:rgb(242,175,13);fill-opacity:1;"/>
@@ -87,7 +90,7 @@ export const STATUS_ICONS = {
     </g>
   </svg>`,
 
-  abandoned: `<svg width="14" height="14" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+  archived: `<svg width="14" height="14" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
     <path fill="#5b21b6" d="M40,12L22,12L18,8L8,8C5.8,8 4,9.8 4,12L4,20L44,20L44,16C44,13.8 42.2,12 40,12Z"/>
     <g transform="matrix(1,0,0,0.928571,0,2.857143)">
       <path fill="#8b5cf6" d="M40,12L8,12C5.8,12 4,13.8 4,16L4,36C4,38.2 5.8,40 8,40L40,40C42.2,40 44,38.2 44,36L44,16C44,13.8 42.2,12 40,12Z"/>

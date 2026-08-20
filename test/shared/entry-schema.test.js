@@ -110,7 +110,7 @@ describe("entrySchema (bulk-import's own future entry point, #224 phase 3)", () 
 describe("exported constants (for CSV template generation / future reuse)", () => {
   it("exposes the valid type/status/grade lists", () => {
     expect(VALID_TYPES).toEqual(["boulder", "lead"]);
-    expect(VALID_STATUSES).toEqual(["send", "project", "abandoned", "wishlist"]);
+    expect(VALID_STATUSES).toEqual(["send", "project", "archived", "checkout"]);
     expect(VALID_GRADES.boulder.length).toBeGreaterThan(0);
     expect(VALID_GRADES.lead.length).toBeGreaterThan(0);
   });

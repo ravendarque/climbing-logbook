@@ -50,7 +50,7 @@ test("renders the shared chrome and a real entries table, and switches disciplin
 test("archived climbs are hidden by default (#63), shown once explicitly filtered for, and Clear restores the default", async ({ page }) => {
   await gotoLogHarness(page, {
     ...SEED,
-    entries: [...SEED.entries, { id: "e3", placeId: "p1", type: "boulder", status: "abandoned", grade: "6B", date: "2026-05-03", name: "Archived Seed" }],
+    entries: [...SEED.entries, { id: "e3", placeId: "p1", type: "boulder", status: "archived", grade: "6B", date: "2026-05-03", name: "Archived Seed" }],
   });
 
   await expect(page.locator("#sections")).toContainText("Boulder Seed");
@@ -63,8 +63,8 @@ test("archived climbs are hidden by default (#63), shown once explicitly filtere
   await expect(page.locator('#filter-status-group input[data-filter="flash"]')).toBeChecked();
   await expect(page.locator('#filter-status-group input[data-filter="send"]')).toBeChecked();
   await expect(page.locator('#filter-status-group input[data-filter="project"]')).toBeChecked();
-  await expect(page.locator('#filter-status-group input[data-filter="wishlist"]')).toBeChecked();
-  await expect(page.locator('#filter-status-group input[data-filter="abandoned"]')).not.toBeChecked();
+  await expect(page.locator('#filter-status-group input[data-filter="checkout"]')).toBeChecked();
+  await expect(page.locator('#filter-status-group input[data-filter="archived"]')).not.toBeChecked();
   // Class-selector, not a class-string regex -- #filter-btn's base
   // Tailwind classes literally contain the substring "active" as part of
   // an arbitrary-variant selector ([&.active]:border-accent), which a
@@ -72,13 +72,13 @@ test("archived climbs are hidden by default (#63), shown once explicitly filtere
   // regardless of whether the real "active" token is actually toggled on.
   await expect(page.locator("#filter-btn.active")).toHaveCount(0);
 
-  await page.locator('#filter-status-group label:has(input[data-filter="abandoned"])').click();
+  await page.locator('#filter-status-group label:has(input[data-filter="archived"])').click();
   await expect(page.locator("#sections")).toContainText("Archived Seed");
   await expect(page.locator("#filter-btn.active")).toHaveCount(1);
 
   await page.locator("#filter-clear-btn").click();
   await expect(page.locator("#sections")).not.toContainText("Archived Seed");
-  await expect(page.locator('#filter-status-group input[data-filter="abandoned"]')).not.toBeChecked();
+  await expect(page.locator('#filter-status-group input[data-filter="archived"]')).not.toBeChecked();
   await expect(page.locator('#filter-status-group input[data-filter="flash"]')).toBeChecked();
 });
 

@@ -144,7 +144,7 @@ test("filter panel status icons render real SVG content (#63 -- this page never 
   await expect(page.locator("climbing-entries-table")).toBeVisible();
 
   await page.locator("#filter-btn").click();
-  for (const status of ["flash", "send", "project", "wishlist", "abandoned"]) {
+  for (const status of ["flash", "send", "project", "checkout", "archived"]) {
     await expect(page.locator(`#filter-status-group [data-icon="${status}"] svg`)).toBeVisible();
   }
 });

@@ -38,13 +38,13 @@ export const ENTRIES = [
   { id: "seed-01", name: "L'Envers du Décor", grade: "6B", placeId: "seed-place-font-bas-cuvier", type: "boulder", status: "send", firstAttempt: true, date: "2026-03-14", video: null, notes: "Classic warm-up, felt easy" },
   { id: "seed-02", name: "Karma", grade: "7A", placeId: "seed-place-font-rocher-canon", type: "boulder", status: "project", firstAttempt: false, date: "2026-04", video: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", notes: "Crux move is the toe hook, close on last session" },
   { id: "seed-03", name: "La Marie-Rose", grade: "5C", placeId: "seed-place-font-bas-cuvier", type: "boulder", status: "send", firstAttempt: false, date: "2025", video: null, notes: null },
-  { id: "seed-04", name: "Not So Soft", grade: "8A", placeId: "seed-place-font-95-2", type: "boulder", status: "wishlist", firstAttempt: false, date: null, video: null, notes: null },
+  { id: "seed-04", name: "Not So Soft", grade: "8A", placeId: "seed-place-font-95-2", type: "boulder", status: "checkout", firstAttempt: false, date: null, video: null, notes: null },
   { id: "seed-05", name: "Digitalis", grade: "7C", placeId: "seed-place-magic-wood-new-base-camp", type: "boulder", status: "project", firstAttempt: false, date: "2026-06", video: "https://vimeo.com/12345678", notes: "Big moves, need to grow 6 inches" },
-  { id: "seed-06", name: "The Practice", grade: "6C", placeId: "seed-place-magic-wood-farmer-wall", type: "boulder", status: "abandoned", firstAttempt: false, date: "2026-02-02", video: null, notes: "Landing zone felt sketchy, bailed" },
+  { id: "seed-06", name: "The Practice", grade: "6C", placeId: "seed-place-magic-wood-farmer-wall", type: "boulder", status: "archived", firstAttempt: false, date: "2026-02-02", video: null, notes: "Landing zone felt sketchy, bailed" },
   { id: "seed-07", name: "Voie des Dalles", grade: "6a", placeId: "seed-place-albarracin-ventorrillo", type: "lead", status: "send", firstAttempt: true, date: "2026-01-20", video: null, notes: null },
   { id: "seed-08", name: "Puentedura", grade: "7a+", placeId: "seed-place-albarracin", type: "lead", status: "project", firstAttempt: false, date: null, video: null, notes: "Redpoint attempt next trip" },
   { id: "seed-09", name: "Bat Route", grade: "6b", placeId: "seed-place-southern-sandstone-harrisons", type: "lead", status: "send", firstAttempt: false, date: "2025-09-06", video: null, notes: null },
-  { id: "seed-10", name: "Slab Happy", grade: "6a+", placeId: "seed-place-portland", type: "lead", status: "wishlist", firstAttempt: false, date: null, video: null, notes: null },
+  { id: "seed-10", name: "Slab Happy", grade: "6a+", placeId: "seed-place-portland", type: "lead", status: "checkout", firstAttempt: false, date: null, video: null, notes: null },
 ];
 
 async function seedAll(baseUrl, label, endpoint, records, cookie) {

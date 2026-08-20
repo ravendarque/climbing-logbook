@@ -38,9 +38,9 @@ export function statusBadge(entry) {
     return `<span class="${STATUS_ICON_CLASS}" title="${sendLabel(entry.type)}">${STATUS_ICONS.send}</span>`;
   if (entry.status === "project")
     return `<span class="${STATUS_ICON_CLASS}" title="Project">${STATUS_ICONS.project}</span>`;
-  if (entry.status === "abandoned")
-    return `<span class="${STATUS_ICON_CLASS}" title="Archived">${STATUS_ICONS.abandoned}</span>`;
-  return `<span class="${STATUS_ICON_CLASS}" title="Check out">${STATUS_ICONS.wishlist}</span>`;
+  if (entry.status === "archived")
+    return `<span class="${STATUS_ICON_CLASS}" title="Archived">${STATUS_ICONS.archived}</span>`;
+  return `<span class="${STATUS_ICON_CLASS}" title="Check out">${STATUS_ICONS.checkout}</span>`;
 }
 
 // #63 -- fills every `data-icon` placeholder under `root` with its real

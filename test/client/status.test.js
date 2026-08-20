@@ -75,11 +75,11 @@ describe("statusBadge", () => {
     expect(statusBadge({ status: "project" })).toContain('title="Project"');
   });
 
-  it("shows Archived for an abandoned entry", () => {
-    expect(statusBadge({ status: "abandoned" })).toContain('title="Archived"');
+  it("shows Archived for an archived entry", () => {
+    expect(statusBadge({ status: "archived" })).toContain('title="Archived"');
   });
 
-  it("defaults to Check out for any other status (e.g. wishlist)", () => {
-    expect(statusBadge({ status: "wishlist" })).toContain('title="Check out"');
+  it("defaults to Check out for any other status (e.g. checkout)", () => {
+    expect(statusBadge({ status: "checkout" })).toContain('title="Check out"');
   });
 });
