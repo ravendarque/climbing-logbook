@@ -81,18 +81,26 @@
         </div>
         <!-- #224 -- import and export are two very different flows
              (Raven's own correction), not one combined row: import is a
-             real link now (its own sub-page, phases 2-4); export stays a
-             separate "Coming soon" row for #27's simple one-click flow,
-             not part of this story. href set in
+             real link (its own sub-page, phases 2-4, a multi-step
+             wizard); export (#27) is deliberately NOT a link to another
+             page -- Raven's own call, "a simple one-click process" --
+             just two small buttons right here, triggering a client-side
+             download with no navigation and no server round-trip beyond
+             the same GET /logbook/api/{logbook,places,locations} every
+             other owned page already reads. href set in
              client/account-import-main.js, same as edit-account-link. -->
         <a class="row-card flex items-center justify-between row-card-title hover:border-accent" id="import-link" href="#">
           Import entries
           <svg class="w-4 h-4 stroke-muted fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
         </a>
-        <div class="row-card flex items-center justify-between row-card-title opacity-50">
+        <div class="row-card flex items-center justify-between row-card-title">
           Export entries
-          <span class="text-[.72rem] text-muted font-semibold">Coming soon</span>
+          <div class="flex gap-2">
+            <button type="button" class="admin-btn" id="export-csv-btn">CSV</button>
+            <button type="button" class="admin-btn" id="export-json-btn">JSON</button>
+          </div>
         </div>
+        <p class="text-[.85rem] text-accent" id="export-error" hidden></p>
       </div>
     </div>
 

@@ -1,10 +1,10 @@
 // Composition root for /:username/account (#302) -- bundled by esbuild
 // into public/logbook/account-app.js. A landing page listing the
-// account section's own sub-pages ("Edit account details" and, as of
-// #224, "Import entries"; Display preferences and Export entries are
-// still listed as "Coming soon" in the shell's own static markup, not
-// wired here -- no shared nav component between them yet, see
-// owned-routes.js's own SHELL_PATHS comment for why).
+// account section's own sub-pages ("Edit account details", #224's
+// "Import entries", and #27's "Export entries" CSV/JSON buttons below;
+// Display preferences is still listed as "Coming soon" in the shell's
+// own static markup, not wired here -- no shared nav component between
+// these yet, see owned-routes.js's own SHELL_PATHS comment for why).
 //
 // Reuses client/store.js/admin-auth.js unchanged (neither touches
 // discipline-btn), but NOT client/header-chrome.js -- that factory's
@@ -21,9 +21,14 @@ import { createAdminAuth } from "./admin-auth.js";
 import { createDisclosure } from "./modal-utils.js";
 import { createThemeToggle } from "./theme-toggle.js";
 import { syncAdminBar } from "./admin-bar.js";
+import { loadResource } from "./fetch-json.js";
+import { buildEntriesCsv, resolveExportRows } from "../shared/csv-import.js";
 import "./components/climbing-menu-bar.js";
 
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
+const DATA_URL = "/logbook/api/logbook";
+const PLACES_URL = "/logbook/api/places";
+const LOCATIONS_URL = "/logbook/api/locations";
 
 function adminFetch(url, options) {
   return fetch(url, { ...options, redirect: "manual" });
@@ -110,6 +115,49 @@ const adminAuth = createAdminAuth({
 
 createDisclosure(document.getElementById("header-menu-btn"), document.getElementById("header-menu-popover"), "#header-menu-wrap");
 createThemeToggle();
+
+// #27 -- "a simple one-click process" (Raven's own call, unlike #224's
+// import which needed a whole wizard page): no navigation, just fetch
+// this user's own data (the same public GET endpoints every owned page
+// already reads -- no new server endpoint needed at all, unlike import's
+// write path) and trigger a client-side download. Lazily fetched on
+// click, not during boot() -- most visits to this page never click
+// either button, so there's no reason to pay for entries/places/
+// locations on every page load just in case.
+const exportError = document.getElementById("export-error");
+
+function downloadFile(filename, content, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function exportEntries(format) {
+  exportError.hidden = true;
+  try {
+    const [entries, places, locations] = await Promise.all([
+      loadResource(DATA_URL, "entries"),
+      loadResource(PLACES_URL, "places"),
+      loadResource(LOCATIONS_URL, "locations"),
+    ]);
+    const rows = resolveExportRows(entries, places, locations);
+    if (format === "csv") {
+      downloadFile("climbing-logbook-export.csv", buildEntriesCsv(rows), "text/csv");
+    } else {
+      downloadFile("climbing-logbook-export.json", JSON.stringify(rows, null, 2), "application/json");
+    }
+  } catch {
+    exportError.textContent = "Export failed -- check your connection and try again.";
+    exportError.hidden = false;
+  }
+}
+
+document.getElementById("export-csv-btn").addEventListener("click", () => exportEntries("csv"));
+document.getElementById("export-json-btn").addEventListener("click", () => exportEntries("json"));
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/logbook/sw.js").catch(() => {});
