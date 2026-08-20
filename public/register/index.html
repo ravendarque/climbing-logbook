@@ -57,7 +57,7 @@
       type="text" id="username" name="username" required autocomplete="username"
       pattern="[a-z0-9._]+" minlength="1" maxlength="30"
       title="Lowercase letters, numbers, periods, and underscores only">
-    <!-- Matches src/lib/auth.js's usernameValidator/min-maxUsernameLength
+    <!-- Matches server/lib/auth.js's usernameValidator/min-maxUsernameLength
          exactly -- this is a client-side hint (nicer inline browser
          validation UX), the server-side check is the real enforcement.
          Same charset/length as Instagram (#341), since a username is

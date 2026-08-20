@@ -2,7 +2,7 @@ allowBuilds:
   '@parcel/watcher': true
   # better-auth (real runtime dependency, #20) lists both of these as
   # optional adapters it can auto-detect (native SQLite / Prisma) --
-  # irrelevant here, since src/lib/auth.js always passes the real D1
+  # irrelevant here, since server/lib/auth.js always passes the real D1
   # binding as `database`, never a better-sqlite3 or Prisma instance, so
   # neither dispatch branch ever runs. Declined, not approved -- no native
   # build needed for a code path this app never exercises.

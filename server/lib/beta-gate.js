@@ -8,8 +8,8 @@ import { json } from "./json.js";
 // it to anything other than "true" is the entire "go fully public"
 // mechanism once the beta period ends, no code change needed.
 //
-// Handled as a request-level wrapper in src/index.js (not a Better Auth
-// `hooks.before` middleware, unlike src/lib/turnstile.js's own hook) --
+// Handled as a request-level wrapper in server/index.js (not a Better Auth
+// `hooks.before` middleware, unlike server/lib/turnstile.js's own hook) --
 // #379 found that a `hooks.before` implementation can't reliably release
 // a claimed code when a *later* validation step fails (bad username
 // format, duplicate username, weak password): Better Auth runs every
@@ -104,7 +104,7 @@ export async function handleBetaGatedSignUp(request, env, auth) {
   return response;
 }
 
-// Companion to handleBetaGatedSignUp -- wired into src/lib/auth.js's
+// Companion to handleBetaGatedSignUp -- wired into server/lib/auth.js's
 // `databaseHooks.user.create.after`, which fires once the user row is
 // actually created (with a real id to backfill `used_by` with). Guarded on
 // `context?.body?.code` being present so this is a no-op for any future

@@ -221,7 +221,7 @@ describe("account settings (#302)", () => {
     const res = await authedPost("/logbook/api/auth/change-email", { newEmail: "new@example.com" }, cookie);
     expect(res.status).toBe(200);
 
-    // Sent to the account's own (old) address -- src/lib/email.js's own
+    // Sent to the account's own (old) address -- server/lib/email.js's own
     // comment on why -- not the new one, which never receives anything
     // until this link is clicked.
     expect(resendCalls).toHaveLength(1);

@@ -11,7 +11,7 @@
 // flash-then-redirect would be worse than a brief loading gate.
 //
 // Cookie sharing across climbinglogbook.com/my.climbinglogbook.com is
-// already configured (src/lib/auth.js's crossSubDomainCookies), so this
+// already configured (server/lib/auth.js's crossSubDomainCookies), so this
 // same-origin get-session call sees a session established on either
 // hostname regardless of which one this script runs on.
 export async function redirectIfLoggedIn(contentEl) {

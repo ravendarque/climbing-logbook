@@ -6,7 +6,7 @@ import { afterEach, beforeEach, vi } from "vitest";
 import { jsonRequest } from "./support.js";
 
 // Turnstile's bot check (#311) runs before the beta gate in sign-up's hook
-// chain (src/lib/auth.js) -- every signUp() call below needs this stubbed
+// chain (server/lib/auth.js) -- every signUp() call below needs this stubbed
 // or it 403s before ever reaching the beta-gate logic these tests actually
 // exercise. Resend is also stubbed -- a real signup sends a verification
 // email, and leaving that unstubbed was part of the #379 investigation's

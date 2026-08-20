@@ -37,8 +37,8 @@ permanently burned a real invite code on a signup that never completed.
 ## Decision
 
 Moved the claim/release logic out of Better Auth's hook pipeline entirely,
-into `handleBetaGatedSignUp()` (`src/lib/beta-gate.js`), a request-level
-wrapper called directly from `src/index.js` ahead of Better Auth's own
+into `handleBetaGatedSignUp()` (`server/lib/beta-gate.js`), a request-level
+wrapper called directly from `server/index.js` ahead of Better Auth's own
 handler for `POST /sign-up/email`. It claims the code, forwards the
 request to `auth.handler()`, and releases the claim by checking the real
 HTTP response (`!response.ok`) — correct regardless of which internal

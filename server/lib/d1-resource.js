@@ -10,10 +10,10 @@ import { json, parseJsonBody } from "./json.js";
 // means "no rows" (an anonymous caller can't see anyone's data, since
 // there's no single global "the" owner left in a multi-tenant app; that's
 // what #113's per-user public page is for). POST always has a real
-// userId by the time it's called -- src/index.js's authorization step
+// userId by the time it's called -- server/index.js's authorization step
 // already 401s before dispatching to any admin path.
 
-// Exported standalone (not just used internally below) -- src/api/
+// Exported standalone (not just used internally below) -- server/api/
 // logbook.js's handlePut/handleDelete need the exact same "list this
 // user's rows, shaped for the wire" query after their own writes, and
 // used to hand-copy it rather than share it (found via code review,
@@ -29,7 +29,7 @@ export async function listForUser(env, table, userId, rowToJson) {
 
 // Exported standalone -- this is the actual multi-tenant isolation
 // boundary ("does this id belong to this user"), used two ways across
-// src/api/*.js: (1) here, as an idempotent-replay check ("does a row with
+// server/api/*.js: (1) here, as an idempotent-replay check ("does a row with
 // this exact id already exist for this user"); (2) by places.js/
 // logbook.js's own validateFields, as a foreign-key ownership check
 // ("does this placeId/locationId reference a row owned by this user").
@@ -44,7 +44,7 @@ export async function findOwnedRow(env, table, id, userId) {
     .first();
 }
 
-// Exported standalone -- src/api/logbook-import.js's bulk write (#224
+// Exported standalone -- server/api/logbook-import.js's bulk write (#224
 // phase 3) needs the exact same "insert this already-built row" step for
 // locations/places/entries in a loop, not just handlePost's single-record
 // case below (found while building that handler -- this was inlined here

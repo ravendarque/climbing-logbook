@@ -27,7 +27,7 @@
 // correct, not a workaround.
 //
 // <climbing-entries-table> (#350) is used exactly as client/log-main.js
-// uses it, just fed from the new public data endpoints (src/api/
+// uses it, just fed from the new public data endpoints (server/api/
 // public-data.js) instead of the session-scoped /logbook/api/* ones, and
 // never given the `editable` attribute.
 import { createStore } from "./store.js";
@@ -106,7 +106,7 @@ async function boot() {
   const base = `/logbook/api/public/${encodeURIComponent(USERNAME)}`;
   // .catch(() => []) on each: a failed/404 fetch here (private or
   // nonexistent user) can't actually happen in practice --
-  // src/api/public-profile.js's own gate already 404s before this shell
+  // server/api/public-profile.js's own gate already 404s before this shell
   // is ever served -- but the empty-array fallback keeps this page inert
   // rather than throwing if that assumption is ever wrong.
   const [entries, places, locations] = await Promise.all([

@@ -67,7 +67,7 @@ describe("owned route authorization", () => {
   });
 
   // #348 -- all three pages now have real shells (fetched via the ASSETS
-  // binding, see src/api/owned-routes.js's SHELL_PATHS). Asserting each
+  // binding, see server/api/owned-routes.js's SHELL_PATHS). Asserting each
   // real shell's actual content here (not just a 200, which the test
   // above already covers) is what would have caught the shell/bundle
   // wiring being wrong even though the auth decision itself was right.

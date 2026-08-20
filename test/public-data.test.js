@@ -2,7 +2,7 @@
 // target user's logbook/places/locations, at
 // /logbook/api/public/:username/{logbook,places,locations}. Not
 // hostname-gated (unlike test/public-profile.test.js's own shell route --
-// see src/api/public-data.js's own comment on why), so exercised here
+// see server/api/public-data.js's own comment on why), so exercised here
 // against a plain https://example.com origin, same as every other
 // /logbook/api/* test file.
 import { env, exports } from "cloudflare:workers";

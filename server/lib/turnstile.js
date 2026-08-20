@@ -2,7 +2,7 @@ import { createAuthMiddleware, APIError } from "better-auth/api";
 
 // Form-level bot defense on sign-up (#311), complementing #300's
 // domain-level bot/AI-crawler restrictions. Same createAuthMiddleware +
-// ctx.path-check shape as src/lib/beta-gate.js -- a genuinely separate
+// ctx.path-check shape as server/lib/beta-gate.js -- a genuinely separate
 // concern (bot defense vs. invite-code gating) that happens to attach to
 // the same endpoint, not folded into that file.
 const SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";

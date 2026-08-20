@@ -18,7 +18,7 @@ async function validateFields(place, env, userId) {
 // (location determines country, a real functional dependency; storing it
 // on every Place row would make it transitively dependent on location
 // rather than on this row's own key, i.e. not actually 3NF -- see #158).
-// Exported -- #224 phase 3's bulk import (src/api/logbook-import.js)
+// Exported -- #224 phase 3's bulk import (server/api/logbook-import.js)
 // mints new Place rows the exact same way as this single-record POST
 // path, not a second copy.
 export function buildRow(place, id, userId) {
@@ -38,7 +38,7 @@ export function rowToJson(row) {
   };
 }
 
-// handleGet/handlePost (#297) -- see src/lib/d1-resource.js for the
+// handleGet/handlePost (#297) -- see server/lib/d1-resource.js for the
 // shared shape every D1-backed create+list resource follows.
 export const { handleGet, handlePost } = createD1ResourceHandlers({
   table: "places",

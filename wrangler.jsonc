@@ -1,13 +1,13 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "climbing-logbook",
-  "main": "src/index.js",
+  "main": "server/index.js",
   "compatibility_date": "2026-07-01",
   // Better Auth (#20) depends on Node.js built-ins (e.g. node:crypto) not
   // natively available in the Workers runtime otherwise.
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
-  // binding: "ASSETS" (#348) -- lets src/api/owned-routes.js fetch a
+  // binding: "ASSETS" (#348) -- lets server/api/owned-routes.js fetch a
   // fixed-path static shell (e.g. public/log/index.html) from inside the
   // Worker for the dynamic-:username routes Static Assets can't match by
   // itself (it only matches literal paths). Doesn't change routing
@@ -28,7 +28,7 @@
   // asset-first perf/cost -- confirmed the array form is supported at
   // the pinned wrangler version (4.115.0) via
   // node_modules/wrangler/config-schema.json, not assumed. Forcing these
-  // through the Worker is enough on its own: src/index.js has no route
+  // through the Worker is enough on its own: server/index.js has no route
   // matching a bare "/log"/"/map"/"/performance"/"/profile"/"/account"
   // pathname (the dynamic my.<domain>/:username/{log,map,performance,
   // account(/edit)?} regex always requires a username segment first), so

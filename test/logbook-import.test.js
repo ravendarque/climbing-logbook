@@ -1,4 +1,4 @@
-// Exercises src/api/logbook-import.js through the real Worker entrypoint
+// Exercises server/api/logbook-import.js through the real Worker entrypoint
 // (real routing + real D1 binding), same "public HTTP contract" reasoning
 // as test/logbook.test.js -- a CSV body rather than JSON is the one real
 // difference from that file's own request-building.

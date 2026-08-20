@@ -1,6 +1,6 @@
 // CLI-only config, used solely by `better-auth generate` to produce
 // migrations/0001_better_auth_core.sql -- not imported by the Worker
-// itself (see src/lib/auth.js for the real runtime factory). better-auth's
+// itself (see server/lib/auth.js for the real runtime factory). better-auth's
 // CLI needs a live, directly-importable `auth` export (not env-dependent)
 // to introspect for schema generation, and a real SQLite-shaped driver to
 // diff migrations against -- an in-memory better-sqlite3 instance stands
@@ -16,7 +16,7 @@
 // was left installed, none of which are reachable from anything this app
 // actually runs -- not worth carrying permanently for a tool used maybe
 // once every few months. Regenerate like this instead, only when the auth
-// config in src/lib/auth.js actually changes shape (a new plugin, a new
+// config in server/lib/auth.js actually changes shape (a new plugin, a new
 // field):
 //
 //   pnpm add -D @better-auth/cli better-sqlite3

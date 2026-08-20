@@ -48,7 +48,7 @@ export async function mockApi(page, { entries = [], places = [], locations = [],
   await page.route("**/logbook/api/locations", route => route.fulfill({ json: { locations: _locations } }));
   await page.route("**/logbook/api/settings", route => route.fulfill({ json: _settings }));
 
-  // Path-scoped by :username (src/api/public-data.js's own route shape)
+  // Path-scoped by :username (server/api/public-data.js's own route shape)
   // -- glob-wildcarded since the harness's own synthetic USERNAME (parsed
   // client-side from location.pathname) doesn't matter for what's being
   // tested here.
@@ -82,7 +82,7 @@ export async function mockApi(page, { entries = [], places = [], locations = [],
   });
 
   // #224 -- the client sends the raw CSV body as-is (text/csv, not JSON),
-  // so this fakes just enough of src/api/logbook-import.js's own
+  // so this fakes just enough of server/api/logbook-import.js's own
   // contract (a row count and an appended entries array) for
   // e2e/account-import-page.spec.js to prove the client's own wiring
   // (file read, request, success/error panel toggling) -- the real

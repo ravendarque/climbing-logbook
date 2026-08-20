@@ -7,7 +7,7 @@ import { lookupUserByUsername } from "../lib/user.js";
 // with a genuinely static shell + client bundle built on the same shared
 // components #348's owned pages use -- same "ASSETS.fetch() serves a
 // fixed-path shell after a server-side gate check" architecture as
-// src/api/owned-routes.js, not a new pattern. World Map isn't included --
+// server/api/owned-routes.js, not a new pattern. World Map isn't included --
 // client/map-view.js's interactive pan/zoom/drag state isn't something to
 // fork into a read-only variant for a first cut (see #351's own body for
 // the follow-up note); Grade Pyramid is never included here at all, full
@@ -19,7 +19,7 @@ import { lookupUserByUsername } from "../lib/user.js";
 // them apart would let a visitor enumerate registered usernames just by
 // comparing responses, same anti-enumeration reasoning already documented
 // on the password-reset flow (public/login/login.js). Exported (#351) --
-// src/api/public-data.js's handlePublicResource needs the exact same
+// server/api/public-data.js's handlePublicResource needs the exact same
 // check for the new JSON endpoints the client bundle fetches, not just
 // this page's own initial-load gate.
 export async function resolvePublicUser(env, username) {
@@ -33,7 +33,7 @@ export async function resolvePublicUser(env, username) {
   // No settings row yet means this user has never PATCHed settings, which
   // means the schema default still applies (logbook_public = 1, #21) --
   // same "missing row falls back to defaults" reasoning as
-  // src/api/settings.js's handleGetSettings.
+  // server/api/settings.js's handleGetSettings.
   const isPublic = settings ? !!settings.logbook_public : true;
   if (!isPublic) return null;
 
@@ -93,6 +93,6 @@ export async function handlePublicProfile(request, env, username) {
   // identical content for every public user; client/profile-main.js reads
   // the username from location.pathname itself and fetches this user's
   // actual data from the new /logbook/api/public/:username/* endpoints
-  // (src/api/public-data.js).
+  // (server/api/public-data.js).
   return env.ASSETS.fetch(new Request(new URL("/profile/index.html", request.url)));
 }

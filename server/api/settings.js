@@ -2,7 +2,7 @@ import { json, parseJsonBody } from "../lib/json.js";
 
 // logbookPublic default matches the schema's own DEFAULT 1 (migrations/
 // 0003_app_data.sql) -- an anonymous caller or a logged-in user who's
-// never touched settings both see the same effective default src/api/
+// never touched settings both see the same effective default server/api/
 // public-profile.js's own resolvePublicUser() already falls back to.
 const DEFAULT_SETTINGS = { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true };
 
@@ -32,7 +32,7 @@ export async function handleGetSettings(request, env, userId) {
   });
 }
 
-// Reachable only via /logbook/api/admin/settings -- src/index.js's
+// Reachable only via /logbook/api/admin/settings -- server/index.js's
 // authorization step already 401s before dispatching here, so userId is
 // always real.
 //

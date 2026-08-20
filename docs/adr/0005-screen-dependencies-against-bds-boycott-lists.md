@@ -17,7 +17,7 @@ evaluation (#45, ADR-0004, 2026-07-06), which included an "Ethical/
 supply-chain check" cross-referencing every candidate against the BDS
 movement's boycott lists. It's come up again since, independently, as the
 explicit reason Better Auth's configuration excludes OAuth social
-providers (GitHub/Google) entirely (`src/lib/auth.js`, ADR-0002) —
+providers (GitHub/Google) entirely (`server/lib/auth.js`, ADR-0002) —
 without a written-down policy, that reasoning would have lived only in a
 code comment, disconnected from the original Tailwind-spike precedent
 that established it.

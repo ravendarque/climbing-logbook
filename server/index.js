@@ -83,11 +83,11 @@ export default {
     // Better Auth (#20) -- the only prefix-matched route in this router;
     // every other route below is an exact pathname match. Better Auth owns
     // its own internal routing under this basePath (signup/login/logout/
-    // session-check/etc, see src/lib/auth.js) via a single handler.
+    // session-check/etc, see server/lib/auth.js) via a single handler.
     //
     // sign-up/email is special-cased ahead of the generic passthrough --
     // #379's beta-gate claim/release wrapper needs to sit *outside*
-    // Better Auth's own hook pipeline (see src/lib/beta-gate.js's own
+    // Better Auth's own hook pipeline (see server/lib/beta-gate.js's own
     // header comment for why), so it needs to be the thing that decides
     // whether Better Auth's real handler runs at all, not something
     // wired into that handler's own hooks.
@@ -110,7 +110,7 @@ export default {
 
     // #351 -- read-only data for the public /:username page, scoped to
     // whichever *target* user the path names, not the caller's own
-    // session (see src/api/public-data.js's own comment). Not
+    // session (see server/api/public-data.js's own comment). Not
     // hostname-gated, same as every other /logbook/api/* route here.
     const publicDataMatch = pathname.match(/^\/logbook\/api\/public\/([^/]+)\/(logbook|places|locations)$/);
     if (publicDataMatch && method === "GET") {

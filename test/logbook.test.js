@@ -1,4 +1,4 @@
-// Exercises src/api/logbook.js through the real Worker entrypoint (real
+// Exercises server/api/logbook.js through the real Worker entrypoint (real
 // routing + real D1 binding), not by importing validateFields/buildRow
 // directly -- they're module-private, and testing through the public HTTP
 // contract means these tests keep passing across any internal refactor

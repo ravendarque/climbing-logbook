@@ -1,5 +1,5 @@
 // Single source of truth for what a climbing log entry looks like (#224) --
-// replaces src/api/logbook.js's previous hand-written validateShape(), which
+// replaces server/api/logbook.js's previous hand-written validateShape(), which
 // had drifted into duplicated logic once #27 (export)/#224 (bulk import)
 // needed the exact same rules. Every consumer (the admin write path today;
 // client/entry-form.js; bulk import, export, and CSV template generation
@@ -109,7 +109,7 @@ export const entrySchema = v.pipe(
   })
 );
 
-// The admin write path (src/api/logbook.js) only ever surfaces one error
+// The admin write path (server/api/logbook.js) only ever surfaces one error
 // message at a time (its own established contract, see test/logbook.test.js) --
 // this is that single-message adapter. Bulk import (#224 phase 3) will call
 // v.safeParse(entrySchema, entry) directly instead, to report every row's

@@ -45,7 +45,7 @@
        once when a new user brings existing data in), so it's a linear
        three-step page rather than a form buried among other settings:
        download the template, fill it in, upload it back. All-or-nothing
-       server-side (src/api/logbook-import.js) -- nothing is written until
+       server-side (server/api/logbook-import.js) -- nothing is written until
        every row validates, so #import-errors below always lists every
        problem row at once, not one at a time across repeated uploads. -->
   <div class="max-w-[520px] flex flex-col gap-4" id="import-steps">

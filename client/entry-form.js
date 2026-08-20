@@ -284,7 +284,7 @@ export function createEntryForm({
     // ever existed as a queued, never-synced add (#268) -- the old
     // queuedAdd short-circuit avoided a doomed round-trip back when
     // handleDelete 404d on a missing id; now that it's idempotent
-    // (src/api/logbook.js, #268), a delete for something the server
+    // (server/api/logbook.js, #268), a delete for something the server
     // never saw just no-ops successfully, same as any other delete.
     try {
       const res = await adminFetch(`${adminDataUrl}?id=${encodeURIComponent(id)}`, { method: "DELETE" });

@@ -27,7 +27,7 @@ jobs:
         with:
           filters: |
             relevant:
-              - 'src/**'
+              - 'server/**'
               - 'client/**'
               - 'test/**'
               - 'migrations/**'
