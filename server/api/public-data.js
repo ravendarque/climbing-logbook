@@ -6,14 +6,14 @@ import { handleGet as handleGetLocations } from "./locations.js";
 
 // #351 -- the read-only data feeding client/profile-main.js's
 // <climbing-entries-table>, at /logbook/api/public/:username/{logbook,
-// places,locations}. Not hostname-gated (unlike src/api/owned-routes.js/
+// places,locations}. Not hostname-gated (unlike server/api/owned-routes.js/
 // this file's own sibling handlePublicProfile) -- same reasoning every
 // other /logbook/api/* route already has: the client bundle that calls
 // this always does so same-origin, regardless of which hostname served
 // the page itself.
 //
-// Reuses src/api/{logbook,places,locations}.js's existing handleGet
-// completely unchanged -- src/lib/d1-resource.js's own handleGet(request,
+// Reuses server/api/{logbook,places,locations}.js's existing handleGet
+// completely unchanged -- server/lib/d1-resource.js's own handleGet(request,
 // env, userId) already treats userId as an opaque parameter (its own
 // comment: "GET is reachable without a session -- userId may be null,
 // which just means 'no rows'"), so passing the *target* user's id instead

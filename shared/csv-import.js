@@ -1,6 +1,6 @@
 // CSV template generation + parsing for bulk entry import (#224 phase 2/3).
 // Shared between client/account-import-main.js (template download) and
-// src/api/logbook-import.js (upload parsing) -- same reasoning as
+// server/api/logbook-import.js (upload parsing) -- same reasoning as
 // entry-schema.js: one column list and one parser, not two copies drifting
 // apart. Deliberately hand-written, not a dependency -- no CSV code
 // anywhere in this repo yet, and the format needed (one flat header row,

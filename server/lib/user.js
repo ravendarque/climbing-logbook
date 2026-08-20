@@ -1,5 +1,5 @@
-// Shared by src/api/owned-routes.js (owner-session match) and
-// src/api/public-profile.js (public-visibility gate) -- both need to
+// Shared by server/api/owned-routes.js (owner-session match) and
+// server/api/public-profile.js (public-visibility gate) -- both need to
 // resolve a :username path segment to a real user id, and both had
 // independently hand-copied the identical query + normalization rationale
 // (found via code review, 2026-08-09).

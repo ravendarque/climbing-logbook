@@ -27,7 +27,7 @@ primary keys**, not opaque surrogate ids — the same slugs already used
 across the client/API (`grade-data.js`, `status.js`: `'boulder'`,
 `'lead'`, `'send'`, `'project'`, `'abandoned'`, `'wishlist'`). This keeps
 the JSON wire format (`"type": "boulder"`) completely unchanged; the
-resource-handler layer (`src/lib/d1-resource.js`) maps the JSON field to
+resource-handler layer (`server/lib/d1-resource.js`) maps the JSON field to
 the FK column internally — a column rename at the boundary, not a value
 translation.
 

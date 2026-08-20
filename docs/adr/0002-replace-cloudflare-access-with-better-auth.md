@@ -22,14 +22,14 @@ writes per-user even if it were kept around as one gate among several.
 
 ## Decision
 
-Adopt [Better Auth](https://www.better-auth.com/) (`src/lib/auth.js`),
+Adopt [Better Auth](https://www.better-auth.com/) (`server/lib/auth.js`),
 D1-backed, email/password only — no OAuth providers (GitHub/Google), per
 this project's BDS-compliance policy (`docs/ui-stack-evaluation.md`'s
 "Ethical/supply-chain check" section). Mounted at `/logbook/api/auth/*`.
 
 Authorization moved fully in-Worker (#297): every admin/write handler
 resolves the caller's Better Auth session server-side
-(`src/lib/session.js`) and 401s without one, scoping the operation to that
+(`server/lib/session.js`) and 401s without one, scoping the operation to that
 session's own `user_id` — the actual multi-tenant isolation boundary this
 app never had before. Read (public) and write (admin) endpoints stayed on
 separate path prefixes (`/api/logbook` vs `/api/admin/logbook`), a
@@ -56,7 +56,7 @@ per-user authorization code ever ran.
   API token distinction that only mattered for Access/Zero Trust calls
   (a real, confirmed upstream Cloudflare quirk that cost debugging time
   during the original Access rollout).
-- `src/api/admin-session.js` and `src/api/admin-login.js` are now dead —
+- `server/api/admin-session.js` and `server/api/admin-login.js` are now dead —
   they existed purely to serve Access's edge-authentication flow (reading
   `Cf-Access-Authenticated-User-Email`, kicking off Access's hosted login).
   Nothing calls them since `client/admin-auth.js` was rewired onto Better

@@ -63,7 +63,7 @@ test("shows an inline error for the wrong password, without navigating away", as
 test("forgot password requires an email first", async ({ page }) => {
   // Only the client-side empty-email guard is covered here (#22) -- a
   // real request-password-reset call would 403 against a local wrangler
-  // dev (TRUSTED_ORIGINS, src/lib/auth.js, doesn't include localhost;
+  // dev (TRUSTED_ORIGINS, server/lib/auth.js, doesn't include localhost;
   // see #22's own PR description for how the success path was verified
   // manually instead).
   await page.goto("/login/");

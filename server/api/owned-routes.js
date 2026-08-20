@@ -40,7 +40,7 @@ const SHELL_PATHS = {
   // #302 -- the first of the account section's own sub-pages
   // (/:username/account/edit); the bare /:username/account landing page
   // is its own separate entry ("account", no slash) rather than a
-  // redirect to /edit -- see src/index.js's own regex for how both are
+  // redirect to /edit -- see server/index.js's own regex for how both are
   // matched. Later sub-pages (display/import) each get one more entry
   // here, same as this one -- no shared nav component needed until a
   // second one actually exists (see #302's own scope notes).
@@ -72,7 +72,7 @@ export async function handleOwnedRoute(request, env, username, page) {
     return Response.redirect(new URL(loginUrl(hostname), request.url), 302);
   }
 
-  // SHELL_PATHS[page] is never undefined here -- src/index.js's own regex
+  // SHELL_PATHS[page] is never undefined here -- server/index.js's own regex
   // only ever passes "log"/"map"/"performance" through as `page`, and all
   // three have real shells now (#348's #347 placeholder branch is gone,
   // its job done).

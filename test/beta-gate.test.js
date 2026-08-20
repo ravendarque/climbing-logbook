@@ -53,7 +53,7 @@ describe("beta gate enabled (BETA_GATE_ENABLED=true, wrangler.jsonc default)", (
   // The actual #379 regression: a code was being permanently burned even
   // when the signup it was claimed for never completed, because the old
   // hooks.before-based release logic couldn't see a later plugin
-  // before-hook's own failure (see src/lib/beta-gate.js's header comment).
+  // before-hook's own failure (see server/lib/beta-gate.js's header comment).
   // An invalid username format is exactly that -- a failure inside the
   // username plugin's own before-hook, not this app's code.
   it("releases the code when sign-up fails for an unrelated reason", async () => {

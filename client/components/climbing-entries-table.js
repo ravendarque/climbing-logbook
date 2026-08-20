@@ -3,7 +3,7 @@
 // piece that lets #351 (public page rebuild) share the actual table
 // rendering/sort/filter/collapse logic with #348's `/:username/log` page,
 // instead of #113's current from-scratch duplicate in
-// src/api/public-profile.js.
+// server/api/public-profile.js.
 //
 // Reuses client/entries.js's pure filteredEntries/groupByPlace/sortEntries
 // (and client/grade-data.js/client/status.js/client/date-helpers.js)

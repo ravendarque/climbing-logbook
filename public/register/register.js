@@ -44,7 +44,7 @@ form.addEventListener("submit", async (event) => {
   // #311 -- window.turnstile is only defined once Cloudflare's api.js
   // (loaded async in index.html) has actually loaded; a slow connection
   // could reach here first. Either way, no token means the server-side
-  // hook (src/lib/turnstile.js) would reject this anyway -- catching it
+  // hook (server/lib/turnstile.js) would reject this anyway -- catching it
   // here just gives a clearer message than a generic sign-up failure.
   const turnstileToken = window.turnstile?.getResponse(turnstileWidgetId);
   if (!turnstileToken) {

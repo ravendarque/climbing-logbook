@@ -18,7 +18,7 @@ it("returns 404 for an unmatched route", async ({ expect }) => {
 //
 // An anonymous (no session) caller resolves to an empty list rather than
 // 401ing (#297) -- there's no single global "the" owner anymore in a
-// multi-tenant app, see src/lib/d1-resource.js.
+// multi-tenant app, see server/lib/d1-resource.js.
 it("reads from the D1-backed public logbook endpoint", async ({ expect }) => {
   const response = await fetchJson("/logbook/api/logbook");
   expect(response.status).toBe(200);

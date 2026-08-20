@@ -186,7 +186,7 @@ export function createAuth(env, hostname) {
     // Turnstile bot check (#311) -- reject non-human requests. The beta
     // gate (#296) used to run here too, as a second hooks.before entry,
     // but #379 moved its claim/release logic to a request-level wrapper
-    // in src/index.js instead (see src/lib/beta-gate.js's own header
+    // in server/index.js instead (see server/lib/beta-gate.js's own header
     // comment for why a hooks.before/after design can't reliably release
     // a claimed invite code when a later plugin before-hook, e.g. the
     // username plugin's own validation, is what actually fails).

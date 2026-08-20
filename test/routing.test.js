@@ -1,4 +1,4 @@
-// src/index.js's routing is a flat sequence of independent
+// server/index.js's routing is a flat sequence of independent
 // `pathname === X && method === Y` checks with one shared 404 fallthrough,
 // so a route that exists but is called with the wrong method is otherwise
 // indistinguishable, at the response level, from a route that doesn't

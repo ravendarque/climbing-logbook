@@ -33,7 +33,7 @@ can't catch:**
    (Miniflare) with actual bindings (KV, D1), not hand-rolled mocks.
    `vitest.config.js` is wired to `wrangler.jsonc` via the pool's config
    helper, so tests run with the same bindings/compat date as the real
-   Worker. Covers `src/api/*`, `src/lib/*` — request handling, validation,
+   Worker. Covers `server/api/*`, `server/lib/*` — request handling, validation,
    storage.
 2. **Plain Vitest on extracted pure-logic client modules** (#206) —
    grade ordering, date helpers, offline-queue merge logic, grade-pyramid

@@ -6,7 +6,7 @@
  * Extracted here so both scripts share one copy rather than drifting.
  *
  * Uses fixed IDs, so POSTing is safe to re-run: an ID that already exists
- * is a documented no-op (src/api/logbook.js et al), not a duplicate.
+ * is a documented no-op (server/api/logbook.js et al), not a duplicate.
  */
 
 export const LOCATIONS = [

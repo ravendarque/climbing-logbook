@@ -38,7 +38,7 @@ hostname (confirmed live, not just assumed from docs, before being
 treated as settled).
 
 **The same single Worker serves both `climbinglogbook.com` and
-`my.climbinglogbook.com`**, hostname-dispatched inside `src/index.js`'s
+`my.climbinglogbook.com`**, hostname-dispatched inside `server/index.js`'s
 own `fetch()` handler, not two separately deployed units. The marketing
 page and the app are the same product; splitting them into two
 deployable units would mean two places for Better Auth's config/secret
@@ -57,7 +57,7 @@ unlisted way to reach the same Worker's production routes.
 - One network hop, not two — no proxy Function relaying requests from
   `my-limn` into a separate Pages project.
 - Multi-hostname dispatch is a single `if (hostname...)` branch inside
-  one `fetch()` handler (see `src/index.js`), not a second Terraform
+  one `fetch()` handler (see `server/index.js`), not a second Terraform
   stack, second secret set, or second deploy pipeline to keep in sync
   with the first.
 - PR preview deployments (`preview.yml`, #222) use `wrangler versions

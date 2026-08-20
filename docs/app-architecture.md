@@ -6,7 +6,7 @@ A single Cloudflare Worker serving six separate static-shell frontend
 pages (`public/log/`, `public/map/`, `public/performance/`,
 `public/profile/`, `public/account/`, `public/account/edit/`, plus the
 standalone auth/marketing pages) and a JSON
-API (`src/`), backed by D1 (#21/#297 -- the earlier Workers KV data model
+API (`server/`), backed by D1 (#21/#297 -- the earlier Workers KV data model
 is fully gone, code and infra both, #299). No frontend
 framework — plain ES modules, direct DOM manipulation, and a handful of
 framework-free Web Components (`client/components/*.js`,
@@ -382,7 +382,7 @@ client/
                           plain import here to a store.js method for the
                           same reason (#264) -- see store.js's own entry
                           above
-src/
+server/
 ├── index.js            Router — hostname + pathname + method, dispatches.
 │                         Route tables (PUBLIC_GET_ROUTES/ADMIN_ROUTES,
 │                         pathname -> handler[/method]) replaced four
@@ -487,7 +487,7 @@ src/
     │                      Auth, not part of its own schema, kept togglable
     │                      rather than removable (see
     │                      [ADR-0014](adr/0014-closed-beta-invite-gate-togglable-not-removable.md)).
-    │                      A request-level wrapper in src/index.js (not a
+    │                      A request-level wrapper in server/index.js (not a
     │                      Better Auth before-hook like turnstile.js), since
     │                      #379 found a before-hook can't reliably release a
     │                      claimed code when a *later* hook (e.g. the
@@ -799,7 +799,7 @@ client/
 public/ (the six split pages -- one static shell per page type,
 genuinely identical content for every user; the client bundle reads
 :username off location.pathname itself, not server-templated markup;
-src/api/owned-routes.js/public-profile.js fetch these via the ASSETS
+server/api/owned-routes.js/public-profile.js fetch these via the ASSETS
 binding after their own session/visibility check, see "Request routing"
 below)
 ├── log/index.html          Shell for /:username/log (#348)
@@ -902,7 +902,7 @@ directly, without invoking the Worker script at all (asset-first, by
 default) — `wrangler.jsonc`'s `assets.run_worker_first` scopes an
 exception for exactly five path groups (`/account/*` covers both
 `/account` and `/account/edit`), see below. The Worker's `fetch` handler
-in `src/index.js` otherwise only ever sees requests that *don't* match a
+in `server/index.js` otherwise only ever sees requests that *don't* match a
 static file — in practice, the `/logbook/api/*` routes plus two
 `my.<domain>`-hostname-gated route shapes:
 
@@ -935,7 +935,7 @@ session/sign-in/sign-out endpoints left both permanently unreachable.
 route here — every other route above (that isn't hostname-gated) is an
 exact `pathname ===` match. Better Auth owns its own internal routing
 under that prefix (sign-up/sign-in/sign-out/session-check/etc, see
-`src/lib/auth.js`) via a single handler function; this router only needs
+`server/lib/auth.js`) via a single handler function; this router only needs
 to recognize the prefix and hand off. It's deliberately *not*
 Access-gated — Access can't do the self-service signup this route exists
 for (see `docs/infra-architecture.md`'s "Authentication" section) and
@@ -1038,8 +1038,8 @@ Entry {
 `status_id` columns (#21's lookup tables use the same slugs as natural
 keys) — a column rename at the boundary, not a value translation.
 
-`buildRow()`/`rowToJson()` (`src/api/logbook.js`, `src/api/places.js`,
-`src/api/locations.js`, alongside the shared `src/lib/d1-resource.js`
+`buildRow()`/`rowToJson()` (`server/api/logbook.js`, `server/api/places.js`,
+`server/api/locations.js`, alongside the shared `server/lib/d1-resource.js`
 factory) reconstruct these fixed shapes from the incoming payload on
 every write rather than spreading the raw request body into storage — a
 deliberate allowlist that keeps arbitrary extra fields (or prototype-
@@ -1111,8 +1111,8 @@ UUIDs make genuine collisions vanishingly rare, so a duplicate ID on `POST`
 is treated as an idempotent replay (the write already landed; the success
 response was probably lost to a flaky connection) rather than an error.
 
-**The old KV code and infra are fully gone.** `src/lib/kv-resource.js` and
-every KV branch in `src/api/*.js` were deleted once the D1 cutover's
+**The old KV code and infra are fully gone.** `server/lib/kv-resource.js` and
+every KV branch in `server/api/*.js` were deleted once the D1 cutover's
 (#297) rollback window closed (#398). The `LOGBOOK_KV` binding, its
 Terraform provisioning (`infra/kv.tf`), and the one-off
 `scripts/migrate-kv-to-d1.mjs` cutover script followed once the rollback
@@ -1128,8 +1128,8 @@ The client-facing flow (login button, session check, logout) is Better
 Auth's now (#320) — Cloudflare Access is gone entirely (#298), so Better
 Auth's session check is the only gate `/logbook/api/admin/*` has.
 
-Server-side, `src/index.js` independently resolves a Better Auth session
-(`src/lib/session.js`) before dispatching to any `/logbook/api/admin/
+Server-side, `server/index.js` independently resolves a Better Auth session
+(`server/lib/session.js`) before dispatching to any `/logbook/api/admin/
 {logbook,places,locations,settings}` handler, 401ing without one (#297)
 — this is the actual per-user data-isolation boundary, not Access.
 
@@ -1239,7 +1239,7 @@ the collapsing logic entirely and matching what `applyPendingQueue()`'s
 merge loop and `syncPending()`'s replay loop already did (both were always
 plain, unconditional per-item processing; #268 didn't need to touch
 either). The one thing that made unconditional replay actually safe:
-`handleDelete` (`src/api/logbook.js`) treats a missing id as an idempotent
+`handleDelete` (`server/api/logbook.js`) treats a missing id as an idempotent
 success (200, unchanged entries) rather than a 404 error, mirroring
 `handlePost`'s existing duplicate-id idempotency -- without that, deleting
 a queued-but-never-synced entry while online would 404 and get stuck.

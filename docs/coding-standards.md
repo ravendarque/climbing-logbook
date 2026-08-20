@@ -132,7 +132,7 @@ why Better Auth replaced Cloudflare Access as the mechanism itself.
   project's earlier Cloudflare-Access-gated design, kept because it's a
   clear, self-documenting split, not because anything still requires it.
 - Every write endpoint resolves its session server-side
-  (`src/lib/session.js`) and scopes the operation to that session's own
+  (`server/lib/session.js`) and scopes the operation to that session's own
   `user_id` — the actual multi-tenant isolation boundary. Never trust a
   `user_id` supplied in the request body.
 

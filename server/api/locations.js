@@ -8,7 +8,7 @@ async function validateFields(location) {
 // country stays optional free text, like place/area were before it --
 // no server-side allowlist, expected to be a plain name matching
 // COUNTRIES[i].name in index.html in practice. Exported -- #224 phase 3's
-// bulk import (src/api/logbook-import.js) mints new Location rows the
+// bulk import (server/api/logbook-import.js) mints new Location rows the
 // exact same way as this single-record POST path, not a second copy.
 export function buildRow(location, id, userId) {
   return {
@@ -27,7 +27,7 @@ export function rowToJson(row) {
   };
 }
 
-// handleGet/handlePost (#297) -- see src/lib/d1-resource.js for the
+// handleGet/handlePost (#297) -- see server/lib/d1-resource.js for the
 // shared shape every D1-backed create+list resource follows.
 export const { handleGet, handlePost } = createD1ResourceHandlers({
   table: "locations",

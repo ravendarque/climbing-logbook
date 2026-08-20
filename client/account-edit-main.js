@@ -158,7 +158,7 @@ wireEditableRow({
   onSubmit: async formData => {
     await authPost("/change-email", { newEmail: formData.get("email"), callbackURL: `/${encodeURIComponent(USERNAME)}/account/edit` });
     // This app always requires (and already has) a verified email
-    // (requireEmailVerification: true, src/lib/auth.js), so change-email
+    // (requireEmailVerification: true, server/lib/auth.js), so change-email
     // always takes Better Auth's confirm-via-link branch server-side --
     // a 200 here never means the email actually changed yet, only that a
     // confirmation link was sent to the new address. The displayed email

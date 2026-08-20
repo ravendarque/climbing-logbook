@@ -67,7 +67,7 @@ test("email row: saving shows the pending-confirmation state, doesn't change the
   await expect(page.locator("#email-pending")).toBeVisible();
   await expect(page.locator("#email-pending")).toContainText("new@example.com");
   // Still the OLD email -- nothing changes until the confirmation link
-  // (sent to the old address, src/lib/email.js's own comment) is clicked.
+  // (sent to the old address, server/lib/email.js's own comment) is clicked.
   await expect(page.locator("#email-value")).toHaveText("nix@example.com");
   await expect(page.locator("#email-form")).toBeHidden();
 });

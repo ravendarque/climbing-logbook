@@ -47,7 +47,7 @@ export function createEmailSender(env) {
     // #302 -- sent to the CURRENT (already-verified) email address, not
     // the new one -- Better Auth's own changeEmail handler only takes
     // this branch when the account's existing email is verified
-    // (src/lib/auth.js's user.changeEmail.sendChangeEmailConfirmation),
+    // (server/lib/auth.js's user.changeEmail.sendChangeEmailConfirmation),
     // so this is the account-takeover check: if someone with a stolen
     // session tries to redirect the account to an address they control,
     // the real owner sees the request land in their own current inbox

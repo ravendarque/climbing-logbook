@@ -26,7 +26,7 @@ disclosed via a GitHub Security Advisory once a patch is available.
 
 ## Scope
 
-Covers the application code in this repository (`client/`, `src/`) and its
+Covers the application code in this repository (`client/`, `server/`) and its
 Terraform-managed infrastructure config (`infra/`). Does not cover the
 underlying Cloudflare Workers/KV platform itself — report platform-level
 issues to Cloudflare directly.

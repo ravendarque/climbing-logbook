@@ -16,7 +16,7 @@ ravendarque.com
                       ruleset runs first at the edge and always wins)
 
 climbinglogbook.com (#295 -- the dedicated domain, same Worker, hostname-
-dispatched inside src/index.js's own fetch() handler, not a separate
+dispatched inside server/index.js's own fetch() handler, not a separate
 deploy)
 ├── /                → climbing-logbook (apex: public/index.html --
 │                      marketing page, links to /register and /login.
@@ -90,7 +90,7 @@ See [ADR-0002](adr/0002-replace-cloudflare-access-with-better-auth.md) for
 why Better Auth replaced Cloudflare Access as the mechanism itself.
 
 Write endpoints (`/logbook/api/admin/*`) are gated by a real, in-Worker
-Better Auth session check (`src/lib/session.js`, #297) — every admin
+Better Auth session check (`server/lib/session.js`, #297) — every admin
 handler resolves the caller's session and 401s without one, scoping the
 write to that session's own `user_id`. Read endpoints
 (`/logbook/api/logbook`, GET only) stay public.
@@ -102,7 +102,7 @@ Access was architecturally the wrong tool for self-service signup (it
 gates known identities the account owner manages by hand, not a
 customer-facing registration flow) — it was viable only as long as this
 was a single-user app. [Better Auth](https://www.better-auth.com/)
-(`src/lib/auth.js`) is mounted at `/logbook/api/auth/*` with a real
+(`server/lib/auth.js`) is mounted at `/logbook/api/auth/*` with a real
 D1-backed user/session/account schema (`migrations/0001_better_auth_core.sql`,
 generated via the Better Auth CLI — see `auth.config.mjs`'s header comment
 for the exact (deliberately temporary-install, #305) command, not
@@ -114,7 +114,7 @@ app data went live, the real production account was migrated off KV, and
 exists in this project in any form.
 
 **Closed beta gate (#296):** registration is public self-service in the end
-state, but the initial rollout is a closed beta — `src/lib/beta-gate.js`
+state, but the initial rollout is a closed beta — `server/lib/beta-gate.js`
 requires a valid, unused invite code on `sign-up/email` whenever
 `BETA_GATE_ENABLED` (`wrangler.jsonc`'s `vars`) is `"true"`. Going fully
 public is flipping that one value to `"false"` — no code change, no
@@ -154,7 +154,7 @@ Everything provisionable is declarative and idempotent via Terraform in
   `my.climbinglogbook.com/ravendarque`. A zone-level redirect, not a
   Worker-side one, deliberately: Cloudflare Static Assets matches by path
   only (confirmed during #113/#335), so a redirect written inside
-  `src/index.js`'s own `fetch()` could never win against the real static
+  `server/index.js`'s own `fetch()` could never win against the real static
   app files that sat at `public/logbook/` at the time (also reachable at
   `my.climbinglogbook.com/logbook` -- both since retired, #375) -- a
   redirect ruleset runs at the edge, ahead of both Workers Routes and
@@ -419,7 +419,7 @@ new migration would otherwise 500 the preview with "no such table."
 | `TF_STATE_ACCESS_KEY_ID` / `TF_STATE_SECRET_ACCESS_KEY` | secrets | R2-specific S3-compatible credentials (Object Read & Write), for Terraform's state backend — a distinct credential type from `CLOUDFLARE_API_TOKEN`, created via R2's own "Manage R2 API Tokens" |
 | `CLOUDFLARE_ACCOUNT_ID` | **variable** (not secret — not confidential) | `4f63d74beb21402b8622361525ab4868` |
 | `BETTER_AUTH_SECRET` | secret (Worker runtime, not Terraform) | Better Auth's session-signing secret (#20). One-time manual `wrangler secret put BETTER_AUTH_SECRET` — not CI-managed, doesn't need to rotate on every deploy, same "bootstrapped once, outside Terraform" treatment as the R2 state bucket. Local dev uses `.dev.vars` (gitignored) instead. |
-| `RESEND_API_KEY` | secret (Worker runtime, not Terraform) | [Resend](https://resend.com)'s API key, for signup verification + password reset emails (#308) — same one-time manual `wrangler secret put` treatment as `BETTER_AUTH_SECRET`. `climbinglogbook.com` is a verified Resend domain; `src/lib/email.js` sends from `myaccount@climbinglogbook.com` (#314). |
+| `RESEND_API_KEY` | secret (Worker runtime, not Terraform) | [Resend](https://resend.com)'s API key, for signup verification + password reset emails (#308) — same one-time manual `wrangler secret put` treatment as `BETTER_AUTH_SECRET`. `climbinglogbook.com` is a verified Resend domain; `server/lib/email.js` sends from `myaccount@climbinglogbook.com` (#314). |
 | `TURNSTILE_SECRET_KEY` | secret (Worker runtime, not Terraform) | Cloudflare Turnstile's server-side verification secret (#311) — same one-time manual `wrangler secret put` treatment, value read via `terraform output -raw turnstile_secret` after `infra/turnstile.tf` applies. `env.preview` and local dev (`.dev.vars`) instead use Cloudflare's own public "always passes" test secret (`1x0000000000000000000000000000000AA`, documented at [Turnstile testing](https://developers.cloudflare.com/turnstile/troubleshooting/testing/)) — not a real credential, safe to commit. |
 
 ### `CLOUDFLARE_API_TOKEN` permissions
