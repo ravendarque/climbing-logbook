@@ -118,6 +118,26 @@ describe("resolveExportRows (#27)", () => {
     const entry = { name: "N", grade: "6B", type: "boulder", status: "send", placeId: "does-not-exist", firstAttempt: false };
     expect(resolveExportRows([entry], places, locations)[0]).toMatchObject({ location: "", area: "", country: "" });
   });
+
+  // JSON.stringify's own escaping is never at risk -- what this proves is
+  // that resolveExportRows' plain object-building doesn't mangle special
+  // characters (truncate at a quote, choke on a backslash, etc.) before
+  // they ever reach it. A real JSON.stringify/JSON.parse round-trip, not
+  // just an equality check against the pre-stringify object, so a bug
+  // that only shows up in the actual serialized text (not the in-memory
+  // object) would still be caught.
+  it("survives a real JSON.stringify/JSON.parse round-trip with quotes, a backslash, a newline, and unicode", () => {
+    const entry = {
+      name: 'Route "The Gift" (5.12a) \\ Área São Paulo\nSecond line',
+      grade: "6B", type: "boulder", status: "send", placeId: "place1", firstAttempt: false,
+      video: "", notes: 'He said "nice" \\o/ 🧗',
+    };
+    const [row] = resolveExportRows([entry], places, locations);
+    const roundTripped = JSON.parse(JSON.stringify(row));
+    expect(roundTripped).toEqual(row);
+    expect(roundTripped.name).toBe('Route "The Gift" (5.12a) \\ Área São Paulo\nSecond line');
+    expect(roundTripped.notes).toBe('He said "nice" \\o/ 🧗');
+  });
 });
 
 describe("buildEntriesCsv (#27)", () => {
@@ -143,6 +163,32 @@ describe("buildEntriesCsv (#27)", () => {
   it("escapes a quote inside a field", () => {
     const rows = [{ name: "N", grade: "6B", discipline: "boulder", status: "send", firstAttempt: false, date: "", location: "L", area: "A", country: "C", video: "", notes: 'She said "nice send"' }];
     expect(buildEntriesCsv(rows)).toContain('"She said ""nice send"""');
+  });
+
+  it("quotes a field containing a newline", () => {
+    const rows = [{ name: "N", grade: "6B", discipline: "boulder", status: "send", firstAttempt: false, date: "", location: "L", area: "A", country: "C", video: "", notes: "Line one\nLine two" }];
+    expect(buildEntriesCsv(rows)).toContain('"Line one\nLine two"');
+  });
+
+  // #487 -- CSV/formula injection: a field starting with one of these
+  // would otherwise be interpreted as a formula by Excel/Sheets/
+  // LibreOffice when the exported file is opened.
+  it.each(["=1+1", "+1", "-1", "@SUM(A1)", "\tA1", "\rA1"])(
+    "neutralizes a field starting with a formula-trigger character (%j)",
+    notes => {
+      const rows = [{ name: "N", grade: "6B", discipline: "boulder", status: "send", firstAttempt: false, date: "", location: "L", area: "A", country: "C", video: "", notes }];
+      expect(buildEntriesCsv(rows)).toContain(`,'${notes}\n`);
+    }
+  );
+
+  it("does not neutralize a field that merely contains, but doesn't start with, a trigger character", () => {
+    const rows = [{ name: "N", grade: "6B", discipline: "boulder", status: "send", firstAttempt: false, date: "", location: "L", area: "A", country: "C", video: "", notes: "5.12a - The Nose" }];
+    expect(buildEntriesCsv(rows)).toContain(",5.12a - The Nose\n");
+  });
+
+  it("neutralizes a formula-triggering field that also needs RFC4180 quoting", () => {
+    const rows = [{ name: "N", grade: "6B", discipline: "boulder", status: "send", firstAttempt: false, date: "", location: "L", area: "A", country: "C", video: "", notes: '=HYPERLINK("http://evil.com","click"), nice' }];
+    expect(buildEntriesCsv(rows)).toContain('"\'=HYPERLINK(""http://evil.com"",""click""), nice"');
   });
 
   it("round-trips through parseCsvText -- export then reimport produces the same rows", () => {
