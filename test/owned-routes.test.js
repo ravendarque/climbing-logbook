@@ -58,9 +58,9 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(200);
   });
 
-  it("accepts all page shapes: log, map, performance, account, account/edit", async () => {
+  it("accepts all page shapes: log, map, performance, account, account/edit, account/import", async () => {
     const { cookie } = await createAuthedSession({ username: "allpagesuser", hostname: "climbinglogbook.com" });
-    for (const page of ["log", "map", "performance", "account", "account/edit"]) {
+    for (const page of ["log", "map", "performance", "account", "account/edit", "account/import"]) {
       const res = await fetchOwnedRoute("allpagesuser", page, { cookie });
       expect(res.status).toBe(200);
     }
@@ -114,6 +114,15 @@ describe("owned route authorization", () => {
     const html = await res.text();
     expect(html).toContain("Edit account details");
     expect(html).toContain('src="/logbook/account-edit-app.js"');
+  });
+
+  it("serves the real static shell for account/import", async () => {
+    const { cookie } = await createAuthedSession({ username: "accountimportshelluser", hostname: "climbinglogbook.com" });
+    const res = await fetchOwnedRoute("accountimportshelluser", "account/import", { cookie });
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain("Import entries");
+    expect(html).toContain('src="/logbook/account-import-app.js"');
   });
 
   it("falls through (404) for a fourth path segment that isn't log/map/performance", async () => {

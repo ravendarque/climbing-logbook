@@ -1,9 +1,10 @@
 // Composition root for /:username/account (#302) -- bundled by esbuild
 // into public/logbook/account-app.js. A landing page listing the
-// account section's own sub-pages (just "Edit account details" for now;
-// Display/Import/Export are listed as "Coming soon" in the shell's own
-// static markup, not wired here -- no shared nav component between them
-// yet, see owned-routes.js's own SHELL_PATHS comment for why).
+// account section's own sub-pages ("Edit account details" and, as of
+// #224, "Import entries"; Display preferences and Export entries are
+// still listed as "Coming soon" in the shell's own static markup, not
+// wired here -- no shared nav component between them yet, see
+// owned-routes.js's own SHELL_PATHS comment for why).
 //
 // Reuses client/store.js/admin-auth.js unchanged (neither touches
 // discipline-btn), but NOT client/header-chrome.js -- that factory's
@@ -38,6 +39,7 @@ const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 const store = createStore();
 
 document.getElementById("edit-account-link").href = `/${encodeURIComponent(USERNAME)}/account/edit`;
+document.getElementById("import-link").href = `/${encodeURIComponent(USERNAME)}/account/import`;
 document.getElementById("back-to-logbook-link").href = `/${encodeURIComponent(USERNAME)}/log`;
 
 // Same divider rule as client/header-chrome.js's own updateMenuDivider()

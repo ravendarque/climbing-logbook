@@ -16,8 +16,10 @@ async function validateFields(entry, env, userId) {
 
 // type/status map directly onto discipline_id/status_id -- #21's lookup
 // tables use the same slugs as natural keys, so this is a column rename,
-// not a value translation; the JSON wire format is unchanged.
-function buildRow(entry, id, userId) {
+// not a value translation; the JSON wire format is unchanged. Exported --
+// src/api/logbook-import.js (#224 phase 3) builds rows for its own
+// validated-and-resolved entries the exact same way, not a second copy.
+export function buildRow(entry, id, userId) {
   return {
     id,
     user_id: userId,
@@ -33,7 +35,7 @@ function buildRow(entry, id, userId) {
   };
 }
 
-function rowToJson(row) {
+export function rowToJson(row) {
   return {
     id: row.id,
     name: row.name,

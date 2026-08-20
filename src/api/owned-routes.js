@@ -41,11 +41,16 @@ const SHELL_PATHS = {
   // (/:username/account/edit); the bare /:username/account landing page
   // is its own separate entry ("account", no slash) rather than a
   // redirect to /edit -- see src/index.js's own regex for how both are
-  // matched. Later sub-pages (display/import/export) each get one more
-  // entry here, same as this one -- no shared nav component needed until
-  // a second one actually exists (see #302's own scope notes).
+  // matched. Later sub-pages (display/import) each get one more entry
+  // here, same as this one -- no shared nav component needed until a
+  // second one actually exists (see #302's own scope notes).
   account: "/account/index.html",
   "account/edit": "/account/edit/index.html",
+  // #224 phase 2-4 -- CSV bulk import only. Export is a separate,
+  // one-click flow (#27), not part of this page -- deliberately not
+  // named "account/import-export" (Raven's own correction: these are two
+  // very different flows, import is the only one this story builds).
+  "account/import": "/account/import/index.html",
 };
 
 export async function handleOwnedRoute(request, env, username, page) {

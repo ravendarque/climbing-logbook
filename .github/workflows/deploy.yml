@@ -17,22 +17,21 @@ jobs:
       - uses: ./.github/actions/setup-node-pnpm
       - run: pnpm run tailwind:build
       # #391 fixed this exact gap for PR previews (preview.yml) but never
-      # got ported here -- production never built these four bundles at
-      # all, so /:username/{log,map,performance} and the public
-      # /:username page 404'd on their JS bundle (rendering nothing but
-      # the static shell's brand header) on every production deploy since
-      # #348/#351 first shipped (#405).
-      - run: pnpm run map:build
-      - run: pnpm run performance:build
-      - run: pnpm run log:build
-      - run: pnpm run profile:build
-      # #302 adds two more (account, account/edit) -- same #405 gap this
-      # file's own comment above already describes, caught before merge
-      # this time by CI's e2e job actually failing (playwright.config.js's
-      # webServer build chain has to list every bundle too, and briefly
-      # didn't), not after a real deploy shipped broken pages again.
-      - run: pnpm run account:build
-      - run: pnpm run account-edit:build
+      # got ported here -- production never built these bundles at all,
+      # so /:username/{log,map,performance} and the public /:username
+      # page 404'd on their JS bundle (rendering nothing but the static
+      # shell's brand header) on every production deploy since #348/#351
+      # first shipped (#405). Happened a third time (#224) when a new
+      # page's own build step got added to this file and preview.yml but
+      # not playwright.config.js's own separate hardcoded list (or vice
+      # versa) -- three independent copies of "every page bundle" is what
+      # let that keep happening. pages:build (package.json) is now the
+      # one place that list is written down; this workflow, preview.yml,
+      # and playwright.config.js's webServer all call it instead of
+      # hand-listing pages themselves, so a new page is a one-line change
+      # to pages:build's own script rather than three separate ones to
+      # remember and get right.
+      - run: pnpm run pages:build
       # D1 migrations are never auto-applied by `wrangler deploy` (same
       # gap `wrangler dev` has locally, and `versions upload` had for
       # preview.yml until #323) -- found the hard way: production's D1

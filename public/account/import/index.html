@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Import entries – Climbing Logbook</title>
+  <link rel="manifest" href="/logbook/manifest.json">
+  <link rel="icon" type="image/png" sizes="32x32" href="/logbook/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/logbook/favicon-16.png">
+  <link rel="apple-touch-icon" href="/logbook/apple-touch-icon.png">
+  <meta name="theme-color" content="#ff2727">
+  <!-- Genuinely static shell (#348), same pattern as public/account/index.html
+       -- see that file's own comment for why every path below is absolute
+       and client/account-import-main.js reads the username from
+       location.pathname itself rather than this file being templated. -->
+  <link rel="stylesheet" href="/logbook/tailwind.css">
+  <script src="/logbook/components/climbing-header.js"></script>
+  <script>
+    (function () {
+      var stored = localStorage.getItem("logbook_theme");
+      var theme = stored || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+</head>
+<body class="bg-background text-foreground font-sans px-4 pt-6 pb-16 min-w-[300px]">
+<div class="max-w-[960px] mx-auto">
+  <div class="flex items-center justify-end gap-2 mb-6" id="header-row">
+    <climbing-menu-bar no-discipline></climbing-menu-bar>
+  </div>
+
+  <climbing-header variant="brand" align-left></climbing-header>
+
+  <!-- #224 -- same treatment as public/account/edit/index.html's
+       back-to-account-link: a real button (admin-btn admin-btn-primary),
+       not plain muted link text, with the same mt-4/mb-5 spacing. -->
+  <a class="admin-btn admin-btn-primary mt-4 mb-5" id="back-to-account-link" href="#">
+    <svg class="w-[.9rem] h-[.9rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+    My Account
+  </a>
+
+  <h2 class="section-heading">Import entries</h2>
+
+  <!-- #224 -- a one-off workflow (Raven's own framing, most likely used
+       once when a new user brings existing data in), so it's a linear
+       three-step page rather than a form buried among other settings:
+       download the template, fill it in, upload it back. All-or-nothing
+       server-side (src/api/logbook-import.js) -- nothing is written until
+       every row validates, so #import-errors below always lists every
+       problem row at once, not one at a time across repeated uploads. -->
+  <div class="max-w-[520px] flex flex-col gap-4" id="import-steps">
+
+    <div class="row-card">
+      <div class="row-card-title mb-1">1. Download the template</div>
+      <p class="text-[.85rem] text-muted mb-3">A CSV file with the columns this page expects. Fill in one row per entry, keeping the header row as-is.</p>
+      <button type="button" class="admin-btn" id="download-template-btn">Download CSV template</button>
+    </div>
+
+    <div class="row-card">
+      <div class="row-card-title mb-1">2. Upload your filled-in file</div>
+      <p class="text-[.85rem] text-muted mb-3">Nothing is imported until every row in the file is valid -- if anything's wrong, you'll see every problem row at once so you can fix the whole file in one pass.</p>
+      <form class="flex flex-wrap items-center gap-2" id="import-form">
+        <input class="flex-1 min-w-0 text-[.85rem]" id="import-file-input" name="file" type="file" accept=".csv,text/csv" required>
+        <button type="submit" class="admin-btn admin-btn-primary shrink-0" id="import-submit-btn">Import</button>
+      </form>
+    </div>
+
+    <p class="text-[.85rem] text-muted" id="import-status" hidden></p>
+
+    <div class="row-card" id="import-errors" hidden>
+      <div class="row-card-title mb-2 text-accent">Some rows couldn't be imported</div>
+      <ul class="text-[.85rem] flex flex-col gap-1 list-disc pl-5" id="import-errors-list"></ul>
+    </div>
+
+    <div class="row-card" id="import-success" hidden>
+      <div class="row-card-title mb-1">Import complete</div>
+      <p class="text-[.85rem] text-muted" id="import-success-message"></p>
+    </div>
+
+  </div>
+
+  <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>
+</div>
+
+<script type="module" src="/logbook/account-import-app.js"></script>
+</body>
+</html>

@@ -1,4 +1,5 @@
 import { handleGet, handlePost, handlePut, handleDelete } from "./api/logbook.js";
+import { handleImport } from "./api/logbook-import.js";
 import { handleGet as handleGetPlaces, handlePost as handlePostPlaces } from "./api/places.js";
 import { handleGet as handleGetLocations, handlePost as handlePostLocations } from "./api/locations.js";
 import { handleGetSettings, handlePatchSettings } from "./api/settings.js";
@@ -38,6 +39,10 @@ const ADMIN_ROUTES = {
     PUT: handlePut,
     DELETE: handleDelete,
   },
+  // #224 phase 3 -- CSV bulk import, a raw text/csv body rather than
+  // JSON (see handleImport's own comment), so it's its own pathname
+  // rather than a third method on /logbook/api/admin/logbook.
+  "/logbook/api/admin/logbook/import": { POST: handleImport },
   "/logbook/api/admin/places": { POST: handlePostPlaces },
   "/logbook/api/admin/locations": { POST: handlePostLocations },
   "/logbook/api/admin/settings": { PATCH: handlePatchSettings },
@@ -65,7 +70,7 @@ export default {
       // one needs a session/authorization decision the bare route doesn't.
       // #302 adds account(/edit) alongside log/map/performance -- same
       // shape, one more SHELL_PATHS entry (see owned-routes.js).
-      const ownedRouteMatch = pathname.match(/^\/([^/]+)\/(log|map|performance|account(?:\/edit)?)\/?$/);
+      const ownedRouteMatch = pathname.match(/^\/([^/]+)\/(log|map|performance|account(?:\/edit|\/import)?)\/?$/);
       if (ownedRouteMatch) {
         const [, username, page] = ownedRouteMatch;
         return handleOwnedRoute(request, env, username, page);

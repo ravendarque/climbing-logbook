@@ -7,8 +7,10 @@ async function validateFields(location) {
 
 // country stays optional free text, like place/area were before it --
 // no server-side allowlist, expected to be a plain name matching
-// COUNTRIES[i].name in index.html in practice.
-function buildRow(location, id, userId) {
+// COUNTRIES[i].name in index.html in practice. Exported -- #224 phase 3's
+// bulk import (src/api/logbook-import.js) mints new Location rows the
+// exact same way as this single-record POST path, not a second copy.
+export function buildRow(location, id, userId) {
   return {
     id,
     user_id: userId,
@@ -17,7 +19,7 @@ function buildRow(location, id, userId) {
   };
 }
 
-function rowToJson(row) {
+export function rowToJson(row) {
   return {
     id:      row.id,
     name:    row.name,

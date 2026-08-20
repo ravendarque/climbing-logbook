@@ -81,6 +81,20 @@ export async function mockApi(page, { entries = [], places = [], locations = [],
     return route.continue();
   });
 
+  // #224 -- the client sends the raw CSV body as-is (text/csv, not JSON),
+  // so this fakes just enough of src/api/logbook-import.js's own
+  // contract (a row count and an appended entries array) for
+  // e2e/account-import-page.spec.js to prove the client's own wiring
+  // (file read, request, success/error panel toggling) -- the real
+  // parsing/validation/resolution logic is Vitest's job
+  // (test/logbook-import.test.js), not re-tested here.
+  await page.route("**/logbook/api/admin/logbook/import", async route => {
+    if (route.request().method() !== "POST") return route.continue();
+    const rows = (route.request().postData() || "").trim().split("\n").slice(1).filter(Boolean);
+    _entries = [..._entries, ...rows.map((_, i) => ({ id: `imported-${_entries.length + i}` }))];
+    return route.fulfill({ status: 201, json: { imported: rows.length, entries: _entries } });
+  });
+
   await page.route("**/logbook/api/admin/places", async route => {
     if (route.request().method() !== "POST") return route.continue();
     _places = [..._places, route.request().postDataJSON()];
