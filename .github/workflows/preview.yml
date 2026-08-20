@@ -42,18 +42,10 @@ jobs:
       # #391 -- these were missing entirely, so /map and /performance 404'd
       # on their JS bundle on every preview deployment (public/logbook/
       # map-app.js and performance-app.js are gitignored build output --
-      # nothing else ever produces them).
-      - run: pnpm run map:build
-      - run: pnpm run performance:build
-      - run: pnpm run log:build
-      - run: pnpm run profile:build
-      # #302 adds two more (account, account/edit) -- same #391 gap this
-      # file's own comment above already describes.
-      - run: pnpm run account:build
-      - run: pnpm run account-edit:build
-      # #224 -- same #391 gap again, missed a third time -- see
-      # deploy.yml's own comment on this exact line for how it was caught.
-      - run: pnpm run account-import:build
+      # nothing else ever produces them). See deploy.yml's own comment on
+      # this exact line -- pages:build (package.json) is the one shared
+      # list of page bundles now, not a copy hand-maintained in this file.
+      - run: pnpm run pages:build
       # D1 migrations aren't auto-applied by `versions upload` any more
       # than `wrangler dev` auto-applies them locally -- the preview D1
       # database (own bootstrap, not Terraform-managed) needs this run
