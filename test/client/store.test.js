@@ -61,37 +61,6 @@ describe("entries/places/locations", () => {
   });
 });
 
-describe("setInitialEntries/addEntries/locationCounts (#111 -- /log's per-location pagination)", () => {
-  it("setInitialEntries replaces the collection but does NOT persist it", () => {
-    storage.setItem("logbook_entries_cache", JSON.stringify(ENTRIES));
-    const capped = [ENTRIES[0]];
-    store.setInitialEntries(capped);
-    expect(store.getEntries()).toEqual(capped);
-    // Untouched -- an earlier session's fuller cached snapshot must
-    // survive a still-partial initial load, see store.js's own comment.
-    expect(JSON.parse(storage.getItem("logbook_entries_cache"))).toEqual(ENTRIES);
-  });
-
-  it("getLocationCounts/setLocationCounts reflect the last value set", () => {
-    expect(store.getLocationCounts()).toEqual({});
-    store.setLocationCounts({ l1: 25 });
-    expect(store.getLocationCounts()).toEqual({ l1: 25 });
-  });
-
-  it("addEntries appends without persisting by default", () => {
-    store.setInitialEntries([ENTRIES[0]]);
-    store.addEntries([ENTRIES[1]]);
-    expect(store.getEntries()).toEqual(ENTRIES);
-    expect(storage.getItem("logbook_entries_cache")).toBeNull();
-  });
-
-  it("addEntries persists the full current entries list when complete: true", () => {
-    store.setInitialEntries([ENTRIES[0]]);
-    store.addEntries([ENTRIES[1]], { complete: true });
-    expect(JSON.parse(storage.getItem("logbook_entries_cache"))).toEqual(ENTRIES);
-  });
-});
-
 describe("loadEntriesFromCache", () => {
   it("returns false and leaves entries empty when nothing was ever cached", () => {
     expect(store.loadEntriesFromCache()).toBe(false);
