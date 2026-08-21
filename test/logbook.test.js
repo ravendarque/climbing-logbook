@@ -86,37 +86,46 @@ describe("handleGet (flat limit/offset, no locationId -- #498 chunked full sync)
     return fetchJson(`${PUBLIC_URL}?${qs}`, { headers: { Cookie: extraCookie } });
   }
 
-  it("returns a capped, offset slice ordered the same way listForUser() would", async () => {
+  it("returns a capped, offset slice ordered the same way listForUser() would, plus the true total", async () => {
     for (let i = 0; i < 5; i++) await post({ ...validEntry(), name: `Route ${i}` });
 
     const first = await (await getChunk({ limit: "2" })).json();
     expect(first.entries.map(e => e.name)).toEqual(["Route 0", "Route 1"]);
+    expect(first.total).toBe(5);
 
     const second = await (await getChunk({ limit: "2", offset: "2" })).json();
     expect(second.entries.map(e => e.name)).toEqual(["Route 2", "Route 3"]);
+    expect(second.total).toBe(5);
 
     const last = await (await getChunk({ limit: "2", offset: "4" })).json();
     expect(last.entries.map(e => e.name)).toEqual(["Route 4"]);
+    expect(last.total).toBe(5);
   });
 
+  // total falls back to 0 here, not the real count -- COUNT(*) OVER()
+  // can only be read off a row this query actually returns, and an
+  // offset past the end returns none. Not a real problem for /sync's
+  // own chunk loop (client/sync-main.js): it always stops as soon as a
+  // chunk comes back shorter than requested, so it never issues a
+  // request that overshoots the total in normal operation.
   it("offset past the end returns an empty (not error) chunk", async () => {
     await post(validEntry());
     const res = await getChunk({ limit: "20", offset: "50" });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ entries: [] });
+    expect(await res.json()).toEqual({ entries: [], total: 0 });
   });
 
-  it("anonymous caller gets an empty chunk, not an error", async () => {
+  it("anonymous caller gets an empty chunk with a zero total, not an error", async () => {
     const res = await getChunk({ limit: "20" }, "");
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ entries: [] });
+    expect(await res.json()).toEqual({ entries: [], total: 0 });
   });
 
   it("cross-user isolation -- a chunk never includes another user's entries", async () => {
     await post(validEntry());
     const otherUser = await createAuthedSession();
     const res = await getChunk({ limit: "20" }, otherUser.cookie);
-    expect(await res.json()).toEqual({ entries: [] });
+    expect(await res.json()).toEqual({ entries: [], total: 0 });
   });
 
   it("defaults offset to 0 when omitted", async () => {
