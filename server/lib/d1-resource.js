@@ -18,10 +18,16 @@ import { json, parseJsonBody } from "./json.js";
 // user's rows, shaped for the wire" query after their own writes, and
 // used to hand-copy it rather than share it (found via code review,
 // 2026-08-09).
-export async function listForUser(env, table, userId, rowToJson) {
+// #499 -- `excludeDeleted` opt-in (default false, every existing caller
+// unaffected): only `entries` has a deleted_at tombstone column at all
+// (places/locations have no delete capability yet, ADR-0009), so this
+// can't be an unconditional filter without erroring on tables that
+// don't have the column.
+export async function listForUser(env, table, userId, rowToJson, { excludeDeleted = false } = {}) {
   if (!userId) return [];
+  const where = excludeDeleted ? "WHERE user_id = ? AND deleted_at IS NULL" : "WHERE user_id = ?";
   const { results } = await env.LOGBOOK_DB
-    .prepare(`SELECT * FROM ${table} WHERE user_id = ? ORDER BY created_at`)
+    .prepare(`SELECT * FROM ${table} ${where} ORDER BY created_at`)
     .bind(userId)
     .all();
   return results.map(rowToJson);
@@ -37,9 +43,16 @@ export async function listForUser(env, table, userId, rowToJson) {
 // rather than shared, which is exactly the kind of duplication a real fix
 // to this check landing in only one copy would leave the others silently
 // vulnerable to (found via code review, 2026-08-09).
-export async function findOwnedRow(env, table, id, userId) {
+// #499 -- `excludeDeleted` opt-in, same reasoning as listForUser above.
+// Deliberately NOT applied to handlePost's own idempotent-replay check
+// below (a soft-deleted row still occupies its id -- that check needs
+// to see it to avoid a duplicate-PRIMARY-KEY INSERT), only to
+// ownership checks that mean "does this exist as something the caller
+// can currently act on" (e.g. handlePut's own "can I edit this entry").
+export async function findOwnedRow(env, table, id, userId, { excludeDeleted = false } = {}) {
+  const where = excludeDeleted ? "WHERE id = ? AND user_id = ? AND deleted_at IS NULL" : "WHERE id = ? AND user_id = ?";
   return env.LOGBOOK_DB
-    .prepare(`SELECT id FROM ${table} WHERE id = ? AND user_id = ?`)
+    .prepare(`SELECT id FROM ${table} ${where}`)
     .bind(id, userId)
     .first();
 }
@@ -58,9 +71,16 @@ export async function insertRow(env, table, row) {
     .run();
 }
 
-export function createD1ResourceHandlers({ table, resourceKey, validateFields, buildRow, rowToJson }) {
+// #499 -- `excludeDeleted` (default false, every existing caller
+// unaffected) hides soft-deleted rows from what's actually shown back
+// to the client (handleGet's list, and handlePost's own post-mutation
+// "here's the updated list" responses) -- entries.js's own instantiation
+// opts in. Deliberately NOT applied to the idempotent-replay existence
+// check inside handlePost below -- see findOwnedRow's own comment on
+// why that check needs to see a soft-deleted row too.
+export function createD1ResourceHandlers({ table, resourceKey, validateFields, buildRow, rowToJson, excludeDeleted = false }) {
   async function handleGet(request, env, userId) {
-    const list = await listForUser(env, table, userId, rowToJson);
+    const list = await listForUser(env, table, userId, rowToJson, { excludeDeleted });
     return json({ [resourceKey]: list }, 200, { "Cache-Control": "no-store" });
   }
 
@@ -80,12 +100,12 @@ export function createD1ResourceHandlers({ table, resourceKey, validateFields, b
     // user's row is a different row entirely here, not a replay.
     const existing = await findOwnedRow(env, table, id, userId);
     if (existing) {
-      return json({ [resourceKey]: await listForUser(env, table, userId, rowToJson) }, 200);
+      return json({ [resourceKey]: await listForUser(env, table, userId, rowToJson, { excludeDeleted }) }, 200);
     }
 
     await insertRow(env, table, buildRow(record, id, userId));
 
-    return json({ [resourceKey]: await listForUser(env, table, userId, rowToJson) }, 201);
+    return json({ [resourceKey]: await listForUser(env, table, userId, rowToJson, { excludeDeleted }) }, 201);
   }
 
   return { handleGet, handlePost };

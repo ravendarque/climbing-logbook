@@ -16,6 +16,9 @@ export function buildRow(location, id, userId) {
     user_id: userId,
     name:    location.name,
     country: location.country ?? "",
+    // #499 -- see places.js's own buildRow() comment on why this is
+    // app-level, not a column DEFAULT.
+    sync_cursor: Date.now(),
   };
 }
 

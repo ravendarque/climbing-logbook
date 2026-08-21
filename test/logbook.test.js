@@ -75,6 +75,16 @@ describe("handleGet", () => {
     expect(entries).toHaveLength(1);
     expect(entries[0].name).toBe("La Marie-Rose");
   });
+
+  // #499 -- a soft-deleted entry stays a real row in D1, but the
+  // "everything" endpoint (like every other read path) excludes it.
+  it("excludes a soft-deleted entry", async () => {
+    const created = await (await post(validEntry())).json();
+    await del(created.entries[0].id);
+
+    const { entries } = await (await get()).json();
+    expect(entries).toEqual([]);
+  });
 });
 
 // #498 -- /sync's own flat (not per-location) chunked fetch: opt-in via
@@ -134,6 +144,18 @@ describe("handleGet (flat limit/offset, no locationId -- #498 chunked full sync)
     const { entries } = await res.json();
     expect(entries.map(e => e.name)).toEqual(["Only Route"]);
   });
+
+  // #499 -- excludes a soft-deleted entry, and its true total drops
+  // accordingly (not just filtered out of the returned rows).
+  it("excludes a soft-deleted entry from both the chunk and its total", async () => {
+    const created = await (await post(validEntry())).json();
+    await post({ ...validEntry(), name: "Still Here" });
+    await del(created.entries[0].id);
+
+    const { entries, total } = await (await getChunk({ limit: "20" })).json();
+    expect(entries.map(e => e.name)).toEqual(["Still Here"]);
+    expect(total).toBe(1);
+  });
 });
 
 // #111 -- /log's own per-*table* (location) "Show more"/"Show all"
@@ -177,6 +199,15 @@ describe("handleGet (locationId -- #111 per-table pagination)", () => {
     }
     const { entries } = await (await getLocation(locationId)).json();
     expect(entries).toHaveLength(20);
+  });
+
+  // #499 -- excludes a soft-deleted entry from a per-location page too.
+  it("excludes a soft-deleted entry", async () => {
+    const created = await (await post(validEntry())).json();
+    await del(created.entries[0].id);
+
+    const { entries } = await (await getLocation(locationId)).json();
+    expect(entries).toEqual([]);
   });
 
   it("returns an empty list for an anonymous caller, not an error", async () => {
@@ -334,6 +365,18 @@ describe("handlePost", () => {
     expect(entries[0].video).toBeNull();
     expect(entries[0].notes).toBeNull();
   });
+
+  // #499 -- app-level Date.now(), not a column DEFAULT (D1 rejects a
+  // non-constant DEFAULT on ALTER TABLE ADD COLUMN) -- confirms the real
+  // insert path actually populates it, not just the migration's own
+  // one-time backfill of pre-existing rows.
+  it("populates sync_cursor on create", async () => {
+    const before = Date.now();
+    const res = await post(validEntry());
+    const { entries } = await res.json();
+    const row = await env.LOGBOOK_DB.prepare(`SELECT sync_cursor FROM entries WHERE id = ?`).bind(entries[0].id).first();
+    expect(row.sync_cursor).toBeGreaterThanOrEqual(before);
+  });
 });
 
 describe("handlePut", () => {
@@ -372,6 +415,30 @@ describe("handlePut", () => {
     const res = await put({ ...validEntry(), id, status: "flashed" });
     expect(res.status).toBe(400);
     expect((await res.json()).error).toMatch(/^status must be one of/);
+  });
+
+  // #499 -- a soft-deleted entry is rejected as "not found," same as if
+  // it never existed -- editing it should never resurrect it with new
+  // field values.
+  it("404s when the id belongs to a soft-deleted entry", async () => {
+    const created = await (await post(validEntry())).json();
+    const id = created.entries[0].id;
+    await del(id);
+
+    const res = await put({ ...validEntry(), id, name: "Renamed" });
+    expect(res.status).toBe(404);
+    expect((await res.json()).error).toBe("Entry not found");
+  });
+
+  it("bumps sync_cursor on a real edit", async () => {
+    const created = await (await post(validEntry())).json();
+    const id = created.entries[0].id;
+    const before = await env.LOGBOOK_DB.prepare(`SELECT sync_cursor FROM entries WHERE id = ?`).bind(id).first();
+
+    await put({ ...validEntry(), id, name: "Renamed" });
+
+    const after = await env.LOGBOOK_DB.prepare(`SELECT sync_cursor FROM entries WHERE id = ?`).bind(id).first();
+    expect(after.sync_cursor).toBeGreaterThanOrEqual(before.sync_cursor);
   });
 });
 
@@ -417,6 +484,32 @@ describe("handleDelete", () => {
     const { entries } = await res.json();
     expect(entries).toEqual([created.entries[0]]);
     expect(entries.find(e => e.id === id)).toBeDefined();
+  });
+
+  // #499 -- soft delete (a deleted_at tombstone), not a real DELETE, so a
+  // future delta fetch (#500) can learn a row disappeared instead of a
+  // deleted row just silently never showing up again with no record why.
+  it("soft-deletes -- the row still exists in D1, just excluded from reads", async () => {
+    const created = await (await post(validEntry())).json();
+    const id = created.entries[0].id;
+
+    await del(id);
+
+    const row = await env.LOGBOOK_DB.prepare(`SELECT deleted_at FROM entries WHERE id = ?`).bind(id).first();
+    expect(row.deleted_at).not.toBeNull();
+    expect(typeof row.deleted_at).toBe("number");
+  });
+
+  it("bumps sync_cursor on delete, same as a real change a future delta fetch needs to see", async () => {
+    const created = await (await post(validEntry())).json();
+    const id = created.entries[0].id;
+    const before = await env.LOGBOOK_DB.prepare(`SELECT sync_cursor FROM entries WHERE id = ?`).bind(id).first();
+
+    await del(id);
+
+    const after = await env.LOGBOOK_DB.prepare(`SELECT sync_cursor, deleted_at FROM entries WHERE id = ?`).bind(id).first();
+    expect(after.sync_cursor).toBeGreaterThanOrEqual(before.sync_cursor);
+    expect(after.sync_cursor).toBe(after.deleted_at);
   });
 });
 

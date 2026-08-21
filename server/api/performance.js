@@ -20,7 +20,9 @@ import { pyramidSplitRows } from "../../shared/pyramid-stats.js";
 // bundle ever loads) -- consistent with every other GET route here, not
 // a special case.
 export async function handleGetPyramid(request, env, userId) {
-  const entries = await listForUser(env, "entries", userId, rowToJson);
+  // #499 -- excludeDeleted: a soft-deleted send shouldn't still count
+  // toward the pyramid.
+  const entries = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
   return json({
     boulder: pyramidSplitRows("boulder", entries),
     lead: pyramidSplitRows("lead", entries),
