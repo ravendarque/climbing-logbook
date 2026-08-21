@@ -39,7 +39,7 @@
 import { escapeHtml } from "./escape-html.js";
 import { formatDate } from "../date-helpers.js";
 import { activeGradeList, filteredEntries, groupByPlace, placeOf, sortEntries } from "../entries.js";
-import { gradeColor } from "../grade-data.js";
+import { gradeColor } from "../../shared/grade-data.js";
 import { combinedFlashLabel, combinedSendLabel, disciplineLabel, flashLabel, hydrateStatusIcons, sendLabel, statusBadge } from "../status.js";
 import { COUNTRY_BY_NAME } from "../countries.js";
 import { createDisclosure, focusableEls } from "../modal-utils.js";

@@ -8,8 +8,9 @@
 // contexts, which is exactly the "second real consumer" case that earns a
 // shared component its keep (see #344's decision recorded on this issue).
 //
-// client/pyramid-stats.js's send-counting/promotion logic is already pure
-// and reused completely unchanged, same as #350 reusing client/entries.js.
+// shared/pyramid-stats.js's send-counting/promotion logic (#111 -- moved
+// out of client/ into shared/, now runs server-side; this component no
+// longer imports or calls it at all, see pyramidData below).
 //
 // Citations/evidence-tier overlay open/close is self-contained here (own
 // focus-trap/Escape/backdrop-click, not client/modal-utils.js's
@@ -20,9 +21,9 @@
 // nothing to coordinate with. Same self-contained-modal precedent as
 // #345's <climbing-header> footnote overlay.
 //
-// entries (property) and active-discipline (attribute) come in from
-// whichever page's composition root owns that state -- this component
-// doesn't know about client/store.js.
+// pyramidData (property, #111) and active-discipline (attribute) come in
+// from whichever page's composition root owns that state -- this
+// component doesn't know about client/store.js.
 // escape-html.js is deliberately imported as "./escape-html.js", not the
 // "../escape-html.js" this file's own real nesting (client/components/)
 // would suggest -- it's always built --external (see e.g. client/main.js's
@@ -37,8 +38,8 @@
 // /performance page: esbuild failed outright on "../escape-html.js" since
 // no such file exists at client/escape-html.js either).
 import { escapeHtml } from "./escape-html.js";
-import { gradeColor } from "../grade-data.js";
-import { PYRAMID_IDEAL_BY_POSITION, pyramidSplitRows } from "../pyramid-stats.js";
+import { gradeColor } from "../../shared/grade-data.js";
+import { PYRAMID_IDEAL_BY_POSITION } from "../../shared/pyramid-stats.js";
 // focusableEls is a stateless utility with no dependency on
 // createModalHelpers()'s overlay-coordination logic (which this
 // component deliberately doesn't use, see this file's own header
@@ -146,8 +147,20 @@ function pyramidBarRow(row, { ideal = null, scaleMax, lower = false, type, promo
     </div>`;
 }
 
+// Matches pyramidSplitRows()'s own no-sends-yet shape (shared/pyramid-stats.js)
+// -- the component's own initial/unset state before a real pyramidData
+// payload ever arrives, same "no sends logged yet" render path either way.
+const EMPTY_PYRAMID = { top4: [], lower: [], hasSends: false, promotedGrade: null };
+
 export class ClimbingGradePyramid extends HTMLElement {
-  #entries = [];
+  // #111 -- server-computed, not raw entries. server/api/performance.js
+  // runs pyramidSplitRows() (shared/pyramid-stats.js) in the Worker
+  // against the full D1 result set for both disciplines at once (so
+  // switching activeDiscipline client-side stays instant, no re-fetch),
+  // and this component only ever renders the already-split result. Keeps
+  // a large logbook's entries array from ever needing to reach this
+  // component -- or the client -- at all.
+  #pyramidData = { boulder: EMPTY_PYRAMID, lead: EMPTY_PYRAMID };
   #lowerGradesExpanded = false;
   #wired = false;
   #lastFocusedEl = null;
@@ -156,8 +169,8 @@ export class ClimbingGradePyramid extends HTMLElement {
     return ["active-discipline"];
   }
 
-  get entries() { return this.#entries; }
-  set entries(v) { this.#entries = v ?? []; this.#render(); }
+  get pyramidData() { return this.#pyramidData; }
+  set pyramidData(v) { this.#pyramidData = v ?? { boulder: EMPTY_PYRAMID, lead: EMPTY_PYRAMID }; this.#render(); }
 
   get activeDiscipline() { return this.getAttribute("active-discipline") || "boulder"; }
   set activeDiscipline(v) { this.setAttribute("active-discipline", v); }
@@ -219,13 +232,9 @@ export class ClimbingGradePyramid extends HTMLElement {
     });
   }
 
-  #pyramidSplitRows(type) {
-    return pyramidSplitRows(type, this.#entries);
-  }
-
   #render() {
     const type = this.activeDiscipline;
-    const { top4, lower, hasSends, promotedGrade } = this.#pyramidSplitRows(type);
+    const { top4, lower, hasSends, promotedGrade } = this.#pyramidData[type] ?? EMPTY_PYRAMID;
     const pyramidEl = this.querySelector("#pyramid");
     const healthEl = this.querySelector("#health-card");
     const windowNoteEl = this.querySelector("#window-note");

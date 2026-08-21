@@ -12,7 +12,7 @@
 // render() (the Store's sole subscriber) picks up every change here on
 // its own; nothing in this module needs to trigger it manually.
 import { escapeHtml } from "./escape-html.js";
-import { BOULDER_GRADES, LEAD_GRADES } from "./grade-data.js";
+import { BOULDER_GRADES, LEAD_GRADES } from "../shared/grade-data.js";
 import { flashLabel, sendLabel, nameLabel, hydrateStatusIcons } from "./status.js";
 import { createPlacePicker } from "./place-picker.js";
 import { validateEntryShape } from "../shared/entry-schema.js";

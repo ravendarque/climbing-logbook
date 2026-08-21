@@ -2,10 +2,10 @@
 // counting and promotion-window logic -- takes entries as an explicit
 // parameter instead of reading main.js's module-global ALL_ENTRIES
 // directly, so this stays testable without a DOM or the rest of the app.
-// pyramidSplitRows() is called from client/pyramid-view.js's own
-// pyramidSplitRows() wrapper (#237) -- pyramidStatusIcon/pyramidBarRow/
-// render() all moved there too, since they're presentation (SVG icon
-// markup, CSS classes, DOM), not stats.
+// Moved into shared/ (#111) alongside grade-data.js -- these pure, DOM-free
+// functions now run in the Worker too (server/api/performance.js computes
+// the full pyramid server-side, so a large logbook never ships raw entries
+// to /performance at all), not just the client.
 import { BOULDER_GRADES, LEAD_GRADES } from "./grade-data.js";
 
 // 8-4-2-1 is a widely used coaching heuristic (Hörst, Hampton -- see the

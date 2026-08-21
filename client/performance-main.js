@@ -2,11 +2,16 @@
 // into public/logbook/performance-app.js, same pattern as client/map-main.js
 // (see that file's own comment for the general "trimmed from client/main.js"
 // reasoning). Reuses store.js/admin-auth.js/header-chrome.js unchanged;
-// <climbing-grade-pyramid> (#374) replaces client/pyramid-view.js entirely
-// -- the component already reimplements pyramid-view.js's rendering/overlay
-// logic against client/pyramid-stats.js's same pure send-counting/promotion
-// functions, self-contained (see that component's own file comment), so
-// there's no pyramid-view.js import here at all, unlike main.js.
+// <climbing-grade-pyramid> (#374) replaces client/pyramid-view.js entirely.
+//
+// #111 -- this page no longer fetches raw entries or computes anything
+// itself. PYRAMID_URL returns the already-computed pyramid (both
+// disciplines, server/api/performance.js running shared/pyramid-stats.js
+// in the Worker against the full D1 result set) -- store.js's
+// entries/cache machinery isn't used on this page at all any more, and
+// there's deliberately no offline fallback: performance insights are
+// online-only (Raven's own call, see the #performance-offline message in
+// public/performance/index.html for the reasoning).
 //
 // No modal-utils.js/content-overlays.js here either, same reasoning as
 // map-main.js -- this page has no notes/footnote overlay of its own, and
@@ -15,13 +20,12 @@
 import { createStore } from "./store.js";
 import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
-import { loadResource } from "./fetch-json.js";
 import { syncAdminBar } from "./admin-bar.js";
 import "./components/climbing-menu-bar.js";
 import "./components/climbing-tab-bar.js";
 import "./components/climbing-grade-pyramid.js";
 
-const DATA_URL = "/logbook/api/logbook";
+const PYRAMID_URL = "/logbook/api/performance/pyramid";
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
 
 // Same opaqueredirect-detection reasoning as client/main.js's own
@@ -47,12 +51,22 @@ const tabBar = document.querySelector("climbing-tab-bar");
 tabBar.setAttribute("username", USERNAME);
 
 const pyramidEl = document.querySelector("climbing-grade-pyramid");
+const offlineEl = document.getElementById("performance-offline");
 
 function render() {
   headerChrome.updateDisciplinePicker();
-  pyramidEl.entries = store.getEntries();
   pyramidEl.activeDiscipline = store.getActiveType();
   updateAdminBar();
+}
+
+// #111 -- a plain fetch, not fetch-json.js's loadResource(): that helper
+// assumes a single `{ [key]: array }` shape (defaulting to `[]` on a
+// missing key), but this endpoint returns both disciplines' already-split
+// pyramid results in one object, not a list.
+async function fetchPyramid() {
+  const res = await fetch(PYRAMID_URL);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
 }
 
 function updateAdminBar() {
@@ -81,12 +95,6 @@ async function boot() {
   const sessionPromise = adminAuth.checkSession();
   const settingsPromise = adminAuth.fetchSettings();
 
-  try {
-    store.setEntries(await loadResource(DATA_URL, "entries"));
-  } catch {
-    store.loadEntriesFromCache();
-  }
-
   await adminAuth.resolveActiveType(sessionPromise, settingsPromise);
 
   // Grade Pyramid requires BOTH being logged in AND Athlete Mode on (#151,
@@ -105,6 +113,20 @@ async function boot() {
   }
 
   render();
+
+  // #111 -- online-only, deliberately no offline fallback (see this
+  // file's own header comment). A failed fetch (offline, or any other
+  // network/server error) shows the "needs a connection" message instead
+  // of attempting to render anything -- never a locally-computed or
+  // stale-cached number.
+  try {
+    pyramidEl.pyramidData = await fetchPyramid();
+    offlineEl.hidden = true;
+    pyramidEl.hidden = false;
+  } catch {
+    offlineEl.hidden = false;
+    pyramidEl.hidden = true;
+  }
 }
 
 boot();

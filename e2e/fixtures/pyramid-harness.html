@@ -3,8 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <title>climbing-grade-pyramid harness (test-only, #407 Tier 1)</title>
-<!-- Test-only fixture -- mounts the real <climbing-grade-pyramid> against
-     fabricated entries, entirely outside the app's real routing/auth
+<!-- Test-only fixture -- mounts the real <climbing-grade-pyramid> against a
+     real, precomputed pyramidData payload (#111 -- computed by the bundled
+     pyramid-harness-entry.js below via the same shared/pyramid-stats.js
+     the server runs, not raw entries; the component itself no longer
+     computes anything), entirely outside the app's real routing/auth
      (#407 closed the bare /performance path this used to reach the
      component through). Reuses the real tailwind.css and
      climbing-header.js token stylesheet (both genuinely servable, not
@@ -14,24 +17,11 @@
 <link rel="stylesheet" href="/logbook/tailwind.css">
 <script src="/logbook/components/climbing-header.js"></script>
 <script type="module" src="/e2e-fixtures/climbing-grade-pyramid.js"></script>
+<script type="module" src="/e2e-fixtures/pyramid-harness.js"></script>
 </head>
 <body class="bg-background text-foreground font-sans px-4 pt-6 pb-16 min-w-[300px]">
 <div class="max-w-[960px] mx-auto">
   <climbing-grade-pyramid active-discipline="boulder"></climbing-grade-pyramid>
 </div>
-<script type="module">
-  const today = new Date().toISOString().slice(0, 10);
-  // Spans wider than the pyramid's default top-4-grades window (5C through
-  // 8A) -- e2e/component-harnesses.spec.js's show/hide-lower-grades test
-  // needs #show-lower-link to definitely exist, not conditionally.
-  document.querySelector("climbing-grade-pyramid").entries = [
-    { id: "e0", type: "boulder", status: "send", grade: "5C", date: today },
-    { id: "e1", type: "boulder", status: "send", grade: "6A", date: today },
-    { id: "e2", type: "boulder", status: "send", grade: "6B", date: today },
-    { id: "e3", type: "boulder", status: "send", grade: "6C", date: today },
-    { id: "e4", type: "boulder", status: "send", grade: "7A", date: today },
-    { id: "e5", type: "boulder", status: "send", grade: "8A", date: today },
-  ];
-</script>
 </body>
 </html>

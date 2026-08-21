@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { BOULDER_GRADES } from "../../client/grade-data.js";
+import { BOULDER_GRADES } from "../../shared/grade-data.js";
 import {
   PYRAMID_IDEAL_BY_POSITION,
   isWithinLast12Months,
   pyramidCounts,
   pyramidReadyToPromote,
   pyramidSplitRows,
-} from "../../client/pyramid-stats.js";
+} from "../../shared/pyramid-stats.js";
 
 function isoDaysAgo(days) {
   const d = new Date();

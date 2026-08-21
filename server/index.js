@@ -3,6 +3,7 @@ import { handleImport } from "./api/logbook-import.js";
 import { handleGet as handleGetPlaces, handlePost as handlePostPlaces } from "./api/places.js";
 import { handleGet as handleGetLocations, handlePost as handlePostLocations } from "./api/locations.js";
 import { handleGetSettings, handlePatchSettings } from "./api/settings.js";
+import { handleGetPyramid } from "./api/performance.js";
 import { handlePublicProfile } from "./api/public-profile.js";
 import { handlePublicResource } from "./api/public-data.js";
 import { handleOwnedRoute } from "./api/owned-routes.js";
@@ -29,6 +30,11 @@ const PUBLIC_GET_ROUTES = {
   "/logbook/api/places": handleGetPlaces,
   "/logbook/api/locations": handleGetLocations,
   "/logbook/api/settings": handleGetSettings,
+  // #111 -- Grade Pyramid computed server-side; /performance itself is
+  // owner-only (owned-routes.js gates the page), but this route follows
+  // the same public-GET convention as every other read here rather than
+  // being a special case.
+  "/logbook/api/performance/pyramid": handleGetPyramid,
 };
 
 // Every write here requires a real Better Auth session -- keyed by
