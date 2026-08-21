@@ -6,7 +6,10 @@ Accepted. Decision section trimmed 2026-08-13 (#359) -- it duplicated
 `docs/coding-standards.md`'s Connectivity Resilience checklist almost
 verbatim; the checklist itself is unchanged and still lives there. A pure
 transcription fix, not a changed decision -- see `docs/adr/README.md`'s
-rule on this.
+rule on this. Scope refined by
+[ADR-0017](0017-connectivity-first-scoped-to-owner-write-path.md)
+(2026-08-21): this decision governs the owner's own write-path, not
+every page in the app -- the core reasoning below is otherwise unchanged.
 
 ## Context
 
