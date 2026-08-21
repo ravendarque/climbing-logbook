@@ -27,6 +27,11 @@ export function buildRow(place, id, userId) {
     user_id: userId,
     location_id: place.locationId,
     area: place.area ?? "",
+    // #499 -- app-level, not a column DEFAULT: D1 rejects a non-constant
+    // DEFAULT on ALTER TABLE ADD COLUMN (confirmed empirically, see
+    // migrations/0005's own comment), so every insert path populates
+    // this explicitly.
+    sync_cursor: Date.now(),
   };
 }
 

@@ -32,6 +32,13 @@ export function buildRow(entry, id, userId) {
     date: entry.date || null,
     video: entry.video || null,
     notes: entry.notes || null,
+    // #499 -- app-level, not a column DEFAULT: D1 rejects a non-constant
+    // DEFAULT on ALTER TABLE ADD COLUMN (confirmed empirically, see
+    // migrations/0005's own comment), so every insert path populates
+    // this explicitly. Also doubles as the bump-on-edit value for
+    // handlePut below, which reuses this same buildRow() -- a fresh
+    // Date.now() every call, not the row's original creation cursor.
+    sync_cursor: Date.now(),
   };
 }
 
@@ -62,6 +69,8 @@ export const { handlePost } = createD1ResourceHandlers({
   validateFields,
   buildRow,
   rowToJson,
+  // #499 -- entries is the only resource with a deleted_at tombstone.
+  excludeDeleted: true,
 });
 
 // #111/#493 -- the size of each per-location "Show more" network page.
@@ -106,18 +115,18 @@ export async function handleGet(request, env, userId) {
     // N-1 left off.
     const limit = url.searchParams.get("limit");
     if (limit === null) {
-      return json({ entries: await listForUser(env, "entries", userId, rowToJson) }, 200, { "Cache-Control": "no-store" });
+      return json({ entries: await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true }) }, 200, { "Cache-Control": "no-store" });
     }
     if (!userId) return json({ entries: [], total: 0 }, 200, { "Cache-Control": "no-store" });
 
-    // `total` -- COUNT(*) OVER() reflects every row matching WHERE user_id
-    // = ?, independent of the LIMIT/OFFSET below (confirmed empirically
-    // against a real D1 query) -- so /sync's first chunk request already
-    // tells it the true total to show real progress against, with no
-    // separate count-only request needed.
+    // `total` -- COUNT(*) OVER() reflects every row matching the WHERE
+    // clause, independent of the LIMIT/OFFSET below (confirmed
+    // empirically against a real D1 query) -- so /sync's first chunk
+    // request already tells it the true total to show real progress
+    // against, with no separate count-only request needed.
     const offset = Number(url.searchParams.get("offset")) || 0;
     const { results } = await env.LOGBOOK_DB
-      .prepare(`SELECT *, COUNT(*) OVER() AS total FROM entries WHERE user_id = ? ORDER BY created_at LIMIT ? OFFSET ?`)
+      .prepare(`SELECT *, COUNT(*) OVER() AS total FROM entries WHERE user_id = ? AND deleted_at IS NULL ORDER BY created_at LIMIT ? OFFSET ?`)
       .bind(userId, Number(limit), offset)
       .all();
     const total = results[0]?.total ?? 0;
@@ -130,7 +139,7 @@ export async function handleGet(request, env, userId) {
   const { results } = await env.LOGBOOK_DB
     .prepare(`
       SELECT e.* FROM entries e JOIN places p ON e.place_id = p.id
-      WHERE e.user_id = ? AND p.location_id = ?
+      WHERE e.user_id = ? AND p.location_id = ? AND e.deleted_at IS NULL
       ORDER BY e.created_at LIMIT ? OFFSET ?
     `)
     .bind(userId, locationId, limit, offset)
@@ -150,8 +159,10 @@ export async function handlePut(request, env, userId) {
 
   // Scoped to this user's own row -- a forged id belonging to another
   // user simply doesn't match, same isolation guarantee as handleDelete
-  // below.
-  const existing = await findOwnedRow(env, "entries", entry.id, userId);
+  // below. excludeDeleted: true -- editing a soft-deleted entry is
+  // rejected as "not found," same as if it never existed; without this
+  // it would resurrect a deleted row with new field values instead.
+  const existing = await findOwnedRow(env, "entries", entry.id, userId, { excludeDeleted: true });
   if (!existing) return json({ error: "Entry not found" }, 404);
 
   const row = buildRow(entry, entry.id, userId);
@@ -161,9 +172,14 @@ export async function handlePut(request, env, userId) {
     .bind(...columns.map(c => row[c]), entry.id, userId)
     .run();
 
-  return json({ entries: await listForUser(env, "entries", userId, rowToJson) });
+  return json({ entries: await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true }) });
 }
 
+// #499 -- soft delete (a deleted_at tombstone), not a real DELETE: a
+// delta fetch (#500) based purely on "what's new since my cursor" can
+// never learn a row disappeared without a durable record of the
+// deletion. sync_cursor bumps too -- a delete is exactly the kind of
+// change a delta fetch needs to observe, same as an edit.
 export async function handleDelete(request, env, userId) {
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return json({ error: "Missing required field: id" }, 400);
@@ -172,11 +188,15 @@ export async function handleDelete(request, env, userId) {
   // deleted, or belongs to another user entirely) is treated as "already
   // gone" rather than an error, same idempotent-delete reasoning as
   // before (#268) plus the added guarantee that user A's delete request
-  // can never remove user B's row even if A somehow learns its id.
+  // can never remove user B's row even if A somehow learns its id. Not
+  // excludeDeleted-guarded -- re-deleting an already-deleted row is a
+  // harmless no-op in effect (it stays deleted either way), not worth a
+  // separate "is it already gone" check first.
+  const now = Date.now();
   await env.LOGBOOK_DB
-    .prepare(`DELETE FROM entries WHERE id = ? AND user_id = ?`)
-    .bind(id, userId)
+    .prepare(`UPDATE entries SET deleted_at = ?, sync_cursor = ?, updated_at = datetime('now') WHERE id = ? AND user_id = ?`)
+    .bind(now, now, id, userId)
     .run();
 
-  return json({ entries: await listForUser(env, "entries", userId, rowToJson) });
+  return json({ entries: await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true }) });
 }

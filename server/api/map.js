@@ -43,7 +43,7 @@ export async function handleGetMapCounts(request, env, userId) {
     FROM entries e
     JOIN places p ON e.place_id = p.id
     JOIN locations l ON p.location_id = l.id
-    WHERE e.user_id = ?
+    WHERE e.user_id = ? AND e.deleted_at IS NULL
     GROUP BY l.country, e.discipline_id
   `).bind(userId).all();
 

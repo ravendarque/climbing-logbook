@@ -131,5 +131,5 @@ export async function handleImport(request, env, userId) {
     await insertRow(env, "entries", buildEntryRow(draft, crypto.randomUUID(), userId));
   }
 
-  return json({ imported: drafts.length, entries: await listForUser(env, "entries", userId, entryRowToJson) }, 201);
+  return json({ imported: drafts.length, entries: await listForUser(env, "entries", userId, entryRowToJson, { excludeDeleted: true }) }, 201);
 }
