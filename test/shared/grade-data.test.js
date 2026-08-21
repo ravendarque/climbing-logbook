@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BOULDER_GRADES, LEAD_GRADES, gradeColor, gradeRank } from "../../client/grade-data.js";
+import { BOULDER_GRADES, LEAD_GRADES, gradeColor, gradeRank } from "../../shared/grade-data.js";
 
 describe("gradeRank", () => {
   it("ranks grades in ascending difficulty order", () => {

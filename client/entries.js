@@ -8,7 +8,7 @@
 // keeps thin same-named wrapper methods (placeOf, locationOf, etc.)
 // that close over its own state and call these, so none of the
 // ~25 existing call sites throughout the codebase needed to change.
-import { BOULDER_GRADES, LEAD_GRADES, gradeRank } from "./grade-data.js";
+import { BOULDER_GRADES, LEAD_GRADES, gradeRank } from "../shared/grade-data.js";
 import { dateRank } from "./date-helpers.js";
 
 // Entry -> Place -> Location join, degrading gracefully (never null,

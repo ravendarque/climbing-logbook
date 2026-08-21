@@ -19,7 +19,18 @@
 // adds an entry then re-reads the list sees its own write reflected --
 // same "fake but stateful for the test's own duration" contract a real
 // backend would give, without actually hitting one.
-export async function mockApi(page, { entries = [], places = [], locations = [], settings = { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true }, loggedIn = true, username = "fixtureuser", email = "fixtureuser@example.com" } = {}) {
+const EMPTY_PYRAMID = { top4: [], lower: [], hasSends: false, promotedGrade: null };
+
+export async function mockApi(page, {
+  entries = [], places = [], locations = [], settings = { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true },
+  loggedIn = true, username = "fixtureuser", email = "fixtureuser@example.com",
+  // #111 -- server/api/performance.js's own computed shape, not raw
+  // entries -- mock-api.js doesn't replicate the real aggregation logic
+  // (that's shared/pyramid-stats.js's own job, covered directly by
+  // test/shared/pyramid-stats.test.js); a test that needs a real pyramid
+  // supplies the already-split result it expects to see rendered.
+  pyramidData = { boulder: EMPTY_PYRAMID, lead: EMPTY_PYRAMID },
+} = {}) {
   let _entries = [...entries];
   let _places = [...places];
   let _locations = [...locations];
@@ -47,6 +58,7 @@ export async function mockApi(page, { entries = [], places = [], locations = [],
   await page.route("**/logbook/api/places", route => route.fulfill({ json: { places: _places } }));
   await page.route("**/logbook/api/locations", route => route.fulfill({ json: { locations: _locations } }));
   await page.route("**/logbook/api/settings", route => route.fulfill({ json: _settings }));
+  await page.route("**/logbook/api/performance/pyramid", route => route.fulfill({ json: pyramidData }));
 
   // Path-scoped by :username (server/api/public-data.js's own route shape)
   // -- glob-wildcarded since the harness's own synthetic USERNAME (parsed
