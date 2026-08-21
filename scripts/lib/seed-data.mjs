@@ -47,6 +47,88 @@ export const ENTRIES = [
   { id: "seed-10", name: "Slab Happy", grade: "6a+", placeId: "seed-place-portland", type: "lead", status: "checkout", firstAttempt: false, date: null, video: null, notes: null },
 ];
 
+// #111 -- opt-in, not part of the default seed above (used by every PR
+// preview deployment too, scripts/seed-preview-data.mjs, shared across
+// every open PR's preview alias -- keeping the default small keeps every
+// preview fast to seed, not just this one feature's own). Generates
+// enough places and entries to actually exercise the per-place windowed
+// load and "Show 20 more"/"Show all" pagination: a few "home crag"
+// places with well over one page's worth of entries, plus a long tail of
+// places visited once or twice each -- both a realistic distribution and
+// enough total places to prove the initial single-query load (#111,
+// ROW_NUMBER() OVER PARTITION BY place_id) actually spans many places at
+// once, not just one or two. Grades/statuses/types pulled from
+// shared/entry-schema.js's own VALID_* lists rather than hand-duplicated,
+// so this never generates a value the schema would itself reject.
+import { VALID_GRADES, VALID_STATUSES, VALID_TYPES } from "../../shared/entry-schema.js";
+
+export const LARGE_LOCATIONS = [
+  { id: "seed-large-loc-ceuse", name: "Céüse", country: "France" },
+  { id: "seed-large-loc-kalymnos", name: "Kalymnos", country: "Greece" },
+  { id: "seed-large-loc-siurana", name: "Siurana", country: "Spain" },
+];
+
+// Three deliberately entry-heavy places (well past the 20-per-page size
+// #111 settled on) -- one per new location, so "Show 20 more"/"Show all"
+// has something real to page through regardless of which discipline/
+// location a manual test happens to look at first.
+const HEAVY_PLACES = [
+  { id: "seed-large-place-font-heavy", locationId: "seed-loc-fontainebleau", area: "Cuvier Rempart", entryCount: 42 },
+  { id: "seed-large-place-ceuse-berlin", locationId: "seed-large-loc-ceuse", area: "Berlin Wall", entryCount: 35 },
+  { id: "seed-large-place-kalymnos-grande-grotta", locationId: "seed-large-loc-kalymnos", area: "Grande Grotta", entryCount: 28 },
+];
+
+// A long tail of places visited once or twice -- realistic distribution
+// (most crags in a real logbook aren't your home crag), and enough of
+// them that the initial load genuinely spans many places, not just the
+// three heavy ones above.
+const TAIL_LOCATION_IDS = [
+  "seed-loc-fontainebleau", "seed-loc-magic-wood", "seed-loc-albarracin",
+  "seed-loc-southern-sandstone", "seed-loc-portland",
+  "seed-large-loc-ceuse", "seed-large-loc-kalymnos", "seed-large-loc-siurana",
+];
+const TAIL_PLACE_COUNT = 18;
+const TAIL_PLACES = Array.from({ length: TAIL_PLACE_COUNT }, (_, i) => ({
+  id: `seed-large-place-tail-${i + 1}`,
+  locationId: TAIL_LOCATION_IDS[i % TAIL_LOCATION_IDS.length],
+  area: `Sector ${i + 1}`,
+  // 1-6 entries, deterministic (not Math.random()) -- same "safe to
+  // re-run" idempotency the fixed-ID design above already relies on.
+  entryCount: 1 + (i % 6),
+}));
+
+export const LARGE_PLACES = [...HEAVY_PLACES, ...TAIL_PLACES].map(({ entryCount, ...place }) => place);
+
+// Deterministic pseudo-variety, not real randomness -- same entry
+// count/place list produces the same dataset every run, matching the
+// fixed-ID idempotent-reseed design the rest of this file already uses.
+function generateLargeEntries() {
+  const entries = [];
+  for (const { id: placeId, entryCount } of [...HEAVY_PLACES, ...TAIL_PLACES]) {
+    for (let i = 0; i < entryCount; i++) {
+      const type = VALID_TYPES[i % VALID_TYPES.length];
+      const grades = VALID_GRADES[type];
+      const monthsAgo = i % 18; // spans just past the pyramid's 12-month send window too
+      const date = new Date();
+      date.setMonth(date.getMonth() - monthsAgo);
+      entries.push({
+        id: `seed-large-entry-${placeId}-${i}`,
+        name: `Route ${placeId.replace("seed-large-place-", "")} #${i + 1}`,
+        grade: grades[i % grades.length],
+        placeId,
+        type,
+        status: VALID_STATUSES[i % VALID_STATUSES.length],
+        firstAttempt: i % 5 === 0,
+        date: date.toISOString().slice(0, 10),
+        video: null,
+        notes: i % 4 === 0 ? "Generated for #111 large-dataset testing" : null,
+      });
+    }
+  }
+  return entries;
+}
+export const LARGE_ENTRIES = generateLargeEntries();
+
 async function seedAll(baseUrl, label, endpoint, records, cookie) {
   let created = 0;
   let skipped = 0;
@@ -85,5 +167,18 @@ export async function seedLogbookData(baseUrl, cookie) {
   failed += await seedAll(baseUrl, "Locations", "/logbook/api/admin/locations", LOCATIONS, cookie);
   failed += await seedAll(baseUrl, "Places", "/logbook/api/admin/places", PLACES, cookie);
   failed += await seedAll(baseUrl, "Entries", "/logbook/api/admin/logbook", ENTRIES, cookie);
+  return failed;
+}
+
+// #111 -- additive on top of seedLogbookData() above (same locations the
+// base set already created, e.g. Fontainebleau, get one more heavy place
+// added alongside their existing ones), not a replacement -- callers run
+// both, base set first (see seed-dev-data.mjs's own --large handling).
+export async function seedLargeLogbookData(baseUrl, cookie) {
+  console.log(`Seeding ${LARGE_LOCATIONS.length} more locations, ${LARGE_PLACES.length} more places, ${LARGE_ENTRIES.length} more entries (large dataset, #111) into ${baseUrl}...`);
+  let failed = 0;
+  failed += await seedAll(baseUrl, "Large locations", "/logbook/api/admin/locations", LARGE_LOCATIONS, cookie);
+  failed += await seedAll(baseUrl, "Large places", "/logbook/api/admin/places", LARGE_PLACES, cookie);
+  failed += await seedAll(baseUrl, "Large entries", "/logbook/api/admin/logbook", LARGE_ENTRIES, cookie);
   return failed;
 }
