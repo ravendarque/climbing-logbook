@@ -43,7 +43,7 @@ GitHub, the same treatment every other doc in this repo already gets.
 | [0003](0003-web-components-for-shared-ui-and-route-split.md) | Native Web Components for shared UI + multi-page route split | Accepted |
 | [0004](0004-tailwind-for-styling-reject-radix.md) | Adopt Tailwind for styling, reject Radix, add Floating UI | Accepted |
 | [0005](0005-screen-dependencies-against-bds-boycott-lists.md) | Screen dependencies and vendors against BDS boycott lists | Accepted |
-| [0006](0006-design-for-poor-connectivity-first.md) | Design for poor connectivity as a first-class constraint | Accepted |
+| [0006](0006-design-for-poor-connectivity-first.md) | Design for poor connectivity as a first-class constraint | Accepted, scope refined by 0017 |
 | [0007](0007-single-cloudflare-worker-not-separate-pages-project.md) | A single Cloudflare Worker, not a separate Pages project per surface | Accepted |
 | [0008](0008-tag-based-semantic-versioning.md) | Tag-based semantic versioning, not package.json commits | Accepted |
 | [0009](0009-normalized-d1-schema-with-lookup-tables.md) | Normalized D1 schema with real lookup tables | Accepted |
@@ -54,3 +54,6 @@ GitHub, the same treatment every other doc in this repo already gets.
 | [0014](0014-closed-beta-invite-gate-togglable-not-removable.md) | Closed-beta invite gate, togglable off rather than removed | Accepted, partially superseded by 0016 |
 | [0015](0015-web-analytics-eu-exclusion-not-consent-banner.md) | Cloudflare Web Analytics with EU exclusion, not a cookie consent banner | Accepted |
 | [0016](0016-beta-gate-request-level-wrapper-not-hook.md) | Beta invite claim/release runs as a request-level wrapper, not a Better Auth hook | Accepted |
+| [0017](0017-connectivity-first-scoped-to-owner-write-path.md) | Connectivity-first resilience is scoped to the owner's write-path, not every page | Accepted |
+| [0018](0018-server-side-aggregation-for-derived-views.md) | Server-side aggregation for derived views, no client-side fallback | Accepted |
+| [0019](0019-local-first-sync-chunked-initial-load-and-delta.md) | Local-first sync for /log: chunked initial load + delta sync, not click-driven pagination | Accepted |
