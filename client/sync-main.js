@@ -32,12 +32,22 @@ const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 
 // Never trust an arbitrary redirect target from a query param -- only a
 // same-username, known-owned-page path is honored; anything else (or
-// nothing at all) falls back to /log.
+// nothing at all) falls back to /log. Reconstructed from the validated,
+// whitelisted match groups rather than returning the raw query-param
+// string itself (even once it's matched) -- CodeQL flagged the earlier
+// version (returning `raw` directly) as a client-side URL redirect /
+// XSS sink, since a regex check alone isn't credited as sanitizing the
+// tainted value it was run against; rebuilding the URL from `USERNAME`
+// (trusted, page-derived) and an exact OWNED_PAGES membership check
+// breaks that taint chain entirely -- the output can only ever be one
+// of three fixed strings.
 const OWNED_PAGES = ["log", "map", "performance"];
 function safeReturnTo() {
   const raw = new URL(location.href).searchParams.get("returnTo");
   const match = raw?.match(/^\/([^/]+)\/([^/]+)\/?$/);
-  if (match && match[1] === USERNAME && OWNED_PAGES.includes(match[2])) return raw;
+  if (match && match[1] === USERNAME && OWNED_PAGES.includes(match[2])) {
+    return `/${encodeURIComponent(match[1])}/${encodeURIComponent(match[2])}`;
+  }
   return `/${encodeURIComponent(USERNAME)}/log`;
 }
 
