@@ -47,6 +47,40 @@ test("renders the shared chrome and a real entries table, and switches disciplin
   await expect(page.locator("#discipline-btn-label")).toHaveText("Boulder");
 });
 
+test("#111 -- a table past one page shows Show more/Show all, and both load the rest", async ({ page }) => {
+  const manyEntries = Array.from({ length: 25 }, (_, i) => ({
+    id: `many-${i}`, placeId: "p1", type: "boulder", status: "send", grade: "6A", date: "2026-05-01", name: `Many Seed ${i}`,
+  }));
+  await gotoLogHarness(page, { ...SEED, entries: manyEntries });
+  await page.locator("#collapse-all-btn").click();
+
+  await expect(page.locator("#sections")).toContainText("20 of 25 loaded");
+  await expect(page.locator(".load-more-btn")).toBeVisible();
+  await expect(page.locator(".load-all-btn")).toBeVisible();
+
+  await page.locator(".load-more-btn").click();
+  await expect(page.locator("tbody tr")).toHaveCount(25);
+  // Fully loaded -- the whole footer (both buttons AND the "N of Total
+  // loaded" text) disappears entirely once hasMore is false, not just
+  // the button that was clicked.
+  await expect(page.locator(".load-more-btn")).toHaveCount(0);
+  await expect(page.locator(".load-all-btn")).toHaveCount(0);
+  await expect(page.locator("#sections")).not.toContainText("loaded");
+});
+
+test("#111 -- Show all loads the exact remainder in one request", async ({ page }) => {
+  const manyEntries = Array.from({ length: 43 }, (_, i) => ({
+    id: `many-${i}`, placeId: "p1", type: "boulder", status: "send", grade: "6A", date: "2026-05-01", name: `Many Seed ${i}`,
+  }));
+  await gotoLogHarness(page, { ...SEED, entries: manyEntries });
+  await page.locator("#collapse-all-btn").click();
+  await expect(page.locator("#sections")).toContainText("20 of 43 loaded");
+
+  await page.locator(".load-all-btn").click();
+  await expect(page.locator("tbody tr")).toHaveCount(43);
+  await expect(page.locator(".load-more-btn")).toHaveCount(0);
+});
+
 test("archived climbs are hidden by default (#63), shown once explicitly filtered for, and Clear restores the default", async ({ page }) => {
   await gotoLogHarness(page, {
     ...SEED,

@@ -54,7 +54,22 @@ export async function mockApi(page, {
   await page.route("**/logbook/api/auth/change-password", route => route.fulfill({ json: { status: true, user: { id: "u1", email } } }));
   await page.route("**/logbook/api/auth/change-email", route => route.fulfill({ json: { status: true } }));
 
-  await page.route("**/logbook/api/logbook", route => route.fulfill({ json: { entries: _entries } }));
+  // #111 -- honors locationId/limit/offset when present (the "Show
+  // more"/"Show all" follow-up shape), same contract as server/api/
+  // logbook.js's own handleGet, so a test exercising that UI genuinely
+  // proves the client's own request construction rather than always
+  // getting back everything regardless of what it asked for. Trailing
+  // `*` -- see the admin/logbook route below's own comment on why a bare
+  // pattern silently never matches a query-string-bearing URL at all.
+  await page.route("**/logbook/api/logbook*", route => {
+    const url = new URL(route.request().url());
+    const locationId = url.searchParams.get("locationId");
+    if (!locationId) return route.fulfill({ json: { entries: _entries } });
+    const limit = Number(url.searchParams.get("limit")) || 20;
+    const offset = Number(url.searchParams.get("offset")) || 0;
+    const scoped = _entries.filter(e => _places.find(p => p.id === e.placeId)?.locationId === locationId);
+    return route.fulfill({ json: { entries: scoped.slice(offset, offset + limit) } });
+  });
   // #111 -- /log's own initial per-location-capped load. Mirrors server/
   // api/logbook.js's handleGetInitial closely enough for these small
   // fixture datasets (fixed array order standing in for created_at
@@ -99,7 +114,15 @@ export async function mockApi(page, {
     return route.fulfill({ json: _settings });
   });
 
-  await page.route("**/logbook/api/admin/logbook", async route => {
+  // Trailing `*` -- Playwright's URL glob matching requires an exact
+  // literal match all the way to the end of the URL string (query string
+  // included) when a pattern has no trailing wildcard, so a bare
+  // "**/logbook/api/admin/logbook" silently never matches
+  // "...admin/logbook?id=X" (confirmed empirically) and the DELETE below
+  // would otherwise fall through unmocked to the real network. `*`
+  // doesn't cross `/`, so this still can't accidentally also swallow the
+  // sibling "/admin/logbook/import" route below.
+  await page.route("**/logbook/api/admin/logbook*", async route => {
     const method = route.request().method();
     if (method === "POST") {
       _entries = [..._entries, route.request().postDataJSON()];
