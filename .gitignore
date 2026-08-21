@@ -40,6 +40,7 @@ public/logbook/profile-app.js
 public/logbook/account-app.js
 public/logbook/account-edit-app.js
 public/logbook/account-import-app.js
+public/logbook/sync-app.js
 
 # Playwright E2E (#218): local report/trace/result output, not source
 test-results/

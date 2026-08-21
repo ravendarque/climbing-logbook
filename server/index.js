@@ -79,9 +79,10 @@ export default {
       // #347 -- the authenticated owner's own routes, checked first: a
       // more specific path shape than the bare :username below, and this
       // one needs a session/authorization decision the bare route doesn't.
-      // #302 adds account(/edit) alongside log/map/performance -- same
-      // shape, one more SHELL_PATHS entry (see owned-routes.js).
-      const ownedRouteMatch = pathname.match(/^\/([^/]+)\/(log|map|performance|account(?:\/edit|\/import)?)\/?$/);
+      // #302 adds account(/edit), #498 adds sync, alongside log/map/
+      // performance -- same shape, one more SHELL_PATHS entry each (see
+      // owned-routes.js).
+      const ownedRouteMatch = pathname.match(/^\/([^/]+)\/(log|map|performance|sync|account(?:\/edit|\/import)?)\/?$/);
       if (ownedRouteMatch) {
         const [, username, page] = ownedRouteMatch;
         return handleOwnedRoute(request, env, username, page);

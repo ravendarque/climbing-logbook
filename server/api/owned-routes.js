@@ -37,6 +37,11 @@ const SHELL_PATHS = {
   log: "/log/index.html",
   map: "/map/index.html",
   performance: "/performance/index.html",
+  // #498 -- the cold-start/delta full-sync interstitial (ADR-0019).
+  // Session-gated the same as every other owned page here -- it reads
+  // the same session-scoped /logbook/api/logbook data /log itself does,
+  // just before /log ever renders.
+  sync: "/sync/index.html",
   // #302 -- the first of the account section's own sub-pages
   // (/:username/account/edit); the bare /:username/account landing page
   // is its own separate entry ("account", no slash) rather than a

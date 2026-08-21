@@ -30,6 +30,13 @@ export async function mockApi(page, {
   // test/shared/pyramid-stats.test.js); a test that needs a real pyramid
   // supplies the already-split result it expects to see rendered.
   pyramidData = { boulder: EMPTY_PYRAMID, lead: EMPTY_PYRAMID },
+  // #498 -- true by default: seeds client/sync-status.js's own marker so
+  // every EXISTING test (written before /sync existed) still lands
+  // directly on /log rather than being redirected through a sync flow
+  // it isn't testing. A test that specifically exercises /sync (cold
+  // start, the migration-safety case) passes `synced: false` to see the
+  // real un-synced behavior instead.
+  synced = true,
 } = {}) {
   let _entries = [...entries];
   let _places = [...places];
@@ -40,6 +47,15 @@ export async function mockApi(page, {
   // origin with every other page in the app (including real ones), so
   // without this a prior test's offline-queue/cache writes could leak in.
   await page.addInitScript(() => localStorage.clear());
+  if (synced) {
+    // Literal key/shape mirrored from client/sync-status.js rather than
+    // imported -- addInitScript's function runs in the page, not this
+    // Node context, same reasoning every other route here fakes the
+    // server's contract instead of importing the real handler.
+    await page.addInitScript(() => {
+      localStorage.setItem("logbook_sync_status", JSON.stringify({ version: 1, syncedAt: Date.now() }));
+    });
+  }
 
   await page.route("**/logbook/api/auth/get-session", route =>
     route.fulfill({ json: loggedIn ? { session: { id: "s1" }, user: { id: "u1", username, email } } : null }));
@@ -64,11 +80,23 @@ export async function mockApi(page, {
   await page.route("**/logbook/api/logbook*", route => {
     const url = new URL(route.request().url());
     const locationId = url.searchParams.get("locationId");
-    if (!locationId) return route.fulfill({ json: { entries: _entries } });
-    const limit = Number(url.searchParams.get("limit")) || 20;
+    const limitParam = url.searchParams.get("limit");
     const offset = Number(url.searchParams.get("offset")) || 0;
-    const scoped = _entries.filter(e => _places.find(p => p.id === e.placeId)?.locationId === locationId);
-    return route.fulfill({ json: { entries: scoped.slice(offset, offset + limit) } });
+
+    if (locationId) {
+      const limit = Number(limitParam) || 20;
+      const scoped = _entries.filter(e => _places.find(p => p.id === e.placeId)?.locationId === locationId);
+      return route.fulfill({ json: { entries: scoped.slice(offset, offset + limit) } });
+    }
+    // #498 -- flat chunked mode (no locationId, `limit` present): mirrors
+    // server/api/logbook.js's own `total` field (COUNT(*) OVER(), the
+    // true count regardless of this slice's own offset/limit) --
+    // client/sync-main.js's progress bar depends on it.
+    if (limitParam !== null) {
+      const limit = Number(limitParam);
+      return route.fulfill({ json: { entries: _entries.slice(offset, offset + limit), total: _entries.length } });
+    }
+    return route.fulfill({ json: { entries: _entries } });
   });
   // #111 -- /log's own initial per-location-capped load. Mirrors server/
   // api/logbook.js's handleGetInitial closely enough for these small

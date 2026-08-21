@@ -31,6 +31,7 @@ import { createModalHelpers } from "./modal-utils.js";
 import { createOfflineSync } from "./offline-sync.js";
 import { loadResource } from "./fetch-json.js";
 import { syncAdminBar } from "./admin-bar.js";
+import { isSynced } from "./sync-status.js";
 import "./components/climbing-menu-bar.js";
 import "./components/climbing-tab-bar.js";
 import "./components/climbing-entries-table.js";
@@ -186,6 +187,18 @@ if ("serviceWorker" in navigator) {
 }
 
 async function boot() {
+  // #498 -- checked before anything else: a device that's never been
+  // through a real full sync (ADR-0019) -- new device, cleared storage,
+  // or a #493-era partial cache written under the old rules -- gets
+  // routed to /sync first rather than rendering an incomplete or empty
+  // table here. A synced device skips straight past this with no added
+  // latency. /map and /performance don't carry this check -- neither
+  // needs a local raw-entries cache (#497, ADR-0018).
+  if (!isSynced()) {
+    location.href = `/${encodeURIComponent(USERNAME)}/sync?returnTo=${encodeURIComponent(`/${USERNAME}/log`)}`;
+    return;
+  }
+
   store.setActiveView("logbook");
 
   const sessionPromise = adminAuth.checkSession();
