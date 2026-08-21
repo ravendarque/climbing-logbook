@@ -136,7 +136,25 @@ export async function handleGet(request, env, userId) {
   const url = new URL(request.url);
   const locationId = url.searchParams.get("locationId");
   if (!locationId) {
-    return json({ entries: await listForUser(env, "entries", userId, rowToJson) }, 200, { "Cache-Control": "no-store" });
+    // #498 -- flat (not per-location) chunked pagination for /sync's own
+    // cold-start full-dataset fetch: opt-in via `limit`, absent for
+    // every existing caller (/map, CSV/JSON export, performance.js's own
+    // listForUser call), which keeps getting the unchanged "everything,
+    // one response" shape below. Ordered the same way listForUser()
+    // already does (created_at) -- chunk N simply continues where chunk
+    // N-1 left off.
+    const limit = url.searchParams.get("limit");
+    if (limit === null) {
+      return json({ entries: await listForUser(env, "entries", userId, rowToJson) }, 200, { "Cache-Control": "no-store" });
+    }
+    if (!userId) return json({ entries: [] }, 200, { "Cache-Control": "no-store" });
+
+    const offset = Number(url.searchParams.get("offset")) || 0;
+    const { results } = await env.LOGBOOK_DB
+      .prepare(`SELECT * FROM entries WHERE user_id = ? ORDER BY created_at LIMIT ? OFFSET ?`)
+      .bind(userId, Number(limit), offset)
+      .all();
+    return json({ entries: results.map(rowToJson) }, 200, { "Cache-Control": "no-store" });
   }
   if (!userId) return json({ entries: [] }, 200, { "Cache-Control": "no-store" });
 
