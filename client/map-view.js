@@ -1,7 +1,9 @@
 // The Map tab: World Map rendering (#17/#169), zoom/pan/drag interaction
 // (#168), and the pin popover (#18) -- #236, part of #233's modularization
-// epic. Reads through the Store module (#234); everything else (viewBox
-// arithmetic) comes from client/map-geometry.js's pure functions.
+// epic. Reads store only for activeType/activeView (#497 moved pin/
+// popover/subtitle data off store.getEntries() entirely -- see
+// setCounts()'s own comment); everything else (viewBox arithmetic) comes
+// from client/map-geometry.js's pure functions.
 //
 // A factory, same reasoning as client/logbook-view.js: this owns DOM refs
 // and event listeners, not just pure logic. Its dependency list is
@@ -71,21 +73,40 @@ const PIN_BASE_FONT = 9;
 // (2026-08-14: "breakdown the statuses by discipline when we click on
 // the pin").
 export function createMapView({ store, allDisciplines = false }) {
-  // Whichever entries count toward pins/subtitle stats -- every entry in
-  // allDisciplines mode, just the active discipline's own otherwise. Not
-  // used by the pin popover, which always splits by discipline
-  // regardless of this flag (see this factory's own header comment).
-  function relevantEntries() {
-    return allDisciplines ? store.getEntries() : store.getEntries().filter(e => e.type === store.getActiveType());
+  // #497 -- the server's own per-(country, discipline) aggregate
+  // ({ total, flash, send, project }, server/api/map.js), not raw
+  // entries -- this factory no longer reads store.getEntries() at all.
+  // Starts empty (same "nothing loaded yet" state a fresh store's own
+  // getEntries() used to have); the composition root calls setCounts()
+  // once its own fetch (or offline-cache fallback) resolves.
+  let mapCounts = {};
+
+  function setCounts(counts) {
+    mapCounts = counts ?? {};
+    render();
   }
 
-  // Distinct discipline keys actually present in a set of entries, in
-  // canonical (boulder, lead) order -- drives the combined-label wording
-  // below without hardcoding "boulder and lead" anywhere. A future third
-  // discipline (#429/#430) needs no change here, same reasoning as
-  // status.js's own combinedFlashLabel/combinedSendLabel.
-  function presentDisciplines(entries) {
-    const present = new Set(entries.map(e => e.type));
+  // Which discipline keys of mapCounts count toward pins/subtitle stats
+  // -- both in allDisciplines mode, just the active discipline's own
+  // otherwise. Not used by the pin popover, which always splits by
+  // discipline regardless of this flag (see this factory's own header
+  // comment).
+  function disciplinesInPlay() {
+    return allDisciplines ? ["boulder", "lead"] : [store.getActiveType()];
+  }
+
+  // Discipline keys actually present (non-zero) anywhere in mapCounts,
+  // in canonical (boulder, lead) order -- drives the combined-label
+  // wording below without hardcoding "boulder and lead" anywhere. A
+  // future third discipline (#429/#430) needs no change here, same
+  // reasoning as status.js's own combinedFlashLabel/combinedSendLabel.
+  function presentDisciplines() {
+    const present = new Set();
+    for (const byDiscipline of Object.values(mapCounts)) {
+      for (const [discipline, c] of Object.entries(byDiscipline)) {
+        if (c.total > 0) present.add(discipline);
+      }
+    }
     return ["boulder", "lead"].filter(t => present.has(t));
   }
 
@@ -398,12 +419,8 @@ export function createMapView({ store, allDisciplines = false }) {
   // owner-only single-active-discipline concept this factory otherwise
   // still has.
   function countryStatusBreakdown(countryName, type) {
-    const entries = store.getEntries().filter(e => e.type === type && store.entryLocation(e).country === countryName);
-    return {
-      flashes:  entries.filter(e => e.status === "send" && e.firstAttempt).length,
-      sends:    entries.filter(e => e.status === "send" && !e.firstAttempt).length,
-      projects: entries.filter(e => e.status === "project").length,
-    };
+    const c = mapCounts[countryName]?.[type];
+    return { flashes: c?.flash ?? 0, sends: c?.send ?? 0, projects: c?.project ?? 0 };
   }
 
   // Reuses STATUS_ICONS/STATUS_ICON_CLASS's icon markup, same as the
@@ -512,16 +529,34 @@ export function createMapView({ store, allDisciplines = false }) {
   // #235; deferred here. #460: combined across disciplines (both the
   // counts and the flash/send wording) when allDisciplines is set.
   function updateSubtitle() {
-    const typeEntries = relevantEntries();
     // Falls back to every known discipline when there's nothing logged
     // yet at all -- presentDisciplines() would otherwise return an empty
     // list, and combinedFlashLabel/combinedSendLabel of an empty list is
     // an empty string, which would render as a bare "0 " with no label.
-    const disciplines = presentDisciplines(typeEntries).length > 0 ? presentDisciplines(typeEntries) : ["boulder", "lead"];
-    const countries = new Set(typeEntries.map(e => store.entryLocation(e).country).filter(Boolean)).size;
-    const flashes   = typeEntries.filter(e => e.status === "send" && e.firstAttempt).length;
-    const sends     = typeEntries.filter(e => e.status === "send" && !e.firstAttempt).length;
-    const projects  = typeEntries.filter(e => e.status === "project").length;
+    const disciplines = presentDisciplines().length > 0 ? presentDisciplines() : ["boulder", "lead"];
+    const inPlay = disciplinesInPlay();
+
+    // Distinct countries with at least one entry in a discipline that's
+    // in play -- `total`, not flash/send/project, so a country with only
+    // e.g. checkout/archived entries still counts (matches the old raw-
+    // entries computation, which didn't filter by status here either).
+    // Falsy/empty country excluded, same as the old code's own
+    // `.filter(Boolean)`. flash/send/project stay summed across every
+    // country including the empty one, also matching the old behavior
+    // (those totals were never country-scoped).
+    const countriesWithEntries = new Set();
+    let flashes = 0, sends = 0, projects = 0;
+    for (const [country, byDiscipline] of Object.entries(mapCounts)) {
+      for (const type of inPlay) {
+        const c = byDiscipline[type];
+        if (!c) continue;
+        if (country && c.total > 0) countriesWithEntries.add(country);
+        flashes += c.flash;
+        sends += c.send;
+        projects += c.project;
+      }
+    }
+    const countries = countriesWithEntries.size;
 
     const flashLabelText = allDisciplines ? combinedFlashLabel(disciplines) : flashLabel(store.getActiveType());
     const flashLabelPlural = allDisciplines ? combinedFlashLabel(disciplines, true) : flashLabel(store.getActiveType(), true);
@@ -550,13 +585,17 @@ export function createMapView({ store, allDisciplines = false }) {
     const variant = getActiveMapVariant();
     mapVariantSelect.value = variant;
 
-    const typeEntries = relevantEntries();
+    const inPlay = disciplinesInPlay();
 
+    // Pin count badge -- `total` (every entry regardless of status,
+    // matching the old raw-entries count this replaces), summed across
+    // whichever discipline(s) are in play.
     const countsByCountry = new Map();
-    for (const entry of typeEntries) {
-      const country = store.entryLocation(entry).country;
+    for (const [country, byDiscipline] of Object.entries(mapCounts)) {
       if (!country) continue;
-      countsByCountry.set(country, (countsByCountry.get(country) ?? 0) + 1);
+      let total = 0;
+      for (const type of inPlay) total += byDiscipline[type]?.total ?? 0;
+      if (total > 0) countsByCountry.set(country, total);
     }
 
     const container = document.getElementById("map-container");
@@ -688,5 +727,5 @@ export function createMapView({ store, allDisciplines = false }) {
     applyMapView();
   }
 
-  return { render, closePinPopover };
+  return { render, closePinPopover, setCounts };
 }

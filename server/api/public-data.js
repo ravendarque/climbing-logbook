@@ -3,6 +3,7 @@ import { resolvePublicUser } from "./public-profile.js";
 import { handleGet as handleGetLogbook } from "./logbook.js";
 import { handleGet as handleGetPlaces } from "./places.js";
 import { handleGet as handleGetLocations } from "./locations.js";
+import { handleGetMapCounts } from "./map.js";
 
 // #351 -- the read-only data feeding client/profile-main.js's
 // <climbing-entries-table>, at /logbook/api/public/:username/{logbook,
@@ -29,6 +30,10 @@ const HANDLERS = {
   logbook: handleGetLogbook,
   places: handleGetPlaces,
   locations: handleGetLocations,
+  // #497 -- handleGetMapCounts already takes a plain userId with no
+  // session-derived assumptions baked in, same reasoning the three
+  // reuses above already rely on.
+  "map/counts": handleGetMapCounts,
 };
 
 export async function handlePublicResource(request, env, username, resource) {

@@ -7,26 +7,23 @@
 // this proves the actual production code path (map-main.js's own
 // boot()/render() wiring, minus the fetch/session layer #407 makes
 // unreachable outside a real login), not a reimplementation of it.
+//
+// #497 -- map-view.js no longer joins raw entries against places/
+// locations itself; it takes the server's own already-computed
+// aggregate via setCounts(). Hand-built here to the exact shape
+// server/api/map.js returns, matching this fixture's original 3 boulder
+// sends (2 in the UK, 1 in France) -- France (Fontainebleau) alongside
+// the UK crag so e2e/component-harnesses.spec.js's pin-click test still
+// has a second, real pinned country to click on.
 import { createStore } from "../../client/store.js";
 import { createMapView } from "../../client/map-view.js";
 
 const store = createStore();
-// France (Fontainebleau) alongside the UK crag -- e2e/component-harnesses.spec.js's
-// pin-click test needs a second, real pinned country to click on.
-store.setLocations([
-  { id: "loc1", name: "Test Crag", country: "United Kingdom" },
-  { id: "loc2", name: "Fontainebleau", country: "France" },
-]);
-store.setPlaces([
-  { id: "place1", locationId: "loc1", area: "Test Area" },
-  { id: "place2", locationId: "loc2", area: "Bas Cuvier" },
-]);
-store.setEntries([
-  { id: "e1", placeId: "place1", type: "boulder", status: "send", grade: "6A", date: "2026-05-01", name: "Test Boulder 1" },
-  { id: "e2", placeId: "place1", type: "boulder", status: "send", grade: "6B", date: "2026-05-02", name: "Test Boulder 2" },
-  { id: "e3", placeId: "place2", type: "boulder", status: "send", grade: "6A", date: "2026-05-03", name: "Test Boulder 3" },
-]);
 store.setActiveType("boulder");
 store.setActiveView("map");
 
-createMapView({ store }).render();
+const mapView = createMapView({ store });
+mapView.setCounts({
+  "United Kingdom": { boulder: { total: 2, flash: 0, send: 2, project: 0 } },
+  "France": { boulder: { total: 1, flash: 0, send: 1, project: 0 } },
+});
