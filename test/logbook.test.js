@@ -18,12 +18,24 @@ afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
 
 let cookie;
 let placeId;
+let locationId;
 
 beforeEach(async () => {
   await resetAuthTables();
   ({ cookie } = await createAuthedSession());
   placeId = await seedPlace(cookie);
+  locationId = await locationIdOf(placeId);
 });
+
+// #111 -- seedPlace() only ever returns placeId (its own established
+// contract, many existing call sites across the suite depend on that
+// exact shape) -- this looks up the locationId a seeded place actually
+// belongs to via the real API, rather than widening seedPlace()'s own
+// return shape for the sake of this one file's new tests.
+async function locationIdOf(id, extraCookie = cookie) {
+  const { places } = await (await fetchJson("/logbook/api/places", { headers: { Cookie: extraCookie } })).json();
+  return places.find(p => p.id === id).locationId;
+}
 
 function get(extraCookie = cookie) {
   return fetchJson(PUBLIC_URL, { headers: { Cookie: extraCookie } });
@@ -62,6 +74,113 @@ describe("handleGet", () => {
     const { entries } = await res.json();
     expect(entries).toHaveLength(1);
     expect(entries[0].name).toBe("La Marie-Rose");
+  });
+});
+
+// #111 -- /log's own per-*table* (location) "Show more"/"Show all"
+// follow-ups (Raven's own correction: pagination is per-table, and a
+// table is one location, which can combine several places/areas under
+// it -- not per-place). Doesn't touch the no-locationId "everything"
+// contract above at all -- covered separately here so a regression in
+// one can't hide behind the other's passing tests.
+describe("handleGet (locationId -- #111 per-table pagination)", () => {
+  function getLocation(id, params = {}, extraCookie = cookie) {
+    const qs = new URLSearchParams({ locationId: id, ...params }).toString();
+    return fetchJson(`${PUBLIC_URL}?${qs}`, { headers: { Cookie: extraCookie } });
+  }
+
+  it("returns only that location's entries, across every place under it", async () => {
+    // A second place under the SAME location -- proves this aggregates
+    // across places, not just one.
+    const secondPlaceId = (await (await jsonRequest("POST", "/logbook/api/admin/places", { locationId, area: "Second Area" }, { Cookie: cookie })).json()).places.at(-1).id;
+    const otherLocationPlaceId = await seedPlace(cookie, { locationName: "Other Crag" });
+    await post(validEntry());
+    await post({ ...validEntry(), name: "Second Area Route", placeId: secondPlaceId });
+    await post({ ...validEntry(), name: "Elsewhere", placeId: otherLocationPlaceId });
+
+    const { entries } = await (await getLocation(locationId)).json();
+    expect(entries.map(e => e.name).sort()).toEqual(["La Marie-Rose", "Second Area Route"]);
+  });
+
+  it("paginates via limit/offset, ordered by creation order", async () => {
+    for (let i = 0; i < 5; i++) {
+      await post({ ...validEntry(), id: `e${i}`, name: `Route ${i}` });
+    }
+    const page1 = await (await getLocation(locationId, { limit: "2", offset: "0" })).json();
+    expect(page1.entries.map(e => e.name)).toEqual(["Route 0", "Route 1"]);
+    const page2 = await (await getLocation(locationId, { limit: "2", offset: "2" })).json();
+    expect(page2.entries.map(e => e.name)).toEqual(["Route 2", "Route 3"]);
+  });
+
+  it("defaults to a page size of 20 when limit is omitted", async () => {
+    for (let i = 0; i < 25; i++) {
+      await post({ ...validEntry(), id: `e${i}`, name: `Route ${i}` });
+    }
+    const { entries } = await (await getLocation(locationId)).json();
+    expect(entries).toHaveLength(20);
+  });
+
+  it("returns an empty list for an anonymous caller, not an error", async () => {
+    const res = await fetchJson(`${PUBLIC_URL}?locationId=${encodeURIComponent(locationId)}`);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ entries: [] });
+  });
+
+  it("returns an empty list for a nonexistent locationId, not an error (anti-enumeration)", async () => {
+    const res = await getLocation("does-not-exist");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ entries: [] });
+  });
+
+  it("returns an empty list for another user's own locationId (cross-user isolation)", async () => {
+    await post(validEntry());
+    const userB = await createAuthedSession();
+    const res = await getLocation(locationId, {}, userB.cookie);
+    expect(await res.json()).toEqual({ entries: [] });
+  });
+});
+
+describe("handleGetInitial (#111 -- /log's own initial per-table-capped load)", () => {
+  const INITIAL_URL = "/logbook/api/logbook/initial";
+  function getInitial(extraCookie = cookie) {
+    return fetchJson(INITIAL_URL, { headers: { Cookie: extraCookie } });
+  }
+
+  it("returns empty entries and locationCounts for an anonymous caller", async () => {
+    const res = await fetchJson(INITIAL_URL);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ entries: [], locationCounts: {} });
+  });
+
+  it("returns every location's entries when each has fewer than the page size", async () => {
+    const otherPlaceId = await seedPlace(cookie, { locationName: "Other Crag" });
+    const otherLocationId = await locationIdOf(otherPlaceId);
+    await post(validEntry());
+    await post({ ...validEntry(), name: "Elsewhere", placeId: otherPlaceId });
+
+    const { entries, locationCounts } = await (await getInitial()).json();
+    expect(entries).toHaveLength(2);
+    expect(locationCounts).toEqual({ [locationId]: 1, [otherLocationId]: 1 });
+  });
+
+  it("caps a large location at the page size (20), but reports its true total, combined across its places", async () => {
+    const secondPlaceId = (await (await jsonRequest("POST", "/logbook/api/admin/places", { locationId, area: "Second Area" }, { Cookie: cookie })).json()).places.at(-1).id;
+    for (let i = 0; i < 15; i++) await post({ ...validEntry(), id: `e${i}`, name: `Route ${i}` });
+    for (let i = 15; i < 25; i++) await post({ ...validEntry(), id: `e${i}`, name: `Route ${i}`, placeId: secondPlaceId });
+
+    const { entries, locationCounts } = await (await getInitial()).json();
+    expect(entries).toHaveLength(20);
+    expect(locationCounts[locationId]).toBe(25);
+    // The 20 loaded are the *oldest* (creation order) across BOTH places
+    // combined -- Route 20-24 aren't loaded yet.
+    expect(entries.map(e => e.name)).not.toContain("Route 24");
+  });
+
+  it("a second user's own initial load never reflects the first user's entries", async () => {
+    await post(validEntry());
+    const userB = await createAuthedSession();
+    const res = await getInitial(userB.cookie);
+    expect(await res.json()).toEqual({ entries: [], locationCounts: {} });
   });
 });
 

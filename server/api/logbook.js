@@ -50,18 +50,109 @@ export function rowToJson(row) {
   };
 }
 
-// handleGet/handlePost (#297) -- see server/lib/d1-resource.js for the
-// shared shape every D1-backed create+list resource follows.
-// handlePut/handleDelete stay logbook.js's own exports below -- entries
-// is the only resource with edit/delete (places/locations don't have
-// them yet, #159/#160).
-export const { handleGet, handlePost } = createD1ResourceHandlers({
+// handlePost (#297) -- see server/lib/d1-resource.js for the shared
+// shape every D1-backed create+list resource follows. handleGet is its
+// own custom implementation below (#111 -- per-location pagination),
+// handlePut/handleDelete stay logbook.js's own exports further down --
+// entries is the only resource with edit/delete (places/locations don't
+// have them yet, #159/#160).
+export const { handlePost } = createD1ResourceHandlers({
   table: "entries",
   resourceKey: "entries",
   validateFields,
   buildRow,
   rowToJson,
 });
+
+// #111 -- the size of each table's own initial page and each "Show more"
+// click. Not client-adjustable via a query param -- one fixed value
+// picked at implementation time (checked against this app's own real
+// payload size, not guessed) is simpler than a tunable knob nothing
+// actually needs to tune.
+const PAGE_SIZE = 20;
+
+// #111 -- /log's initial load: up to PAGE_SIZE entries per *table*, in
+// one query -- not one request per table (real overhead for a user
+// who's climbed at many different crags). Paginated by location, not
+// place (Raven's own correction) -- climbing-entries-table.js renders
+// one table per *location*, and a location can combine several places/
+// areas under one header (client/entries.js's groupByPlace() groups by
+// locationId for exactly this reason), so the table a user actually
+// sees is the location, not the place underneath it. Requires the join
+// against places (entries only has place_id, not location_id directly)
+// -- window functions still do the capping/counting in one pass, just
+// partitioned by p.location_id instead: confirmed both work as expected
+// against real D1 data (a real multi-place location correctly reports
+// its combined total across every place), not assumed.
+//
+// /map and /performance don't use this at all -- /map still wants the
+// full list (client/map-main.js's own DATA_URL), /performance never
+// fetches raw entries any more (server/api/performance.js's own
+// aggregate, #111's other half).
+export async function handleGetInitial(request, env, userId) {
+  if (!userId) return json({ entries: [], locationCounts: {} }, 200, { "Cache-Control": "no-store" });
+
+  const { results } = await env.LOGBOOK_DB.prepare(`
+    SELECT * FROM (
+      SELECT e.*, p.location_id,
+             ROW_NUMBER() OVER (PARTITION BY p.location_id ORDER BY e.created_at) AS rn,
+             COUNT(*) OVER (PARTITION BY p.location_id) AS location_total
+      FROM entries e JOIN places p ON e.place_id = p.id
+      WHERE e.user_id = ?
+    ) WHERE rn <= ?
+    ORDER BY location_id, created_at
+  `).bind(userId, PAGE_SIZE).all();
+
+  // One pass -- location_total is identical across every row sharing a
+  // location_id (the window function computed it that way), so the
+  // first row seen for a location already carries its final answer.
+  const locationCounts = {};
+  for (const row of results) {
+    if (!(row.location_id in locationCounts)) locationCounts[row.location_id] = row.location_total;
+  }
+
+  return json({ entries: results.map(rowToJson), locationCounts }, 200, { "Cache-Control": "no-store" });
+}
+
+// #111 -- "Show more"/"Show all" follow-ups for one table (location) at
+// a time (the user clicks on one specific table), so unlike
+// handleGetInitial above this is a plain query, no window function
+// needed -- just the same places join, scoped to one location instead
+// of partitioned across all of them. Also the unchanged "give me
+// everything" shape every other caller still wants (client/map-main.js,
+// server/api/performance.js's own listForUser call, CSV export) when
+// locationId is omitted -- additive, not a breaking change to this
+// endpoint's existing contract.
+//
+// No separate ownership check needed for locationId (unlike a bare
+// placeId elsewhere in this codebase) -- `e.user_id = ?` already scopes
+// every joined row to the caller's own entries, so a forged or
+// cross-user locationId naturally joins to zero rows rather than
+// needing an explicit findOwnedRow() check; same anti-enumeration
+// outcome (empty list, not an error) as this app's other public
+// (session-optional) GET routes, achieved here by the query shape
+// itself rather than an extra check.
+export async function handleGet(request, env, userId) {
+  const url = new URL(request.url);
+  const locationId = url.searchParams.get("locationId");
+  if (!locationId) {
+    return json({ entries: await listForUser(env, "entries", userId, rowToJson) }, 200, { "Cache-Control": "no-store" });
+  }
+  if (!userId) return json({ entries: [] }, 200, { "Cache-Control": "no-store" });
+
+  const limit = Number(url.searchParams.get("limit")) || PAGE_SIZE;
+  const offset = Number(url.searchParams.get("offset")) || 0;
+  const { results } = await env.LOGBOOK_DB
+    .prepare(`
+      SELECT e.* FROM entries e JOIN places p ON e.place_id = p.id
+      WHERE e.user_id = ? AND p.location_id = ?
+      ORDER BY e.created_at LIMIT ? OFFSET ?
+    `)
+    .bind(userId, locationId, limit, offset)
+    .all();
+
+  return json({ entries: results.map(rowToJson) }, 200, { "Cache-Control": "no-store" });
+}
 
 export async function handlePut(request, env, userId) {
   const parsed = await parseJsonBody(request);
