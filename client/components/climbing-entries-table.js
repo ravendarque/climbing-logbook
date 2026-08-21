@@ -57,6 +57,13 @@ const DEFAULT_SORT = { col: "grade", dir: "asc" };
 // unchecked. Checking "Archived" explicitly surfaces it, same as any
 // other status filter.
 const DEFAULT_STATUS_FILTERS = ["flash", "send", "project", "checkout"];
+// #111 -- display copy only ("Show 20 more"), mirroring server/api/
+// logbook.js's own PAGE_SIZE. Not used for any request logic here -- the
+// composition root (log-main.js) owns the actual fetch, and for "more"
+// it deliberately omits `limit` entirely so the server's own PAGE_SIZE
+// stays the single source of truth; if the two ever drift, only this
+// button's label goes stale, not any real behavior.
+const PAGE_SIZE = 20;
 // #460 -- canonical order for the two known disciplines, used wherever
 // "all disciplines" needs a deterministic iteration order (filter-panel
 // checkboxes, section ordering). A third discipline (#429/#430) is just
@@ -186,6 +193,16 @@ export class ClimbingEntriesTable extends HTMLElement {
   #entries = [];
   #places = [];
   #locations = [];
+  // #111 -- locationId -> true total row count on the server, so a
+  // partially-loaded table (fewer rows in #entries than the server has)
+  // knows to render its own "Show more"/"Show all" footer. Keyed by
+  // locationId even in allDisciplines mode -- the total is per-location,
+  // not per-(location, discipline) -- see #renderLocationSection's own
+  // comment on why the footer's own visibility check is keyed the same
+  // way. Defaults to {} for every consumer that never sets it (only
+  // log-main.js does, via the #111 initial-load endpoint), so the footer
+  // simply never renders anywhere else.
+  #locationCounts = {};
   #search = "";
   #statusFilters = new Set(DEFAULT_STATUS_FILTERS);
   // #460 -- allDisciplines mode only. #63: every known discipline starts
@@ -215,6 +232,9 @@ export class ClimbingEntriesTable extends HTMLElement {
 
   get locations() { return this.#locations; }
   set locations(v) { this.#locations = v ?? []; this.#update(); }
+
+  get locationCounts() { return this.#locationCounts; }
+  set locationCounts(v) { this.#locationCounts = v ?? {}; this.#update(); }
 
   get activeDiscipline() { return this.getAttribute("active-discipline") || "boulder"; }
   set activeDiscipline(v) { this.setAttribute("active-discipline", v); }
@@ -676,6 +696,15 @@ export class ClimbingEntriesTable extends HTMLElement {
     `;
     }).join("");
 
+    // #111 -- loadedForLocation reads this.#entries directly (every row
+    // currently held for this location across every discipline), not
+    // sorted.length -- sorted is #filteredEntries()'s output, so an
+    // active search/status filter would otherwise undercount what's
+    // actually loaded and request the wrong offset from the server.
+    const loadedForLocation = this.#entries.filter(e => placeOf(e, this.#places).locationId === locationId).length;
+    const totalForLocation = this.#locationCounts[locationId];
+    const hasMore = typeof totalForLocation === "number" && totalForLocation > loadedForLocation;
+
     const locationCountry = COUNTRY_BY_NAME[location.country];
     const headerName = discipline ? `${location.name} (${disciplineLabel(discipline)})` : location.name;
     return `
@@ -725,6 +754,12 @@ export class ClimbingEntriesTable extends HTMLElement {
               ${rows || `<tr><td class="text-center text-muted p-8 text-[.9rem]" colspan="8">No problems match.</td></tr>`}
             </tbody>
           </table>
+          ${hasMore ? `
+          <div class="flex items-center justify-center gap-3 flex-wrap px-[.9rem] py-[.6rem] border-t border-border text-[.82rem]">
+            <span class="text-muted">${loadedForLocation} of ${totalForLocation} loaded</span>
+            <button type="button" class="load-more-btn border-0 bg-transparent cursor-pointer text-accent font-medium hover:underline" data-location-id="${escapeHtml(locationId)}">Show ${PAGE_SIZE} more</button>
+            <button type="button" class="load-all-btn border-0 bg-transparent cursor-pointer text-accent font-medium hover:underline" data-location-id="${escapeHtml(locationId)}">Show all</button>
+          </div>` : ""}
         </div>
       </div>`;
   }

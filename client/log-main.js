@@ -38,6 +38,12 @@ import "./components/climbing-entries-table.js";
 // ── Config -- identical to client/main.js's own (#348 pages all still
 // hit /logbook/api/* -- only the page shell moved, not the API surface). ──
 const DATA_URL = "/logbook/api/logbook";
+// #111 -- /log's own initial per-table-capped load (up to PAGE_SIZE rows
+// per location, all locations in one request) -- see server/api/
+// logbook.js's handleGetInitial for why this is a separate route from
+// DATA_URL's own unchanged "everything" shape rather than a query param
+// on it.
+const INITIAL_DATA_URL = "/logbook/api/logbook/initial";
 const ADMIN_DATA_URL = "/logbook/api/admin/logbook";
 const PLACES_URL = "/logbook/api/places";
 const ADMIN_PLACES_URL = "/logbook/api/admin/places";
@@ -102,9 +108,42 @@ function render() {
   entriesTable.entries = store.getEntries();
   entriesTable.places = store.getPlaces();
   entriesTable.locations = store.getLocations();
+  entriesTable.locationCounts = store.getLocationCounts();
   entriesTable.activeDiscipline = store.getActiveType();
   updateAdminBar();
 }
+
+// #111 -- "Show more"/"Show all" footer buttons, same delegated
+// document-level click pattern as the edit-btn handler below (the
+// component itself doesn't own store/fetch, so it just renders the
+// buttons and leaves handling them to this composition root -- see
+// climbing-entries-table.js's own header comment on that split).
+document.addEventListener("click", async e => {
+  const btn = e.target.closest(".load-more-btn, .load-all-btn");
+  if (!btn) return;
+
+  const locationId = btn.dataset.locationId;
+  const total = store.getLocationCounts()[locationId];
+  if (total == null) return;
+
+  const offset = store.getEntries().filter(en => store.placeOf(en).locationId === locationId).length;
+  const isAll = btn.classList.contains("load-all-btn");
+  // "more" omits limit entirely -- the server's own PAGE_SIZE (server/
+  // api/logbook.js) is the single source of truth for that default, not
+  // a client-side copy of the same number.
+  const params = new URLSearchParams({ locationId, offset: String(offset) });
+  if (isAll) params.set("limit", String(Math.max(total - offset, 1)));
+
+  btn.disabled = true;
+  try {
+    const res = await fetch(`${DATA_URL}?${params}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { entries: newEntries } = await res.json();
+    store.addEntries(newEntries, { complete: offset + newEntries.length >= total });
+  } catch {
+    btn.disabled = false;
+  }
+});
 
 function updateAdminBar() {
   syncAdminBar({ store, adminAuth, headerChrome, tabBar, addBtn: document.getElementById("add-btn"), offlineSync });
@@ -158,8 +197,20 @@ async function boot() {
   // show here" empty state rather than this page needing its own error
   // banner, and neither of those pages' shells has a #loading element
   // to swap out the way client/main.js's does either.
+  //
+  // #111 -- INITIAL_DATA_URL, not DATA_URL/loadResource(): the response
+  // carries both the capped entries list AND locationCounts (the true
+  // per-location totals the "Show more"/"Show all" footers need), a
+  // shape loadResource's single-keyed-array assumption doesn't fit --
+  // same reasoning as performance-main.js's own fetchPyramid(). Falls
+  // back to whatever's cached (built up from prior sessions' addEntries()
+  // calls, see store.js's own comment) on any failure, same as before.
   try {
-    store.setEntries(await loadResource(DATA_URL, "entries"));
+    const res = await fetch(INITIAL_DATA_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { entries: initialEntries, locationCounts } = await res.json();
+    store.setInitialEntries(initialEntries);
+    store.setLocationCounts(locationCounts);
   } catch {
     store.loadEntriesFromCache();
   }
