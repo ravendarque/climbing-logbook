@@ -48,13 +48,22 @@ export async function mockApi(page, {
   // without this a prior test's offline-queue/cache writes could leak in.
   await page.addInitScript(() => localStorage.clear());
   if (synced) {
-    // Literal key/shape mirrored from client/sync-status.js rather than
+    // #501 -- also seeds the entries cache itself, not just the sync
+    // marker: /log's own warm boot (client/log-main.js) reads entries
+    // straight from localStorage now, no network fetch at all (ADR-0019
+    // -- a real sync, client/sync-main.js, is what's supposed to
+    // populate this in the real app). Without this, every existing
+    // /log-page test would see an empty table despite `entries` being
+    // seeded into mockApi() itself, since nothing would ever write it
+    // to the one place /log's boot() actually reads from. Literal key/
+    // shape mirrored from client/sync-status.js/store.js rather than
     // imported -- addInitScript's function runs in the page, not this
     // Node context, same reasoning every other route here fakes the
     // server's contract instead of importing the real handler.
-    await page.addInitScript(() => {
+    await page.addInitScript(seedEntries => {
       localStorage.setItem("logbook_sync_status", JSON.stringify({ version: 1, syncedAt: Date.now() }));
-    });
+      localStorage.setItem("logbook_entries_cache", JSON.stringify(seedEntries));
+    }, _entries);
   }
 
   await page.route("**/logbook/api/auth/get-session", route =>
@@ -97,31 +106,6 @@ export async function mockApi(page, {
       return route.fulfill({ json: { entries: _entries.slice(offset, offset + limit), total: _entries.length } });
     }
     return route.fulfill({ json: { entries: _entries } });
-  });
-  // #111 -- /log's own initial per-location-capped load. Mirrors server/
-  // api/logbook.js's handleGetInitial closely enough for these small
-  // fixture datasets (fixed array order standing in for created_at
-  // ordering -- none of these tests seed enough entries per location for
-  // that distinction to matter): caps each location at PAGE_SIZE and
-  // reports every location's true total, computed fresh from the current
-  // _entries/_places on every request the same way the plain /logbook
-  // route above already does, so a test that POSTs a new entry then
-  // reloads still sees it.
-  await page.route("**/logbook/api/logbook/initial", route => {
-    const PAGE_SIZE = 20;
-    const byLocation = new Map();
-    for (const entry of _entries) {
-      const locationId = _places.find(p => p.id === entry.placeId)?.locationId;
-      if (!byLocation.has(locationId)) byLocation.set(locationId, []);
-      byLocation.get(locationId).push(entry);
-    }
-    const locationCounts = {};
-    const initialEntries = [];
-    for (const [locationId, list] of byLocation) {
-      locationCounts[locationId] = list.length;
-      initialEntries.push(...list.slice(0, PAGE_SIZE));
-    }
-    return route.fulfill({ json: { entries: initialEntries, locationCounts } });
   });
   await page.route("**/logbook/api/places", route => route.fulfill({ json: { places: _places } }));
   await page.route("**/logbook/api/locations", route => route.fulfill({ json: { locations: _locations } }));

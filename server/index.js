@@ -1,4 +1,4 @@
-import { handleGet, handleGetInitial, handlePost, handlePut, handleDelete } from "./api/logbook.js";
+import { handleGet, handlePost, handlePut, handleDelete } from "./api/logbook.js";
 import { handleImport } from "./api/logbook-import.js";
 import { handleGet as handleGetPlaces, handlePost as handlePostPlaces } from "./api/places.js";
 import { handleGet as handleGetLocations, handlePost as handlePostLocations } from "./api/locations.js";
@@ -27,11 +27,6 @@ import { json } from "./lib/json.js";
 // entry here is GET-only.
 const PUBLIC_GET_ROUTES = {
   "/logbook/api/logbook": handleGet,
-  // #111 -- /log's own initial load (up to 20 entries per place, across
-  // every place, in one query) -- see handleGetInitial's own comment for
-  // why this needs to be a separate route from handleGet's unchanged
-  // "everything" shape above, not another query param on it.
-  "/logbook/api/logbook/initial": handleGetInitial,
   "/logbook/api/places": handleGetPlaces,
   "/logbook/api/locations": handleGetLocations,
   "/logbook/api/settings": handleGetSettings,

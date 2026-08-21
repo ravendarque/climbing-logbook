@@ -52,12 +52,6 @@ export function createStore({ storage = typeof localStorage !== "undefined" ? lo
   let places = [];
   let locations = [];
   let loggedIn = false;
-  // #111 -- locationId -> true total row count on the server, set from
-  // /log's own initial-load response. Not cached to storage -- it's
-  // re-derived fresh every boot() from the server, same as entries/
-  // places/locations are for every OTHER page's plain setEntries() path;
-  // only /log itself ever calls setLocationCounts/addEntries below.
-  let locationCounts = {};
 
   let activeType = "boulder"; // real value set once entries load, see boot()
   let activeView = "logbook"; // "logbook" | "pyramid" | "map"
@@ -89,37 +83,6 @@ export function createStore({ storage = typeof localStorage !== "undefined" ? lo
     storage.setItem(ENTRIES_CACHE_KEY, JSON.stringify(entries));
     notify();
   }
-  // #111 -- /log's own initial per-table-capped load. Deliberately does
-  // NOT call setEntries()/write the cache blob: the payload here is
-  // capped at PAGE_SIZE rows per location, so writing it unconditionally
-  // would clobber an earlier session's fuller cached snapshot (built up
-  // via addEntries() below) with this session's still-partial view of
-  // the same location. The cache catches back up to full state as each
-  // location's follow-up load(s) report themselves complete.
-  function setInitialEntries(next) {
-    entries = next;
-    notify();
-  }
-
-  function setLocationCounts(next) {
-    locationCounts = next;
-    notify();
-  }
-
-  // #111 -- "Show more"/"Show all" follow-up for one location. Appends
-  // unconditionally (the caller already knows the correct offset, so
-  // there's nothing to reconcile), but only refreshes the cache blob
-  // when the caller confirms this location is now fully loaded --
-  // otherwise a still-partial location's incremental progress would
-  // overwrite a complete snapshot cached in an earlier session with a
-  // smaller one, which an offline reload mid-session would then show
-  // instead of the fuller data that was already on disk.
-  function addEntries(newEntries, { complete = false } = {}) {
-    entries = [...entries, ...newEntries];
-    if (complete) storage.setItem(ENTRIES_CACHE_KEY, JSON.stringify(entries));
-    notify();
-  }
-
   function setPlaces(next) {
     places = next;
     storage.setItem(PLACES_CACHE_KEY, JSON.stringify(places));
@@ -199,10 +162,6 @@ export function createStore({ storage = typeof localStorage !== "undefined" ? lo
 
     getEntries: () => entries,
     setEntries,
-    setInitialEntries,
-    addEntries,
-    getLocationCounts: () => locationCounts,
-    setLocationCounts,
     getPlaces: () => places,
     setPlaces,
     getLocations: () => locations,

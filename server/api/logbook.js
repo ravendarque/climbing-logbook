@@ -64,65 +64,26 @@ export const { handlePost } = createD1ResourceHandlers({
   rowToJson,
 });
 
-// #111 -- the size of each table's own initial page and each "Show more"
-// click. Not client-adjustable via a query param -- one fixed value
-// picked at implementation time (checked against this app's own real
-// payload size, not guessed) is simpler than a tunable knob nothing
-// actually needs to tune.
+// #111/#493 -- the size of each per-location "Show more" network page.
+// Not client-adjustable via a query param -- one fixed value picked at
+// implementation time (checked against this app's own real payload
+// size, not guessed) is simpler than a tunable knob nothing actually
+// needs to tune. `/log`'s own initial load and "Show more"/"Show all"
+// UI no longer call this endpoint at all as of #501 -- ADR-0019 moved
+// /log to reading a locally-synced complete dataset (see client/
+// sync-main.js) with a pure client-side reveal, not per-table network
+// pagination -- but the underlying per-location query below stays: #494
+// (ADR-0017) plans to reuse it for the public profile's own lazy
+// per-table-expand UI, a genuinely different consumer with a genuinely
+// different tradeoff (connectivity-first doesn't apply to that page).
 const PAGE_SIZE = 20;
 
-// #111 -- /log's initial load: up to PAGE_SIZE entries per *table*, in
-// one query -- not one request per table (real overhead for a user
-// who's climbed at many different crags). Paginated by location, not
-// place (Raven's own correction) -- climbing-entries-table.js renders
-// one table per *location*, and a location can combine several places/
-// areas under one header (client/entries.js's groupByPlace() groups by
-// locationId for exactly this reason), so the table a user actually
-// sees is the location, not the place underneath it. Requires the join
-// against places (entries only has place_id, not location_id directly)
-// -- window functions still do the capping/counting in one pass, just
-// partitioned by p.location_id instead: confirmed both work as expected
-// against real D1 data (a real multi-place location correctly reports
-// its combined total across every place), not assumed.
-//
-// /map and /performance don't use this at all -- /map still wants the
-// full list (client/map-main.js's own DATA_URL), /performance never
-// fetches raw entries any more (server/api/performance.js's own
-// aggregate, #111's other half).
-export async function handleGetInitial(request, env, userId) {
-  if (!userId) return json({ entries: [], locationCounts: {} }, 200, { "Cache-Control": "no-store" });
-
-  const { results } = await env.LOGBOOK_DB.prepare(`
-    SELECT * FROM (
-      SELECT e.*, p.location_id,
-             ROW_NUMBER() OVER (PARTITION BY p.location_id ORDER BY e.created_at) AS rn,
-             COUNT(*) OVER (PARTITION BY p.location_id) AS location_total
-      FROM entries e JOIN places p ON e.place_id = p.id
-      WHERE e.user_id = ?
-    ) WHERE rn <= ?
-    ORDER BY location_id, created_at
-  `).bind(userId, PAGE_SIZE).all();
-
-  // One pass -- location_total is identical across every row sharing a
-  // location_id (the window function computed it that way), so the
-  // first row seen for a location already carries its final answer.
-  const locationCounts = {};
-  for (const row of results) {
-    if (!(row.location_id in locationCounts)) locationCounts[row.location_id] = row.location_total;
-  }
-
-  return json({ entries: results.map(rowToJson), locationCounts }, 200, { "Cache-Control": "no-store" });
-}
-
-// #111 -- "Show more"/"Show all" follow-ups for one table (location) at
-// a time (the user clicks on one specific table), so unlike
-// handleGetInitial above this is a plain query, no window function
-// needed -- just the same places join, scoped to one location instead
-// of partitioned across all of them. Also the unchanged "give me
-// everything" shape every other caller still wants (client/map-main.js,
-// server/api/performance.js's own listForUser call, CSV export) when
-// locationId is omitted -- additive, not a breaking change to this
-// endpoint's existing contract.
+// #111/#493's own per-location "Show more"/"Show all" follow-up for one
+// table (location) at a time. Also the unchanged "give me everything"
+// shape every other caller still wants (client/map-main.js, server/api/
+// performance.js's own listForUser call, CSV export) when locationId is
+// omitted -- additive, not a breaking change to this endpoint's existing
+// contract.
 //
 // No separate ownership check needed for locationId (unlike a bare
 // placeId elsewhere in this codebase) -- `e.user_id = ?` already scopes

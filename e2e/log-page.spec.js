@@ -47,38 +47,49 @@ test("renders the shared chrome and a real entries table, and switches disciplin
   await expect(page.locator("#discipline-btn-label")).toHaveText("Boulder");
 });
 
-test("#111 -- a table past one page shows Show more/Show all, and both load the rest", async ({ page }) => {
+test("#501 -- a table past one page shows Show more/Show all, both reveal the rest client-side (no fetch)", async ({ page }) => {
   const manyEntries = Array.from({ length: 25 }, (_, i) => ({
     id: `many-${i}`, placeId: "p1", type: "boulder", status: "send", grade: "6A", date: "2026-05-01", name: `Many Seed ${i}`,
   }));
   await gotoLogHarness(page, { ...SEED, entries: manyEntries });
   await page.locator("#collapse-all-btn").click();
 
-  await expect(page.locator("#sections")).toContainText("20 of 25 loaded");
-  await expect(page.locator(".load-more-btn")).toBeVisible();
-  await expect(page.locator(".load-all-btn")).toBeVisible();
+  await expect(page.locator("#sections")).toContainText("20 of 25 shown");
+  await expect(page.locator(".show-more-btn")).toBeVisible();
+  await expect(page.locator(".show-all-btn")).toBeVisible();
 
-  await page.locator(".load-more-btn").click();
+  // No network request for the entries this reveals -- #entries is
+  // already the complete, locally-synced dataset (ADR-0019); the button
+  // just raises how many already-loaded rows render.
+  const entriesRequests = [];
+  page.on("request", req => { if (req.url().includes("/logbook/api/logbook")) entriesRequests.push(req.url()); });
+
+  await page.locator(".show-more-btn").click();
   await expect(page.locator("tbody tr")).toHaveCount(25);
-  // Fully loaded -- the whole footer (both buttons AND the "N of Total
-  // loaded" text) disappears entirely once hasMore is false, not just
+  // Fully revealed -- the whole footer (both buttons AND the "N of Total
+  // shown" text) disappears entirely once hasMore is false, not just
   // the button that was clicked.
-  await expect(page.locator(".load-more-btn")).toHaveCount(0);
-  await expect(page.locator(".load-all-btn")).toHaveCount(0);
-  await expect(page.locator("#sections")).not.toContainText("loaded");
+  await expect(page.locator(".show-more-btn")).toHaveCount(0);
+  await expect(page.locator(".show-all-btn")).toHaveCount(0);
+  await expect(page.locator("#sections")).not.toContainText("shown");
+  expect(entriesRequests).toEqual([]);
 });
 
-test("#111 -- Show all loads the exact remainder in one request", async ({ page }) => {
+test("#501 -- Show all reveals the exact remainder client-side, no fetch", async ({ page }) => {
   const manyEntries = Array.from({ length: 43 }, (_, i) => ({
     id: `many-${i}`, placeId: "p1", type: "boulder", status: "send", grade: "6A", date: "2026-05-01", name: `Many Seed ${i}`,
   }));
   await gotoLogHarness(page, { ...SEED, entries: manyEntries });
   await page.locator("#collapse-all-btn").click();
-  await expect(page.locator("#sections")).toContainText("20 of 43 loaded");
+  await expect(page.locator("#sections")).toContainText("20 of 43 shown");
 
-  await page.locator(".load-all-btn").click();
+  const entriesRequests = [];
+  page.on("request", req => { if (req.url().includes("/logbook/api/logbook")) entriesRequests.push(req.url()); });
+
+  await page.locator(".show-all-btn").click();
   await expect(page.locator("tbody tr")).toHaveCount(43);
-  await expect(page.locator(".load-more-btn")).toHaveCount(0);
+  await expect(page.locator(".show-more-btn")).toHaveCount(0);
+  expect(entriesRequests).toEqual([]);
 });
 
 test("archived climbs are hidden by default (#63), shown once explicitly filtered for, and Clear restores the default", async ({ page }) => {

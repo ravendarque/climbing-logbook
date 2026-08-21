@@ -199,50 +199,6 @@ describe("handleGet (locationId -- #111 per-table pagination)", () => {
   });
 });
 
-describe("handleGetInitial (#111 -- /log's own initial per-table-capped load)", () => {
-  const INITIAL_URL = "/logbook/api/logbook/initial";
-  function getInitial(extraCookie = cookie) {
-    return fetchJson(INITIAL_URL, { headers: { Cookie: extraCookie } });
-  }
-
-  it("returns empty entries and locationCounts for an anonymous caller", async () => {
-    const res = await fetchJson(INITIAL_URL);
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ entries: [], locationCounts: {} });
-  });
-
-  it("returns every location's entries when each has fewer than the page size", async () => {
-    const otherPlaceId = await seedPlace(cookie, { locationName: "Other Crag" });
-    const otherLocationId = await locationIdOf(otherPlaceId);
-    await post(validEntry());
-    await post({ ...validEntry(), name: "Elsewhere", placeId: otherPlaceId });
-
-    const { entries, locationCounts } = await (await getInitial()).json();
-    expect(entries).toHaveLength(2);
-    expect(locationCounts).toEqual({ [locationId]: 1, [otherLocationId]: 1 });
-  });
-
-  it("caps a large location at the page size (20), but reports its true total, combined across its places", async () => {
-    const secondPlaceId = (await (await jsonRequest("POST", "/logbook/api/admin/places", { locationId, area: "Second Area" }, { Cookie: cookie })).json()).places.at(-1).id;
-    for (let i = 0; i < 15; i++) await post({ ...validEntry(), id: `e${i}`, name: `Route ${i}` });
-    for (let i = 15; i < 25; i++) await post({ ...validEntry(), id: `e${i}`, name: `Route ${i}`, placeId: secondPlaceId });
-
-    const { entries, locationCounts } = await (await getInitial()).json();
-    expect(entries).toHaveLength(20);
-    expect(locationCounts[locationId]).toBe(25);
-    // The 20 loaded are the *oldest* (creation order) across BOTH places
-    // combined -- Route 20-24 aren't loaded yet.
-    expect(entries.map(e => e.name)).not.toContain("Route 24");
-  });
-
-  it("a second user's own initial load never reflects the first user's entries", async () => {
-    await post(validEntry());
-    const userB = await createAuthedSession();
-    const res = await getInitial(userB.cookie);
-    expect(await res.json()).toEqual({ entries: [], locationCounts: {} });
-  });
-});
-
 describe("handlePost", () => {
   it("rejects an unauthenticated request", async () => {
     const res = await jsonRequest("POST", ADMIN_URL, validEntry());
