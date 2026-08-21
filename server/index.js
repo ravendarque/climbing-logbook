@@ -4,6 +4,7 @@ import { handleGet as handleGetPlaces, handlePost as handlePostPlaces } from "./
 import { handleGet as handleGetLocations, handlePost as handlePostLocations } from "./api/locations.js";
 import { handleGetSettings, handlePatchSettings } from "./api/settings.js";
 import { handleGetPyramid } from "./api/performance.js";
+import { handleGetMapCounts } from "./api/map.js";
 import { handlePublicProfile } from "./api/public-profile.js";
 import { handlePublicResource } from "./api/public-data.js";
 import { handleOwnedRoute } from "./api/owned-routes.js";
@@ -35,6 +36,9 @@ const PUBLIC_GET_ROUTES = {
   // the same public-GET convention as every other read here rather than
   // being a special case.
   "/logbook/api/performance/pyramid": handleGetPyramid,
+  // #497 -- Map's own per-country/discipline/status aggregate, same
+  // reasoning as the pyramid route above.
+  "/logbook/api/map/counts": handleGetMapCounts,
 };
 
 // Every write here requires a real Better Auth session -- keyed by
@@ -119,7 +123,7 @@ export default {
     // whichever *target* user the path names, not the caller's own
     // session (see server/api/public-data.js's own comment). Not
     // hostname-gated, same as every other /logbook/api/* route here.
-    const publicDataMatch = pathname.match(/^\/logbook\/api\/public\/([^/]+)\/(logbook|places|locations)$/);
+    const publicDataMatch = pathname.match(/^\/logbook\/api\/public\/([^/]+)\/(logbook|places|locations|map\/counts)$/);
     if (publicDataMatch && method === "GET") {
       const [, username, resource] = publicDataMatch;
       return handlePublicResource(request, env, username, resource);

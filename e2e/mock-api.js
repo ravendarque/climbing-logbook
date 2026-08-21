@@ -112,6 +112,29 @@ export async function mockApi(page, {
   await page.route("**/logbook/api/settings", route => route.fulfill({ json: _settings }));
   await page.route("**/logbook/api/performance/pyramid", route => route.fulfill({ json: pyramidData }));
 
+  // #497 -- mirrors server/api/map.js's own aggregation (country x
+  // discipline -> { total, flash, send, project }), computed fresh from
+  // the current _entries/_places/_locations on every request, same as
+  // every other route here that reflects live seeded state rather than a
+  // static snapshot.
+  function computeMapCounts() {
+    const counts = {};
+    for (const entry of _entries) {
+      const place = _places.find(p => p.id === entry.placeId);
+      const location = _locations.find(l => l.id === place?.locationId);
+      const country = location?.country ?? "";
+      counts[country] ??= {};
+      counts[country][entry.type] ??= { total: 0, flash: 0, send: 0, project: 0 };
+      const bucket = counts[country][entry.type];
+      bucket.total++;
+      if (entry.status === "send" && entry.firstAttempt) bucket.flash++;
+      else if (entry.status === "send") bucket.send++;
+      else if (entry.status === "project") bucket.project++;
+    }
+    return counts;
+  }
+  await page.route("**/logbook/api/map/counts", route => route.fulfill({ json: computeMapCounts() }));
+
   // Path-scoped by :username (server/api/public-data.js's own route shape)
   // -- glob-wildcarded since the harness's own synthetic USERNAME (parsed
   // client-side from location.pathname) doesn't matter for what's being
@@ -119,6 +142,7 @@ export async function mockApi(page, {
   await page.route("**/logbook/api/public/*/logbook", route => route.fulfill({ json: { entries: _entries } }));
   await page.route("**/logbook/api/public/*/places", route => route.fulfill({ json: { places: _places } }));
   await page.route("**/logbook/api/public/*/locations", route => route.fulfill({ json: { locations: _locations } }));
+  await page.route("**/logbook/api/public/*/map/counts", route => route.fulfill({ json: computeMapCounts() }));
 
   await page.route("**/logbook/api/admin/settings", async route => {
     if (route.request().method() !== "PATCH") return route.continue();

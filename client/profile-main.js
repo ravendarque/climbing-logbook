@@ -9,22 +9,24 @@
 // a real bug this page used to have (the notes-btn rendered with
 // nothing to open when clicked, since nothing here ever wired it up).
 //
-// client/store.js *is* used here now (#333, unlike this file's original
-// #351 cut) -- purely as the read-only state client/map-view.js already
-// expects (getEntries/entryLocation/etc via its existing factory
-// contract), not for anything this page would ever persist or mutate
-// server-side. getActiveType()/setActiveType() specifically are never
-// called here at all (#460) -- this page has no single active discipline
-// anymore, and map-view.js's own allDisciplines mode never reads them.
-// Given a no-op storage stub (below), not the real
-// localStorage default -- store.js's cache keys (logbook_entries_cache
-// etc) are global, unscoped to a user, so a real visitor who's also a
-// logged-in owner viewing someone else's public map on the same browser
-// would otherwise have their own /log page's offline cache silently
-// overwritten with the *other* user's public data. This page has no
-// offline-queue concept to begin with (no reason a public visitor's map
-// view needs to survive a reload from cache), so simply not persisting is
-// correct, not a workaround.
+// client/store.js *is* used here (#333, unlike this file's original #351
+// cut) -- purely for activeView tracking (map vs. logbook tab) now, not
+// as an entries store at all: #497 moved map-view.js off raw
+// entries/places/locations entirely (it reads its own server-computed
+// aggregate, setCounts(), instead), so store here no longer gets fed
+// entries/places/locations either. getActiveType()/setActiveType()
+// specifically are never called here at all (#460) -- this page has no
+// single active discipline anymore, and map-view.js's own allDisciplines
+// mode never reads them. Given a no-op storage stub (below) regardless --
+// store.js's cache keys are global, unscoped to a user, so a real visitor
+// who's also a logged-in owner viewing someone else's public profile on
+// the same browser would otherwise have their own /log page's offline
+// cache silently overwritten with the *other* user's public data (this
+// page has no offline-queue concept to begin with, so simply not
+// persisting is correct, not a workaround) -- same reasoning now also
+// applies to the Map tab's own aggregate below, fetched fresh every load
+// with no cache at all (ADR-0017: this page is exempt from the
+// connectivity-first constraint that makes /map's own caching worthwhile).
 //
 // <climbing-entries-table> (#350) is used exactly as client/log-main.js
 // uses it, just fed from the new public data endpoints (server/api/
@@ -104,24 +106,28 @@ createThemeToggle();
 
 async function boot() {
   const base = `/logbook/api/public/${encodeURIComponent(USERNAME)}`;
-  // .catch(() => []) on each: a failed/404 fetch here (private or
+  // .catch(() => []/{}) on each: a failed/404 fetch here (private or
   // nonexistent user) can't actually happen in practice --
   // server/api/public-profile.js's own gate already 404s before this shell
-  // is ever served -- but the empty-array fallback keeps this page inert
-  // rather than throwing if that assumption is ever wrong.
-  const [entries, places, locations] = await Promise.all([
+  // is ever served -- but the empty fallback keeps this page inert rather
+  // than throwing if that assumption is ever wrong.
+  //
+  // #497 -- map/counts isn't a single-keyed-array response
+  // (loadResource's own assumption), same reasoning as performance-
+  // main.js's own fetchPyramid()/sync-main.js's own fetchJson() -- a
+  // plain fetch instead.
+  const [entries, places, locations, mapCounts] = await Promise.all([
     loadResource(`${base}/logbook`, "entries").catch(() => []),
     loadResource(`${base}/places`, "places").catch(() => []),
     loadResource(`${base}/locations`, "locations").catch(() => []),
+    fetch(`${base}/map/counts`).then(res => (res.ok ? res.json() : {})).catch(() => ({})),
   ]);
 
   entriesTable.entries = entries;
   entriesTable.places = places;
   entriesTable.locations = locations;
 
-  store.setEntries(entries);
-  store.setPlaces(places);
-  store.setLocations(locations);
+  mapView.setCounts(mapCounts);
 
   render();
 }

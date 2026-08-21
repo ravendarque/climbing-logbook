@@ -14,18 +14,28 @@
 // popover isn't a focus-trapped modal (createMapView() only ever takes
 // { store }), and there's no entry-form/place-picker/notes overlay on
 // this read-mostly page to need them for.
+//
+// #497 -- store is no longer fed entries/places/locations at all: map-
+// view.js reads its own server-computed aggregate (setCounts()) instead
+// of joining raw entries against places/locations itself, so store's
+// remaining job here is just the activeView/activeType tracking
+// adminAuth/headerChrome/syncAdminBar already need.
 import { createStore } from "./store.js";
 import { createMapView } from "./map-view.js";
 import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
-import { loadResource } from "./fetch-json.js";
 import { syncAdminBar } from "./admin-bar.js";
 import "./components/climbing-menu-bar.js";
 import "./components/climbing-tab-bar.js";
 
-const DATA_URL = "/logbook/api/logbook";
-const PLACES_URL = "/logbook/api/places";
-const LOCATIONS_URL = "/logbook/api/locations";
+const MAP_COUNTS_URL = "/logbook/api/map/counts";
+// #497 -- its own small offline cache, separate from /log's raw-entries
+// one (client/store.js) -- this page never needed /sync's completeness
+// guarantee (ADR-0019) in the first place, and a bounded country x
+// discipline aggregate is cheap enough to just cache directly here
+// (ADR-0018's own consequence: /map stays offline-capable on its own,
+// unlike /performance's deliberate online-only gate).
+const MAP_COUNTS_CACHE_KEY = "logbook_map_counts_cache";
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
 
 // Same opaqueredirect-detection reasoning as client/main.js's own
@@ -103,25 +113,31 @@ async function boot() {
   const sessionPromise = adminAuth.checkSession();
   const settingsPromise = adminAuth.fetchSettings();
 
-  try {
-    store.setEntries(await loadResource(DATA_URL, "entries"));
-  } catch {
-    store.loadEntriesFromCache();
-  }
-  try {
-    store.setPlaces(await loadResource(PLACES_URL, "places"));
-  } catch {
-    store.loadPlacesFromCache();
-  }
-  try {
-    store.setLocations(await loadResource(LOCATIONS_URL, "locations"));
-  } catch {
-    store.loadLocationsFromCache();
-  }
+  mapView.setCounts(await loadMapCounts());
 
   await adminAuth.resolveActiveType(sessionPromise, settingsPromise);
 
   render();
+}
+
+// #497 -- caches the aggregate itself (not raw entries) after a
+// successful fetch, falls back to whatever's cached on any failure --
+// same "genuinely offline-capable" shape /log's own store.js gives
+// entries, just independent of it (this page never goes through /sync).
+async function loadMapCounts() {
+  try {
+    const res = await fetch(MAP_COUNTS_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const counts = await res.json();
+    localStorage.setItem(MAP_COUNTS_CACHE_KEY, JSON.stringify(counts));
+    return counts;
+  } catch {
+    try {
+      return JSON.parse(localStorage.getItem(MAP_COUNTS_CACHE_KEY) || "{}");
+    } catch {
+      return {};
+    }
+  }
 }
 
 boot();

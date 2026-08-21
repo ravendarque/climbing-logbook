@@ -68,6 +68,19 @@ describe("public data API", () => {
     expect(res.status).toBe(404);
   });
 
+  it("#497 -- serves the map/counts aggregate for a public user, same anti-enumeration 404 for a private/nonexistent one", async () => {
+    const { cookie } = await createAuthedSession({ username: "publicmapuser" });
+    const placeId = await seedPlace(cookie, { locationName: "Fontainebleau", country: "France" });
+    await jsonRequest("POST", "/logbook/api/admin/logbook", { placeId, name: "Sleepwalker", grade: "7A", type: "boulder", status: "send" }, { Cookie: cookie });
+
+    const res = await fetchPublic("publicmapuser", "map/counts");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ France: { boulder: { total: 1, flash: 0, send: 1, project: 0 } } });
+
+    const notFoundRes = await fetchPublic("nobody-by-this-name", "map/counts");
+    expect(notFoundRes.status).toBe(404);
+  });
+
   it("never leaks a different user's data for the same resource path", async () => {
     const { cookie: cookieA } = await createAuthedSession({ username: "userdataa" });
     const placeIdA = await seedPlace(cookieA);
