@@ -14,6 +14,29 @@ async function validateFields(place, env, userId) {
   return null;
 }
 
+// #490 -- case-insensitive area match scoped to (user, locationId),
+// mirroring server/api/logbook-import.js's own resolveLocationsAndPlaces()
+// match logic (that file's own placeByKey Map keyed by
+// `${p.location_id}::${p.area.toLowerCase()}`) rather than a second,
+// independently-drifting copy of the same rule -- including an empty
+// area ("no sub-area specified") correctly matching another empty area
+// at the same location, same as that file's own convention. Scoped by
+// `place.locationId` as sent, not re-resolved -- validateFields above
+// already ran first and rejects an unowned/nonexistent locationId
+// before this ever runs, and by the time a queued "place" item reaches
+// here its own locationId has already been through
+// client/offline-sync.js's own remap if the location it references was
+// itself deduped moments earlier in the same replay -- see
+// server/lib/d1-resource.js's own createD1ResourceHandlers comment for
+// the full mechanism.
+async function findDuplicatePlace(env, userId, place) {
+  if (!place.locationId) return null;
+  return env.LOGBOOK_DB
+    .prepare(`SELECT id FROM places WHERE user_id = ? AND location_id = ? AND LOWER(area) = LOWER(?)`)
+    .bind(userId, place.locationId, place.area ?? "")
+    .first();
+}
+
 // No country field here -- it lives on Location, not duplicated per area
 // (location determines country, a real functional dependency; storing it
 // on every Place row would make it transitively dependent on location
@@ -51,6 +74,7 @@ export const { handleGet, handlePost } = createD1ResourceHandlers({
   validateFields,
   buildRow,
   rowToJson,
+  findDuplicate: findDuplicatePlace,
 });
 
 // Editing (#159) and deleting (#160) a Place are deliberately not
