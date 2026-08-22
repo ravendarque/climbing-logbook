@@ -443,6 +443,45 @@ describe("handlePost", () => {
     expect(entries).toHaveLength(1);
   });
 
+  // #515 -- an id that belonged to a since-soft-deleted row used to
+  // silently no-op here (findOwnedRow's own idempotent-replay check is
+  // deliberately not excludeDeleted-scoped, so it still recognized the
+  // tombstoned row and treated a genuinely NEW create as a replay) --
+  // 200 OK, but never actually (re)created. Now resurrects it instead.
+  it("resurrects a soft-deleted row when a create reuses its id, rather than silently no-op'ing", async () => {
+    const entryWithId = { ...validEntry(), id: "resurrect-id-1" };
+    const created = await post(entryWithId);
+    expect(created.status).toBe(201);
+
+    await del("resurrect-id-1");
+    const afterDelete = await (await get()).json();
+    expect(afterDelete.entries).toEqual([]);
+
+    const recreated = await post({ ...validEntry(), id: "resurrect-id-1", name: "Resurrected" });
+    expect(recreated.status).toBe(201);
+    const { entries } = await recreated.json();
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({ id: "resurrect-id-1", name: "Resurrected" });
+
+    const row = await env.LOGBOOK_DB.prepare(`SELECT deleted_at FROM entries WHERE id = ?`).bind("resurrect-id-1").first();
+    expect(row.deleted_at).toBeNull();
+  });
+
+  it("a genuine idempotent replay of a still-live row is unaffected by the resurrect path", async () => {
+    const entryWithId = { ...validEntry(), id: "still-live-id-1" };
+    const first = await post(entryWithId);
+    expect(first.status).toBe(201);
+
+    // Replaying with different field values doesn't overwrite anything --
+    // same "the first write wins, this is purely a dedup no-op" contract
+    // the pre-#515 behavior already had for a still-live row.
+    const second = await post({ ...validEntry(), id: "still-live-id-1", name: "Should Not Apply" });
+    expect(second.status).toBe(200);
+    const { entries } = await second.json();
+    expect(entries).toHaveLength(1);
+    expect(entries[0].name).toBe(entryWithId.name);
+  });
+
   it("sets firstAttempt true only when status is send", async () => {
     const res = await post({ ...validEntry(), status: "send", firstAttempt: true });
     const { entries } = await res.json();
