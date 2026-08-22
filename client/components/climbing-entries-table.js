@@ -897,7 +897,7 @@ export class ClimbingEntriesTable extends HTMLElement {
           ${hasMore ? `
           <div class="flex items-center justify-center gap-3 flex-wrap px-[.9rem] py-[.6rem] border-t border-border text-[.82rem]">
             <span class="text-muted">${visibleRows.length} of ${sorted.length} shown</span>
-            <button type="button" class="show-more-btn border-0 bg-transparent cursor-pointer text-accent font-medium hover:underline" data-section-key="${escapeHtml(key)}">Show ${PAGE_SIZE} more</button>
+            <button type="button" class="show-more-btn border-0 bg-transparent cursor-pointer text-accent font-medium hover:underline" data-section-key="${escapeHtml(key)}">Show more</button>
             <button type="button" class="show-all-btn border-0 bg-transparent cursor-pointer text-accent font-medium hover:underline" data-section-key="${escapeHtml(key)}">Show all</button>
           </div>` : ""}
         </div>
