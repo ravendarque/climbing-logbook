@@ -157,6 +157,12 @@ async function boot() {
   entriesTable.locations = locations;
   entriesTable.locationCounts = counts;
 
+  // #470 -- clears the loading state set in public/profile/index.html's
+  // own markup, now that the counts-only shell fetch has resolved (real
+  // data or a confirmed-empty logbook either way) -- see
+  // client/log-main.js's own boot() for the same fix on the owner page.
+  entriesTable.loading = false;
+
   mapView.setCounts(mapCounts);
 
   render();

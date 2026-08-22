@@ -7,6 +7,16 @@
   <link rel="icon" type="image/png" sizes="32x32" href="./logbook/favicon-32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="./logbook/favicon-16.png">
   <meta name="theme-color" content="#ff2727">
+  <!-- #470 -- starts the brand font fetch during initial HTML parsing
+       instead of waiting for layout to discover it via climbing-header.js's
+       own @font-face rule, shrinking the FOUT window (font-display: swap
+       still applies -- this doesn't eliminate the swap, just gets the
+       fetch started sooner). Always the absolute /logbook/... path,
+       matching climbing-header.js's own hardcoded @font-face url()
+       exactly, regardless of this page's own relative-path convention for
+       other assets below -- the preload only helps if its URL matches the
+       eventual font request byte-for-byte. -->
+  <link rel="preload" as="font" type="font/woff2" href="/logbook/fonts/BebasNeue-Regular.woff2" crossorigin>
   <!-- Same shared stylesheet/font/favicon assets as public/logbook/ and
        the other apex pages (public/register/, public/login/) -- see
        public/login/index.html's own comment for why these are referenced

@@ -28,6 +28,33 @@ async function gotoLogHarness(page, seed = SEED) {
   await expect(page.locator("climbing-entries-table")).toBeVisible();
 }
 
+// #470 -- proves the fix, not just the end state: without it,
+// <climbing-entries-table>'s own real empty state ("Nothing to show
+// here") rendered immediately on connect, before boot() had fetched
+// anything, then flashed to the real content/empty state a moment
+// later. Seeded genuinely empty so the only thing distinguishing
+// "loading" from "confirmed empty" is the loading attribute itself --
+// with real seeded entries, the empty-state branch wouldn't render at
+// all once entries arrive, and this test would only ever be able to
+// observe the very first (pre-data) render, not the actual transition.
+test("#470 -- shows a loading state before real data resolves, then flips to the real empty state once confirmed", async ({ page }) => {
+  let resolvePlaces;
+  const placesDelay = new Promise(resolve => { resolvePlaces = resolve; });
+  await mockApi(page, { entries: [], places: [], locations: [] });
+  await page.route("**/logbook/api/places*", async route => {
+    await placesDelay;
+    return route.fallback();
+  });
+
+  await page.goto("/e2e-fixtures/pages/log.html");
+
+  await expect(page.locator("#sections")).toContainText("Loading");
+  await expect(page.locator("#sections")).not.toContainText("Nothing to show here");
+
+  resolvePlaces();
+  await expect(page.locator("#sections")).toContainText("Nothing to show here");
+});
+
 test("renders the shared chrome and a real entries table, and switches discipline", async ({ page }) => {
   await gotoLogHarness(page);
 

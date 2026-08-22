@@ -238,3 +238,26 @@ test("shows the entries table's own empty state when the target user has no data
   await page.goto("/e2e-fixtures/pages/profile.html");
   await expect(page.locator("#sections")).toContainText("Nothing to show here");
 });
+
+// #470 -- same fix as e2e/log-page.spec.js's own test, applied to this
+// page's boot() (client/profile-main.js), which clears `loading` once
+// the counts-only shell fetch resolves rather than once full entries
+// arrive (see that attribute's own comment in
+// client/components/climbing-entries-table.js).
+test("#470 -- shows a loading state before the counts-only shell fetch resolves, then flips to the real empty state once confirmed", async ({ page }) => {
+  let resolveCounts;
+  const countsDelay = new Promise(resolve => { resolveCounts = resolve; });
+  await mockApi(page, { entries: [], places: [], locations: [] });
+  await page.route("**/logbook/api/public/*/logbook/counts", async route => {
+    await countsDelay;
+    return route.fallback();
+  });
+
+  await page.goto("/e2e-fixtures/pages/profile.html");
+
+  await expect(page.locator("#sections")).toContainText("Loading");
+  await expect(page.locator("#sections")).not.toContainText("Nothing to show here");
+
+  resolveCounts();
+  await expect(page.locator("#sections")).toContainText("Nothing to show here");
+});

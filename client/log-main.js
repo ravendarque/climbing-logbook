@@ -198,6 +198,13 @@ async function boot() {
 
   await adminAuth.resolveActiveType(sessionPromise, settingsPromise);
 
+  // #470 -- clears the loading state set in public/log/index.html's own
+  // markup, now that entries/places/locations have all resolved (cache,
+  // network, or the network-failed-fall-back-to-cache path above) --
+  // real data or a confirmed-empty logbook either way, so
+  // <climbing-entries-table>'s own empty state (if it applies) is now
+  // honest rather than a premature "you have nothing logged" flash.
+  entriesTable.loading = false;
   render();
 }
 
