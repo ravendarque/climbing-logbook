@@ -403,6 +403,104 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     // calls via the queuedAdd short-circuit.
     expect(requestMethods).toEqual(["POST", "DELETE"]);
   });
+
+  // #514 -- offline-sync.js's own reconnect flow (client/sync-cursors.js's
+  // ?since= delta pull, followed by the queue-replay loop) used to merge
+  // a delta onto whatever was already in memory -- which can include this
+  // device's own not-yet-synced _pending/_pendingDelete-flagged rows --
+  // and persist the merged result straight to localStorage, baking that
+  // flag into the on-disk cache; it could also silently clear a queued
+  // pending-delete's flag if the delta happened to touch the same row
+  // before the queue replay got to it. This drives both at once: a queued
+  // delete for "Boulder Seed", plus a concurrent edit to the SAME entry
+  // landing on the server (via a page-initiated fetch, not through this
+  // test's own currently-aborting admin route -- simulating "another
+  // device already changed this row" independently of the queued delete).
+  test("reconnect drift: a queued pending delete still executes when the same entry was edited on another device first", async ({ page }) => {
+    await gotoLogHarness(page);
+
+    let failing = true;
+    await page.route("**/logbook/api/admin/logbook**", route => (failing ? route.abort("failed") : route.fallback()));
+
+    // Queue a delete for the seeded "Boulder Seed" entry while offline.
+    await page.locator("#collapse-all-btn").click();
+    const row = page.locator("tr", { has: page.getByText("Boulder Seed", { exact: true }) });
+    await row.locator(".edit-btn").click();
+    page.once("dialog", dialog => dialog.accept());
+    await page.locator("#entry-delete-btn").click();
+    await expect(page.locator("#entry-overlay")).toBeHidden();
+    // Still visible, marked pending-delete (#268) -- not actually gone yet.
+    await expect(page.locator("#sections")).toContainText("Boulder Seed");
+
+    // Simulate "another device" editing the same entry on the server --
+    // briefly un-fail the route for this one page-initiated request only,
+    // then restore it so the queued delete itself still can't reach the
+    // server yet.
+    failing = false;
+    await page.evaluate(() => fetch("/logbook/api/admin/logbook", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: "e1", placeId: "p1", type: "boulder", status: "send", grade: "6A", name: "Edited By Other Device" }),
+    }).then(res => res.json()));
+    failing = true;
+
+    // Reconnect -- pullDeltas() picks up the drift edit first, then the
+    // queued delete replays.
+    const deleteResponsePromise = page.waitForResponse(
+      res => res.url().includes("/logbook/api/admin/logbook") && res.request().method() === "DELETE",
+    );
+    failing = false;
+    await page.evaluate(() => window.dispatchEvent(new Event("online")));
+    await deleteResponsePromise;
+
+    // The delete still wins -- neither "Boulder Seed" nor the drifted
+    // "Edited By Other Device" name is left showing.
+    await expect(page.locator("#sections")).not.toContainText("Boulder Seed");
+    await expect(page.locator("#sections")).not.toContainText("Edited By Other Device");
+    await expect(page.locator("#sync-btn")).toBeHidden();
+
+    // No _pending/_pendingDelete flag survives into the persisted cache --
+    // the reconnect flow's own delta merge must always merge onto a
+    // freshly-reloaded, clean on-disk snapshot, never onto whatever
+    // pending-augmented state happened to be sitting in memory.
+    const cached = await page.evaluate(() => JSON.parse(localStorage.getItem("logbook_entries_cache") || "[]"));
+    expect(cached.some(e => e._pending || e._pendingDelete)).toBe(false);
+  });
+
+  // #514 -- syncBtn.disabled only blocks a second button *click*; the
+  // `online` listener itself had no re-entrancy guard, so two `online`
+  // events firing in quick succession could run two concurrent
+  // syncPending() calls, each independently POSTing the same queued item.
+  test("reconnect re-entrancy: two online events in quick succession don't double-POST a queued item", async ({ page }) => {
+    await gotoLogHarness(page);
+
+    const entryName = `E2E reentrancy ${Date.now()}`;
+
+    let failing = true;
+    await page.route("**/logbook/api/admin/logbook**", route => (failing ? route.abort("failed") : route.fallback()));
+
+    await page.locator("#add-btn").click();
+    await page.locator("#entry-name").fill(entryName);
+    await page.locator("#place-btn").click();
+    await page.locator('#place-listbox li[data-key="p1"]').click();
+    await page.locator("#entry-submit-btn").click();
+    await expect(page.locator("#entry-overlay")).toBeHidden();
+    await expect(page.locator("#sections")).toContainText(entryName);
+
+    const postRequests = [];
+    page.on("requestfinished", req => {
+      if (req.url().includes("/logbook/api/admin/logbook") && req.method() === "POST") postRequests.push(req.url());
+    });
+
+    failing = false;
+    await page.evaluate(() => {
+      window.dispatchEvent(new Event("online"));
+      window.dispatchEvent(new Event("online"));
+    });
+
+    await expect(page.locator("#sync-btn")).toBeHidden();
+    expect(postRequests).toHaveLength(1);
+  });
 });
 
 // #403 -- deliberately data-agnostic: neither test hardcodes which

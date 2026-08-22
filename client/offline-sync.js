@@ -100,11 +100,27 @@ export function createOfflineSync({
   // -- the queue-replay loop below already has its own offline handling,
   // and a missed delta catch-up this pass just means it's retried again
   // on the next reconnect/click, same as any other transient failure.
-  async function pullDelta(url, table, getCurrent, setCurrent) {
+  //
+  // #514 -- merges onto `loadFromCache()`'s freshly-reloaded, on-disk
+  // state, not `getCurrent()` as first written -- getCurrent() can
+  // already be augmented in memory with this device's own OWN pending
+  // queue items (store.applyPendingQueue, never persisted -- see
+  // store.js's own "only server-confirmed data persists" comment).
+  // Merging a delta onto that augmented state and persisting the result
+  // via setCurrent() baked a _pending/_pendingDelete flag straight into
+  // the on-disk cache, and could silently clear a queued item's own
+  // pending-delete flag if the delta happened to touch the same row
+  // before the flag was ever reapplied. Reloading first guarantees the
+  // merge (and what gets persisted) is always clean; pullDeltas() below
+  // unconditionally re-applies the current queue right after, so the
+  // in-memory *view* is never left without its pending flags, even
+  // momentarily.
+  async function pullDelta(url, table, getCurrent, setCurrent, loadFromCache) {
     try {
       const res = await fetch(`${url}?since=${getCursor(table)}`);
       if (!res.ok) return;
       const { [table]: rows, cursor } = await res.json();
+      loadFromCache();
       setCurrent(mergeDelta(getCurrent(), rows));
       setCursor(table, cursor);
     } catch {
@@ -118,13 +134,31 @@ export function createOfflineSync({
     // ordering requirement (entries reference placeId), same reasoning
     // client/sync-main.js's own runSync() follows.
     await Promise.all([
-      pullDelta(placesUrl, "places", store.getPlaces, store.setPlaces),
-      pullDelta(locationsUrl, "locations", store.getLocations, store.setLocations),
+      pullDelta(placesUrl, "places", store.getPlaces, store.setPlaces, store.loadPlacesFromCache),
+      pullDelta(locationsUrl, "locations", store.getLocations, store.setLocations, store.loadLocationsFromCache),
     ]);
-    await pullDelta(entriesUrl, "entries", store.getEntries, store.setEntries);
+    await pullDelta(entriesUrl, "entries", store.getEntries, store.setEntries, store.loadEntriesFromCache);
+
+    // #514 -- unconditional, not just when the queue-replay loop further
+    // down happens to change something: restores this device's own
+    // pending/pendingDelete view on top of whatever pullDelta just
+    // loaded-clean-and-merged, immediately -- see pullDelta's own
+    // comment above for why this can no longer be skipped.
+    store.applyPendingQueue(getQueue());
   }
 
+  // #514 -- syncBtn.disabled only blocks a second *button click* (a
+  // disabled button doesn't fire click events); the `online` listener
+  // below has no such protection, so flapping connectivity firing
+  // multiple `online` events in quick succession (or one firing while a
+  // button-triggered sync is still mid-flight) could previously run two
+  // concurrent syncPending() calls, each independently replaying the
+  // same queued item against the server.
+  let syncInFlight = false;
+
   async function syncPending() {
+    if (syncInFlight) return;
+    syncInFlight = true;
     syncBtn.disabled = true;
     syncBtnIcon.classList.add("animate-spin");
 
@@ -182,6 +216,7 @@ export function createOfflineSync({
     } finally {
       // syncBtn's own disabled/spin state is plain DOM, not Store-driven
       // -- reset directly, not via render().
+      syncInFlight = false;
       syncBtn.disabled = false;
       syncBtnIcon.classList.remove("animate-spin");
     }
