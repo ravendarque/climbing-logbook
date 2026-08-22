@@ -60,6 +60,14 @@
     "  --tier-peer:      #5b8def;",
     "  --tier-heuristic: #dba43a;",
     "  --tier-community: #cd7cae;",
+    // #516 -- <climbing-grade-pyramid>'s own status-icon colors (good/
+    // missing/promoted), previously hardcoded raw hex directly in that
+    // component and never in this token set at all, so they never
+    // participated in light/dark theme switching the way every other
+    // themeable color here does (found via code review, 2026-08-22).
+    "  --pyramid-status-good:     #22c55e;",
+    "  --pyramid-status-missing:  #ef4444;",
+    "  --pyramid-status-promoted: #eab308;",
     "}",
     // Bebas Neue, SIL OFL 1.1, (c) Dharma Type -- sourced directly from
     // https://github.com/dharmatype/Bebas-Neue, not Google Fonts. Absolute
@@ -93,6 +101,9 @@
     "  --tier-peer:      #2e5fb8;",
     "  --tier-heuristic: #a6740a;",
     "  --tier-community: #a34a7a;",
+    "  --pyramid-status-good:     #16a34a;",
+    "  --pyramid-status-missing:  #b91c1c;",
+    "  --pyramid-status-promoted: #a16207;",
     "}",
     "[hidden] { display: none; }",
     // Custom elements are `display: inline` by default with no UA

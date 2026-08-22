@@ -42,7 +42,7 @@ import { activeGradeList, filteredEntries, groupByPlace, placeOf, sortEntries } 
 import { gradeColor } from "../../shared/grade-data.js";
 import { combinedFlashLabel, combinedSendLabel, disciplineLabel, flashLabel, hydrateStatusIcons, sendLabel, statusBadge } from "../status.js";
 import { COUNTRY_BY_NAME } from "../countries.js";
-import { createDisclosure, focusableEls } from "../modal-utils.js";
+import { createDisclosure, createModalHelpers } from "../modal-utils.js";
 
 const EDIT_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"></path></svg>`;
 const PENDING_ICON = `<svg class="inline-block w-[.8rem] h-[.8rem] align-[-1px] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
@@ -163,14 +163,16 @@ function shellHtml(allDisciplines) {
 
   <div id="sections"></div>
 
-  <!-- #425 -- notes view modal, self-contained here (own focus-trap/
-       Escape/backdrop-click, not client/modal-utils.js's
-       createModalHelpers()) rather than left to each consuming page --
-       same precedent client/components/climbing-grade-pyramid.js's own
-       citations/evidence overlays already established: this component's
-       real consumers (public/log/index.html, public/profile/index.html)
-       never have another overlay open alongside this one, so there's
-       nothing to coordinate stacking/priority with. Reads this.#entries
+  <!-- #425 -- notes view modal. #516 -- its own focus-trap/Escape/
+       backdrop-click now reuses client/modal-utils.js's own
+       createModalHelpers(), scoped to just this one overlay id rather
+       than /log's own default full-page list -- that factory already
+       took overlayIds as a real parameter, not the fixed list an
+       earlier version of this comment (and climbing-grade-pyramid.js's
+       own matching one) assumed it was hardwired to, so the two
+       components' own hand-rolled duplicate of the exact same open/
+       close/focus-trap mechanics was never actually necessary (found
+       via code review, 2026-08-22). Reads this.#entries
        directly (see #openNotesFor below) -- the component already holds
        the full entry data as its own state, so no store/entries lookup
        needs injecting from outside for something this purely a display
@@ -231,7 +233,6 @@ export class ClimbingEntriesTable extends HTMLElement {
   #collapseInitialized = false;
   #dragThumb = null; // "min" | "max" | null
   #wired = false;
-  #lastFocusedEl = null; // #425 -- notes overlay's own focus-return target
 
   static get observedAttributes() {
     return ["editable", "active-discipline", "all-disciplines", "lazy"];
@@ -411,41 +412,17 @@ export class ClimbingEntriesTable extends HTMLElement {
     return this.#sortByLocation[locationId] ?? DEFAULT_SORT;
   }
 
-  // #425 -- same shape as climbing-grade-pyramid.js's own #openOverlay/
-  // #closeOverlay (that component's own header comment explains why
-  // self-contained rather than client/modal-utils.js's
-  // createModalHelpers()).
-  #openOverlay(overlay) {
-    this.#lastFocusedEl = document.activeElement;
-    overlay.hidden = false;
-    overlay.scrollTop = 0;
-    (focusableEls(overlay)[0] ?? overlay).focus();
-  }
-
-  #closeOverlay(overlay) {
-    overlay.hidden = true;
-    if (this.#lastFocusedEl) this.#lastFocusedEl.focus();
-  }
-
+  // #425/#516 -- createModalHelpers(["notes-overlay"]) instead of a
+  // hand-rolled open/close/focus-trap (see this file's own header
+  // comment on the notes-overlay markup for why the earlier
+  // self-contained version wasn't actually necessary).
   #wireNotesOverlay() {
     const notesOverlay = this.querySelector("#notes-overlay");
     const notesModalText = this.querySelector("#notes-modal-text");
+    const { openModal, closeModal } = createModalHelpers(["notes-overlay"]);
 
-    this.querySelector("#notes-close").addEventListener("click", () => this.#closeOverlay(notesOverlay));
-    notesOverlay.addEventListener("click", e => { if (e.target === notesOverlay) this.#closeOverlay(notesOverlay); });
-
-    document.addEventListener("keydown", e => {
-      if (notesOverlay.hidden) return;
-      if (e.key === "Escape") { this.#closeOverlay(notesOverlay); return; }
-      if (e.key === "Tab") {
-        const focusable = focusableEls(notesOverlay);
-        if (focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-      }
-    });
+    this.querySelector("#notes-close").addEventListener("click", () => closeModal(notesOverlay));
+    notesOverlay.addEventListener("click", e => { if (e.target === notesOverlay) closeModal(notesOverlay); });
 
     // Delegated (not a per-row listener) -- #renderSections() rebuilds
     // #sections' entire innerHTML on every #update(), so a per-row
@@ -459,7 +436,7 @@ export class ClimbingEntriesTable extends HTMLElement {
       const entry = this.#entries.find(x => x.id === notesBtn.dataset.notesId);
       if (entry) {
         notesModalText.textContent = entry.notes;
-        this.#openOverlay(notesOverlay);
+        openModal(notesOverlay);
       }
     });
   }
