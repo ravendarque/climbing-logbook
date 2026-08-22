@@ -28,10 +28,14 @@
 // with no cache at all (ADR-0017: this page is exempt from the
 // connectivity-first constraint that makes /map's own caching worthwhile).
 //
-// <climbing-entries-table> (#350) is used exactly as client/log-main.js
-// uses it, just fed from the new public data endpoints (server/api/
-// public-data.js) instead of the session-scoped /logbook/api/* ones, and
-// never given the `editable` attribute.
+// <climbing-entries-table> (#350) is fed from the public data endpoints
+// (server/api/public-data.js) instead of the session-scoped
+// /logbook/api/* ones, and never given the `editable` attribute -- and,
+// unlike client/log-main.js's own `editable` (fully-loaded) usage, is
+// given `lazy` (#494, ADR-0017): boot() below only fetches locations/
+// places/per-location counts up front, real entry rows load one
+// location at a time as a visitor actually expands it (see this file's
+// own `location-expand` listener).
 import { createStore } from "./store.js";
 import { createMapView } from "./map-view.js";
 import { createDisclosure } from "./modal-utils.js";
@@ -104,6 +108,34 @@ createDisclosure(document.getElementById("header-menu-btn"), document.getElement
 // store.js/adminFetch this page doesn't have.
 createThemeToggle();
 
+// #494 (ADR-0017) -- <climbing-entries-table lazy>'s own cue that a
+// visitor just expanded a location it doesn't have real rows for yet
+// (see that component's own #maybeExpandShell comment). One request per
+// location, page size 50 (not /log's 20 -- no editing-friction tradeoff
+// to weigh against fewer clicks on a read-only page, per this issue's
+// own scope note) -- reuses the existing `?locationId=&limit=&offset=`
+// shape server/api/logbook.js's handleGet already supports for the
+// *target* user (server/api/public-data.js), so no new server code was
+// needed for this half of the feature. Merges onto the table's current
+// entries (not a replace) -- a previously-loaded location's rows must
+// survive a different location's own expand.
+const PAGE_SIZE = 50;
+entriesTable.addEventListener("location-expand", async e => {
+  const { locationId } = e.detail;
+  const base = `/logbook/api/public/${encodeURIComponent(USERNAME)}`;
+  try {
+    const loaded = await loadResource(`${base}/logbook?locationId=${encodeURIComponent(locationId)}&limit=${PAGE_SIZE}`, "entries");
+    entriesTable.entries = [...entriesTable.entries, ...loaded];
+  } catch {
+    // Left as a permanent "Loading…" shell rather than retried
+    // automatically -- re-collapsing and re-expanding the same location
+    // re-fires this same event (#maybeExpandShell only suppresses a
+    // *second* dispatch while one is still in flight, not a genuinely
+    // failed one), which is this page's own retry mechanism; it doesn't
+    // need a second one layered on top.
+  }
+});
+
 async function boot() {
   const base = `/logbook/api/public/${encodeURIComponent(USERNAME)}`;
   // .catch(() => []/{}) on each: a failed/404 fetch here (private or
@@ -112,20 +144,18 @@ async function boot() {
   // is ever served -- but the empty fallback keeps this page inert rather
   // than throwing if that assumption is ever wrong.
   //
-  // #497 -- map/counts isn't a single-keyed-array response
-  // (loadResource's own assumption), same reasoning as performance-
-  // main.js's own fetchPyramid()/sync-main.js's own fetchJson() -- a
-  // plain fetch instead.
-  const [entries, places, locations, mapCounts] = await Promise.all([
-    loadResource(`${base}/logbook`, "entries").catch(() => []),
-    loadResource(`${base}/places`, "places").catch(() => []),
-    loadResource(`${base}/locations`, "locations").catch(() => []),
+  // #494 -- logbook/counts replaces the old full-entries fetch (the
+  // table starts in shell mode, real rows load lazily per location
+  // above) -- and, like map/counts, isn't a single-keyed-array response
+  // (loadResource's own assumption), so a plain fetch here too.
+  const [{ locations, places, counts }, mapCounts] = await Promise.all([
+    fetch(`${base}/logbook/counts`).then(res => (res.ok ? res.json() : { locations: [], places: [], counts: {} })).catch(() => ({ locations: [], places: [], counts: {} })),
     fetch(`${base}/map/counts`).then(res => (res.ok ? res.json() : {})).catch(() => ({})),
   ]);
 
-  entriesTable.entries = entries;
   entriesTable.places = places;
   entriesTable.locations = locations;
+  entriesTable.locationCounts = counts;
 
   mapView.setCounts(mapCounts);
 

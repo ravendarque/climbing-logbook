@@ -195,6 +195,19 @@ export class ClimbingEntriesTable extends HTMLElement {
   #entries = [];
   #places = [];
   #locations = [];
+  // #494 -- lazy mode's own counts-only data (locationId -> live entry
+  // count), from the public profile's new counts endpoint. Only
+  // meaningful when the `lazy` attribute is set -- see this file's own
+  // header comment addendum below (#mergeShellSections) for why this
+  // exists instead of just waiting for #entries to arrive the normal way.
+  #locationCounts = {};
+  // Locations a `location-expand` event has already been dispatched for
+  // but whose real entries haven't arrived yet (i.e. haven't shown up in
+  // #entries) -- guards against re-dispatching on every re-render/re-
+  // click while a fetch the composition root kicked off is in flight,
+  // and drives the "Loading…" shell body. Cleared automatically once a
+  // location's real entries appear (see #mergeShellSections).
+  #loadingLocations = new Set();
   // #501 -- section key -> how many of that section's (already fully-
   // loaded, per ADR-0019) rows are currently revealed, purely a client-
   // side UI concern now -- not exposed as a public property (unlike
@@ -221,7 +234,7 @@ export class ClimbingEntriesTable extends HTMLElement {
   #lastFocusedEl = null; // #425 -- notes overlay's own focus-return target
 
   static get observedAttributes() {
-    return ["editable", "active-discipline", "all-disciplines"];
+    return ["editable", "active-discipline", "all-disciplines", "lazy"];
   }
 
   get entries() { return this.#entries; }
@@ -232,6 +245,9 @@ export class ClimbingEntriesTable extends HTMLElement {
 
   get locations() { return this.#locations; }
   set locations(v) { this.#locations = v ?? []; this.#update(); }
+
+  get locationCounts() { return this.#locationCounts; }
+  set locationCounts(v) { this.#locationCounts = v ?? {}; this.#update(); }
 
   get activeDiscipline() { return this.getAttribute("active-discipline") || "boulder"; }
   set activeDiscipline(v) { this.setAttribute("active-discipline", v); }
@@ -245,6 +261,18 @@ export class ClimbingEntriesTable extends HTMLElement {
   // between the two modes.
   get allDisciplines() { return this.hasAttribute("all-disciplines"); }
   set allDisciplines(v) { this.toggleAttribute("all-disciplines", !!v); }
+
+  // #494 (ADR-0017) -- unset (default) for every existing consumer, same
+  // opt-in shape as allDisciplines above. Only the public profile sets
+  // this: /log's own connectivity-first constraint (ADR-0006) means
+  // #entries there is always already the complete, locally-synced
+  // dataset (client/sync-main.js) by the time this component renders at
+  // all, so there's nothing to lazily expand -- a visitor browsing
+  // someone else's public logbook isn't at a crag mid-climb, so an
+  // on-demand per-location fetch is a legitimate, better tradeoff here
+  // that ADR-0006 doesn't extend to.
+  get lazy() { return this.hasAttribute("lazy"); }
+  set lazy(v) { this.toggleAttribute("lazy", !!v); }
 
   connectedCallback() {
     if (!this.#wired) {
@@ -304,6 +332,11 @@ export class ClimbingEntriesTable extends HTMLElement {
   // then its Lead section back to back -- see this file's own header
   // comment on why separate sections rather than one merged table.
   #visibleSections() {
+    const real = this.#realSections();
+    return this.lazy ? this.#mergeShellSections(real) : real;
+  }
+
+  #realSections() {
     if (!this.allDisciplines) {
       return groupByPlace(this.#filteredEntries(), this.#entries, this.#places)
         .map(([locationId, items]) => ({ key: locationId, locationId, discipline: null, items }));
@@ -330,6 +363,48 @@ export class ClimbingEntriesTable extends HTMLElement {
       }
     }
     return sections;
+  }
+
+  // #494 -- folds in one placeholder ("shell") section per location that
+  // #locationCounts knows has entries but #entries doesn't have any rows
+  // for yet -- `items: null` is this placeholder's own marker,
+  // distinguishing it from a real (possibly empty after filtering)
+  // section, which #renderLocationSection below branches on. Ordered by
+  // this.#locations' own position, not "real sections then shells" --
+  // a location the user hasn't expanded yet shouldn't visually jump to
+  // the bottom just because a different one above it loaded first.
+  //
+  // Also the one place a location stops being "loading": once it has a
+  // real section, whatever `location-expand` dispatch was in flight for
+  // it is done (successfully or not -- either way, the composition root
+  // won't be sending more data for it under this component's own
+  // request-in-flight tracking), so it's no longer suppressed from being
+  // re-dispatched on a future re-collapse/re-expand should it somehow
+  // end up empty (see #renderShellSection).
+  #mergeShellSections(real) {
+    const realLocationIds = new Set(real.map(s => s.locationId));
+    for (const id of realLocationIds) this.#loadingLocations.delete(id);
+
+    const shells = this.#locations
+      .filter(l => !realLocationIds.has(l.id) && (this.#locationCounts[l.id] ?? 0) > 0)
+      .map(l => ({ key: l.id, locationId: l.id, discipline: null, items: null, shellCount: this.#locationCounts[l.id] }));
+
+    const order = new Map(this.#locations.map((l, i) => [l.id, i]));
+    return [...real, ...shells].sort((a, b) => (order.get(a.locationId) ?? 0) - (order.get(b.locationId) ?? 0));
+  }
+
+  // Fires `location-expand` (composition root's cue to actually fetch
+  // this location's entries and merge them into the `entries` property)
+  // the first time a still-unloaded shell section is revealed --
+  // `section.items === null` is exactly #mergeShellSections' own
+  // placeholder marker. Guarded by #loadingLocations so re-expanding
+  // (after a re-collapse, or a stale click before the fetch resolves)
+  // never dispatches twice for the same location.
+  #maybeExpandShell(section) {
+    if (!this.lazy || section.items !== null) return;
+    if (this.#loadingLocations.has(section.locationId)) return;
+    this.#loadingLocations.add(section.locationId);
+    this.dispatchEvent(new CustomEvent("location-expand", { detail: { locationId: section.locationId }, bubbles: true }));
   }
 
   #getSort(locationId) {
@@ -464,9 +539,13 @@ export class ClimbingEntriesTable extends HTMLElement {
       }
 
       if (e.target.closest("#collapse-all-btn")) {
-        const keys = this.#visibleSections().map(s => s.key);
+        const sections = this.#visibleSections();
+        const keys = sections.map(s => s.key);
         const allCollapsed = keys.length > 0 && keys.every(k => this.#collapsed.has(k));
-        keys.forEach(k => allCollapsed ? this.#collapsed.delete(k) : this.#collapsed.add(k));
+        sections.forEach(s => {
+          if (allCollapsed) { this.#collapsed.delete(s.key); this.#maybeExpandShell(s); }
+          else this.#collapsed.add(s.key);
+        });
         this.#update();
         return;
       }
@@ -498,7 +577,12 @@ export class ClimbingEntriesTable extends HTMLElement {
       const header = e.target.closest(".place-header");
       if (header) {
         const id = header.dataset.locationId;
-        this.#collapsed.has(id) ? this.#collapsed.delete(id) : this.#collapsed.add(id);
+        const wasCollapsed = this.#collapsed.has(id);
+        wasCollapsed ? this.#collapsed.delete(id) : this.#collapsed.add(id);
+        if (wasCollapsed) {
+          const section = this.#visibleSections().find(s => s.key === id);
+          if (section) this.#maybeExpandShell(section);
+        }
         this.#update();
       }
     });
@@ -532,7 +616,12 @@ export class ClimbingEntriesTable extends HTMLElement {
       if (header) {
         e.preventDefault();
         const id = header.dataset.locationId;
-        this.#collapsed.has(id) ? this.#collapsed.delete(id) : this.#collapsed.add(id);
+        const wasCollapsed = this.#collapsed.has(id);
+        wasCollapsed ? this.#collapsed.delete(id) : this.#collapsed.add(id);
+        if (wasCollapsed) {
+          const section = this.#visibleSections().find(s => s.key === id);
+          if (section) this.#maybeExpandShell(section);
+        }
         this.#update();
       }
     });
@@ -572,6 +661,17 @@ export class ClimbingEntriesTable extends HTMLElement {
   // collapsed on every #update().
   #maybeInitCollapse() {
     if (this.#collapseInitialized) return;
+    // #494 -- lazy mode's own seed: #entries starts empty (there's
+    // nothing to derive locations from until something's expanded), so
+    // this seeds from #locationCounts instead -- the same "every group
+    // starts collapsed" contract, just keyed by what the shell already
+    // knows exists rather than what's been loaded.
+    if (this.lazy) {
+      if (this.#locations.length === 0 || Object.keys(this.#locationCounts).length === 0) return;
+      this.#collapsed = new Set(Object.keys(this.#locationCounts).filter(id => this.#locationCounts[id] > 0));
+      this.#collapseInitialized = true;
+      return;
+    }
     if (this.#entries.length === 0 || this.#places.length === 0) return;
     // Unfiltered this.#entries, not this.#filteredEntries() -- the
     // latter is scoped to whichever discipline happens to be active at
@@ -671,7 +771,35 @@ export class ClimbingEntriesTable extends HTMLElement {
   // surprise-ily the day a second discipline's first entry appears
   // there). key is this section's own composite identity for sort/
   // collapse state and data-location-id (see #sectionKey).
-  #renderLocationSection({ key, locationId, discipline, items }) {
+  // #494 -- a shell placeholder (#mergeShellSections' own `items: null`
+  // marker): header + count badge from #locationCounts, no table at all
+  // yet -- rendered as its own small function rather than threading a
+  // `null`-items branch through #renderLocationSection's already-dense
+  // body below, which assumes real, sortable/filterable rows throughout.
+  #renderShellSection({ key, locationId, shellCount }) {
+    const location = this.#locations.find(l => l.id === locationId) ?? { name: "", country: "" };
+    const isCollapsed = this.#collapsed.has(key);
+    const isLoading = this.#loadingLocations.has(locationId);
+    const locationCountry = COUNTRY_BY_NAME[location.country];
+
+    return `
+      <div class="bg-surface border border-border rounded-app mb-3 overflow-hidden" data-location-id="${escapeHtml(key)}">
+        <div class="place-header flex items-center gap-[.5rem] px-[.9rem] py-[.6rem] ${isCollapsed ? "" : "border-b border-border"} bg-[color-mix(in_srgb,var(--color-surface)_60%,var(--color-bg))] cursor-pointer select-none hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,var(--color-surface))]" data-location-id="${escapeHtml(key)}" role="button" tabindex="0" aria-expanded="${!isCollapsed}">
+          <span class="font-semibold text-base truncate min-w-0 flex-1">${escapeHtml(location.name)}</span>
+          ${locationCountry ? `<span class="inline-flex items-center gap-[.3rem] shrink-0">
+            <span class="max-[600px]:hidden text-[.78rem] text-muted font-normal whitespace-nowrap">${escapeHtml(locationCountry.name)}</span>
+            <span role="img" aria-label="${escapeHtml(locationCountry.name)}">${escapeHtml(locationCountry.flag)}</span>
+          </span>` : ""}
+          <span class="inline-flex items-center justify-center min-w-[1.4rem] h-[1.4rem] px-1 rounded-full bg-[color-mix(in_srgb,var(--color-text)_12%,transparent)] text-muted text-[.72rem] font-semibold shrink-0" aria-label="${shellCount} ${shellCount === 1 ? "entry" : "entries"}">${shellCount}</span>
+          <span class="text-muted text-[.8rem] transition-transform duration-200 shrink-0 ${isCollapsed ? "-rotate-90" : ""}">▾</span>
+        </div>
+        ${isCollapsed ? "" : `<div class="px-[.9rem] py-6 text-center text-muted text-[.85rem]" aria-live="polite">${isLoading ? "Loading…" : ""}</div>`}
+      </div>`;
+  }
+
+  #renderLocationSection(section) {
+    if (section.items === null) return this.#renderShellSection(section);
+    const { key, locationId, discipline, items } = section;
     const location = this.#locations.find(l => l.id === locationId) ?? { name: "", country: "" };
     const sorted = sortEntries(items, this.#getSort(key), this.#places);
     const { col, dir } = this.#getSort(key);

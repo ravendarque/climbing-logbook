@@ -4,6 +4,7 @@ import { handleGet as handleGetLogbook } from "./logbook.js";
 import { handleGet as handleGetPlaces } from "./places.js";
 import { handleGet as handleGetLocations } from "./locations.js";
 import { handleGetMapCounts } from "./map.js";
+import { handleGetProfileCounts } from "./profile-counts.js";
 
 // #351 -- the read-only data feeding client/profile-main.js's
 // <climbing-entries-table>, at /logbook/api/public/:username/{logbook,
@@ -34,6 +35,8 @@ const HANDLERS = {
   // session-derived assumptions baked in, same reasoning the three
   // reuses above already rely on.
   "map/counts": handleGetMapCounts,
+  // #494 -- the profile page's own lazy-load shell data (ADR-0017).
+  "logbook/counts": handleGetProfileCounts,
 };
 
 export async function handlePublicResource(request, env, username, resource) {
