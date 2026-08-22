@@ -89,6 +89,25 @@ describe("parseCsvText", () => {
     expect(result.ok).toBe(true);
     expect(result.rows).toHaveLength(1);
   });
+
+  // #512 -- a bare (non-field-initial) quote used to incorrectly open
+  // quote-mode, silently swallowing every following comma/newline --
+  // including subsequent whole rows -- into that one field. A real
+  // regression: a notes value like `Worked a 6" crimp` (typed by hand,
+  // never RFC4180-quoted) previously corrupted the rest of the file.
+  it("treats a bare quote inside an unquoted field as a literal character, not a quote-mode toggle", () => {
+    const result = parseCsvText(`${HEADER}\n${row({ notes: 'Worked a 6" crimp hard' })}\n`);
+    expect(result.ok).toBe(true);
+    expect(result.rows).toHaveLength(1);
+    expect(result.rows[0].notes).toBe('Worked a 6" crimp hard');
+  });
+
+  it("a bare quote in one row's field doesn't swallow a later row", () => {
+    const result = parseCsvText(`${HEADER}\n${row({ name: "Worked a 6\" crimp" })}\n${row({ name: "Route B" })}\n`);
+    expect(result.ok).toBe(true);
+    expect(result.rows).toHaveLength(2);
+    expect(result.rows.map(r => r.name)).toEqual(['Worked a 6" crimp', "Route B"]);
+  });
 });
 
 describe("resolveExportRows (#27)", () => {
