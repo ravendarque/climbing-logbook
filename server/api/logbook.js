@@ -1,5 +1,5 @@
 import { json, parseJsonBody } from "../lib/json.js";
-import { createD1ResourceHandlers, findOwnedRow, listForUser } from "../lib/d1-resource.js";
+import { createD1ResourceHandlers, findOwnedRow, listChangedForUser, listForUser } from "../lib/d1-resource.js";
 import { validateEntryShape } from "../../shared/entry-schema.js";
 
 // placeId gets a real referential check -- not just "does this row
@@ -57,6 +57,16 @@ export function rowToJson(row) {
   };
 }
 
+// #500 -- the delta path's own shape: a tombstoned row still needs to
+// carry enough to be identifiable (just `id` would do, but the full
+// shape costs nothing extra and saves the client a branch), plus the
+// `deleted` flag that's the whole reason a soft-deleted row appears in
+// a delta response at all -- so the client can remove it locally
+// instead of treating it as a real create/update.
+function rowToJsonWithDeleted(row) {
+  return { ...rowToJson(row), deleted: !!row.deleted_at };
+}
+
 // handlePost (#297) -- see server/lib/d1-resource.js for the shared
 // shape every D1-backed create+list resource follows. handleGet is its
 // own custom implementation below (#111 -- per-location pagination),
@@ -104,6 +114,22 @@ const PAGE_SIZE = 20;
 // itself rather than an extra check.
 export async function handleGet(request, env, userId) {
   const url = new URL(request.url);
+
+  // #500 -- checked first, mutually exclusive with the locationId/flat-
+  // chunked modes below (a delta fetch is /sync's own cold-vs-warm
+  // decision, unrelated to which pagination shape a caller wants).
+  // rowToJsonWithDeleted, not the plain rowToJson every other branch
+  // below uses -- unlike every other entries read path, a delta
+  // response's whole point is surfacing tombstones so the client can
+  // remove them locally, not hiding them (listChangedForUser itself
+  // never filters deleted_at at all, see its own header comment).
+  const since = url.searchParams.get("since");
+  if (since !== null) {
+    if (!userId) return json({ entries: [], cursor: Number(since) }, 200, { "Cache-Control": "no-store" });
+    const { rows, cursor } = await listChangedForUser(env, "entries", userId, rowToJsonWithDeleted, Number(since));
+    return json({ entries: rows, cursor }, 200, { "Cache-Control": "no-store" });
+  }
+
   const locationId = url.searchParams.get("locationId");
   if (!locationId) {
     // #498 -- flat (not per-location) chunked pagination for /sync's own
@@ -117,20 +143,23 @@ export async function handleGet(request, env, userId) {
     if (limit === null) {
       return json({ entries: await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true }) }, 200, { "Cache-Control": "no-store" });
     }
-    if (!userId) return json({ entries: [], total: 0 }, 200, { "Cache-Control": "no-store" });
+    if (!userId) return json({ entries: [], total: 0, cursor: 0 }, 200, { "Cache-Control": "no-store" });
 
-    // `total` -- COUNT(*) OVER() reflects every row matching the WHERE
-    // clause, independent of the LIMIT/OFFSET below (confirmed
-    // empirically against a real D1 query) -- so /sync's first chunk
-    // request already tells it the true total to show real progress
-    // against, with no separate count-only request needed.
+    // `total`/`cursor` -- both window functions, independent of the
+    // LIMIT/OFFSET below (confirmed empirically against a real D1 query
+    // for `total`, same reasoning applies to MAX()) -- so /sync's cold
+    // path gets the true total (for progress) AND the current max
+    // sync_cursor (#500 -- the value it needs to record as this table's
+    // starting point for a future *warm* delta fetch) from the same
+    // query as every chunk it already requests, no separate call needed.
     const offset = Number(url.searchParams.get("offset")) || 0;
     const { results } = await env.LOGBOOK_DB
-      .prepare(`SELECT *, COUNT(*) OVER() AS total FROM entries WHERE user_id = ? AND deleted_at IS NULL ORDER BY created_at LIMIT ? OFFSET ?`)
+      .prepare(`SELECT *, COUNT(*) OVER() AS total, MAX(sync_cursor) OVER() AS max_cursor FROM entries WHERE user_id = ? AND deleted_at IS NULL ORDER BY created_at LIMIT ? OFFSET ?`)
       .bind(userId, Number(limit), offset)
       .all();
     const total = results[0]?.total ?? 0;
-    return json({ entries: results.map(rowToJson), total }, 200, { "Cache-Control": "no-store" });
+    const cursor = results[0]?.max_cursor ?? 0;
+    return json({ entries: results.map(rowToJson), total, cursor }, 200, { "Cache-Control": "no-store" });
   }
   if (!userId) return json({ entries: [] }, 200, { "Cache-Control": "no-store" });
 

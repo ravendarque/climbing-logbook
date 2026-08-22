@@ -122,20 +122,38 @@ describe("handleGet (flat limit/offset, no locationId -- #498 chunked full sync)
     await post(validEntry());
     const res = await getChunk({ limit: "20", offset: "50" });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ entries: [], total: 0 });
+    expect(await res.json()).toEqual({ entries: [], total: 0, cursor: 0 });
   });
 
   it("anonymous caller gets an empty chunk with a zero total, not an error", async () => {
     const res = await getChunk({ limit: "20" }, "");
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ entries: [], total: 0 });
+    expect(await res.json()).toEqual({ entries: [], total: 0, cursor: 0 });
   });
 
   it("cross-user isolation -- a chunk never includes another user's entries", async () => {
     await post(validEntry());
     const otherUser = await createAuthedSession();
     const res = await getChunk({ limit: "20" }, otherUser.cookie);
-    expect(await res.json()).toEqual({ entries: [], total: 0 });
+    expect(await res.json()).toEqual({ entries: [], total: 0, cursor: 0 });
+  });
+
+  // #500 -- the max sync_cursor across every matching row, independent of
+  // this chunk's own LIMIT/OFFSET (same "whole matching set, not just this
+  // page" reasoning as `total`) -- /sync's cold path (client/sync-main.js)
+  // needs this to record entries' starting cursor for a future warm delta
+  // fetch, without a separate request.
+  it("reports the max sync_cursor across every matching row, the same value on every chunk", async () => {
+    for (let i = 0; i < 3; i++) await post({ ...validEntry(), name: `Route ${i}` });
+    const ids = (await (await get()).json()).entries.map(e => e.id);
+    const cursors = await Promise.all(ids.map(id =>
+      env.LOGBOOK_DB.prepare(`SELECT sync_cursor FROM entries WHERE id = ?`).bind(id).first().then(r => r.sync_cursor)));
+    const maxCursor = Math.max(...cursors);
+
+    const first = await (await getChunk({ limit: "2", offset: "0" })).json();
+    const second = await (await getChunk({ limit: "2", offset: "2" })).json();
+    expect(first.cursor).toBe(maxCursor);
+    expect(second.cursor).toBe(maxCursor);
   });
 
   it("defaults offset to 0 when omitted", async () => {
@@ -227,6 +245,85 @@ describe("handleGet (locationId -- #111 per-table pagination)", () => {
     const userB = await createAuthedSession();
     const res = await getLocation(locationId, {}, userB.cookie);
     expect(await res.json()).toEqual({ entries: [] });
+  });
+});
+
+// #500 -- `?since=<cursor>` switches /log's own GET to the delta-sync
+// path: "everything changed since cursor X", including tombstoned
+// deletes (via `deleted: true`), for /sync's warm-boot catch-up. A
+// genuinely different contract from every describe block above (which
+// all cover the "everything live" shapes) -- covered separately so a
+// regression in one can't hide behind the other's passing tests.
+describe("handleGet (?since= -- #500 delta sync)", () => {
+  function getSince(since, extraCookie = cookie) {
+    return fetchJson(`${PUBLIC_URL}?since=${since}`, { headers: { Cookie: extraCookie } });
+  }
+  function cursorOf(id) {
+    return env.LOGBOOK_DB.prepare(`SELECT sync_cursor FROM entries WHERE id = ?`).bind(id).first().then(r => r.sync_cursor);
+  }
+
+  it("returns an empty delta and echoes back `since` as `cursor` for an anonymous caller", async () => {
+    const res = await fetchJson(`${PUBLIC_URL}?since=0`);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ entries: [], cursor: 0 });
+  });
+
+  it("returns nothing changed, cursor unchanged, when since is ahead of every row's cursor", async () => {
+    await post(validEntry());
+    const farFuture = Date.now() + 60_000;
+    const res = await getSince(farFuture);
+    expect(await res.json()).toEqual({ entries: [], cursor: farFuture });
+  });
+
+  it("returns a row created at or after since, and reports its own cursor as the new cursor", async () => {
+    const created = await (await post(validEntry())).json();
+    const id = created.entries[0].id;
+    const cursor = await cursorOf(id);
+
+    const { entries, cursor: newCursor } = await (await getSince(cursor)).json();
+    expect(entries.map(e => e.id)).toEqual([id]);
+    expect(entries[0].deleted).toBe(false);
+    expect(newCursor).toBe(cursor);
+  });
+
+  it("excludes a row whose cursor is strictly before since", async () => {
+    const created = await (await post(validEntry())).json();
+    const id = created.entries[0].id;
+    const cursor = await cursorOf(id);
+
+    const { entries } = await (await getSince(cursor + 1)).json();
+    expect(entries.find(e => e.id === id)).toBeUndefined();
+  });
+
+  it("includes a soft-deleted row, flagged deleted: true, unlike every other read path", async () => {
+    const created = await (await post(validEntry())).json();
+    const id = created.entries[0].id;
+
+    await del(id);
+    const deleteCursor = await cursorOf(id);
+
+    const { entries } = await (await getSince(deleteCursor)).json();
+    expect(entries).toHaveLength(1);
+    expect(entries[0].id).toBe(id);
+    expect(entries[0].deleted).toBe(true);
+  });
+
+  it("a delta fetch from 0 returns every live and tombstoned row for that user", async () => {
+    const created = await (await post(validEntry())).json();
+    const secondId = (await (await post({ ...validEntry(), name: "Second" })).json()).entries.find(e => e.name === "Second").id;
+    await del(secondId);
+
+    const { entries } = await (await getSince(0)).json();
+    expect(entries.map(e => e.id).sort()).toEqual([created.entries[0].id, secondId].sort());
+    expect(entries.find(e => e.id === secondId).deleted).toBe(true);
+    expect(entries.find(e => e.id === created.entries[0].id).deleted).toBe(false);
+  });
+
+  it("never returns another user's rows (cross-user isolation)", async () => {
+    await post(validEntry());
+    const userB = await createAuthedSession();
+    const res = await getSince(0, userB.cookie);
+    expect(await res.json()).toEqual({ entries: [], cursor: 0 });
   });
 });
 
