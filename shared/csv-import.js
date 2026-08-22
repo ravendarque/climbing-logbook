@@ -48,7 +48,17 @@ function parseRows(text) {
       } else {
         field += ch;
       }
-    } else if (ch === '"') {
+    } else if (ch === '"' && field === "") {
+      // #512 -- only a quote at the very *start* of a field opens
+      // quote-mode (RFC4180: a field is either fully quoted from its
+      // first character, or not quoted at all). Without the `field ===
+      // ""` check, a bare quote anywhere mid-field (e.g. a notes value
+      // like `Worked a 6" crimp`) incorrectly opened quote-mode too,
+      // silently swallowing every following comma/newline -- including
+      // subsequent rows -- into that one field until another `"`
+      // happened to close it, with no error surfaced. A non-leading
+      // quote now falls through to the plain `field += ch` branch below
+      // and is kept as a literal character instead.
       inQuotes = true;
     } else if (ch === ",") {
       row.push(field); field = "";
