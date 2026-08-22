@@ -49,10 +49,17 @@ export async function listForUser(env, table, userId, rowToJson, { excludeDelete
 // to see it to avoid a duplicate-PRIMARY-KEY INSERT), only to
 // ownership checks that mean "does this exist as something the caller
 // can currently act on" (e.g. handlePut's own "can I edit this entry").
-export async function findOwnedRow(env, table, id, userId, { excludeDeleted = false } = {}) {
+// #515 -- `includeDeletedAt` (opt-in, default false) also selects
+// deleted_at -- handlePost's own resurrect check needs to know whether
+// the row it just found is a live idempotent-replay target or a
+// tombstone, but selecting a column that doesn't exist on places/
+// locations (no deleted_at at all) would error, so this stays opt-in,
+// used only when the caller already knows the table has the column.
+export async function findOwnedRow(env, table, id, userId, { excludeDeleted = false, includeDeletedAt = false } = {}) {
   const where = excludeDeleted ? "WHERE id = ? AND user_id = ? AND deleted_at IS NULL" : "WHERE id = ? AND user_id = ?";
+  const columns = includeDeletedAt ? "id, deleted_at" : "id";
   return env.LOGBOOK_DB
-    .prepare(`SELECT id FROM ${table} ${where}`)
+    .prepare(`SELECT ${columns} FROM ${table} ${where}`)
     .bind(id, userId)
     .first();
 }
@@ -142,8 +149,28 @@ export function createD1ResourceHandlers({ table, resourceKey, validateFields, b
 
     // Scoped to this user's own rows -- a forged id colliding with another
     // user's row is a different row entirely here, not a replay.
-    const existing = await findOwnedRow(env, table, id, userId);
+    const existing = await findOwnedRow(env, table, id, userId, excludeDeleted ? { includeDeletedAt: true } : {});
     if (existing) {
+      // #515 -- excludeDeleted (this table has a deleted_at column) plus
+      // the found row actually being soft-deleted means this isn't a
+      // real idempotent replay (the row the caller means to create
+      // doesn't live-exist) -- it's a genuinely NEW create request that
+      // happens to land on an id that used to belong to a now-deleted
+      // row (e.g. an offline-queued "add" replaying after that id was
+      // independently created-then-deleted via another path). Silently
+      // no-op'ing here, as before, permanently dropped this create (200
+      // OK, but never (re)inserted) -- resurrected instead: an UPDATE
+      // clearing the tombstone with the caller's own data, exactly what
+      // "create" should mean when the id turns out to be free again.
+      if (excludeDeleted && existing.deleted_at !== null) {
+        const row = buildRow(record, id, userId);
+        const columns = Object.keys(row).filter(c => c !== "id" && c !== "user_id");
+        await env.LOGBOOK_DB
+          .prepare(`UPDATE ${table} SET ${columns.map(c => `${c} = ?`).join(", ")}, deleted_at = NULL WHERE id = ? AND user_id = ?`)
+          .bind(...columns.map(c => row[c]), id, userId)
+          .run();
+        return json({ [resourceKey]: await listForUser(env, table, userId, rowToJson, { excludeDeleted }) }, 201);
+      }
       return json({ [resourceKey]: await listForUser(env, table, userId, rowToJson, { excludeDeleted }) }, 200);
     }
 
