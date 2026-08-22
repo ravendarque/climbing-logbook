@@ -204,11 +204,34 @@ export async function mockApi(page, {
   }
   await page.route("**/logbook/api/map/counts", route => route.fulfill({ json: computeMapCounts() }));
 
+  // #494 -- per-location live-entry counts, mirroring server/api/
+  // profile-counts.js's own aggregation, computed fresh from the current
+  // _entries/_places on every request like computeMapCounts() above.
+  function computeLocationCounts() {
+    const counts = {};
+    for (const entry of _entries) {
+      const locationId = _places.find(p => p.id === entry.placeId)?.locationId;
+      if (locationId) counts[locationId] = (counts[locationId] ?? 0) + 1;
+    }
+    return counts;
+  }
+
   // Path-scoped by :username (server/api/public-data.js's own route shape)
   // -- glob-wildcarded since the harness's own synthetic USERNAME (parsed
   // client-side from location.pathname) doesn't matter for what's being
-  // tested here.
-  await page.route("**/logbook/api/public/*/logbook", route => route.fulfill({ json: { entries: _entries } }));
+  // tested here. Trailing `*` on the plain logbook route (#494) -- the
+  // public profile's own lazy mode now requests it with `?locationId=&
+  // limit=`, and a bare pattern never matches a query-string-bearing URL
+  // (same gotcha this file's own admin/logbook route comment documents).
+  await page.route("**/logbook/api/public/*/logbook*", route => {
+    const locationId = new URL(route.request().url()).searchParams.get("locationId");
+    if (!locationId) return route.fulfill({ json: { entries: _entries } });
+    const limit = Number(new URL(route.request().url()).searchParams.get("limit")) || 20;
+    const scoped = _entries.filter(e => _places.find(p => p.id === e.placeId)?.locationId === locationId);
+    return route.fulfill({ json: { entries: scoped.slice(0, limit) } });
+  });
+  await page.route("**/logbook/api/public/*/logbook/counts", route =>
+    route.fulfill({ json: { locations: _locations, places: _places, counts: computeLocationCounts() } }));
   await page.route("**/logbook/api/public/*/places", route => route.fulfill({ json: { places: _places } }));
   await page.route("**/logbook/api/public/*/locations", route => route.fulfill({ json: { locations: _locations } }));
   await page.route("**/logbook/api/public/*/map/counts", route => route.fulfill({ json: computeMapCounts() }));

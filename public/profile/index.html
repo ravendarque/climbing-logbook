@@ -79,8 +79,12 @@
          all-disciplines (#460): both disciplines combined into one view,
          separate per-discipline table sections rather than a single
          active-discipline table -- see that attribute's own comment in
-         client/components/climbing-entries-table.js. -->
-    <climbing-entries-table all-disciplines></climbing-entries-table>
+         client/components/climbing-entries-table.js.
+
+         lazy (#494, ADR-0017): one collapsed shell table per location
+         (count badge only) until a visitor actually expands it -- see
+         that attribute's own comment in the same file. -->
+    <climbing-entries-table all-disciplines lazy></climbing-entries-table>
   </div>
 
   <!-- Same markup shape as public/map/index.html's own #map-wrap block --

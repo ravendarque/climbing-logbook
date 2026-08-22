@@ -123,7 +123,7 @@ export default {
     // whichever *target* user the path names, not the caller's own
     // session (see server/api/public-data.js's own comment). Not
     // hostname-gated, same as every other /logbook/api/* route here.
-    const publicDataMatch = pathname.match(/^\/logbook\/api\/public\/([^/]+)\/(logbook|places|locations|map\/counts)$/);
+    const publicDataMatch = pathname.match(/^\/logbook\/api\/public\/([^/]+)\/(logbook\/counts|logbook|places|locations|map\/counts)$/);
     if (publicDataMatch && method === "GET") {
       const [, username, resource] = publicDataMatch;
       return handlePublicResource(request, env, username, resource);

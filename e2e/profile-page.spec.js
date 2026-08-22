@@ -98,6 +98,12 @@ test("no discipline picker anymore -- combined view shows both disciplines as se
   // filter panel; the header picker is gone entirely on this page.
   await expect(page.locator("#discipline-btn")).toHaveCount(0);
 
+  // #494 -- collapsed shells by default now (lazy mode); one location-
+  // scoped fetch loads both disciplines' real rows for "Test Crag" at
+  // once (counts are per-*location*, not per-discipline), after which
+  // the normal per-discipline split renders on its own.
+  await page.locator("#collapse-all-btn").click();
+
   await expect(page.locator("#sections")).toContainText("Test Crag (Boulder)");
   await expect(page.locator("#sections")).toContainText("Test Crag (Lead)");
   await expect(page.locator("#sections")).toContainText("Boulder Seed");
@@ -108,6 +114,11 @@ test("discipline filter (#460) narrows to just the checked discipline's table se
   await mockApi(page, MIXED_SEED);
   await page.goto("/e2e-fixtures/pages/profile.html");
   await expect(page.locator("climbing-entries-table")).toBeVisible();
+
+  // #494 -- expand the (still-lazy) shell first so there's real data to
+  // filter at all.
+  await page.locator("#collapse-all-btn").click();
+  await expect(page.locator("#sections")).toContainText("Lead Seed");
 
   await page.locator("#filter-btn").click();
   // Both disciplines start checked (#63) -- narrowing to just Lead means
@@ -182,6 +193,44 @@ test("notes overlay shows the entry's real notes text (#425 -- previously did no
 
   await page.keyboard.press("Escape");
   await expect(page.locator("#notes-overlay")).toBeHidden();
+});
+
+// #494 (ADR-0017) -- the shell-then-expand behavior itself: collapsed by
+// default with just the count badge, real rows only fetched once,
+// expanding again after a collapse doesn't re-fetch.
+test("shell-then-expand: collapsed with a count badge by default, expands to real rows on one fetch, doesn't re-fetch on re-expand", async ({ page }) => {
+  await mockApi(page, SEED);
+
+  const logbookRequests = [];
+  page.on("request", req => {
+    if (req.url().includes("/logbook/api/public/") && req.url().includes("/logbook?")) logbookRequests.push(req.url());
+  });
+
+  await page.goto("/e2e-fixtures/pages/profile.html");
+  await expect(page.locator("climbing-entries-table")).toBeVisible();
+
+  // Collapsed shell: the location name and its count badge render, but
+  // no entry row content at all yet -- no network request for it either.
+  await expect(page.locator("#sections")).toContainText("Test Crag");
+  await expect(page.locator("#sections")).not.toContainText("Boulder Seed");
+  expect(logbookRequests).toHaveLength(0);
+
+  const placeHeader = page.locator(".place-header").first();
+  await placeHeader.click();
+
+  await expect(page.locator("#sections")).toContainText("Boulder Seed");
+  expect(logbookRequests).toHaveLength(1);
+  expect(logbookRequests[0]).toContain("locationId=l1");
+
+  // Re-collapse, then re-expand -- the data's already loaded (real rows,
+  // not a shell anymore, so collapsing just CSS-hides the table rather
+  // than removing them from the DOM -- toBeHidden/toBeVisible, not
+  // toContainText, which sees hidden text too), so no second fetch.
+  await placeHeader.click();
+  await expect(page.getByText("Boulder Seed")).toBeHidden();
+  await placeHeader.click();
+  await expect(page.getByText("Boulder Seed")).toBeVisible();
+  expect(logbookRequests).toHaveLength(1);
 });
 
 test("shows the entries table's own empty state when the target user has no data", async ({ page }) => {
