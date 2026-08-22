@@ -27,8 +27,12 @@ function patchJson(path, body, extraCookie = cookie) {
 
 // A real location, owned by the current `cookie`'s user -- places needs
 // one to reference (#297's real ownership check, not just FK existence).
-async function seedLocation(extraCookie = cookie) {
-  const res = await postJson("/logbook/api/admin/locations", { name: "Magic Wood", country: "Switzerland" }, extraCookie);
+// `name` is overridable (default "Magic Wood") -- #490's own dedup-on-write
+// means two same-named calls for the *same* user now correctly collapse
+// onto one location, so a test that genuinely needs two distinct
+// locations for the same user must pass different names.
+async function seedLocation(extraCookie = cookie, name = "Magic Wood") {
+  const res = await postJson("/logbook/api/admin/locations", { name, country: "Switzerland" }, extraCookie);
   const { locations } = await res.json();
   return locations.at(-1).id;
 }
@@ -47,6 +51,7 @@ describe.each([
     buildMinimalBody: locationId => ({ locationId }),
     requiredField: "locationId",
     defaultField: "area",
+    dedupField: "area",
     needsLocation: true,
   },
   {
@@ -58,9 +63,10 @@ describe.each([
     buildMinimalBody: () => ({ name: "Magic Wood" }),
     requiredField: "name",
     defaultField: "country",
+    dedupField: "name",
     needsLocation: false,
   },
-])("$resource", ({ listPath, createPath, listKey, buildValidBody, buildMinimalBody, requiredField, defaultField, needsLocation }) => {
+])("$resource", ({ listPath, createPath, listKey, buildValidBody, buildMinimalBody, requiredField, defaultField, dedupField, needsLocation }) => {
   async function validBody(extraCookie = cookie) {
     const locationId = needsLocation ? await seedLocation(extraCookie) : undefined;
     return buildValidBody(locationId);
@@ -173,6 +179,59 @@ describe.each([
       const res = await getSince(0, userB.cookie);
       expect(await res.json()).toEqual({ [listKey]: [], cursor: 0 });
     });
+  });
+
+  // #490 -- two independently-offline devices can each mint a brand-new
+  // place/location for the same real-world crag (neither having synced
+  // the other's write yet); once both eventually reach the server, they
+  // must converge onto one row, not silently duplicate.
+  describe("dedup-on-write (#490)", () => {
+    it("a second create matching an existing row's name (case-insensitively) reuses it instead of duplicating", async () => {
+      const locationId = needsLocation ? await seedLocation() : undefined;
+      const first = await postJson(createPath, buildValidBody(locationId));
+      expect(first.status).toBe(201);
+      const originalId = (await first.json())[listKey][0].id;
+
+      const dup = buildValidBody(locationId);
+      dup[dedupField] = dup[dedupField].toUpperCase();
+      const second = await postJson(createPath, dup);
+      expect(second.status).toBe(200);
+      const secondBody = await second.json();
+      expect(secondBody.dedupedTo).toBe(originalId);
+      // Still just the one row -- the dedup hit means nothing new was
+      // ever inserted, not that a duplicate was inserted then merged.
+      expect(secondBody[listKey]).toHaveLength(1);
+      expect(secondBody[listKey][0].id).toBe(originalId);
+    });
+
+    it("does not dedup against another user's matching row", async () => {
+      const locationId = needsLocation ? await seedLocation() : undefined;
+      await postJson(createPath, buildValidBody(locationId));
+
+      const userB = await createAuthedSession();
+      const locationIdB = needsLocation ? await seedLocation(userB.cookie) : undefined;
+      const res = await postJson(createPath, buildValidBody(locationIdB), userB.cookie);
+      expect(res.status).toBe(201);
+      expect((await res.json()).dedupedTo).toBeUndefined();
+    });
+
+    if (needsLocation) {
+      it("does not dedup places with the same area name under a different location", async () => {
+        const locationIdA = await seedLocation(cookie, "Magic Wood");
+        await postJson(createPath, buildValidBody(locationIdA));
+
+        // A genuinely different location name -- otherwise #490's own
+        // location-level dedup would collapse this second seedLocation()
+        // call onto locationIdA (same user, same name), defeating the
+        // point of this test (proving *place* dedup is scoped per
+        // location, not proving location dedup, which has its own test
+        // above).
+        const locationIdB = await seedLocation(cookie, "Fontainebleau");
+        const res = await postJson(createPath, buildValidBody(locationIdB));
+        expect(res.status).toBe(201);
+        expect((await res.json()).dedupedTo).toBeUndefined();
+      });
+    }
   });
 
   // The one genuinely new security boundary #297 introduces -- see

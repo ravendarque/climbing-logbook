@@ -283,15 +283,28 @@ export async function mockApi(page, {
     return route.fulfill({ status: 201, json: { imported: rows.length, entries: _entries } });
   });
 
+  // #490 -- mirrors server/lib/d1-resource.js's own dedup-on-write: a
+  // case-insensitive area match under the same locationId reuses the
+  // existing row (200 + dedupedTo) instead of inserting a duplicate --
+  // needed so e2e/log-page.spec.js's own offline-queue-remap test can
+  // exercise the real client-side remap logic (client/offline-sync.js)
+  // against a mocked dedup response, not just the server-side rule
+  // itself (already covered directly by test/handlers.test.js).
   await page.route("**/logbook/api/admin/places", async route => {
     if (route.request().method() !== "POST") return route.continue();
-    _places = [..._places, stamp(route.request().postDataJSON())];
+    const body = route.request().postDataJSON();
+    const duplicate = _places.find(p => p.locationId === body.locationId && (p.area ?? "").toLowerCase() === (body.area ?? "").toLowerCase());
+    if (duplicate) return route.fulfill({ json: { places: _places, dedupedTo: duplicate.id } });
+    _places = [..._places, stamp(body)];
     return route.fulfill({ status: 201, json: { places: _places } });
   });
 
   await page.route("**/logbook/api/admin/locations", async route => {
     if (route.request().method() !== "POST") return route.continue();
-    _locations = [..._locations, stamp(route.request().postDataJSON())];
+    const body = route.request().postDataJSON();
+    const duplicate = _locations.find(l => l.name.toLowerCase() === body.name.toLowerCase());
+    if (duplicate) return route.fulfill({ json: { locations: _locations, dedupedTo: duplicate.id } });
+    _locations = [..._locations, stamp(body)];
     return route.fulfill({ status: 201, json: { locations: _locations } });
   });
 }

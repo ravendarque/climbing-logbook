@@ -120,7 +120,13 @@ export async function insertRow(env, table, row) {
 // opts in. Deliberately NOT applied to the idempotent-replay existence
 // check inside handlePost below -- see findOwnedRow's own comment on
 // why that check needs to see a soft-deleted row too.
-export function createD1ResourceHandlers({ table, resourceKey, validateFields, buildRow, rowToJson, excludeDeleted = false }) {
+// #490 -- `findDuplicate` (optional, `(env, userId, record) =>
+// {id} | null`) -- places.js/locations.js opt in with a case-insensitive
+// name(+area) match; entries never should (two sends of the same route
+// are two real rows, not duplicates of each other), so this stays a
+// per-instantiation opt-in like excludeDeleted, not a table-agnostic
+// default.
+export function createD1ResourceHandlers({ table, resourceKey, validateFields, buildRow, rowToJson, excludeDeleted = false, findDuplicate }) {
   // #500 -- `?since=<cursor>` switches to the delta path (places.js/
   // locations.js's own GET routes both get this for free) -- absent for
   // every existing caller, which keeps the unchanged "everything" shape
@@ -142,6 +148,30 @@ export function createD1ResourceHandlers({ table, resourceKey, validateFields, b
 
     const err = await validateFields(record, env, userId);
     if (err) return json({ error: err }, 400);
+
+    // #490 -- checked before the id-based idempotent-replay check below:
+    // a dedup match is about the row's *content* (case-insensitive
+    // name/area), not the specific id this client happened to mint --
+    // two independently-offline devices each creating "a new place/
+    // location for the same real-world crag" must converge onto one row
+    // once both eventually sync, not silently create two. `dedupedTo`
+    // lets the caller (client/offline-sync.js's own queue-replay loop)
+    // detect when the row it meant to create already existed under a
+    // *different* id than the one it sent, so it can remap any other
+    // still-queued item that references the id it originally minted
+    // (e.g. a place queued right behind a deduped location, or an entry
+    // queued right behind a deduped place) before those replay too --
+    // without that remap, they'd otherwise fail validation against an
+    // id that was never actually inserted.
+    if (findDuplicate) {
+      const duplicate = await findDuplicate(env, userId, record);
+      if (duplicate) {
+        return json({
+          [resourceKey]: await listForUser(env, table, userId, rowToJson, { excludeDeleted }),
+          dedupedTo: duplicate.id,
+        }, 200);
+      }
+    }
 
     // Client-minted UUID -- a stable identity across the offline-queue's
     // whole add/sync lifecycle.

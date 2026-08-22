@@ -528,6 +528,78 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await expect(page.locator("#sync-btn")).toBeHidden();
     expect(postRequests).toHaveLength(1);
   });
+
+  // #490 -- server-side dedup-on-write alone isn't enough: if the
+  // client doesn't also remap any OTHER still-queued item that
+  // referenced the id it originally minted for the now-deduped location/
+  // place, those dependent items fail outright on replay against an id
+  // that was never actually inserted. This drives the whole chain at
+  // once (location -> place -> entry, all queued offline), with the
+  // drifted "Existing Crag" simulating a location another device
+  // already created -- deliberately unknown to this device's own local
+  // store (same reasoning e2e/sync-page.spec.js's own "warm with drift"
+  // test uses), so the add-place modal's own client-side match-or-create
+  // can't catch it locally and genuinely queues a colliding create.
+  test("#490 -- an offline-created place/location dedups against a same-named row from another device, with the queued entry correctly remapped to it", async ({ page }) => {
+    await gotoLogHarness(page, { entries: [], places: [], locations: [] });
+
+    // A real id, minted the same way a genuine client would (place-
+    // picker.js's own crypto.randomUUID()) -- unlike the real server,
+    // e2e/mock-api.js's own admin routes don't mint one for a request
+    // that omits it, so leaving this out would silently make the
+    // dedup match below return an id-less row and the whole point of
+    // this test (proving the *remap*, keyed by that id) untestable.
+    await page.evaluate(() => fetch("/logbook/api/admin/locations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: crypto.randomUUID(), name: "Existing Crag", country: "France" }),
+    }));
+
+    let failing = true;
+    await page.route("**/logbook/api/admin/locations", route => (failing ? route.abort("failed") : route.fallback()));
+    await page.route("**/logbook/api/admin/places", route => (failing ? route.abort("failed") : route.fallback()));
+    await page.route("**/logbook/api/admin/logbook**", route => (failing ? route.abort("failed") : route.fallback()));
+
+    const entryName = `E2E dedup remap ${Date.now()}`;
+    await page.locator("#add-btn").click();
+    await page.locator("#entry-name").fill(entryName);
+    await page.locator("#place-btn").click();
+    await page.locator("#place-add-new-btn").click();
+    await expect(page.locator("#add-place-overlay")).toBeVisible();
+
+    // Different casing from the drifted location's own real name --
+    // proves the dedup match is genuinely case-insensitive, not just a
+    // literal-string coincidence.
+    await page.locator("#add-place-location").fill("existing crag");
+    await page.locator("#add-place-area").fill("Sector 1");
+    await page.locator("#add-place-country-btn").click();
+    await page.locator("#add-place-country-search").fill("France");
+    await page.locator('#add-place-country-listbox li[data-key="France"]').click();
+    await page.locator("#add-place-submit-btn").click();
+    await expect(page.locator("#add-place-overlay")).toBeHidden();
+
+    await page.locator("#entry-submit-btn").click();
+    await expect(page.locator("#entry-overlay")).toBeHidden();
+    await expect(page.locator("#sections")).toContainText(entryName);
+    await expect(page.locator("#sync-btn")).toBeVisible();
+
+    failing = false;
+    await page.evaluate(() => window.dispatchEvent(new Event("online")));
+    await expect(page.locator("#sync-btn")).toBeHidden();
+
+    // The entry survived the full replay chain and is still attached to
+    // a real place -- not silently dropped or orphaned against a
+    // location/place id that was never actually inserted server-side.
+    await expect(page.locator("#sections")).toContainText(entryName);
+    // Only ONE "Existing Crag" section exists -- the offline-created
+    // location deduped onto the drifted one instead of creating a
+    // second, and the place created under it deduped/attached correctly
+    // too (a failed remap would either orphan the entry under a
+    // never-inserted id, or -- if the place item's own locationId
+    // remap were skipped -- fail its own create and leave the entry
+    // queued forever).
+    await expect(page.locator(".place-header", { hasText: "Existing Crag" })).toHaveCount(1);
+  });
 });
 
 // #403 -- deliberately data-agnostic: neither test hardcodes which

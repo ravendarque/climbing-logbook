@@ -156,6 +156,25 @@ export function createOfflineSync({
   // same queued item against the server.
   let syncInFlight = false;
 
+  // #490 -- when a queued "location"/"place" create gets deduped
+  // server-side (server/lib/d1-resource.js's own createD1ResourceHandlers,
+  // `dedupedTo` in its response) to an id different from the one this
+  // device originally minted, any OTHER still-queued item that
+  // references the client's original id (a "place" item's own
+  // locationId, or an "entry" item's own placeId) needs that reference
+  // substituted for the server's real id *before* it gets its own turn
+  // in the replay loop below -- otherwise it fails validation outright
+  // against an id that was never actually inserted (the dedup means
+  // nothing was created under it). Mutates `queue` in place (the exact
+  // array syncPending()'s own loop is iterating), which is what lets a
+  // location's own remap already be visible by the time a dependent
+  // place item further down the same queue reaches its own iteration.
+  function remapQueueReferences(queue, field, fromId, toId) {
+    for (const item of queue) {
+      if (item.record[field] === fromId) item.record[field] = toId;
+    }
+  }
+
   async function syncPending() {
     if (syncInFlight) return;
     syncInFlight = true;
@@ -188,9 +207,26 @@ export function createOfflineSync({
           }
           if (!res.ok) { remaining.push(item); continue; }
           const data = await res.json();
-          if (item.kind === "location") lastLocations = data.locations;
-          else if (item.kind === "place") lastPlaces = data.places;
-          else lastEntries = data.entries;
+          if (item.kind === "location") {
+            lastLocations = data.locations;
+            // #490 -- a location item's own kind-vs-field naming
+            // differs from place/entry: this device's originally-minted
+            // location id is `item.record.id` itself (not, say,
+            // `item.record.locationId`), and what references it further
+            // down the queue is a "place" item's own `locationId` field.
+            if (data.dedupedTo && data.dedupedTo !== item.record.id) {
+              remapQueueReferences(queue, "locationId", item.record.id, data.dedupedTo);
+            }
+          } else if (item.kind === "place") {
+            lastPlaces = data.places;
+            // Same idea, one level down -- a "place" item's own id is
+            // what an "entry" item's own `placeId` field references.
+            if (data.dedupedTo && data.dedupedTo !== item.record.id) {
+              remapQueueReferences(queue, "placeId", item.record.id, data.dedupedTo);
+            }
+          } else {
+            lastEntries = data.entries;
+          }
         } catch {
           remaining.push(...queue.slice(i));
           break; // still offline — stop, preserve order for next attempt
