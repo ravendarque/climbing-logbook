@@ -156,4 +156,40 @@ describe("public data API", () => {
     const { entries: entriesB } = await (await fetchPublic("userdatab", "logbook")).json();
     expect(entriesB.map(e => e.name)).toEqual(["User B's Send"]);
   });
+
+  // #511 -- server/api/logbook.js's own `?since=` delta branch (#500,
+  // built for the *owner's* /sync page) is shared unchanged with this
+  // public route -- unfiltered, it would let anyone read a soft-deleted
+  // entry's full content off a public profile via `?since=0`, since the
+  // owner-facing delta path deliberately surfaces tombstones. This is
+  // the actual leak #511 found; server/api/public-data.js now strips
+  // `since` before dispatching, so the public route always falls back to
+  // the normal (non-delta) shape regardless of what's requested.
+  describe("?since= is neutralized on the public route (#511)", () => {
+    it("a soft-deleted entry's content never appears publicly via ?since=, even at cursor 0", async () => {
+      const { cookie } = await createAuthedSession({ username: "sincedeleteduser" });
+      const placeId = await seedPlace(cookie);
+      const created = await (await jsonRequest("POST", "/logbook/api/admin/logbook", { placeId, name: "Sleepwalker", grade: "7A", type: "boulder", status: "send" }, { Cookie: cookie })).json();
+      await fetchJson(`/logbook/api/admin/logbook?id=${created.entries[0].id}`, { method: "DELETE", headers: { Cookie: cookie } });
+
+      const res = await fetchPublic("sincedeleteduser", "logbook?since=0");
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      // The plain "everything" shape (no `cursor` field, no tombstoned
+      // rows at all) -- proves `since` was actually stripped, not just
+      // that this one entry happens to be excluded.
+      expect(body).toEqual({ entries: [] });
+    });
+
+    it("a live entry is still returned normally when ?since= is present, just via the plain (not delta) shape", async () => {
+      const { cookie } = await createAuthedSession({ username: "sincelivenuser" });
+      const placeId = await seedPlace(cookie);
+      await jsonRequest("POST", "/logbook/api/admin/logbook", { placeId, name: "Sleepwalker", grade: "7A", type: "boulder", status: "send" }, { Cookie: cookie });
+
+      const res = await fetchPublic("sincelivenuser", "logbook?since=0");
+      const body = await res.json();
+      expect(body.cursor).toBeUndefined();
+      expect(body.entries.map(e => e.name)).toEqual(["Sleepwalker"]);
+    });
+  });
 });
