@@ -39,6 +39,7 @@ import "./components/climbing-entries-table.js";
 // ── Config -- identical to client/main.js's own (#348 pages all still
 // hit /logbook/api/* -- only the page shell moved, not the API surface). ──
 const ADMIN_DATA_URL = "/logbook/api/admin/logbook";
+const ENTRIES_URL = "/logbook/api/logbook";
 const PLACES_URL = "/logbook/api/places";
 const ADMIN_PLACES_URL = "/logbook/api/admin/places";
 const LOCATIONS_URL = "/logbook/api/locations";
@@ -74,6 +75,7 @@ const { openModal, closeModal } = createModalHelpers(["add-place-overlay", "entr
 const offlineSync = createOfflineSync({
   store, adminFetch, isAuthRedirect,
   adminDataUrl: ADMIN_DATA_URL, adminLocationsUrl: ADMIN_LOCATIONS_URL, adminPlacesUrl: ADMIN_PLACES_URL,
+  entriesUrl: ENTRIES_URL, placesUrl: PLACES_URL, locationsUrl: LOCATIONS_URL,
   queueKey: QUEUE_KEY,
 });
 
@@ -170,10 +172,13 @@ async function boot() {
   // Places/locations (below) stay network-fetched-with-cache-fallback --
   // comparatively small payloads where per-load freshness still matters
   // more than the "one big blocking fetch" problem #111/#498 were built
-  // to solve for entries specifically. Until #500 (delta sync) lands,
-  // this means /log only picks up entries changed on another
-  // device/session at the next full re-sync, not on every load -- an
-  // accepted interim gap (Raven, 2026-08-21), not an oversight.
+  // to solve for entries specifically. This still means a boot() itself
+  // doesn't pick up entries changed on another device/session -- but
+  // #500's delta pull, wired into offlineSync's reconnect/sync-button
+  // path (see client/offline-sync.js's own pullDeltas()), now closes
+  // most of that gap on the next reconnect or manual sync without
+  // needing a full re-sync, narrower than the interim gap this comment
+  // used to describe (Raven, 2026-08-21).
   store.loadEntriesFromCache();
 
   try {

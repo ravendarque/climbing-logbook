@@ -13,7 +13,9 @@
 // enough (same reasoning client/profile-main.js's own header comment
 // gives for a different page).
 import { createStore } from "./store.js";
-import { markSynced } from "./sync-status.js";
+import { isSynced, markSynced } from "./sync-status.js";
+import { getCursor, setCursor } from "./sync-cursors.js";
+import { mergeDelta } from "./delta-merge.js";
 import "./components/climbing-menu-bar.js";
 
 const PLACES_URL = "/logbook/api/places";
@@ -73,17 +75,36 @@ async function fetchJson(url) {
   return res.json();
 }
 
-async function runSync(store) {
-  const [{ places }, { locations }] = await Promise.all([
-    fetchJson(PLACES_URL),
-    fetchJson(LOCATIONS_URL),
-  ]);
-  store.setPlaces(places);
-  store.setLocations(locations);
+// #500 -- places/locations are small enough that they never needed
+// #498's chunking treatment, so both cold and warm sync go through the
+// exact same delta request: `since=0` on a never-synced device returns
+// everything in one response (the cold case, for these two tables), and
+// a genuinely warm device just passes its own last-known cursor
+// instead. Loads whatever's already cached first -- a no-op on a cold
+// device (nothing cached yet), but gives the warm case a real base for
+// mergeDelta() to upsert onto rather than silently discarding it.
+async function syncSmallTable(table, url, loadFromCache, getCurrent, setCurrent) {
+  loadFromCache();
+  const since = getCursor(table);
+  const { [table]: rows, cursor } = await fetchJson(`${url}?since=${since}`);
+  setCurrent(mergeDelta(getCurrent(), rows));
+  setCursor(table, cursor);
+}
 
+// Cold path -- entries alone still needs #498's chunked fetch (the
+// 10k-entry scale target this app is sized for), so this stays a
+// straight replace via store.setEntries(), not a merge. `cursor` --
+// server/api/logbook.js's own MAX(sync_cursor) OVER() on this same
+// query -- is the same value on every chunk (a window function over the
+// *whole* matching set, independent of this chunk's own LIMIT/OFFSET),
+// but Math.max across every chunk seen is taken anyway rather than
+// trusting only the last one, in case a row lands mid-loop with a
+// higher cursor than an earlier chunk already reported.
+async function syncEntriesCold(store) {
   let entries = [];
   let offset = 0;
   let total = 0;
+  let cursor = 0;
   setProgress(0, 0);
   // Stops as soon as a chunk comes back shorter than requested -- never
   // issues an offset past the true total (see server/api/logbook.js's
@@ -94,11 +115,50 @@ async function runSync(store) {
     entries = entries.concat(chunk.entries);
     offset += chunk.entries.length;
     total = chunk.total;
+    cursor = Math.max(cursor, chunk.cursor);
     setProgress(entries.length, total);
     if (chunk.entries.length < CHUNK_SIZE) break;
   }
 
   store.setEntries(entries);
+  setCursor("entries", cursor);
+}
+
+// Warm path -- a single delta request, merged onto whatever's already
+// cached, same shape as syncSmallTable() above but kept separate since
+// entries is the one table with a cold path that isn't just "the same
+// request with since=0" (see syncEntriesCold's own comment).
+async function syncEntriesWarm(store) {
+  store.loadEntriesFromCache();
+  const since = getCursor("entries");
+  const { entries, cursor } = await fetchJson(`${ENTRIES_URL}?since=${since}`);
+  store.setEntries(mergeDelta(store.getEntries(), entries));
+  setCursor("entries", cursor);
+}
+
+async function runSync(store) {
+  // isSynced() -- the same marker client/log-main.js's own boot() check
+  // already trusts as "has this device done a real full sync" -- decides
+  // cold vs. warm here too, rather than inventing a second, redundant
+  // signal (e.g. "is the entries cursor still 0") that could drift out
+  // of sync with it: a forced full resync (SYNC_VERSION bump) must take
+  // the cold path even if a stale cursor from before the bump is still
+  // sitting in storage.
+  const warm = isSynced();
+  setProgress(0, 0);
+
+  // places/locations always resolve before entries starts (#500's own
+  // multi-table ordering requirement) -- entries reference placeId, so
+  // a delta merge that set entries first could leave them pointing at a
+  // place/location this device doesn't know about yet.
+  await Promise.all([
+    syncSmallTable("places", PLACES_URL, store.loadPlacesFromCache, store.getPlaces, store.setPlaces),
+    syncSmallTable("locations", LOCATIONS_URL, store.loadLocationsFromCache, store.getLocations, store.setLocations),
+  ]);
+
+  if (warm) await syncEntriesWarm(store);
+  else await syncEntriesCold(store);
+
   markSynced();
 }
 

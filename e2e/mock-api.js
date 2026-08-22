@@ -43,6 +43,21 @@ export async function mockApi(page, {
   let _locations = [...locations];
   let _settings = { ...settings };
 
+  // #500 -- a monotonically increasing counter standing in for the real
+  // server's epoch-ms sync_cursor (server/lib/d1-resource.js) -- doesn't
+  // need to be wall-clock-based here, just strictly increasing per
+  // write, so the ?since= routes below can reproduce the real `>=`
+  // delta contract deterministically instead of racing Date.now() at
+  // test speed. Kept in a side Map, not stamped directly onto the
+  // entry/place/location objects -- every OTHER route here still hands
+  // those objects straight back out over the wire, and a test asserting
+  // an exact seeded shape shouldn't have to know this file's own
+  // bookkeeping exists.
+  let _cursor = 0;
+  const cursorOf = new Map();
+  function stamp(row) { cursorOf.set(row.id, ++_cursor); return row; }
+  [..._entries, ..._places, ..._locations].forEach(stamp);
+
   // Fresh, isolated localStorage per test -- these harness pages share an
   // origin with every other page in the app (including real ones), so
   // without this a prior test's offline-queue/cache writes could leak in.
@@ -60,10 +75,25 @@ export async function mockApi(page, {
     // imported -- addInitScript's function runs in the page, not this
     // Node context, same reasoning every other route here fakes the
     // server's contract instead of importing the real handler.
-    await page.addInitScript(seedEntries => {
+    //
+    // #500 -- also seeds logbook_sync_cursors at each table's current
+    // max, matching client/sync-cursors.js's own shape: without this, a
+    // test that dispatches a real `online` event (e2e/log-page.spec.js's
+    // own offline-queue tests) would see offline-sync.js's new
+    // pullDeltas() step treat this "already synced" device as never
+    // having a recorded cursor, re-fetching the whole seeded dataset via
+    // since=0 on every reconnect instead of the genuinely-caught-up
+    // no-op a real warm device would see.
+    const cursors = {
+      entries: Math.max(0, ..._entries.map(e => cursorOf.get(e.id) ?? 0)),
+      places: Math.max(0, ..._places.map(p => cursorOf.get(p.id) ?? 0)),
+      locations: Math.max(0, ..._locations.map(l => cursorOf.get(l.id) ?? 0)),
+    };
+    await page.addInitScript(({ seedEntries, cursors }) => {
       localStorage.setItem("logbook_sync_status", JSON.stringify({ version: 1, syncedAt: Date.now() }));
       localStorage.setItem("logbook_entries_cache", JSON.stringify(seedEntries));
-    }, _entries);
+      localStorage.setItem("logbook_sync_cursors", JSON.stringify(cursors));
+    }, { seedEntries: _entries, cursors });
   }
 
   await page.route("**/logbook/api/auth/get-session", route =>
@@ -90,7 +120,24 @@ export async function mockApi(page, {
     const url = new URL(route.request().url());
     const locationId = url.searchParams.get("locationId");
     const limitParam = url.searchParams.get("limit");
+    const sinceParam = url.searchParams.get("since");
     const offset = Number(url.searchParams.get("offset")) || 0;
+
+    // #500 -- ?since= switches to the delta shape (mirrors server/api/
+    // logbook.js's own handleGet) -- checked first, mutually exclusive
+    // with locationId/limit below, same precedence as the real handler.
+    // Every row here comes back `deleted: false` -- this mock's own
+    // DELETE route (below) still does a hard removal rather than
+    // replicating #499's tombstone/soft-delete, out of scope for what
+    // #500's own e2e coverage needs (a warm-with-drift *catch-up*
+    // scenario, not a delete-propagation one -- that's already covered
+    // directly by test/logbook.test.js's own Vitest contract tests).
+    if (sinceParam !== null) {
+      const since = Number(sinceParam);
+      const changed = _entries.filter(e => (cursorOf.get(e.id) ?? 0) >= since);
+      const cursor = changed.reduce((max, e) => Math.max(max, cursorOf.get(e.id)), since);
+      return route.fulfill({ json: { entries: changed.map(e => ({ ...e, deleted: false })), cursor } });
+    }
 
     if (locationId) {
       const limit = Number(limitParam) || 20;
@@ -100,15 +147,37 @@ export async function mockApi(page, {
     // #498 -- flat chunked mode (no locationId, `limit` present): mirrors
     // server/api/logbook.js's own `total` field (COUNT(*) OVER(), the
     // true count regardless of this slice's own offset/limit) --
-    // client/sync-main.js's progress bar depends on it.
+    // client/sync-main.js's progress bar depends on it. `cursor` (#500)
+    // -- MAX(sync_cursor) OVER(), same independence from offset/limit --
+    // is what the cold path records as this table's starting point for
+    // a future warm delta fetch.
     if (limitParam !== null) {
       const limit = Number(limitParam);
-      return route.fulfill({ json: { entries: _entries.slice(offset, offset + limit), total: _entries.length } });
+      const cursor = _entries.reduce((max, e) => Math.max(max, cursorOf.get(e.id) ?? 0), 0);
+      return route.fulfill({ json: { entries: _entries.slice(offset, offset + limit), total: _entries.length, cursor } });
     }
     return route.fulfill({ json: { entries: _entries } });
   });
-  await page.route("**/logbook/api/places", route => route.fulfill({ json: { places: _places } }));
-  await page.route("**/logbook/api/locations", route => route.fulfill({ json: { locations: _locations } }));
+  // #500 -- ?since= (mirrors the shared factory's own handleGet in
+  // server/lib/d1-resource.js, which places.js/locations.js both use
+  // unmodified) -- trailing `*`, not a bare pattern, since a query
+  // string appended (?since=...) otherwise never matches (see the
+  // admin/logbook route further down for the fuller version of this
+  // same gotcha).
+  await page.route("**/logbook/api/places*", route => {
+    const since = new URL(route.request().url()).searchParams.get("since");
+    if (since === null) return route.fulfill({ json: { places: _places } });
+    const changed = _places.filter(p => (cursorOf.get(p.id) ?? 0) >= Number(since));
+    const cursor = changed.reduce((max, p) => Math.max(max, cursorOf.get(p.id)), Number(since));
+    return route.fulfill({ json: { places: changed, cursor } });
+  });
+  await page.route("**/logbook/api/locations*", route => {
+    const since = new URL(route.request().url()).searchParams.get("since");
+    if (since === null) return route.fulfill({ json: { locations: _locations } });
+    const changed = _locations.filter(l => (cursorOf.get(l.id) ?? 0) >= Number(since));
+    const cursor = changed.reduce((max, l) => Math.max(max, cursorOf.get(l.id)), Number(since));
+    return route.fulfill({ json: { locations: changed, cursor } });
+  });
   await page.route("**/logbook/api/settings", route => route.fulfill({ json: _settings }));
   await page.route("**/logbook/api/performance/pyramid", route => route.fulfill({ json: pyramidData }));
 
@@ -161,11 +230,11 @@ export async function mockApi(page, {
   await page.route("**/logbook/api/admin/logbook*", async route => {
     const method = route.request().method();
     if (method === "POST") {
-      _entries = [..._entries, route.request().postDataJSON()];
+      _entries = [..._entries, stamp(route.request().postDataJSON())];
       return route.fulfill({ status: 201, json: { entries: _entries } });
     }
     if (method === "PUT") {
-      const body = route.request().postDataJSON();
+      const body = stamp(route.request().postDataJSON());
       _entries = _entries.map(e => (e.id === body.id ? body : e));
       return route.fulfill({ json: { entries: _entries } });
     }
@@ -193,13 +262,13 @@ export async function mockApi(page, {
 
   await page.route("**/logbook/api/admin/places", async route => {
     if (route.request().method() !== "POST") return route.continue();
-    _places = [..._places, route.request().postDataJSON()];
+    _places = [..._places, stamp(route.request().postDataJSON())];
     return route.fulfill({ status: 201, json: { places: _places } });
   });
 
   await page.route("**/logbook/api/admin/locations", async route => {
     if (route.request().method() !== "POST") return route.continue();
-    _locations = [..._locations, route.request().postDataJSON()];
+    _locations = [..._locations, stamp(route.request().postDataJSON())];
     return route.fulfill({ status: 201, json: { locations: _locations } });
   });
 }

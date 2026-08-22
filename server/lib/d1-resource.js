@@ -57,6 +57,41 @@ export async function findOwnedRow(env, table, id, userId, { excludeDeleted = fa
     .first();
 }
 
+// #500 -- "everything changed since cursor X" for the delta-sync path
+// (ADR-0019 part 3). `>=`, not `>` -- same-millisecond collisions are
+// expected (confirmed empirically in #499), so a strict `>` would risk
+// missing a row that shares the exact cursor value the client's own
+// last-known max came from; the client's own merge-by-id is idempotent,
+// so re-seeing an already-known row via `>=` is harmless, not a bug.
+// No deleted_at filtering here at all, unlike listForUser/findOwnedRow's
+// excludeDeleted -- a delta fetch's whole point is "everything that
+// changed, including a deletion" (entries.js's own delta call surfaces
+// that via rowToJsonWithDeleted's `deleted` flag), and places/locations
+// don't even have a deleted_at column to filter on (confirmed via a real
+// D1_ERROR: no such column: deleted_at when an earlier version of this
+// function unconditionally added that filter -- caught by this file's
+// own test suite, not assumed safe).
+//
+// Returns { rows, cursor }, not a bare array -- `cursor` is the highest
+// sync_cursor actually seen in this response (or the unchanged `since`
+// if nothing came back), the value the client needs to remember for its
+// *next* delta request against this same table. Each table's own
+// sync_cursor sequence is independent (a separate Date.now() call per
+// insert/update, per table) -- a single cursor shared across
+// entries/places/locations would risk silently skipping a change to
+// whichever table happens to have a lower cursor ceiling than the
+// others at the moment it's queried, so the client tracks one per table,
+// not one overall.
+export async function listChangedForUser(env, table, userId, rowToJson, since) {
+  if (!userId) return { rows: [], cursor: since };
+  const { results } = await env.LOGBOOK_DB
+    .prepare(`SELECT * FROM ${table} WHERE user_id = ? AND sync_cursor >= ? ORDER BY sync_cursor`)
+    .bind(userId, since)
+    .all();
+  const cursor = results.reduce((max, row) => Math.max(max, row.sync_cursor), since);
+  return { rows: results.map(rowToJson), cursor };
+}
+
 // Exported standalone -- server/api/logbook-import.js's bulk write (#224
 // phase 3) needs the exact same "insert this already-built row" step for
 // locations/places/entries in a loop, not just handlePost's single-record
@@ -79,7 +114,16 @@ export async function insertRow(env, table, row) {
 // check inside handlePost below -- see findOwnedRow's own comment on
 // why that check needs to see a soft-deleted row too.
 export function createD1ResourceHandlers({ table, resourceKey, validateFields, buildRow, rowToJson, excludeDeleted = false }) {
+  // #500 -- `?since=<cursor>` switches to the delta path (places.js/
+  // locations.js's own GET routes both get this for free) -- absent for
+  // every existing caller, which keeps the unchanged "everything" shape
+  // (no `cursor` field either, only ever present on a delta response).
   async function handleGet(request, env, userId) {
+    const since = new URL(request.url).searchParams.get("since");
+    if (since !== null) {
+      const { rows, cursor } = await listChangedForUser(env, table, userId, rowToJson, Number(since));
+      return json({ [resourceKey]: rows, cursor }, 200, { "Cache-Control": "no-store" });
+    }
     const list = await listForUser(env, table, userId, rowToJson, { excludeDeleted });
     return json({ [resourceKey]: list }, 200, { "Cache-Control": "no-store" });
   }

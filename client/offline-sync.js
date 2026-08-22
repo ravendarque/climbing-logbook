@@ -1,3 +1,6 @@
+import { getCursor, setCursor } from "./sync-cursors.js";
+import { mergeDelta } from "./delta-merge.js";
+
 // The offline-queue *orchestration* half (#262, first piece of #261's
 // "complete the gold-standard modularization" follow-up to #233):
 // localStorage read/write, the sync-button UI, and replaying queued writes
@@ -17,6 +20,11 @@
 // subscriber) on its own. applyPendingQueue itself moved from a plain
 // import here to a store.js method for the same reason (#264) -- see
 // store.js's own comment on why it lives there now.
+//
+// entriesUrl/placesUrl/locationsUrl (#500) -- the public GET routes, not
+// the admin* write ones above -- pullDeltas() below reads through them
+// to catch this device up on drift from another device/session before
+// replaying its own queue on top.
 export function createOfflineSync({
   store,
   adminFetch,
@@ -24,6 +32,9 @@ export function createOfflineSync({
   adminDataUrl,
   adminLocationsUrl,
   adminPlacesUrl,
+  entriesUrl,
+  placesUrl,
+  locationsUrl,
   queueKey,
 }) {
   const syncBtn = document.getElementById("sync-btn");
@@ -77,13 +88,52 @@ export function createOfflineSync({
         });
   }
 
+  // #500 -- catches this device up on drift from another device/session
+  // (e.g. a bulk import elsewhere) before syncPending() below replays
+  // this device's own queue on top -- reduces (per #500's own scope
+  // note, doesn't eliminate) the #490 duplicate-creation window a stale
+  // local view could otherwise widen. Public GET, plain fetch -- not
+  // adminFetch -- same reasoning client/fetch-json.js's own header
+  // comment gives for every other read-only fetch in this app
+  // (session-optional, no opaqueredirect concept on a GET route). A
+  // failure here (offline, network error, non-OK response) is swallowed
+  // -- the queue-replay loop below already has its own offline handling,
+  // and a missed delta catch-up this pass just means it's retried again
+  // on the next reconnect/click, same as any other transient failure.
+  async function pullDelta(url, table, getCurrent, setCurrent) {
+    try {
+      const res = await fetch(`${url}?since=${getCursor(table)}`);
+      if (!res.ok) return;
+      const { [table]: rows, cursor } = await res.json();
+      setCurrent(mergeDelta(getCurrent(), rows));
+      setCursor(table, cursor);
+    } catch {
+      // offline/network error -- silently skip, see this function's own
+      // header comment.
+    }
+  }
+
+  async function pullDeltas() {
+    // places/locations before entries -- #500's own multi-table
+    // ordering requirement (entries reference placeId), same reasoning
+    // client/sync-main.js's own runSync() follows.
+    await Promise.all([
+      pullDelta(placesUrl, "places", store.getPlaces, store.setPlaces),
+      pullDelta(locationsUrl, "locations", store.getLocations, store.setLocations),
+    ]);
+    await pullDelta(entriesUrl, "entries", store.getEntries, store.setEntries);
+  }
+
   async function syncPending() {
-    const queue = getQueue();
-    if (!queue.length) return;
     syncBtn.disabled = true;
     syncBtnIcon.classList.add("animate-spin");
 
     try {
+      await pullDeltas();
+
+      const queue = getQueue();
+      if (!queue.length) return;
+
       const remaining = [];
       let lastEntries = null, lastPlaces = null, lastLocations = null;
       for (let i = 0; i < queue.length; i++) {

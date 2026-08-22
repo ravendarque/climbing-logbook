@@ -131,6 +131,50 @@ describe.each([
     });
   }
 
+  // #500 -- ?since= gets this shared factory's own delta path for free
+  // (server/lib/d1-resource.js's createD1ResourceHandlers), covered here
+  // once for both resources rather than hand-copied in a places-only and
+  // locations-only file. Neither resource has a deleted_at column
+  // (#159/#160 -- no delete capability yet), so unlike entries there's no
+  // tombstone/`deleted` case to cover here.
+  describe("?since= (#500 delta sync)", () => {
+    function getSince(since, extraCookie = cookie) {
+      return fetchJson(`${listPath}?since=${since}`, { headers: { Cookie: extraCookie } });
+    }
+
+    it("returns an empty delta and echoes since as cursor for an anonymous caller", async () => {
+      const res = await fetchJson(`${listPath}?since=0`);
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ [listKey]: [], cursor: 0 });
+    });
+
+    it("returns a row created at or after since, reporting its own cursor as the new cursor", async () => {
+      const created = await (await postJson(createPath, await validBody())).json();
+      const id = created[listKey][0].id;
+      const row = await env.LOGBOOK_DB.prepare(`SELECT sync_cursor FROM ${listKey} WHERE id = ?`).bind(id).first();
+
+      const { [listKey]: rows, cursor } = await (await getSince(row.sync_cursor)).json();
+      expect(rows.map(r => r.id)).toEqual([id]);
+      expect(cursor).toBe(row.sync_cursor);
+    });
+
+    it("excludes a row whose cursor is strictly before since", async () => {
+      const created = await (await postJson(createPath, await validBody())).json();
+      const id = created[listKey][0].id;
+      const row = await env.LOGBOOK_DB.prepare(`SELECT sync_cursor FROM ${listKey} WHERE id = ?`).bind(id).first();
+
+      const { [listKey]: rows } = await (await getSince(row.sync_cursor + 1)).json();
+      expect(rows.find(r => r.id === id)).toBeUndefined();
+    });
+
+    it("never returns another user's rows (cross-user isolation)", async () => {
+      await postJson(createPath, await validBody());
+      const userB = await createAuthedSession();
+      const res = await getSince(0, userB.cookie);
+      expect(await res.json()).toEqual({ [listKey]: [], cursor: 0 });
+    });
+  });
+
   // The one genuinely new security boundary #297 introduces -- see
   // test/logbook.test.js's own "cross-user isolation" describe block for
   // the fuller rationale.
