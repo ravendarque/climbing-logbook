@@ -235,7 +235,7 @@ export class ClimbingEntriesTable extends HTMLElement {
   #wired = false;
 
   static get observedAttributes() {
-    return ["editable", "active-discipline", "all-disciplines", "lazy"];
+    return ["editable", "active-discipline", "all-disciplines", "lazy", "loading"];
   }
 
   get entries() { return this.#entries; }
@@ -274,6 +274,22 @@ export class ClimbingEntriesTable extends HTMLElement {
   // that ADR-0006 doesn't extend to.
   get lazy() { return this.hasAttribute("lazy"); }
   set lazy(v) { this.toggleAttribute("lazy", !!v); }
+
+  // #470 -- a genuine third state distinct from "has entries" and
+  // "confirmed empty": before this was added, a fresh connectedCallback
+  // (below) rendered #renderSections()'s own real "Nothing to show here"
+  // empty state immediately, on every load, before any page's boot() had
+  // fetched or read real data at all -- a flash of "you have nothing
+  // logged" for a returning visitor with a full logbook, corrected only
+  // once the first real entries/places/locations/locationCounts arrived
+  // a moment later. Set directly in each consuming page's own markup
+  // (public/log/index.html, public/profile/index.html), so it's true
+  // from the very first parse/paint, not just once this component's own
+  // JS runs -- and cleared by that page's own boot() once real data has
+  // resolved (success *or* confirmed-empty), same as editable/
+  // allDisciplines/lazy above, all opt-in per consumer.
+  get loading() { return this.hasAttribute("loading"); }
+  set loading(v) { this.toggleAttribute("loading", !!v); }
 
   connectedCallback() {
     if (!this.#wired) {
@@ -893,7 +909,15 @@ export class ClimbingEntriesTable extends HTMLElement {
     const sections = this.#visibleSections();
 
     if (sections.length === 0) {
-      container.innerHTML = `<div class="bg-surface border border-border rounded-app px-5 py-4 text-muted text-center leading-[1.6]">Nothing to show here.<br>Enjoy this quiet space, or<br>add climbs/change filters.</div>`;
+      // #470 -- distinguishes "confirmed empty" from "hasn't received
+      // real data yet" -- the same box, since neither is an error state
+      // (docs/coding-standards.md's own accessibility rule against
+      // reusing alarming "error" styling for a non-error empty state
+      // applies just as much to a merely-not-loaded-yet one), just
+      // different, honest text for each.
+      container.innerHTML = this.loading
+        ? `<div class="bg-surface border border-border rounded-app px-5 py-4 text-muted text-center leading-[1.6]">Loading…</div>`
+        : `<div class="bg-surface border border-border rounded-app px-5 py-4 text-muted text-center leading-[1.6]">Nothing to show here.<br>Enjoy this quiet space, or<br>add climbs/change filters.</div>`;
       return;
     }
 

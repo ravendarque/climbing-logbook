@@ -9,6 +9,11 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/logbook/favicon-16.png">
   <link rel="apple-touch-icon" href="/logbook/apple-touch-icon.png">
   <meta name="theme-color" content="#ff2727">
+  <!-- #470 -- starts the brand font fetch during initial parsing rather
+       than waiting for layout to discover climbing-header.js's own
+       @font-face rule -- see public/index.html's own comment for the
+       fuller reasoning. -->
+  <link rel="preload" as="font" type="font/woff2" href="/logbook/fonts/BebasNeue-Regular.woff2" crossorigin>
   <!-- Genuinely static shell (#348), same pattern as public/log/index.html
        -- see that file's own comment for why every path below is absolute
        and client/account-main.js reads the username from
