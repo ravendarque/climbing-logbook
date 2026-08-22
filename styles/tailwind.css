@@ -98,6 +98,13 @@
   --color-tier-heuristic:    var(--tier-heuristic);
   --color-tier-community:    var(--tier-community);
 
+  /* #516 -- <climbing-grade-pyramid>'s own status-icon colors, moved
+     off raw hex onto the same aliasing pattern as every other themeable
+     color above. */
+  --color-pyramid-good:      var(--pyramid-status-good);
+  --color-pyramid-missing:   var(--pyramid-status-missing);
+  --color-pyramid-promoted:  var(--pyramid-status-promoted);
+
   --radius-app:              var(--r);
   --font-sans:               var(--font-body);
   --font-display:            var(--font-display);

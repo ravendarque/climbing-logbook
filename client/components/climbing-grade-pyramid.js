@@ -12,14 +12,15 @@
 // out of client/ into shared/, now runs server-side; this component no
 // longer imports or calls it at all, see pyramidData below).
 //
-// Citations/evidence-tier overlay open/close is self-contained here (own
-// focus-trap/Escape/backdrop-click, not client/modal-utils.js's
-// createModalHelpers()) -- that factory coordinates Escape-priority across
-// a *fixed* list of every overlay id on `/logbook`'s single page
-// (add-place-overlay, entry-overlay, etc.); this component's real
-// consumers never have those other overlays alongside it, so there's
-// nothing to coordinate with. Same self-contained-modal precedent as
-// #345's <climbing-header> footnote overlay.
+// Citations/evidence-tier overlay open/close (#516) uses
+// client/modal-utils.js's own createModalHelpers(), scoped to just
+// ["citations-overlay", "evidence-overlay"] -- that factory's default
+// overlayIds list is /log's own full-page set, but overlayIds was
+// always a real parameter, not something this component needed to
+// avoid entirely: an earlier version of this comment assumed otherwise
+// and hand-rolled the exact same open/close/focus-trap mechanics
+// climbing-entries-table.js's own notes overlay also hand-rolled,
+// independently (found via code review, 2026-08-22).
 //
 // pyramidData (property, #111) and active-discipline (attribute) come in
 // from whichever page's composition root owns that state -- this
@@ -40,19 +41,20 @@
 import { escapeHtml } from "./escape-html.js";
 import { gradeColor } from "../../shared/grade-data.js";
 import { PYRAMID_IDEAL_BY_POSITION } from "../../shared/pyramid-stats.js";
-// focusableEls is a stateless utility with no dependency on
-// createModalHelpers()'s overlay-coordination logic (which this
-// component deliberately doesn't use, see this file's own header
-// comment) -- imported directly rather than hand-copied a second time
-// (found via code review, 2026-08-09).
-import { focusableEls } from "../modal-utils.js";
+import { createModalHelpers } from "../modal-utils.js";
 import { disciplineLabel } from "../status.js";
 
 const PYRAMID_ICON_GOOD     = `<circle cx="12" cy="12" r="9"></circle><path d="m8.5 12.5 2.5 2.5 5-5"></path>`;
 const PYRAMID_ICON_LOW      = `<path d="M12 3 2 20h20L12 3Z"></path><path d="M12 9v5"></path><path d="M12 17h.01"></path>`;
 const PYRAMID_ICON_MISSING  = `<circle cx="12" cy="12" r="9"></circle><path d="M12 7v6"></path><path d="M12 16.5h.01"></path>`;
 const PYRAMID_ICON_PROMOTED = `<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"></path>`;
-const PYRAMID_GOLD = "#eab308";
+// #516 -- var(--pyramid-status-*), not raw hex -- these three now live
+// in the shared design-token set (public/logbook/components/
+// climbing-header.js's own :root/:root[data-theme="light"] blocks), so
+// they actually participate in light/dark theme switching like every
+// other color in this component already does, instead of being pinned
+// to one hardcoded shade regardless of theme.
+const PYRAMID_GOLD = "var(--pyramid-status-promoted)";
 
 const SHELL = `
   <p class="text-[.82rem] text-muted leading-[1.7] mb-4" id="window-note"></p>
@@ -106,9 +108,9 @@ const CITATION_MARKER = `<button type="button" class="align-super ml-[.3em] inli
 
 function pyramidStatusIcon(actual, ideal, promoted) {
   if (promoted) return { cls: "promoted", color: PYRAMID_GOLD, svg: PYRAMID_ICON_PROMOTED, label: "Ready to push -- you've logged enough at the tier below to attempt this grade" };
-  if (actual === 0) return { cls: "missing", color: "#ef4444", svg: PYRAMID_ICON_MISSING, label: "No sends at this tier" };
+  if (actual === 0) return { cls: "missing", color: "var(--pyramid-status-missing)", svg: PYRAMID_ICON_MISSING, label: "No sends at this tier" };
   if (actual < ideal) return { cls: "low", color: "var(--color-tier-heuristic)", svg: PYRAMID_ICON_LOW, label: `${actual} of ${ideal} for a full 8-4-2-1 tier` };
-  return { cls: "good", color: "#22c55e", svg: PYRAMID_ICON_GOOD, label: `Meets or exceeds the ${ideal}-send tier` };
+  return { cls: "good", color: "var(--pyramid-status-good)", svg: PYRAMID_ICON_GOOD, label: `Meets or exceeds the ${ideal}-send tier` };
 }
 
 function pyramidBarRow(row, { ideal = null, scaleMax, lower = false, type, promoted = false } = {}) {
@@ -119,7 +121,7 @@ function pyramidBarRow(row, { ideal = null, scaleMax, lower = false, type, promo
     : `width:${actualPct}%; background:${barColor}`;
   const idealOutline = ideal !== null
     ? promoted
-      ? `<div class="absolute top-0 left-1/2 -translate-x-1/2 h-full box-border rounded-[4px] border-[1.25px] border-dashed border-[#eab308] bg-[color-mix(in_srgb,#eab308_22%,transparent)] shadow-[0_0_10px_-1px_#eab308] [filter:drop-shadow(0_0_1px_var(--color-surface))_drop-shadow(0_0_1px_var(--color-surface))] pointer-events-none" style="width:${(ideal / scaleMax) * 100}%"></div>`
+      ? `<div class="absolute top-0 left-1/2 -translate-x-1/2 h-full box-border rounded-[4px] border-[1.25px] border-dashed border-pyramid-promoted bg-[color-mix(in_srgb,var(--pyramid-status-promoted)_22%,transparent)] shadow-[0_0_10px_-1px_var(--pyramid-status-promoted)] [filter:drop-shadow(0_0_1px_var(--color-surface))_drop-shadow(0_0_1px_var(--color-surface))] pointer-events-none" style="width:${(ideal / scaleMax) * 100}%"></div>`
       : `<div class="absolute top-0 left-1/2 -translate-x-1/2 h-full box-border rounded-[4px] border-[1.25px] border-dashed border-[color-mix(in_srgb,var(--color-foreground)_65%,transparent)] [filter:drop-shadow(0_0_1px_var(--color-surface))_drop-shadow(0_0_1px_var(--color-surface))] pointer-events-none" style="width:${(ideal / scaleMax) * 100}%"></div>`
     : "";
   const icon = ideal !== null ? pyramidStatusIcon(row.count, ideal, promoted) : null;
@@ -130,7 +132,7 @@ function pyramidBarRow(row, { ideal = null, scaleMax, lower = false, type, promo
   const rowClasses = lower
     ? "grid grid-cols-[3.2rem_1fr_4.2rem] max-[480px]:grid-cols-[2rem_1fr_3.4rem] items-center gap-[10px] max-[480px]:gap-[8px] mb-[14px] opacity-[.82]"
     : promoted
-      ? "grid grid-cols-[3.2rem_1fr_4.2rem] max-[480px]:grid-cols-[2rem_1fr_3.4rem] items-center gap-[10px] max-[480px]:gap-[8px] mb-[14px] -mx-[.5rem] px-[.5rem] py-[.25rem] rounded-[8px] bg-[color-mix(in_srgb,#eab308_10%,transparent)]"
+      ? "grid grid-cols-[3.2rem_1fr_4.2rem] max-[480px]:grid-cols-[2rem_1fr_3.4rem] items-center gap-[10px] max-[480px]:gap-[8px] mb-[14px] -mx-[.5rem] px-[.5rem] py-[.25rem] rounded-[8px] bg-[color-mix(in_srgb,var(--pyramid-status-promoted)_10%,transparent)]"
       : "grid grid-cols-[3.2rem_1fr_4.2rem] max-[480px]:grid-cols-[2rem_1fr_3.4rem] items-center gap-[10px] max-[480px]:gap-[8px] mb-[14px]";
   const countClasses = lower
     ? "flex items-center gap-[.35rem] text-[.82rem] font-semibold tabular-nums text-muted"
@@ -163,7 +165,10 @@ export class ClimbingGradePyramid extends HTMLElement {
   #pyramidData = { boulder: EMPTY_PYRAMID, lead: EMPTY_PYRAMID };
   #lowerGradesExpanded = false;
   #wired = false;
-  #lastFocusedEl = null;
+  // #516 -- createModalHelpers()'s own openModal, captured once when
+  // #wireOverlays() runs -- #render() below (the citation/evidence-tier
+  // marker click handlers) needs it too, not just #wireOverlays() itself.
+  #openModal = null;
 
   static get observedAttributes() {
     return ["active-discipline"];
@@ -196,40 +201,20 @@ export class ClimbingGradePyramid extends HTMLElement {
     this.#lowerGradesExpanded = false;
   }
 
-  #openOverlay(overlay) {
-    this.#lastFocusedEl = document.activeElement;
-    overlay.hidden = false;
-    overlay.scrollTop = 0;
-    (focusableEls(overlay)[0] ?? overlay).focus();
-  }
-
-  #closeOverlay(overlay) {
-    overlay.hidden = true;
-    if (this.#lastFocusedEl) this.#lastFocusedEl.focus();
-  }
-
+  // #516 -- createModalHelpers(["citations-overlay", "evidence-overlay"])
+  // instead of a hand-rolled open/close/focus-trap (see this file's own
+  // header comment on why the earlier self-contained version wasn't
+  // actually necessary).
   #wireOverlays() {
     const citationsOverlay = this.querySelector("#citations-overlay");
     const evidenceOverlay = this.querySelector("#evidence-overlay");
+    const { openModal, closeModal } = createModalHelpers(["citations-overlay", "evidence-overlay"]);
+    this.#openModal = openModal;
 
-    this.querySelector("#citations-close").addEventListener("click", () => this.#closeOverlay(citationsOverlay));
-    citationsOverlay.addEventListener("click", e => { if (e.target === citationsOverlay) this.#closeOverlay(citationsOverlay); });
-    this.querySelector("#evidence-close").addEventListener("click", () => this.#closeOverlay(evidenceOverlay));
-    evidenceOverlay.addEventListener("click", e => { if (e.target === evidenceOverlay) this.#closeOverlay(evidenceOverlay); });
-
-    document.addEventListener("keydown", e => {
-      const openOverlay = [citationsOverlay, evidenceOverlay].find(o => !o.hidden);
-      if (!openOverlay) return;
-      if (e.key === "Escape") { this.#closeOverlay(openOverlay); return; }
-      if (e.key === "Tab") {
-        const focusable = focusableEls(openOverlay);
-        if (focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-      }
-    });
+    this.querySelector("#citations-close").addEventListener("click", () => closeModal(citationsOverlay));
+    citationsOverlay.addEventListener("click", e => { if (e.target === citationsOverlay) closeModal(citationsOverlay); });
+    this.querySelector("#evidence-close").addEventListener("click", () => closeModal(evidenceOverlay));
+    evidenceOverlay.addEventListener("click", e => { if (e.target === evidenceOverlay) closeModal(evidenceOverlay); });
   }
 
   #render() {
@@ -275,14 +260,14 @@ export class ClimbingGradePyramid extends HTMLElement {
        <strong class="text-foreground font-semibold">8-4-2-1 window</strong> — four grade tiers anchored to your progress so far, including any with zero sends, projecting one tier higher once you've logged enough to be ready to push for it. Dashed outlines mark the
        ideal count for each tier. The ratio itself is a ${evidenceTierText("widely used coaching heuristic")}${CITATION_MARKER}, not a proven ratio.`;
     this.querySelectorAll("[data-citation]").forEach(btn =>
-      btn.addEventListener("click", () => this.#openOverlay(this.querySelector("#citations-overlay")))
+      btn.addEventListener("click", () => this.#openModal(this.querySelector("#citations-overlay")))
     );
     this.querySelectorAll("[data-evidence-tier]").forEach(btn =>
-      btn.addEventListener("click", () => this.#openOverlay(this.querySelector("#evidence-overlay")))
+      btn.addEventListener("click", () => this.#openModal(this.querySelector("#evidence-overlay")))
     );
 
     if (promotedGrade) {
-      healthEl.className = "flex gap-3 px-4 py-[14px] rounded-app mb-7 [&_svg]:w-[1.2rem] [&_svg]:h-[1.2rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:mt-[2px] [&_svg]:shrink-0 bg-[color-mix(in_srgb,#eab308_10%,var(--color-surface))] border border-[color-mix(in_srgb,#eab308_35%,transparent)] text-[#eab308]";
+      healthEl.className = "flex gap-3 px-4 py-[14px] rounded-app mb-7 [&_svg]:w-[1.2rem] [&_svg]:h-[1.2rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:mt-[2px] [&_svg]:shrink-0 bg-[color-mix(in_srgb,var(--pyramid-status-promoted)_10%,var(--color-surface))] border border-[color-mix(in_srgb,var(--pyramid-status-promoted)_35%,transparent)] text-pyramid-promoted";
       const stillBuilding = top4.some(r => r.count === 0 && r.grade !== promotedGrade);
       healthEl.innerHTML = stillBuilding
         ? `
