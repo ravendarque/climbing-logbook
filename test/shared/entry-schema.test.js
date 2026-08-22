@@ -93,6 +93,39 @@ describe("validateEntryShape", () => {
     expect(validateEntryShape(validEntry({ video: undefined }))).toBeNull();
     expect(validateEntryShape(validEntry({ video: null }))).toBeNull();
   });
+
+  // #513 -- placeId/name were only checked for truthiness, and
+  // date/video/notes weren't type-checked at all (DATE_SHAPE.test()/
+  // `new URL()` both silently coerce a non-string to a string first) --
+  // a truthy non-string value passed validation and crashed downstream
+  // at the D1 .bind() boundary as an unhandled 500 instead of a 400.
+  it.each(["placeId", "name"])("rejects a non-string %s", field => {
+    expect(validateEntryShape(validEntry({ [field]: ["not-a-string"] }))).toBe(`${field} must be a string`);
+  });
+
+  it("rejects a non-string date, even one whose string form looks valid", () => {
+    // ["2026"].toString() === "2026", which DATE_SHAPE.test() alone
+    // would have silently accepted -- the type check must run first.
+    expect(validateEntryShape(validEntry({ date: ["2026"] }))).toBe("date must be a string");
+  });
+
+  it("rejects a non-string video, even one whose string form looks valid", () => {
+    expect(validateEntryShape(validEntry({ video: ["https://example.com/clip"] }))).toBe("video must be a string");
+  });
+
+  it("rejects a non-string notes", () => {
+    expect(validateEntryShape(validEntry({ notes: { text: "nice" } }))).toBe("notes must be a string");
+  });
+
+  it("accepts a missing/null/empty-string notes", () => {
+    expect(validateEntryShape(validEntry({ notes: undefined }))).toBeNull();
+    expect(validateEntryShape(validEntry({ notes: null }))).toBeNull();
+    expect(validateEntryShape(validEntry({ notes: "" }))).toBeNull();
+  });
+
+  it("accepts a real string notes", () => {
+    expect(validateEntryShape(validEntry({ notes: "Great route" }))).toBeNull();
+  });
 });
 
 describe("entrySchema (bulk-import's own future entry point, #224 phase 3)", () => {

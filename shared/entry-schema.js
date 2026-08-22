@@ -84,6 +84,21 @@ export const entrySchema = v.pipe(
         return;
       }
     }
+    // #513 -- placeId/name are only checked for truthiness above, same as
+    // grade/type/status -- but unlike those three (each narrowed to an
+    // allowlist via .includes() below, which a non-string value simply
+    // fails, no crash), placeId/name flow straight into server/api/
+    // logbook.js's buildRow() and then a D1 .bind() call unmodified. A
+    // truthy non-string (an array/object) passed the check above
+    // unnoticed and crashed there as an unhandled 500 instead of this
+    // schema's own graceful 400 (confirmed empirically -- D1 only
+    // accepts null/number/string/boolean/ArrayBuffer bind values).
+    for (const field of ["placeId", "name"]) {
+      if (typeof entry[field] !== "string") {
+        addIssue({ message: `${field} must be a string`, path: fieldPath(entry, field) });
+        return;
+      }
+    }
     if (!VALID_TYPES.includes(entry.type)) {
       addIssue({ message: `type must be one of: ${VALID_TYPES.join(", ")}`, path: fieldPath(entry, "type") });
       return; // grade's own valid set depends on a type we don't have
@@ -96,8 +111,24 @@ export const entrySchema = v.pipe(
       addIssue({ message: `status must be one of: ${VALID_STATUSES.join(", ")}`, path: fieldPath(entry, "status") });
       return;
     }
+    // #513 -- same class of bug as placeId/name above: DATE_SHAPE.test()
+    // and `new URL()` both coerce a non-string argument to a string
+    // before checking it (RegExp.test/the URL constructor's own USVString
+    // coercion), so a truthy non-string date/video whose *string form*
+    // happens to look valid would silently pass these checks -- while
+    // the original, un-coerced value is what buildRow() actually stores
+    // and binds into D1. Checked explicitly, with its own message, before
+    // the shape checks below run at all.
+    if (entry.date && typeof entry.date !== "string") {
+      addIssue({ message: "date must be a string", path: fieldPath(entry, "date") });
+      return;
+    }
     if (entry.date && !DATE_SHAPE.test(entry.date)) {
       addIssue({ message: "date must be YYYY, YYYY-MM, or YYYY-MM-DD", path: fieldPath(entry, "date") });
+      return;
+    }
+    if (entry.video && typeof entry.video !== "string") {
+      addIssue({ message: "video must be a string", path: fieldPath(entry, "video") });
       return;
     }
     if (entry.video) {
@@ -108,6 +139,12 @@ export const entrySchema = v.pipe(
       } catch {
         addIssue({ message: "video must be a valid URL", path: fieldPath(entry, "video") });
       }
+    }
+    // #513 -- notes has no other check at all (unlike date/video above,
+    // which at least attempt a shape check) -- a truthy non-string value
+    // reaches buildRow()/D1's .bind() completely unvalidated otherwise.
+    if (entry.notes && typeof entry.notes !== "string") {
+      addIssue({ message: "notes must be a string", path: fieldPath(entry, "notes") });
     }
   })
 );
