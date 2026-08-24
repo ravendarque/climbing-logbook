@@ -8,6 +8,7 @@
  * Uses fixed IDs, so POSTing is safe to re-run: an ID that already exists
  * is a documented no-op (server/api/logbook.js et al), not a duplicate.
  */
+import { BOULDER_GRADES, LEAD_GRADES } from "../../shared/grade-data.js";
 
 export const LOCATIONS = [
   { id: "seed-loc-fontainebleau", name: "Fontainebleau", country: "France" },
@@ -15,6 +16,10 @@ export const LOCATIONS = [
   { id: "seed-loc-albarracin", name: "Albarracín", country: "Spain" },
   { id: "seed-loc-southern-sandstone", name: "Southern Sandstone", country: "United Kingdom" },
   { id: "seed-loc-portland", name: "Portland", country: "United Kingdom" },
+  // #227 -- two more countries, for Map-tab variety (the original five
+  // only spanned Western Europe).
+  { id: "seed-loc-rocklands", name: "Rocklands", country: "South Africa" },
+  { id: "seed-loc-yosemite", name: "Yosemite", country: "United States" },
 ];
 
 export const PLACES = [
@@ -27,6 +32,8 @@ export const PLACES = [
   { id: "seed-place-albarracin", locationId: "seed-loc-albarracin", area: "" },
   { id: "seed-place-southern-sandstone-harrisons", locationId: "seed-loc-southern-sandstone", area: "Harrison's Rocks" },
   { id: "seed-place-portland", locationId: "seed-loc-portland", area: "" },
+  { id: "seed-place-rocklands-t-piece", locationId: "seed-loc-rocklands", area: "The T-Piece" },
+  { id: "seed-place-yosemite-camp4", locationId: "seed-loc-yosemite", area: "Camp 4" },
 ];
 
 // Covers: every grade-color tier, both types, every status, flash vs.
@@ -34,7 +41,7 @@ export const PLACES = [
 // granularity the app supports (year, year-month, full date, null). Two
 // entries (seed-01/seed-03) deliberately share a place (Fontainebleau,
 // Bas Cuvier) to exercise multi-entry place-header grouping.
-export const ENTRIES = [
+const CURATED_ENTRIES = [
   { id: "seed-01", name: "L'Envers du Décor", grade: "6B", placeId: "seed-place-font-bas-cuvier", type: "boulder", status: "send", firstAttempt: true, date: "2026-03-14", video: null, notes: "Classic warm-up, felt easy" },
   { id: "seed-02", name: "Karma", grade: "7A", placeId: "seed-place-font-rocher-canon", type: "boulder", status: "project", firstAttempt: false, date: "2026-04", video: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", notes: "Crux move is the toe hook, close on last session" },
   { id: "seed-03", name: "La Marie-Rose", grade: "5C", placeId: "seed-place-font-bas-cuvier", type: "boulder", status: "send", firstAttempt: false, date: "2025", video: null, notes: null },
@@ -46,6 +53,57 @@ export const ENTRIES = [
   { id: "seed-09", name: "Bat Route", grade: "6b", placeId: "seed-place-southern-sandstone-harrisons", type: "lead", status: "send", firstAttempt: false, date: "2025-09-06", video: null, notes: null },
   { id: "seed-10", name: "Slab Happy", grade: "6a+", placeId: "seed-place-portland", type: "lead", status: "checkout", firstAttempt: false, date: null, video: null, notes: null },
 ];
+
+// #227 -- CURATED_ENTRIES above only ever had "send" status at 2 tiers per
+// discipline (6B/5C boulder, 6a/6b lead) -- pyramidCounts() (shared/
+// pyramid-stats.js) only counts status === "send", so that's really only
+// 2 populated tiers each, nowhere near enough to exercise
+// pyramidReadyToPromote()'s window logic (needs several consecutive
+// tiers with real volume) or the "Below" collapsed-lower-grades section.
+// This generates 2 sends per tier across a contiguous low-to-mid run of
+// each discipline's full grade list (BOULDER_GRADES/LEAD_GRADES,
+// shared/grade-data.js -- the same ordered list the pyramid itself
+// renders from, not a hand-duplicated range), so the pyramid has a real,
+// multi-tier shape to look at and a genuine "add one more send" away
+// from promoting the top tier. Deterministic (grade index/place rotation
+// drive both date and placeId), not random -- same idempotent-reseed
+// requirement as the rest of this file.
+const PYRAMID_TIER_COUNT = { boulder: 10, lead: 8 }; // out of BOULDER_GRADES' 21 / LEAD_GRADES' 14
+const SENDS_PER_TIER = 2;
+
+function generatePyramidEntries() {
+  const entries = [];
+  for (const type of ["boulder", "lead"]) {
+    const grades = (type === "boulder" ? BOULDER_GRADES : LEAD_GRADES).slice(0, PYRAMID_TIER_COUNT[type]);
+    grades.forEach(({ g: grade }, tierIdx) => {
+      for (let n = 0; n < SENDS_PER_TIER; n++) {
+        const i = tierIdx * SENDS_PER_TIER + n;
+        const place = PLACES[i % PLACES.length];
+        // Every 7th entry lands just past the 12-month evidence window
+        // (isWithinLast12Months, shared/pyramid-stats.js) -- deliberate
+        // exclusion coverage, not just entries that all count.
+        const monthsAgo = i % 7 === 6 ? 14 : (i % 11) + 1;
+        const date = new Date();
+        date.setMonth(date.getMonth() - monthsAgo);
+        entries.push({
+          id: `seed-pyramid-${type}-${grade.toLowerCase().replace("+", "plus")}-${n}`,
+          name: `Pyramid ${type === "boulder" ? "Boulder" : "Lead"} #${i + 1} (${grade})`,
+          grade,
+          placeId: place.id,
+          type,
+          status: "send",
+          firstAttempt: n === 0,
+          date: date.toISOString().slice(0, 10),
+          video: null,
+          notes: null,
+        });
+      }
+    });
+  }
+  return entries;
+}
+
+export const ENTRIES = [...CURATED_ENTRIES, ...generatePyramidEntries()];
 
 // #111 -- opt-in, not part of the default seed above (used by every PR
 // preview deployment too, scripts/seed-preview-data.mjs, shared across
@@ -161,12 +219,21 @@ async function seedAll(baseUrl, label, endpoint, records, cookie) {
 // entries (entries reference placeId) -- same dependency order the
 // add-place modal itself writes in. Returns the total failure count so
 // callers can decide whether to exit non-zero.
-export async function seedLogbookData(baseUrl, cookie) {
-  console.log(`Seeding ${LOCATIONS.length} locations, ${PLACES.length} places, ${ENTRIES.length} entries into ${baseUrl}...`);
+//
+// #373 -- `type` (optional) narrows the seeded entries to one discipline,
+// for scripts/seed-dev-data.mjs's `--scenario single-discipline` (testing
+// the other discipline's own tab-empty state without an empty logbook
+// entirely). Locations/places always seed in full either way -- they
+// aren't discipline-specific, and a place with zero entries of the
+// filtered-out type is exactly what a single-discipline logbook looks
+// like for real.
+export async function seedLogbookData(baseUrl, cookie, { type } = {}) {
+  const entries = type ? ENTRIES.filter(e => e.type === type) : ENTRIES;
+  console.log(`Seeding ${LOCATIONS.length} locations, ${PLACES.length} places, ${entries.length} entries into ${baseUrl}...`);
   let failed = 0;
   failed += await seedAll(baseUrl, "Locations", "/logbook/api/admin/locations", LOCATIONS, cookie);
   failed += await seedAll(baseUrl, "Places", "/logbook/api/admin/places", PLACES, cookie);
-  failed += await seedAll(baseUrl, "Entries", "/logbook/api/admin/logbook", ENTRIES, cookie);
+  failed += await seedAll(baseUrl, "Entries", "/logbook/api/admin/logbook", entries, cookie);
   return failed;
 }
 
