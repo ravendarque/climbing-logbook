@@ -3,16 +3,9 @@ variable "cloudflare_account_id" {
   type        = string
 }
 
-variable "zone_name" {
-  description = "Zone the logbook is served from."
-  type        = string
-  default     = "ravendarque.com"
-}
-
-# #295 -- the dedicated domain the app is moving to. Kept as a separate
-# variable rather than repointing `zone_name`, since both zones are live
-# at once during the transition (ravendarque.com/logbook keeps working
-# until its own removal-vs-redirect decision is made, separately).
+# #534 -- `zone_name` (ravendarque.com) used to back infra/redirects.tf's
+# now-removed retirement redirect; ravendarque.com isn't otherwise in
+# this repo's scope, so there's nothing left to parameterize it for.
 variable "app_zone_name" {
   description = "Dedicated domain climbing-logbook is moving to (#295) -- apex for marketing/register/login, my.<this> for the app itself and #113's public per-user pages."
   type        = string
