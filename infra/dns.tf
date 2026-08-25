@@ -33,3 +33,17 @@ resource "cloudflare_dns_record" "app_my_subdomain" {
   proxied = true
   comment = "Placeholder for the climbing-logbook Worker Route (#295) -- traffic never actually reaches this IP."
 }
+
+# #543 -- beta.climbinglogbook.com (ADR-0020). Same placeholder-record
+# pattern as app_my_subdomain above: env.beta's own Workers Route
+# (wrangler.jsonc) is what actually serves traffic once this hostname
+# resolves, not this record's content.
+resource "cloudflare_dns_record" "app_beta_subdomain" {
+  zone_id = data.cloudflare_zone.app.id
+  name    = "beta.${var.app_zone_name}"
+  type    = "A"
+  content = "192.0.2.1"
+  ttl     = 1
+  proxied = true
+  comment = "Placeholder for the climbing-logbook beta Worker Route (#443) -- traffic never actually reaches this IP."
+}
