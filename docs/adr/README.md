@@ -57,3 +57,4 @@ GitHub, the same treatment every other doc in this repo already gets.
 | [0017](0017-connectivity-first-scoped-to-owner-write-path.md) | Connectivity-first resilience is scoped to the owner's write-path, not every page | Accepted |
 | [0018](0018-server-side-aggregation-for-derived-views.md) | Server-side aggregation for derived views, no client-side fallback | Accepted |
 | [0019](0019-local-first-sync-chunked-initial-load-and-delta.md) | Local-first sync for /log: chunked initial load + delta sync, not click-driven pagination | Accepted |
+| [0020](0020-beta-environment-shared-data-tag-promotion.md) | Beta environment: shared production data, tag-cumulative promotion, opt-in gate | Accepted |
