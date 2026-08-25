@@ -58,25 +58,29 @@ The only thing *not* managed here, by design: the logbook's actual data
       every other credential in this file.
 
 6. **DNSSEC DS record at the domain registrar** (#527) — `infra/
-   tls-hardening.tf` enables DNSSEC on the zone, but Cloudflare/Terraform
-   have no API into a third-party registrar, so the resulting DS record
-   has to be added there by hand, once, after the first apply that
-   creates `cloudflare_zone_dnssec.app`:
-   1. Get the record: `cd infra && terraform output -raw
-      app_dnssec_ds_record` (needs the same credentials as "Local runs"
-      below).
-   2. Add it at whichever registrar `climbinglogbook.com` is registered
-      through — look for a "DNSSEC" or "DS records" section under that
-      domain's DNS/nameserver settings. The output is a full DS record
-      line (`climbinglogbook.com. 3600 IN DS <key tag> <algorithm>
-      <digest type> <digest>`) — most registrars want the four numeric/
-      hex fields entered separately (key tag, algorithm, digest type,
-      digest) rather than the raw line pasted in one box.
-   3. DNSSEC shows as `status: pending` at Cloudflare until the
-      registrar's own DNS has propagated the DS record (can take a few
-      hours) — it flips to `active` on its own, no further action
-      needed. `terraform plan` will keep showing this as a no-op
-      pending→active update until then.
+   tls-hardening.tf` enables DNSSEC on the zone
+   (`cloudflare_zone_dnssec.app`). It shows as `status: pending` at
+   Cloudflare until the parent TLD zone has the matching DS record, then
+   flips to `active` on its own.
+   - **`climbinglogbook.com` is registered through Cloudflare itself**
+     (Cloudflare Registrar, not just Cloudflare DNS) — confirmed with
+     Raven, 2026-08-25. When Cloudflare is both registrar and DNS
+     provider, it auto-publishes the DS record to the parent zone once
+     DNSSEC is enabled zone-side — **no manual step needed** in that
+     case, this Terraform apply is the whole story.
+   - The manual step below only applies if the domain is ever moved to
+     a third-party registrar (nameservers delegated to Cloudflare, but
+     registration held elsewhere) — Cloudflare/Terraform have no API
+     into a registrar they don't control:
+     1. Get the record: `cd infra && terraform output -raw
+        app_dnssec_ds_record` (needs the same credentials as "Local
+        runs" below).
+     2. Add it at that registrar's "DNSSEC"/"DS records" section under
+        the domain's DNS/nameserver settings. The output is a full DS
+        record line (`climbinglogbook.com. 3600 IN DS <key tag>
+        <algorithm> <digest type> <digest>`) — most registrars want the
+        four fields entered separately, not the raw line pasted in one
+        box.
 
 ## Local runs
 
