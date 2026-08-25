@@ -66,6 +66,23 @@ objective, can't be forgotten, and matches the reasoning that a
 schema/infra change going straight to production is a necessary
 consequence of the change itself, not a per-release judgment call.
 
+**This makes one discipline non-negotiable: a PR must not mix schema/infra
+changes with app-code changes.** A PR that touches both gets classified as
+a "direct" release (since it touches `migrations/**`/`infra/**`), which
+ships its app-code changes straight to production too, silently bypassing
+beta for that code and defeating the whole point of this environment.
+Schema/infra work and app-code work must land as separate PRs, even when
+related — e.g. "add the `beta_opt_in` column" and "use it to gate the
+login redirect" are two PRs, not one.
+
+The corollary compounds this further: because a schema/infra change
+deploys immediately to whatever code is *currently* running in **both**
+environments, it must be backward-compatible with beta's currently-deployed
+code as well as production's — not just production's. Beta may already be
+running app-code changes not yet promoted; a migration that isn't
+compatible with both simultaneously-running versions at once can break
+either one.
+
 ### Promotion: pick a tag, deploy it to production
 
 A new `workflow_dispatch`-triggered workflow takes a tag input (default:
@@ -149,6 +166,14 @@ on `beta.x`.
   together on that path. Accepted risk, per the same reasoning that
   motivated the auto-detected split in the first place — this doesn't
   change how carefully those PRs need to be tested before merge.
+- **PR discipline is now load-bearing, not just tidy.** Schema/infra
+  changes and app-code changes must land as separate PRs (see the
+  "Deploy classification" section above) — mixing them in one PR silently
+  routes app-code changes around beta. And because a schema/infra change
+  applies immediately to whatever's live in both environments, every such
+  change must stay backward-compatible with beta's currently-deployed code
+  as well as production's, not just production's — beta may be running
+  app-code changes not yet promoted at the moment a migration lands.
 - This ADR doesn't resolve exact `wrangler.jsonc`/Terraform diffs, the
   modal's visual design, or workflow YAML — those are implementation,
   scoped as separate issues under `#443`.
