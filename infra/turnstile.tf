@@ -6,9 +6,9 @@
 resource "cloudflare_turnstile_widget" "register" {
   account_id = var.cloudflare_account_id
   name       = "climbing-logbook-register"
-  # #295 -- /register moved to the apex of the new domain, so this now
-  # points at var.app_zone_name (climbinglogbook.com), not var.zone_name
-  # (ravendarque.com, where the form no longer lives at all).
+  # #295 -- /register moved to the apex of the new domain
+  # (climbinglogbook.com), not ravendarque.com, where the form no longer
+  # lives at all.
   domains = [var.app_zone_name]
   mode    = "managed"
 }
