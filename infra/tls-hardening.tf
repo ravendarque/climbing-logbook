@@ -17,14 +17,17 @@ resource "cloudflare_zone_setting" "app_min_tls_version" {
   value      = "1.2"
 }
 
-# `full_strict` over `full` -- no real origin exists today (192.0.2.1
-# placeholder, dns.tf), so this is low-urgency in practice, but should
-# already be correct in case a real origin is ever added later.
-resource "cloudflare_zone_setting" "app_ssl_mode" {
-  zone_id    = data.cloudflare_zone.app.id
-  setting_id = "ssl"
-  value      = "full_strict"
-}
+# #537 -- `full_strict` deliberately NOT managed here. First apply
+# (2026-08-25) 400'd: `full_strict` requires a valid, unexpired TLS
+# certificate actually installed at the origin (public CA or Cloudflare
+# Origin CA) -- confirmed against Cloudflare's own docs. 192.0.2.1
+# (dns.tf) is a non-routable placeholder with no server, let alone a
+# cert, behind it -- every request is intercepted by the Worker Route
+# before Cloudflare would ever reach origin, so there's nothing to
+# validate against. Not just low-urgency, genuinely unsettable given
+# this app's architecture -- same "N/A, no real origin" treatment the
+# original audit already gave Authenticated Origin Pulls. Revisit only
+# if this app ever gets a real origin server with its own TLS cert.
 
 # HSTS -- the app is already all-HTTPS with Always Use HTTPS on, so this
 # is low-risk to enable. include_subdomains covers `my.` too.
