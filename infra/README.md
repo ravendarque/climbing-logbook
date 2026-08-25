@@ -1,9 +1,10 @@
 # Infrastructure
 
 Terraform-managed: the Workers KV namespace, the D1 database, DNS, the
-redirect ruleset, and the Turnstile widget. Everything here is
-declarative, repeatable, and idempotent — re-running `terraform apply`
-with no changes is always a no-op.
+Turnstile widget, and (#527/#528/#529) zone-level TLS/DNS settings,
+Cache Rules, and WAF custom rules. Everything here is declarative,
+repeatable, and idempotent — re-running `terraform apply` with no
+changes is always a no-op.
 
 The only thing *not* managed here, by design: the logbook's actual data
 (KV/D1 values).
@@ -55,6 +56,27 @@ The only thing *not* managed here, by design: the logbook's actual data
       and variables → Actions): `SYNTHETIC_USER_EMAIL`,
       `SYNTHETIC_USER_PASSWORD` — same "set it yourself" reasoning as
       every other credential in this file.
+
+6. **DNSSEC DS record at the domain registrar** (#527) — `infra/
+   tls-hardening.tf` enables DNSSEC on the zone, but Cloudflare/Terraform
+   have no API into a third-party registrar, so the resulting DS record
+   has to be added there by hand, once, after the first apply that
+   creates `cloudflare_zone_dnssec.app`:
+   1. Get the record: `cd infra && terraform output -raw
+      app_dnssec_ds_record` (needs the same credentials as "Local runs"
+      below).
+   2. Add it at whichever registrar `climbinglogbook.com` is registered
+      through — look for a "DNSSEC" or "DS records" section under that
+      domain's DNS/nameserver settings. The output is a full DS record
+      line (`climbinglogbook.com. 3600 IN DS <key tag> <algorithm>
+      <digest type> <digest>`) — most registrars want the four numeric/
+      hex fields entered separately (key tag, algorithm, digest type,
+      digest) rather than the raw line pasted in one box.
+   3. DNSSEC shows as `status: pending` at Cloudflare until the
+      registrar's own DNS has propagated the DS record (can take a few
+      hours) — it flips to `active` on its own, no further action
+      needed. `terraform plan` will keep showing this as a no-op
+      pending→active update until then.
 
 ## Local runs
 
