@@ -4,6 +4,15 @@ name: Deploy
 # (created by release.yml when a labelled PR merges) is what ships. A
 # release: none merge just rides along un-deployed until the next tag. See
 # docs/versioning.md.
+#
+# #443/ADR-0020 (docs/adr/0020-beta-environment-shared-data-tag-promotion.md)
+# split this into two targets. Every tag deploys to beta unconditionally.
+# Production only gets a tag automatically if its diff since the previous
+# tag touches migrations/** or infra/** -- schema/infra changes are trusted
+# to be tested before merge and ship straight through, everything else
+# waits for a deliberate promote.yml run. This is what makes "keep
+# schema/infra changes in their own PR, never mixed with app code" load-
+# bearing, not just tidy -- see that ADR's own note on this.
 on:
   push:
     tags: ['v*']
@@ -14,6 +23,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Full history + tags needed to diff this tag against the
+          # previous one below -- the default shallow checkout only has
+          # the single commit the tag points at.
+          fetch-depth: 0
       - uses: ./.github/actions/setup-node-pnpm
       - run: pnpm run tailwind:build
       # #391 fixed this exact gap for PR previews (preview.yml) but never
@@ -36,18 +50,55 @@ jobs:
       # gap `wrangler dev` has locally, and `versions upload` had for
       # preview.yml until #323) -- found the hard way: production's D1
       # database sat with zero migrations applied across several real
-      # deploys before this step existed. Must run before the deploy step
-      # below, not after -- new code landing before its schema exists
-      # would 500 on first request that touches the new tables.
-      - name: Apply D1 migrations to production
+      # deploys before this step existed. Must run before either deploy
+      # step below, not after -- new code landing before its schema
+      # exists would 500 on first request that touches the new tables.
+      # Beta and production share the exact same D1 database (ADR-0020),
+      # so this runs once, not once per environment.
+      - name: Apply D1 migrations
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: pnpm exec wrangler d1 migrations apply climbing-logbook --remote
-      # --env="" is explicit, not decorative: wrangler.jsonc now defines a
-      # second environment (env.preview, #222) alongside the top-level one,
-      # and wrangler warns/refuses to guess which one you meant once more
-      # than one exists. This pins production deploys to the top-level
-      # config regardless of what other environments get added later.
-      - run: pnpm exec wrangler deploy --env=""
+      # Only meaningful for the tag-push trigger -- workflow_dispatch is a
+      # deliberate manual override (a corrective release, or bootstrapping
+      # a version by hand, per release.yml's own comment on why it exists),
+      # not part of the automatic classification flow, so it keeps today's
+      # exact behavior (production only, unconditionally) instead of
+      # guessing a "previous tag" against whatever ref triggered it.
+      - name: Determine deploy classification
+        id: classify
+        if: github.event_name == 'push'
+        run: |
+          CURRENT_TAG="${{ github.ref_name }}"
+          PREV_TAG=$(git tag -l 'v*' --sort=-v:refname | grep -A1 "^${CURRENT_TAG}$" | tail -1)
+          if [ -z "$PREV_TAG" ] || [ "$PREV_TAG" = "$CURRENT_TAG" ]; then
+            echo "No previous tag found -- treating as direct (deploys to both beta and production)."
+            echo "direct=true" >> "$GITHUB_OUTPUT"
+          else
+            CHANGED=$(git diff --name-only "$PREV_TAG" "$CURRENT_TAG" -- migrations/ infra/)
+            if [ -n "$CHANGED" ]; then
+              echo "Diff since $PREV_TAG touches migrations/ or infra/ -- direct (both beta and production):"
+              echo "$CHANGED"
+              echo "direct=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "Diff since $PREV_TAG touches neither migrations/ nor infra/ -- beta only."
+              echo "direct=false" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+      # Every tag deploys to beta -- production either gets it too (direct
+      # path, above) or waits for a deliberate promote.yml run.
+      - name: Deploy to beta
+        if: github.event_name == 'push'
+        run: pnpm exec wrangler deploy --env=beta
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      # --env="" is explicit, not decorative: wrangler.jsonc defines more
+      # than one named environment (env.preview, env.beta), and wrangler
+      # warns/refuses to guess which one you meant once more than one
+      # exists. This pins production deploys to the top-level config
+      # regardless of what other environments get added later.
+      - name: Deploy to production
+        if: github.event_name == 'workflow_dispatch' || steps.classify.outputs.direct == 'true'
+        run: pnpm exec wrangler deploy --env=""
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
