@@ -6,11 +6,8 @@
 // same-origin requests, unlike the Node-side scripts in
 // scripts/lib/dev-session.mjs that have to set it by hand.
 //
-// Cross-origin in production (#295 -- this page moved to the apex,
-// climbinglogbook.com) but same-origin everywhere else (local dev, PR
-// previews) -- those don't have a real my.<domain> subdomain to send a
-// browser to.
-const APP_ORIGIN = window.location.hostname === "climbinglogbook.com" ? "https://my.climbinglogbook.com" : "";
+import { resolveAppOrigin } from "./resolve-app-origin.js";
+
 const RESET_PASSWORD_URL = `${window.location.origin}/reset-password/`;
 
 const form = document.getElementById("login-form");
@@ -47,7 +44,26 @@ form.addEventListener("submit", async (event) => {
       // had built yet at the time; landing an owner on their own
       // read-only view right after logging in is exactly the friction
       // #352 removes now that /log exists.
-      window.location.href = `${APP_ORIGIN}/${data.user.username}/log`;
+      //
+      // #443/#547, ADR-0020 -- an opted-in user lands on beta.x instead,
+      // a one-time check right here at the login-landing moment, not a
+      // per-request check added to /log itself. The sign-in response
+      // above only carries Better Auth's own user/session fields, not
+      // this app's separate settings table, so this is a second request
+      // -- the session cookie sign-in just set is already attached
+      // automatically (same-origin fetch, right after the response that
+      // set it). A failed/slow settings read falls back to my.x, the
+      // same safe default a never-decided or opted-out user gets.
+      let betaOptIn = null;
+      try {
+        const settingsRes = await fetch("/logbook/api/settings");
+        betaOptIn = (await settingsRes.json()).betaOptIn;
+      } catch {
+        // Network hiccup reading settings -- resolveAppOrigin's own null
+        // handling (never-decided) falls back to my.x, same safe default.
+      }
+      const appOrigin = resolveAppOrigin(window.location.hostname, betaOptIn);
+      window.location.href = `${appOrigin}/${data.user.username}/log`;
       return;
     }
 
