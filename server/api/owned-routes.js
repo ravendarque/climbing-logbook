@@ -14,14 +14,14 @@ async function resolveUserIdByUsername(env, username) {
   return user?.id ?? null;
 }
 
-// Mirrors client/admin-auth.js's LOGIN_PAGE_URL / public/logbook/app.js's
-// LOGIN_PAGE_URL exactly -- /login lives at the apex (climbinglogbook.com)
-// in production, cross-origin from my.climbinglogbook.com (and from
-// ravendarque.com/logbook, still live), but local dev/PR previews only
-// ever have one origin and never served a real climbinglogbook.com, so
-// they fall back to a same-origin relative path.
+// Mirrors client/admin-auth.js's LOGIN_PAGE_URL exactly -- /login lives at
+// the apex (climbinglogbook.com) in production, cross-origin from
+// my.climbinglogbook.com and beta.climbinglogbook.com (#443/#548) alike
+// (and from ravendarque.com/logbook, still live), but local dev/PR
+// previews only ever have one origin and never served a real
+// climbinglogbook.com, so they fall back to a same-origin relative path.
 function loginUrl(hostname) {
-  return ["my.climbinglogbook.com", "ravendarque.com"].includes(hostname)
+  return ["my.climbinglogbook.com", "beta.climbinglogbook.com", "ravendarque.com"].includes(hostname)
     ? "https://climbinglogbook.com/login/"
     : "/login/";
 }
@@ -58,18 +58,23 @@ const SHELL_PATHS = {
   "account/import": "/account/import/index.html",
 };
 
+// Shared by both handleOwnedRoute (my.x) and handleBetaGatedRoute (beta.x,
+// #443/#548) -- the exact same "is this the real owner's own session"
+// check either way. Returns the resolved user id, or null covering "not
+// logged in", "no such username", and "logged in as someone else" all
+// alike -- deliberately indistinguishable to the caller too, same
+// anti-enumeration reasoning as public-profile.js's resolvePublicUser.
+async function resolveOwnedSession(request, env, username) {
+  const sessionUserId = await resolveUserId(request, env);
+  const targetUserId = sessionUserId && await resolveUserIdByUsername(env, username);
+  return targetUserId === sessionUserId ? sessionUserId : null;
+}
+
 export async function handleOwnedRoute(request, env, username, page) {
   const { hostname } = new URL(request.url);
 
-  const sessionUserId = await resolveUserId(request, env);
-  const targetUserId = sessionUserId && await resolveUserIdByUsername(env, username);
-
-  // Same generic redirect regardless of "not logged in", "no such
-  // username", or "logged in as someone else" -- deliberately
-  // indistinguishable, same anti-enumeration reasoning as
-  // public-profile.js's resolvePublicUser (a distinguishable response
-  // would let a visitor probe which usernames are real accounts).
-  if (!sessionUserId || targetUserId !== sessionUserId) {
+  const userId = await resolveOwnedSession(request, env, username);
+  if (!userId) {
     // Response.redirect() requires an absolute URL (throws otherwise) --
     // loginUrl()'s local-dev fallback is deliberately relative, so it
     // needs request.url as a resolution base. The apex branch is already
@@ -81,5 +86,45 @@ export async function handleOwnedRoute(request, env, username, page) {
   // only ever passes "log"/"map"/"performance" through as `page`, and all
   // three have real shells now (#348's #347 placeholder branch is gone,
   // its job done).
+  return env.ASSETS.fetch(new Request(new URL(SHELL_PATHS[page], request.url)));
+}
+
+// #443/#548, ADR-0020 -- beta.<domain>'s equivalent of handleOwnedRoute
+// above, additionally gated by settings.beta_opt_in (tri-state,
+// migrations/0006). A real three-way branch, not a special case bolted
+// onto handleOwnedRoute itself -- the two share only the session/
+// ownership check, since what happens next genuinely differs.
+export async function handleBetaGatedRoute(request, env, username, page) {
+  const { hostname } = new URL(request.url);
+
+  const userId = await resolveOwnedSession(request, env, username);
+  if (!userId) {
+    return Response.redirect(new URL(loginUrl(hostname), request.url), 302);
+  }
+
+  const row = await env.LOGBOOK_DB.prepare(`SELECT beta_opt_in FROM settings WHERE user_id = ?`).bind(userId).first();
+  const betaOptIn = row && row.beta_opt_in !== null ? !!row.beta_opt_in : null;
+
+  if (betaOptIn === false) {
+    // Opted out -- silently redirect to the equivalent my.x path. No
+    // modal, no repeat nagging for a user who's already declined once.
+    const myXUrl = new URL(request.url);
+    myXUrl.hostname = `my.${hostname.slice("beta.".length)}`;
+    return Response.redirect(myXUrl, 302);
+  }
+
+  if (betaOptIn === null) {
+    // Never decided -- the gate shell (header + the shared <beta-opt-in-
+    // modal>, client/beta-gate-main.js) instead of the real page. Fetched
+    // for *this exact request URL* (not a redirect to a different path)
+    // so the browser's own address bar -- and therefore
+    // location.pathname, which that page's own boot() reads -- stays
+    // exactly the path the visitor actually asked for; that's what lets
+    // "Yes" reload in place and land on the real page next time, with no
+    // returnTo query param needed at all.
+    return env.ASSETS.fetch(new Request(new URL("/beta-gate/index.html", request.url)));
+  }
+
+  // Opted in -- served exactly like my.x would serve it.
   return env.ASSETS.fetch(new Request(new URL(SHELL_PATHS[page], request.url)));
 }

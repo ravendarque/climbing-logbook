@@ -89,6 +89,14 @@ const ALLOWED_HOSTS = [
   "localhost:*",
   "my.localhost",
   "my.localhost:*",
+  // #443/#548 -- beta.localhost/beta.localhost:* alongside my.localhost's
+  // own pair above, so beta.x's owned-route gate is actually reachable in
+  // local dev via vite.config.js's #442 mechanism (confirmed: without
+  // these, Vite's own dev server -- which reads its allowedHosts from
+  // this exact list -- rejects the request outright with "Host ... is
+  // not in the allowed hosts list" before it ever reaches this Worker).
+  "beta.localhost",
+  "beta.localhost:*",
   "example.com",
 ];
 

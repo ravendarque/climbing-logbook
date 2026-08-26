@@ -9,6 +9,19 @@ import { env, exports } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, resetAuthTables } from "./support.js";
 
+// #443/#548, ADR-0020 -- sets the tri-state beta_opt_in column directly
+// (not via the PATCH endpoint) so each test can set up exactly the state
+// it wants to assert against, independent of the settings API's own
+// coverage (test/handlers.test.js). Upsert, same shape as server/api/
+// settings.js's own handlePatchSettings -- a user's settings row may not
+// exist yet (only created on their first PATCH in real usage).
+async function setBetaOptIn(userId, value) {
+  await env.LOGBOOK_DB
+    .prepare(`INSERT INTO settings (user_id, beta_opt_in) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET beta_opt_in = excluded.beta_opt_in`)
+    .bind(userId, value === null ? null : value ? 1 : 0)
+    .run();
+}
+
 beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
 afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
 
@@ -135,5 +148,68 @@ describe("owned route authorization", () => {
     const res = await exports.default.fetch("https://my.localhost/someone/log", { redirect: "manual" });
     expect(res.status).toBe(302);
     expect(res.headers.get("Location")).toBe("https://my.localhost/login/");
+  });
+});
+
+// #443/#548, ADR-0020 -- beta.<domain>'s equivalent of the suite above,
+// additionally gated by settings.beta_opt_in. Session/ownership coverage
+// (no session, wrong user, unknown username) is deliberately not
+// re-proven here -- handleBetaGatedRoute shares resolveOwnedSession()
+// with handleOwnedRoute verbatim, already covered by the suite above.
+describe("beta-gated route authorization", () => {
+  it("opted in -- serves the real page shell, same as my.x would", async () => {
+    const { cookie, userId } = await createAuthedSession({ username: "betainuser", hostname: "climbinglogbook.com" });
+    await setBetaOptIn(userId, true);
+    const res = await fetchOwnedRoute("betainuser", "log", { hostname: "beta.climbinglogbook.com", cookie });
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain("<climbing-entries-table");
+    expect(html).toContain('src="/logbook/log-app.js"');
+  });
+
+  it("opted out -- redirects silently to the equivalent my.x path, not the gate shell", async () => {
+    const { cookie, userId } = await createAuthedSession({ username: "betaoutuser", hostname: "climbinglogbook.com" });
+    await setBetaOptIn(userId, false);
+    const res = await fetchOwnedRoute("betaoutuser", "map", { hostname: "beta.climbinglogbook.com", cookie });
+    expect(res.status).toBe(302);
+    expect(res.headers.get("Location")).toBe("https://my.climbinglogbook.com/betaoutuser/map");
+  });
+
+  it("never decided (no settings row at all) -- serves the gate shell, not the real page", async () => {
+    const { cookie } = await createAuthedSession({ username: "betaneveruser", hostname: "climbinglogbook.com" });
+    const res = await fetchOwnedRoute("betaneveruser", "performance", { hostname: "beta.climbinglogbook.com", cookie });
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain("<beta-opt-in-modal");
+    // The real page's own shell content must NOT be present -- proves
+    // this is genuinely a different response, not the real shell with
+    // extra markup tacked on.
+    expect(html).not.toContain("<climbing-grade-pyramid");
+  });
+
+  it("never decided (settings row exists, beta_opt_in explicitly NULL) -- same gate shell", async () => {
+    const { cookie, userId } = await createAuthedSession({ username: "betanullrow", hostname: "climbinglogbook.com" });
+    await setBetaOptIn(userId, null);
+    const res = await fetchOwnedRoute("betanullrow", "log", { hostname: "beta.climbinglogbook.com", cookie });
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain("<beta-opt-in-modal");
+  });
+
+  it("redirects to login with no session at all, same as my.x", async () => {
+    const res = await fetchOwnedRoute("someone", "log", { hostname: "beta.climbinglogbook.com" });
+    expect(res.status).toBe(302);
+    expect(res.headers.get("Location")).toBe("https://climbinglogbook.com/login/");
+  });
+
+  it("falls through (404) for a page shape that isn't a real owned route", async () => {
+    const { cookie, userId } = await createAuthedSession({ username: "betaunknownpage", hostname: "climbinglogbook.com" });
+    await setBetaOptIn(userId, true);
+    const res = await fetchOwnedRoute("betaunknownpage", "settings", { hostname: "beta.climbinglogbook.com", cookie });
+    expect(res.status).toBe(404);
+  });
+
+  it("no public-profile equivalent on beta.x -- a bare :username path 404s regardless of session", async () => {
+    const res = await exports.default.fetch("https://beta.climbinglogbook.com/anyone", { redirect: "manual" });
+    expect(res.status).toBe(404);
   });
 });

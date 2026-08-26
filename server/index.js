@@ -7,7 +7,7 @@ import { handleGetPyramid } from "./api/performance.js";
 import { handleGetMapCounts } from "./api/map.js";
 import { handlePublicProfile } from "./api/public-profile.js";
 import { handlePublicResource } from "./api/public-data.js";
-import { handleOwnedRoute } from "./api/owned-routes.js";
+import { handleOwnedRoute, handleBetaGatedRoute } from "./api/owned-routes.js";
 import { createAuth } from "./lib/auth.js";
 import { handleBetaGatedSignUp } from "./lib/beta-gate.js";
 import { resolveUserId } from "./lib/session.js";
@@ -89,6 +89,21 @@ export default {
 
       const match = pathname.match(/^\/([^/]+)\/?$/);
       if (match) return handlePublicProfile(request, env, match[1]);
+    }
+
+    // #443/#548, ADR-0020 -- beta.<domain>'s owned routes, same shape as
+    // my.<domain> above, gated additionally by the visitor's own
+    // settings.beta_opt_in (see handleBetaGatedRoute's own comment for the
+    // three-way branch). No public-profile equivalent here -- #113's
+    // read-only :username page is always served from my.x regardless of
+    // opt-in status; a pre-release preview has no meaning for a page
+    // that's just read-only data display, so nothing to gate there.
+    if (hostname.startsWith("beta.") && method === "GET") {
+      const ownedRouteMatch = pathname.match(/^\/([^/]+)\/(log|map|performance|sync|account(?:\/edit|\/import)?)\/?$/);
+      if (ownedRouteMatch) {
+        const [, username, page] = ownedRouteMatch;
+        return handleBetaGatedRoute(request, env, username, page);
+      }
     }
 
     // Better Auth (#20) -- the only prefix-matched route in this router;
