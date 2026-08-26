@@ -133,6 +133,36 @@
       "d1_databases": [
         { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook-preview", "database_id": "845753a5-abfc-4d74-995b-94d802b4964e", "migrations_dir": "migrations" }
       ]
+    },
+    // Beta environment (#443, ADR-0020) -- a real, opt-in-gated deploy
+    // target at beta.climbinglogbook.com, distinct from env.preview's
+    // disposable per-PR previews above. Deliberately shares production's
+    // own LOGBOOK_DB id/binding rather than getting one of its own --
+    // ADR-0020's whole point is that beta and production see the exact
+    // same data, so there's no "beta's schema is ahead of production's"
+    // class of bug to design around, only which Worker code is deployed
+    // differs between the two. infra.yml's D1-id sync step only rewrites
+    // the FIRST "binding": "LOGBOOK_DB" match in this file (a non-global
+    // regex, deliberately -- see that workflow's own comment), which is
+    // the top-level production block above, not this one -- if
+    // production's D1 database is ever recreated (its id changes), this
+    // id needs updating by hand too.
+    "beta": {
+      "routes": [
+        { "pattern": "beta.climbinglogbook.com/*", "zone_name": "climbinglogbook.com" }
+      ],
+      // Same BETA_GATE_ENABLED value as the top-level `vars` -- not
+      // inherited by named environments (see the top-level block's own
+      // comment for how that was discovered). TURNSTILE_SECRET_KEY is
+      // NOT duplicated here (unlike env.preview) -- beta serves real
+      // users with real data, so it needs the real production secret via
+      // `wrangler secret put --env=beta`, not the public test key.
+      "vars": {
+        "BETA_GATE_ENABLED": "true"
+      },
+      "d1_databases": [
+        { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook", "database_id": "8f094438-520c-4a67-a685-aee3db6198ad", "migrations_dir": "migrations" }
+      ]
     }
   }
 }

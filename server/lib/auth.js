@@ -59,6 +59,7 @@ const TRUSTED_ORIGINS = [
   "https://ravendarque.com",
   "https://climbinglogbook.com",
   "https://my.climbinglogbook.com",
+  "https://beta.climbinglogbook.com",
   "http://localhost:*",
   "http://my.localhost:*",
   "http://climbinglogbook.com",
@@ -82,6 +83,7 @@ const TRUSTED_ORIGINS = [
 const ALLOWED_HOSTS = [
   "climbinglogbook.com",
   "my.climbinglogbook.com",
+  "beta.climbinglogbook.com",
   "*.ravendarque.workers.dev",
   "localhost",
   "localhost:*",
