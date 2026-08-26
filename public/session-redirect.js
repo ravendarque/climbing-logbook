@@ -14,13 +14,28 @@
 // already configured (server/lib/auth.js's crossSubDomainCookies), so this
 // same-origin get-session call sees a session established on either
 // hostname regardless of which one this script runs on.
+import { resolveAppOrigin } from "./login/resolve-app-origin.js";
+
 export async function redirectIfLoggedIn(contentEl) {
-  const APP_ORIGIN = location.hostname === "climbinglogbook.com" ? "https://my.climbinglogbook.com" : "";
   try {
     const res = await fetch("/logbook/api/auth/get-session");
     const data = await res.json();
     if (data?.user) {
-      location.href = `${APP_ORIGIN}/${data.user.username}/log`;
+      // #443/#547/#559, ADR-0020 -- same betaOptIn-aware target
+      // login.js's own post-sign-in redirect already resolves via
+      // resolveAppOrigin, reused here rather than re-deriving my.x/beta.x
+      // by hand a third time. A failed/slow settings read falls back to
+      // my.x, the same safe default resolveAppOrigin's own null handling
+      // gives a never-decided or opted-out user.
+      let betaOptIn = null;
+      try {
+        const settingsRes = await fetch("/logbook/api/settings");
+        betaOptIn = (await settingsRes.json()).betaOptIn;
+      } catch {
+        // Network hiccup reading settings -- fall back to my.x below.
+      }
+      const appOrigin = resolveAppOrigin(location.hostname, betaOptIn);
+      location.href = `${appOrigin}/${data.user.username}/log`;
       return;
     }
   } catch {
