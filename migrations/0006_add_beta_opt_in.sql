@@ -1,0 +1,18 @@
+-- Tri-state beta opt-in flag for the beta.climbinglogbook.com gate
+-- (#443/#545, ADR-0020 -- docs/adr/0020-beta-environment-shared-data-tag-
+-- promotion.md). Schema only -- no app code reads or writes this column
+-- yet; that lands in #546/#547/#548. Deliberately kept out of this
+-- migration per ADR-0020's own PR-discipline note: mixing schema and
+-- app-code changes in one PR gets classified as "direct" and silently
+-- ships the app code straight to production, bypassing beta entirely.
+--
+-- Genuinely tri-state, not the NOT NULL DEFAULT 0/1 pattern this table's
+-- other flag columns (athlete_mode, logbook_public) use -- "never
+-- decided" and "explicitly opted out" need different treatment at the
+-- beta.x gate (#548: a never-decided user sees the opt-in modal, an
+-- opted-out user is silently redirected without being asked again), and
+-- a NOT NULL boolean can't represent both states. NULL = never decided,
+-- 0 = opted out, 1 = opted in. No DEFAULT clause needed for that --
+-- SQLite/D1 columns are nullable by default, and this is exactly the
+-- default we want.
+ALTER TABLE settings ADD COLUMN beta_opt_in BOOLEAN CHECK (beta_opt_in IN (0,1));
