@@ -1,0 +1,56 @@
+name: Promote to production
+
+# The deliberate second half of the beta/production split (#443/ADR-0020,
+# see deploy.yml's own comment for the first half). Deploys a chosen,
+# already-tagged commit to production only -- beta already has it, this
+# doesn't touch beta. No separate "which releases to bundle" mechanism is
+# needed: git tags in this repo are cumulative snapshots of `main`, not
+# deltas, so promoting the latest tag already includes everything beta has
+# accumulated since the last promotion.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to promote (defaults to the latest tag if left blank)"
+        required: false
+        type: string
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Full history + tags: resolving "latest tag" and checking out
+          # an arbitrary past tag both need more than the default shallow
+          # single-commit checkout.
+          fetch-depth: 0
+      - name: Resolve tag to promote
+        id: resolve
+        run: |
+          TAG="${{ inputs.tag }}"
+          if [ -z "$TAG" ]; then
+            TAG=$(git tag -l 'v*' --sort=-v:refname | head -1)
+            echo "No tag input given -- resolved to latest: $TAG"
+          fi
+          if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "::error::Tag '$TAG' does not exist in this repository."
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+      - run: git checkout "${{ steps.resolve.outputs.tag }}"
+      - uses: ./.github/actions/setup-node-pnpm
+      - run: pnpm run tailwind:build
+      - run: pnpm run pages:build
+      # Idempotent -- safe to run even if this tag's migrations (if any)
+      # already applied via deploy.yml's own direct-path deploy. Beta and
+      # production share the same D1 database (ADR-0020), so there's
+      # nothing environment-specific about this step.
+      - name: Apply D1 migrations
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm exec wrangler d1 migrations apply climbing-logbook --remote
+      - name: Deploy to production
+        run: pnpm exec wrangler deploy --env=""
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
