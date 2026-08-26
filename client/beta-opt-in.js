@@ -14,10 +14,17 @@ import { createModalHelpers } from "./modal-utils.js";
 // adminAuth: the same factory instance client/admin-auth.js's caller
 // already created (getBetaOptIn()/setBetaOptIn()) -- not re-fetched or
 // duplicated here.
-// onDecided: optional callback fired after a successful submit, so the
-// caller's own status display (e.g. account-main.js's settings card) can
-// refresh without this module needing to know that UI exists.
-export function createBetaOptIn({ adminAuth, onDecided }) {
+// onDecided(choseIn): optional callback fired after a successful submit
+// with which choice was made, so the caller's own post-decision behavior
+// can differ by outcome -- account-main.js's settings card just wants to
+// refresh a status line (ignores the argument); #548's beta.x gate page
+// needs to reload in place on "in" (so the server-side gate re-evaluates
+// and serves the real page) vs. navigate to the my.x equivalent on "out".
+// dismissible: false hides the close/cancel affordances entirely (#548's
+// gate page use case) -- a never-decided visitor there is meant to make
+// a real choice, not back out of one with nothing behind the modal to
+// return to. Defaults to true, the account-settings entry point's shape.
+export function createBetaOptIn({ adminAuth, onDecided, dismissible = true }) {
   const overlay = document.getElementById("beta-opt-in-overlay");
   const form = document.getElementById("beta-opt-in-form");
   const closeBtn = document.getElementById("beta-opt-in-close");
@@ -26,6 +33,14 @@ export function createBetaOptIn({ adminAuth, onDecided }) {
   const errorEl = document.getElementById("beta-opt-in-error");
 
   const { openModal, closeModal } = createModalHelpers(["beta-opt-in-overlay"]);
+
+  if (!dismissible) {
+    closeBtn.hidden = true;
+    cancelBtn.hidden = true;
+  } else {
+    closeBtn.addEventListener("click", () => closeModal(overlay));
+    cancelBtn.addEventListener("click", () => closeModal(overlay));
+  }
 
   function open() {
     errorEl.hidden = true;
@@ -40,9 +55,6 @@ export function createBetaOptIn({ adminAuth, onDecided }) {
     openModal(overlay);
   }
 
-  closeBtn.addEventListener("click", () => closeModal(overlay));
-  cancelBtn.addEventListener("click", () => closeModal(overlay));
-
   form.addEventListener("submit", async e => {
     e.preventDefault();
     const choice = form.elements["beta-opt-in-choice"].value;
@@ -51,14 +63,15 @@ export function createBetaOptIn({ adminAuth, onDecided }) {
     errorEl.hidden = true;
     submitBtn.disabled = true;
     try {
-      const result = await adminAuth.setBetaOptIn(choice === "in");
+      const choseIn = choice === "in";
+      const result = await adminAuth.setBetaOptIn(choseIn);
       if (!result.ok) {
         errorEl.textContent = `Couldn't save your choice (${result.status ?? "network error"}) -- try again.`;
         errorEl.hidden = false;
         return;
       }
       closeModal(overlay);
-      if (onDecided) onDecided();
+      if (onDecided) onDecided(choseIn);
     } finally {
       submitBtn.disabled = false;
     }

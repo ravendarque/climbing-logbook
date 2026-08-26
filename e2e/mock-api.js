@@ -22,7 +22,7 @@
 const EMPTY_PYRAMID = { top4: [], lower: [], hasSends: false, promotedGrade: null };
 
 export async function mockApi(page, {
-  entries = [], places = [], locations = [], settings = { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true },
+  entries = [], places = [], locations = [], settings = { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: null },
   loggedIn = true, username = "fixtureuser", email = "fixtureuser@example.com",
   // #111 -- server/api/performance.js's own computed shape, not raw
   // entries -- mock-api.js doesn't replicate the real aggregation logic

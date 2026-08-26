@@ -24,8 +24,11 @@ const IMPORT_URL = "/logbook/api/admin/logbook/import";
 // Same cross-origin-in-production / same-origin-local-dev split as every
 // other composition root's own copy of this check (see
 // client/admin-auth.js's own LOGIN_PAGE_URL comment for why there isn't
-// one shared constant yet).
-const LOGIN_PAGE_URL = ["my.climbinglogbook.com", "ravendarque.com"].includes(window.location.hostname)
+// one shared constant yet) -- beta.climbinglogbook.com (#443/#548) added
+// alongside my.climbinglogbook.com, found missing here the same way it
+// was missing from owned-routes.js's own loginUrl() (caught by a failing
+// test, not assumed).
+const LOGIN_PAGE_URL = ["my.climbinglogbook.com", "beta.climbinglogbook.com", "ravendarque.com"].includes(window.location.hostname)
   ? "https://climbinglogbook.com/login/"
   : "/login/";
 

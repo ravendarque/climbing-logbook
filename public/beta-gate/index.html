@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Check our beta – Climbing Logbook</title>
+  <link rel="manifest" href="/logbook/manifest.json">
+  <link rel="icon" type="image/png" sizes="32x32" href="/logbook/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/logbook/favicon-16.png">
+  <link rel="apple-touch-icon" href="/logbook/apple-touch-icon.png">
+  <meta name="theme-color" content="#ff2727">
+  <!-- #470 -- starts the brand font fetch during initial parsing rather
+       than waiting for layout to discover climbing-header.js's own
+       @font-face rule -- see public/index.html's own comment for the
+       fuller reasoning. -->
+  <link rel="preload" as="font" type="font/woff2" href="/logbook/fonts/BebasNeue-Regular.woff2" crossorigin>
+  <!-- Genuinely static shell (#443/#548, ADR-0020), same pattern as
+       public/sync/index.html -- fetched internally via the ASSETS
+       binding (server/api/owned-routes.js's handleBetaGatedRoute), never
+       reached by its own literal path. No <climbing-tab-bar> here, same
+       reasoning as /sync's own shell -- this is a transient gate, not one
+       of the three real destinations, nothing to highlight as "current". -->
+  <link rel="stylesheet" href="/logbook/tailwind.css">
+  <script src="/logbook/components/climbing-header.js"></script>
+  <script>
+    (function () {
+      var stored = localStorage.getItem("logbook_theme");
+      var theme = stored || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+</head>
+<body class="bg-background text-foreground font-sans px-4 pt-6 pb-16 min-w-[300px]">
+<div class="max-w-[960px] mx-auto">
+  <div class="flex items-center justify-end gap-2 mb-6" id="header-row">
+    <climbing-menu-bar no-discipline></climbing-menu-bar>
+  </div>
+
+  <climbing-header variant="brand" align-left></climbing-header>
+
+  <!-- The only real content on this page -- client/beta-gate-main.js's
+       boot() opens the modal unconditionally as soon as it's ready, not
+       on any user interaction; there's nothing else to show underneath
+       it (unlike the account page's own "Check our beta" row, which is
+       one card among several). -->
+  <beta-opt-in-modal></beta-opt-in-modal>
+
+  <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>
+</div>
+
+<script type="module" src="/logbook/beta-gate-app.js"></script>
+</body>
+</html>
