@@ -49,6 +49,48 @@ test("logs in via the login page, then logs out again", async ({ page }) => {
   expect(afterSignOut).toBeNull();
 });
 
+// #443/#547, ADR-0020 -- the redirect *target* can't actually differ
+// locally (BETA_ORIGIN, like APP_ORIGIN before it, resolves to the same
+// same-origin "" on any non-apex hostname -- see resolve-app-origin.js's
+// own header comment, and test/login/resolve-app-origin.test.js for the
+// real branch coverage that can't be exercised here). What this proves
+// instead: the new settings lookup genuinely happens as part of the
+// login flow, and doesn't break the existing redirect for an opted-in
+// user -- they still land on /log same as anyone else would locally.
+test("an opted-in user's login still fetches settings and lands on /log (target itself untestable locally)", async ({ page }) => {
+  // Establish a session, opt in, then sign out again -- setting up state
+  // via the real API, not the form under test.
+  await page.goto("/login/");
+  await page.evaluate(
+    ({ email, password }) => fetch("/logbook/api/auth/sign-in/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    }),
+    { email: DEV_USER.email, password: DEV_USER.password }
+  );
+  await page.evaluate(() => fetch("/logbook/api/admin/settings", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ betaOptIn: true }),
+  }));
+  await page.evaluate(() => fetch("/logbook/api/auth/sign-out", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  }));
+
+  await page.goto("/login/");
+  await page.locator("#email").fill(DEV_USER.email);
+  await page.locator("#password").fill(DEV_USER.password);
+
+  await Promise.all([
+    page.waitForResponse(res => res.url().includes("/logbook/api/settings") && res.request().method() === "GET"),
+    page.locator("#login-submit-btn").click(),
+  ]);
+  await page.waitForURL(`**/${DEV_USER.username}/log`);
+});
+
 test("shows an inline error for the wrong password, without navigating away", async ({ page }) => {
   await page.goto("/login/");
 
