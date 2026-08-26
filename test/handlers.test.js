@@ -262,13 +262,13 @@ describe("settings", () => {
   it("returns default settings for an anonymous caller", async () => {
     const res = await fetchJson("/logbook/api/settings");
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder", logbookPublic: true });
+    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: null });
   });
 
   it("returns default settings for a logged-in user who's never set any", async () => {
     const res = await fetchJson("/logbook/api/settings", { headers: { Cookie: cookie } });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder", logbookPublic: true });
+    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: null });
   });
 
   it("rejects an unauthenticated update request", async () => {
@@ -279,25 +279,25 @@ describe("settings", () => {
   it("updates athleteMode on the happy path", async () => {
     const res = await patchJson("/logbook/api/admin/settings", { athleteMode: true });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ athleteMode: true, activeDiscipline: "boulder", logbookPublic: true });
+    expect(await res.json()).toEqual({ athleteMode: true, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: null });
   });
 
   it("updates activeDiscipline on the happy path", async () => {
     const res = await patchJson("/logbook/api/admin/settings", { activeDiscipline: "lead" });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "lead", logbookPublic: true });
+    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "lead", logbookPublic: true, betaOptIn: null });
   });
 
   it("updates logbookPublic on the happy path", async () => {
     const res = await patchJson("/logbook/api/admin/settings", { logbookPublic: false });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder", logbookPublic: false });
+    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder", logbookPublic: false, betaOptIn: null });
   });
 
   it("merges a partial update onto existing settings instead of overwriting", async () => {
     await patchJson("/logbook/api/admin/settings", { athleteMode: true });
     const res = await patchJson("/logbook/api/admin/settings", { activeDiscipline: "lead" });
-    expect(await res.json()).toEqual({ athleteMode: true, activeDiscipline: "lead", logbookPublic: true });
+    expect(await res.json()).toEqual({ athleteMode: true, activeDiscipline: "lead", logbookPublic: true, betaOptIn: null });
   });
 
   it("rejects malformed JSON", async () => {
@@ -333,11 +333,32 @@ describe("settings", () => {
     expect((await res.json()).error).toBe("logbookPublic must be a boolean");
   });
 
+  // #443/#546, ADR-0020 -- tri-state, not the same NOT NULL boolean shape
+  // as athleteMode/logbookPublic. The default-settings tests above already
+  // cover the null ("never decided") case; these cover setting it true/false.
+  it("updates betaOptIn to true on the happy path", async () => {
+    const res = await patchJson("/logbook/api/admin/settings", { betaOptIn: true });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: true });
+  });
+
+  it("updates betaOptIn to false on the happy path", async () => {
+    const res = await patchJson("/logbook/api/admin/settings", { betaOptIn: false });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: false });
+  });
+
+  it("rejects a non-boolean betaOptIn", async () => {
+    const res = await patchJson("/logbook/api/admin/settings", { betaOptIn: "yes" });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("betaOptIn must be a boolean");
+  });
+
   it("a second user's settings are independent of the first user's", async () => {
     await patchJson("/logbook/api/admin/settings", { athleteMode: true });
 
     const userB = await createAuthedSession();
     const res = await fetchJson("/logbook/api/settings", { headers: { Cookie: userB.cookie } });
-    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder", logbookPublic: true });
+    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: null });
   });
 });

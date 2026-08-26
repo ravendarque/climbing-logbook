@@ -149,9 +149,23 @@
           </div>
           <p class="text-[.82rem] text-muted mt-2">When on, anyone can view your logbook and map at your public profile page. Turn off to keep them private -- only you can see them.</p>
         </div>
+        <!-- #443/#546, ADR-0020 -- a button-triggered modal (client/beta-
+             opt-in.js), not a switch like the two rows above: this is a
+             real consent decision (explanatory copy + two full-sentence
+             choices), not a quick instant-toggle preference. -->
+        <div class="row-card" id="beta-opt-in-row" hidden>
+          <div class="flex items-center justify-between gap-3">
+            <span class="row-card-title">Check our beta</span>
+            <button type="button" class="admin-btn" id="beta-opt-in-manage-btn">Manage</button>
+          </div>
+          <p class="text-[.82rem] text-muted mt-2">Opt in to get early access to new features before they're released.</p>
+          <p class="text-[.78rem] text-muted mt-1" id="beta-opt-in-status" hidden></p>
+        </div>
       </div>
     </div>
   </div>
+
+  <beta-opt-in-modal></beta-opt-in-modal>
 
   <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>
 </div>

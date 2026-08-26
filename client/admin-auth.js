@@ -37,6 +37,10 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
 
   let athleteMode = false;
   let logbookPublic = true;
+  // Tri-state (#443/#546, ADR-0020) -- null = never decided, unlike
+  // athleteMode/logbookPublic's plain booleans. Stays null until
+  // fetchSettings() below reads a real value or setBetaOptIn() writes one.
+  let betaOptIn = null;
   // #302 -- the "My account" link needs the caller's own username to build
   // its href (/:username/account); the menu-username label needs it to
   // display; client/account-edit-main.js's own username/email rows need
@@ -79,6 +83,11 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
       // state elsewhere, same as persistedDiscipline being tracked
       // regardless of whether a given page's UI surfaces it.
       logbookPublic = !!data.logbookPublic;
+      // Tri-state -- preserve null ("never decided") rather than coercing
+      // it to false, unlike logbookPublic above. data.betaOptIn is already
+      // null/true/false on the wire (server/api/settings.js's own
+      // rowToJson), so no coercion is needed either way.
+      betaOptIn = data.betaOptIn;
     } catch {
       // Offline — keep the last-known in-memory defaults rather than
       // guessing; the Athlete Mode toggle is only interactive when logged
@@ -126,6 +135,16 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
   async function setLogbookPublic(next) {
     const result = await patchSetting("logbookPublic", next);
     if (result.ok) logbookPublic = !!result.data.logbookPublic;
+    updateAdminBar();
+    return result;
+  }
+
+  // #443/#546 -- always a real boolean, never null: the modal only ever
+  // submits a deliberate true/false choice (see server/api/settings.js's
+  // own PATCH validation, which has no "reset to null" case either).
+  async function setBetaOptIn(next) {
+    const result = await patchSetting("betaOptIn", next);
+    if (result.ok) betaOptIn = result.data.betaOptIn;
     updateAdminBar();
     return result;
   }
@@ -213,6 +232,8 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
     setAthleteMode,
     isLogbookPublic: () => logbookPublic,
     setLogbookPublic,
+    getBetaOptIn: () => betaOptIn,
+    setBetaOptIn,
     getUsername: () => username,
     getEmail: () => email,
     getPersistedDiscipline: () => persistedDiscipline,
