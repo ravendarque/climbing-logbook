@@ -105,7 +105,7 @@ test("Public Logbook toggle (#301, moved to this page by #445) switches and pers
 // this page's own entry point (the "Manage" button + row status text);
 // the modal's own markup/behavior is otherwise identical regardless of
 // which composition root opens it.
-test("beta opt-in: never-decided state shows no status line, submitting 'Yes' persists and updates it", async ({ page }) => {
+test("beta opt-in: never-decided state shows no status line, submitting 'Yes' persists it and navigates to beta.x's equivalent page", async ({ page }) => {
   await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: null } });
   await page.goto("/e2e-fixtures/pages/account.html");
 
@@ -118,18 +118,43 @@ test("beta opt-in: never-decided state shows no status line, submitting 'Yes' pe
   await expect(page.locator('input[name="beta-opt-in-choice"]:checked')).toHaveCount(0);
 
   await page.locator('input[name="beta-opt-in-choice"][value="in"]').check();
+  // #557 -- opting in navigates to beta.x's own equivalent of this page
+  // (client/resolve-cross-hostname-url.js's resolveBetaXUrl), not an
+  // in-place status update. The fixture harness's own hostname isn't the
+  // real my.climbinglogbook.com apex, so that resolves to the same
+  // same-origin path -- a real reload of this exact fixture page, which
+  // is enough to prove the navigation actually happens and the choice
+  // survives it; the real cross-hostname target itself isn't observable
+  // locally, same documented limitation every other beta.x/my.x redirect
+  // test in this suite already has (see e.g. e2e/login.spec.js's own
+  // header comment).
+  const [patchRequest] = await Promise.all([
+    page.waitForRequest(req => req.url().includes("/logbook/api/admin/settings") && req.method() === "PATCH"),
+    // Not a literal ".html" match -- Workers Static Assets normalizes the
+    // extension away on navigation (confirmed: the real resulting URL is
+    // .../pages/account, not .../pages/account.html), so this only
+    // anchors on the path itself, not the exact served asset name.
+    page.waitForURL(/\/e2e-fixtures\/pages\/account/),
+    page.locator("#beta-opt-in-submit").click(),
+  ]);
+  expect(patchRequest.postDataJSON()).toEqual({ betaOptIn: true });
+
+  await expect(page.locator("#beta-opt-in-status")).toHaveText("You're currently opted in.");
+});
+
+test("beta opt-in: submitting 'No' re-syncs the status line in place, no navigation", async ({ page }) => {
+  await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: null } });
+  await page.goto("/e2e-fixtures/pages/account.html");
+
+  await page.locator("#beta-opt-in-manage-btn").click();
+  await page.locator('input[name="beta-opt-in-choice"][value="out"]').check();
   await Promise.all([
     page.waitForResponse(res => res.url().includes("/logbook/api/admin/settings") && res.request().method() === "PATCH"),
     page.locator("#beta-opt-in-submit").click(),
   ]);
 
   await expect(page.locator("#beta-opt-in-overlay")).toBeHidden();
-  await expect(page.locator("#beta-opt-in-status")).toHaveText("You're currently opted in.");
-
-  // Reload -- proves the choice round-tripped through the backend, same
-  // pattern as the Athlete Mode/Public Logbook tests above.
-  await page.reload();
-  await expect(page.locator("#beta-opt-in-status")).toHaveText("You're currently opted in.");
+  await expect(page.locator("#beta-opt-in-status")).toHaveText("You're currently opted out.");
 });
 
 test("beta opt-in: already-opted-in state pre-selects the matching radio on open", async ({ page }) => {
