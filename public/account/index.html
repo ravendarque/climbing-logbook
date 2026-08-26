@@ -152,14 +152,29 @@
         <!-- #443/#546, ADR-0020 -- a button-triggered modal (client/beta-
              opt-in.js), not a switch like the two rows above: this is a
              real consent decision (explanatory copy + two full-sentence
-             choices), not a quick instant-toggle preference. -->
-        <div class="row-card" id="beta-opt-in-row" hidden>
-          <div class="flex items-center justify-between gap-3">
+             choices), not a quick instant-toggle preference.
+
+             Row itself is the flex container (not just its top line, like
+             the two switch rows above) -- an invisible two-column layout:
+             the text block on the left takes whatever's left after the
+             button, the button on the right sizes to its own content and
+             never shrinks. Fixes a real layout bug: with the title/text
+             stacked in one column and the button in a separate row above
+             them (the switch rows' own shape), "Manage" being taller than
+             a switch pushed the whole text block down, showing as dead
+             space between the title and the description that the switch
+             rows never had. -->
+        <div class="row-card flex items-center gap-3" id="beta-opt-in-row" hidden>
+          <div class="flex-1 min-w-0">
             <span class="row-card-title">Check our beta</span>
-            <button type="button" class="admin-btn" id="beta-opt-in-manage-btn">Manage</button>
+            <p class="text-[.82rem] text-muted mt-2">Opt in to get early access to new features before they're released.</p>
+            <!-- text-accent (not text-muted, like the description above)
+                 -- matches the switch rows' own "on" color (switch-track-
+                 on) and admin-btn-primary, both var(--color-accent) --
+                 this status line is state, not a caption. -->
+            <p class="text-[.78rem] text-accent mt-1" id="beta-opt-in-status" hidden></p>
           </div>
-          <p class="text-[.82rem] text-muted mt-2">Opt in to get early access to new features before they're released.</p>
-          <p class="text-[.78rem] text-muted mt-1" id="beta-opt-in-status" hidden></p>
+          <button type="button" class="admin-btn shrink-0" id="beta-opt-in-manage-btn">Manage</button>
         </div>
       </div>
     </div>

@@ -18,23 +18,34 @@
 // here since no other overlay from client/modal-utils.js's own
 // DEFAULT_OVERLAY_IDS stacking order ever coexists on either of this
 // component's two consumer pages.
+// items-center, not items-start -- this is a short, non-form-heavy modal,
+// same category as <climbing-grade-pyramid>'s citations-overlay/evidence-
+// overlay (both items-center too), not entry-overlay/add-place-overlay
+// (tall forms that can grow past the viewport, top-aligned so a long one
+// scrolls sanely). Copying entry-overlay's own items-start here was the
+// wrong precedent to match -- caught after shipping, not before (Raven,
+// 2026-08-26): it rendered pinned to the top of the page instead of
+// centered like every other short modal in the app.
 const TEMPLATE = `
-  <div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-start justify-center px-4 py-6 overflow-y-auto" id="beta-opt-in-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="beta-opt-in-title" tabindex="-1">
+  <div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-center justify-center px-4 py-6 overflow-y-auto" id="beta-opt-in-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="beta-opt-in-title" tabindex="-1">
     <div class="bg-background border border-border rounded-app p-5 w-full max-w-[460px]">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-[1.15rem] font-bold text-accent" id="beta-opt-in-title">Check our beta</h2>
         <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-[1.1rem] leading-none p-[.2rem] hover:text-foreground" id="beta-opt-in-close" aria-label="Close">✕</button>
       </div>
 
-      <p class="text-[.9rem] text-foreground mb-2">
-        Our beta channel (beta.climbinglogbook.com) gets new features before they reach everyone else. That means things there are more likely to be unfinished or break -- it's a real early-access channel, not just a preview.
+      <p class="text-[.9rem] text-foreground mb-3">
+        Our beta channel (beta.climbinglogbook.com) gets new features before they reach everyone else. These are production-ready features, not unfinished work -- we release them there first to get real feedback before they reach everyone, so there's a small chance we get something wrong along the way.
       </p>
-      <p class="text-[.9rem] text-foreground mb-4">
-        Your data is exactly the same in both places -- nothing about opting in changes what's stored, only which version of the app you see. You can change this choice any time from My account.
+      <p class="text-[.9rem] text-foreground mb-3">
+        Your data is exactly the same in both places -- nothing about opting in changes what's stored, only which version of the app you see.
+      </p>
+      <p class="text-[.9rem] text-foreground mb-6">
+        Opting in also changes where you land after signing in -- you'll go to beta.x instead of my.x. Your public profile still lives at my.x either way, visible to others exactly as it is now. You can change this choice any time from My account.
       </p>
 
       <form id="beta-opt-in-form">
-        <div class="flex flex-col gap-2 mb-4">
+        <div class="flex flex-col gap-2 mb-6">
           <label class="flex items-center gap-2 text-[.9rem] text-foreground cursor-pointer">
             <input type="radio" name="beta-opt-in-choice" value="in" class="w-4 h-4 accent-accent" required>
             Yes, I want to opt in to early access

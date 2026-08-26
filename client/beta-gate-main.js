@@ -16,7 +16,7 @@ import { createDisclosure } from "./modal-utils.js";
 import { createThemeToggle } from "./theme-toggle.js";
 import { syncAdminBar } from "./admin-bar.js";
 import { createBetaOptIn } from "./beta-opt-in.js";
-import { resolveMyXUrl } from "./resolve-my-x-url.js";
+import { resolveMyXUrl } from "./resolve-cross-hostname-url.js";
 import "./components/climbing-menu-bar.js";
 import "./components/beta-opt-in-modal.js";
 
