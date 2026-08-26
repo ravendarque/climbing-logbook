@@ -54,6 +54,8 @@ test("logged out -- username/My account link/settings rows all hidden", async ({
   // a real session is confirmed, same as menu-username/my-account-link.
   await expect(page.locator("#athlete-mode-row")).toBeHidden();
   await expect(page.locator("#public-logbook-row")).toBeHidden();
+  // #443/#546 -- same treatment as the two rows above.
+  await expect(page.locator("#beta-opt-in-row")).toBeHidden();
 });
 
 test("Athlete Mode toggle (#445) switches and persists via the settings PATCH", async ({ page }) => {
@@ -95,6 +97,85 @@ test("Public Logbook toggle (#301, moved to this page by #445) switches and pers
 
   await page.reload();
   await expect(page.locator("#public-logbook-toggle")).toHaveAttribute("aria-checked", "false");
+});
+
+// #443/#546, ADR-0020 -- <beta-opt-in-modal> (client/components/
+// beta-opt-in-modal.js) + its wiring (client/beta-opt-in.js), the shared
+// component #548's future beta.x gate page will reuse. Coverage here is
+// this page's own entry point (the "Manage" button + row status text);
+// the modal's own markup/behavior is otherwise identical regardless of
+// which composition root opens it.
+test("beta opt-in: never-decided state shows no status line, submitting 'Yes' persists and updates it", async ({ page }) => {
+  await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: null } });
+  await page.goto("/e2e-fixtures/pages/account.html");
+
+  await expect(page.locator("#beta-opt-in-row")).toBeVisible();
+  await expect(page.locator("#beta-opt-in-status")).toBeHidden();
+
+  await page.locator("#beta-opt-in-manage-btn").click();
+  await expect(page.locator("#beta-opt-in-overlay")).toBeVisible();
+  // Never decided -- neither radio pre-selected.
+  await expect(page.locator('input[name="beta-opt-in-choice"]:checked')).toHaveCount(0);
+
+  await page.locator('input[name="beta-opt-in-choice"][value="in"]').check();
+  await Promise.all([
+    page.waitForResponse(res => res.url().includes("/logbook/api/admin/settings") && res.request().method() === "PATCH"),
+    page.locator("#beta-opt-in-submit").click(),
+  ]);
+
+  await expect(page.locator("#beta-opt-in-overlay")).toBeHidden();
+  await expect(page.locator("#beta-opt-in-status")).toHaveText("You're currently opted in.");
+
+  // Reload -- proves the choice round-tripped through the backend, same
+  // pattern as the Athlete Mode/Public Logbook tests above.
+  await page.reload();
+  await expect(page.locator("#beta-opt-in-status")).toHaveText("You're currently opted in.");
+});
+
+test("beta opt-in: already-opted-in state pre-selects the matching radio on open", async ({ page }) => {
+  await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: true } });
+  await page.goto("/e2e-fixtures/pages/account.html");
+
+  await expect(page.locator("#beta-opt-in-status")).toHaveText("You're currently opted in.");
+
+  await page.locator("#beta-opt-in-manage-btn").click();
+  await expect(page.locator('input[name="beta-opt-in-choice"][value="in"]')).toBeChecked();
+});
+
+test("beta opt-in: Cancel closes the modal without persisting a choice", async ({ page }) => {
+  await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: null } });
+  await page.goto("/e2e-fixtures/pages/account.html");
+
+  let patchCalled = false;
+  await page.route("**/logbook/api/admin/settings", route => {
+    patchCalled = true;
+    return route.continue();
+  });
+
+  await page.locator("#beta-opt-in-manage-btn").click();
+  await page.locator('input[name="beta-opt-in-choice"][value="out"]').check();
+  await page.locator("#beta-opt-in-cancel").click();
+
+  await expect(page.locator("#beta-opt-in-overlay")).toBeHidden();
+  expect(patchCalled).toBe(false);
+  await expect(page.locator("#beta-opt-in-status")).toBeHidden();
+});
+
+test("beta opt-in: Escape closes the modal, focus is trapped while open", async ({ page }) => {
+  await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: null } });
+  await page.goto("/e2e-fixtures/pages/account.html");
+
+  await page.locator("#beta-opt-in-manage-btn").click();
+  await expect(page.locator("#beta-opt-in-overlay")).toBeVisible();
+
+  // Focus starts on the first focusable element inside the overlay
+  // (client/modal-utils.js's own openModal()), not wherever it happened
+  // to be before -- the close button, same as entry-overlay's own
+  // #entry-close (it's first in DOM order, ahead of the form itself).
+  await expect(page.locator("#beta-opt-in-close")).toBeFocused();
+
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#beta-opt-in-overlay")).toBeHidden();
 });
 
 // #27 -- "a simple one-click process" (Raven's own call, unlike #224's

@@ -4,13 +4,20 @@ import { json, parseJsonBody } from "../lib/json.js";
 // 0003_app_data.sql) -- an anonymous caller or a logged-in user who's
 // never touched settings both see the same effective default server/api/
 // public-profile.js's own resolvePublicUser() already falls back to.
-const DEFAULT_SETTINGS = { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true };
+// betaOptIn defaults to null ("never decided") -- migrations/0006_add_
+// beta_opt_in.sql's own column has no DEFAULT clause for the same reason.
+const DEFAULT_SETTINGS = { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: null };
 
 function rowToJson(row) {
   return {
     athleteMode: !!row.athlete_mode,
     activeDiscipline: row.active_discipline,
     logbookPublic: !!row.logbook_public,
+    // Tri-state (#443/#546, ADR-0020) -- `!!row.beta_opt_in` would collapse
+    // NULL ("never decided") and 0 ("opted out") to the same `false`,
+    // losing the distinction the beta.x gate (#548) needs to make. NULL
+    // must stay `null` on the wire, not coerce to a boolean.
+    betaOptIn: row.beta_opt_in === null ? null : !!row.beta_opt_in,
   };
 }
 
@@ -62,6 +69,12 @@ export async function handlePatchSettings(request, env, userId) {
   if ("logbookPublic" in body && typeof body.logbookPublic !== "boolean") {
     return json({ error: "logbookPublic must be a boolean" }, 400);
   }
+  // No "never decided" (null) case here -- a PATCH is always a deliberate
+  // choice (#546's modal only ever submits true or false), never a reset
+  // back to the unset state.
+  if ("betaOptIn" in body && typeof body.betaOptIn !== "boolean") {
+    return json({ error: "betaOptIn must be a boolean" }, 400);
+  }
 
   // Upsert: #21's schema doesn't create a settings row at signup, only a
   // DEFAULT clause for once a row exists -- a user's first PATCH is what
@@ -84,6 +97,10 @@ export async function handlePatchSettings(request, env, userId) {
   if ("logbookPublic" in body) {
     sets.push("logbook_public = ?");
     values.push(body.logbookPublic ? 1 : 0);
+  }
+  if ("betaOptIn" in body) {
+    sets.push("beta_opt_in = ?");
+    values.push(body.betaOptIn ? 1 : 0);
   }
 
   if (sets.length > 0) {
