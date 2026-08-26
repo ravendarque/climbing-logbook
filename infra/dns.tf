@@ -45,5 +45,5 @@ resource "cloudflare_dns_record" "app_beta_subdomain" {
   content = "192.0.2.1"
   ttl     = 1
   proxied = true
-  comment = "Placeholder for the climbing-logbook beta Worker Route (#443) -- traffic never actually reaches this IP."
+  comment = "Placeholder for the beta Worker Route (#443) -- traffic never actually reaches this IP."
 }
