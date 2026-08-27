@@ -101,6 +101,88 @@ Both new schema fields are per-entry, nullable, additive:
 aggregate same-day entries at query time rather than the schema
 persisting any session-grouping row.
 
+### Move-level tagging (hardest/easiest moves) — #13's real data source
+
+`entries`-level fields aren't enough for #13's strengths/weaknesses
+breakdown: a climb can mix hold types and wall angles across its length
+(the crimps-on-overhang-vs-crimps-on-slab example), so the useful signal
+lives at the level of individual **moves within an entry**, not the entry
+as a whole. This is captured as an optional, additive, unbounded child
+table — working name `entry_moves` — rather than any new fixed columns on
+`entries`:
+
+- Zero-to-many rows per entry, in either of two buckets: **"Hardest moves
+  for you"** and **"Easiest moves for you"**. Both buckets share one table
+  with a `difficulty` discriminator column rather than two parallel
+  tables — same row shape either way, no reason to duplicate the schema.
+- Each row is **self-contained**: it captures all four dimensions
+  (limb+side, hold type, movement style, wall angle) for one tagged move
+  together, not as separate cross-referenced datasets. This is what makes
+  the eventual insight queries simple — filter on any one dimension while
+  grouping by the rest, all from one table, e.g. "hold type = crimp,
+  broken down by wall angle × limb × movement style."
+- Entirely optional and low-friction to log: a handful of dropdowns added
+  per row, never required to save an entry.
+
+**The taxonomy is limb-dependent, not four independent fields** — this
+was the crux (no pun intended) of the design discussion. `hold_type` and
+`movement_style`'s valid *options* both change depending which limb is
+selected, so the entry form is three cascading dropdowns
+(limb → filtered hold_type → filtered movement_style), plus one
+independent one (wall_angle):
+
+- **limb**: `hand` / `foot` / `knee`, each × `left`/`right` (side is
+  always meaningful — no research needed there, it's fundamental to
+  human physiology)
+- **hold_type**, options filtered by limb:
+  - `hand` → traditional hold-shape vocabulary (crimp, jug, pocket,
+    sloper, pinch, edge, etc.) — the full enumerated list is an
+    implementation-time detail, not fixed here
+  - `foot` / `knee` → technique-shaped, not hold-shaped: `toe-hook`,
+    `heel-hook` for foot; `kneebar` for knee. (A plain "foothold"
+    for ordinary edging/smearing footwork isn't tagged here — this
+    table is specifically for the moves worth calling out as
+    hardest/easiest, and routine footwork isn't that.)
+- **movement_style**: `static` / `dynamic` for every limb, plus
+  `lockoff` — but **only when limb = hand**. A lockoff is fundamentally
+  a hand/upper-body hold pattern; a toe-hook or kneebar might accompany
+  or set up a lockoff, but the foot/knee engagement itself isn't the
+  lockoff, so it doesn't carry that option.
+- **wall_angle**: `slab` / `vert` / `overhang` / `roof` — flat, fixed,
+  independent of limb (the wall doesn't change angle depending on which
+  limb is touching it).
+
+```sql
+CREATE TABLE entry_moves (
+  id             TEXT PRIMARY KEY,
+  entry_id       TEXT NOT NULL REFERENCES entries(id) ON DELETE CASCADE,
+  difficulty     TEXT NOT NULL CHECK (difficulty IN ('hardest','easiest')),
+  limb           TEXT NOT NULL CHECK (limb IN ('hand','foot','knee')),
+  side           TEXT NOT NULL CHECK (side IN ('left','right')),
+  hold_type      TEXT NOT NULL,   -- valid set depends on limb; validated
+                                   -- app-level, same treatment entries.grade
+                                   -- already gets (too discipline/limb-
+                                   -- dependent for a flat CHECK)
+  movement_style TEXT NOT NULL CHECK (
+                   (limb = 'hand' AND movement_style IN ('static','dynamic','lockoff'))
+                OR (limb != 'hand' AND movement_style IN ('static','dynamic'))
+                 ),
+  wall_angle     TEXT NOT NULL CHECK (wall_angle IN ('slab','vert','overhang','roof')),
+  created_at     TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX idx_entry_moves_entry_id ON entry_moves(entry_id);
+```
+
+The `movement_style` CHECK enforces the lockoff-is-hand-only rule at the
+DB layer itself, backstopping the same cascading-dropdown validation the
+entry form does client-side — not just a UI nicety.
+
+**Open item**: #36 ("movement/terrain fields") is the natural home for
+this in the Phase 1 schema list below, but its current scope is a flat
+field, not this richer child-table shape — its body needs updating (or
+this needs splitting into its own issue) before Phase 1 implementation
+starts. Not done as part of this doc update; flagging for the next pass.
+
 ## Delivery sequence
 
 Deploy classification matters: any tag touching `migrations/` deploys
