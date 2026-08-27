@@ -296,6 +296,26 @@ test.describe("Shared popover behavior (createDisclosure)", () => {
   });
 });
 
+// #561 -- log-main.js shares this click handler with every other owned
+// composition root (client/admin-auth.js's own createAdminAuth() factory),
+// so proving it here once is enough -- same "one implementation" reasoning
+// the popover tests above already use. Can only prove the client-side half
+// locally (the navigation itself) -- the real my.<domain> server-side gate
+// this redirect matters for isn't reachable from this fixture harness at
+// all (see mock-api.js's own header comment), so the "can no longer reach
+// this page" half of #561 stays covered by owned-routes.js already working
+// correctly; nothing new to prove there.
+test("#561 -- logging out navigates away instead of leaving the visitor stranded on an owner-only page", async ({ page }) => {
+  await gotoLogHarness(page);
+  await page.locator("#header-menu-btn").click();
+  await expect(page.locator("#login-toggle-btn")).toHaveText("Log out");
+
+  await Promise.all([
+    page.waitForURL(/\/login\/?$/),
+    page.locator("#login-toggle-btn").click(),
+  ]);
+});
+
 test("theme toggle flips data-theme and persists to localStorage", async ({ page }) => {
   await gotoLogHarness(page);
   await page.locator("#header-menu-btn").click();

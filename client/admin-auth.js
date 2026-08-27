@@ -209,8 +209,9 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
     if (store.isLoggedIn()) {
       // A plain same-origin POST, not a dedicated logout URL/page like
       // Access's -- Better Auth doesn't need a redirect ceremony to
-      // clear its session cookie, so this can just fetch() and update
-      // local state directly rather than a full-page navigation.
+      // clear its session cookie, so this can just fetch() first, then
+      // navigate away below (#561) rather than a dedicated full-page
+      // logout endpoint.
       await fetch(AUTH_SIGN_OUT_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -218,13 +219,18 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
       });
       store.setLoggedIn(false);
       localStorage.setItem(LOGIN_HINT_KEY, "0");
-      updateAdminBar();
-    } else {
-      // Full-page navigation to the login form (#320) -- there's no
-      // hosted-login ceremony to redirect through anymore, just a real
-      // page with its own form; login.js sends you back here on success.
-      window.location.href = LOGIN_PAGE_URL;
     }
+    // #561 -- every page this factory runs on (log/map/performance/sync/
+    // account(/edit|/import)?) is owner-only, server-side gated
+    // (owned-routes.js) on the *initial* request only -- once logged out
+    // client-side, the visitor can no longer legitimately reach this page
+    // at all (a refresh would bounce them straight to login), so navigate
+    // there now rather than leaving them stranded on a page updated to
+    // merely *look* logged-out. Same target the already-logged-out branch
+    // used on its own before this fix -- both branches now end up here,
+    // so updateAdminBar()'s in-place UI sync is no longer needed on the
+    // logout path either.
+    window.location.href = LOGIN_PAGE_URL;
   });
 
   return {

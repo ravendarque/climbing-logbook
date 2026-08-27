@@ -99,6 +99,21 @@ export async function mockApi(page, {
   await page.route("**/logbook/api/auth/get-session", route =>
     route.fulfill({ json: loggedIn ? { session: { id: "s1" }, user: { id: "u1", username, email } } : null }));
 
+  // #561/#562 -- unlike every other auth route here, this one was
+  // previously left unmocked, so it silently fell through to the real
+  // local dev server carrying whatever real session cookie the browser
+  // context actually has -- for the default (non-isolated) storageState,
+  // that's this whole suite's own shared, globalSetup-bootstrapped dev
+  // user session (playwright.config.js). A test that clicks the real
+  // log-out control was therefore genuinely invalidating that shared
+  // session server-side, silently breaking every later test in the run
+  // that assumes it's still logged in (found the hard way: e2e/log-page.
+  // spec.js's own #561 test passed in isolation but broke e2e/zero-
+  // friction-redirect.spec.js's "logged in" tests once both ran in the
+  // same suite). Fulfilled here, not per-test, so no future consumer of
+  // this fixture can reintroduce the same class of bug by accident.
+  await page.route("**/logbook/api/auth/sign-out", route => route.fulfill({ json: {} }));
+
   // #302 -- canned success responses matching Better Auth's own real
   // response shapes (confirmed against the installed source), not
   // exercising Better Auth itself -- e2e/account-edit-page.spec.js's job
