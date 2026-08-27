@@ -34,7 +34,7 @@ client-side tab/view switch on one page. Rejected alternatives:
 | `/performance/trends` | Volume/intensity trend (#15) | new |
 | `/performance/strengths` | Strengths/weaknesses breakdown (#13) | new |
 | `/performance/gap` | Onsight-to-redpoint gap (#14) | new |
-| `/performance/rpe` | Session RPE trend (#38) | new |
+| `/performance/rpe` | RPE / effort trend (#38) | new |
 | `/performance/injury` | Injury/pain flag correlation (#39) | new |
 
 Each sub-page is a real, independent static shell (its own
@@ -97,9 +97,9 @@ Both new schema fields are per-entry, nullable, additive:
 - `pain_flag` (nullable boolean, `entries`, `CHECK (pain_flag IN (0,1))`)
   — #564
 
-#38's "session RPE trend" and #39's "injury/pain correlation" both
-aggregate same-day entries at query time rather than the schema
-persisting any session-grouping row.
+#38's RPE/effort trend and #39's injury/pain log both aggregate per-entry
+data at query time rather than the schema persisting any session-grouping
+row.
 
 ### Move-level tagging (hardest/easiest moves) — #13's real data source
 
@@ -177,11 +177,49 @@ The `movement_style` CHECK enforces the lockoff-is-hand-only rule at the
 DB layer itself, backstopping the same cascading-dropdown validation the
 entry form does client-side — not just a UI nicety.
 
-**Open item**: #36 ("movement/terrain fields") is the natural home for
-this in the Phase 1 schema list below, but its current scope is a flat
-field, not this richer child-table shape — its body needs updating (or
-this needs splitting into its own issue) before Phase 1 implementation
-starts. Not done as part of this doc update; flagging for the next pass.
+This table's home is #36 ("movement/terrain fields") — its body has been
+updated to match this shape (it originally described flat columns,
+superseded by this design).
+
+### Injury/pain move tagging — #39's real data source
+
+A near-identical need came up for #39 during the chart-layout discussion:
+pinning a pain flag to a specific move (not just the whole climb) gives
+`docs/climbing-analytics-research.md`'s injury-pattern insight real teeth
+— "your pain flags cluster on left-hand crimps, overhang" is a much
+sharper signal than a bare per-entry flag can produce.
+
+**Explicitly a separate table from `entry_moves`, not a `pain` column
+added to it.** That was considered and rejected: a boolean on
+`entry_moves` would imply pain is a property of being tagged
+hardest/easiest, which isn't true — a move can hurt without being
+anyone's hardest or easiest move of the climb. The cascading-dropdown
+*UI component* (limb → filtered hold_type → filtered movement_style,
+plus wall_angle) is reused as-is, same code, DRY; the *data* stays fully
+independent in its own table, `entry_pain_moves` (#572):
+
+```sql
+CREATE TABLE entry_pain_moves (
+  id             TEXT PRIMARY KEY,
+  entry_id       TEXT NOT NULL REFERENCES entries(id) ON DELETE CASCADE,
+  limb           TEXT NOT NULL CHECK (limb IN ('hand','foot','knee')),
+  side           TEXT NOT NULL CHECK (side IN ('left','right')),
+  hold_type      TEXT NOT NULL,   -- same limb-filtered vocabulary as entry_moves
+  movement_style TEXT NOT NULL CHECK (
+                   (limb = 'hand' AND movement_style IN ('static','dynamic','lockoff'))
+                OR (limb != 'hand' AND movement_style IN ('static','dynamic'))
+                 ),
+  wall_angle     TEXT NOT NULL CHECK (wall_angle IN ('slab','vert','overhang','roof')),
+  created_at     TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX idx_entry_pain_moves_entry_id ON entry_pain_moves(entry_id);
+```
+
+No `difficulty` column — this table has no hardest/easiest concept, only
+"did this move hurt." `entries.pain_flag` (#564) stays the low-friction
+default (a plain checkbox, "did anything hurt on this climb," no
+drill-down required); this table is purely optional added detail on top,
+never required to set the flag.
 
 ## Delivery sequence
 
@@ -195,10 +233,16 @@ promote" exposure to one contiguous stretch instead of scattering it
 across the whole epic.
 
 **Phase 1 — schema (direct-deploy, no promotion needed)**
-- #36 — movement/terrain fields
+- #36 — `entry_moves` table (hold type, wall angle, style, limb)
 - #37 — attempts-to-send field
 - #563 — `rpe` field
 - #564 — `pain_flag` field
+- #572 — `entry_pain_moves` table (optional move-level detail for #564,
+  shares #36's taxonomy)
+
+**Gate — #569 (spike: charting library vs. hand-rolled)** — must land
+before any Phase 2 view work starts below; the outcome affects how every
+one of #15/#13/#14/#38/#39 gets implemented, not just one of them.
 
 **Phase 2 — hub + views (beta-only; promote each as it's ready)**
 - **New issue needed** — the hub page itself, the shared card component
@@ -209,14 +253,90 @@ across the whole epic.
 - #15 — volume/intensity trend view
 - #13 — strengths/weaknesses breakdown (needs #36)
 - #14 — onsight-to-redpoint gap (needs #37)
-- #38 — session RPE trend (needs #563)
-- #39 — injury/pain correlation (needs #564)
+- #38 — RPE / effort trend (needs #563)
+- #39 — injury/pain log (needs #564, #572)
 
-Chart type/visual treatment per individual view is deliberately not
-decided here for #15/#14/#38/#39 — a smaller, per-issue design question
-for whoever picks each one up, not a blocker for this shared structural
-work. #13's interaction design *is* decided (below), since it followed
-directly from the `entry_moves` data model above.
+### Chart legibility principles (applies to every time-series view)
+
+Early mockups for #15/#38/#39 were hard to parse — bare CSS bars/lines
+with no axis labels, no data-point values, and multiple signals packed
+into one mark with no key. Fixed going forward, non-negotiable regardless
+of which per-view layout wins:
+
+1. **Real axis labels and tick values** — dates on the x-axis, a numeric
+   or categorical scale on the y-axis. No bare unlabeled shapes.
+2. **Data labels on the marks themselves** — an actual number/grade on or
+   near each bar/point, not just relative height.
+3. **Lead with a plain-language headline sentence**, same pattern #13 and
+   #14 already use ("2 grades, narrowing") — the chart is supporting
+   evidence, not the primary carrier of meaning.
+
+**Shared time-window control**, used by every time-series view (#15, #14,
+#38): a segmented pill control (`3mo` / `12mo` / `Custom`) rather than a
+raw date-range picker as the default — matches the fixed-shortcut
+presets Raven specified (today/yesterday/past week/month/3 months/12
+months), with `Custom` opening a real range picker for anything finer.
+Same implementation granularity as the shared card component above (a
+JS helper, not a new Custom Element) — reused across all three views
+rather than rebuilt per page.
+
+#13's interaction design is unchanged from before (below). #15/#14/#39
+are now decided too (below); #38's insight framing is decided (per-climb
+effort vs. grade, not training-session load — see #563/#38) but its exact
+chart layout is still open, pending #569.
+
+### #15 volume & intensity: interaction design
+
+**Compound bar + line chart**, not the small-multiples layout considered
+earlier — bars for climbs logged per time bucket, a line overlaid on the
+same plot for max grade sent in that bucket. Small multiples (two aligned
+mini-charts) was mocked and rejected in favor of this: seeing volume and
+grade trend together in one glance reads better than scanning two
+separate panels. Grade labels sit directly on the line's points (`V4`,
+`V5`, ...) rather than a numeric y-axis, since grade is ordinal, not a
+clean linear scale. Caveat stays explicit: send-log proxy for training
+load, not a measure of real training stimulus.
+
+### #14 onsight/redpoint gap: interaction design
+
+**Two overlaid trend lines** (first-attempt-success max grade, eventual-
+send max grade) over time, not a single abstracted "gap" number or
+sparkline — shows both underlying numbers directly, so it's visible
+whether the gap is closing because the harder metric is catching up or
+because the easier one has stalled.
+
+- **Discipline-specific terminology**: "onsight-to-redpoint" is
+  lead-climbing vocabulary; boulder's equivalent is flash-to-send. The
+  view picks the right pair based on the entry's discipline rather than
+  using one fixed pair everywhere.
+- **Third data layer: attempts-to-send.** #37's field becomes a bar layer
+  behind the two trend lines (average attempts per send, per time
+  bucket) — same compound bar+line pattern as #15, reused for visual
+  consistency across the hub rather than inventing a different chart
+  language per view.
+- Evidence-tier chip: "Community data" (#16's pink tier), since the
+  8a.nu/Climbstat reference data is a single data-analysis layer, not
+  peer-reviewed.
+
+### #39 injury/pain: interaction design
+
+**A chronological log, not a chart.** Pain events are sparse, discrete
+occurrences — a chart trying to correlate two thin signals (pain flags
+against volume/intensity) is weaker than a scannable list; an early
+mockup overlaying a marker on a bar chart was tried and rejected as
+unclear.
+
+- **Log**: `pain_flag`-true entries, most recent first, each row showing
+  the climb, date, and — if present — the specific move tagged via
+  `entry_pain_moves` (#572).
+- **Headline ranked callout**, reusing #13's exact pattern (same
+  confidence-gated ranking, same minimum-sample-size threshold before a
+  combination is presented as a real pattern rather than noise), surfaces
+  above the log once enough move-level tags exist: "your pain flags
+  cluster on left-hand crimps, overhang."
+- No evidence-tier chip here (unlike #14/#38) — this is the app's own
+  data overlay, not a sourced external claim. Framed per the research
+  doc as "a pattern-noticing tool, not medical advice."
 
 ### #13 strengths/weaknesses: interaction design
 
@@ -257,8 +377,10 @@ directly from the `entry_moves` data model above.
 ## Testing
 
 Same three-layer pattern already used throughout this codebase: Vitest for
-any pure aggregation logic (e.g. the per-day RPE/pain-flag grouping),
-Playwright e2e against each new static shell + composition root (same
-`mockApi()`-based fixture-harness pattern as `log-page.spec.js` etc.), and
-real-browser verification for the hub's tile layout/navigation and the
-shared card component's two variants (switch control vs. "View" button).
+any pure aggregation logic (the `entry_moves`/`entry_pain_moves` ranking
+and confidence-gate math, the RPE-vs-grade framing, the attempts-to-send
+bucketing), Playwright e2e against each new static shell + composition
+root (same `mockApi()`-based fixture-harness pattern as `log-page.spec.js`
+etc.), and real-browser verification for the hub's tile layout/navigation,
+the shared card component's two variants (switch control vs. "View"
+button), and the shared time-window control.
