@@ -212,10 +212,47 @@ across the whole epic.
 - #38 — session RPE trend (needs #563)
 - #39 — injury/pain correlation (needs #564)
 
-Chart type/visual treatment per individual view (table vs. radar vs.
-heatmap for #13, etc.) is deliberately not decided here — a smaller,
-per-issue design question for whoever picks each one up, not a blocker for
-this shared structural work.
+Chart type/visual treatment per individual view is deliberately not
+decided here for #15/#14/#38/#39 — a smaller, per-issue design question
+for whoever picks each one up, not a blocker for this shared structural
+work. #13's interaction design *is* decided (below), since it followed
+directly from the `entry_moves` data model above.
+
+### #13 strengths/weaknesses: interaction design
+
+- **Default view — auto-surfaced headline.** No filter picking required:
+  the view opens on the single weakest full four-dimension combination
+  (limb+side, hold type, movement style, wall angle) that clears the
+  confidence gate below, stated in plain language ("Your left hand on
+  overhanging crimps looks like a key weakness") rather than making the
+  user hunt for it.
+- **Drill-down — single-dimension anchor.** The user picks any *one*
+  dimension value (a hold type, a wall angle, a limb, a movement style)
+  to anchor on; the view pivots to rank every combination of the
+  *remaining three* dimensions for that anchor, weakest to strongest.
+  Multi-dimension anchoring (e.g. "crimp + overhang" together) is
+  explicitly out of scope for v1 — the auto-surfaced headline already
+  covers the highest-value case, and stacking anchors multiplies UI
+  complexity for comparatively little extra insight.
+- **Ranking score.** `entry_moves` is self-tagged, not a send/attempt
+  success rate, so the score has to come from tag frequency: per
+  combination-cell, `hardest_count / (hardest_count + easiest_count)` — a
+  net "hardest share."
+- **Confidence gate.** A cell needs a minimum total tag count (placeholder
+  ≥5, tune once there's real data) before it's ranked and shown at all;
+  below that it reads "not enough data yet" rather than a false-confidence
+  ranked entry. Same evidence-honesty discipline the research doc already
+  applies elsewhere (the RPE reliability caveat, the onsight/redpoint
+  gap's "community data suggests" framing) — a one/zero-tag cell scoring
+  100% "weakness" would undermine that.
+- **Coaching-heuristic overlay.** The headline (and each ranked entry) can
+  pair with a suggested drill pulled from a lookup table (hold type ×
+  movement style [× wall angle] → suggestion), explicitly labeled as a
+  coaching heuristic — the same evidence tier #16's chips already give
+  the 8-4-2-1 pyramid ratio, never presented as personalized clinical
+  advice. Authoring that lookup table's actual content is real,
+  separately-scoped work — not something to improvise per insight at
+  render time.
 
 ## Testing
 
