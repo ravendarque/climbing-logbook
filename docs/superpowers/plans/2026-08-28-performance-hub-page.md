@@ -38,8 +38,8 @@
 - Modify `client/components/climbing-tab-bar.js` — `TABS`' performance entry's label, `"Grade Pyramid"` → `"Performance Insights"`.
 - Modify `package.json` — rename the `performance:build`/`performance:watch` scripts to `performance-pyramid:build`/`performance-pyramid:watch`; add `performance-hub:build`/`performance-hub:watch`; update `pages:build` and `e2e:build-fixtures` accordingly.
 - Modify `scripts/dev.mjs` — replace the single `performance` watch process with `performance-hub` and `performance-pyramid`.
-- Modify `e2e/performance-page.spec.js` — split into hub coverage (this file) + pyramid coverage (new file below), fixture path updated.
-- Create `e2e/performance-pyramid-page.spec.js` — the grade-pyramid-specific e2e coverage relocated from the file above.
+- Rename `e2e/performance-page.spec.js` → `e2e/performance-pyramid-page.spec.js` (Task 3, `git mv` — not a copy, so the old filename is free again immediately, not left dangling), fixture path updated.
+- Create `e2e/performance-page.spec.js` fresh (Task 4) — hub-focused coverage, the filename freed up by the rename above.
 
 ---
 
@@ -306,7 +306,9 @@ Update `package.json`'s `e2e:build-fixtures` script: replace `cp public/performa
 
 - [ ] **Step 6: Relocate the pyramid-specific e2e coverage**
 
-Create `e2e/performance-pyramid-page.spec.js` with the exact current contents of `e2e/performance-page.spec.js` (both test cases: "renders the shared chrome and a real grade pyramid, and switches discipline", "shows the offline message instead of a pyramid when the fetch fails"), with one change: `await page.goto("/e2e-fixtures/pages/performance.html")` becomes `await page.goto("/e2e-fixtures/pages/performance-pyramid.html")` in both tests.
+**Rename, don't copy** — `git mv e2e/performance-page.spec.js e2e/performance-pyramid-page.spec.js`. Copying instead of renaming would leave the old file in place, still pointing at the `performance.html` fixture Step 5 just stopped producing, breaking both of its tests until Task 4 runs. After the rename, update both test cases in the renamed file: `await page.goto("/e2e-fixtures/pages/performance.html")` becomes `await page.goto("/e2e-fixtures/pages/performance-pyramid.html")`. Everything else in the file (both test bodies, imports) is unchanged.
+
+After this step, `e2e/performance-page.spec.js` no longer exists — Task 4 creates it fresh with hub-specific coverage (see that task's own Step 4), not by editing leftover content.
 
 - [ ] **Step 7: Rebuild fixtures and run the new spec**
 
@@ -521,9 +523,9 @@ to:
   { page: "performance", label: "Performance Insights", requiresPerformance: true },
 ```
 
-- [ ] **Step 4: Repurpose the old performance-page e2e spec for hub coverage**
+- [ ] **Step 4: Create hub coverage**
 
-Replace `e2e/performance-page.spec.js`'s contents with hub-focused coverage (the pyramid-specific tests already moved to `e2e/performance-pyramid-page.spec.js` in Task 3):
+Task 3 renamed the old `e2e/performance-page.spec.js` away to `e2e/performance-pyramid-page.spec.js`, so this filename is free — create it fresh with hub-focused coverage:
 
 ```js
 // #575 -- composition-root-wiring coverage for the /:username/performance
