@@ -91,11 +91,8 @@ not a dependency here.
 
 No new "session" concept (explicit decision, 2026-08-27) — the foundation
 stays a logbook of individual climbs, aggregated per-user for insights.
-Both new schema fields are per-entry, nullable, additive:
 
-- `rpe` (nullable integer, `entries`) — #563
-- `pain_flag` (nullable boolean, `entries`, `CHECK (pain_flag IN (0,1))`)
-  — #564
+- `rpe` (nullable integer, `entries`, per-entry, additive) — #563
 
 #38's RPE/effort trend and #39's injury/pain log both aggregate per-entry
 data at query time rather than the schema persisting any session-grouping
@@ -216,10 +213,12 @@ CREATE INDEX idx_entry_pain_moves_entry_id ON entry_pain_moves(entry_id);
 ```
 
 No `difficulty` column — this table has no hardest/easiest concept, only
-"did this move hurt." `entries.pain_flag` (#564) stays the low-friction
-default (a plain checkbox, "did anything hurt on this climb," no
-drill-down required); this table is purely optional added detail on top,
-never required to set the flag.
+"did this move hurt." **This is the sole pain-tracking mechanism**
+(revised 2026-08-28) — no separate `entries.pain_flag` column. Zero rows
+means no pain logged, one or more means yes; the row count *is* the flag.
+A flat boolean was considered and dropped (was #564, now closed) since
+nothing in the entry form sets it independently of this list — keeping it
+would only be derivable state that could drift out of sync.
 
 ## Delivery sequence
 
@@ -236,9 +235,8 @@ across the whole epic.
 - #36 — `entry_moves` table (hold type, wall angle, style, limb)
 - #37 — attempts-to-send field
 - #563 — `rpe` field
-- #564 — `pain_flag` field
-- #572 — `entry_pain_moves` table (optional move-level detail for #564,
-  shares #36's taxonomy)
+- #572 — `entry_pain_moves` table (sole pain-tracking mechanism, shares
+  #36's taxonomy)
 
 **Gate — #569 (spike: charting library vs. hand-rolled)** — must land
 before any Phase 2 view work starts below; the outcome affects how every
@@ -254,7 +252,7 @@ one of #15/#13/#14/#38/#39 gets implemented, not just one of them.
 - #13 — strengths/weaknesses breakdown (needs #36)
 - #14 — onsight-to-redpoint gap (needs #37)
 - #38 — RPE / effort trend (needs #563)
-- #39 — injury/pain log (needs #564, #572)
+- #39 — injury/pain log (needs #572)
 
 ### Chart legibility principles (applies to every time-series view)
 
@@ -326,9 +324,9 @@ against volume/intensity) is weaker than a scannable list; an early
 mockup overlaying a marker on a bar chart was tried and rejected as
 unclear.
 
-- **Log**: `pain_flag`-true entries, most recent first, each row showing
-  the climb, date, and — if present — the specific move tagged via
-  `entry_pain_moves` (#572).
+- **Log**: entries with one or more `entry_pain_moves` (#572) rows, most
+  recent first, each row showing the climb, date, and the specific
+  move(s) tagged.
 - **Headline ranked callout**, reusing #13's exact pattern (same
   confidence-gated ranking, same minimum-sample-size threshold before a
   combination is presented as a real pattern rather than noise), surfaces
@@ -446,15 +444,12 @@ no pain logged; one or more rows means yes — the presence of rows *is*
 the flag, so a separate boolean toggle would just be redundant state that
 could drift out of sync with the list.
 
-**Open question this raises for #564**: `entries.pain_flag` was designed
-as an independent per-entry boolean, but the form no longer captures it
-directly — nothing sets it except this list. Recommendation: drop #564
-and have #39 query `entry_pain_moves` presence directly (`EXISTS`/count),
-rather than keep a flat column that only mirrors derivable state. The
-tradeoff is a join instead of an indexed boolean for #39's log filter —
-worth it now, revisit only if that join is ever a measured problem, not
-a hypothetical one. **Not yet actioned** — pending Raven's confirmation
-before #564 gets closed/repurposed.
+**Resolved 2026-08-28**: `entries.pain_flag` (#564) is dropped — closed,
+superseded by #572. #39 queries `entry_pain_moves` presence directly
+(`EXISTS`/count) rather than keeping a flat column that only mirrors
+derivable state. The tradeoff is a join instead of an indexed boolean for
+#39's log filter — accepted now, revisit only if that join is ever a
+measured problem, not a hypothetical one.
 
 ### Offline
 
