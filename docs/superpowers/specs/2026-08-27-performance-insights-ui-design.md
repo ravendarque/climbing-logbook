@@ -278,10 +278,11 @@ Same implementation granularity as the shared card component above (a
 JS helper, not a new Custom Element) — reused across all three views
 rather than rebuilt per page.
 
-#13's interaction design is unchanged from before (below). #15/#14/#39
-are now decided too (below); #38's insight framing is decided (per-climb
-effort vs. grade, not training-session load — see #563/#38) but its exact
-chart layout is still open, pending #569.
+Interaction design is now decided for all five remaining views (below).
+The one thing still genuinely open across all of them is #569's outcome
+(hand-rolled vs. a charting library) — a technical implementation
+decision, not a layout one, and it's an explicit gate before any of this
+gets built.
 
 ### #15 volume & intensity: interaction design
 
@@ -315,6 +316,31 @@ because the easier one has stalled.
 - Evidence-tier chip: "Community data" (#16's pink tier), since the
   8a.nu/Climbstat reference data is a single data-analysis layer, not
   peer-reviewed.
+
+### #38 RPE / effort trend: interaction design
+
+**Same compound bar + line pattern as #15**, reused deliberately for
+hub-wide visual consistency, but different metrics: bars are average
+Exertion % per time bucket, line overlaid is max grade sent per bucket.
+This directly supports the reframed insight (#563/#38's own framing) —
+is the climber maxing out effort without grade progress, or is there
+room to push harder.
+
+- **Headline sentence**, generated from the relationship between the two
+  series over the window, gated by the same minimum-sample-count
+  discipline as #13/#39 (placeholder ≥5 sends, tune once there's real
+  data):
+  - High average exertion + flat grade → "You're maxing out effort
+    without much grade movement — technique work might unlock more than
+    pushing harder would."
+  - Lower average exertion → "There's room to push harder on your
+    redpoint attempts."
+  - Exertion rising alongside grade → "Your effort is rising alongside
+    your grade — sounds like it's paying off."
+- Evidence-tier chip: "Peer-reviewed" (Gajdošík, Baláš & Draper, 2020 —
+  already #38's existing citation), with the lower-confidence-for-newer-
+  climbers caveat attached directly to the chip, same treatment #14's
+  "Community data" chip gets.
 
 ### #39 injury/pain: interaction design
 
