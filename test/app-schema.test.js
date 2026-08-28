@@ -360,3 +360,103 @@ describe("entries.rpe (#563)", () => {
     ).rejects.toThrow(/CHECK/);
   });
 });
+
+describe("entry_pain_moves (#572)", () => {
+  async function seedEntry(userId, placeId, id = "entry-1") {
+    await env.LOGBOOK_DB
+      .prepare(
+        `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id)
+         VALUES (?, ?, ?, 'Test', '7A', 'boulder', 'send')`
+      )
+      .bind(id, userId, placeId)
+      .run();
+    return id;
+  }
+
+  it("inserts a pain-move row with all four dimensions, no difficulty column", async () => {
+    const userId = await seedUser();
+    const locationId = await seedLocation(userId);
+    const placeId = await seedPlace(userId, locationId);
+    const entryId = await seedEntry(userId, placeId);
+
+    await env.LOGBOOK_DB
+      .prepare(
+        `INSERT INTO entry_pain_moves (id, entry_id, limb, side, hold_type, movement_style, wall_angle)
+         VALUES ('pain-1', ?, 'hand', 'left', 'crimp', 'dynamic', 'overhang')`
+      )
+      .bind(entryId)
+      .run();
+
+    const row = await env.LOGBOOK_DB.prepare(`SELECT * FROM entry_pain_moves WHERE id = 'pain-1'`).first();
+    expect(row.limb).toBe("hand");
+    expect(row.side).toBe("left");
+    expect(row.hold_type).toBe("crimp");
+    expect(row.movement_style).toBe("dynamic");
+    expect(row.wall_angle).toBe("overhang");
+    expect(row.difficulty).toBeUndefined();
+  });
+
+  it("rejects lockoff for a non-hand limb, same cross-column rule as entry_moves", async () => {
+    const userId = await seedUser();
+    const locationId = await seedLocation(userId);
+    const placeId = await seedPlace(userId, locationId);
+    const entryId = await seedEntry(userId, placeId);
+
+    await expect(
+      env.LOGBOOK_DB
+        .prepare(
+          `INSERT INTO entry_pain_moves (id, entry_id, limb, side, hold_type, movement_style, wall_angle)
+           VALUES ('pain-1', ?, 'foot', 'right', 'toe-hook', 'lockoff', 'overhang')`
+        )
+        .bind(entryId)
+        .run()
+    ).rejects.toThrow(/CHECK/);
+  });
+
+  it("supports zero-to-many rows per entry -- row count is the pain signal", async () => {
+    const userId = await seedUser();
+    const locationId = await seedLocation(userId);
+    const placeId = await seedPlace(userId, locationId);
+    const entryId = await seedEntry(userId, placeId);
+
+    const none = await env.LOGBOOK_DB.prepare(`SELECT COUNT(*) AS n FROM entry_pain_moves WHERE entry_id = ?`).bind(entryId).first();
+    expect(none.n).toBe(0);
+
+    await env.LOGBOOK_DB
+      .prepare(
+        `INSERT INTO entry_pain_moves (id, entry_id, limb, side, hold_type, movement_style, wall_angle)
+         VALUES ('pain-1', ?, 'hand', 'left', 'crimp', 'static', 'vert')`
+      )
+      .bind(entryId)
+      .run();
+    await env.LOGBOOK_DB
+      .prepare(
+        `INSERT INTO entry_pain_moves (id, entry_id, limb, side, hold_type, movement_style, wall_angle)
+         VALUES ('pain-2', ?, 'foot', 'right', 'smear', 'static', 'slab')`
+      )
+      .bind(entryId)
+      .run();
+
+    const some = await env.LOGBOOK_DB.prepare(`SELECT COUNT(*) AS n FROM entry_pain_moves WHERE entry_id = ?`).bind(entryId).first();
+    expect(some.n).toBe(2);
+  });
+
+  it("cascades: deleting an entry deletes its entry_pain_moves rows", async () => {
+    const userId = await seedUser();
+    const locationId = await seedLocation(userId);
+    const placeId = await seedPlace(userId, locationId);
+    const entryId = await seedEntry(userId, placeId);
+    await env.LOGBOOK_DB
+      .prepare(
+        `INSERT INTO entry_pain_moves (id, entry_id, limb, side, hold_type, movement_style, wall_angle)
+         VALUES ('pain-1', ?, 'hand', 'left', 'crimp', 'static', 'vert')`
+      )
+      .bind(entryId)
+      .run();
+
+    await env.LOGBOOK_DB.prepare(`DELETE FROM entries WHERE id = ?`).bind(entryId).run();
+
+    const remaining = await env.LOGBOOK_DB.prepare(`SELECT id FROM entry_pain_moves WHERE id = 'pain-1'`).first();
+    expect(remaining).toBeNull();
+  });
+});
