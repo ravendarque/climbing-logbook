@@ -238,9 +238,21 @@ across the whole epic.
 - #572 — `entry_pain_moves` table (sole pain-tracking mechanism, shares
   #36's taxonomy)
 
-**Gate — #569 (spike: charting library vs. hand-rolled)** — must land
-before any Phase 2 view work starts below; the outcome affects how every
-one of #15/#13/#14/#38/#39 gets implemented, not just one of them.
+**Gate — #569, resolved 2026-08-28: hand-rolled SVG, no charting
+library.** Measured two real candidates (`esbuild --bundle --minify`,
+tree-shaken to just the bar/line/combo types this epic needs): uPlot at
+50.9 KB, Chart.js at 169.3 KB — against this app's own largest existing
+client bundle (`log-app.js`, 123 KB) and a 0 KB hand-rolled baseline.
+Decisive factor beyond size: this app's dark/light theme switch is pure
+CSS (`:root[data-theme="light"]` custom-property overrides); both
+candidates render to `<canvas>`, where colors are baked into the draw
+call in JS at creation time, not read live from CSS, so either would need
+explicit re-render-on-theme-change integration code this app doesn't
+otherwise have. Hand-rolled SVG with `fill="var(--color-accent)"`
+re-themes for free, same as the rest of the app's markup — and it's
+exactly what every view's mockup below already used, so this confirms
+the existing designs rather than requiring rework. Full findings on
+#569 (closed).
 
 **Phase 2 — hub + views (beta-only; promote each as it's ready)**
 - #575 — the hub page itself, the shared card component (incl. the
