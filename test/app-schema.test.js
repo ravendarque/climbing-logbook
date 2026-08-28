@@ -284,3 +284,41 @@ describe("entry_moves (#36)", () => {
     expect(remaining).toBeNull();
   });
 });
+
+describe("entries.attempts_to_send (#37)", () => {
+  it("defaults to null and accepts a non-negative integer", async () => {
+    const userId = await seedUser();
+    const locationId = await seedLocation(userId);
+    const placeId = await seedPlace(userId, locationId);
+
+    await env.LOGBOOK_DB
+      .prepare(
+        `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id)
+         VALUES ('entry-1', ?, ?, 'Test', '7A', 'boulder', 'send')`
+      )
+      .bind(userId, placeId)
+      .run();
+    const noValue = await env.LOGBOOK_DB.prepare(`SELECT attempts_to_send FROM entries WHERE id = 'entry-1'`).first();
+    expect(noValue.attempts_to_send).toBeNull();
+
+    await env.LOGBOOK_DB.prepare(`UPDATE entries SET attempts_to_send = 4 WHERE id = 'entry-1'`).run();
+    const withValue = await env.LOGBOOK_DB.prepare(`SELECT attempts_to_send FROM entries WHERE id = 'entry-1'`).first();
+    expect(withValue.attempts_to_send).toBe(4);
+  });
+
+  it("rejects a negative attempts_to_send", async () => {
+    const userId = await seedUser();
+    const locationId = await seedLocation(userId);
+    const placeId = await seedPlace(userId, locationId);
+
+    await expect(
+      env.LOGBOOK_DB
+        .prepare(
+          `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id, attempts_to_send)
+           VALUES ('entry-1', ?, ?, 'Test', '7A', 'boulder', 'send', -1)`
+        )
+        .bind(userId, placeId)
+        .run()
+    ).rejects.toThrow(/CHECK/);
+  });
+});
