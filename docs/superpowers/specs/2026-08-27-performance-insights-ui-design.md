@@ -35,7 +35,7 @@ client-side tab/view switch on one page. Rejected alternatives:
 | `/performance/strengths` | Strengths/weaknesses breakdown (#13) | new |
 | `/performance/gap` | Onsight-to-redpoint gap (#14) | new |
 | `/performance/rpe` | RPE / effort trend (#38) | new |
-| `/performance/injury` | Injury/pain flag correlation (#39) | new |
+| `/performance/injury` | Injury / pain log (#39) | new |
 
 Each sub-page is a real, independent static shell (its own
 `public/performance/<slug>/index.html` + composition root), server-side
@@ -243,11 +243,11 @@ before any Phase 2 view work starts below; the outcome affects how every
 one of #15/#13/#14/#38/#39 gets implemented, not just one of them.
 
 **Phase 2 — hub + views (beta-only; promote each as it's ready)**
-- **New issue needed** — the hub page itself, the shared card component
-  (incl. the `athlete-mode-row`/`public-logbook-row` migration), and
-  moving the grade pyramid to `/performance/pyramid`. This has to land
-  *before* any of #15/#13/#14/#38/#39, since none of them have anywhere to
-  render into otherwise.
+- #575 — the hub page itself, the shared card component (incl. the
+  `athlete-mode-row`/`public-logbook-row` migration), and moving the
+  grade pyramid to `/performance/pyramid`. This has to land *before* any
+  of #15/#13/#14/#38/#39, since none of them have anywhere to render into
+  otherwise.
 - #15 — volume/intensity trend view
 - #13 — strengths/weaknesses breakdown (needs #36)
 - #14 — onsight-to-redpoint gap (needs #37)
@@ -391,28 +391,31 @@ during this climb.**
 
 A 0–100% slider in 10% increments (11 stops), not a raw 1–10 number —
 friendlier at a glance than the underlying RPE scale it's built on (see
-#563). **Conditionally visible: only rendered when the entry's status is
-Send or Flash.** Not gated with an explanatory caption ("sends only") —
-just genuinely absent from the DOM for Project/Checkout/Archived, since a
-field that isn't there needs no explanation. Exertion is a property of
-having sent the climb, not of an unsent attempt.
+#563). **Conditionally visible, pure UI logic: only rendered when the
+Status radio group has Send checked** — in code terms, `status ===
+'send'`, a single check. Flash isn't a separate status in the real data
+model (`client/entry-form.js`'s flash radio just sets `selectedStatus =
+"send"` with `isFlash = true`), so this is one condition, not "send or
+flash" as two literal values. Not gated with an explanatory caption
+("sends only") — just genuinely absent from the DOM for Project/Checkout/
+Archived, since a field that isn't there needs no explanation. Exertion
+is a property of having sent the climb, not of an unsent attempt.
 
 ### Attempts
 
 A stepper — `−` / count (3-digit-wide, centered) / `+` — not a typed
 number field, per the low-friction/glove-friendly requirement.
 
-**Saves immediately on each tap, independent of the form's own Submit
-button**, in edit mode only — same PATCH-on-change pattern
-`client/admin-auth.js`'s `setAthleteMode`/`setLogbookPublic` already use,
-not queued as part of the eventual full-entry save. A boulder/route can
-sit as a project across many hours or multiple separate sessions before
-it's finally sent; the modal itself won't realistically stay open that
-whole time (mobile tabs get evicted), so waiting for the full-form submit
-to persist each `+` tap risks losing real attempts. Add mode has no entry
-id to PATCH against yet, so there the count is just local state, included
-in the initial creation POST like every other field — the multi-hour risk
-only exists for entries that already exist.
+**A plain form field for v1** — its value only persists when the rest of
+the entry is submitted, same as everything else in the form; no special
+save-on-tap behavior. An immediate-save design (PATCH-on-change,
+mirroring `client/admin-auth.js`'s `setAthleteMode`/`setLogbookPublic`)
+was considered, since a project can sit across many hours or multiple
+sessions before it's sent and the modal won't realistically stay open
+that whole time — but doing that properly needs real offline-queue
+handling that neither this field nor the pattern it would have borrowed
+from actually has today (a crag is exactly where connectivity is worst).
+Deferred rather than shipped half-solved — see #574.
 
 ### Move difficulty
 
@@ -458,10 +461,30 @@ entry object the offline queue already treats as one atomic record (e.g.
 `entry.moves: [...]`, `entry.painMoves: [...]`) — the server's upsert
 diffs-and-replaces those child rows by `entry_id` when it handles the
 save, same "whole entry is the atomic offline-queueable unit" model as
-today, just with two more array fields on it. Attempts is the one
-deliberate exception (see above) — it bypasses the queue-on-submit model
-entirely in favor of immediate persistence, because losing it silently
-would be worse than a slightly different sync story for that one field.
+today, just with two more array fields on it. Attempts rides this same
+model too now (see above) — no exception for v1.
+
+This needs to be symmetric on read, not just write: the entries GET
+response has to include `entry_moves`/`entry_pain_moves` as nested
+arrays as well, so the edit form can pre-populate a climb's existing
+tagged rows when it's reopened — not stated explicitly before this pass,
+but implied by the edit flow existing at all.
+
+## Deferred, not part of this pass
+
+- **#573** — lead/trad gear-placement tracking (draws, gear placed).
+  Raised early in the entry-form design discussion and never resolved;
+  explicitly unscoped, needs its own triage before it has a home in
+  either this taxonomy or a separate one.
+- **#574** — persisting Attempts increments immediately rather than on
+  form submit (see "Attempts" above for why it's not in v1).
+- **Movement-difficulty taxonomy coverage** — the current `hold_type`
+  vocabulary (crimp/jug/pocket/sloper/pinch/edge for hand;
+  toe-hook/heel-hook/kneebar for foot/knee) is coarse-grained relative to
+  real technique vocabulary, especially at higher grades (crimp grip
+  sub-types, finger count, multi-limb techniques like compression/
+  rollover/cam). Under active discussion as of 2026-08-28 — not yet
+  resolved, so not written up here.
 
 ## Testing
 
