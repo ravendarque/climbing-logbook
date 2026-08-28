@@ -238,9 +238,9 @@ across the whole epic.
 - #572 — `entry_pain_moves` table (sole pain-tracking mechanism, shares
   #36's taxonomy)
 
-**Gate — #569 (spike: charting library vs. hand-rolled)** — must land
-before any Phase 2 view work starts below; the outcome affects how every
-one of #15/#13/#14/#38/#39 gets implemented, not just one of them.
+**Gate — #569, resolved 2026-08-28 (closed)**: hand-rolled SVG, no
+charting library — see the "Chart legibility principles" section below
+for the shared combo-chart component this decision produced.
 
 **Phase 2 — hub + views (beta-only; promote each as it's ready)**
 - #575 — the hub page itself, the shared card component (incl. the
@@ -278,11 +278,37 @@ Same implementation granularity as the shared card component above (a
 JS helper, not a new Custom Element) — reused across all three views
 rather than rebuilt per page.
 
-Interaction design is now decided for all five remaining views (below).
-The one thing still genuinely open across all of them is #569's outcome
-(hand-rolled vs. a charting library) — a technical implementation
-decision, not a layout one, and it's an explicit gate before any of this
-gets built.
+**Shared combo-chart component**, resolved 2026-08-28 alongside #569: hand-
+rolled SVG (see #569 for the bundle-size and theming evidence — a real
+uPlot prototype confirmed the friction, not just argued it from first
+principles), but not hand-rolled three separate times. #15, #38, and #14
+(with its extra line) all need the identical underlying shape — N bar
+series plus M line series over one shared time axis — and the chart-
+legibility principles above only actually stay consistent across all
+three if one component enforces them, rather than trusting three
+independent implementations not to drift apart.
+
+- **One plain JS module, not a Custom Element** — same implementation
+  granularity as the shared card component and the shared time-window
+  control above (matching `modal-utils.js`/`admin-bar.js`'s pattern).
+  Not prefixed `climbing-` — that prefix is reserved for this app's
+  actual registered Custom Elements (`climbing-grade-pyramid`,
+  `climbing-entries-table`, etc.), and this deliberately isn't one.
+- **Scoped tightly to what these three views need**: N bars + M lines
+  over a shared time axis, with real axis labels, data labels on every
+  mark, and a headline-sentence slot baked in as the component's own
+  behavior — not opt-in per caller, so no view can render a chart
+  missing them. Nothing speculative added for chart types this epic
+  doesn't use.
+- **#13's ranked bar-list stays out of it.** Those bars have no axis at
+  all — a horizontal length-plus-label row, structurally different from
+  an axis-based chart — and #13 is its only consumer. Folding it into
+  the same component would be the premature-abstraction version of this
+  idea; it stays as view-local markup.
+
+Interaction design is now decided for all five remaining views (below),
+and so is how they're actually built: hand-rolled SVG, via this one
+shared component for #15/#38/#14.
 
 ### #15 volume & intensity: interaction design
 
