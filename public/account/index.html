@@ -120,50 +120,52 @@
          as every other adminAuth-derived element on this page. -->
     <div class="max-[600px]:mt-8">
       <h2 class="section-heading">Settings</h2>
+      <!-- Row shape below is the same one client/row-card.js builds programmatically for the Performance hub -- keep the two in sync if either changes. -->
       <div class="flex flex-col gap-2 max-w-[420px]" id="account-settings">
-        <div class="row-card" id="athlete-mode-row" hidden>
-          <div class="flex items-center justify-between gap-3">
+        <div class="row-card flex items-center gap-3" id="athlete-mode-row" hidden>
+          <div class="flex-1 min-w-0">
             <span class="row-card-title">Athlete Mode</span>
-            <!-- #457 -- bg-transparent/border-transparent restore the same
-                 native-<button>-chrome override /logbook's own pre-#445
-                 athlete-mode-btn markup always had; missing here since
-                 #445 (a real bug -- without them the browser's own default
-                 button background/border show through as a plain white,
-                 bordered box). -->
-            <button type="button" class="group inline-flex items-center bg-transparent border border-transparent cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" id="athlete-mode-toggle" role="switch" aria-checked="false">
-              <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
-            </button>
+            <!-- #457 -- "performance insights" is the umbrella term for this
+                 feature area; Grade Pyramid is one view under it, not the
+                 thing itself, per Raven's explicit correction elsewhere this
+                 epic -- don't name it here. -->
+            <p class="text-[.82rem] text-muted mt-2">Unlocks performance insights on your Performance page, visible only to you.</p>
           </div>
-          <!-- #457 -- "performance insights" is the umbrella term for this
-               feature area; Grade Pyramid is one view under it, not the
-               thing itself, per Raven's explicit correction elsewhere this
-               epic -- don't name it here. -->
-          <p class="text-[.82rem] text-muted mt-2">Unlocks performance insights on your Performance page, visible only to you.</p>
+          <!-- #457 -- bg-transparent/border-transparent restore the same
+               native-<button>-chrome override /logbook's own pre-#445
+               athlete-mode-btn markup always had; missing here since
+               #445 (a real bug -- without them the browser's own default
+               button background/border show through as a plain white,
+               bordered box). -->
+          <button type="button" class="group inline-flex items-center bg-transparent border border-transparent cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shrink-0" id="athlete-mode-toggle" role="switch" aria-checked="false">
+            <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
+          </button>
         </div>
-        <div class="row-card" id="public-logbook-row" hidden>
-          <div class="flex items-center justify-between gap-3">
+        <div class="row-card flex items-center gap-3" id="public-logbook-row" hidden>
+          <div class="flex-1 min-w-0">
             <span class="row-card-title">Public Logbook</span>
-            <button type="button" class="group inline-flex items-center bg-transparent border border-transparent cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" id="public-logbook-toggle" role="switch" aria-checked="true">
-              <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
-            </button>
+            <p class="text-[.82rem] text-muted mt-2">When on, anyone can view your logbook and map at your public profile page. Turn off to keep them private -- only you can see them.</p>
           </div>
-          <p class="text-[.82rem] text-muted mt-2">When on, anyone can view your logbook and map at your public profile page. Turn off to keep them private -- only you can see them.</p>
+          <button type="button" class="group inline-flex items-center bg-transparent border border-transparent cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shrink-0" id="public-logbook-toggle" role="switch" aria-checked="true">
+            <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
+          </button>
         </div>
         <!-- #443/#546, ADR-0020 -- a button-triggered modal (client/beta-
              opt-in.js), not a switch like the two rows above: this is a
              real consent decision (explanatory copy + two full-sentence
              choices), not a quick instant-toggle preference.
 
-             Row itself is the flex container (not just its top line, like
-             the two switch rows above) -- an invisible two-column layout:
-             the text block on the left takes whatever's left after the
-             button, the button on the right sizes to its own content and
-             never shrinks. Fixes a real layout bug: with the title/text
-             stacked in one column and the button in a separate row above
-             them (the switch rows' own shape), "Manage" being taller than
-             a switch pushed the whole text block down, showing as dead
-             space between the title and the description that the switch
-             rows never had. -->
+             Row itself is the flex container -- an invisible two-column
+             layout: the text block on the left takes whatever's left
+             after the button, the button on the right sizes to its own
+             content and never shrinks. All three rows in this section
+             share this same shape now (#575 migrated the two switch rows
+             above onto it too -- this row used to be the one exception,
+             with the switch rows stacking title/text above the control
+             instead, which caused a real layout bug: "Manage" being
+             taller than a switch pushed the whole text block down,
+             showing as dead space between the title and the description
+             that the switch rows never had). -->
         <div class="row-card flex items-center gap-3" id="beta-opt-in-row" hidden>
           <div class="flex-1 min-w-0">
             <span class="row-card-title">Check our beta</span>

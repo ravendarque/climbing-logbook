@@ -31,9 +31,9 @@
 // own comment on why: shared/individually-cacheable across every bundle),
 // which means esbuild never resolves it on disk at all, just copies the
 // import specifier verbatim into the output bundle. Every composition-root
-// bundle this component ends up in (client/performance-main.js today) is
-// output flatly into public/logbook/*.js, right alongside the one real
-// escape-html.js copy -- so the specifier has to be written relative to
+// bundle this component ends up in (client/performance-pyramid-main.js
+// today) is output flatly into public/logbook/*.js, right alongside the
+// one real escape-html.js copy -- so the specifier has to be written relative to
 // that eventual flat output location, not this file's own source location,
 // or it resolves to a 404 in the browser (caught building #348's
 // /performance page: esbuild failed outright on "../escape-html.js" since

@@ -1,5 +1,5 @@
 // Shared by #348/#351's four newer composition roots' boot() sequences
-// (map-main.js, performance-main.js, log-main.js, profile-main.js) -- the
+// (map-main.js, performance-pyramid-main.js, log-main.js, profile-main.js) -- the
 // identical fetch+parse+ok-check ceremony was hand-copied at each call
 // site behind a comment claiming it wasn't worth sharing "for two call
 // sites each," which undercounted the real duplication (4+ files, several

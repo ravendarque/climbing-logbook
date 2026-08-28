@@ -41,10 +41,11 @@ jobs:
       - run: pnpm run tailwind:build
       # #391 -- these were missing entirely, so /map and /performance 404'd
       # on their JS bundle on every preview deployment (public/logbook/
-      # map-app.js and performance-app.js are gitignored build output --
-      # nothing else ever produces them). See deploy.yml's own comment on
-      # this exact line -- pages:build (package.json) is the one shared
-      # list of page bundles now, not a copy hand-maintained in this file.
+      # map-app.js and the performance-pyramid-app.js/performance-hub-
+      # app.js pair are gitignored build output -- nothing else ever
+      # produces them). See deploy.yml's own comment on this exact line --
+      # pages:build (package.json) is the one shared list of page bundles
+      # now, not a copy hand-maintained in this file.
       - run: pnpm run pages:build
       # D1 migrations aren't auto-applied by `versions upload` any more
       # than `wrangler dev` auto-applies them locally -- the preview D1

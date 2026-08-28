@@ -185,14 +185,15 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
   }
 
   // Shared by #348's newer composition roots' boot() sequences
-  // (map-main.js, performance-main.js, log-main.js) -- default to
+  // (map-main.js, performance-pyramid-main.js, performance-hub-main.js,
+  // log-main.js) -- default to
   // whichever discipline actually has entries (boulder wins if both/
   // neither do), then let a persisted choice override that default once
   // both concurrent requests (checkSession()/fetchSettings(), kicked off
   // by the caller before its own resource loads) are known complete.
   // Order matters: applying the persisted override before the has-entries
   // default would let the default silently clobber it. This exact
-  // sequence was hand-copied identically across all three composition
+  // sequence was hand-copied identically across all four composition
   // roots (found via code review, 2026-08-09) -- exposed as a method here
   // rather than a standalone function since store/persistedDiscipline are
   // already in this factory's own closure, nothing extra to inject.

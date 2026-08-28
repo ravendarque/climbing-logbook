@@ -1,5 +1,5 @@
-// Composition root for /:username/performance (#348) -- bundled by esbuild
-// into public/logbook/performance-app.js, same pattern as client/map-main.js
+// Composition root for /:username/performance/pyramid (#348) -- bundled by esbuild
+// into public/logbook/performance-pyramid-app.js, same pattern as client/map-main.js
 // (see that file's own comment for the general "trimmed from client/main.js"
 // reasoning). Reuses store.js/admin-auth.js/header-chrome.js unchanged;
 // <climbing-grade-pyramid> (#374) replaces client/pyramid-view.js entirely.
@@ -11,7 +11,7 @@
 // entries/cache machinery isn't used on this page at all any more, and
 // there's deliberately no offline fallback: performance insights are
 // online-only (Raven's own call, see the #performance-offline message in
-// public/performance/index.html for the reasoning).
+// public/performance/pyramid/index.html for the reasoning).
 //
 // No modal-utils.js/content-overlays.js here either, same reasoning as
 // map-main.js -- this page has no notes/footnote overlay of its own, and
@@ -38,7 +38,7 @@ function isAuthRedirect(res) {
   return res.type === "opaqueredirect";
 }
 
-// /:username/performance -- same single-segment extraction as map-main.js.
+// /:username/performance/pyramid -- same single-segment extraction as map-main.js.
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 
 const store = createStore();
