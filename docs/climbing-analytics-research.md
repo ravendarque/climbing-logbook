@@ -2,7 +2,11 @@
 
 Research grounding for a future logbook reporting/insights feature (grade pyramid, strengths/weaknesses, drill-downs). This document is research and recommendations only — no implementation.
 
-Status: Draft v1, compiled 2026-07-03.
+Status: Draft v1, compiled 2026-07-03. Extended 2026-08-28 (see §5's
+"Added 2026-08-28" subsection) with additional sources surfaced from
+issue #312's discovery pass — mining a non-citable study's own
+bibliography for legitimate peer-reviewed citations, plus one
+independently-found systematic review.
 
 ---
 
@@ -36,6 +40,8 @@ The most specific, citable version of this heuristic is a roughly 2:1 ratio betw
 Because this specific ratio appears independently in both an early foundational training text (Hörst) and a separate, unrelated coaching organization's writing (Hampton/Power Company Climbing) without one obviously being a copy of the other's specific framing, we treat the 8-4-2-1 structure as a genuinely corroborated coaching convention — **not** a scientifically validated ratio derived from data, but a heuristic two independent respected coaches converged on. Other sources (Send Edition, The Front Climbing Club, Elevated Adventurer, Prowess Coaching) repeat versions of this same ratio, which further indicates it is a widely-adopted industry convention rather than one person's idiosyncratic system — though these secondary sources are lower-tier evidence and we are not resting the claim on them.
 
 **Caveat:** we could not find a peer-reviewed or data-driven study that validates 8-4-2-1 specifically (e.g., testing whether climbers who follow this ratio progress faster than those who don't). It should be presented to users as "a widely used coaching heuristic," not as scientifically proven.
+
+**Added 2026-08-28:** the IRCRA position statement on grading/ability-grouping (Draper et al., 2016 — §5) is a more rigorous, research-community-endorsed adjacent reference point for how climbers get bucketed by grade, though it doesn't validate the 8-4-2-1 ratio itself — it's a citable second source for the pyramid's general tier concept, not a replacement for the existing caveat above.
 
 ### Diagnosing plateau, overreaching, and under-consolidation from pyramid shape
 
@@ -102,7 +108,7 @@ Peer-reviewed and coaching sources converge on a few points that distinguish cli
 
 | Field | Purpose | Justification / Source(s) |
 |---|---|---|
-| **Hold type** (crimp / sloper / jug / pinch / pocket / edge / sidepull / gaston / undercling) | Enables strengths/weaknesses breakdown by grip demand; directly relevant given finger-strength is the strongest single performance determinant in the literature | Standard climbing-hold taxonomy (multiple gym/coaching sources, e.g. Uncarved Block, PRG); grip-strength performance link supported by Buraas, Brobakken & Wang (2025, *Eur J Appl Physiol*) and the Faggian et al. (2024, *J Sport Health Sci*) systematic review |
+| **Hold type** (crimp / sloper / jug / pinch / pocket / edge / sidepull / gaston / undercling) | Enables strengths/weaknesses breakdown by grip demand; directly relevant given finger-strength is the strongest single performance determinant in the literature | Standard climbing-hold taxonomy (multiple gym/coaching sources, e.g. Uncarved Block, PRG); grip-strength performance link supported by Buraas, Brobakken & Wang (2025, *Eur J Appl Physiol*) and the Faggian et al. (2024, *J Sport Health Sci*) systematic review; grip-width/hold-shape specifically changing joint loading supported by Vigouroux, Domalain & Berton (2011, *J Appl Biomech*) — added 2026-08-28, also the strongest evidence basis for prioritizing crimp grip-technique sub-types (full-crimp/half-crimp/drag) if #576's taxonomy expansion is ever picked up |
 | **Wall angle** (slab / vertical / overhang / roof) | Terrain/style breakdown; overhang and roof climbing shift demand toward power/lockoff strength while slab shifts demand toward balance/technique, per movement-pattern literature | Standard terrain taxonomy (multiple gym/coaching sources); consistent with MacLeod's (2010) thesis that plateaus are often technique/terrain-specific rather than general-strength-specific |
 | **Move count (bouldering)** | Rough proxy for problem length/power-endurance demand, letting the app distinguish short-power boulders from longer link-up boulders | Logical proxy consistent with power-endurance concepts in climbing training literature (Bechtel; Hörst); **we found no peer-reviewed validation of move count specifically** — treat as coach-practice-level, not clinically validated |
 | **Route length + clip count (lead)** | Endurance proxy for roped climbing, analogous to move count for boulders | Logical proxy, consistent with general framing that lead/sport climbing emphasizes endurance more than bouldering (multiple climbing-education sources); **no peer-reviewed study found validating clip count as an endurance metric specifically** — flagged as weak/practice-level evidence, include with that caveat |
@@ -110,7 +116,7 @@ Peer-reviewed and coaching sources converge on a few points that distinguish cli
 | **Attempts-to-send** *(proposed addition)* | Core input for pyramid-adjacent diagnostics (e.g., onsight-vs-redpoint-style gap) and for distinguishing efficient sends from grindy ones — a strong signal of whether a grade is truly "consolidated" | Directly supported by the flash/onsight/redpoint distinction central to grade-pyramid practice (Hörst; Hampton/Power Company Climbing) and by 8a.nu-style onsight-to-redpoint gap analysis |
 | **Session RPE** *(proposed addition)* | Training-load proxy, enabling volume/intensity and fatigue-trend insights over time | Validated in climbing specifically via session-RPE research showing large correlations with HR-based load; direct climbing RPE study (Gajdošík, Baláš & Draper, 2020, *Frontiers in Psychology*) — but flag reduced reliability for lower-grade/newer climbers |
 | **Rest interval (between attempts/burns)** *(proposed addition, optional/low-priority)* | Could refine session-RPE-style load calculations for interval-style redpoint sessions | Motivated by session-RPE literature explicitly flagging rest-interval handling as an open research question — include as optional metadata only, not as a basis for firm conclusions, since the underlying method is unsettled |
-| **Injury/pain flag** *(proposed addition)* | Enables correlating spikes in volume/intensity/grade with injury onset — directly relevant to overuse-injury prevention, the single most common climbing injury category | Supported by climbing-specific injury literature: finger flexor pulley injuries are established as the most common overuse injury in climbers (Miro, vanSonnenberg, Sabb & Schöffl, 2021, *Wilderness & Environmental Medicine*, 32(2):247-258), and general overtraining/overreaching literature stresses tracking relative to individual baseline |
+| **Injury/pain flag** *(proposed addition — implemented as move-level tagging, not a flat flag; see #572)* | Enables correlating spikes in volume/intensity/grade with injury onset — directly relevant to overuse-injury prevention, the single most common climbing injury category | Supported by climbing-specific injury literature: finger flexor pulley injuries are established as the most common overuse injury in climbers (Miro, vanSonnenberg, Sabb & Schöffl, 2021, *Wilderness & Environmental Medicine*, 32(2):247-258); broadened 2026-08-28 beyond pulley-specific injury with two additional reviews covering finger-injury incidence/risk factors generally (Jones & Johnson, 2016, *Curr Sports Med Rep*) and injury incidence/management across sport climbing and bouldering (Jones, Schöffl & Johnson, 2018, *Curr Sports Med Rep*); general overtraining/overreaching literature stresses tracking relative to individual baseline |
 | **Weather/conditions** *(considered, not recommended for v1)* | Could explain performance variance (friction/temperature effects on climbing) | Plausible physiologically (temperature/humidity affect friction and finger performance) but we did not find a climbing-specific peer-reviewed source quantifying this for outdoor logbook purposes within the scope of this research pass — **do not include as a justified v1 field; revisit with more targeted research if desired** |
 
 ---
@@ -135,6 +141,8 @@ Being direct about uncertainty, per the brief for this research:
 
 8. **Performance-determinant variance figures are wide and study-dependent.** Different studies cite anthropometric/physiological factors explaining anywhere from ~39% to ~80% of variance in climbing ability depending on methodology, population, and which factors are included — this range itself signals the science is still maturing and single-number claims should be treated cautiously.
 
+9. **Standardized physical performance tests (max-hang %, pull-up counts, etc.) have low construct validity against real climbing ability, per a 156-study systematic review** (Langer, Simon & Wiemeyer, 2023, *Frontiers in Sports and Active Living* — added 2026-08-28, found while verifying a third-party source during issue #312's discovery pass). This directly cautions against ever building a feature that presents a standardized-test benchmark table (e.g. "V6 climbers can typically max-hang X%") with more confidence than the tests themselves actually warrant — relevant if a self-assessment/benchmarking feature is ever considered (see the "not recommended for v1" note this discovery pass added under Areas of Disagreement, and epic #5's own decision to stay send-log-only rather than track physical training/testing data).
+
 ---
 
 ## 5. Full Source List
@@ -154,6 +162,36 @@ Being direct about uncertainty, per the brief for this research:
 6. Session-RPE validation in climbing: a study titled "Monitoring training load in climbing: a validation of the Session RPE method" was identified via ResearchGate (https://www.researchgate.net/publication/390413878_Monitoring_training_load_in_climbing_a_validation_of_the_Session_RPE_method) — full author/journal/year metadata could not be confirmed from the search snippet alone; re-verify before citing with full confidence.
 
 7. General session-RPE methodology background (not climbing-specific): "Session-RPE Method for Training Load Monitoring: Validity, Ecological Usefulness, and Influencing Factors." https://pmc.ncbi.nlm.nih.gov/articles/PMC5673663/
+
+### Peer-reviewed journal articles — added 2026-08-28
+
+Sourced from issue #312's discovery pass: mined from Sanchez, Torregrossa, Woodman, Jones & Llewellyn (2019, *Frontiers in Psychology*, 10:1294, DOI 10.3389/fpsyg.2019.01294) — that article's own findings are not used here (male-only participants, flagged by #312 as an undesirable primary source), but its bibliography pointed to real, independently-verified papers below. Each was independently web-searched to confirm authorship/venue/findability, not trusted from the citation text alone.
+
+7a. MacLeod, D., Sutherland, D. L., Buntin, L., Whitaker, A., Aitchison, T., Watt, I., et al. (2007). "Physiological determinants of climbing-specific finger endurance and sport rock climbing performance." *Journal of Sports Sciences*, 25(12), 1433–1443. DOI: 10.1080/02640410600944550. Paywalled at Taylor & Francis; full text mirrored on ResearchGate. Strengthens the finger-strength/performance-determinant claims already made via Buraas et al. (2025) and Faggian et al. (2024).
+
+7b. Watts, P. B. (2004). "Physiology of difficult rock climbing." *European Journal of Applied Physiology*, 91, 361–372. Freely available (author-hosted PDF via trainingforclimbing.com; also PubMed 14985990). Foundational review of the climbing athlete's physiological profile.
+
+7c. Giles, L. V., Rhodes, E. C., & Taunton, J. E. (2006). "The Physiology of Rock Climbing." *Sports Medicine*, 36, 529–545. Broad, widely-cited review; abstract free, full text likely paywalled.
+
+7d. Sheel, A. W. (2004). "Physiology of sport rock climbing." *British Journal of Sports Medicine*, 38(3), 355–359. DOI: 10.1136/bjsm.2003.008169. **Open access** — https://pmc.ncbi.nlm.nih.gov/articles/PMC1724814/. Review of isometric-forearm-contraction physiology in climbing.
+
+7e. de Geus, B., Villanueva O'Driscoll, S., & Meeusen, R. (2006). "Influence of climbing style on physiological responses during indoor rock climbing on routes with the same difficulty." *European Journal of Applied Physiology*, 98, 489–496. DOI: 10.1007/s00421-006-0287-5. Direct evidence that climbing *style* changes physiological demand at constant grade — supports this app's style/terrain segmentation (#36's `entry_moves`) beyond the informal reasoning already in §1.
+
+7f. España-Romero, V., Jensen, R. L., Sanchez, X., Ostrowski, M. L., Szekely, J. E., & Watts, P. B. (2012). "Physiological responses in rock climbing with repeated ascents." *European Journal of Applied Physiology*, 112, 821–828. Repeated-ascent fatigue/adaptation data, relevant to attempts-to-send and session-load framing.
+
+7g. Draper, N., Giles, D., Schöffl, V., Fuss, F. K., Watts, P., Wolf, P., et al. (2016). "Comparative grading scales, statistical analyses, climber descriptors and ability grouping: IRCRA position statement." *Sports Technology*, 8, 88–94. IRCRA-endorsed (International Rock Climbing Research Association), not a primary study — an actual research-community standard for bucketing/comparing climbers by grade. Multiple open mirrors (HAL, Bayreuth repository). Gives the grade pyramid's tier logic (§1) a more rigorous adjacent reference point than the informal 8-4-2-1 convention alone, though it doesn't replace or validate that specific ratio.
+
+7h. Jones, G., & Johnson, M. I. (2016). "A Critical Review of the Incidence and Risk Factors for Finger Injuries in Rock Climbing." *Current Sports Medicine Reports*, 15(6). Free PDF via Leeds Beckett repository. Broadens the injury evidence base beyond Miro et al.'s pulley-specific focus to finger-injury incidence/risk factors generally, including reinjury risk and adolescent epiphyseal fractures.
+
+7i. Jones, G., Schöffl, V., & Johnson, M. I. (2018). "Incidence, Diagnosis, and Management of Injury in Sport Climbing and Bouldering: A Critical Review." *Current Sports Medicine Reports*, 17(11), 396–401. DOI: 10.1249/JSR.0000000000000534. Free PDF via Leeds Beckett repository. Injury-incidence rates (2.71/1000 hrs) and shoulder-injury coverage, complementing the finger-focused sources above.
+
+7j. Vigouroux, L., Domalain, M., & Berton, E. (2011). "Effect of Object Width on Muscle and Joint Forces During Thumb–Index Finger Grasping." *Journal of Applied Biomechanics*, 27(3), 173–180. Paywalled (Human Kinetics); abstract on ResearchGate. Biomechanical basis for why grip/hold width (crimp vs. open-hand vs. pinch) changes joint loading — directly relevant to §3's hold-type row and to #576's crimp grip-technique taxonomy discussion.
+
+7k. Langer, K., Simon, C., & Wiemeyer, J. (2023). "Physical performance testing in climbing — A systematic review." *Frontiers in Sports and Active Living*, 5:1130812. **Open access** — https://pmc.ncbi.nlm.nih.gov/articles/PMC10203485/. 156-study review of strength/endurance/flexibility test batteries for climbers; found low construct validity for most standardized tests against real climbing ability. Not found via Sanchez et al.'s bibliography — surfaced independently while verifying a third-party source (see §4, point 9).
+
+7l. **Flagged, not independently verified**: Watts, Joubert, Lish, Mast & Wilkins (2003), "Anthropometry of young competitive sport rock climbers," *British Journal of Sports Medicine* — plausible and consistent with Watts' known publication pattern, but not confirmed via an independent search. Do not cite until verified.
+
+7m. **Triaged out as out of scope, not added**: the remaining ~30 references in Sanchez et al.'s bibliography were mostly qualitative-research-methodology textbooks the study's own authors used (not climbing findings), talent-development/coaching-effectiveness citations from other sports, and a real but out-of-scope cluster of climbing psychology/anxiety/imagery studies (Pijpers et al., Sanchez & Dauby, Sanchez et al., Smyth & Waller, Martha et al., Ferrand et al., Boschker et al., Seifert et al.) — peer-reviewed and findable, but addressing a "mental game" dimension this app's current scope doesn't touch. Worth a note for a possible future epic, not this one.
 
 ### Books
 
