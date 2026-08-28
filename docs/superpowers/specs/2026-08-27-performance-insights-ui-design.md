@@ -478,13 +478,50 @@ but implied by the edit flow existing at all.
   either this taxonomy or a separate one.
 - **#574** — persisting Attempts increments immediately rather than on
   form submit (see "Attempts" above for why it's not in v1).
-- **Movement-difficulty taxonomy coverage** — the current `hold_type`
-  vocabulary (crimp/jug/pocket/sloper/pinch/edge for hand;
-  toe-hook/heel-hook/kneebar for foot/knee) is coarse-grained relative to
-  real technique vocabulary, especially at higher grades (crimp grip
-  sub-types, finger count, multi-limb techniques like compression/
-  rollover/cam). Under active discussion as of 2026-08-28 — not yet
-  resolved, so not written up here.
+- **#576** — movement-difficulty taxonomy expansion (contact vocabulary +
+  coordination techniques), full reasoning below.
+
+### Movement-difficulty taxonomy: contact vs. coordination technique
+
+The current `hold_type` vocabulary (crimp/jug/pocket/sloper/pinch/edge
+for hand; toe-hook/heel-hook/kneebar for foot/knee) is coarse-grained
+relative to real technique vocabulary, especially at higher grades —
+raised 2026-08-28 with examples like crimp grip sub-types (full-crimp,
+half-crimp, drag, chisel) and finger count, foot techniques (smear, jam,
+cam, bicycle, frog), and hand techniques (rollover, rose move, hand jam,
+palm-down, compression). Not exhaustive, and deliberately not
+implemented now — but working through *why* it's hard to scope revealed
+a real structural boundary worth recording so it isn't rediscovered from
+scratch later.
+
+**The useful distinction is "position we get to" vs. "move we make."**
+That maps onto two different kinds of thing, only one of which the
+current `entry_moves`/`entry_pain_moves` schema can express:
+
+- **Contact** — what and how *one limb* is engaging something. This is
+  exactly what `hold_type` already models, just with more values needed:
+  crimp sub-types + finger count and mono finger choice (hand); smear and
+  jam added alongside the existing toe-hook/heel-hook (foot). Growing
+  this vocabulary is pure enum expansion — zero structural risk, already
+  anticipated by this doc's "full enumerated list is an implementation-
+  time detail" language elsewhere. Hand jam is a borderline case that
+  likely also belongs here (a hold_type variant, "crack"), not below.
+- **Coordination technique** — how *two limbs* work together: compression
+  (both arms pulling in), cam/bicycle/frog (both feet in opposition),
+  rollover/rose move (one arm crossing over/under the other). These
+  cannot be expressed as a single `entry_moves` row with one `limb`
+  value — there's no way to pick "the" limb without losing the pairing
+  that's the actual point of the technique. Palm-down is a borderline
+  case that might turn out to be a `movement_style` variant rather than
+  a coordination technique proper — needs its own look, not decided here.
+
+**Recommendation, not yet actioned**: ship the current single-limb
+schema as-is for v1 — it already captures real signal and doesn't need
+to change to grow its contact vocabulary later. Coordination-technique
+tagging is a genuinely different feature (needs a concept the schema
+doesn't have yet, maybe a move referencing two limb-slots, maybe
+something else) and deserves its own design pass rather than being
+squeezed into this one. Filed as #576, not blocking Phase 1/2 delivery.
 
 ## Testing
 
