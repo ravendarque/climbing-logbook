@@ -31,7 +31,7 @@ test("renders the shared chrome and a real grade pyramid, and switches disciplin
     settings: { athleteMode: true, activeDiscipline: "boulder" },
     pyramidData: PYRAMID_DATA,
   });
-  await page.goto("/e2e-fixtures/pages/performance.html");
+  await page.goto("/e2e-fixtures/pages/performance-pyramid.html");
 
   await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
   await expect(page.locator("climbing-tab-bar a", { hasText: "Grade Pyramid" })).toHaveAttribute("aria-current", "page");
@@ -56,7 +56,7 @@ test("renders the shared chrome and a real grade pyramid, and switches disciplin
 test("shows the offline message instead of a pyramid when the fetch fails", async ({ page }) => {
   await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
   await page.route("**/logbook/api/performance/pyramid", route => route.fulfill({ status: 500 }));
-  await page.goto("/e2e-fixtures/pages/performance.html");
+  await page.goto("/e2e-fixtures/pages/performance-pyramid.html");
 
   await expect(page.locator("#performance-offline")).toBeVisible();
   await expect(page.locator("climbing-grade-pyramid")).toBeHidden();
