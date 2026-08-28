@@ -374,6 +374,100 @@ unclear.
   separately-scoped work — not something to improvise per insight at
   render time.
 
+## Entry form
+
+Where all of the above data actually gets captured: a new **"Performance
+data"** section appended to the existing add/edit entry modal
+(`client/entry-form.js`, `public/log/index.html`'s `#entry-form`) — not a
+separate page or flow. Athlete-Mode-gated per #40's existing design, same
+as every other coaching field. Grounded in the real form's current
+structure (a flat sequence of labeled fields, no `<section>` wrappers
+today) and its offline model: the whole entry is built as one plain object
+and queued atomically on submit (`queue.push({kind:"entry", op, record})`)
+— any new flat field rides through this for free.
+
+Order, top to bottom: **Exertion, Attempts, Move difficulty, Pain/injury
+during this climb.**
+
+### Exertion
+
+A 0–100% slider in 10% increments (11 stops), not a raw 1–10 number —
+friendlier at a glance than the underlying RPE scale it's built on (see
+#563). **Conditionally visible: only rendered when the entry's status is
+Send or Flash.** Not gated with an explanatory caption ("sends only") —
+just genuinely absent from the DOM for Project/Checkout/Archived, since a
+field that isn't there needs no explanation. Exertion is a property of
+having sent the climb, not of an unsent attempt.
+
+### Attempts
+
+A stepper — `−` / count (3-digit-wide, centered) / `+` — not a typed
+number field, per the low-friction/glove-friendly requirement.
+
+**Saves immediately on each tap, independent of the form's own Submit
+button**, in edit mode only — same PATCH-on-change pattern
+`client/admin-auth.js`'s `setAthleteMode`/`setLogbookPublic` already use,
+not queued as part of the eventual full-entry save. A boulder/route can
+sit as a project across many hours or multiple separate sessions before
+it's finally sent; the modal itself won't realistically stay open that
+whole time (mobile tabs get evicted), so waiting for the full-form submit
+to persist each `+` tap risks losing real attempts. Add mode has no entry
+id to PATCH against yet, so there the count is just local state, included
+in the initial creation POST like every other field — the multi-hour risk
+only exists for entries that already exist.
+
+### Move difficulty
+
+Two labeled sub-lists, unchanged from the `entry_moves` data model design
+above: **"Hardest moves for you"** and **"Easiest moves for you"**, each
+starting empty with its own "+ Add a move" button. Each added row is a
+small card:
+
+- A captioned 2×2 field grid — **Limb**, **Hold type**, **Movement**,
+  **Wall angle** — each dropdown's own tiny label sits above it, since a
+  bare value chip ("Sloper", "Roof") means nothing without knowing which
+  dimension it belongs to.
+- The grid is `grid-template-columns: repeat(auto-fit, minmax(85px,
+  1fr))` (or similar) — **one row of four on a wide viewport, two rows of
+  two on the narrow modal**, same markup either way, no manual breakpoint.
+- A remove control sits above the grid, not inside it, so both grid rows
+  stay evenly split rather than one row absorbing the remove button's
+  space.
+
+Cascading behavior (limb filters hold_type options, which filters
+movement_style options) as designed earlier in this doc.
+
+### Pain / injury during this climb
+
+One list, same card/grid shape and cascading-dropdown component as Move
+difficulty (DRY — same code, bound to `entry_pain_moves` instead of
+`entry_moves`), just "+ Add a move" with **no checkbox**. Zero rows means
+no pain logged; one or more rows means yes — the presence of rows *is*
+the flag, so a separate boolean toggle would just be redundant state that
+could drift out of sync with the list.
+
+**Open question this raises for #564**: `entries.pain_flag` was designed
+as an independent per-entry boolean, but the form no longer captures it
+directly — nothing sets it except this list. Recommendation: drop #564
+and have #39 query `entry_pain_moves` presence directly (`EXISTS`/count),
+rather than keep a flat column that only mirrors derivable state. The
+tradeoff is a join instead of an indexed boolean for #39's log filter —
+worth it now, revisit only if that join is ever a measured problem, not
+a hypothetical one. **Not yet actioned** — pending Raven's confirmation
+before #564 gets closed/repurposed.
+
+### Offline
+
+`entry_moves`/`entry_pain_moves` rows travel as nested arrays on the same
+entry object the offline queue already treats as one atomic record (e.g.
+`entry.moves: [...]`, `entry.painMoves: [...]`) — the server's upsert
+diffs-and-replaces those child rows by `entry_id` when it handles the
+save, same "whole entry is the atomic offline-queueable unit" model as
+today, just with two more array fields on it. Attempts is the one
+deliberate exception (see above) — it bypasses the queue-on-submit model
+entirely in favor of immediate persistence, because losing it silently
+would be worse than a slightly different sync story for that one field.
+
 ## Testing
 
 Same three-layer pattern already used throughout this codebase: Vitest for
@@ -381,6 +475,8 @@ any pure aggregation logic (the `entry_moves`/`entry_pain_moves` ranking
 and confidence-gate math, the RPE-vs-grade framing, the attempts-to-send
 bucketing), Playwright e2e against each new static shell + composition
 root (same `mockApi()`-based fixture-harness pattern as `log-page.spec.js`
-etc.), and real-browser verification for the hub's tile layout/navigation,
-the shared card component's two variants (switch control vs. "View"
-button), and the shared time-window control.
+etc.) plus the entry form's new section and its offline/immediate-save
+behavior, and real-browser verification for the hub's tile layout/
+navigation, the shared card component's two variants (switch control vs.
+"View" button), the shared time-window control, and the move-difficulty
+grid's responsive reflow.
