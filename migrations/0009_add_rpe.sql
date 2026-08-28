@@ -1,0 +1,14 @@
+-- Perceived exertion, recorded per climb, not per session (#563, epic #5
+-- Phase 1) -- gates #38 (RPE/effort trend view). Deliberately no
+-- session concept in this schema: the foundation stays a logbook of
+-- individual climbs -- see docs/superpowers/specs/2026-08-27-performance-insights-ui-design.md's
+-- "Data model" section for the full reasoning.
+--
+-- Stored as 0-100 (the entry form's Exertion percentage slider, in
+-- steps of 10), not a raw 1-10 RPE value -- friendlier at a glance than
+-- the underlying RPE scale it's built on, per the spec doc's "Exertion"
+-- section. The column keeps the `rpe` name for citation traceability
+-- (docs/climbing-analytics-research.md's Gajdošík et al. 2020 source).
+-- The CHECK enforces the value range only, not the step-of-10 -- that's
+-- a UI convenience, not a real data-integrity boundary.
+ALTER TABLE entries ADD COLUMN rpe INTEGER CHECK (rpe IS NULL OR (rpe >= 0 AND rpe <= 100));

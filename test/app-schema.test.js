@@ -322,3 +322,41 @@ describe("entries.attempts_to_send (#37)", () => {
     ).rejects.toThrow(/CHECK/);
   });
 });
+
+describe("entries.rpe (#563)", () => {
+  it("defaults to null and accepts a value in [0, 100]", async () => {
+    const userId = await seedUser();
+    const locationId = await seedLocation(userId);
+    const placeId = await seedPlace(userId, locationId);
+
+    await env.LOGBOOK_DB
+      .prepare(
+        `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id)
+         VALUES ('entry-1', ?, ?, 'Test', '7A', 'boulder', 'send')`
+      )
+      .bind(userId, placeId)
+      .run();
+    const noValue = await env.LOGBOOK_DB.prepare(`SELECT rpe FROM entries WHERE id = 'entry-1'`).first();
+    expect(noValue.rpe).toBeNull();
+
+    await env.LOGBOOK_DB.prepare(`UPDATE entries SET rpe = 70 WHERE id = 'entry-1'`).run();
+    const withValue = await env.LOGBOOK_DB.prepare(`SELECT rpe FROM entries WHERE id = 'entry-1'`).first();
+    expect(withValue.rpe).toBe(70);
+  });
+
+  it("rejects an rpe outside 0-100", async () => {
+    const userId = await seedUser();
+    const locationId = await seedLocation(userId);
+    const placeId = await seedPlace(userId, locationId);
+
+    await expect(
+      env.LOGBOOK_DB
+        .prepare(
+          `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id, rpe)
+           VALUES ('entry-1', ?, ?, 'Test', '7A', 'boulder', 'send', 150)`
+        )
+        .bind(userId, placeId)
+        .run()
+    ).rejects.toThrow(/CHECK/);
+  });
+});
