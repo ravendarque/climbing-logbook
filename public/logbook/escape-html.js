@@ -1,10 +1,9 @@
-// Round-tripping through a text node (via div.innerHTML) escapes &, <, >
-// but not quotes -- text-node serialization only escapes quotes in
-// attribute-value context, not text content. Since this is used to build
-// both text content AND quoted HTML attributes (data-*, href), quotes are
-// encoded explicitly so it's safe in either context.
+// Encodes five HTML special characters: &, <, >, ", '. These are sufficient
+// to make string safe in both text content and quoted HTML attributes
+// (data-*, href). Uses pure string replacement (no DOM) so it works in both
+// browser and server contexts (@cloudflare/vitest-pool-workers, which has no
+// document global, needs this for tests).
+const ESCAPES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 export function escapeHtml(str) {
-  const div = document.createElement("div");
-  div.textContent = str ?? "";
-  return div.innerHTML.replaceAll('"', "&quot;").replaceAll("'", "&#39;");
+  return String(str ?? "").replace(/[&<>"']/g, c => ESCAPES[c]);
 }
