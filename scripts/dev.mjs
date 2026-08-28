@@ -76,7 +76,7 @@ console.log("==> Starting dev server");
 // package.json for anyone who wants to run it standalone.
 const dev = spawn("concurrently", [
   "-n", "vite,tailwind,map,performance-pyramid,performance-hub,log,profile,account,account-edit,account-import,sync",
-  "-c", "blue,magenta,yellow,cyan,white,gray,blue,magenta,cyan,yellow,gray",
+  "-c", "blue,magenta,yellow,cyan,white,gray,blue,magenta,yellow,cyan,white",
   "vite dev",
   "tailwindcss -i ./styles/tailwind.css -o ./public/logbook/tailwind.css --watch",
   "pnpm run map:watch",

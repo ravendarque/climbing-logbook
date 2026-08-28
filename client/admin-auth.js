@@ -193,7 +193,7 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
   // by the caller before its own resource loads) are known complete.
   // Order matters: applying the persisted override before the has-entries
   // default would let the default silently clobber it. This exact
-  // sequence was hand-copied identically across all three composition
+  // sequence was hand-copied identically across all four composition
   // roots (found via code review, 2026-08-09) -- exposed as a method here
   // rather than a standalone function since store/persistedDiscipline are
   // already in this factory's own closure, nothing extra to inject.

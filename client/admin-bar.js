@@ -4,7 +4,7 @@
 // -- login-toggle-btn/menu-username/my-account-link and the tab-bar's
 // show-performance attribute (the #151 rule: Grade Pyramid needs BOTH
 // login AND Athlete Mode on) were hand-copied identically across the
-// first three, with no comment acknowledging the duplication (found via
+// first four, with no comment acknowledging the duplication (found via
 // code review, 2026-08-09). addBtn/offlineSync are optional -- only
 // log-main.js has them (the one page that actually writes data). tabBar
 // is optional too (#302) -- the account pages have no <climbing-tab-bar>
