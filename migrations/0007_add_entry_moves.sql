@@ -13,6 +13,15 @@
 -- already gets (too limb-dependent for a flat CHECK). The
 -- movement_style CHECK below enforces the one cross-column rule the
 -- taxonomy actually has: lockoff is a hand-only movement style.
+--
+-- IMPORTANT: The ON DELETE CASCADE constraint is a backstop for a
+-- hard-delete path that does not currently exist. Entries are
+-- soft-deleted in production (UPDATE entries SET deleted_at = ... NOT
+-- DELETE FROM entries), so the cascade will not fire in normal operation.
+-- Phase 2 aggregation queries that read this table directly must
+-- explicitly filter deleted entries themselves: WHERE entries.deleted_at
+-- IS NULL, the same pattern d1-resource.js uses for the entries table
+-- itself via its excludeDeleted option.
 CREATE TABLE entry_moves (
   id             TEXT PRIMARY KEY,
   entry_id       TEXT NOT NULL REFERENCES entries(id) ON DELETE CASCADE,
