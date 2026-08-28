@@ -34,7 +34,9 @@ test("renders the shared chrome and a real grade pyramid, and switches disciplin
   await page.goto("/e2e-fixtures/pages/performance-pyramid.html");
 
   await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
-  await expect(page.locator("climbing-tab-bar a", { hasText: "Grade Pyramid" })).toHaveAttribute("aria-current", "page");
+  // "Performance Insights", not "Grade Pyramid" -- the tab label covers
+  // the whole hub now (#575), not just this one sub-page.
+  await expect(page.locator("climbing-tab-bar a", { hasText: "Performance Insights" })).toHaveAttribute("aria-current", "page");
 
   await expect(page.locator("#pyramid")).toBeVisible();
   await expect(page.locator("#pyramid")).not.toBeEmpty();
