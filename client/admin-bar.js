@@ -1,5 +1,6 @@
 // Shared by #348's owner-only composition roots (map-main.js,
-// performance-main.js, log-main.js, account-main.js, account-edit-main.js)
+// performance-pyramid-main.js, performance-hub-main.js, log-main.js,
+// account-main.js, account-edit-main.js)
 // -- login-toggle-btn/menu-username/my-account-link and the tab-bar's
 // show-performance attribute (the #151 rule: Grade Pyramid needs BOTH
 // login AND Athlete Mode on) were hand-copied identically across the

@@ -66,7 +66,7 @@ test("Grade Pyramid is never present -- no <climbing-tab-bar>, no pyramid tab/ma
   await expect(page.locator('#view-tabs [data-view="pyramid"]')).toHaveCount(0);
   await expect(page.locator("climbing-grade-pyramid")).toHaveCount(0);
   await expect(page.locator("#citations-overlay")).toHaveCount(0);
-  expect(requests.some(url => url.includes("performance-app.js"))).toBe(false);
+  expect(requests.some(url => url.includes("performance-pyramid-app.js") || url.includes("performance-hub-app.js"))).toBe(false);
 });
 
 test("Map tab (#333) switches to a real read-only map and back, without a page navigation", async ({ page }) => {

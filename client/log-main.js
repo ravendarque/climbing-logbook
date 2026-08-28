@@ -1,14 +1,14 @@
 // Composition root for /:username/log (#348) -- bundled by esbuild into
 // public/logbook/log-app.js, same pattern as client/map-main.js/
-// client/performance-main.js (see either file's own comment for the
-// general "trimmed from client/main.js" reasoning). This is the largest
-// of the three: it's the one page that actually writes data, so it pulls
-// in entry-form.js/place-picker.js/offline-sync.js on top of what
-// map/performance needed.
+// client/performance-pyramid-main.js (see either file's own comment for
+// the general "trimmed from client/main.js" reasoning). This is the
+// largest of the three: it's the one page that actually writes data, so
+// it pulls in entry-form.js/place-picker.js/offline-sync.js on top of
+// what map/performance needed.
 //
 // <climbing-entries-table> (#350) replaces client/logbook-view.js
 // entirely -- same "no old view-module import" pattern as
-// client/performance-main.js's <climbing-grade-pyramid>. Always
+// client/performance-pyramid-main.js's <climbing-grade-pyramid>. Always
 // `editable` (a plain HTML attribute in public/log/index.html, not set
 // here) -- this page is owner-only by construction (owned-routes.js's
 // session check), unlike a hypothetical future public/read-only consumer
@@ -50,7 +50,7 @@ const QUEUE_KEY = "logbook_pending_queue";
 // Same opaqueredirect-detection reasoning as client/main.js's own
 // adminFetch/isAuthRedirect -- unchanged copy, not worth sharing a
 // two-line pair across a module boundary (same call map-main.js/
-// performance-main.js made).
+// performance-pyramid-main.js/performance-hub-main.js made).
 function adminFetch(url, options) {
   return fetch(url, { ...options, redirect: "manual" });
 }
@@ -59,7 +59,7 @@ function isAuthRedirect(res) {
 }
 
 // /:username/log -- same single-segment extraction as map-main.js/
-// performance-main.js.
+// performance-pyramid-main.js/performance-hub-main.js.
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 
 const store = createStore();

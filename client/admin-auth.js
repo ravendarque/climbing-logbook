@@ -185,7 +185,8 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
   }
 
   // Shared by #348's newer composition roots' boot() sequences
-  // (map-main.js, performance-main.js, log-main.js) -- default to
+  // (map-main.js, performance-pyramid-main.js, performance-hub-main.js,
+  // log-main.js) -- default to
   // whichever discipline actually has entries (boulder wins if both/
   // neither do), then let a persisted choice override that default once
   // both concurrent requests (checkSession()/fetchSettings(), kicked off

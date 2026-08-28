@@ -13,15 +13,18 @@
 // there's no dynamic data driving those two rows. What's shared there is
 // the visual shape (copied by hand, verified by eye/e2e), not this
 // function's invocation.
-import { escapeHtml } from "../public/logbook/escape-html.js";
+import { escapeHtml } from "./escape-html.js";
 
 // Text column (flex-1 min-w-0): title, optional description, optional
 // accent-colored status line -- exact classes match beta-opt-in-row's
-// own already-correct markup in public/account/index.html. Control
-// column (shrink-0) is caller-supplied HTML, not escaped here -- the
-// caller owns its own safety (e.g. a plain <a>/<button> built from a
-// trusted, already-encoded href), same as every other "trusted markup
-// fragment passed in" case in this codebase.
+// own already-correct markup in public/account/index.html. Control column
+// is caller-supplied HTML, not escaped here -- the caller owns its own
+// safety (e.g. a plain <a>/<button> built from a trusted, already-encoded
+// href), same as every other "trusted markup fragment passed in" case in
+// this codebase. shrink-0 is NOT applied to the wrapping div here -- the
+// caller's own control element carries it (matches beta-opt-in-row's
+// original markup, where shrink-0 lives on the button itself, not a
+// wrapper); applying it on both would be redundant.
 export function rowCardHtml({ id, title, description, status, controlHtml }) {
   const statusHtml = status
     ? `<p class="text-[.78rem] text-accent mt-1">${escapeHtml(status)}</p>`
@@ -36,6 +39,6 @@ export function rowCardHtml({ id, title, description, status, controlHtml }) {
       ${descriptionHtml}
       ${statusHtml}
     </div>
-    <div class="shrink-0">${controlHtml}</div>
+    <div>${controlHtml}</div>
   </div>`;
 }

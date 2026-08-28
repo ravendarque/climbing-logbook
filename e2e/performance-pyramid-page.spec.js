@@ -1,14 +1,15 @@
 // #413 (Tier 2 follow-up to #407) -- composition-root-wiring coverage for
-// /:username/performance. Same fixture-harness pattern as
+// /:username/performance/pyramid. Same fixture-harness pattern as
 // e2e/log-page.spec.js (see that file's own header comment) -- the real
-// client/performance-main.js -> performance-app.js bundle against a
-// verbatim copy of public/performance/index.html, with fabricated
-// /logbook/api/* responses. athleteMode: true is required in the mocked
-// settings response -- client/performance-main.js redirects to /log
-// otherwise (#151's rule: Grade Pyramid needs both login AND Athlete
-// Mode). Citations-overlay Escape-close (climbing-grade-pyramid.js's own
-// behavior, not this composition root's) is covered separately by
-// e2e/component-harnesses.spec.js (#407 Tier 1) -- not duplicated here.
+// client/performance-pyramid-main.js -> performance-pyramid-app.js bundle
+// against a verbatim copy of public/performance/pyramid/index.html, with
+// fabricated /logbook/api/* responses. athleteMode: true is required in
+// the mocked settings response -- client/performance-pyramid-main.js
+// redirects to /log otherwise (#151's rule: Grade Pyramid needs both
+// login AND Athlete Mode). Citations-overlay Escape-close
+// (climbing-grade-pyramid.js's own behavior, not this composition root's)
+// is covered separately by e2e/component-harnesses.spec.js (#407 Tier 1)
+// -- not duplicated here.
 //
 // #111 -- this page fetches an already-computed pyramid, not raw entries
 // (see mock-api.js's own pyramidData option). Expected shapes are built

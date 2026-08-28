@@ -53,7 +53,7 @@ function encodePathSegment(value) {
 const TABS = [
   { page: "log", label: "Logbook" },
   { page: "map", label: "Map" },
-  // Grade Pyramid requires BOTH being logged in AND Athlete Mode on
+  // Performance Insights requires BOTH being logged in AND Athlete Mode on
   // (#151, carried forward from /logbook's own updateAdminBar() rule) --
   // gated by the show-performance attribute below, not hardcoded here.
   { page: "performance", label: "Performance Insights", requiresPerformance: true },

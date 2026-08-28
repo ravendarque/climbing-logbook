@@ -105,6 +105,15 @@ describe("owned route authorization", () => {
     expect(html).toContain('src="/logbook/performance-hub-app.js"');
   });
 
+  it("serves the real static shell for performance/pyramid", async () => {
+    const { cookie } = await createAuthedSession({ username: "pyramidshelluser", hostname: "climbinglogbook.com" });
+    const res = await fetchOwnedRoute("pyramidshelluser", "performance/pyramid", { cookie });
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain("<climbing-grade-pyramid");
+    expect(html).toContain('src="/logbook/performance-pyramid-app.js"');
+  });
+
   it("serves the real static shell for log", async () => {
     const { cookie } = await createAuthedSession({ username: "logshelluser", hostname: "climbinglogbook.com" });
     const res = await fetchOwnedRoute("logshelluser", "log", { cookie });

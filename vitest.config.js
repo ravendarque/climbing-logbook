@@ -1,3 +1,4 @@
+import path from "node:path";
 import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-pool-workers";
 import { defineConfig } from "vitest/config";
 
@@ -26,6 +27,19 @@ export default defineConfig({
     // empirically to comfortably clear the previous 5000ms default on the
     // first test that touches the fetch handler in a fresh isolate.
     testTimeout: 20000,
+  },
+  resolve: {
+    // client/row-card.js imports escapeHtml via the literal specifier
+    // "./escape-html.js", same convention every other client/*.js module
+    // uses -- esbuild resolves it at bundle time via --external:./escape-
+    // html.js (the bundled output always lands flat in public/logbook/,
+    // where that relative path is correct at runtime), but Vitest does
+    // real filesystem resolution, and no ./escape-html.js file exists
+    // relative to client/. This alias points that same specifier at the
+    // real implementation (public/logbook/escape-html.js) for tests only.
+    alias: {
+      "./escape-html.js": path.resolve(import.meta.dirname, "public/logbook/escape-html.js"),
+    },
   },
   plugins: [
     cloudflareTest({
