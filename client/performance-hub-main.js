@@ -35,6 +35,12 @@ const INSIGHTS = [
     description: "Browse every climb where something hurt, and see which moves your pain flags cluster around.",
     route: "injury",
   },
+  {
+    id: "insight-strengths",
+    title: "Strengths / Weaknesses",
+    description: "See which hold types, wall angles, and movements are your weakest combination, and drill into any one of them.",
+    route: "strengths",
+  },
 ];
 
 function adminFetch(url, options) {
