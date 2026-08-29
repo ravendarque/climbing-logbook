@@ -20,6 +20,9 @@ import { createStore } from "./store.js";
 import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
 import { syncAdminBar } from "./admin-bar.js";
+import { describeCluster } from "../shared/injury-stats.js";
+import { escapeHtml } from "./escape-html.js";
+import { formatDate } from "../shared/date-helpers.js";
 import "./components/climbing-menu-bar.js";
 import "./components/climbing-tab-bar.js";
 
@@ -86,9 +89,36 @@ if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/logbook/sw.js").catch(() => {});
 }
 
-function renderInjuryLog(data) {
-  // Task 4 fills this in.
-  injuryRootEl.textContent = JSON.stringify(data);
+function logRowHtml(entry) {
+  const moves = entry.painMoves
+    .map(m => `${escapeHtml(m.side)} ${escapeHtml(m.limb)} ${escapeHtml(m.holdType)}`)
+    .join(", ");
+  return `<div class="row-card" id="injury-log-${escapeHtml(entry.id)}">
+    <span class="row-card-title">${escapeHtml(entry.name)}</span>
+    <p class="text-[.82rem] text-muted mt-1">${escapeHtml(formatDate(entry.date))}</p>
+    <p class="text-[.82rem] text-foreground mt-1">${moves}</p>
+  </div>`;
+}
+
+// No evidence-tier chip here (unlike the pyramid's citations/evidence
+// overlays) -- design doc's own explicit call: this is the app's own data
+// overlay, not a sourced external claim. The caveat line below is
+// required regardless of that, though -- research doc's own framing
+// ("a pattern-noticing tool, not medical advice") applies to the whole
+// view, not just the headline, so it's rendered unconditionally, not only
+// alongside a cluster.
+const CAVEAT_HTML = `<p class="text-[.75rem] text-muted mb-3" id="injury-caveat">A pattern-noticing tool, not medical advice.</p>`;
+
+function renderInjuryLog({ log, cluster }) {
+  const headlineHtml = cluster
+    ? `<p class="text-[.95rem] font-semibold text-foreground mb-4" id="injury-headline">${escapeHtml(describeCluster(cluster))}</p>`
+    : `<p class="text-[.85rem] text-muted mb-4" id="injury-headline">Not enough data yet to spot a pattern -- keep tagging pain moves as they come up.</p>`;
+
+  const logHtml = log.length
+    ? `<div class="flex flex-col gap-2" id="injury-log-list">${log.map(logRowHtml).join("")}</div>`
+    : `<p class="text-[.85rem] text-muted" id="injury-log-empty">No pain flags logged yet. This is a good thing.</p>`;
+
+  injuryRootEl.innerHTML = CAVEAT_HTML + headlineHtml + logHtml;
 }
 
 async function boot() {
