@@ -25,6 +25,20 @@ test.use({ storageState: { cookies: [], origins: [] } });
 // waitForTurnstile()'s getResponse() wait below both still exercise the
 // exact same code paths they did against the real widget, just without
 // the real network dependency.
+//
+// #587 -- this only ever covered the CLIENT-side widget script. The
+// SERVER-side siteverify call that register.js's submit ultimately
+// triggers (createTurnstileHook, server/lib/turnstile.js) was still a
+// real, unmocked POST to challenges.cloudflare.com on every request this
+// suite makes, including under wrangler dev here -- an observed source of
+// intermittent failures under full-suite load (2026-08-29). That's now
+// handled server-side instead of here: createTurnstileHook itself
+// recognizes the dummy TURNSTILE_SECRET_KEY this suite already runs with
+// (.dev.vars, set by CI in .github/workflows/e2e.yml) and skips the real
+// request entirely, synthesizing Cloudflare's own documented deterministic
+// response for that secret. Nothing in this file needs to stub that call
+// itself -- with both the client widget and the server siteverify call
+// mocked out, this suite no longer depends on real network access at all.
 async function mockTurnstile(page) {
   await page.route("https://challenges.cloudflare.com/turnstile/v0/api.js**", route =>
     route.fulfill({
