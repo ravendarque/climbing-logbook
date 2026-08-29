@@ -37,7 +37,7 @@
 // own import of this same module, found while building #348's
 // /performance page.
 import { escapeHtml } from "./escape-html.js";
-import { formatDate } from "../date-helpers.js";
+import { formatDate } from "../../shared/date-helpers.js";
 import { activeGradeList, filteredEntries, groupByPlace, placeOf, sortEntries } from "../entries.js";
 import { gradeColor } from "../../shared/grade-data.js";
 import { combinedFlashLabel, combinedSendLabel, disciplineLabel, flashLabel, hydrateStatusIcons, sendLabel, statusBadge } from "../status.js";
