@@ -113,21 +113,47 @@ async function replaceMovesAndPainMoves(env, entryId, record) {
   await replaceChildRows(env, "entry_pain_moves", entryId, record.painMoves ?? [], buildPainMoveRow);
 }
 
+// D1 (SQLite) caps a single statement at 100 bound parameters -- verified
+// empirically, 101 entry ids in one IN (...) throws D1_ERROR: too many SQL
+// variables. 90 leaves headroom below that limit (not a magic requirement,
+// just a safe round number) -- ids are chunked into batches of at most this
+// many before each query.
+const CHUNK_SIZE = 90;
+
+function chunk(array, size) {
+  const chunks = [];
+  for (let i = 0; i < array.length; i += size) chunks.push(array.slice(i, i + size));
+  return chunks;
+}
+
+// One query per chunk per table, not one unbounded IN (...) -- see
+// CHUNK_SIZE above. Results across all chunks are merged before grouping by
+// entry_id, so the function's return shape/grouping/rows.length===0 early
+// return are unchanged from before chunking.
+async function fetchChildRowsChunked(env, table, ids) {
+  const results = [];
+  for (const idChunk of chunk(ids, CHUNK_SIZE)) {
+    const placeholders = idChunk.map(() => "?").join(",");
+    const res = await env.LOGBOOK_DB.prepare(`SELECT * FROM ${table} WHERE entry_id IN (${placeholders})`).bind(...idChunk).all();
+    results.push(...res.results);
+  }
+  return results;
+}
+
 // Batch-fetched, not one query per entry -- avoids an N+1 query per
 // entries response. Safe against an empty `rows` (returns immediately,
 // no query at all) since IN (...) with zero placeholders is invalid SQL.
 async function attachChildRows(rows, env) {
   if (rows.length === 0) return rows;
   const ids = rows.map(r => r.id);
-  const placeholders = ids.map(() => "?").join(",");
-  const [movesRes, painRes] = await Promise.all([
-    env.LOGBOOK_DB.prepare(`SELECT * FROM entry_moves WHERE entry_id IN (${placeholders})`).bind(...ids).all(),
-    env.LOGBOOK_DB.prepare(`SELECT * FROM entry_pain_moves WHERE entry_id IN (${placeholders})`).bind(...ids).all(),
+  const [movesRows, painRows] = await Promise.all([
+    fetchChildRowsChunked(env, "entry_moves", ids),
+    fetchChildRowsChunked(env, "entry_pain_moves", ids),
   ]);
   const movesByEntry = {};
-  for (const row of movesRes.results) (movesByEntry[row.entry_id] ??= []).push(moveRowToJson(row));
+  for (const row of movesRows) (movesByEntry[row.entry_id] ??= []).push(moveRowToJson(row));
   const painByEntry = {};
-  for (const row of painRes.results) (painByEntry[row.entry_id] ??= []).push(painMoveRowToJson(row));
+  for (const row of painRows) (painByEntry[row.entry_id] ??= []).push(painMoveRowToJson(row));
   return rows.map(row => ({ ...row, moves: movesByEntry[row.id] ?? [], painMoves: painByEntry[row.id] ?? [] }));
 }
 

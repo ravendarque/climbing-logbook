@@ -738,6 +738,35 @@ describe("entry_moves / entry_pain_moves", () => {
     const body = await res.json();
     expect(body.error).toBe("moves[0].wallAngle must be one of: slab, vert, overhang, roof");
   });
+
+  // Regression test for a D1 bound-parameter overflow: attachChildRows()
+  // used to build one `IN (?,?,...)` query with one bound param per row,
+  // and D1 (SQLite) hard-caps a statement at 100 bound params -- verified
+  // empirically, 101 params throws D1_ERROR: too many SQL variables. 105
+  // entries is enough to exercise more than one full 90-id chunk plus a
+  // remainder (see CHUNK_SIZE in server/api/logbook.js) without slowing the
+  // suite down further than needed to prove the chunking works. Before the
+  // chunk-and-merge fix, this GET throws/500s once past 100 entries; after
+  // it, every entry's moves/painMoves come back (empty arrays here, since
+  // none of these entries have any child rows).
+  // 105 sequential real HTTP+D1 round trips run well under the suite's
+  // default 20s testTimeout in isolation (~1s), but the full suite's
+  // parallel Workers-pool instances contend for the same resources, which
+  // this test's unusually large number of awaited requests feels more than
+  // any other single test in the file -- a longer explicit timeout, not a
+  // change to the shared default, absorbs that contention.
+  it("a plain GET succeeds and returns every entry once entry count crosses the 100-bound-parameter chunk boundary", async () => {
+    for (let i = 0; i < 105; i++) await post({ ...validEntry(), name: `Route ${i}` });
+
+    const res = await get();
+    expect(res.status).toBe(200);
+    const { entries } = await res.json();
+    expect(entries).toHaveLength(105);
+    for (const entry of entries) {
+      expect(entry.moves).toEqual([]);
+      expect(entry.painMoves).toEqual([]);
+    }
+  }, 60000);
 });
 
 // The one genuinely new security boundary #297 introduces -- no existing
