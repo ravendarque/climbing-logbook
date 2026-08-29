@@ -3,7 +3,7 @@ import { handleImport } from "./api/logbook-import.js";
 import { handleGet as handleGetPlaces, handlePost as handlePostPlaces } from "./api/places.js";
 import { handleGet as handleGetLocations, handlePost as handlePostLocations } from "./api/locations.js";
 import { handleGetSettings, handlePatchSettings } from "./api/settings.js";
-import { handleGetPyramid } from "./api/performance.js";
+import { handleGetInjuryLog, handleGetPyramid } from "./api/performance.js";
 import { handleGetMapCounts } from "./api/map.js";
 import { handlePublicProfile } from "./api/public-profile.js";
 import { handlePublicResource } from "./api/public-data.js";
@@ -36,6 +36,10 @@ const PUBLIC_GET_ROUTES = {
   // the same public-GET convention as every other read here rather than
   // being a special case.
   "/logbook/api/performance/pyramid": handleGetPyramid,
+  // #39 -- same public-GET + server-side-computed convention as the
+  // pyramid route above; /performance/injury itself is owner-only in
+  // practice (owned-routes.js gates the page).
+  "/logbook/api/performance/injury": handleGetInjuryLog,
   // #497 -- Map's own per-country/discipline/status aggregate, same
   // reasoning as the pyramid route above.
   "/logbook/api/map/counts": handleGetMapCounts,

@@ -1,7 +1,8 @@
 import { json } from "../lib/json.js";
 import { listForUser } from "../lib/d1-resource.js";
-import { rowToJson } from "./logbook.js";
+import { attachChildRows, rowToJson } from "./logbook.js";
 import { pyramidSplitRows } from "../../shared/pyramid-stats.js";
+import { painLogEntries, topPainCluster } from "../../shared/injury-stats.js";
 
 // #111 -- computes the Grade Pyramid server-side instead of shipping the
 // full entries array to /performance for the client to compute itself.
@@ -26,5 +27,19 @@ export async function handleGetPyramid(request, env, userId) {
   return json({
     boulder: pyramidSplitRows("boulder", entries),
     lead: pyramidSplitRows("lead", entries),
+  }, 200, { "Cache-Control": "no-store" });
+}
+
+// #39 -- same online-only, computed-server-side convention as
+// handleGetPyramid above: attachChildRows() is what actually needed
+// adding here (handleGetPyramid never called it -- the pyramid doesn't
+// need painMoves), everything else follows that function's own established
+// shape exactly.
+export async function handleGetInjuryLog(request, env, userId) {
+  const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
+  const entries = await attachChildRows(rows, env);
+  return json({
+    log: painLogEntries(entries),
+    cluster: topPainCluster(entries),
   }, 200, { "Cache-Control": "no-store" });
 }

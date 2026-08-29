@@ -9,6 +9,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
 
 const PYRAMID_URL = "/logbook/api/performance/pyramid";
+const INJURY_URL = "/logbook/api/performance/injury";
 const ADMIN_ENTRY_URL = "/logbook/api/admin/logbook";
 
 beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
@@ -32,6 +33,16 @@ function postEntry(overrides = {}, extraCookie = cookie) {
     date: "2026-06-01", // within 12 months of #currentDate (2026-08-21)
     ...overrides,
   }, { Cookie: extraCookie });
+}
+function getInjuryLog(extraCookie = cookie) {
+  return fetchJson(INJURY_URL, { headers: { Cookie: extraCookie } });
+}
+// Matches test/logbook.test.js's own del() convention exactly (#499's
+// soft-delete DELETE ?id= route) -- needed here to prove a soft-deleted
+// entry's pain moves drop out of both the log and the cluster count.
+function del(id, extraCookie = cookie) {
+  const path = id === undefined ? ADMIN_ENTRY_URL : `${ADMIN_ENTRY_URL}?id=${encodeURIComponent(id)}`;
+  return fetchJson(path, { method: "DELETE", headers: { Cookie: extraCookie } });
 }
 
 describe("handleGetPyramid", () => {
@@ -78,5 +89,43 @@ describe("handleGetPyramid", () => {
       boulder: { top4: [], lower: [], hasSends: false, promotedGrade: null },
       lead: { top4: [], lower: [], hasSends: false, promotedGrade: null },
     });
+  });
+});
+
+describe("handleGetInjuryLog", () => {
+  it("returns an empty log and null cluster for a user with no pain-tagged entries", async () => {
+    await postEntry();
+    const res = await getInjuryLog();
+    const body = await res.json();
+    expect(body.log).toEqual([]);
+    expect(body.cluster).toBeNull();
+  });
+
+  it("includes only entries that have at least one pain move", async () => {
+    await postEntry();
+    await postEntry({ name: "Painful Route", painMoves: [{ limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" }] });
+    const res = await getInjuryLog();
+    const { log } = await res.json();
+    expect(log).toHaveLength(1);
+    expect(log[0].name).toBe("Painful Route");
+    expect(log[0].painMoves).toHaveLength(1);
+  });
+
+  it("surfaces a cluster once 5 matching pain moves exist across entries", async () => {
+    for (let i = 0; i < 5; i++) {
+      await postEntry({ name: `Route ${i}`, painMoves: [{ limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "slab" }] });
+    }
+    const res = await getInjuryLog();
+    const { cluster } = await res.json();
+    expect(cluster).toMatchObject({ limb: "foot", side: "right", holdType: "toe-hook", wallAngle: "slab", count: 5 });
+  });
+
+  it("excludes a soft-deleted entry's pain moves from both the log and the cluster count", async () => {
+    const created = await (await postEntry({ painMoves: [{ limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" }] })).json();
+    await del(created.entries[0].id);
+    const res = await getInjuryLog();
+    const body = await res.json();
+    expect(body.log).toEqual([]);
+    expect(body.cluster).toBeNull();
   });
 });
