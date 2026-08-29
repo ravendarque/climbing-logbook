@@ -47,6 +47,12 @@ export function createEntryForm({
   const entryDeleteBtn = document.getElementById("entry-delete-btn");
   const entryMsg      = document.getElementById("entry-msg");
   const statusGroup = document.getElementById("status-group");
+  const exertionField = document.getElementById("exertion-field");
+  const exertionSlider = document.getElementById("exertion-slider");
+  const exertionValue = document.getElementById("exertion-value");
+  const attemptsMinus = document.getElementById("attempts-minus");
+  const attemptsPlus = document.getElementById("attempts-plus");
+  const attemptsCount = document.getElementById("attempts-count");
 
   const placePicker = createPlacePicker({
     store, openModal, closeModal, adminFetch, isAuthRedirect,
@@ -129,8 +135,38 @@ export function createEntryForm({
     const value = e.target.value;
     selectedStatus = value === "flash" ? "send" : value;
     isFlash = value === "flash";
+    updateExertionVisibility();
   });
   hydrateStatusIcons(entryOverlay);
+
+  // Design doc's own rule (docs/superpowers/specs/2026-08-27-performance-
+  // insights-ui-design.md "Exertion") -- visible only when the Status
+  // radio group has Send checked (selectedStatus === "send", true for
+  // both the plain Send and Flash buttons -- Flash isn't its own status
+  // value, see isFlash above). Genuinely removed from the DOM's visible
+  // flow (hidden attribute) rather than shown-but-disabled, since a field
+  // that isn't there needs no explanation -- exertion is a property of
+  // having sent the climb, not of an unsent attempt.
+  function updateExertionVisibility() {
+    exertionField.hidden = selectedStatus !== "send";
+  }
+
+  exertionSlider.addEventListener("input", () => {
+    exertionValue.textContent = `${exertionSlider.value}%`;
+  });
+
+  // #574 -- plain form field for v1 (no immediate-save); value only
+  // persists when the rest of the entry is submitted, same as every
+  // other field. Always visible regardless of status -- a project
+  // accumulates attempts before it's eventually sent, same field either
+  // way.
+  let attemptsValue = 0;
+  function renderAttempts() {
+    attemptsCount.textContent = String(attemptsValue);
+    attemptsMinus.disabled = attemptsValue <= 0;
+  }
+  attemptsMinus.addEventListener("click", () => { attemptsValue = Math.max(0, attemptsValue - 1); renderAttempts(); });
+  attemptsPlus.addEventListener("click", () => { attemptsValue += 1; renderAttempts(); });
 
   function setStatusToggle(status, flash) {
     const value = flash ? "flash" : status;
@@ -179,6 +215,11 @@ export function createEntryForm({
     else selectGradeByIndex(0);
     updateFormStatusLabels();
     setStatusToggle(entry?.status ?? "send", Boolean(entry?.firstAttempt));
+    updateExertionVisibility();
+    exertionSlider.value = entry?.rpe ?? 50;
+    exertionValue.textContent = `${exertionSlider.value}%`;
+    attemptsValue = entry?.attemptsToSend ?? 0;
+    renderAttempts();
 
     openModal(entryOverlay);
     nameInput.focus();
@@ -211,6 +252,8 @@ export function createEntryForm({
       date:   dateInput.value.trim() || null,
       notes:  notesInput.value.trim() || null,
       video:  videoInput.value.trim() || null,
+      rpe: selectedStatus === "send" ? Number(exertionSlider.value) : null,
+      attemptsToSend: attemptsValue,
     };
 
     // #224 -- shape/rule check against the same schema the server enforces,

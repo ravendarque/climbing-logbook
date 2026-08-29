@@ -158,6 +158,21 @@
         </label>
       </fieldset>
 
+      <div class="mt-[1.1rem]" id="exertion-field" hidden>
+        <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Exertion</div>
+        <input type="range" class="w-full accent-accent" id="exertion-slider" min="0" max="100" step="10" value="50" aria-describedby="exertion-value">
+        <div class="text-center text-[.85rem] text-foreground mt-1" id="exertion-value">50%</div>
+      </div>
+
+      <div class="mt-[1.1rem]">
+        <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Attempts</div>
+        <div class="flex items-center justify-center gap-3">
+          <button type="button" class="flex-[0_0_2.75rem] h-[2.75rem] flex items-center justify-center border border-border rounded-app bg-surface text-foreground text-[1.2rem] cursor-pointer hover:border-accent active:scale-[.94] disabled:opacity-[.45] disabled:cursor-not-allowed" id="attempts-minus" aria-label="Decrease attempts">−</button>
+          <span class="w-[3ch] text-center font-bold text-[1.1rem]" id="attempts-count">0</span>
+          <button type="button" class="flex-[0_0_2.75rem] h-[2.75rem] flex items-center justify-center border border-border rounded-app bg-surface text-foreground text-[1.2rem] cursor-pointer hover:border-accent active:scale-[.94]" id="attempts-plus" aria-label="Increase attempts">+</button>
+        </div>
+      </div>
+
       <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]">Notes</div>
       <div class="mb-3">
         <textarea class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground font-sans text-[1rem] outline-none focus:border-accent w-full resize-y min-h-[72px]" id="entry-notes"></textarea>
