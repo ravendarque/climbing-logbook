@@ -32,6 +32,8 @@ export function buildRow(entry, id, userId) {
     date: entry.date || null,
     video: entry.video || null,
     notes: entry.notes || null,
+    attempts_to_send: entry.attemptsToSend ?? null,
+    rpe: entry.rpe ?? null,
     // #499 -- app-level, not a column DEFAULT: D1 rejects a non-constant
     // DEFAULT on ALTER TABLE ADD COLUMN (confirmed empirically, see
     // migrations/0005's own comment), so every insert path populates
@@ -54,6 +56,8 @@ export function rowToJson(row) {
     date: row.date,
     video: row.video,
     notes: row.notes,
+    attemptsToSend: row.attempts_to_send,
+    rpe: row.rpe,
   };
 }
 

@@ -87,6 +87,34 @@ describe("handleGet", () => {
   });
 });
 
+describe("attemptsToSend / rpe", () => {
+  it("round-trips attemptsToSend and rpe through create", async () => {
+    const created = await (await post({ ...validEntry(), attemptsToSend: 5, rpe: 80 })).json();
+    expect(created.entries[0].attemptsToSend).toBe(5);
+    expect(created.entries[0].rpe).toBe(80);
+  });
+
+  it("defaults both to null when omitted", async () => {
+    const created = await (await post(validEntry())).json();
+    expect(created.entries[0].attemptsToSend).toBeNull();
+    expect(created.entries[0].rpe).toBeNull();
+  });
+
+  it("round-trips both through edit", async () => {
+    const created = await (await post(validEntry())).json();
+    const updated = await (await put({ ...created.entries[0], attemptsToSend: 3, rpe: 60 })).json();
+    expect(updated.entries[0].attemptsToSend).toBe(3);
+    expect(updated.entries[0].rpe).toBe(60);
+  });
+
+  it("rejects an invalid rpe on create", async () => {
+    const res = await post({ ...validEntry(), rpe: 55 });
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe("rpe must be a multiple of 10 between 0 and 100");
+  });
+});
+
 // #498 -- /sync's own flat (not per-location) chunked fetch: opt-in via
 // `limit` alone (no locationId), keeping the plain describe("handleGet")
 // block above's "everything, no params" contract completely unchanged.
