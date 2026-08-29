@@ -7,6 +7,7 @@
 import { env } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
+import { MIN_TAG_COUNT } from "../shared/injury-stats.js";
 
 const PYRAMID_URL = "/logbook/api/performance/pyramid";
 const INJURY_URL = "/logbook/api/performance/injury";
@@ -101,6 +102,12 @@ describe("handleGetInjuryLog", () => {
     expect(body.cluster).toBeNull();
   });
 
+  it("returns an empty log and null cluster for an anonymous caller", async () => {
+    const res = await fetchJson(INJURY_URL);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ log: [], cluster: null });
+  });
+
   it("includes only entries that have at least one pain move", async () => {
     await postEntry();
     await postEntry({ name: "Painful Route", painMoves: [{ limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" }] });
@@ -112,12 +119,12 @@ describe("handleGetInjuryLog", () => {
   });
 
   it("surfaces a cluster once 5 matching pain moves exist across entries", async () => {
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < MIN_TAG_COUNT; i++) {
       await postEntry({ name: `Route ${i}`, painMoves: [{ limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "slab" }] });
     }
     const res = await getInjuryLog();
     const { cluster } = await res.json();
-    expect(cluster).toMatchObject({ limb: "foot", side: "right", holdType: "toe-hook", wallAngle: "slab", count: 5 });
+    expect(cluster).toMatchObject({ limb: "foot", side: "right", holdType: "toe-hook", wallAngle: "slab", count: MIN_TAG_COUNT });
   });
 
   it("excludes a soft-deleted entry's pain moves from both the log and the cluster count", async () => {
@@ -127,5 +134,13 @@ describe("handleGetInjuryLog", () => {
     const body = await res.json();
     expect(body.log).toEqual([]);
     expect(body.cluster).toBeNull();
+  });
+
+  it("a second user's own request never reflects the first user's pain-tagged entries", async () => {
+    await postEntry({ painMoves: [{ limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" }] });
+
+    const userB = await createAuthedSession();
+    const res = await getInjuryLog(userB.cookie);
+    expect(await res.json()).toEqual({ log: [], cluster: null });
   });
 });

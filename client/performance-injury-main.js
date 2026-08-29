@@ -1,4 +1,4 @@
-// Composition root for /:username/performance/injury (#348) -- bundled by esbuild
+// Composition root for /:username/performance/injury (#39) -- bundled by esbuild
 // into public/logbook/performance-injury-app.js, same pattern as client/map-main.js
 // (see that file's own comment for the general "trimmed from client/main.js"
 // reasoning). Reuses store.js/admin-auth.js/header-chrome.js unchanged.
@@ -13,9 +13,10 @@
 // public/performance/injury/index.html for the reasoning).
 //
 // No modal-utils.js/content-overlays.js here either, same reasoning as
-// map-main.js -- this page has no notes/footnote overlay of its own, and
-// the pyramid component's citations/evidence-tier overlays are already
-// fully self-contained.
+// map-main.js -- this page has no notes/footnote overlay of its own; the
+// injury log's row cards are plain text, not sourced claims needing a
+// citations/evidence-tier overlay the way the pyramid page's own component
+// does.
 import { createStore } from "./store.js";
 import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
@@ -129,16 +130,17 @@ async function boot() {
 
   await adminAuth.resolveActiveType(sessionPromise, settingsPromise);
 
-  // Grade Pyramid requires BOTH being logged in AND Athlete Mode on (#151,
-  // carried forward from /logbook's own updateAdminBar() rule, and already
-  // encoded in <climbing-tab-bar>'s show-performance attribute -- see that
-  // component's TABS comment). owned-routes.js already guarantees "logged
-  // in as this page's own owner" before this bundle ever loads, so the only
-  // remaining case to handle here is the owner visiting their own
+  // Performance Insights require BOTH being logged in AND Athlete Mode on
+  // (#151, carried forward from /logbook's own updateAdminBar() rule, and
+  // already encoded in <climbing-tab-bar>'s show-performance attribute --
+  // see that component's TABS comment). owned-routes.js already guarantees
+  // "logged in as this page's own owner" before this bundle ever loads, so
+  // the only remaining case to handle here is the owner visiting their own
   // /performance directly with Athlete Mode off -- same fallback
   // client/main.js's updateAdminBar() applies when the tab disappears out
-  // from under an active pyramid view (setActiveView("logbook")), redirect
-  // to this page's own equivalent "somewhere with real content" -- /log.
+  // from under an active performance-injury view (setActiveView("logbook")),
+  // redirect to this page's own equivalent "somewhere with real content" --
+  // /log.
   if (!adminAuth.isAthleteMode()) {
     location.href = `/${encodeURIComponent(USERNAME)}/log`;
     return;
