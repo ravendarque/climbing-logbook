@@ -6,6 +6,12 @@
 import { env } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
+// Task 7 -- this one test block exercises handlePublicGet/publicRowToJson
+// directly rather than through fetchJson/jsonRequest (this file's usual
+// HTTP-contract testing philosophy, see header comment above): it's the
+// exact same (request, env, userId) signature server/api/public-data.js
+// calls it with, not a new testing style for the rest of the file.
+import { handlePublicGet, publicRowToJson } from "../server/api/logbook.js";
 
 const PUBLIC_URL = "/logbook/api/logbook";
 const ADMIN_URL = "/logbook/api/admin/logbook";
@@ -17,12 +23,13 @@ beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
 afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
 
 let cookie;
+let userId;
 let placeId;
 let locationId;
 
 beforeEach(async () => {
   await resetAuthTables();
-  ({ cookie } = await createAuthedSession());
+  ({ cookie, userId } = await createAuthedSession());
   placeId = await seedPlace(cookie);
   locationId = await locationIdOf(placeId);
 });
@@ -814,5 +821,28 @@ describe("cross-user isolation", () => {
     const res = await post({ ...validEntry(), placeId }, userB.cookie);
     expect(res.status).toBe(400);
     expect((await res.json()).error).toBe("placeId does not reference one of your places");
+  });
+});
+
+describe("publicRowToJson / handlePublicGet (Task 7 -- public profile exclusions)", () => {
+  it("publicRowToJson omits rpe and attemptsToSend", () => {
+    const row = { id: "e1", name: "Test", grade: "6B", place_id: "p1", discipline_id: "boulder", status_id: "send", first_attempt: 0, date: "2026-01-01", video: null, notes: null, rpe: 80, attempts_to_send: 5 };
+    const json = publicRowToJson(row);
+    expect(json).not.toHaveProperty("rpe");
+    expect(json).not.toHaveProperty("attemptsToSend");
+    expect(json).toMatchObject({ id: "e1", name: "Test", grade: "6B", placeId: "p1", type: "boulder", status: "send" });
+  });
+
+  it("handlePublicGet's response has no rpe/attemptsToSend/moves/painMoves keys on any entry", async () => {
+    await post({ ...validEntry(), rpe: 80, attemptsToSend: 5, moves: [validMoveRow()], painMoves: [validPainRow()] });
+    const request = new Request("https://example.com/logbook/api/logbook");
+    const res = await handlePublicGet(request, env, userId);
+    const { entries } = await res.json();
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).not.toHaveProperty("rpe");
+    expect(entries[0]).not.toHaveProperty("attemptsToSend");
+    expect(entries[0]).not.toHaveProperty("moves");
+    expect(entries[0]).not.toHaveProperty("painMoves");
+    expect(entries[0].name).toBe(validEntry().name);
   });
 });

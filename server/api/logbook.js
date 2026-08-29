@@ -61,6 +61,31 @@ export function rowToJson(row) {
   };
 }
 
+// server/api/public-data.js's own reuse of this file's handleGet for the
+// public profile page -- deliberately narrower than rowToJson: excludes
+// rpe/attemptsToSend (Exertion/Attempts, this plan's own new fields) and
+// is never passed through attachChildRows (see handlePublicGet below), so
+// entry_moves/entry_pain_moves are never even queried for a public
+// request. An allow-list of what a public viewer needs, not a redaction
+// of what they shouldn't see -- a field added to rowToJson in the future
+// is private-by-default here unless someone deliberately adds it to this
+// list too (Raven's own ruling, 2026-08-29: a blocklist fails open on the
+// next new field; an allow-list fails closed).
+export function publicRowToJson(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    grade: row.grade,
+    placeId: row.place_id,
+    type: row.discipline_id,
+    status: row.status_id,
+    firstAttempt: !!row.first_attempt,
+    date: row.date,
+    video: row.video,
+    notes: row.notes,
+  };
+}
+
 // #500 -- the delta path's own shape: a tombstoned row still needs to
 // carry enough to be identifiable (just `id` would do, but the full
 // shape costs nothing extra and saves the client a branch), plus the
@@ -204,7 +229,7 @@ const PAGE_SIZE = 20;
 // outcome (empty list, not an error) as this app's other public
 // (session-optional) GET routes, achieved here by the query shape
 // itself rather than an extra check.
-export async function handleGet(request, env, userId) {
+export async function handleGet(request, env, userId, { shapeRow = rowToJson, includeChildRows = true } = {}) {
   const url = new URL(request.url);
 
   // #500 -- checked first, mutually exclusive with the locationId/flat-
@@ -214,12 +239,16 @@ export async function handleGet(request, env, userId) {
   // below uses -- unlike every other entries read path, a delta
   // response's whole point is surfacing tombstones so the client can
   // remove them locally, not hiding them (listChangedForUser itself
-  // never filters deleted_at at all, see its own header comment).
+  // never filters deleted_at at all, see its own header comment). Always
+  // rowToJsonWithDeleted, not shapeRow -- this branch is never reached
+  // publicly today (?since= is stripped before dispatch by server/api/
+  // public-data.js), but it's this file's own owner-only delta shape
+  // regardless of what shapeRow the caller passed.
   const since = url.searchParams.get("since");
   if (since !== null) {
     if (!userId) return json({ entries: [], cursor: Number(since) }, 200, { "Cache-Control": "no-store" });
     const { rows, cursor } = await listChangedForUser(env, "entries", userId, rowToJsonWithDeleted, Number(since));
-    const decorated = await attachChildRows(rows, env);
+    const decorated = includeChildRows ? await attachChildRows(rows, env) : rows;
     return json({ entries: decorated, cursor }, 200, { "Cache-Control": "no-store" });
   }
 
@@ -234,8 +263,8 @@ export async function handleGet(request, env, userId) {
     // N-1 left off.
     const limit = url.searchParams.get("limit");
     if (limit === null) {
-      const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
-      const decorated = await attachChildRows(rows, env);
+      const rows = await listForUser(env, "entries", userId, shapeRow, { excludeDeleted: true });
+      const decorated = includeChildRows ? await attachChildRows(rows, env) : rows;
       return json({ entries: decorated }, 200, { "Cache-Control": "no-store" });
     }
     if (!userId) return json({ entries: [], total: 0, cursor: 0 }, 200, { "Cache-Control": "no-store" });
@@ -254,7 +283,8 @@ export async function handleGet(request, env, userId) {
       .all();
     const total = results[0]?.total ?? 0;
     const cursor = results[0]?.max_cursor ?? 0;
-    const decorated = await attachChildRows(results.map(rowToJson), env);
+    const shaped = results.map(shapeRow);
+    const decorated = includeChildRows ? await attachChildRows(shaped, env) : shaped;
     return json({ entries: decorated, total, cursor }, 200, { "Cache-Control": "no-store" });
   }
   if (!userId) return json({ entries: [] }, 200, { "Cache-Control": "no-store" });
@@ -270,8 +300,17 @@ export async function handleGet(request, env, userId) {
     .bind(userId, locationId, limit, offset)
     .all();
 
-  const decorated = await attachChildRows(results.map(rowToJson), env);
+  const shaped = results.map(shapeRow);
+  const decorated = includeChildRows ? await attachChildRows(shaped, env) : shaped;
   return json({ entries: decorated }, 200, { "Cache-Control": "no-store" });
+}
+
+// The one place server/api/public-data.js's HANDLERS table should point
+// at instead of the raw handleGet above -- keeps "what a public caller
+// gets" declared right next to the private shape it's narrowing, rather
+// than scattered into the reuse site.
+export function handlePublicGet(request, env, userId) {
+  return handleGet(request, env, userId, { shapeRow: publicRowToJson, includeChildRows: false });
 }
 
 export async function handlePut(request, env, userId) {
