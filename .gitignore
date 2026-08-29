@@ -38,6 +38,7 @@ public/logbook/app.js
 public/logbook/map-app.js
 public/logbook/performance-pyramid-app.js
 public/logbook/performance-hub-app.js
+public/logbook/performance-injury-app.js
 public/logbook/log-app.js
 public/logbook/profile-app.js
 public/logbook/account-app.js

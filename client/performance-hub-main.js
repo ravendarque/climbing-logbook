@@ -29,6 +29,12 @@ const INSIGHTS = [
     description: "See your sends broken down by grade, and how your pyramid's shape has changed over time.",
     route: "pyramid",
   },
+  {
+    id: "insight-injury",
+    title: "Injury / Pain Log",
+    description: "Browse every climb where something hurt, and see which moves your pain flags cluster around.",
+    route: "injury",
+  },
 ];
 
 function adminFetch(url, options) {

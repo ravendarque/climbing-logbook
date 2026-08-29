@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Injury / Pain Log – Climbing Logbook</title>
+  <link rel="manifest" href="/logbook/manifest.json">
+  <link rel="icon" type="image/png" sizes="32x32" href="/logbook/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/logbook/favicon-16.png">
+  <link rel="apple-touch-icon" href="/logbook/apple-touch-icon.png">
+  <meta name="theme-color" content="#ff2727">
+  <!-- #470 -- starts the brand font fetch during initial parsing rather
+       than waiting for layout to discover climbing-header.js's own
+       @font-face rule -- see public/index.html's own comment for the
+       fuller reasoning. -->
+  <link rel="preload" as="font" type="font/woff2" href="/logbook/fonts/BebasNeue-Regular.woff2" crossorigin>
+  <!-- Genuinely static shell (#348), same pattern as public/map/index.html
+       -- see that file's own comment for why every path below is absolute
+       and client/performance-pyramid-main.js reads the username from
+       location.pathname itself rather than this file being templated. -->
+  <link rel="stylesheet" href="/logbook/tailwind.css">
+  <script src="/logbook/components/climbing-header.js"></script>
+  <script>
+    (function () {
+      var stored = localStorage.getItem("logbook_theme");
+      var theme = stored || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+</head>
+<body class="bg-background text-foreground font-sans px-4 pt-6 pb-16 min-w-[300px]">
+<div class="max-w-[960px] mx-auto">
+  <!-- Picker/menu row before the brand row, and align-left on
+       <climbing-header> -- matches /logbook's own layout (left-aligned
+       brand row below the header row, not centered above it). Found via
+       Raven's production report, 2026-08-10 -- see climbing-header.js's
+       own comment on the align-left attribute. -->
+  <div class="flex items-center justify-end gap-2 mb-6" id="header-row">
+    <climbing-menu-bar></climbing-menu-bar>
+  </div>
+
+  <climbing-header variant="brand" align-left></climbing-header>
+
+  <climbing-tab-bar active-page="performance"></climbing-tab-bar>
+
+  <!-- #111 -- Performance insights are online-only, deliberately, not a
+       client-side fallback computed from possibly-stale cached entries
+       (Raven's own call: at the crag with poor/no connection, the
+       priority is reading/updating the logbook, not reviewing aggregate
+       stats -- a "review later" activity). Shown instead of the pyramid
+       when the initial fetch fails; starts hidden, toggled in
+       performance-pyramid-main.js's own boot(). -->
+  <div class="row-card text-center max-w-[420px] mx-auto" id="performance-offline" hidden>
+    <p class="text-[.9rem] text-foreground">Performance insights need a connection.</p>
+    <p class="text-[.82rem] text-muted mt-2">Reconnect and reload this page to see your injury/pain log.</p>
+  </div>
+
+  <div id="injury-log-root"></div>
+
+  <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>
+</div>
+
+<script type="module" src="/logbook/performance-injury-app.js"></script>
+</body>
+</html>
