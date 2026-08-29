@@ -114,6 +114,15 @@ describe("owned route authorization", () => {
     expect(html).toContain('src="/logbook/performance-pyramid-app.js"');
   });
 
+  it("serves the real static shell for performance/injury", async () => {
+    const { cookie } = await createAuthedSession({ username: "injuryshelluser", hostname: "climbinglogbook.com" });
+    const res = await fetchOwnedRoute("injuryshelluser", "performance/injury", { cookie });
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain('id="injury-log-root"');
+    expect(html).toContain('src="/logbook/performance-injury-app.js"');
+  });
+
   it("serves the real static shell for log", async () => {
     const { cookie } = await createAuthedSession({ username: "logshelluser", hostname: "climbinglogbook.com" });
     const res = await fetchOwnedRoute("logshelluser", "log", { cookie });

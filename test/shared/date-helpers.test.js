@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dateRank, formatDate } from "../../client/date-helpers.js";
+import { dateRank, formatDate } from "../../shared/date-helpers.js";
 
 describe("formatDate", () => {
   it("returns an em dash for an empty date", () => {

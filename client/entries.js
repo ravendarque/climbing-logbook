@@ -9,7 +9,7 @@
 // that close over its own state and call these, so none of the
 // ~25 existing call sites throughout the codebase needed to change.
 import { BOULDER_GRADES, LEAD_GRADES, gradeRank } from "../shared/grade-data.js";
-import { dateRank } from "./date-helpers.js";
+import { dateRank } from "../shared/date-helpers.js";
 
 // Entry -> Place -> Location join, degrading gracefully (never null,
 // matching this file's existing lookup conventions like

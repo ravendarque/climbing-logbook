@@ -3,7 +3,7 @@ import { handleImport } from "./api/logbook-import.js";
 import { handleGet as handleGetPlaces, handlePost as handlePostPlaces } from "./api/places.js";
 import { handleGet as handleGetLocations, handlePost as handlePostLocations } from "./api/locations.js";
 import { handleGetSettings, handlePatchSettings } from "./api/settings.js";
-import { handleGetPyramid } from "./api/performance.js";
+import { handleGetInjuryLog, handleGetPyramid } from "./api/performance.js";
 import { handleGetMapCounts } from "./api/map.js";
 import { handlePublicProfile } from "./api/public-profile.js";
 import { handlePublicResource } from "./api/public-data.js";
@@ -36,6 +36,10 @@ const PUBLIC_GET_ROUTES = {
   // the same public-GET convention as every other read here rather than
   // being a special case.
   "/logbook/api/performance/pyramid": handleGetPyramid,
+  // #39 -- same public-GET + server-side-computed convention as the
+  // pyramid route above; /performance/injury itself is owner-only in
+  // practice (owned-routes.js gates the page).
+  "/logbook/api/performance/injury": handleGetInjuryLog,
   // #497 -- Map's own per-country/discipline/status aggregate, same
   // reasoning as the pyramid route above.
   "/logbook/api/map/counts": handleGetMapCounts,
@@ -81,7 +85,7 @@ export default {
       // #302 adds account(/edit), #498 adds sync, alongside log/map/
       // performance -- same shape, one more SHELL_PATHS entry each (see
       // owned-routes.js).
-      const ownedRouteMatch = pathname.match(/^\/([^/]+)\/(log|map|performance(?:\/pyramid)?|sync|account(?:\/edit|\/import)?)\/?$/);
+      const ownedRouteMatch = pathname.match(/^\/([^/]+)\/(log|map|performance(?:\/(?:pyramid|injury))?|sync|account(?:\/edit|\/import)?)\/?$/);
       if (ownedRouteMatch) {
         const [, username, page] = ownedRouteMatch;
         return handleOwnedRoute(request, env, username, page);
@@ -99,7 +103,7 @@ export default {
     // opt-in status; a pre-release preview has no meaning for a page
     // that's just read-only data display, so nothing to gate there.
     if (hostname.startsWith("beta.") && method === "GET") {
-      const ownedRouteMatch = pathname.match(/^\/([^/]+)\/(log|map|performance(?:\/pyramid)?|sync|account(?:\/edit|\/import)?)\/?$/);
+      const ownedRouteMatch = pathname.match(/^\/([^/]+)\/(log|map|performance(?:\/(?:pyramid|injury))?|sync|account(?:\/edit|\/import)?)\/?$/);
       if (ownedRouteMatch) {
         const [, username, page] = ownedRouteMatch;
         return handleBetaGatedRoute(request, env, username, page);
