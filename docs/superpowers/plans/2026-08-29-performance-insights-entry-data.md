@@ -1575,9 +1575,232 @@ git commit -m "Add e2e coverage for the entry form's Exertion/Attempts/move-tagg
 
 ---
 
+## Task 7: Stop `rpe`/`attemptsToSend`/child-row data from reaching the public profile endpoint
+
+**Added post-hoc**, after the final whole-branch review found that `server/api/public-data.js` reuses `server/api/logbook.js`'s `handleGet` completely unchanged to serve the public profile page (`/logbook/api/public/:username/logbook`) — an existing, deliberate pattern (see that file's own header comment; it previously fixed an identical class of leak for `?since=` tombstone content, `#511`). This branch's new fields ride along unmodified: `rpe`, `attemptsToSend`, and `painMoves` (limb/side/hold-type/movement-style/wall-angle per pain event) are returned to any anonymous caller on a public logbook — verified live during the final review. Nothing in the design spec considered this; the Pain/injury section was designed as owner-facing capture only.
+
+**Ruling (Raven, 2026-08-29): fix this as an allow-list, not a redaction.** A post-fetch "strip these three fields" approach was rejected — it fetches data (including running the `entry_moves`/`entry_pain_moves` queries) that the public path never needed in the first place, wastes DB/backend work, and is a blocklist that fails open: a future new sensitive field defaults to *public* unless someone remembers to add it to the strip list. The fix instead narrows what the public path *asks for* — a distinct, explicit public row shape, and skip the child-row queries entirely for public requests — so a future field is private-by-default unless deliberately added to the public shape.
+
+**Files:**
+- Modify: `server/api/logbook.js`
+- Modify: `server/api/public-data.js`
+- Test: `test/logbook.test.js`, `test/public-data.test.js`
+
+**Interfaces:**
+- Consumes: Task 3's `handleGet`/`attachChildRows`/`rowToJson` (all already exist, this task parameterizes the first, doesn't change the others' owner-facing behavior).
+- Produces: `publicRowToJson(row)` (exported from `server/api/logbook.js`) — the same fields `rowToJson` had before this whole plan (`id, name, grade, placeId, type, status, firstAttempt, date, video, notes`), deliberately omitting `rpe`/`attemptsToSend`. `handleGet(request, env, userId, { shapeRow = rowToJson, includeChildRows = true } = {})` — two new optional parameters; every existing call site (with no options object) is byte-for-byte unaffected. `handlePublicGet(request, env, userId)` (exported from `server/api/logbook.js`) — a thin wrapper calling `handleGet` with `{ shapeRow: publicRowToJson, includeChildRows: false }`, for `server/api/public-data.js`'s `HANDLERS.logbook` entry to use instead of the raw `handleGet`.
+
+- [ ] **Step 1: Write the failing tests**
+
+Append to `test/logbook.test.js` (own `describe` block, anywhere after the existing ones):
+
+```js
+describe("publicRowToJson / handlePublicGet (Task 7 -- public profile exclusions)", () => {
+  it("publicRowToJson omits rpe and attemptsToSend", () => {
+    const row = { id: "e1", name: "Test", grade: "6B", place_id: "p1", discipline_id: "boulder", status_id: "send", first_attempt: 0, date: "2026-01-01", video: null, notes: null, rpe: 80, attempts_to_send: 5 };
+    const json = publicRowToJson(row);
+    expect(json).not.toHaveProperty("rpe");
+    expect(json).not.toHaveProperty("attemptsToSend");
+    expect(json).toMatchObject({ id: "e1", name: "Test", grade: "6B", placeId: "p1", type: "boulder", status: "send" });
+  });
+
+  it("handlePublicGet's response has no rpe/attemptsToSend/moves/painMoves keys on any entry", async () => {
+    await post({ ...validEntry(), rpe: 80, attemptsToSend: 5, moves: [validMoveRow()], painMoves: [validPainRow()] });
+    const request = new Request("https://example.com/logbook/api/logbook");
+    const res = await handlePublicGet(request, env, userId);
+    const { entries } = await res.json();
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).not.toHaveProperty("rpe");
+    expect(entries[0]).not.toHaveProperty("attemptsToSend");
+    expect(entries[0]).not.toHaveProperty("moves");
+    expect(entries[0]).not.toHaveProperty("painMoves");
+    expect(entries[0].name).toBe(validEntry().name);
+  });
+});
+```
+
+This test file's top-of-file imports need `publicRowToJson`, `handlePublicGet`, and `userId` (the authed session's user id, not just `cookie`) available — check the file's existing `beforeEach`: it currently does `({ cookie } = await createAuthedSession());`. Widen that destructure to also capture `userId` (`({ cookie, userId } = await createAuthedSession());`, declaring `let userId;` alongside the existing `let cookie;` at the top of the file) — `createAuthedSession()` already returns `{cookie, userId}` (confirmed, `test/support.js:109`), this file just wasn't capturing the second field before now. Add `publicRowToJson, handlePublicGet` to this file's own import line from `../server/api/logbook.js` if this test file imports handlers directly — check the existing top-of-file imports first; if this file only calls the API through HTTP (`fetchJson`/`jsonRequest`, per its own header comment's stated philosophy of testing through the public HTTP contract, not by importing handlers directly), then instead import them for this one test block only (`import { handlePublicGet, publicRowToJson } from "../server/api/logbook.js";` at the top of the file, alongside the existing imports) — a direct-handler-call is appropriate for this specific test since it exercises the exact same `(request, env, userId)` signature `server/api/public-data.js` calls it with, not a new testing style for the rest of the file.
+
+Append to `test/public-data.test.js`, inside the existing `describe("public data API", ...)` block:
+
+```js
+  it("never returns rpe/attemptsToSend/moves/painMoves, even when the owner's entry has them (Task 7)", async () => {
+    const { cookie } = await createAuthedSession({ username: "sensitivedatauser" });
+    const placeId = await seedPlace(cookie);
+    await jsonRequest("POST", "/logbook/api/admin/logbook", {
+      placeId, name: "Private Beta", grade: "7A", type: "boulder", status: "send",
+      rpe: 90, attemptsToSend: 3,
+      moves: [{ difficulty: "hardest", limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" }],
+      painMoves: [{ limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "slab" }],
+    }, { Cookie: cookie });
+
+    const res = await fetchPublic("sensitivedatauser", "logbook");
+    const { entries } = await res.json();
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).not.toHaveProperty("rpe");
+    expect(entries[0]).not.toHaveProperty("attemptsToSend");
+    expect(entries[0]).not.toHaveProperty("moves");
+    expect(entries[0]).not.toHaveProperty("painMoves");
+    expect(entries[0].name).toBe("Private Beta");
+  });
+```
+
+- [ ] **Step 2: Run the tests, confirm they fail**
+
+Run: `pnpm exec vitest run test/logbook.test.js test/public-data.test.js -t "Task 7"`
+Expected: FAIL — `publicRowToJson`/`handlePublicGet` don't exist yet, and the public endpoint currently returns every field `rowToJson` produces.
+
+- [ ] **Step 3: Add `publicRowToJson` to `server/api/logbook.js`**
+
+Add after the existing `rowToJson` function (after line 58, before `rowToJsonWithDeleted`):
+
+```js
+// server/api/public-data.js's own reuse of this file's handleGet for the
+// public profile page -- deliberately narrower than rowToJson: excludes
+// rpe/attemptsToSend (Exertion/Attempts, this plan's own new fields) and
+// is never passed through attachChildRows (see handlePublicGet below), so
+// entry_moves/entry_pain_moves are never even queried for a public
+// request. An allow-list of what a public viewer needs, not a redaction
+// of what they shouldn't see -- a field added to rowToJson in the future
+// is private-by-default here unless someone deliberately adds it to this
+// list too (Raven's own ruling, 2026-08-29: a blocklist fails open on the
+// next new field; an allow-list fails closed).
+export function publicRowToJson(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    grade: row.grade,
+    placeId: row.place_id,
+    type: row.discipline_id,
+    status: row.status_id,
+    firstAttempt: !!row.first_attempt,
+    date: row.date,
+    video: row.video,
+    notes: row.notes,
+  };
+}
+```
+
+- [ ] **Step 4: Parameterize `handleGet` with `shapeRow`/`includeChildRows`**
+
+Change the function signature (currently `export async function handleGet(request, env, userId) {`) to:
+
+```js
+export async function handleGet(request, env, userId, { shapeRow = rowToJson, includeChildRows = true } = {}) {
+```
+
+Replace every `rowToJson` reference inside the function body (not the `rowToJsonWithDeleted` one in the `since` branch, which stays as-is — the delta/sync path is never reached publicly, `?since=` is already stripped before dispatch by `server/api/public-data.js`) with `shapeRow`, and wrap every `attachChildRows(...)` call in the `includeChildRows` conditional:
+
+```js
+  const locationId = url.searchParams.get("locationId");
+  if (!locationId) {
+    const limit = url.searchParams.get("limit");
+    if (limit === null) {
+      const rows = await listForUser(env, "entries", userId, shapeRow, { excludeDeleted: true });
+      const decorated = includeChildRows ? await attachChildRows(rows, env) : rows;
+      return json({ entries: decorated }, 200, { "Cache-Control": "no-store" });
+    }
+    if (!userId) return json({ entries: [], total: 0, cursor: 0 }, 200, { "Cache-Control": "no-store" });
+
+    const offset = Number(url.searchParams.get("offset")) || 0;
+    const { results } = await env.LOGBOOK_DB
+      .prepare(`SELECT *, COUNT(*) OVER() AS total, MAX(sync_cursor) OVER() AS max_cursor FROM entries WHERE user_id = ? AND deleted_at IS NULL ORDER BY created_at LIMIT ? OFFSET ?`)
+      .bind(userId, Number(limit), offset)
+      .all();
+    const total = results[0]?.total ?? 0;
+    const cursor = results[0]?.max_cursor ?? 0;
+    const shaped = results.map(shapeRow);
+    const decorated = includeChildRows ? await attachChildRows(shaped, env) : shaped;
+    return json({ entries: decorated, total, cursor }, 200, { "Cache-Control": "no-store" });
+  }
+  if (!userId) return json({ entries: [] }, 200, { "Cache-Control": "no-store" });
+
+  const limit = Number(url.searchParams.get("limit")) || PAGE_SIZE;
+  const offset = Number(url.searchParams.get("offset")) || 0;
+  const { results } = await env.LOGBOOK_DB
+    .prepare(`
+      SELECT e.* FROM entries e JOIN places p ON e.place_id = p.id
+      WHERE e.user_id = ? AND p.location_id = ? AND e.deleted_at IS NULL
+      ORDER BY e.created_at LIMIT ? OFFSET ?
+    `)
+    .bind(userId, locationId, limit, offset)
+    .all();
+
+  const shaped = results.map(shapeRow);
+  const decorated = includeChildRows ? await attachChildRows(shaped, env) : shaped;
+  return json({ entries: decorated }, 200, { "Cache-Control": "no-store" });
+}
+```
+
+The `since` branch's own `attachChildRows` call also needs the same `includeChildRows` guard for defensive correctness (it's never reached publicly today since `?since=` is stripped before dispatch, but `handleGet` shouldn't silently ignore its own `includeChildRows` flag on one branch just because that branch happens to be unreachable via the one current caller):
+
+```js
+  const since = url.searchParams.get("since");
+  if (since !== null) {
+    if (!userId) return json({ entries: [], cursor: Number(since) }, 200, { "Cache-Control": "no-store" });
+    const { rows, cursor } = await listChangedForUser(env, "entries", userId, rowToJsonWithDeleted, Number(since));
+    const decorated = includeChildRows ? await attachChildRows(rows, env) : rows;
+    return json({ entries: decorated, cursor }, 200, { "Cache-Control": "no-store" });
+  }
+```
+
+- [ ] **Step 5: Add `handlePublicGet`**
+
+Add directly after `handleGet`'s closing brace:
+
+```js
+// The one place server/api/public-data.js's HANDLERS table should point
+// at instead of the raw handleGet above -- keeps "what a public caller
+// gets" declared right next to the private shape it's narrowing, rather
+// than scattered into the reuse site.
+export function handlePublicGet(request, env, userId) {
+  return handleGet(request, env, userId, { shapeRow: publicRowToJson, includeChildRows: false });
+}
+```
+
+- [ ] **Step 6: Wire `handlePublicGet` into `server/api/public-data.js`**
+
+Change the import (line 3):
+
+```js
+import { handlePublicGet } from "./logbook.js";
+```
+
+Change the `HANDLERS` entry (in the object at line 30):
+
+```js
+const HANDLERS = {
+  logbook: handlePublicGet,
+  places: handleGetPlaces,
+  locations: handleGetLocations,
+  "map/counts": handleGetMapCounts,
+  "logbook/counts": handleGetProfileCounts,
+};
+```
+
+- [ ] **Step 7: Run the tests, confirm they pass**
+
+Run: `pnpm exec vitest run test/logbook.test.js test/public-data.test.js -t "Task 7"`
+Expected: PASS
+
+- [ ] **Step 8: Run the full unit suite to confirm no regressions**
+
+Run: `pnpm test`
+Expected: PASS — every existing owner-facing `handleGet` call (through `test/logbook.test.js`'s real HTTP requests, none of which pass an options object) is byte-for-byte unaffected by the new optional parameters' defaults. `test/public-data.test.js`'s existing tests (asserting `entries[0]` `toMatchObject({name, grade, type})` — a partial match, not exact equality) are unaffected by `publicRowToJson` dropping fields those tests never asserted on.
+
+- [ ] **Step 9: Commit**
+
+```bash
+git add server/api/logbook.js server/api/public-data.js test/logbook.test.js test/public-data.test.js
+git commit -m "Stop rpe/attemptsToSend/entry_moves/entry_pain_moves from reaching the public profile endpoint"
+```
+
+---
+
 ## Final Verification
 
 - [ ] `pnpm test` — full pass
 - [ ] `pnpm exec playwright test` — full pass, twice
 - [ ] Manual: `pnpm dev`, add a new Send entry with Exertion 80%, 3 attempts, one hardest move (Left Hand crimp static overhang), one pain row (Right Foot toe-hook dynamic slab); reload the page; edit that same entry; confirm every value round-tripped correctly, including the split between Hardest/Easiest lists.
-- [ ] Confirm `git log --oneline` shows 6 commits (one per task above), each independently reviewable.
+- [ ] Manual/automated: confirm `/logbook/api/public/:username/logbook` never returns `rpe`/`attemptsToSend`/`moves`/`painMoves` for any entry, regardless of what the owner saved.
+- [ ] Confirm `git log --oneline` shows 7 task commits (one per task above, Task 3 split into two), each independently reviewable.
