@@ -434,11 +434,12 @@ import { createD1ResourceHandlers } from "../server/lib/d1-resource.js";
 import { createAuthedSession, resetAuthTables } from "./support.js";
 
 // "places" already exists as a real D1 table (server/api/places.js's own
-// table) with a minimal enough shape (id, user_id, location_id, name,
-// area, created_at, updated_at) to drive through this factory directly
-// without a fixture table of our own -- location_id has a NOT NULL FK, so
-// tests seed a real location first via the same pattern test/places.test.js
-// already uses.
+// table, migrations/0003_app_data.sql) with a minimal enough shape (id,
+// user_id, location_id, area, sync_cursor, created_at, updated_at -- NO
+// `name` column; a place is identified by its location + area only) to
+// drive through this factory directly without a fixture table of our
+// own -- location_id has a NOT NULL FK, so tests seed a real location
+// first via the same pattern test/places.test.js already uses.
 async function seedLocation(userId) {
   const id = crypto.randomUUID();
   await env.LOGBOOK_DB.prepare("INSERT INTO locations (id, user_id, name, country) VALUES (?, ?, ?, ?)")
@@ -447,10 +448,10 @@ async function seedLocation(userId) {
 }
 
 function buildRow(record, id, userId) {
-  return { id, user_id: userId, location_id: record.locationId, name: record.name, area: record.area ?? "" };
+  return { id, user_id: userId, location_id: record.locationId, area: record.area ?? "" };
 }
 function rowToJson(row) {
-  return { id: row.id, locationId: row.location_id, name: row.name, area: row.area };
+  return { id: row.id, locationId: row.location_id, area: row.area };
 }
 async function validateFields() { return null; }
 
@@ -470,7 +471,7 @@ describe("afterWrite", () => {
       afterWrite: async (e, id, record) => { calls.push({ id, record }); },
     });
     const locationId = await seedLocation(userId);
-    const record = { locationId, name: "Bas Cuvier" };
+    const record = { locationId, area: "Bas Cuvier" };
     const request = new Request("https://x/", { method: "POST", body: JSON.stringify(record) });
     await handlePost(request, env, userId);
 
@@ -487,7 +488,7 @@ describe("afterWrite", () => {
       buildRow, rowToJson,
       afterWrite: async () => { calls.push(1); },
     });
-    const request = new Request("https://x/", { method: "POST", body: JSON.stringify({ name: "x" }) });
+    const request = new Request("https://x/", { method: "POST", body: JSON.stringify({ area: "x" }) });
     await handlePost(request, env, userId);
 
     expect(calls).toHaveLength(0);
@@ -501,7 +502,7 @@ describe("decorateRows", () => {
       decorateRows: async (e, uid, rows) => rows.map(r => ({ ...r, decorated: true })),
     });
     const locationId = await seedLocation(userId);
-    await handlePost(new Request("https://x/", { method: "POST", body: JSON.stringify({ locationId, name: "Bas Cuvier" }) }), env, userId);
+    await handlePost(new Request("https://x/", { method: "POST", body: JSON.stringify({ locationId, area: "Bas Cuvier" }) }), env, userId);
 
     const res = await handleGet(new Request("https://x/"), env, userId);
     const { places } = await res.json();
@@ -515,7 +516,7 @@ describe("decorateRows", () => {
       decorateRows: async (e, uid, rows) => rows.map(r => ({ ...r, decorated: true })),
     });
     const locationId = await seedLocation(userId);
-    const res = await handlePost(new Request("https://x/", { method: "POST", body: JSON.stringify({ locationId, name: "Bas Cuvier" }) }), env, userId);
+    const res = await handlePost(new Request("https://x/", { method: "POST", body: JSON.stringify({ locationId, area: "Bas Cuvier" }) }), env, userId);
 
     const { places } = await res.json();
     expect(places[0].decorated).toBe(true);
