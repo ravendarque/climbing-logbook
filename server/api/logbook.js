@@ -1,5 +1,5 @@
 import { json, parseJsonBody } from "../lib/json.js";
-import { createD1ResourceHandlers, findOwnedRow, insertRow, listChangedForUser, listForUser } from "../lib/d1-resource.js";
+import { createD1ResourceHandlers, findOwnedRow, listChangedForUser, listForUser } from "../lib/d1-resource.js";
 import { validateEntryShape } from "../../shared/entry-schema.js";
 
 // placeId gets a real referential check -- not just "does this row
@@ -143,7 +143,7 @@ async function fetchChildRowsChunked(env, table, ids) {
 // Batch-fetched, not one query per entry -- avoids an N+1 query per
 // entries response. Safe against an empty `rows` (returns immediately,
 // no query at all) since IN (...) with zero placeholders is invalid SQL.
-async function attachChildRows(rows, env) {
+export async function attachChildRows(rows, env) {
   if (rows.length === 0) return rows;
   const ids = rows.map(r => r.id);
   const [movesRows, painRows] = await Promise.all([

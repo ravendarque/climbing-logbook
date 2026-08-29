@@ -3,7 +3,7 @@ import { json } from "../lib/json.js";
 import { entrySchema } from "../../shared/entry-schema.js";
 import { parseCsvText } from "../../shared/csv-import.js";
 import { insertRow, listForUser } from "../lib/d1-resource.js";
-import { buildRow as buildEntryRow, rowToJson as entryRowToJson } from "./logbook.js";
+import { attachChildRows, buildRow as buildEntryRow, rowToJson as entryRowToJson } from "./logbook.js";
 import { buildRow as buildLocationRow } from "./locations.js";
 import { buildRow as buildPlaceRow } from "./places.js";
 
@@ -131,5 +131,7 @@ export async function handleImport(request, env, userId) {
     await insertRow(env, "entries", buildEntryRow(draft, crypto.randomUUID(), userId));
   }
 
-  return json({ imported: drafts.length, entries: await listForUser(env, "entries", userId, entryRowToJson, { excludeDeleted: true }) }, 201);
+  const rows = await listForUser(env, "entries", userId, entryRowToJson, { excludeDeleted: true });
+  const decorated = await attachChildRows(rows, env);
+  return json({ imported: drafts.length, entries: decorated }, 201);
 }

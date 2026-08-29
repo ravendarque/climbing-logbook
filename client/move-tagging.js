@@ -29,11 +29,11 @@ function optionsHtml(values, selected) {
   return values.map(v => `<option value="${escapeHtml(v)}"${v === selected ? " selected" : ""}>${escapeHtml(v)}</option>`).join("");
 }
 
-function rowHtml(row) {
+function rowHtml(row, listLabel) {
   const { limb, side, holdType, movementStyle, wallAngle } = row;
   const limbSideValue = `${limb}-${side}`;
   return `<div class="row-card mb-2" data-move-row>
-    <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-[.9rem] mb-2 hover:text-foreground" data-remove-row aria-label="Remove move">✕ Remove</button>
+    <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-[.9rem] mb-2 hover:text-foreground" data-remove-row aria-label="Remove ${escapeHtml(listLabel)}">✕ Remove</button>
     <div class="grid gap-2" style="grid-template-columns: repeat(auto-fit, minmax(85px, 1fr));">
       <label class="block">
         <span class="text-[.65rem] text-muted block mb-1">Limb</span>
@@ -70,11 +70,11 @@ function defaultRow(hasDifficulty, defaultDifficulty) {
   return row;
 }
 
-export function createMoveRowList({ listEl, addBtnEl, hasDifficulty, defaultDifficulty }) {
+export function createMoveRowList({ listEl, addBtnEl, hasDifficulty, defaultDifficulty, listLabel = "move" }) {
   let rows = [];
 
   function render() {
-    listEl.innerHTML = rows.map(rowHtml).join("");
+    listEl.innerHTML = rows.map(row => rowHtml(row, listLabel)).join("");
   }
 
   function rowIndexOf(el) {
