@@ -33,6 +33,32 @@ export const VALID_GRADES = {
   lead:    ["5c", "6a", "6a+", "6b", "6b+", "6c", "6c+", "7a", "7a+", "7b", "7b+", "7c", "7c+", "8a"],
 };
 
+// #575 Phase 2 entry-data plan -- vocabulary for entry_moves/entry_pain_moves
+// rows (#36/#572). Fixed here as the single source of truth for both the
+// server-side validator below and client/entry-form.js's cascading
+// dropdowns (Task 5 of the same plan) -- hold_type/movement_style options
+// depend on which limb is selected, so this is keyed by limb rather than
+// three flat lists.
+export const VALID_LIMBS = ["hand", "foot", "knee"];
+export const VALID_SIDES = ["left", "right"];
+export const VALID_WALL_ANGLES = ["slab", "vert", "overhang", "roof"];
+
+export const HOLD_TYPES_BY_LIMB = {
+  hand: ["crimp", "jug", "pocket", "sloper", "pinch", "edge"],
+  foot: ["toe-hook", "heel-hook"],
+  knee: ["kneebar"],
+};
+
+// migrations/0007_add_entry_moves.sql's own CHECK constraint is the source
+// of truth for this rule (lockoff is hand-only) -- mirrored here so the
+// same rule is enforced client-side (Task 5) and at this validation layer,
+// not just as a DB-level backstop.
+export const MOVEMENT_STYLES_BY_LIMB = {
+  hand: ["static", "dynamic", "lockoff"],
+  foot: ["static", "dynamic"],
+  knee: ["static", "dynamic"],
+};
+
 // "YYYY", "YYYY-MM", or "YYYY-MM-DD" -- matches the shape documented in
 // docs/app-architecture.md. date is optional (null when unset).
 const DATE_SHAPE = /^\d{4}(-\d{2}(-\d{2})?)?$/;
@@ -57,6 +83,25 @@ function fieldPath(entry, key) {
 // field" behavior, same plain-falsy definition of "missing").
 const anyField = v.optional(v.unknown());
 
+// Shared by moves/painMoves below -- both are child-row lists of the same
+// four cascading dimensions (limb/side/holdType/movementStyle/wallAngle);
+// moves additionally carries `difficulty`, checked by the caller before
+// this runs since painMoves rows never have it. Returns an issue-ready
+// message or null, never calls addIssue itself -- both callers need to
+// prefix the message with their own field name + row index
+// ("moves[0]..." vs "painMoves[0]...").
+function moveRowError(row, fieldPrefix) {
+  if (typeof row !== "object" || row === null) return `${fieldPrefix} must be an object`;
+  if (!VALID_LIMBS.includes(row.limb)) return `${fieldPrefix}.limb must be one of: ${VALID_LIMBS.join(", ")}`;
+  if (!VALID_SIDES.includes(row.side)) return `${fieldPrefix}.side must be one of: ${VALID_SIDES.join(", ")}`;
+  if (!HOLD_TYPES_BY_LIMB[row.limb].includes(row.holdType)) return `${fieldPrefix}.holdType must be one of: ${HOLD_TYPES_BY_LIMB[row.limb].join(", ")}`;
+  if (!MOVEMENT_STYLES_BY_LIMB[row.limb].includes(row.movementStyle)) return `${fieldPrefix}.movementStyle must be one of: ${MOVEMENT_STYLES_BY_LIMB[row.limb].join(", ")}`;
+  if (!VALID_WALL_ANGLES.includes(row.wallAngle)) return `${fieldPrefix}.wallAngle must be one of: ${VALID_WALL_ANGLES.join(", ")}`;
+  return null;
+}
+
+const VALID_MOVE_DIFFICULTIES = ["hardest", "easiest"];
+
 // grade/status validity depend on `type` (boulder vs lead have different
 // grade scales), so they're cross-field checks here too -- same reason
 // the original validateShape() did this as sequential imperative checks,
@@ -73,6 +118,10 @@ export const entrySchema = v.pipe(
     date: anyField,
     video: anyField,
     notes: anyField,
+    attemptsToSend: anyField,
+    rpe: anyField,
+    moves: anyField,
+    painMoves: anyField,
   }),
   v.rawCheck(({ dataset, addIssue }) => {
     if (!dataset.typed) return;
@@ -145,6 +194,47 @@ export const entrySchema = v.pipe(
     // reaches buildRow()/D1's .bind() completely unvalidated otherwise.
     if (entry.notes && typeof entry.notes !== "string") {
       addIssue({ message: "notes must be a string", path: fieldPath(entry, "notes") });
+    }
+    if (entry.attemptsToSend !== undefined && entry.attemptsToSend !== null) {
+      if (!Number.isInteger(entry.attemptsToSend) || entry.attemptsToSend < 0) {
+        addIssue({ message: "attemptsToSend must be a non-negative integer", path: fieldPath(entry, "attemptsToSend") });
+      }
+    }
+    if (entry.rpe !== undefined && entry.rpe !== null) {
+      if (!Number.isInteger(entry.rpe) || entry.rpe < 0 || entry.rpe > 100 || entry.rpe % 10 !== 0) {
+        addIssue({ message: "rpe must be a multiple of 10 between 0 and 100", path: fieldPath(entry, "rpe") });
+      }
+    }
+    if (entry.moves !== undefined && entry.moves !== null) {
+      if (!Array.isArray(entry.moves)) {
+        addIssue({ message: "moves must be an array", path: fieldPath(entry, "moves") });
+      } else {
+        for (let i = 0; i < entry.moves.length; i++) {
+          const row = entry.moves[i];
+          if (typeof row === "object" && row !== null && !VALID_MOVE_DIFFICULTIES.includes(row.difficulty)) {
+            addIssue({ message: `moves[${i}].difficulty must be one of: ${VALID_MOVE_DIFFICULTIES.join(", ")}`, path: fieldPath(entry, "moves") });
+            return;
+          }
+          const rowErr = moveRowError(row, `moves[${i}]`);
+          if (rowErr) {
+            addIssue({ message: rowErr, path: fieldPath(entry, "moves") });
+            return;
+          }
+        }
+      }
+    }
+    if (entry.painMoves !== undefined && entry.painMoves !== null) {
+      if (!Array.isArray(entry.painMoves)) {
+        addIssue({ message: "painMoves must be an array", path: fieldPath(entry, "painMoves") });
+      } else {
+        for (let i = 0; i < entry.painMoves.length; i++) {
+          const rowErr = moveRowError(entry.painMoves[i], `painMoves[${i}]`);
+          if (rowErr) {
+            addIssue({ message: rowErr, path: fieldPath(entry, "painMoves") });
+            return;
+          }
+        }
+      }
     }
   })
 );
