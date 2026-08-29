@@ -30,6 +30,11 @@ export async function mockApi(page, {
   // test/shared/pyramid-stats.test.js); a test that needs a real pyramid
   // supplies the already-split result it expects to see rendered.
   pyramidData = { boulder: EMPTY_PYRAMID, lead: EMPTY_PYRAMID },
+  // #39 -- server/api/performance.js's own handleGetInjuryLog() shape
+  // ({ log, cluster }), same "already-computed, not raw entries" contract
+  // as pyramidData above -- a test that needs a real ranked cluster/log
+  // supplies the shape it expects to see rendered, same reasoning.
+  injuryData = { log: [], cluster: null },
   // #498 -- true by default: seeds client/sync-status.js's own marker so
   // every EXISTING test (written before /sync existed) still lands
   // directly on /log rather than being redirected through a sync flow
@@ -195,6 +200,7 @@ export async function mockApi(page, {
   });
   await page.route("**/logbook/api/settings", route => route.fulfill({ json: _settings }));
   await page.route("**/logbook/api/performance/pyramid", route => route.fulfill({ json: pyramidData }));
+  await page.route("**/logbook/api/performance/injury", route => route.fulfill({ json: injuryData }));
 
   // #497 -- mirrors server/api/map.js's own aggregation (country x
   // discipline -> { total, flash, send, project }), computed fresh from
