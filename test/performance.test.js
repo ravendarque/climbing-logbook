@@ -144,3 +144,66 @@ describe("handleGetInjuryLog", () => {
     expect(await res.json()).toEqual({ log: [], cluster: null });
   });
 });
+
+const STRENGTHS_URL = "/logbook/api/performance/strengths";
+function getStrengths(params = {}, extraCookie = cookie) {
+  const qs = new URLSearchParams(params).toString();
+  return fetchJson(`${STRENGTHS_URL}${qs ? `?${qs}` : ""}`, { headers: { Cookie: extraCookie } });
+}
+
+describe("handleGetStrengthsWeaknesses", () => {
+  it("returns a null headline and empty anchors for a user with no tagged moves", async () => {
+    await postEntry();
+    const res = await getStrengths();
+    const body = await res.json();
+    expect(body.headline).toBeNull();
+    expect(body.anchors).toEqual([]);
+  });
+
+  it("surfaces a headline once 5 matching hardest tags exist across entries", async () => {
+    for (let i = 0; i < 5; i++) {
+      await postEntry({ name: `Route ${i}`, moves: [{ difficulty: "hardest", limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" }] });
+    }
+    const res = await getStrengths();
+    const { headline } = await res.json();
+    expect(headline.text).toBe("Your left hand on overhanging crimps looks like a key weakness.");
+    expect(headline.cell).toMatchObject({ limb: "hand", side: "left", holdType: "crimp", score: 1 });
+  });
+
+  it("lists available anchors once moves are tagged", async () => {
+    await postEntry({ moves: [{ difficulty: "hardest", limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "slab" }] });
+    const { anchors } = await (await getStrengths()).json();
+    expect(anchors).toContainEqual({ dimension: "holdType", value: "toe-hook", label: "toe-hook" });
+    expect(anchors).toContainEqual({ dimension: "limbSide", value: "foot-right", label: "Right Foot" });
+  });
+
+  it("returns a ranked drill-down for a fixed anchor", async () => {
+    for (let i = 0; i < 5; i++) {
+      await postEntry({ name: `Route ${i}`, moves: [{ difficulty: "hardest", limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" }] });
+    }
+    const { ranked } = await (await getStrengths({ dimension: "holdType", value: "crimp" })).json();
+    expect(ranked).toHaveLength(1);
+    expect(ranked[0]).toMatchObject({ holdType: "crimp", score: 1, total: 5 });
+  });
+
+  it("excludes a soft-deleted entry's moves from both the headline and the anchor list", async () => {
+    const created = await (await postEntry({ moves: [{ difficulty: "hardest", limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" }] })).json();
+    await del(created.entries[0].id);
+    const body = await (await getStrengths()).json();
+    expect(body.headline).toBeNull();
+    expect(body.anchors).toEqual([]);
+  });
+
+  it("returns an empty headline/anchors for an anonymous caller", async () => {
+    const res = await fetchJson(STRENGTHS_URL);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ headline: null, anchors: [] });
+  });
+
+  it("a second user's own request never reflects the first user's tagged moves", async () => {
+    await postEntry({ moves: [{ difficulty: "hardest", limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" }] });
+    const userB = await createAuthedSession();
+    const body = await (await getStrengths({}, userB.cookie)).json();
+    expect(body).toEqual({ headline: null, anchors: [] });
+  });
+});
