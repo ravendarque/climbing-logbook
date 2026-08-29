@@ -677,6 +677,69 @@ describe("handleDelete", () => {
   });
 });
 
+function validMoveRow(overrides = {}) {
+  return { difficulty: "hardest", limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang", ...overrides };
+}
+function validPainRow(overrides = {}) {
+  return { limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "slab", ...overrides };
+}
+
+describe("entry_moves / entry_pain_moves", () => {
+  it("defaults both to empty arrays when omitted", async () => {
+    const created = await (await post(validEntry())).json();
+    expect(created.entries[0].moves).toEqual([]);
+    expect(created.entries[0].painMoves).toEqual([]);
+  });
+
+  it("writes and reads back moves on create", async () => {
+    const created = await (await post({ ...validEntry(), moves: [validMoveRow()] })).json();
+    expect(created.entries[0].moves).toHaveLength(1);
+    expect(created.entries[0].moves[0]).toMatchObject({ difficulty: "hardest", limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" });
+    expect(typeof created.entries[0].moves[0].id).toBe("string");
+  });
+
+  it("writes and reads back painMoves on create", async () => {
+    const created = await (await post({ ...validEntry(), painMoves: [validPainRow()] })).json();
+    expect(created.entries[0].painMoves).toHaveLength(1);
+    expect(created.entries[0].painMoves[0]).toMatchObject({ limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "slab" });
+  });
+
+  it("returns moves/painMoves for every entry via a plain GET", async () => {
+    await post({ ...validEntry(), moves: [validMoveRow()] });
+    const { entries } = await (await get()).json();
+    expect(entries[0].moves).toHaveLength(1);
+  });
+
+  it("diffs-and-replaces moves on edit, not merges", async () => {
+    const created = await (await post({ ...validEntry(), moves: [validMoveRow()] })).json();
+    const updated = await (await put({ ...created.entries[0], moves: [validMoveRow({ difficulty: "easiest", limb: "knee", side: "left", holdType: "kneebar", movementStyle: "static" })] })).json();
+    expect(updated.entries[0].moves).toHaveLength(1);
+    expect(updated.entries[0].moves[0].difficulty).toBe("easiest");
+    expect(updated.entries[0].moves[0].limb).toBe("knee");
+  });
+
+  it("clears moves on edit when the new list is empty", async () => {
+    const created = await (await post({ ...validEntry(), moves: [validMoveRow()] })).json();
+    const updated = await (await put({ ...created.entries[0], moves: [] })).json();
+    expect(updated.entries[0].moves).toEqual([]);
+  });
+
+  it("leaves an entry's moves in place after a soft delete (not cascaded)", async () => {
+    const created = await (await post({ ...validEntry(), moves: [validMoveRow()] })).json();
+    const id = created.entries[0].id;
+    await del(id);
+    const { results } = await env.LOGBOOK_DB.prepare("SELECT * FROM entry_moves WHERE entry_id = ?").bind(id).all();
+    expect(results).toHaveLength(1);
+  });
+
+  it("rejects an invalid move row on create with a 400", async () => {
+    const res = await post({ ...validEntry(), moves: [validMoveRow({ wallAngle: "ceiling" })] });
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe("moves[0].wallAngle must be one of: slab, vert, overhang, roof");
+  });
+});
+
 // The one genuinely new security boundary #297 introduces -- no existing
 // precedent to extend from. User A's entries must be completely invisible
 // and unreachable to user B, even when B knows (or guesses/forges) A's
