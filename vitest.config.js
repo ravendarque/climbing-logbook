@@ -83,6 +83,14 @@ export default defineConfig({
                 // and needs this to exist regardless of what real key local dev
                 // or production configure.
                 RESEND_API_KEY: "test-key-fetch-is-always-stubbed",
+                // #587: deliberately NOT one of Cloudflare's published
+                // dummy secrets (server/lib/turnstile.js's own
+                // DUMMY_SECRET_RESPONSES) -- test/turnstile.test.js stubs
+                // the outbound fetch() itself and needs that fetch to
+                // actually happen so its stub is exercised, regardless of
+                // whether a developer's local .dev.vars (gitignored, may
+                // or may not be present) sets the real dummy secret.
+                TURNSTILE_SECRET_KEY: "test-secret-fetch-is-always-stubbed",
               },
             },
           }),
