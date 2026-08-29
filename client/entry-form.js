@@ -15,6 +15,7 @@ import { escapeHtml } from "./escape-html.js";
 import { BOULDER_GRADES, LEAD_GRADES } from "../shared/grade-data.js";
 import { flashLabel, sendLabel, nameLabel, hydrateStatusIcons } from "./status.js";
 import { createPlacePicker } from "./place-picker.js";
+import { createMoveRowList } from "./move-tagging.js";
 import { validateEntryShape } from "../shared/entry-schema.js";
 
 const ERROR_MSG_CLASS = "mt-[.85rem] px-4 py-3 rounded-app text-[.9rem] bg-[color-mix(in_srgb,#f87171_12%,var(--color-surface))] border border-[color-mix(in_srgb,#f87171_40%,transparent)] text-red-400";
@@ -59,6 +60,10 @@ export function createEntryForm({
     getQueue, setQueue,
     adminLocationsUrl, adminPlacesUrl,
   });
+
+  const hardestMoves = createMoveRowList({ listEl: document.getElementById("hardest-moves-list"), addBtnEl: document.getElementById("hardest-moves-add"), hasDifficulty: true, defaultDifficulty: "hardest" });
+  const easiestMoves = createMoveRowList({ listEl: document.getElementById("easiest-moves-list"), addBtnEl: document.getElementById("easiest-moves-add"), hasDifficulty: true, defaultDifficulty: "easiest" });
+  const painMoves = createMoveRowList({ listEl: document.getElementById("pain-moves-list"), addBtnEl: document.getElementById("pain-moves-add"), hasDifficulty: false });
 
   let editingId = null; // null = add mode
 
@@ -220,6 +225,9 @@ export function createEntryForm({
     exertionValue.textContent = `${exertionSlider.value}%`;
     attemptsValue = entry?.attemptsToSend ?? 0;
     renderAttempts();
+    hardestMoves.setRows((entry?.moves ?? []).filter(m => m.difficulty === "hardest"));
+    easiestMoves.setRows((entry?.moves ?? []).filter(m => m.difficulty === "easiest"));
+    painMoves.setRows(entry?.painMoves ?? []);
 
     openModal(entryOverlay);
     nameInput.focus();
@@ -254,6 +262,8 @@ export function createEntryForm({
       video:  videoInput.value.trim() || null,
       rpe: selectedStatus === "send" ? Number(exertionSlider.value) : null,
       attemptsToSend: attemptsValue,
+      moves: [...hardestMoves.getRows(), ...easiestMoves.getRows()],
+      painMoves: painMoves.getRows(),
     };
 
     // #224 -- shape/rule check against the same schema the server enforces,
