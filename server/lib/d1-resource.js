@@ -126,7 +126,20 @@ export async function insertRow(env, table, row) {
 // are two real rows, not duplicates of each other), so this stays a
 // per-instantiation opt-in like excludeDeleted, not a table-agnostic
 // default.
-export function createD1ResourceHandlers({ table, resourceKey, validateFields, buildRow, rowToJson, excludeDeleted = false, findDuplicate }) {
+// #575 Phase 2 -- `afterWrite` (optional, `async (env, id, record) => void`)
+// and `decorateRows` (optional, `async (env, userId, rows) => rows`) are
+// both no-ops for every existing caller (places.js/locations.js never
+// pass either): `afterWrite` is only invoked with `if (afterWrite)`, and
+// every returned row list goes through `decorateRows ? await
+// decorateRows(...) : list` -- entries.js (this plan's real consumer,
+// wired up in a later task) is the only instantiation that will pass
+// either. `afterWrite` runs once per successful write (fresh insert or
+// tombstone-resurrect), after the row itself is written but before the
+// response list is built -- deliberately NOT called from the "already
+// exists, not a resurrect" branch (a true idempotent replay of an
+// already-successful create has no new write to diff-and-replace child
+// rows against).
+export function createD1ResourceHandlers({ table, resourceKey, validateFields, buildRow, rowToJson, excludeDeleted = false, findDuplicate, afterWrite, decorateRows }) {
   // #500 -- `?since=<cursor>` switches to the delta path (places.js/
   // locations.js's own GET routes both get this for free) -- absent for
   // every existing caller, which keeps the unchanged "everything" shape
@@ -135,10 +148,12 @@ export function createD1ResourceHandlers({ table, resourceKey, validateFields, b
     const since = new URL(request.url).searchParams.get("since");
     if (since !== null) {
       const { rows, cursor } = await listChangedForUser(env, table, userId, rowToJson, Number(since));
-      return json({ [resourceKey]: rows, cursor }, 200, { "Cache-Control": "no-store" });
+      const decorated = decorateRows ? await decorateRows(env, userId, rows) : rows;
+      return json({ [resourceKey]: decorated, cursor }, 200, { "Cache-Control": "no-store" });
     }
     const list = await listForUser(env, table, userId, rowToJson, { excludeDeleted });
-    return json({ [resourceKey]: list }, 200, { "Cache-Control": "no-store" });
+    const decoratedList = decorateRows ? await decorateRows(env, userId, list) : list;
+    return json({ [resourceKey]: decoratedList }, 200, { "Cache-Control": "no-store" });
   }
 
   async function handlePost(request, env, userId) {
@@ -166,8 +181,10 @@ export function createD1ResourceHandlers({ table, resourceKey, validateFields, b
     if (findDuplicate) {
       const duplicate = await findDuplicate(env, userId, record);
       if (duplicate) {
+        const list = await listForUser(env, table, userId, rowToJson, { excludeDeleted });
+        const decorated = decorateRows ? await decorateRows(env, userId, list) : list;
         return json({
-          [resourceKey]: await listForUser(env, table, userId, rowToJson, { excludeDeleted }),
+          [resourceKey]: decorated,
           dedupedTo: duplicate.id,
         }, 200);
       }
@@ -199,14 +216,22 @@ export function createD1ResourceHandlers({ table, resourceKey, validateFields, b
           .prepare(`UPDATE ${table} SET ${columns.map(c => `${c} = ?`).join(", ")}, deleted_at = NULL WHERE id = ? AND user_id = ?`)
           .bind(...columns.map(c => row[c]), id, userId)
           .run();
-        return json({ [resourceKey]: await listForUser(env, table, userId, rowToJson, { excludeDeleted }) }, 201);
+        if (afterWrite) await afterWrite(env, id, record);
+        const list = await listForUser(env, table, userId, rowToJson, { excludeDeleted });
+        const decorated = decorateRows ? await decorateRows(env, userId, list) : list;
+        return json({ [resourceKey]: decorated }, 201);
       }
-      return json({ [resourceKey]: await listForUser(env, table, userId, rowToJson, { excludeDeleted }) }, 200);
+      const list = await listForUser(env, table, userId, rowToJson, { excludeDeleted });
+      const decorated = decorateRows ? await decorateRows(env, userId, list) : list;
+      return json({ [resourceKey]: decorated }, 200);
     }
 
     await insertRow(env, table, buildRow(record, id, userId));
+    if (afterWrite) await afterWrite(env, id, record);
 
-    return json({ [resourceKey]: await listForUser(env, table, userId, rowToJson, { excludeDeleted }) }, 201);
+    const list = await listForUser(env, table, userId, rowToJson, { excludeDeleted });
+    const decorated = decorateRows ? await decorateRows(env, userId, list) : list;
+    return json({ [resourceKey]: decorated }, 201);
   }
 
   return { handleGet, handlePost };

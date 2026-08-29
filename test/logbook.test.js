@@ -6,6 +6,12 @@
 import { env } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
+// Task 7 -- this one test block exercises handlePublicGet/publicRowToJson
+// directly rather than through fetchJson/jsonRequest (this file's usual
+// HTTP-contract testing philosophy, see header comment above): it's the
+// exact same (request, env, userId) signature server/api/public-data.js
+// calls it with, not a new testing style for the rest of the file.
+import { handlePublicGet, publicRowToJson } from "../server/api/logbook.js";
 
 const PUBLIC_URL = "/logbook/api/logbook";
 const ADMIN_URL = "/logbook/api/admin/logbook";
@@ -17,12 +23,13 @@ beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
 afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
 
 let cookie;
+let userId;
 let placeId;
 let locationId;
 
 beforeEach(async () => {
   await resetAuthTables();
-  ({ cookie } = await createAuthedSession());
+  ({ cookie, userId } = await createAuthedSession());
   placeId = await seedPlace(cookie);
   locationId = await locationIdOf(placeId);
 });
@@ -84,6 +91,34 @@ describe("handleGet", () => {
 
     const { entries } = await (await get()).json();
     expect(entries).toEqual([]);
+  });
+});
+
+describe("attemptsToSend / rpe", () => {
+  it("round-trips attemptsToSend and rpe through create", async () => {
+    const created = await (await post({ ...validEntry(), attemptsToSend: 5, rpe: 80 })).json();
+    expect(created.entries[0].attemptsToSend).toBe(5);
+    expect(created.entries[0].rpe).toBe(80);
+  });
+
+  it("defaults both to null when omitted", async () => {
+    const created = await (await post(validEntry())).json();
+    expect(created.entries[0].attemptsToSend).toBeNull();
+    expect(created.entries[0].rpe).toBeNull();
+  });
+
+  it("round-trips both through edit", async () => {
+    const created = await (await post(validEntry())).json();
+    const updated = await (await put({ ...created.entries[0], attemptsToSend: 3, rpe: 60 })).json();
+    expect(updated.entries[0].attemptsToSend).toBe(3);
+    expect(updated.entries[0].rpe).toBe(60);
+  });
+
+  it("rejects an invalid rpe on create", async () => {
+    const res = await post({ ...validEntry(), rpe: 55 });
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe("rpe must be a multiple of 10 between 0 and 100");
   });
 });
 
@@ -649,6 +684,98 @@ describe("handleDelete", () => {
   });
 });
 
+function validMoveRow(overrides = {}) {
+  return { difficulty: "hardest", limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang", ...overrides };
+}
+function validPainRow(overrides = {}) {
+  return { limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "slab", ...overrides };
+}
+
+describe("entry_moves / entry_pain_moves", () => {
+  it("defaults both to empty arrays when omitted", async () => {
+    const created = await (await post(validEntry())).json();
+    expect(created.entries[0].moves).toEqual([]);
+    expect(created.entries[0].painMoves).toEqual([]);
+  });
+
+  it("writes and reads back moves on create", async () => {
+    const created = await (await post({ ...validEntry(), moves: [validMoveRow()] })).json();
+    expect(created.entries[0].moves).toHaveLength(1);
+    expect(created.entries[0].moves[0]).toMatchObject({ difficulty: "hardest", limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" });
+    expect(typeof created.entries[0].moves[0].id).toBe("string");
+  });
+
+  it("writes and reads back painMoves on create", async () => {
+    const created = await (await post({ ...validEntry(), painMoves: [validPainRow()] })).json();
+    expect(created.entries[0].painMoves).toHaveLength(1);
+    expect(created.entries[0].painMoves[0]).toMatchObject({ limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "slab" });
+  });
+
+  it("returns moves/painMoves for every entry via a plain GET", async () => {
+    await post({ ...validEntry(), moves: [validMoveRow()] });
+    const { entries } = await (await get()).json();
+    expect(entries[0].moves).toHaveLength(1);
+  });
+
+  it("diffs-and-replaces moves on edit, not merges", async () => {
+    const created = await (await post({ ...validEntry(), moves: [validMoveRow()] })).json();
+    const updated = await (await put({ ...created.entries[0], moves: [validMoveRow({ difficulty: "easiest", limb: "knee", side: "left", holdType: "kneebar", movementStyle: "static" })] })).json();
+    expect(updated.entries[0].moves).toHaveLength(1);
+    expect(updated.entries[0].moves[0].difficulty).toBe("easiest");
+    expect(updated.entries[0].moves[0].limb).toBe("knee");
+  });
+
+  it("clears moves on edit when the new list is empty", async () => {
+    const created = await (await post({ ...validEntry(), moves: [validMoveRow()] })).json();
+    const updated = await (await put({ ...created.entries[0], moves: [] })).json();
+    expect(updated.entries[0].moves).toEqual([]);
+  });
+
+  it("leaves an entry's moves in place after a soft delete (not cascaded)", async () => {
+    const created = await (await post({ ...validEntry(), moves: [validMoveRow()] })).json();
+    const id = created.entries[0].id;
+    await del(id);
+    const { results } = await env.LOGBOOK_DB.prepare("SELECT * FROM entry_moves WHERE entry_id = ?").bind(id).all();
+    expect(results).toHaveLength(1);
+  });
+
+  it("rejects an invalid move row on create with a 400", async () => {
+    const res = await post({ ...validEntry(), moves: [validMoveRow({ wallAngle: "ceiling" })] });
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe("moves[0].wallAngle must be one of: slab, vert, overhang, roof");
+  });
+
+  // Regression test for a D1 bound-parameter overflow: attachChildRows()
+  // used to build one `IN (?,?,...)` query with one bound param per row,
+  // and D1 (SQLite) hard-caps a statement at 100 bound params -- verified
+  // empirically, 101 params throws D1_ERROR: too many SQL variables. 105
+  // entries is enough to exercise more than one full 90-id chunk plus a
+  // remainder (see CHUNK_SIZE in server/api/logbook.js) without slowing the
+  // suite down further than needed to prove the chunking works. Before the
+  // chunk-and-merge fix, this GET throws/500s once past 100 entries; after
+  // it, every entry's moves/painMoves come back (empty arrays here, since
+  // none of these entries have any child rows).
+  // 105 sequential real HTTP+D1 round trips run well under the suite's
+  // default 20s testTimeout in isolation (~1s), but the full suite's
+  // parallel Workers-pool instances contend for the same resources, which
+  // this test's unusually large number of awaited requests feels more than
+  // any other single test in the file -- a longer explicit timeout, not a
+  // change to the shared default, absorbs that contention.
+  it("a plain GET succeeds and returns every entry once entry count crosses the 100-bound-parameter chunk boundary", async () => {
+    for (let i = 0; i < 105; i++) await post({ ...validEntry(), name: `Route ${i}` });
+
+    const res = await get();
+    expect(res.status).toBe(200);
+    const { entries } = await res.json();
+    expect(entries).toHaveLength(105);
+    for (const entry of entries) {
+      expect(entry.moves).toEqual([]);
+      expect(entry.painMoves).toEqual([]);
+    }
+  }, 60000);
+});
+
 // The one genuinely new security boundary #297 introduces -- no existing
 // precedent to extend from. User A's entries must be completely invisible
 // and unreachable to user B, even when B knows (or guesses/forges) A's
@@ -694,5 +821,28 @@ describe("cross-user isolation", () => {
     const res = await post({ ...validEntry(), placeId }, userB.cookie);
     expect(res.status).toBe(400);
     expect((await res.json()).error).toBe("placeId does not reference one of your places");
+  });
+});
+
+describe("publicRowToJson / handlePublicGet (Task 7 -- public profile exclusions)", () => {
+  it("publicRowToJson omits rpe and attemptsToSend", () => {
+    const row = { id: "e1", name: "Test", grade: "6B", place_id: "p1", discipline_id: "boulder", status_id: "send", first_attempt: 0, date: "2026-01-01", video: null, notes: null, rpe: 80, attempts_to_send: 5 };
+    const json = publicRowToJson(row);
+    expect(json).not.toHaveProperty("rpe");
+    expect(json).not.toHaveProperty("attemptsToSend");
+    expect(json).toMatchObject({ id: "e1", name: "Test", grade: "6B", placeId: "p1", type: "boulder", status: "send" });
+  });
+
+  it("handlePublicGet's response has no rpe/attemptsToSend/moves/painMoves keys on any entry", async () => {
+    await post({ ...validEntry(), rpe: 80, attemptsToSend: 5, moves: [validMoveRow()], painMoves: [validPainRow()] });
+    const request = new Request("https://example.com/logbook/api/logbook");
+    const res = await handlePublicGet(request, env, userId);
+    const { entries } = await res.json();
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).not.toHaveProperty("rpe");
+    expect(entries[0]).not.toHaveProperty("attemptsToSend");
+    expect(entries[0]).not.toHaveProperty("moves");
+    expect(entries[0]).not.toHaveProperty("painMoves");
+    expect(entries[0].name).toBe(validEntry().name);
   });
 });

@@ -1,6 +1,6 @@
 import { json } from "../lib/json.js";
 import { resolvePublicUser } from "./public-profile.js";
-import { handleGet as handleGetLogbook } from "./logbook.js";
+import { handlePublicGet } from "./logbook.js";
 import { handleGet as handleGetPlaces } from "./places.js";
 import { handleGet as handleGetLocations } from "./locations.js";
 import { handleGetMapCounts } from "./map.js";
@@ -14,21 +14,24 @@ import { handleGetProfileCounts } from "./profile-counts.js";
 // this always does so same-origin, regardless of which hostname served
 // the page itself.
 //
-// Reuses server/api/{logbook,places,locations}.js's existing handleGet
-// completely unchanged -- server/lib/d1-resource.js's own handleGet(request,
-// env, userId) already treats userId as an opaque parameter (its own
-// comment: "GET is reachable without a session -- userId may be null,
-// which just means 'no rows'"), so passing the *target* user's id instead
-// of the *caller's own* session-derived one is exactly the shape it was
-// already built for -- no new query logic needed, just a different id
-// source in front of it.
+// Reuses server/api/{places,locations}.js's existing handleGet completely
+// unchanged, and server/api/logbook.js's handlePublicGet (a thin wrapper
+// over its own handleGet, Task 7 -- see that file for why: the raw
+// handleGet's rowToJson/attachChildRows leaked rpe/attemptsToSend/
+// entry_moves/entry_pain_moves to anonymous callers) -- server/lib/
+// d1-resource.js's own handleGet(request, env, userId) already treats
+// userId as an opaque parameter (its own comment: "GET is reachable
+// without a session -- userId may be null, which just means 'no rows'"),
+// so passing the *target* user's id instead of the *caller's own*
+// session-derived one is exactly the shape it was already built for --
+// no new query logic needed, just a different id source in front of it.
 //
 // Same anti-enumeration gate as the profile page itself (resolvePublicUser,
 // #113) -- a private or nonexistent username gets the same generic 404
 // here too, not a distinguishable response an attacker could use to probe
 // which usernames are real accounts.
 const HANDLERS = {
-  logbook: handleGetLogbook,
+  logbook: handlePublicGet,
   places: handleGetPlaces,
   locations: handleGetLocations,
   // #497 -- handleGetMapCounts already takes a plain userId with no

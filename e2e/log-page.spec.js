@@ -184,6 +184,120 @@ test("adds and then deletes an entry via the Add/Edit modal", async ({ page }) =
   await expect(page.locator("#sections")).not.toContainText(entryName);
 });
 
+// #575 Phase 2 entry-data plan (Task 6) -- end-to-end coverage for the
+// Exertion slider, Attempts stepper, and Move difficulty/Pain-injury
+// cascading-dropdown sections client/entry-form.js's own open()/submit
+// wiring added on top of client/move-tagging.js (Tasks 4/5 of the same
+// plan). Same gotoLogHarness/mockApi harness and #add-btn/#entry-overlay
+// open pattern as every other entry-modal test above.
+test("Exertion is visible for Send/Flash and hidden for Project/Check out/Archived", async ({ page }) => {
+  await gotoLogHarness(page);
+  await page.locator("#add-btn").click();
+  await expect(page.locator("#entry-overlay")).toBeVisible();
+
+  // Send is the status radio checked by default (entry-form.js's own
+  // open()) -- Exertion starts visible with no interaction at all.
+  await expect(page.locator("#exertion-field")).toBeVisible();
+
+  // The status radios are visually hidden (sr-only, styled buttons via
+  // their labels) -- `force: true` checks the input directly rather than
+  // requiring Playwright's actionability check to see it as clickable,
+  // same reasoning label clicks are used elsewhere in this file for other
+  // sr-only-backed controls.
+  await page.locator('#status-group input[value="project"]').check({ force: true });
+  await expect(page.locator("#exertion-field")).toBeHidden();
+  await page.locator('#status-group input[value="checkout"]').check({ force: true });
+  await expect(page.locator("#exertion-field")).toBeHidden();
+  await page.locator('#status-group input[value="archived"]').check({ force: true });
+  await expect(page.locator("#exertion-field")).toBeHidden();
+
+  // Flash isn't its own status value (isFlash flag on top of status
+  // "send") -- checking it still resolves to selectedStatus === "send",
+  // so Exertion reappears.
+  await page.locator('#status-group input[value="flash"]').check({ force: true });
+  await expect(page.locator("#exertion-field")).toBeVisible();
+});
+
+test("Attempts stepper increments/decrements and cannot go below 0", async ({ page }) => {
+  await gotoLogHarness(page);
+  await page.locator("#add-btn").click();
+  await expect(page.locator("#entry-overlay")).toBeVisible();
+
+  await expect(page.locator("#attempts-count")).toHaveText("0");
+  await expect(page.locator("#attempts-minus")).toBeDisabled();
+
+  await page.locator("#attempts-plus").click();
+  await page.locator("#attempts-plus").click();
+  await expect(page.locator("#attempts-count")).toHaveText("2");
+  await expect(page.locator("#attempts-minus")).toBeEnabled();
+
+  await page.locator("#attempts-minus").click();
+  await expect(page.locator("#attempts-count")).toHaveText("1");
+  await page.locator("#attempts-minus").click();
+  await expect(page.locator("#attempts-count")).toHaveText("0");
+  await expect(page.locator("#attempts-minus")).toBeDisabled();
+
+  // Clicking a disabled button is a no-op -- still floored at 0, not -1.
+  await page.locator("#attempts-minus").click({ force: true });
+  await expect(page.locator("#attempts-count")).toHaveText("0");
+});
+
+test("adding a move and saving submits it in the entry payload", async ({ page }) => {
+  await gotoLogHarness(page);
+
+  // Registered after gotoLogHarness (same layering the offline-queue
+  // describe block above uses for its own page.route() overrides) --
+  // this intercept wins over mockApi()'s own stateful admin/logbook
+  // handler and lets the test assert on the exact payload the form
+  // built, not just the client-rendered end state.
+  let submittedBody;
+  await page.route("**/logbook/api/admin/logbook*", async route => {
+    submittedBody = route.request().postDataJSON();
+    await route.fulfill({ status: 201, json: { entries: [{ ...submittedBody, id: "new-id" }] } });
+  });
+
+  const entryName = `E2E move payload ${Date.now()}`;
+  await page.locator("#add-btn").click();
+  await page.locator("#entry-name").fill(entryName);
+  await page.locator("#place-btn").click();
+  await page.locator('#place-listbox li[data-key="p1"]').click();
+
+  await page.locator("#hardest-moves-add").click();
+  await page.locator('#hardest-moves-list [data-field="limbSide"]').selectOption("foot-right");
+
+  await Promise.all([
+    page.waitForResponse(res => res.url().includes("/logbook/api/admin/logbook") && res.request().method() === "POST"),
+    page.locator("#entry-submit-btn").click(),
+  ]);
+  await expect(page.locator("#entry-overlay")).toBeHidden();
+
+  expect(submittedBody.moves).toHaveLength(1);
+  expect(submittedBody.moves[0]).toMatchObject({ difficulty: "hardest", limb: "foot", side: "right" });
+});
+
+test("editing an entry pre-populates its existing moves into the right list", async ({ page }) => {
+  await gotoLogHarness(page, {
+    ...SEED,
+    entries: [
+      ...SEED.entries,
+      {
+        id: "e3", placeId: "p1", type: "boulder", status: "send", grade: "6A", date: "2026-05-04", name: "Move Seed",
+        moves: [{ limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "slab", difficulty: "hardest" }],
+        painMoves: [{ limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "overhang" }],
+      },
+    ],
+  });
+
+  await page.locator("#collapse-all-btn").click();
+  const row = page.locator("tr", { has: page.getByText("Move Seed", { exact: true }) });
+  await row.locator(".edit-btn").click();
+  await expect(page.locator("#entry-overlay")).toBeVisible();
+
+  await expect(page.locator("#hardest-moves-list [data-move-row]")).toHaveCount(1);
+  await expect(page.locator("#easiest-moves-list [data-move-row]")).toHaveCount(0);
+  await expect(page.locator("#pain-moves-list [data-move-row]")).toHaveCount(1);
+});
+
 test("add-place modal: brand-new location leaves the country field open", async ({ page }) => {
   await gotoLogHarness(page);
   await page.locator("#add-btn").click();

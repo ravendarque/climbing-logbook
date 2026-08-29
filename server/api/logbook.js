@@ -32,6 +32,8 @@ export function buildRow(entry, id, userId) {
     date: entry.date || null,
     video: entry.video || null,
     notes: entry.notes || null,
+    attempts_to_send: entry.attemptsToSend ?? null,
+    rpe: entry.rpe ?? null,
     // #499 -- app-level, not a column DEFAULT: D1 rejects a non-constant
     // DEFAULT on ALTER TABLE ADD COLUMN (confirmed empirically, see
     // migrations/0005's own comment), so every insert path populates
@@ -43,6 +45,33 @@ export function buildRow(entry, id, userId) {
 }
 
 export function rowToJson(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    grade: row.grade,
+    placeId: row.place_id,
+    type: row.discipline_id,
+    status: row.status_id,
+    firstAttempt: !!row.first_attempt,
+    date: row.date,
+    video: row.video,
+    notes: row.notes,
+    attemptsToSend: row.attempts_to_send,
+    rpe: row.rpe,
+  };
+}
+
+// server/api/public-data.js's own reuse of this file's handleGet for the
+// public profile page -- deliberately narrower than rowToJson: excludes
+// rpe/attemptsToSend (Exertion/Attempts, this plan's own new fields) and
+// is never passed through attachChildRows (see handlePublicGet below), so
+// entry_moves/entry_pain_moves are never even queried for a public
+// request. An allow-list of what a public viewer needs, not a redaction
+// of what they shouldn't see -- a field added to rowToJson in the future
+// is private-by-default here unless someone deliberately adds it to this
+// list too (Raven's own ruling, 2026-08-29: a blocklist fails open on the
+// next new field; an allow-list fails closed).
+export function publicRowToJson(row) {
   return {
     id: row.id,
     name: row.name,
@@ -67,6 +96,92 @@ function rowToJsonWithDeleted(row) {
   return { ...rowToJson(row), deleted: !!row.deleted_at };
 }
 
+// #575 Phase 2 entry-data plan -- entry_moves/entry_pain_moves (#36/#572)
+// are child tables of entries, not resources of their own, so they don't
+// go through d1-resource.js's own createD1ResourceHandlers -- this is the
+// entries-specific plumbing that hooks into it instead (afterWrite/
+// decorateRows, server/lib/d1-resource.js).
+function buildMoveRow(record, id, entryId) {
+  return { id, entry_id: entryId, difficulty: record.difficulty, limb: record.limb, side: record.side, hold_type: record.holdType, movement_style: record.movementStyle, wall_angle: record.wallAngle };
+}
+function buildPainMoveRow(record, id, entryId) {
+  return { id, entry_id: entryId, limb: record.limb, side: record.side, hold_type: record.holdType, movement_style: record.movementStyle, wall_angle: record.wallAngle };
+}
+function moveRowToJson(row) {
+  return { id: row.id, difficulty: row.difficulty, limb: row.limb, side: row.side, holdType: row.hold_type, movementStyle: row.movement_style, wallAngle: row.wall_angle };
+}
+function painMoveRowToJson(row) {
+  return { id: row.id, limb: row.limb, side: row.side, holdType: row.hold_type, movementStyle: row.movement_style, wallAngle: row.wall_angle };
+}
+
+// Diff-and-replace (design doc's own term, docs/superpowers/specs/2026-08-
+// 27-performance-insights-ui-design.md "Offline" section): the whole
+// current list from the client is authoritative for this entry, so every
+// write clears and rebuilds rather than trying to reconcile individual
+// row changes. One env.LOGBOOK_DB.batch() call, not sequential awaits --
+// a partial failure between the DELETE and its INSERTs would otherwise
+// leave this entry's tags empty rather than either fully old or fully new.
+async function replaceChildRows(env, table, entryId, records, buildRow) {
+  const statements = [
+    env.LOGBOOK_DB.prepare(`DELETE FROM ${table} WHERE entry_id = ?`).bind(entryId),
+    ...records.map(record => {
+      const row = buildRow(record, crypto.randomUUID(), entryId);
+      const columns = Object.keys(row);
+      return env.LOGBOOK_DB.prepare(`INSERT INTO ${table} (${columns.join(", ")}) VALUES (${columns.map(() => "?").join(", ")})`).bind(...columns.map(c => row[c]));
+    }),
+  ];
+  await env.LOGBOOK_DB.batch(statements);
+}
+
+async function replaceMovesAndPainMoves(env, entryId, record) {
+  await replaceChildRows(env, "entry_moves", entryId, record.moves ?? [], buildMoveRow);
+  await replaceChildRows(env, "entry_pain_moves", entryId, record.painMoves ?? [], buildPainMoveRow);
+}
+
+// D1 (SQLite) caps a single statement at 100 bound parameters -- verified
+// empirically, 101 entry ids in one IN (...) throws D1_ERROR: too many SQL
+// variables. 90 leaves headroom below that limit (not a magic requirement,
+// just a safe round number) -- ids are chunked into batches of at most this
+// many before each query.
+const CHUNK_SIZE = 90;
+
+function chunk(array, size) {
+  const chunks = [];
+  for (let i = 0; i < array.length; i += size) chunks.push(array.slice(i, i + size));
+  return chunks;
+}
+
+// One query per chunk per table, not one unbounded IN (...) -- see
+// CHUNK_SIZE above. Results across all chunks are merged before grouping by
+// entry_id, so the function's return shape/grouping/rows.length===0 early
+// return are unchanged from before chunking.
+async function fetchChildRowsChunked(env, table, ids) {
+  const results = [];
+  for (const idChunk of chunk(ids, CHUNK_SIZE)) {
+    const placeholders = idChunk.map(() => "?").join(",");
+    const res = await env.LOGBOOK_DB.prepare(`SELECT * FROM ${table} WHERE entry_id IN (${placeholders})`).bind(...idChunk).all();
+    results.push(...res.results);
+  }
+  return results;
+}
+
+// Batch-fetched, not one query per entry -- avoids an N+1 query per
+// entries response. Safe against an empty `rows` (returns immediately,
+// no query at all) since IN (...) with zero placeholders is invalid SQL.
+export async function attachChildRows(rows, env) {
+  if (rows.length === 0) return rows;
+  const ids = rows.map(r => r.id);
+  const [movesRows, painRows] = await Promise.all([
+    fetchChildRowsChunked(env, "entry_moves", ids),
+    fetchChildRowsChunked(env, "entry_pain_moves", ids),
+  ]);
+  const movesByEntry = {};
+  for (const row of movesRows) (movesByEntry[row.entry_id] ??= []).push(moveRowToJson(row));
+  const painByEntry = {};
+  for (const row of painRows) (painByEntry[row.entry_id] ??= []).push(painMoveRowToJson(row));
+  return rows.map(row => ({ ...row, moves: movesByEntry[row.id] ?? [], painMoves: painByEntry[row.id] ?? [] }));
+}
+
 // handlePost (#297) -- see server/lib/d1-resource.js for the shared
 // shape every D1-backed create+list resource follows. handleGet is its
 // own custom implementation below (#111 -- per-location pagination),
@@ -81,6 +196,8 @@ export const { handlePost } = createD1ResourceHandlers({
   rowToJson,
   // #499 -- entries is the only resource with a deleted_at tombstone.
   excludeDeleted: true,
+  afterWrite: (env, id, record) => replaceMovesAndPainMoves(env, id, record),
+  decorateRows: (env, userId, rows) => attachChildRows(rows, env),
 });
 
 // #111/#493 -- the size of each per-location "Show more" network page.
@@ -112,7 +229,7 @@ const PAGE_SIZE = 20;
 // outcome (empty list, not an error) as this app's other public
 // (session-optional) GET routes, achieved here by the query shape
 // itself rather than an extra check.
-export async function handleGet(request, env, userId) {
+export async function handleGet(request, env, userId, { shapeRow = rowToJson, includeChildRows = true } = {}) {
   const url = new URL(request.url);
 
   // #500 -- checked first, mutually exclusive with the locationId/flat-
@@ -122,12 +239,17 @@ export async function handleGet(request, env, userId) {
   // below uses -- unlike every other entries read path, a delta
   // response's whole point is surfacing tombstones so the client can
   // remove them locally, not hiding them (listChangedForUser itself
-  // never filters deleted_at at all, see its own header comment).
+  // never filters deleted_at at all, see its own header comment). Always
+  // rowToJsonWithDeleted, not shapeRow -- this branch is never reached
+  // publicly today (?since= is stripped before dispatch by server/api/
+  // public-data.js), but it's this file's own owner-only delta shape
+  // regardless of what shapeRow the caller passed.
   const since = url.searchParams.get("since");
   if (since !== null) {
     if (!userId) return json({ entries: [], cursor: Number(since) }, 200, { "Cache-Control": "no-store" });
     const { rows, cursor } = await listChangedForUser(env, "entries", userId, rowToJsonWithDeleted, Number(since));
-    return json({ entries: rows, cursor }, 200, { "Cache-Control": "no-store" });
+    const decorated = includeChildRows ? await attachChildRows(rows, env) : rows;
+    return json({ entries: decorated, cursor }, 200, { "Cache-Control": "no-store" });
   }
 
   const locationId = url.searchParams.get("locationId");
@@ -141,7 +263,9 @@ export async function handleGet(request, env, userId) {
     // N-1 left off.
     const limit = url.searchParams.get("limit");
     if (limit === null) {
-      return json({ entries: await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true }) }, 200, { "Cache-Control": "no-store" });
+      const rows = await listForUser(env, "entries", userId, shapeRow, { excludeDeleted: true });
+      const decorated = includeChildRows ? await attachChildRows(rows, env) : rows;
+      return json({ entries: decorated }, 200, { "Cache-Control": "no-store" });
     }
     if (!userId) return json({ entries: [], total: 0, cursor: 0 }, 200, { "Cache-Control": "no-store" });
 
@@ -159,7 +283,9 @@ export async function handleGet(request, env, userId) {
       .all();
     const total = results[0]?.total ?? 0;
     const cursor = results[0]?.max_cursor ?? 0;
-    return json({ entries: results.map(rowToJson), total, cursor }, 200, { "Cache-Control": "no-store" });
+    const shaped = results.map(shapeRow);
+    const decorated = includeChildRows ? await attachChildRows(shaped, env) : shaped;
+    return json({ entries: decorated, total, cursor }, 200, { "Cache-Control": "no-store" });
   }
   if (!userId) return json({ entries: [] }, 200, { "Cache-Control": "no-store" });
 
@@ -174,7 +300,17 @@ export async function handleGet(request, env, userId) {
     .bind(userId, locationId, limit, offset)
     .all();
 
-  return json({ entries: results.map(rowToJson) }, 200, { "Cache-Control": "no-store" });
+  const shaped = results.map(shapeRow);
+  const decorated = includeChildRows ? await attachChildRows(shaped, env) : shaped;
+  return json({ entries: decorated }, 200, { "Cache-Control": "no-store" });
+}
+
+// The one place server/api/public-data.js's HANDLERS table should point
+// at instead of the raw handleGet above -- keeps "what a public caller
+// gets" declared right next to the private shape it's narrowing, rather
+// than scattered into the reuse site.
+export function handlePublicGet(request, env, userId) {
+  return handleGet(request, env, userId, { shapeRow: publicRowToJson, includeChildRows: false });
 }
 
 export async function handlePut(request, env, userId) {
@@ -200,8 +336,11 @@ export async function handlePut(request, env, userId) {
     .prepare(`UPDATE entries SET ${columns.map(c => `${c} = ?`).join(", ")}, updated_at = datetime('now') WHERE id = ? AND user_id = ?`)
     .bind(...columns.map(c => row[c]), entry.id, userId)
     .run();
+  await replaceMovesAndPainMoves(env, entry.id, entry);
 
-  return json({ entries: await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true }) });
+  const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
+  const decorated = await attachChildRows(rows, env);
+  return json({ entries: decorated });
 }
 
 // #499 -- soft delete (a deleted_at tombstone), not a real DELETE: a
@@ -227,5 +366,7 @@ export async function handleDelete(request, env, userId) {
     .bind(now, now, id, userId)
     .run();
 
-  return json({ entries: await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true }) });
+  const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
+  const decorated = await attachChildRows(rows, env);
+  return json({ entries: decorated });
 }

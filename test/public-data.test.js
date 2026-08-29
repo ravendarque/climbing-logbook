@@ -192,4 +192,24 @@ describe("public data API", () => {
       expect(body.entries.map(e => e.name)).toEqual(["Sleepwalker"]);
     });
   });
+
+  it("never returns rpe/attemptsToSend/moves/painMoves, even when the owner's entry has them (Task 7)", async () => {
+    const { cookie } = await createAuthedSession({ username: "sensitivedatauser" });
+    const placeId = await seedPlace(cookie);
+    await jsonRequest("POST", "/logbook/api/admin/logbook", {
+      placeId, name: "Private Beta", grade: "7A", type: "boulder", status: "send",
+      rpe: 90, attemptsToSend: 3,
+      moves: [{ difficulty: "hardest", limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" }],
+      painMoves: [{ limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "slab" }],
+    }, { Cookie: cookie });
+
+    const res = await fetchPublic("sensitivedatauser", "logbook");
+    const { entries } = await res.json();
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).not.toHaveProperty("rpe");
+    expect(entries[0]).not.toHaveProperty("attemptsToSend");
+    expect(entries[0]).not.toHaveProperty("moves");
+    expect(entries[0]).not.toHaveProperty("painMoves");
+    expect(entries[0].name).toBe("Private Beta");
+  });
 });
