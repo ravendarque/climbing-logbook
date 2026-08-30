@@ -207,3 +207,52 @@ describe("handleGetStrengthsWeaknesses", () => {
     expect(body).toEqual({ headline: null, anchors: [] });
   });
 });
+
+const VOLUME_URL = "/logbook/api/performance/volume";
+function getVolume(params, extraCookie = cookie) {
+  const qs = new URLSearchParams(params).toString();
+  return fetchJson(`${VOLUME_URL}?${qs}`, { headers: { Cookie: extraCookie } });
+}
+
+describe("handleGetVolume", () => {
+  it("returns 400 when start or end is missing", async () => {
+    expect((await getVolume({ end: "2026-03-01" })).status).toBe(400);
+    expect((await getVolume({ start: "2026-01-01" })).status).toBe(400);
+  });
+
+  it("returns empty per-bucket data for a user with no sends in the window", async () => {
+    await postEntry({ date: "2020-01-01" }); // outside the window
+    const { boulder } = await (await getVolume({ start: "2026-01-01", end: "2026-03-01" })).json();
+    expect(boulder.buckets).toEqual(["Jan 2026", "Feb 2026", "Mar 2026"]);
+    expect(boulder.sendCounts).toEqual([0, 0, 0]);
+  });
+
+  it("reflects real sends within the window, split by discipline", async () => {
+    await postEntry({ type: "boulder", grade: "6B", date: "2026-02-10" });
+    await postEntry({ type: "lead", grade: "6a", date: "2026-02-15" });
+    const body = await (await getVolume({ start: "2026-01-01", end: "2026-03-01" })).json();
+    expect(body.boulder.sendCounts).toEqual([0, 1, 0]);
+    expect(body.lead.sendCounts).toEqual([0, 1, 0]);
+  });
+
+  it("excludes a soft-deleted entry", async () => {
+    const created = await (await postEntry({ date: "2026-02-10" })).json();
+    await del(created.entries[0].id);
+    const { boulder } = await (await getVolume({ start: "2026-01-01", end: "2026-03-01" })).json();
+    expect(boulder.sendCounts).toEqual([0, 0, 0]);
+  });
+
+  it("returns empty per-bucket data for an anonymous caller", async () => {
+    const res = await fetchJson(`${VOLUME_URL}?start=2026-01-01&end=2026-03-01`);
+    expect(res.status).toBe(200);
+    const { boulder } = await res.json();
+    expect(boulder.sendCounts).toEqual([0, 0, 0]);
+  });
+
+  it("a second user's own request never reflects the first user's sends", async () => {
+    await postEntry({ date: "2026-02-10" });
+    const userB = await createAuthedSession();
+    const { boulder } = await (await getVolume({ start: "2026-01-01", end: "2026-03-01" }, userB.cookie)).json();
+    expect(boulder.sendCounts).toEqual([0, 0, 0]);
+  });
+});
