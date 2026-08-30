@@ -59,6 +59,13 @@ const offlineEl = document.getElementById("performance-offline");
 
 let latestVolumeData = null;
 
+// A rapid preset switch, or the two Custom date inputs firing `change`
+// back-to-back, can let an earlier, now-stale fetchVolume() resolve after
+// a later one -- same hazard class client/performance-strengths-main.js's
+// own onAnchorChange() guards against (see that file's own comment), just
+// scoped to this file's own onChange callback instead of a <select>.
+let latestVolumeRequestId = 0;
+
 function positionOrderFor(type) {
   return (type === "boulder" ? BOULDER_GRADES : LEAD_GRADES).map(x => x.g);
 }
@@ -147,15 +154,19 @@ async function boot() {
   // of attempting to render anything -- never a locally-computed or
   // stale-cached number.
   try {
-    const timeWindow = createTimeWindowControl({
+    createTimeWindowControl({
       containerEl: timeWindowRootEl,
       onChange: async ({ start, end }) => {
+        const requestId = ++latestVolumeRequestId;
         try {
-          latestVolumeData = await fetchVolume(start, end);
+          const data = await fetchVolume(start, end);
+          if (requestId !== latestVolumeRequestId) return; // a newer request has since started
+          latestVolumeData = data;
           offlineEl.hidden = true;
           trendsRootEl.hidden = false;
           renderTrends();
         } catch {
+          if (requestId !== latestVolumeRequestId) return;
           offlineEl.hidden = false;
           trendsRootEl.hidden = true;
         }
