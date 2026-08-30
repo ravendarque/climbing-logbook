@@ -41,6 +41,12 @@ const INSIGHTS = [
     description: "See which hold types, wall angles, and movements are your weakest combination, and drill into any one of them.",
     route: "strengths",
   },
+  {
+    id: "insight-trends",
+    title: "Volume / Intensity",
+    description: "See how many climbs you're sending over time, and how your max grade is trending alongside it.",
+    route: "trends",
+  },
 ];
 
 function adminFetch(url, options) {

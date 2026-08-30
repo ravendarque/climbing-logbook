@@ -91,7 +91,7 @@ export default {
       // #302 adds account(/edit), #498 adds sync, alongside log/map/
       // performance -- same shape, one more SHELL_PATHS entry each (see
       // owned-routes.js).
-      const ownedRouteMatch = pathname.match(/^\/([^/]+)\/(log|map|performance(?:\/(?:pyramid|injury|strengths))?|sync|account(?:\/edit|\/import)?)\/?$/);
+      const ownedRouteMatch = pathname.match(/^\/([^/]+)\/(log|map|performance(?:\/(?:pyramid|injury|strengths|trends))?|sync|account(?:\/edit|\/import)?)\/?$/);
       if (ownedRouteMatch) {
         const [, username, page] = ownedRouteMatch;
         return handleOwnedRoute(request, env, username, page);
@@ -109,7 +109,7 @@ export default {
     // opt-in status; a pre-release preview has no meaning for a page
     // that's just read-only data display, so nothing to gate there.
     if (hostname.startsWith("beta.") && method === "GET") {
-      const ownedRouteMatch = pathname.match(/^\/([^/]+)\/(log|map|performance(?:\/(?:pyramid|injury|strengths))?|sync|account(?:\/edit|\/import)?)\/?$/);
+      const ownedRouteMatch = pathname.match(/^\/([^/]+)\/(log|map|performance(?:\/(?:pyramid|injury|strengths|trends))?|sync|account(?:\/edit|\/import)?)\/?$/);
       if (ownedRouteMatch) {
         const [, username, page] = ownedRouteMatch;
         return handleBetaGatedRoute(request, env, username, page);
