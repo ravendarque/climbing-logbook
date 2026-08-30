@@ -23,6 +23,9 @@ import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
 import { syncAdminBar } from "./admin-bar.js";
 import { createTimeWindowControl } from "./time-window.js";
+import { renderComboChartHtml } from "./combo-chart.js";
+import { gradeDisplayLabel, volumeHeadline } from "../shared/volume-stats.js";
+import { BOULDER_GRADES, LEAD_GRADES } from "../shared/grade-data.js";
 import "./components/climbing-menu-bar.js";
 import "./components/climbing-tab-bar.js";
 
@@ -56,10 +59,25 @@ const offlineEl = document.getElementById("performance-offline");
 
 let latestVolumeData = null;
 
+function positionOrderFor(type) {
+  return (type === "boulder" ? BOULDER_GRADES : LEAD_GRADES).map(x => x.g);
+}
+
 function renderTrends() {
-  // Task 6 fills this in.
   if (!latestVolumeData) return;
-  trendsRootEl.textContent = JSON.stringify(latestVolumeData[store.getActiveType()]);
+  const type = store.getActiveType();
+  const { buckets, sendCounts, maxGradeByBucket } = latestVolumeData[type];
+
+  const points = maxGradeByBucket.map(grade => grade
+    ? { positionKey: grade, displayLabel: gradeDisplayLabel(grade, type) }
+    : null);
+
+  trendsRootEl.innerHTML = renderComboChartHtml({
+    bucketLabels: buckets,
+    bars: [{ label: "Sends", values: sendCounts }],
+    lines: [{ label: "Max grade", points, positionOrder: positionOrderFor(type) }],
+    headline: volumeHeadline(sendCounts),
+  });
 }
 
 function render() {
