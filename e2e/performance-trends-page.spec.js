@@ -40,10 +40,12 @@ test("switching the time window to 12mo re-fetches with a wider range", async ({
     return route.fulfill({ json: { boulder: { buckets: [], sendCounts: [], maxGradeByBucket: [] }, lead: { buckets: [], sendCounts: [], maxGradeByBucket: [] } } });
   });
   await page.goto("/e2e-fixtures/pages/performance-trends.html");
-  // boot()'s own initial fetchVolume() call fires only after two sequential
-  // dependent fetches (session, then settings) resolve -- reliably later
-  // than page.goto()'s own "load" event, so lastRequestUrl isn't populated
-  // yet the instant goto() resolves. Wait for it before capturing it.
+  // boot()'s own initial fetchVolume() call fires only after checkSession()
+  // and fetchSettings() resolve -- both concurrent requests (see admin-
+  // auth.js's own comment), not sequential/dependent -- which completes
+  // reliably later than page.goto()'s own "load" event, so lastRequestUrl
+  // isn't populated yet the instant goto() resolves. Wait for it before
+  // capturing it.
   await expect.poll(() => lastRequestUrl).not.toBeNull();
   const initialUrl = lastRequestUrl;
 

@@ -23,12 +23,12 @@ export function subtractMonths(date, months) {
   return d;
 }
 
+// Only ever called with "3mo" or "12mo" -- currentRange() only calls this
+// when mode !== "custom", and the other two call sites below both pass
+// "3mo" literally. No fallback branch needed for a third preset value.
 function presetRange(preset) {
   const end = new Date();
-  let start;
-  if (preset === "3mo") start = subtractMonths(end, 3);
-  else if (preset === "12mo") start = subtractMonths(end, 12);
-  else start = new Date(end);
+  const start = preset === "3mo" ? subtractMonths(end, 3) : subtractMonths(end, 12);
   return { start: toISODate(start), end: toISODate(end) };
 }
 

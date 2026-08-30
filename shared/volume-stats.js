@@ -4,7 +4,7 @@
 // stats.js/shared/strengths-stats.js. Sends only -- same scoping
 // shared/pyramid-stats.js's own pyramidCounts() already applies for this
 // exact kind of aggregate.
-import { BOULDER_GRADES, LEAD_GRADES, gradeRank } from "./grade-data.js";
+import { BOULDER_GRADES, gradeRank } from "./grade-data.js";
 import { formatDate } from "./date-helpers.js";
 
 // Monthly buckets, always -- see this plan's own Global Constraints
