@@ -35,6 +35,15 @@ export async function mockApi(page, {
   // as pyramidData above -- a test that needs a real ranked cluster/log
   // supplies the shape it expects to see rendered, same reasoning.
   injuryData = { log: [], cluster: null },
+  // #13 -- server/api/performance.js's own handleGetStrengthsWeaknesses()
+  // shape, but unlike pyramidData/injuryData above this endpoint returns
+  // TWO different shapes off the same route depending on whether the
+  // request carries ?dimension=&value= (see the page.route() below) --
+  // strengthsData is the no-drilldown { headline, anchors } shape, and
+  // strengthsRankedData is the drill-down { ranked } shape a test only
+  // needs to supply when it actually exercises the anchor picker.
+  strengthsData = { headline: null, anchors: [] },
+  strengthsRankedData = { ranked: [] },
   // #498 -- true by default: seeds client/sync-status.js's own marker so
   // every EXISTING test (written before /sync existed) still lands
   // directly on /log rather than being redirected through a sync flow
@@ -201,6 +210,16 @@ export async function mockApi(page, {
   await page.route("**/logbook/api/settings", route => route.fulfill({ json: _settings }));
   await page.route("**/logbook/api/performance/pyramid", route => route.fulfill({ json: pyramidData }));
   await page.route("**/logbook/api/performance/injury", route => route.fulfill({ json: injuryData }));
+  // #13 -- single route, branches on the request's own query params
+  // (unlike pyramidData/injuryData above, which each always return one
+  // fixed shape) -- trailing `**`, not `*`, since Playwright's glob route
+  // matching needs to cross the `?` itself here, not just match within the
+  // query string the way the trailing `*` routes elsewhere in this file do.
+  await page.route("**/logbook/api/performance/strengths**", route => {
+    const url = new URL(route.request().url());
+    const isDrilldown = url.searchParams.has("dimension") && url.searchParams.has("value");
+    return route.fulfill({ json: isDrilldown ? strengthsRankedData : strengthsData });
+  });
 
   // #497 -- mirrors server/api/map.js's own aggregation (country x
   // discipline -> { total, flash, send, project }), computed fresh from

@@ -123,6 +123,15 @@ describe("owned route authorization", () => {
     expect(html).toContain('src="/logbook/performance-injury-app.js"');
   });
 
+  it("serves the real static shell for performance/strengths", async () => {
+    const { cookie } = await createAuthedSession({ username: "strengthsshelluser", hostname: "climbinglogbook.com" });
+    const res = await fetchOwnedRoute("strengthsshelluser", "performance/strengths", { cookie });
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain('id="strengths-root"');
+    expect(html).toContain('src="/logbook/performance-strengths-app.js"');
+  });
+
   it("serves the real static shell for log", async () => {
     const { cookie } = await createAuthedSession({ username: "logshelluser", hostname: "climbinglogbook.com" });
     const res = await fetchOwnedRoute("logshelluser", "log", { cookie });
