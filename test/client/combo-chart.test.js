@@ -84,6 +84,25 @@ describe("renderComboChartHtml", () => {
     expect(html).toContain(">V3<");
   });
 
+  it("renders y-axis tick label text for a bar series with a real max value", () => {
+    const html = renderComboChartHtml({ bucketLabels: ["Jan 2026"], bars: [{ label: "Sends", values: [10] }], lines: [], headline: "h" });
+    // ticks at 0, midpoint (5), and max (10)
+    expect(html).toContain(">5<");
+    expect(html).toContain(">10<");
+  });
+
+  it("renders no axis-related output when there are no bar series", () => {
+    const html = renderComboChartHtml({
+      bucketLabels: ["Jan 2026"],
+      bars: [],
+      lines: [{ label: "Max grade", points: [{ positionKey: "6A", displayLabel: "V3" }], positionOrder: ["6A"] }],
+      headline: "h",
+    });
+    // only the pre-existing plot-area baseline <line> should be present, no axis gridlines
+    const lineCount = (html.match(/<line/g) || []).length;
+    expect(lineCount).toBe(1);
+  });
+
   it("renders multiple bar series side by side within the same bucket slot, not stacked", () => {
     const html = renderComboChartHtml({
       bucketLabels: ["Jan 2026"],

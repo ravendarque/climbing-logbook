@@ -17,7 +17,13 @@ import { escapeHtml } from "./escape-html.js";
 
 const CHART_WIDTH = 640;
 const CHART_HEIGHT = 320;
-const MARGIN = { top: 24, right: 20, bottom: 40, left: 20 };
+// left: 20 wasn't enough room for the bar-series y-axis tick label text
+// added below (up to a few digits) -- raised to 36. Nothing in this
+// module's own tests asserts absolute pixel positions, only relative
+// comparisons and element counts, so shifting the whole plot area right
+// is safe (verified by rereading test/client/combo-chart.test.js before
+// making this change).
+const MARGIN = { top: 24, right: 20, bottom: 40, left: 36 };
 const PLOT_WIDTH = CHART_WIDTH - MARGIN.left - MARGIN.right;
 const PLOT_HEIGHT = CHART_HEIGHT - MARGIN.top - MARGIN.bottom;
 
@@ -38,9 +44,16 @@ function barScale(maxValue) {
   return v => MARGIN.top + PLOT_HEIGHT - (v / safeMax) * PLOT_HEIGHT;
 }
 
-function barsHtml(bars, bucketCount) {
-  const maxValue = Math.max(0, ...bars.flatMap(b => b.values));
-  const y = barScale(maxValue);
+// Shared by barsHtml and barYAxisHtml below -- both need the exact same
+// maxValue/y scale so the gridlines/ticks the axis draws actually line up
+// with the bars they're meant to measure. Computed once in
+// renderComboChartHtml and passed down rather than each recomputing it
+// independently.
+function barMaxValue(bars) {
+  return Math.max(0, ...bars.flatMap(b => b.values));
+}
+
+function barsHtml(bars, bucketCount, y) {
   const slotWidth = PLOT_WIDTH / bucketCount;
   // Each bar series gets its own sub-slot within the bucket, side by
   // side (grouped bars), not stacked -- #15 only ever has one bar series
@@ -90,6 +103,24 @@ function linesHtml(lines, bucketCount) {
   }).join("");
 }
 
+// Bar-series y-axis: a few horizontal gridlines with numeric tick labels
+// (0, midpoint, max) sharing the bars' own barScale. Deliberately NOT
+// added to the line series -- grade is ordinal, not linear, and per-point
+// grade labels are the intentional design choice there (see this plan's
+// own Global Constraints), not an oversight to fix in parallel. Ticks are
+// rounded before deduping so e.g. maxValue=1 (0, 0.5->1, 1) collapses to
+// two gridlines instead of drawing two overlapping "1" labels.
+function barYAxisHtml(maxValue, y) {
+  const ticks = [...new Set([0, maxValue / 2, maxValue].map(v => Math.round(v)))];
+  return ticks.map(v => {
+    const ty = y(v);
+    return `
+      <line x1="${MARGIN.left}" y1="${ty.toFixed(1)}" x2="${(MARGIN.left + PLOT_WIDTH).toFixed(1)}" y2="${ty.toFixed(1)}" class="stroke-border" stroke-width="1" />
+      <text x="${(MARGIN.left - 8).toFixed(1)}" y="${(ty + 3).toFixed(1)}" text-anchor="end" class="fill-muted text-[10px]">${v}</text>
+    `;
+  }).join("");
+}
+
 function xAxisHtml(bucketLabels) {
   return bucketLabels.map((label, i) => {
     const x = bucketCenterX(i, bucketLabels.length);
@@ -99,11 +130,14 @@ function xAxisHtml(bucketLabels) {
 
 export function renderComboChartHtml({ bucketLabels, bars, lines, headline }) {
   const bucketCount = bucketLabels.length;
+  const maxValue = barMaxValue(bars);
+  const y = barScale(maxValue);
   return `<div>
     <p class="text-[.95rem] font-semibold text-foreground mb-3">${escapeHtml(headline)}</p>
     <svg viewBox="0 0 ${CHART_WIDTH} ${CHART_HEIGHT}" class="w-full h-auto">
       <line x1="${MARGIN.left}" y1="${MARGIN.top + PLOT_HEIGHT}" x2="${MARGIN.left + PLOT_WIDTH}" y2="${MARGIN.top + PLOT_HEIGHT}" class="stroke-border" stroke-width="1" />
-      ${barsHtml(bars, bucketCount)}
+      ${bars.length ? barYAxisHtml(maxValue, y) : ""}
+      ${barsHtml(bars, bucketCount, y)}
       ${linesHtml(lines, bucketCount)}
       ${xAxisHtml(bucketLabels)}
     </svg>
