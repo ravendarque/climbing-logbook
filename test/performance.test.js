@@ -220,6 +220,16 @@ describe("handleGetVolume", () => {
     expect((await getVolume({ start: "2026-01-01" })).status).toBe(400);
   });
 
+  it("returns 400 when start or end isn't a YYYY-MM-DD-shaped date", async () => {
+    expect((await getVolume({ start: "not-a-date", end: "2026-03-01" })).status).toBe(400);
+    expect((await getVolume({ start: "2026-01-01", end: "not-a-date" })).status).toBe(400);
+  });
+
+  it("returns 400 when the requested span exceeds 120 months", async () => {
+    const res = await getVolume({ start: "0001-01-01", end: "9999-12-31" });
+    expect(res.status).toBe(400);
+  });
+
   it("returns empty per-bucket data for a user with no sends in the window", async () => {
     await postEntry({ date: "2020-01-01" }); // outside the window
     const { boulder } = await (await getVolume({ start: "2026-01-01", end: "2026-03-01" })).json();
