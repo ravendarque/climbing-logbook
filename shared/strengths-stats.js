@@ -2,19 +2,11 @@
 // data, following shared/injury-stats.js's own precedent from #39 (which
 // itself follows shared/pyramid-stats.js's): server/api/performance.js
 // runs this server-side (this epic's own "online-only" convention).
-import { HOLD_TYPES_BY_LIMB, MOVEMENT_STYLES_BY_LIMB } from "./entry-schema.js";
 
 // Placeholder threshold, same value and same reasoning as #39's own
 // shared/injury-stats.js -- "tune once there's real data" per the design
 // doc, not re-derived independently here.
 export const MIN_TAG_COUNT = 5;
-
-// Flattened union across every limb -- an anchor value (e.g. "crimp") can
-// appear on entries tagged under any limb that offers it, so the anchor
-// vocabulary isn't scoped to one limb's own subset the way the entry
-// form's cascading dropdowns are.
-const ALL_HOLD_TYPES = [...new Set(Object.values(HOLD_TYPES_BY_LIMB).flat())];
-const ALL_MOVEMENT_STYLES = [...new Set(Object.values(MOVEMENT_STYLES_BY_LIMB).flat())];
 
 function cellKey(move) {
   return [move.limb, move.side, move.holdType, move.movementStyle, move.wallAngle].join("|");
@@ -33,7 +25,7 @@ export function cellCounts(entries) {
       const existing = byKey.get(key);
       if (existing) {
         if (move.difficulty === "hardest") existing.hardestCount++;
-        else existing.easiestCount++;
+        else if (move.difficulty === "easiest") existing.easiestCount++;
       } else {
         byKey.set(key, {
           limb: move.limb, side: move.side, holdType: move.holdType, movementStyle: move.movementStyle, wallAngle: move.wallAngle,

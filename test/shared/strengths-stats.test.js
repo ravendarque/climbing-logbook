@@ -35,6 +35,11 @@ describe("cellCounts", () => {
     expect(cells).toHaveLength(1);
     expect(cells[0].total).toBe(2);
   });
+
+  it("does not count an out-of-vocabulary difficulty value as easiest", () => {
+    const cells = cellCounts([entryWithMoves([moveRow({ difficulty: "somethingelse" })])]);
+    expect(cells[0]).toMatchObject({ hardestCount: 0, easiestCount: 0, total: 0 });
+  });
 });
 
 describe("rankedCells / topWeakness", () => {

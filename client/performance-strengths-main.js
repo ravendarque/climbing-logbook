@@ -23,7 +23,6 @@ import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
 import { syncAdminBar } from "./admin-bar.js";
 import { escapeHtml } from "./escape-html.js";
-import { formatDate } from "../shared/date-helpers.js";
 import "./components/climbing-menu-bar.js";
 import "./components/climbing-tab-bar.js";
 
@@ -110,19 +109,29 @@ async function fetchRankedForAnchor(dimension, value) {
   return res.json();
 }
 
+let latestAnchorRequestId = 0;
+
+// A rapid re-selection (reachable via keyboard arrow-key navigation through
+// the native <select>, which fires `change` per option in Chrome/Firefox)
+// can let an earlier, now-stale fetch resolve after a later one -- this
+// request-token guard makes sure only the response matching the
+// currently-selected value ever reaches the DOM.
 async function onAnchorChange(select) {
   const rankedListEl = document.getElementById("strengths-ranked-list");
   const [dimension, value] = select.value.split(":");
+  const requestId = ++latestAnchorRequestId;
   if (!dimension) {
     rankedListEl.innerHTML = "";
     return;
   }
   try {
     const { ranked } = await fetchRankedForAnchor(dimension, value);
+    if (requestId !== latestAnchorRequestId) return; // a newer selection has already superseded this response
     rankedListEl.innerHTML = ranked.length
       ? ranked.map(cellRowHtml).join("")
       : `<p class="text-[.85rem] text-muted">No combinations for this anchor clear the confidence gate yet.</p>`;
   } catch {
+    if (requestId !== latestAnchorRequestId) return;
     rankedListEl.innerHTML = `<p class="text-[.85rem] text-muted">Couldn't load this drill-down -- try again.</p>`;
   }
 }
@@ -135,6 +144,7 @@ function anchorOptionsHtml(anchors) {
     wallAngle: { label: "Wall angle", options: [] },
   };
   for (const anchor of anchors) {
+    if (!groups[anchor.dimension]) continue;
     groups[anchor.dimension].options.push(anchor);
   }
   return Object.values(groups)
