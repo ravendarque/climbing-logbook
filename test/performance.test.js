@@ -266,3 +266,62 @@ describe("handleGetVolume", () => {
     expect(boulder.sendCounts).toEqual([0, 0, 0]);
   });
 });
+
+const GAP_URL = "/logbook/api/performance/gap";
+function getGap(params, extraCookie = cookie) {
+  const qs = new URLSearchParams(params).toString();
+  return fetchJson(`${GAP_URL}?${qs}`, { headers: { Cookie: extraCookie } });
+}
+
+describe("handleGetGap", () => {
+  it("returns 400 when start or end is missing", async () => {
+    expect((await getGap({ end: "2026-03-01" })).status).toBe(400);
+    expect((await getGap({ start: "2026-01-01" })).status).toBe(400);
+  });
+
+  it("returns 400 for a malformed date", async () => {
+    expect((await getGap({ start: "not-a-date", end: "2026-03-01" })).status).toBe(400);
+  });
+
+  it("returns 400 for a span exceeding 120 months", async () => {
+    expect((await getGap({ start: "0001-01-01", end: "9999-12-31" })).status).toBe(400);
+  });
+
+  it("returns empty per-bucket data for a user with no sends in the window", async () => {
+    await postEntry({ date: "2020-01-01" }); // outside the window
+    const { boulder } = await (await getGap({ start: "2026-01-01", end: "2026-03-01" })).json();
+    expect(boulder.buckets).toEqual(["Jan 2026", "Feb 2026", "Mar 2026"]);
+    expect(boulder.sendMaxByBucket).toEqual([null, null, null]);
+    expect(boulder.headline).toBe("No sends logged in this window yet.");
+  });
+
+  it("reflects real sends within the window, split by discipline and firstAttempt", async () => {
+    await postEntry({ type: "boulder", grade: "6B", date: "2026-02-10", firstAttempt: true });
+    await postEntry({ type: "lead", grade: "6a", date: "2026-02-15", firstAttempt: false });
+    const body = await (await getGap({ start: "2026-01-01", end: "2026-03-01" })).json();
+    expect(body.boulder.flashMaxByBucket).toEqual([null, "6B", null]);
+    expect(body.lead.flashMaxByBucket).toEqual([null, null, null]);
+    expect(body.lead.sendMaxByBucket).toEqual([null, "6a", null]);
+  });
+
+  it("excludes a soft-deleted entry", async () => {
+    const created = await (await postEntry({ date: "2026-02-10" })).json();
+    await del(created.entries[0].id);
+    const { boulder } = await (await getGap({ start: "2026-01-01", end: "2026-03-01" })).json();
+    expect(boulder.sendMaxByBucket).toEqual([null, null, null]);
+  });
+
+  it("returns empty per-bucket data for an anonymous caller", async () => {
+    const res = await fetchJson(`${GAP_URL}?start=2026-01-01&end=2026-03-01`);
+    expect(res.status).toBe(200);
+    const { boulder } = await res.json();
+    expect(boulder.sendMaxByBucket).toEqual([null, null, null]);
+  });
+
+  it("a second user's own request never reflects the first user's sends", async () => {
+    await postEntry({ date: "2026-02-10" });
+    const userB = await createAuthedSession();
+    const { boulder } = await (await getGap({ start: "2026-01-01", end: "2026-03-01" }, userB.cookie)).json();
+    expect(boulder.sendMaxByBucket).toEqual([null, null, null]);
+  });
+});

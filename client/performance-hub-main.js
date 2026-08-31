@@ -47,6 +47,12 @@ const INSIGHTS = [
     description: "See how many climbs you're sending over time, and how your max grade is trending alongside it.",
     route: "trends",
   },
+  {
+    id: "insight-gap",
+    title: "Onsight / Redpoint Gap",
+    description: "Compare your first-try sends against what you eventually send once you've worked a climb, and see how many attempts it typically takes.",
+    route: "gap",
+  },
 ];
 
 function adminFetch(url, options) {
