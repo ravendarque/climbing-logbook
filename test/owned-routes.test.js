@@ -150,6 +150,15 @@ describe("owned route authorization", () => {
     expect(html).toContain('src="/logbook/performance-gap-app.js"');
   });
 
+  it("serves the real static shell for performance/rpe", async () => {
+    const { cookie } = await createAuthedSession({ username: "rpeshelluser", hostname: "climbinglogbook.com" });
+    const res = await fetchOwnedRoute("rpeshelluser", "performance/rpe", { cookie });
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain('id="rpe-root"');
+    expect(html).toContain('src="/logbook/performance-rpe-app.js"');
+  });
+
   it("serves the real static shell for log", async () => {
     const { cookie } = await createAuthedSession({ username: "logshelluser", hostname: "climbinglogbook.com" });
     const res = await fetchOwnedRoute("logshelluser", "log", { cookie });

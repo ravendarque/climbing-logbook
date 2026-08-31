@@ -54,7 +54,7 @@ export function createStore({ storage = typeof localStorage !== "undefined" ? lo
   let loggedIn = false;
 
   let activeType = "boulder"; // real value set once entries load, see boot()
-  let activeView = "logbook"; // "logbook" | "pyramid" | "map" | "performance-hub" | "performance-injury" | "performance-strengths" | "performance-trends" | "performance-gap"
+  let activeView = "logbook"; // "logbook" | "pyramid" | "map" | "performance-hub" | "performance-injury" | "performance-strengths" | "performance-trends" | "performance-gap" | "performance-rpe"
   // #63 -- search/statusFilters/gradeRange/sortByPlace/collapsed used to
   // live here too, but climbing-entries-table.js (#350/#351) has carried
   // its own independent copies of all of them for a while now (see that

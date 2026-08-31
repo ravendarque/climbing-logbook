@@ -61,6 +61,15 @@ export async function mockApi(page, {
     boulder: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], flashMaxByBucket: [null, null, null], sendMaxByBucket: [null, null, null], avgAttemptsByBucket: [0, 0, 0], headline: "No sends logged in this window yet." },
     lead: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], flashMaxByBucket: [null, null, null], sendMaxByBucket: [null, null, null], avgAttemptsByBucket: [0, 0, 0], headline: "No sends logged in this window yet." },
   },
+  // #38 -- server/api/performance.js's own handleGetEffort() shape, same
+  // "already-computed, not raw entries" contract as the routes above.
+  // Same one-shape-regardless-of-query-string behavior as gapData/
+  // volumeData's own routes. Defaults below the confidence gate (null
+  // headline) -- a test that needs a confident headline supplies it.
+  effortData = {
+    boulder: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], maxGradeByBucket: [null, null, null], avgExertionByBucket: [0, 0, 0], headline: null },
+    lead: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], maxGradeByBucket: [null, null, null], avgExertionByBucket: [0, 0, 0], headline: null },
+  },
   // #498 -- true by default: seeds client/sync-status.js's own marker so
   // every EXISTING test (written before /sync existed) still lands
   // directly on /log rather than being redirected through a sync flow
@@ -248,6 +257,9 @@ export async function mockApi(page, {
   // without them, same as handleGetVolume), and this route also returns
   // the same one shape regardless of the query string.
   await page.route("**/logbook/api/performance/gap**", route => route.fulfill({ json: gapData }));
+  // #38 -- real requests always carry ?start=&end= (handleGetEffort 400s
+  // without them, same as handleGetVolume/handleGetGap).
+  await page.route("**/logbook/api/performance/rpe**", route => route.fulfill({ json: effortData }));
 
   // #497 -- mirrors server/api/map.js's own aggregation (country x
   // discipline -> { total, flash, send, project }), computed fresh from
