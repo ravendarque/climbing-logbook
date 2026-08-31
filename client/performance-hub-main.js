@@ -53,6 +53,12 @@ const INSIGHTS = [
     description: "Compare your first-try sends against what you eventually send once you've worked a climb, and see how many attempts it typically takes.",
     route: "gap",
   },
+  {
+    id: "insight-rpe",
+    title: "Effort / RPE Trend",
+    description: "See how hard you're pushing relative to your grade progress, and whether there's room to try harder.",
+    route: "rpe",
+  },
 ];
 
 function adminFetch(url, options) {
