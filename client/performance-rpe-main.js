@@ -25,8 +25,11 @@ import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
 import { syncAdminBar } from "./admin-bar.js";
 import { createTimeWindowControl } from "./time-window.js";
+import { renderComboChartHtml } from "./combo-chart.js";
 import { evidenceOverlayHtml, evidenceTierButtonHtml } from "./evidence-tier.js";
 import { createModalHelpers } from "./modal-utils.js";
+import { gradeDisplayLabel } from "../shared/volume-stats.js";
+import { BOULDER_GRADES, LEAD_GRADES } from "../shared/grade-data.js";
 import "./components/climbing-menu-bar.js";
 import "./components/climbing-tab-bar.js";
 
@@ -72,10 +75,39 @@ let modalHelpers;
 // scoped to this file's own onChange callback instead of a <select>.
 let latestEffortRequestId = 0;
 
+function positionOrderFor(type) {
+  return (type === "boulder" ? BOULDER_GRADES : LEAD_GRADES).map(x => x.g);
+}
+
 function renderEffort() {
-  // Task 4 fills this in.
   if (!latestEffortData) return;
-  rpeRootEl.textContent = JSON.stringify(latestEffortData[store.getActiveType()]);
+  const type = store.getActiveType();
+  const { buckets, maxGradeByBucket, avgExertionByBucket, headline } = latestEffortData[type];
+  const positionOrder = positionOrderFor(type);
+
+  const points = maxGradeByBucket.map(grade => grade
+    ? { positionKey: grade, displayLabel: gradeDisplayLabel(grade, type) }
+    : null);
+
+  const headlineText = headline ?? "Not enough data yet for a reliable read -- log a few more sends and check back.";
+
+  const chartHtml = renderComboChartHtml({
+    bucketLabels: buckets,
+    bars: [{ label: "Avg exertion %", values: avgExertionByBucket }],
+    lines: [{ label: "Max grade", points, positionOrder }],
+    headline: headlineText,
+  });
+
+  // Same reasoning as client/performance-gap-main.js's own renderGap():
+  // renderComboChartHtml's headline slot escapeHtml()s its input
+  // internally, so the "Peer-reviewed" evidence-tier chip (real HTML) is
+  // rendered as a sibling element after the chart's own markup, not
+  // smuggled inside the headline string.
+  rpeRootEl.innerHTML = chartHtml + `<p class="text-[.82rem] text-muted mt-2">Reference: ${evidenceTierButtonHtml("Peer-reviewed", "peer")}</p>`;
+
+  rpeRootEl.querySelectorAll("[data-evidence-tier]").forEach(btn =>
+    btn.addEventListener("click", () => modalHelpers.openModal(document.getElementById("evidence-overlay")))
+  );
 }
 
 function render() {
