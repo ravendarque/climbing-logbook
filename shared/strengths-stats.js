@@ -2,11 +2,12 @@
 // data, following shared/injury-stats.js's own precedent from #39 (which
 // itself follows shared/pyramid-stats.js's): server/api/performance.js
 // runs this server-side (this epic's own "online-only" convention).
+// MIN_TAG_COUNT/pluralizeHoldType: shared with injury-stats.js (#39),
+// extracted to shared/tag-stats-helpers.js (#591) since both files had
+// independently defined byte-identical copies of these two.
+import { MIN_TAG_COUNT, pluralizeHoldType } from "./tag-stats-helpers.js";
 
-// Placeholder threshold, same value and same reasoning as #39's own
-// shared/injury-stats.js -- "tune once there's real data" per the design
-// doc, not re-derived independently here.
-export const MIN_TAG_COUNT = 5;
+export { MIN_TAG_COUNT };
 
 function cellKey(move) {
   return [move.limb, move.side, move.holdType, move.movementStyle, move.wallAngle].join("|");
@@ -111,14 +112,6 @@ export function rankedForAnchor(entries, dimension, value, minCount = MIN_TAG_CO
     .filter(c => matchesAnchor(c, dimension, value))
     .filter(c => c.total >= minCount)
     .sort((a, b) => b.score - a.score);
-}
-
-// Only "pinch" in the current hold-type vocabulary needs the "es" branch
-// -- identical rule and identical reasoning to shared/injury-stats.js's
-// own pluralizeHoldType, reimplemented here rather than imported since
-// these two modules are otherwise independent.
-function pluralizeHoldType(holdType) {
-  return holdType.endsWith("ch") ? `${holdType}es` : `${holdType}s`;
 }
 
 // Plan-author's own reading of natural English for each of the four fixed
