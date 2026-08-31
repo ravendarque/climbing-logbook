@@ -41,6 +41,7 @@ const SHELL_PATHS = {
   "performance/injury": "/performance/injury/index.html",
   "performance/strengths": "/performance/strengths/index.html",
   "performance/trends": "/performance/trends/index.html",
+  "performance/gap": "/performance/gap/index.html",
   // #498 -- the cold-start/delta full-sync interstitial (ADR-0019).
   // Session-gated the same as every other owned page here -- it reads
   // the same session-scoped /logbook/api/logbook data /log itself does,

@@ -33,8 +33,8 @@ public/logbook/app.js
 # (esbuild, from client/map-main.js, client/performance-pyramid-main.js,
 # client/performance-hub-main.js, client/performance-injury-main.js,
 # client/performance-strengths-main.js, client/performance-trends-main.js,
-# client/log-main.js, client/profile-main.js, client/account-main.js,
-# client/account-edit-main.js, client/account-import-main.js), same pattern as app.js above
+# client/performance-gap-main.js, client/log-main.js, client/profile-main.js,
+# client/account-main.js, client/account-edit-main.js, client/account-import-main.js), same pattern as app.js above
 # (#348/#351/#302/#224/#575)
 public/logbook/map-app.js
 public/logbook/performance-pyramid-app.js
@@ -42,6 +42,7 @@ public/logbook/performance-hub-app.js
 public/logbook/performance-injury-app.js
 public/logbook/performance-strengths-app.js
 public/logbook/performance-trends-app.js
+public/logbook/performance-gap-app.js
 public/logbook/log-app.js
 public/logbook/profile-app.js
 public/logbook/account-app.js

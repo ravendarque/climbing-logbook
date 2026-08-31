@@ -141,6 +141,15 @@ describe("owned route authorization", () => {
     expect(html).toContain('src="/logbook/performance-trends-app.js"');
   });
 
+  it("serves the real static shell for performance/gap", async () => {
+    const { cookie } = await createAuthedSession({ username: "gapshelluser", hostname: "climbinglogbook.com" });
+    const res = await fetchOwnedRoute("gapshelluser", "performance/gap", { cookie });
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain('id="gap-root"');
+    expect(html).toContain('src="/logbook/performance-gap-app.js"');
+  });
+
   it("serves the real static shell for log", async () => {
     const { cookie } = await createAuthedSession({ username: "logshelluser", hostname: "climbinglogbook.com" });
     const res = await fetchOwnedRoute("logshelluser", "log", { cookie });
