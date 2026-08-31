@@ -53,6 +53,14 @@ export async function mockApi(page, {
     boulder: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], sendCounts: [0, 0, 0], maxGradeByBucket: [null, null, null] },
     lead: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], sendCounts: [0, 0, 0], maxGradeByBucket: [null, null, null] },
   },
+  // #14 -- server/api/performance.js's own handleGetGap() shape, same
+  // "already-computed, not raw entries" contract as pyramidData/
+  // injuryData/volumeData above. Same one-shape-regardless-of-query-string
+  // behavior as volumeData's own route.
+  gapData = {
+    boulder: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], flashMaxByBucket: [null, null, null], sendMaxByBucket: [null, null, null], avgAttemptsByBucket: [0, 0, 0], headline: "No sends logged in this window yet." },
+    lead: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], flashMaxByBucket: [null, null, null], sendMaxByBucket: [null, null, null], avgAttemptsByBucket: [0, 0, 0], headline: "No sends logged in this window yet." },
+  },
   // #498 -- true by default: seeds client/sync-status.js's own marker so
   // every EXISTING test (written before /sync existed) still lands
   // directly on /log rather than being redirected through a sync flow
@@ -236,6 +244,10 @@ export async function mockApi(page, {
   // same "must cross the `?` itself" reason as that route's own comment,
   // even though this route's own handler logic doesn't branch on it.
   await page.route("**/logbook/api/performance/volume**", route => route.fulfill({ json: volumeData }));
+  // #14 -- real requests always carry ?start=&end= (handleGetGap 400s
+  // without them, same as handleGetVolume), and this route also returns
+  // the same one shape regardless of the query string.
+  await page.route("**/logbook/api/performance/gap**", route => route.fulfill({ json: gapData }));
 
   // #497 -- mirrors server/api/map.js's own aggregation (country x
   // discipline -> { total, flash, send, project }), computed fresh from
