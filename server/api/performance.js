@@ -4,6 +4,7 @@ import { attachChildRows, rowToJson } from "./logbook.js";
 import { pyramidSplitRows } from "../../shared/pyramid-stats.js";
 import { painLogEntries, topPainCluster } from "../../shared/injury-stats.js";
 import { availableAnchors, describeWeakness, rankedForAnchor, topWeakness } from "../../shared/strengths-stats.js";
+import { bucketLabel, monthBuckets, volumeByBucket } from "../../shared/volume-stats.js";
 
 // #111 -- computes the Grade Pyramid server-side instead of shipping the
 // full entries array to /performance for the client to compute itself.
@@ -69,4 +70,43 @@ export async function handleGetStrengthsWeaknesses(request, env, userId) {
     headline: weakest ? { cell: weakest, text: describeWeakness(weakest) } : null,
     anchors: availableAnchors(entries),
   }, 200, { "Cache-Control": "no-store" });
+}
+
+const DATE_SHAPE = /^\d{4}-\d{2}-\d{2}$/;
+const MAX_VOLUME_MONTHS = 120;
+
+// #15 -- same online-only, server-computed convention as the three
+// handlers above. Requires start/end (unlike the other three handlers
+// here, which take no query params) -- there's no sensible "everything"
+// default for a time-windowed view the way there is for a ranked-list
+// or log view.
+//
+// This route is in PUBLIC_GET_ROUTES (no session required), so start/end
+// need real validation, not just a presence check -- an unbounded range
+// like ?start=0001-01-01&end=9999-12-31 would otherwise make monthBuckets()
+// produce ~120,000 buckets and a multi-MB response from a ~60-byte
+// unauthenticated request. Reject malformed dates and cap the span at
+// MAX_VOLUME_MONTHS before doing any D1 work.
+export async function handleGetVolume(request, env, userId) {
+  const url = new URL(request.url);
+  const start = url.searchParams.get("start");
+  const end = url.searchParams.get("end");
+  if (!start || !end) return json({ error: "Missing required field: start and end" }, 400);
+  if (!DATE_SHAPE.test(start) || !DATE_SHAPE.test(end)) {
+    return json({ error: "start and end must be YYYY-MM-DD dates" }, 400);
+  }
+
+  const buckets = monthBuckets(start, end);
+  if (buckets.length > MAX_VOLUME_MONTHS) {
+    return json({ error: `start and end must span at most ${MAX_VOLUME_MONTHS} months` }, 400);
+  }
+
+  const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
+
+  function forDiscipline(type) {
+    const { sendCounts, maxGradeByBucket } = volumeByBucket(rows.filter(e => e.type === type), buckets);
+    return { buckets: buckets.map(bucketLabel), sendCounts, maxGradeByBucket };
+  }
+
+  return json({ boulder: forDiscipline("boulder"), lead: forDiscipline("lead") }, 200, { "Cache-Control": "no-store" });
 }

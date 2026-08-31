@@ -44,6 +44,15 @@ export async function mockApi(page, {
   // needs to supply when it actually exercises the anchor picker.
   strengthsData = { headline: null, anchors: [] },
   strengthsRankedData = { ranked: [] },
+  // #15 -- server/api/performance.js's own handleGetVolume() shape, same
+  // "already-computed, not raw entries" contract as pyramidData/
+  // injuryData above. Unlike strengthsData's own route, this endpoint
+  // always returns the same one shape regardless of query params, so a
+  // test only needs to override this when it wants non-zero sends.
+  volumeData = {
+    boulder: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], sendCounts: [0, 0, 0], maxGradeByBucket: [null, null, null] },
+    lead: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], sendCounts: [0, 0, 0], maxGradeByBucket: [null, null, null] },
+  },
   // #498 -- true by default: seeds client/sync-status.js's own marker so
   // every EXISTING test (written before /sync existed) still lands
   // directly on /log rather than being redirected through a sync flow
@@ -220,6 +229,13 @@ export async function mockApi(page, {
     const isDrilldown = url.searchParams.has("dimension") && url.searchParams.has("value");
     return route.fulfill({ json: isDrilldown ? strengthsRankedData : strengthsData });
   });
+  // #15 -- real requests always carry ?start=&end= (server/api/
+  // performance.js's own handleGetVolume 400s without them), but unlike
+  // the strengths route above this one returns the same one shape
+  // regardless of the query string -- trailing `**`, not `*`, for the
+  // same "must cross the `?` itself" reason as that route's own comment,
+  // even though this route's own handler logic doesn't branch on it.
+  await page.route("**/logbook/api/performance/volume**", route => route.fulfill({ json: volumeData }));
 
   // #497 -- mirrors server/api/map.js's own aggregation (country x
   // discipline -> { total, flash, send, project }), computed fresh from

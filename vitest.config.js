@@ -54,7 +54,7 @@ export default defineConfig({
           // below, which must NOT run under this pool (see the comment
           // above).
           include: ["test/**/*.test.js"],
-          exclude: ["test/client/move-tagging.test.js"],
+          exclude: ["test/client/move-tagging.test.js", "test/client/time-window.test.js"],
           setupFiles: ["./test/apply-migrations.js"],
           // D1 (#20) adds real per-test-file startup cost -- Miniflare's D1
           // storage backend initialization plus this file's own migration-apply
@@ -103,7 +103,7 @@ export default defineConfig({
           // other test/client/*.test.js file tests pure functions and
           // stays on the "workers" project above (no reason to pay for a
           // second, non-Workers pool when nothing needs a DOM).
-          include: ["test/client/move-tagging.test.js"],
+          include: ["test/client/move-tagging.test.js", "test/client/time-window.test.js"],
           environment: "happy-dom",
         },
         resolve: {
