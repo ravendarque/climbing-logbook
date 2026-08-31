@@ -6,6 +6,7 @@ import { painLogEntries, topPainCluster } from "../../shared/injury-stats.js";
 import { availableAnchors, describeWeakness, rankedForAnchor, topWeakness } from "../../shared/strengths-stats.js";
 import { bucketLabel, monthBuckets, volumeByBucket } from "../../shared/volume-stats.js";
 import { gapByBucket, gapHeadline } from "../../shared/gap-stats.js";
+import { effortByBucket, effortHeadline } from "../../shared/effort-stats.js";
 
 // #111 -- computes the Grade Pyramid server-side instead of shipping the
 // full entries array to /performance for the client to compute itself.
@@ -141,6 +142,40 @@ export async function handleGetGap(request, env, userId) {
       sendMaxByBucket,
       avgAttemptsByBucket,
       headline: gapHeadline(flashMaxByBucket, sendMaxByBucket, type),
+    };
+  }
+
+  return json({ boulder: forDiscipline("boulder"), lead: forDiscipline("lead") }, 200, { "Cache-Control": "no-store" });
+}
+
+// #38 -- same online-only, server-computed, start/end-validated
+// convention as handleGetVolume/handleGetGap above (also in
+// PUBLIC_GET_ROUTES with no session required, same date-shape + span-cap
+// validation).
+export async function handleGetEffort(request, env, userId) {
+  const url = new URL(request.url);
+  const start = url.searchParams.get("start");
+  const end = url.searchParams.get("end");
+  if (!start || !end) return json({ error: "Missing required field: start and end" }, 400);
+  if (!DATE_SHAPE.test(start) || !DATE_SHAPE.test(end)) {
+    return json({ error: "start and end must be YYYY-MM-DD dates" }, 400);
+  }
+
+  const buckets = monthBuckets(start, end);
+  if (buckets.length > MAX_WINDOW_MONTHS) {
+    return json({ error: `start and end must span at most ${MAX_WINDOW_MONTHS} months` }, 400);
+  }
+
+  const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
+
+  function forDiscipline(type) {
+    const { maxGradeByBucket, avgExertionByBucket, rpeCountByBucket, overallAvgExertion, totalSends } =
+      effortByBucket(rows.filter(e => e.type === type), buckets);
+    return {
+      buckets: buckets.map(bucketLabel),
+      maxGradeByBucket,
+      avgExertionByBucket,
+      headline: effortHeadline(maxGradeByBucket, avgExertionByBucket, rpeCountByBucket, overallAvgExertion, totalSends, type),
     };
   }
 
