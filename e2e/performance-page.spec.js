@@ -18,6 +18,18 @@ test("renders the shared chrome and one tile per insight, linking to its own sub
   await expect(pyramidTile.locator("a", { hasText: "View" })).toHaveAttribute("href", /\/performance\/pyramid$/);
 });
 
+test("#599 -- the gap tile's title is discipline-aware and updates live on a discipline switch", async ({ page }) => {
+  await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
+  await page.goto("/e2e-fixtures/pages/performance.html");
+
+  const gapTile = page.locator("#insight-gap");
+  await expect(gapTile.locator(".row-card-title")).toHaveText("Send / Flash Gap");
+
+  await page.locator("#discipline-btn").click();
+  await page.locator('.discipline-option[data-discipline="lead"]').click();
+  await expect(gapTile.locator(".row-card-title")).toHaveText("Redpoint / Onsight Gap");
+});
+
 test("redirects to /log when Athlete Mode is off", async ({ page }) => {
   await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder" } });
   await page.goto("/e2e-fixtures/pages/performance.html");
