@@ -75,13 +75,15 @@ test("renders the shared chrome and a real entries table, and switches disciplin
 });
 
 test("#501 -- a table past one page shows Show more/Show all, both reveal the rest client-side (no fetch)", async ({ page }) => {
-  const manyEntries = Array.from({ length: 25 }, (_, i) => ({
+  // #606 -- PAGE_SIZE raised from 20 to 100; seed counts scaled to match
+  // (was 25 entries against a page size of 20).
+  const manyEntries = Array.from({ length: 125 }, (_, i) => ({
     id: `many-${i}`, placeId: "p1", type: "boulder", status: "send", grade: "6A", date: "2026-05-01", name: `Many Seed ${i}`,
   }));
   await gotoLogHarness(page, { ...SEED, entries: manyEntries });
   await page.locator("#collapse-all-btn").click();
 
-  await expect(page.locator("#sections")).toContainText("20 of 25 shown");
+  await expect(page.locator("#sections")).toContainText("100 of 125 shown");
   await expect(page.locator(".show-more-btn")).toBeVisible();
   await expect(page.locator(".show-all-btn")).toBeVisible();
 
@@ -92,7 +94,7 @@ test("#501 -- a table past one page shows Show more/Show all, both reveal the re
   page.on("request", req => { if (req.url().includes("/logbook/api/logbook")) entriesRequests.push(req.url()); });
 
   await page.locator(".show-more-btn").click();
-  await expect(page.locator("tbody tr")).toHaveCount(25);
+  await expect(page.locator("tbody tr")).toHaveCount(125);
   // Fully revealed -- the whole footer (both buttons AND the "N of Total
   // shown" text) disappears entirely once hasMore is false, not just
   // the button that was clicked.
@@ -103,18 +105,20 @@ test("#501 -- a table past one page shows Show more/Show all, both reveal the re
 });
 
 test("#501 -- Show all reveals the exact remainder client-side, no fetch", async ({ page }) => {
-  const manyEntries = Array.from({ length: 43 }, (_, i) => ({
+  // #606 -- PAGE_SIZE raised from 20 to 100; seed count scaled to match
+  // (was 43 entries against a page size of 20).
+  const manyEntries = Array.from({ length: 130 }, (_, i) => ({
     id: `many-${i}`, placeId: "p1", type: "boulder", status: "send", grade: "6A", date: "2026-05-01", name: `Many Seed ${i}`,
   }));
   await gotoLogHarness(page, { ...SEED, entries: manyEntries });
   await page.locator("#collapse-all-btn").click();
-  await expect(page.locator("#sections")).toContainText("20 of 43 shown");
+  await expect(page.locator("#sections")).toContainText("100 of 130 shown");
 
   const entriesRequests = [];
   page.on("request", req => { if (req.url().includes("/logbook/api/logbook")) entriesRequests.push(req.url()); });
 
   await page.locator(".show-all-btn").click();
-  await expect(page.locator("tbody tr")).toHaveCount(43);
+  await expect(page.locator("tbody tr")).toHaveCount(130);
   await expect(page.locator(".show-more-btn")).toHaveCount(0);
   expect(entriesRequests).toEqual([]);
 });
