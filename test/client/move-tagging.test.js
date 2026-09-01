@@ -84,4 +84,34 @@ describe("createMoveRowList", () => {
     widget.reset();
     expect(widget.getRows()).toEqual([]);
   });
+
+  // #597 -- every dropdown renders sentence case, not Title Case or the
+  // raw hyphenated vocabulary value verbatim.
+  it("renders the Limb dropdown's options in sentence case", () => {
+    const widget = createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
+    addBtnEl.click();
+    const limbOptionText = Array.from(listEl.querySelectorAll('[data-field="limbSide"] option')).map(o => o.textContent);
+    expect(limbOptionText).toContain("Left hand");
+    expect(limbOptionText).not.toContain("Left Hand");
+  });
+
+  it("renders raw hold-type/movement-style/wall-angle option text humanized, while keeping the raw value in the option's value attribute", () => {
+    const widget = createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
+    addBtnEl.click();
+    const holdOption = listEl.querySelector('[data-field="holdType"] option[value="toe-hook"]');
+    expect(holdOption).toBeNull(); // hand is the default limb -- toe-hook only appears once limb is foot
+    const limbSelect = listEl.querySelector('[data-field="limbSide"]');
+    limbSelect.value = "foot-right";
+    limbSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    const toeHookOption = listEl.querySelector('[data-field="holdType"] option[value="toe-hook"]');
+    expect(toeHookOption.textContent).toBe("Toe hook");
+  });
+
+  it("every select in a row card has an explicit foreground text color (dark-mode readability, #597)", () => {
+    const widget = createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
+    addBtnEl.click();
+    const selects = listEl.querySelectorAll("select");
+    expect(selects.length).toBeGreaterThan(0);
+    selects.forEach(select => expect(select.className).toContain("text-foreground"));
+  });
 });

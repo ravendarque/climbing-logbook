@@ -141,6 +141,14 @@ export function createEntryForm({
     selectedStatus = value === "flash" ? "send" : value;
     isFlash = value === "flash";
     updateExertionVisibility();
+    // #597 -- a flash is by definition a first-attempt send. Only forces
+    // the value on selecting Flash, itself -- switching status away from
+    // Flash afterward doesn't reset it back to 0, so a user can still
+    // correct it either direction.
+    if (isFlash) {
+      attemptsValue = 1;
+      renderAttempts();
+    }
   });
   hydrateStatusIcons(entryOverlay);
 
@@ -156,9 +164,12 @@ export function createEntryForm({
     exertionField.hidden = selectedStatus !== "send";
   }
 
-  exertionSlider.addEventListener("input", () => {
-    exertionValue.textContent = `${exertionSlider.value}%`;
-  });
+  // #597 -- 0 is the slider's unset state (no real climb has zero
+  // effort), so its label reads "Not set" rather than "0%".
+  function renderExertionValue() {
+    exertionValue.textContent = exertionSlider.value === "0" ? "Not set" : `${exertionSlider.value}%`;
+  }
+  exertionSlider.addEventListener("input", renderExertionValue);
 
   // #574 -- plain form field for v1 (no immediate-save); value only
   // persists when the rest of the entry is submitted, same as every
@@ -166,12 +177,24 @@ export function createEntryForm({
   // accumulates attempts before it's eventually sent, same field either
   // way.
   let attemptsValue = 0;
+  // #597 -- 0 reads as a dash rather than the literal number, since "0"
+  // could misleadingly read as "the user set this to zero" rather than
+  // "not set yet".
   function renderAttempts() {
-    attemptsCount.textContent = String(attemptsValue);
+    attemptsCount.value = attemptsValue === 0 ? "–" : String(attemptsValue);
     attemptsMinus.disabled = attemptsValue <= 0;
   }
   attemptsMinus.addEventListener("click", () => { attemptsValue = Math.max(0, attemptsValue - 1); renderAttempts(); });
   attemptsPlus.addEventListener("click", () => { attemptsValue += 1; renderAttempts(); });
+  // #597 -- directly typable, digits only; any non-digit (including the
+  // dash itself) is stripped rather than rejected outright, so pasting or
+  // typing over the dash just works.
+  attemptsCount.addEventListener("input", () => {
+    const digits = attemptsCount.value.replace(/[^0-9]/g, "");
+    attemptsValue = digits === "" ? 0 : Number(digits);
+    renderAttempts();
+  });
+  attemptsCount.addEventListener("focus", () => attemptsCount.select());
 
   function setStatusToggle(status, flash) {
     const value = flash ? "flash" : status;
@@ -221,8 +244,8 @@ export function createEntryForm({
     updateFormStatusLabels();
     setStatusToggle(entry?.status ?? "send", Boolean(entry?.firstAttempt));
     updateExertionVisibility();
-    exertionSlider.value = entry?.rpe ?? 50;
-    exertionValue.textContent = `${exertionSlider.value}%`;
+    exertionSlider.value = entry?.rpe ?? 0;
+    renderExertionValue();
     attemptsValue = entry?.attemptsToSend ?? 0;
     renderAttempts();
     hardestMoves.setRows((entry?.moves ?? []).filter(m => m.difficulty === "hardest"));

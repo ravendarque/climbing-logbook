@@ -227,23 +227,31 @@ test("Attempts stepper increments/decrements and cannot go below 0", async ({ pa
   await page.locator("#add-btn").click();
   await expect(page.locator("#entry-overlay")).toBeVisible();
 
-  await expect(page.locator("#attempts-count")).toHaveText("0");
+  // #597 -- attempts-count is a typable <input>, and 0 renders as a dash
+  // rather than the literal digit (see client/entry-form.js's own
+  // renderAttempts() comment).
+  await expect(page.locator("#attempts-count")).toHaveValue("–");
   await expect(page.locator("#attempts-minus")).toBeDisabled();
 
   await page.locator("#attempts-plus").click();
   await page.locator("#attempts-plus").click();
-  await expect(page.locator("#attempts-count")).toHaveText("2");
+  await expect(page.locator("#attempts-count")).toHaveValue("2");
   await expect(page.locator("#attempts-minus")).toBeEnabled();
 
   await page.locator("#attempts-minus").click();
-  await expect(page.locator("#attempts-count")).toHaveText("1");
+  await expect(page.locator("#attempts-count")).toHaveValue("1");
   await page.locator("#attempts-minus").click();
-  await expect(page.locator("#attempts-count")).toHaveText("0");
+  await expect(page.locator("#attempts-count")).toHaveValue("–");
   await expect(page.locator("#attempts-minus")).toBeDisabled();
 
   // Clicking a disabled button is a no-op -- still floored at 0, not -1.
   await page.locator("#attempts-minus").click({ force: true });
-  await expect(page.locator("#attempts-count")).toHaveText("0");
+  await expect(page.locator("#attempts-count")).toHaveValue("–");
+
+  // #597 -- directly typable, digits only.
+  await page.locator("#attempts-count").fill("7");
+  await expect(page.locator("#attempts-count")).toHaveValue("7");
+  await expect(page.locator("#attempts-minus")).toBeEnabled();
 });
 
 test("adding a move and saving submits it in the entry payload", async ({ page }) => {
