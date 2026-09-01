@@ -12,6 +12,9 @@ test("shows the confidence-gate message, time-window control, and peer-reviewed 
 
   await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
   await expect(page.locator("climbing-tab-bar a", { hasText: "Performance Insights" })).toHaveAttribute("aria-current", "page");
+  // #601
+  await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", "/e2e-fixtures/performance");
+  await expect(page.locator("#view-explainer")).toContainText("Exertion slider");
   await expect(page.locator("#effort-caveat")).toContainText("less reliable");
   await expect(page.locator('[data-window="3mo"]')).toBeVisible();
   await expect(page.locator("#rpe-root")).toContainText("Not enough data yet for a reliable read");

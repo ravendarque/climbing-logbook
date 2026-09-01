@@ -50,6 +50,9 @@ store.subscribe(render);
 const tabBar = document.querySelector("climbing-tab-bar");
 tabBar.setAttribute("username", USERNAME);
 
+// #601
+document.getElementById("back-to-performance-link").href = `/${encodeURIComponent(USERNAME)}/performance`;
+
 const pyramidEl = document.querySelector("climbing-grade-pyramid");
 const offlineEl = document.getElementById("performance-offline");
 

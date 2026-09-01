@@ -53,6 +53,9 @@ store.subscribe(render);
 const tabBar = document.querySelector("climbing-tab-bar");
 tabBar.setAttribute("username", USERNAME);
 
+// #601
+document.getElementById("back-to-performance-link").href = `/${encodeURIComponent(USERNAME)}/performance`;
+
 const trendsRootEl = document.getElementById("trends-root");
 const timeWindowRootEl = document.getElementById("time-window-root");
 const offlineEl = document.getElementById("performance-offline");

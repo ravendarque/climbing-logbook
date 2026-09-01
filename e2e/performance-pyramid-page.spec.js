@@ -38,6 +38,9 @@ test("renders the shared chrome and a real grade pyramid, and switches disciplin
   // "Performance Insights", not "Grade Pyramid" -- the tab label covers
   // the whole hub now (#575), not just this one sub-page.
   await expect(page.locator("climbing-tab-bar a", { hasText: "Performance Insights" })).toHaveAttribute("aria-current", "page");
+  // #601
+  await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", "/e2e-fixtures/performance");
+  await expect(page.locator("#view-explainer")).toContainText("every send's grade");
 
   await expect(page.locator("#pyramid")).toBeVisible();
   await expect(page.locator("#pyramid")).not.toBeEmpty();
