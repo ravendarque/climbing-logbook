@@ -12,21 +12,35 @@
 import { escapeHtml } from "./escape-html.js";
 import { HOLD_TYPES_BY_LIMB, MOVEMENT_STYLES_BY_LIMB, VALID_WALL_ANGLES } from "../shared/entry-schema.js";
 
+// #597 -- sentence case everywhere (not Title Case): hyphens become
+// spaces, only the first letter is capitalized. Used both for this
+// module's own hand-written LIMB_SIDE_OPTIONS labels and for every raw
+// hyphenated vocabulary value (hold type, movement style, wall angle)
+// rendered as option text below, so all four dropdowns read consistently.
+function humanize(value) {
+  const s = value.replace(/-/g, " ");
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+
 const LIMB_SIDE_OPTIONS = [
-  { value: "hand-left", limb: "hand", side: "left", label: "Left Hand" },
-  { value: "hand-right", limb: "hand", side: "right", label: "Right Hand" },
-  { value: "foot-left", limb: "foot", side: "left", label: "Left Foot" },
-  { value: "foot-right", limb: "foot", side: "right", label: "Right Foot" },
-  { value: "knee-left", limb: "knee", side: "left", label: "Left Knee" },
-  { value: "knee-right", limb: "knee", side: "right", label: "Right Knee" },
-];
+  { value: "hand-left", limb: "hand", side: "left" },
+  { value: "hand-right", limb: "hand", side: "right" },
+  { value: "foot-left", limb: "foot", side: "left" },
+  { value: "foot-right", limb: "foot", side: "right" },
+  { value: "knee-left", limb: "knee", side: "left" },
+  { value: "knee-right", limb: "knee", side: "right" },
+// humanize() is run over the whole "side-limb" string as one unit, not
+// each half separately -- humanizing side and limb independently would
+// capitalize both words (Title Case again, e.g. "Left Hand"), when the
+// goal is sentence case with only the first word capitalized.
+].map(o => ({ ...o, label: humanize(`${o.side}-${o.limb}`) }));
 
 function limbSideOption(value) {
   return LIMB_SIDE_OPTIONS.find(o => o.value === value) ?? LIMB_SIDE_OPTIONS[0];
 }
 
 function optionsHtml(values, selected) {
-  return values.map(v => `<option value="${escapeHtml(v)}"${v === selected ? " selected" : ""}>${escapeHtml(v)}</option>`).join("");
+  return values.map(v => `<option value="${escapeHtml(v)}"${v === selected ? " selected" : ""}>${escapeHtml(humanize(v))}</option>`).join("");
 }
 
 function rowHtml(row, listLabel) {
@@ -37,25 +51,25 @@ function rowHtml(row, listLabel) {
     <div class="grid gap-2" style="grid-template-columns: repeat(auto-fit, minmax(85px, 1fr));">
       <label class="block">
         <span class="text-[.65rem] text-muted block mb-1">Limb</span>
-        <select class="w-full bg-surface border border-border rounded-app px-2 py-1 text-[.85rem]" data-field="limbSide">
+        <select class="w-full bg-surface border border-border rounded-app px-2 py-1 text-[.85rem] text-foreground" data-field="limbSide">
           ${LIMB_SIDE_OPTIONS.map(o => `<option value="${o.value}"${o.value === limbSideValue ? " selected" : ""}>${escapeHtml(o.label)}</option>`).join("")}
         </select>
       </label>
       <label class="block">
         <span class="text-[.65rem] text-muted block mb-1">Hold type</span>
-        <select class="w-full bg-surface border border-border rounded-app px-2 py-1 text-[.85rem]" data-field="holdType">
+        <select class="w-full bg-surface border border-border rounded-app px-2 py-1 text-[.85rem] text-foreground" data-field="holdType">
           ${optionsHtml(HOLD_TYPES_BY_LIMB[limb], holdType)}
         </select>
       </label>
       <label class="block">
         <span class="text-[.65rem] text-muted block mb-1">Movement</span>
-        <select class="w-full bg-surface border border-border rounded-app px-2 py-1 text-[.85rem]" data-field="movementStyle">
+        <select class="w-full bg-surface border border-border rounded-app px-2 py-1 text-[.85rem] text-foreground" data-field="movementStyle">
           ${optionsHtml(MOVEMENT_STYLES_BY_LIMB[limb], movementStyle)}
         </select>
       </label>
       <label class="block">
         <span class="text-[.65rem] text-muted block mb-1">Wall angle</span>
-        <select class="w-full bg-surface border border-border rounded-app px-2 py-1 text-[.85rem]" data-field="wallAngle">
+        <select class="w-full bg-surface border border-border rounded-app px-2 py-1 text-[.85rem] text-foreground" data-field="wallAngle">
           ${optionsHtml(VALID_WALL_ANGLES, wallAngle)}
         </select>
       </label>
