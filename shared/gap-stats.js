@@ -32,8 +32,15 @@ export function gapByBucket(entries, buckets) {
     }
   }
 
+  // #603 -- null (not 0) for a bucket with no attemptsToSend data at
+  // all, distinct from a real, measured 0. A real send with no recorded
+  // attempts-to-send used to render as a bar visually identical to a
+  // genuine zero average, reading as an unexplained gap on the chart
+  // (client/combo-chart.js's own bar rendering treats null as "no
+  // data", rendering a dash label with no rect, rather than a
+  // zero-height bar).
   const avgAttemptsByBucket = attemptsCountByBucket.map((count, i) =>
-    count ? Math.round((attemptsSumByBucket[i] / count) * 10) / 10 : 0
+    count ? Math.round((attemptsSumByBucket[i] / count) * 10) / 10 : null
   );
 
   return { flashMaxByBucket, sendMaxByBucket, avgAttemptsByBucket };

@@ -350,35 +350,36 @@ describe("handleGetEffort", () => {
     await postEntry({ date: "2026-02-10", rpe: 70 });
     const { boulder } = await (await getEffort({ start: "2026-01-01", end: "2026-03-01" })).json();
     expect(boulder.headline).toBeNull();
-    expect(boulder.avgExertionByBucket).toEqual([0, 70, 0]);
+    // #603 -- null (not 0) for a bucket with no rpe data at all.
+    expect(boulder.avgExertionByBucket).toEqual([null, 70, null]);
   });
 
   it("reflects real sends within the window, split by discipline", async () => {
     await postEntry({ type: "boulder", grade: "6B", date: "2026-02-10", rpe: 60 });
     await postEntry({ type: "lead", grade: "6a", date: "2026-02-15", rpe: 80 });
     const body = await (await getEffort({ start: "2026-01-01", end: "2026-03-01" })).json();
-    expect(body.boulder.avgExertionByBucket).toEqual([0, 60, 0]);
-    expect(body.lead.avgExertionByBucket).toEqual([0, 80, 0]);
+    expect(body.boulder.avgExertionByBucket).toEqual([null, 60, null]);
+    expect(body.lead.avgExertionByBucket).toEqual([null, 80, null]);
   });
 
   it("excludes a soft-deleted entry", async () => {
     const created = await (await postEntry({ date: "2026-02-10" })).json();
     await del(created.entries[0].id);
     const { boulder } = await (await getEffort({ start: "2026-01-01", end: "2026-03-01" })).json();
-    expect(boulder.avgExertionByBucket).toEqual([0, 0, 0]);
+    expect(boulder.avgExertionByBucket).toEqual([null, null, null]);
   });
 
   it("returns empty per-bucket data for an anonymous caller", async () => {
     const res = await fetchJson(`${EFFORT_URL}?start=2026-01-01&end=2026-03-01`);
     expect(res.status).toBe(200);
     const { boulder } = await res.json();
-    expect(boulder.avgExertionByBucket).toEqual([0, 0, 0]);
+    expect(boulder.avgExertionByBucket).toEqual([null, null, null]);
   });
 
   it("a second user's own request never reflects the first user's sends", async () => {
     await postEntry({ date: "2026-02-10", rpe: 90 });
     const userB = await createAuthedSession();
     const { boulder } = await (await getEffort({ start: "2026-01-01", end: "2026-03-01" }, userB.cookie)).json();
-    expect(boulder.avgExertionByBucket).toEqual([0, 0, 0]);
+    expect(boulder.avgExertionByBucket).toEqual([null, null, null]);
   });
 });

@@ -57,9 +57,12 @@ export async function mockApi(page, {
   // "already-computed, not raw entries" contract as pyramidData/
   // injuryData/volumeData above. Same one-shape-regardless-of-query-string
   // behavior as volumeData's own route.
+  // #603 -- avgAttemptsByBucket/avgExertionByBucket default to null (not
+  // 0) per bucket, matching handleGetGap/handleGetEffort's own real
+  // "no data" contract, not a genuine measured zero.
   gapData = {
-    boulder: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], flashMaxByBucket: [null, null, null], sendMaxByBucket: [null, null, null], avgAttemptsByBucket: [0, 0, 0], headline: "No sends logged in this window yet." },
-    lead: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], flashMaxByBucket: [null, null, null], sendMaxByBucket: [null, null, null], avgAttemptsByBucket: [0, 0, 0], headline: "No sends logged in this window yet." },
+    boulder: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], flashMaxByBucket: [null, null, null], sendMaxByBucket: [null, null, null], avgAttemptsByBucket: [null, null, null], headline: "No sends logged in this window yet." },
+    lead: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], flashMaxByBucket: [null, null, null], sendMaxByBucket: [null, null, null], avgAttemptsByBucket: [null, null, null], headline: "No sends logged in this window yet." },
   },
   // #38 -- server/api/performance.js's own handleGetEffort() shape, same
   // "already-computed, not raw entries" contract as the routes above.
@@ -67,8 +70,8 @@ export async function mockApi(page, {
   // volumeData's own routes. Defaults below the confidence gate (null
   // headline) -- a test that needs a confident headline supplies it.
   effortData = {
-    boulder: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], maxGradeByBucket: [null, null, null], avgExertionByBucket: [0, 0, 0], headline: null },
-    lead: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], maxGradeByBucket: [null, null, null], avgExertionByBucket: [0, 0, 0], headline: null },
+    boulder: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], maxGradeByBucket: [null, null, null], avgExertionByBucket: [null, null, null], headline: null },
+    lead: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], maxGradeByBucket: [null, null, null], avgExertionByBucket: [null, null, null], headline: null },
   },
   // #498 -- true by default: seeds client/sync-status.js's own marker so
   // every EXISTING test (written before /sync existed) still lands

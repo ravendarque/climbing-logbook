@@ -41,9 +41,9 @@ describe("gapByBucket", () => {
     expect(avgAttemptsByBucket).toEqual([1.7]);
   });
 
-  it("reports 0 average attempts for a bucket with no attemptsToSend data", () => {
+  it("#603 -- reports null (not 0) average attempts for a bucket with no attemptsToSend data", () => {
     const { avgAttemptsByBucket } = gapByBucket([entry({ attemptsToSend: null })], ["2026-01"]);
-    expect(avgAttemptsByBucket).toEqual([0]);
+    expect(avgAttemptsByBucket).toEqual([null]);
   });
 
   it("ignores an entry whose date falls outside every given bucket", () => {

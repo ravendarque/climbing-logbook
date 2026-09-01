@@ -48,9 +48,10 @@ function barScale(maxValue) {
 // maxValue/y scale so the gridlines/ticks the axis draws actually line up
 // with the bars they're meant to measure. Computed once in
 // renderComboChartHtml and passed down rather than each recomputing it
-// independently.
+// independently. Filters out null (no-data) values -- see barsHtml's own
+// comment -- so an empty bucket never distorts the scale.
 function barMaxValue(bars) {
-  return Math.max(0, ...bars.flatMap(b => b.values));
+  return Math.max(0, ...bars.flatMap(b => b.values.filter(v => v !== null)));
 }
 
 function barsHtml(bars, bucketCount, y) {
@@ -61,16 +62,32 @@ function barsHtml(bars, bucketCount, y) {
   // design doc's own "N bars" requirement, not hardcoded to one.
   const groupWidth = slotWidth * 0.6;
   const barWidth = groupWidth / bars.length;
+  const barBottom = MARGIN.top + PLOT_HEIGHT;
 
   return bars.map((series, seriesIndex) => series.values.map((value, bucketIndex) => {
     const slotStart = bucketSlotX(bucketIndex, bucketCount) + (slotWidth - groupWidth) / 2;
     const x = slotStart + barWidth * seriesIndex;
+    const labelX = (x + barWidth * 0.425).toFixed(1);
+
+    // #603 -- a null value means "no data for this bucket" (e.g.
+    // shared/gap-stats.js's avgAttemptsByBucket / shared/effort-
+    // stats.js's avgExertionByBucket both return null when no
+    // qualifying entry exists in a bucket), distinct from a real,
+    // measured 0. A real send with no recorded attempts-to-send used to
+    // render as a zero-height bar visually identical to a genuine
+    // zero average -- reading as an unexplained gap rather than a
+    // legible "not recorded" state. No rect drawn at all for a
+    // no-data bucket; the dash label (not "0") is what signals "not
+    // recorded" rather than "recorded as zero".
+    if (value === null) {
+      return `<text x="${labelX}" y="${(barBottom - 6).toFixed(1)}" text-anchor="middle" class="fill-muted text-[10px]">–</text>`;
+    }
+
     const barTop = y(value);
-    const barBottom = MARGIN.top + PLOT_HEIGHT;
     const height = Math.max(0, barBottom - barTop);
     return `
       <rect x="${x.toFixed(1)}" y="${barTop.toFixed(1)}" width="${(barWidth * 0.85).toFixed(1)}" height="${height.toFixed(1)}" class="fill-accent" />
-      <text x="${(x + barWidth * 0.425).toFixed(1)}" y="${(barTop - 6).toFixed(1)}" text-anchor="middle" class="fill-foreground text-[10px]">${escapeHtml(String(value))}</text>
+      <text x="${labelX}" y="${(barTop - 6).toFixed(1)}" text-anchor="middle" class="fill-foreground text-[10px]">${escapeHtml(String(value))}</text>
     `;
   }).join("")).join("");
 }

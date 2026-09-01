@@ -9,7 +9,7 @@ describe("effortByBucket", () => {
   it("ignores non-send entries entirely", () => {
     const { maxGradeByBucket, avgExertionByBucket } = effortByBucket([entry({ status: "project" })], ["2026-01"]);
     expect(maxGradeByBucket).toEqual([null]);
-    expect(avgExertionByBucket).toEqual([0]);
+    expect(avgExertionByBucket).toEqual([null]);
   });
 
   it("tracks the highest send grade per bucket, matching volumeByBucket's own logic", () => {
@@ -31,9 +31,9 @@ describe("effortByBucket", () => {
     expect(avgExertionByBucket).toEqual([70]);
   });
 
-  it("reports 0 average and 0 count for a bucket with sends but no rpe data", () => {
+  it("#603 -- reports null average (and 0 count) for a bucket with sends but no rpe data", () => {
     const { avgExertionByBucket, rpeCountByBucket } = effortByBucket([entry({ rpe: null })], ["2026-01"]);
-    expect(avgExertionByBucket).toEqual([0]);
+    expect(avgExertionByBucket).toEqual([null]);
     expect(rpeCountByBucket).toEqual([0]);
   });
 
