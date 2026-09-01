@@ -25,6 +25,7 @@ jobs:
             relevant:
               - 'server/**'
               - 'client/**'
+              - 'shared/**'
               - 'public/**'
               - 'e2e/**'
               - 'scripts/lib/dev-session.mjs'
