@@ -27,6 +27,9 @@ test("shows the not-enough-data message and empty log with no pain-tagged entrie
 
   await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
   await expect(page.locator("climbing-tab-bar a", { hasText: "Performance Insights" })).toHaveAttribute("aria-current", "page");
+  // #601
+  await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", "/e2e-fixtures/performance");
+  await expect(page.locator("#view-explainer")).toContainText("Pain/injury tags");
   await expect(page.locator("#injury-headline")).toContainText("Not enough data yet");
   await expect(page.locator("#injury-log-empty")).toBeVisible();
 });

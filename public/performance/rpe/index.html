@@ -43,6 +43,22 @@
 
   <climbing-tab-bar active-page="performance"></climbing-tab-bar>
 
+  <!-- #601 -- same admin-btn back-link pattern as public/account/edit/
+       index.html's own back-to-account-link; href set client-side in
+       client/performance-rpe-main.js once USERNAME is known. -->
+  <a class="admin-btn admin-btn-primary mt-4 mb-5" id="back-to-performance-link" href="#">
+    <svg class="w-[.9rem] h-[.9rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+    Performance Insights
+  </a>
+
+  <!-- #601 -- explanatory copy, the mirror image of #597's own per-field
+       entry-form captions: this names which field feeds this view. -->
+  <div class="row-card mb-5 max-w-[640px]" id="view-explainer">
+    <p class="text-[.85rem] text-foreground leading-[1.6]">How hard your sends have felt (self-rated exertion) alongside how hard they were (max grade sent), by time period — so you can see whether extra effort is buying real progress.</p>
+    <p class="text-[.8rem] text-muted leading-[1.6] mt-2">Bars are your average Exertion % per period; the overlaid line marks the toughest grade you sent that period, labeled directly on its points.</p>
+    <p class="text-[.78rem] text-muted leading-[1.6] mt-2">Built from the Exertion slider on each send.</p>
+  </div>
+
   <!-- #111 -- Performance insights are online-only, deliberately, not a
        client-side fallback computed from possibly-stale cached entries
        (Raven's own call: at the crag with poor/no connection, the

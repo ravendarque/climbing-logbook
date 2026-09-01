@@ -12,6 +12,9 @@ test("shows the zero-sends headline, time-window control, and community-data chi
 
   await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
   await expect(page.locator("climbing-tab-bar a", { hasText: "Performance Insights" })).toHaveAttribute("aria-current", "page");
+  // #601
+  await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", "/e2e-fixtures/performance");
+  await expect(page.locator("#view-explainer")).toContainText("Attempts count and Flash selection");
   await expect(page.locator('[data-window="3mo"]')).toBeVisible();
   await expect(page.locator("#gap-root")).toContainText("No sends logged in this window yet.");
   await expect(page.locator("#gap-root [data-evidence-tier]")).toContainText("Community data");
