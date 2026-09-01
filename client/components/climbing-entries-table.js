@@ -65,7 +65,7 @@ const DEFAULT_STATUS_FILTERS = ["flash", "send", "project", "checkout"];
 // time this component renders at all (client/sync-main.js, ADR-0019),
 // so there's nothing left to fetch, just more of an already-loaded
 // array to show.
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 100;
 // #460 -- canonical order for the two known disciplines, used wherever
 // "all disciplines" needs a deterministic iteration order (filter-panel
 // checkboxes, section ordering). A third discipline (#429/#430) is just
