@@ -55,8 +55,11 @@
     <p class="text-[.82rem] text-muted mt-2">Reconnect and reload this page to see your effort trend.</p>
   </div>
 
-  <div id="time-window-root" class="mb-4"></div>
+  <!-- #602 -- caveat before the time-window control, not after: the
+       control should sit immediately above the chart it drives, not
+       have unrelated copy sandwiched between it and the chart. -->
   <p class="text-[.75rem] text-muted mb-3" id="effort-caveat">RPE readings tend to be less reliable for newer or lower-grade climbers (Gajdošík et al., 2020) -- take this trend as a loose signal, not a precise measure.</p>
+  <div id="time-window-root" class="mb-4"></div>
   <div id="rpe-root"></div>
   <div id="evidence-overlay-root"></div>
 

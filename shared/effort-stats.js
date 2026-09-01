@@ -70,10 +70,10 @@ export function effortHeadline(maxGradeByBucket, avgExertionByBucket, rpeCountBy
   const exertionTrendUp = rpeRange !== null && (avgExertionByBucket[rpeRange[1]] - avgExertionByBucket[rpeRange[0]]) >= EXERTION_RISE_MARGIN;
 
   if (gradeTrendUp && exertionTrendUp) {
-    return "Your effort is rising alongside your grade -- sounds like it's paying off.";
+    return "Your effort is rising alongside your grade -- sounds like it's paying off. Climbing-specific session-RPE research has found a real link between logged effort and training load, so a trend like this is a reasonable signal the extra push is translating into progress, not just extra fatigue.";
   }
   if (overallAvgExertion !== null && overallAvgExertion >= HIGH_EXERTION_THRESHOLD && !gradeTrendUp) {
-    return "You're maxing out effort without much grade movement -- technique work might unlock more than pushing harder would.";
+    return "You're maxing out effort without much grade movement -- technique work might unlock more than pushing harder would. When effort consistently reads near-maximal but the grade line stays flat, climbing-performance research points more toward technique and movement efficiency as the likely limiter than raw physical output -- worth a technique-focused session or two before assuming you just need to push harder.";
   }
-  return `There's room to push harder on your ${SEND_TERM[type]} attempts.`;
+  return `There's room to push harder on your ${SEND_TERM[type]} attempts. Your average effort here reads moderate rather than near-maximal, so there may be headroom before a grade is genuinely out of reach -- though this read is inherently less reliable for newer or lower-grade climbers (Gajdošík, Baláš & Draper, 2020), so treat it as a loose prompt to experiment, not a precise verdict.`;
 }

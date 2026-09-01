@@ -55,8 +55,11 @@
     <p class="text-[.82rem] text-muted mt-2">Reconnect and reload this page to see your volume/intensity trend.</p>
   </div>
 
-  <div id="time-window-root" class="mb-4"></div>
+  <!-- #602 -- caveat before the time-window control, not after: the
+       control should sit immediately above the chart it drives, not
+       have unrelated copy sandwiched between it and the chart. -->
   <p class="text-[.75rem] text-muted mb-3" id="trends-caveat">A send-log proxy for training load, not a measure of real training stimulus -- this app has no visibility into gym or hangboard training.</p>
+  <div id="time-window-root" class="mb-4"></div>
   <div id="trends-root"></div>
 
   <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>
