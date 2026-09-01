@@ -103,6 +103,46 @@ describe("renderComboChartHtml", () => {
     expect(lineCount).toBe(1);
   });
 
+  it("#603 -- renders a null bar value as a dash, not a zero-height rect", () => {
+    const html = renderComboChartHtml({ bucketLabels: ["Jan 2026"], bars: [{ label: "Avg attempts", values: [null] }], lines: [], headline: "h" });
+    const rectCount = (html.match(/<rect/g) || []).length;
+    expect(rectCount).toBe(0);
+    expect(html).toContain(">–<");
+    // Not asserting the whole SVG never contains ">0<" -- the y-axis's own
+    // legitimate baseline tick label (barYAxisHtml, unaffected by this
+    // fix) still renders "0" when maxValue defaults to 0 for an all-null
+    // series. This only checks the bar's own data-label slot specifically
+    // renders a dash instead of a number.
+  });
+
+  it("#603 -- a bucket with a null bar value and a real grade-line point renders both correctly", () => {
+    const html = renderComboChartHtml({
+      bucketLabels: ["Jan 2026"],
+      bars: [{ label: "Avg attempts", values: [null] }],
+      lines: [{ label: "Max grade", points: [{ positionKey: "6B", displayLabel: "V4" }], positionOrder: ["5", "6B"] }],
+      headline: "h",
+    });
+    expect(html).toContain(">–<");
+    expect(html).toContain(">V4<");
+    const circleCount = (html.match(/<circle/g) || []).length;
+    expect(circleCount).toBe(1);
+  });
+
+  it("#603 -- a null bar value doesn't distort the y-axis scale computed from real values", () => {
+    const html = renderComboChartHtml({ bucketLabels: ["Jan 2026", "Feb 2026"], bars: [{ label: "Avg attempts", values: [null, 10] }], lines: [], headline: "h" });
+    // ticks at 0, midpoint (5), and max (10) -- unaffected by the null bucket
+    expect(html).toContain(">5<");
+    expect(html).toContain(">10<");
+  });
+
+  it("#603 -- an all-null bar series doesn't throw and produces no rects", () => {
+    const html = renderComboChartHtml({ bucketLabels: ["Jan 2026", "Feb 2026"], bars: [{ label: "Avg attempts", values: [null, null] }], lines: [], headline: "h" });
+    const rectCount = (html.match(/<rect/g) || []).length;
+    expect(rectCount).toBe(0);
+    const dashCount = (html.match(/>–</g) || []).length;
+    expect(dashCount).toBe(2);
+  });
+
   it("renders multiple bar series side by side within the same bucket slot, not stacked", () => {
     const html = renderComboChartHtml({
       bucketLabels: ["Jan 2026"],

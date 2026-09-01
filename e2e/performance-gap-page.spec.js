@@ -25,10 +25,12 @@ test("renders both grade-labeled line series and the attempts bar", async ({ pag
         buckets: ["Jan 2026", "Feb 2026", "Mar 2026"],
         flashMaxByBucket: [null, "6B", null],
         sendMaxByBucket: [null, "6B", "6C"],
-        avgAttemptsByBucket: [0, 1.5, 3],
+        // #603 -- Jan has no data at all (both grade series null that
+        // month), so its own attempts bar is null too, not a genuine 0.
+        avgAttemptsByBucket: [null, 1.5, 3],
         headline: "Your best send (V5) is 1 grade-step ahead of your best flash (V4) this window.",
       },
-      lead: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], flashMaxByBucket: [null, null, null], sendMaxByBucket: [null, null, null], avgAttemptsByBucket: [0, 0, 0], headline: "No sends logged in this window yet." },
+      lead: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], flashMaxByBucket: [null, null, null], sendMaxByBucket: [null, null, null], avgAttemptsByBucket: [null, null, null], headline: "No sends logged in this window yet." },
     },
   });
   await page.goto("/e2e-fixtures/pages/performance-gap.html");
@@ -37,6 +39,8 @@ test("renders both grade-labeled line series and the attempts bar", async ({ pag
   await expect(page.locator("#gap-root svg")).toBeVisible();
   await expect(page.locator("#gap-root")).toContainText("V4"); // gradeDisplayLabel("6B", "boulder")
   await expect(page.locator("#gap-root")).toContainText("V5"); // gradeDisplayLabel("6C", "boulder")
+  // #603 -- Jan's null attempts bucket renders as a dash, not a rect.
+  await expect(page.locator("#gap-root svg")).toContainText("–");
 });
 
 test("opens and closes the evidence-tier overlay", async ({ page }) => {

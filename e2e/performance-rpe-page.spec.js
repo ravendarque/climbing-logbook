@@ -25,10 +25,12 @@ test("renders the exertion bars and grade-labeled line once the confidence gate 
       boulder: {
         buckets: ["Jan 2026", "Feb 2026", "Mar 2026"],
         maxGradeByBucket: [null, "6B", "6C"],
-        avgExertionByBucket: [0, 70, 85],
+        // #603 -- Jan has no grade data either, so its exertion bar is
+        // null too, not a genuine 0 (same rule as performance-gap-page.spec.js).
+        avgExertionByBucket: [null, 70, 85],
         headline: "Your effort is rising alongside your grade -- sounds like it's paying off.",
       },
-      lead: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], maxGradeByBucket: [null, null, null], avgExertionByBucket: [0, 0, 0], headline: null },
+      lead: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], maxGradeByBucket: [null, null, null], avgExertionByBucket: [null, null, null], headline: null },
     },
   });
   await page.goto("/e2e-fixtures/pages/performance-rpe.html");
@@ -37,6 +39,8 @@ test("renders the exertion bars and grade-labeled line once the confidence gate 
   await expect(page.locator("#rpe-root svg")).toBeVisible();
   await expect(page.locator("#rpe-root")).toContainText("V4"); // gradeDisplayLabel("6B", "boulder")
   await expect(page.locator("#rpe-root")).toContainText("V5"); // gradeDisplayLabel("6C", "boulder")
+  // #603 -- Jan's null exertion bucket renders as a dash, not a rect.
+  await expect(page.locator("#rpe-root svg")).toContainText("–");
 });
 
 test("opens and closes the evidence-tier overlay", async ({ page }) => {

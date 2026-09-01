@@ -38,8 +38,15 @@ export function effortByBucket(entries, buckets) {
     totalRpeCount++;
   }
 
+  // #603 -- null (not 0) for a bucket with no rpe data at all, distinct
+  // from a real, measured 0 -- same fix as shared/gap-stats.js's own
+  // avgAttemptsByBucket (see that file's comment). effortHeadline()
+  // below already used the separate rpeCountByBucket array (not this
+  // one) to detect "has data" for its own trend logic, so this change
+  // doesn't affect the headline branch selection at all -- only the
+  // chart's own rendering of a no-data bucket.
   const avgExertionByBucket = rpeCountByBucket.map((count, i) =>
-    count ? Math.round((rpeSumByBucket[i] / count) * 10) / 10 : 0
+    count ? Math.round((rpeSumByBucket[i] / count) * 10) / 10 : null
   );
   const overallAvgExertion = totalRpeCount ? Math.round((totalRpeSum / totalRpeCount) * 10) / 10 : null;
 
