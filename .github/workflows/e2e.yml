@@ -18,7 +18,7 @@ jobs:
     outputs:
       relevant: ${{ steps.filter.outputs.relevant }}
     steps:
-      - uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3.0.4 -- pinned to a commit, see test.yml's own comment for why
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v3.0.4 -- pinned to a commit, see test.yml's own comment for why
         id: filter
         with:
           filters: |
