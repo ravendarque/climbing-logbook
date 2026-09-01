@@ -19,6 +19,21 @@ test("shows the not-enough-data message with no tagged moves", async ({ page }) 
   await expect(page.locator("#strengths-anchor-select")).toHaveCount(0);
 });
 
+test("#604 -- hides the drill-down picker when anchors exist but no cell clears the confidence gate", async ({ page }) => {
+  await mockApi(page, {
+    settings: { athleteMode: true, activeDiscipline: "boulder" },
+    // Real state Raven hit in beta testing: some moves tagged (anchors
+    // non-empty) but no single 5-value combination has cleared
+    // MIN_TAG_COUNT yet (headline null) -- the picker must not show
+    // alongside a "not enough data yet" message.
+    strengthsData: { headline: null, anchors: [{ dimension: "holdType", value: "crimp", label: "crimp" }] },
+  });
+  await page.goto("/e2e-fixtures/pages/performance-strengths.html");
+
+  await expect(page.locator("#strengths-headline")).toContainText("Not enough data yet");
+  await expect(page.locator("#strengths-anchor-select")).toHaveCount(0);
+});
+
 test("renders the headline and drill-down picker, and re-ranks on anchor change", async ({ page }) => {
   await mockApi(page, {
     settings: { athleteMode: true, activeDiscipline: "boulder" },

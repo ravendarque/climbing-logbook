@@ -158,7 +158,14 @@ function renderStrengths({ headline, anchors }) {
     ? `<p class="text-[.95rem] font-semibold text-foreground mb-4" id="strengths-headline">${escapeHtml(headline.text)}</p>`
     : `<p class="text-[.85rem] text-muted mb-4" id="strengths-headline">Not enough data yet to spot a pattern -- keep tagging moves as you climb.</p>`;
 
-  const pickerHtml = anchors.length
+  // #604 -- gated on `headline`, not `anchors.length`: showing the
+  // drill-down picker only when there's a real, confidence-gate-clearing
+  // headline result keeps the picker consistent with what the headline
+  // text itself claims. `anchors.length > 0` alone just means the user
+  // has tagged *some* moves, which can be true even when no single
+  // combination has cleared MIN_TAG_COUNT yet -- offering a drill-down
+  // right next to a "not enough data yet" message read as contradictory.
+  const pickerHtml = headline
     ? `<div class="mb-4">
         <label class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 block" for="strengths-anchor-select">Drill into</label>
         <select class="w-full bg-surface border border-border rounded-app px-2 py-2 text-[.9rem]" id="strengths-anchor-select">
