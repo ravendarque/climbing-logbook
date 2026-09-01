@@ -44,7 +44,9 @@
 
   <climbing-tab-bar active-page="performance"></climbing-tab-bar>
 
-  <div class="flex flex-col gap-2 max-w-[420px]" id="insight-tiles"></div>
+  <!-- #599 -- 2 columns on wide screens, matching public/account/index.html's
+       own #account-sections grid pattern, 1 column under 600px. -->
+  <div class="grid grid-cols-2 gap-x-8 gap-y-2 max-[600px]:grid-cols-1" id="insight-tiles"></div>
 
   <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>
 </div>

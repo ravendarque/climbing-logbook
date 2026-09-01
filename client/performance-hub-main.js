@@ -14,6 +14,7 @@ import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
 import { syncAdminBar } from "./admin-bar.js";
 import { rowCardHtml } from "./row-card.js";
+import { flashLabel, sendLabel } from "./status.js";
 import "./components/climbing-menu-bar.js";
 import "./components/climbing-tab-bar.js";
 
@@ -49,7 +50,14 @@ const INSIGHTS = [
   },
   {
     id: "insight-gap",
-    title: "Onsight / Redpoint Gap",
+    // #599 -- discipline-aware: this view's own content already switches
+    // between Flash/Send (boulder) and Onsight/Redpoint (lead)
+    // terminology (client/status.js, established in #14), but the hub
+    // tile linking to it had a fixed literal title that never matched
+    // Boulder. Function instead of a plain string -- the only entry
+    // here that needs this, so renderTiles() calls it if present rather
+    // than making every entry support a title function for one case.
+    title: type => `${sendLabel(type)} / ${flashLabel(type)} Gap`,
     description: "Compare your first-try sends against what you eventually send once you've worked a climb, and see how many attempts it typically takes.",
     route: "gap",
   },
@@ -79,9 +87,10 @@ tabBar.setAttribute("username", USERNAME);
 const tilesEl = document.getElementById("insight-tiles");
 
 function renderTiles() {
+  const type = store.getActiveType();
   tilesEl.innerHTML = INSIGHTS.map(insight => rowCardHtml({
     id: insight.id,
-    title: insight.title,
+    title: typeof insight.title === "function" ? insight.title(type) : insight.title,
     description: insight.description,
     controlHtml: `<a class="admin-btn shrink-0" href="/${encodeURIComponent(USERNAME)}/performance/${insight.route}">View</a>`,
   })).join("");
@@ -90,6 +99,10 @@ function renderTiles() {
 function render() {
   headerChrome.updateDisciplinePicker();
   updateAdminBar();
+  // #599 -- the gap tile's title depends on the active discipline, so
+  // this needs to re-run on every store notification (discipline
+  // switches included), not just once from boot().
+  renderTiles();
 }
 
 function updateAdminBar() {
@@ -130,7 +143,6 @@ async function boot() {
     return;
   }
 
-  renderTiles();
   render();
 }
 
