@@ -101,18 +101,32 @@ function lineScale(positionOrder) {
   };
 }
 
-// #620 -- distinct colors per line series: every caller so far only ever
-// had one series (RPE, Trends), so a single hardcoded foreground color
-// went unnoticed until Gap's own two series (Flash/Onsight max grade,
-// Send/Redpoint max grade) rendered identically and were impossible to
-// tell apart. tier-heuristic (an amber, already theme-aware -- see
-// client/evidence-tier.js's own text-tier-heuristic usage) is distinct
-// from both foreground (series 0, unchanged) and accent (already used by
-// this same chart's own bar series). NOT tier-peer (blue) -- blue is not
-// in this app's palette anywhere and is off-limits app-wide (Raven,
-// 2026-09-02), a real first pass at this got that wrong. Cycles via
-// modulo for a hypothetical 3rd+ series, though nothing today needs one.
-const LINE_COLORS = ["foreground", "tier-heuristic"];
+// #620/#624 -- distinct colors per line series: every caller so far only
+// ever had one series (RPE, Trends), so a single hardcoded foreground
+// color went unnoticed until Gap's own two series (Flash/Onsight max
+// grade, Send/Redpoint max grade) rendered identically and were
+// impossible to tell apart. tier-heuristic (an amber, already
+// theme-aware -- see client/evidence-tier.js's own text-tier-heuristic
+// usage) is distinct from both foreground (series 0, unchanged) and
+// accent (already used by this same chart's own bar series). NOT
+// tier-peer (blue) -- blue is not in this app's palette anywhere and is
+// off-limits app-wide (Raven, 2026-09-02).
+//
+// #624 -- COMPLETE literal class strings per entry, not
+// `class="fill-${color}"`/`class="stroke-${color}"` string interpolation
+// -- confirmed via a real build that Tailwind's content scanner only
+// picked up `fill-tier-peer` (coincidentally, from elsewhere) and never
+// generated `stroke-tier-peer`/`stroke-tier-heuristic` at all, since
+// neither ever appears as a complete, literal substring anywhere in the
+// source for the scanner to find. Every fill/stroke class Tailwind needs
+// to generate must appear verbatim somewhere in source; this array is
+// that verbatim occurrence for both properties, for every series color
+// this chart uses. Cycles via modulo for a hypothetical 3rd+ series,
+// though nothing today needs one.
+const LINE_COLORS = [
+  { fill: "fill-foreground", stroke: "stroke-foreground" },
+  { fill: "fill-tier-heuristic", stroke: "stroke-tier-heuristic" },
+];
 
 function linesHtml(lines, bucketCount) {
   return lines.map((series, seriesIndex) => {
@@ -123,11 +137,11 @@ function linesHtml(lines, bucketCount) {
       .filter(Boolean);
 
     const pathD = realPoints.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
-    const pathHtml = realPoints.length > 1 ? `<path d="${pathD}" fill="none" class="stroke-${color}" stroke-width="2" />` : "";
+    const pathHtml = realPoints.length > 1 ? `<path d="${pathD}" fill="none" class="${color.stroke}" stroke-width="2" />` : "";
 
     const pointsHtml = realPoints.map(p => `
-      <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" class="fill-${color}" />
-      <text x="${p.x.toFixed(1)}" y="${(p.y - 10).toFixed(1)}" text-anchor="middle" class="fill-${color} text-[10px] font-bold">${escapeHtml(p.displayLabel)}</text>
+      <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" class="${color.fill}" />
+      <text x="${p.x.toFixed(1)}" y="${(p.y - 10).toFixed(1)}" text-anchor="middle" class="${color.fill} text-[10px] font-bold">${escapeHtml(p.displayLabel)}</text>
     `).join("");
 
     return pathHtml + pointsHtml;
