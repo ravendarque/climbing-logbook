@@ -30,7 +30,6 @@ import { evidenceOverlayHtml, evidenceTierButtonHtml } from "./evidence-tier.js"
 import { createModalHelpers } from "./modal-utils.js";
 import { gradeDisplayLabel } from "../shared/volume-stats.js";
 import { BOULDER_GRADES, LEAD_GRADES } from "../shared/grade-data.js";
-import "./components/climbing-menu-bar.js";
 import "./components/climbing-tab-bar.js";
 
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";

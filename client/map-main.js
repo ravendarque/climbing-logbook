@@ -25,7 +25,6 @@ import { createMapView } from "./map-view.js";
 import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
 import { syncAdminBar } from "./admin-bar.js";
-import "./components/climbing-menu-bar.js";
 import "./components/climbing-tab-bar.js";
 
 const MAP_COUNTS_URL = "/logbook/api/map/counts";

@@ -26,7 +26,6 @@ import { createTimeWindowControl } from "./time-window.js";
 import { renderComboChartHtml } from "./combo-chart.js";
 import { gradeDisplayLabel, volumeHeadline } from "../shared/volume-stats.js";
 import { BOULDER_GRADES, LEAD_GRADES } from "../shared/grade-data.js";
-import "./components/climbing-menu-bar.js";
 import "./components/climbing-tab-bar.js";
 
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";

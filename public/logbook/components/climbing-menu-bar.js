@@ -32,12 +32,27 @@
 // are plain view preferences, meaningful and non-destructive for an
 // anonymous visitor too, not "admin" in the way login/Athlete Mode are.
 //
-// Ordinary ES module (not a classic script like <climbing-header>,
-// #345) -- that file's classic-script requirement was specific to
-// injecting global CSS tokens before first paint; this component is
-// pure interactive markup with no equivalent FOUC concern, so it follows
-// the same module convention as every other client/*.js file instead.
-const DISCIPLINE_PICKER = `
+// #626 -- moved here from client/components/ (was an ES module, bundled
+// per-page into each large composition-root script) and loaded as a
+// classic, non-module <script> instead, same treatment climbing-header.js
+// already gets and for the same reason: a deferred module script only
+// registers its custom element once the WHOLE bundle it's part of has
+// been fetched, parsed, and executed -- for a large bundle like /log's
+// (entries table, place picker, filters, offline sync, ...), that's
+// measurably later than first paint. Confirmed via Raven's own
+// timestamped screenshots: an early frame showed only the logo, with
+// #header-row (where this component renders) collapsed to zero height --
+// a real layout shift, not just an invisible-content flash. This
+// component has no store/auth dependencies (see this file's own header
+// comment above), so there's no async data it needs to wait for --
+// nothing is lost by registering it up front, synchronously, exactly
+// like the logo already is. Every real consumer already loads
+// climbing-header.js as a classic script in <head> (see that file's own
+// climbing-menu-bar CSS-layout-fixup comment, which already assumed
+// this), so this just adds a second <script> tag right next to it --
+// no new script-tag placement to work out per page.
+(function () {
+  var DISCIPLINE_PICKER = `
   <div class="relative" id="discipline-wrap">
     <button type="button" class="group inline-flex items-center gap-[.35rem] h-[var(--field-h)] px-[.8rem] bg-surface border border-border rounded-app text-foreground text-[.85rem] font-semibold cursor-pointer hover:border-accent [&_svg]:stroke-current [&_svg]:fill-none [&_.chevron-icon]:transition-transform [&_.chevron-icon]:duration-150 aria-expanded:[&_.chevron-icon]:rotate-180" id="discipline-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Discipline: Boulder">
       <span id="discipline-btn-label">Boulder</span>
@@ -56,45 +71,45 @@ const DISCIPLINE_PICKER = `
   </div>
 `;
 
-function menuPopover(adminHidden) {
-  // Neither of these two carries self-stretch -- the popover's own
-  // flex-col items-end already right-aligns any child that's just its
-  // natural content width, which is what "pop more" (Raven, 2026-08-11)
-  // actually needed: real weight/size, not a full-width bordered row.
-  // my-account-link deliberately isn't admin-btn (that's the bordered/
-  // filled "card" look Raven flagged) -- styled as a plain accent link
-  // instead. No hover:underline (Raven flagged links underlining as
-  // "creeping in" and unwanted, #457) -- styles/tailwind.css's own
-  // `a { text-decoration: none }` base reset already keeps this one
-  // underline-free by default.
-  //
-  // Athlete Mode/Public Logbook toggles used to live here as two more
-  // adminRows entries -- moved to the My account page instead (#445,
-  // Raven's call: they're settings worth a sentence of explanation each,
-  // not something a quick burger-menu row can carry). Nothing in this
-  // component's own markup references either any more; the divider
-  // condition below and admin-auth.js/admin-bar.js's own comments explain
-  // the mechanical fallout.
-  const adminRows = adminHidden ? "" : `
+  function menuPopover(adminHidden) {
+    // Neither of these two carries self-stretch -- the popover's own
+    // flex-col items-end already right-aligns any child that's just its
+    // natural content width, which is what "pop more" (Raven, 2026-08-11)
+    // actually needed: real weight/size, not a full-width bordered row.
+    // my-account-link deliberately isn't admin-btn (that's the bordered/
+    // filled "card" look Raven flagged) -- styled as a plain accent link
+    // instead. No hover:underline (Raven flagged links underlining as
+    // "creeping in" and unwanted, #457) -- styles/tailwind.css's own
+    // `a { text-decoration: none }` base reset already keeps this one
+    // underline-free by default.
+    //
+    // Athlete Mode/Public Logbook toggles used to live here as two more
+    // adminRows entries -- moved to the My account page instead (#445,
+    // Raven's call: they're settings worth a sentence of explanation each,
+    // not something a quick burger-menu row can carry). Nothing in this
+    // component's own markup references either any more; the divider
+    // condition below and admin-auth.js/admin-bar.js's own comments explain
+    // the mechanical fallout.
+    var adminRows = adminHidden ? "" : `
       <div class="max-w-[11rem] truncate text-[.9rem] font-bold text-foreground text-right" id="menu-username" hidden></div>
       <a class="text-[.9rem] font-bold text-accent" id="my-account-link" href="#" hidden>My account</a>`;
-  const loginBtn = adminHidden ? "" : `<button type="button" class="admin-btn" id="login-toggle-btn">Log in</button>`;
-  // The divider (border-t/pt-2/mt-1) only makes sense when something is
-  // actually visible above it -- menu-username/my-account-link are the
-  // only things that can occupy the top section now (#445), and both are
-  // hidden entirely when logged out, which would otherwise leave the
-  // divider floating above nothing. With admin-hidden, that row doesn't
-  // exist in the DOM at all, and nothing calls client/header-chrome.js's
-  // updateMenuDivider() on this page to strip the classes at runtime (see
-  // client/profile-main.js, this component's only admin-hidden consumer),
-  // so they're simply never added here in the first place, same effect
-  // updateMenuDivider() achieves for the non-admin-hidden case whenever
-  // menu-username is hidden.
-  const bottomRowClasses = adminHidden
-    ? "flex items-center justify-between self-stretch"
-    : "flex items-center justify-between self-stretch pt-2 mt-1 border-t border-border";
+    var loginBtn = adminHidden ? "" : `<button type="button" class="admin-btn" id="login-toggle-btn">Log in</button>`;
+    // The divider (border-t/pt-2/mt-1) only makes sense when something is
+    // actually visible above it -- menu-username/my-account-link are the
+    // only things that can occupy the top section now (#445), and both are
+    // hidden entirely when logged out, which would otherwise leave the
+    // divider floating above nothing. With admin-hidden, that row doesn't
+    // exist in the DOM at all, and nothing calls client/header-chrome.js's
+    // updateMenuDivider() on this page to strip the classes at runtime (see
+    // client/profile-main.js, this component's only admin-hidden consumer),
+    // so they're simply never added here in the first place, same effect
+    // updateMenuDivider() achieves for the non-admin-hidden case whenever
+    // menu-username is hidden.
+    var bottomRowClasses = adminHidden
+      ? "flex items-center justify-between self-stretch"
+      : "flex items-center justify-between self-stretch pt-2 mt-1 border-t border-border";
 
-  return `
+    return `
   <!-- ml-auto lives here (not mr-auto on the discipline picker, which
        used to be the only thing pushing this button right) because
        no-discipline pages (#302) don't render that picker at all --
@@ -111,18 +126,19 @@ function menuPopover(adminHidden) {
       </div>
     </div>
   </div>`;
-}
-
-export class ClimbingMenuBar extends HTMLElement {
-  connectedCallback() {
-    // no-discipline (#302): the account pages have no discipline-scoped
-    // content anywhere on screen -- switching Boulder/Lead there would
-    // visibly do nothing, so the picker is omitted rather than shipped
-    // present-but-inert (same "don't ship dead UI" reasoning admin-hidden
-    // already applies to the rows below it).
-    const disciplinePicker = this.hasAttribute("no-discipline") ? "" : DISCIPLINE_PICKER;
-    this.innerHTML = disciplinePicker + menuPopover(this.hasAttribute("admin-hidden"));
   }
-}
 
-customElements.define("climbing-menu-bar", ClimbingMenuBar);
+  class ClimbingMenuBar extends HTMLElement {
+    connectedCallback() {
+      // no-discipline (#302): the account pages have no discipline-scoped
+      // content anywhere on screen -- switching Boulder/Lead there would
+      // visibly do nothing, so the picker is omitted rather than shipped
+      // present-but-inert (same "don't ship dead UI" reasoning admin-hidden
+      // already applies to the rows below it).
+      var disciplinePicker = this.hasAttribute("no-discipline") ? "" : DISCIPLINE_PICKER;
+      this.innerHTML = disciplinePicker + menuPopover(this.hasAttribute("admin-hidden"));
+    }
+  }
+
+  customElements.define("climbing-menu-bar", ClimbingMenuBar);
+})();

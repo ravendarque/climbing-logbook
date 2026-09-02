@@ -32,7 +32,6 @@ import { createOfflineSync } from "./offline-sync.js";
 import { loadResource } from "./fetch-json.js";
 import { syncAdminBar } from "./admin-bar.js";
 import { isSynced } from "./sync-status.js";
-import "./components/climbing-menu-bar.js";
 import "./components/climbing-tab-bar.js";
 import "./components/climbing-entries-table.js";
 

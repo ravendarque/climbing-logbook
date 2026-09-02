@@ -15,7 +15,6 @@ import { createHeaderChrome } from "./header-chrome.js";
 import { syncAdminBar } from "./admin-bar.js";
 import { rowCardHtml } from "./row-card.js";
 import { flashLabel, sendLabel } from "./status.js";
-import "./components/climbing-menu-bar.js";
 import "./components/climbing-tab-bar.js";
 
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";

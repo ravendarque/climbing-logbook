@@ -24,7 +24,6 @@ import { syncAdminBar } from "./admin-bar.js";
 import { describeCluster } from "../shared/injury-stats.js";
 import { escapeHtml } from "./escape-html.js";
 import { formatDate } from "../shared/date-helpers.js";
-import "./components/climbing-menu-bar.js";
 import "./components/climbing-tab-bar.js";
 
 const INJURY_URL = "/logbook/api/performance/injury";

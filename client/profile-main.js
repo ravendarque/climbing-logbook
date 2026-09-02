@@ -41,7 +41,6 @@ import { createMapView } from "./map-view.js";
 import { createDisclosure } from "./modal-utils.js";
 import { loadResource } from "./fetch-json.js";
 import { createThemeToggle } from "./theme-toggle.js";
-import "./components/climbing-menu-bar.js";
 import "./components/climbing-entries-table.js";
 
 // /:username -- same single-segment extraction as every other

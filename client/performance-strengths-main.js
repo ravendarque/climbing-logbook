@@ -24,7 +24,6 @@ import { createHeaderChrome } from "./header-chrome.js";
 import { syncAdminBar } from "./admin-bar.js";
 import { escapeHtml } from "./escape-html.js";
 import { humanize } from "../shared/tag-stats-helpers.js";
-import "./components/climbing-menu-bar.js";
 import "./components/climbing-tab-bar.js";
 
 const STRENGTHS_URL = "/logbook/api/performance/strengths";

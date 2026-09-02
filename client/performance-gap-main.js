@@ -30,7 +30,6 @@ import { createModalHelpers } from "./modal-utils.js";
 import { flashLabel, sendLabel } from "./status.js";
 import { BOULDER_GRADES, LEAD_GRADES } from "../shared/grade-data.js";
 import { gradeDisplayLabel } from "../shared/volume-stats.js";
-import "./components/climbing-menu-bar.js";
 import "./components/climbing-tab-bar.js";
 
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
