@@ -15,7 +15,9 @@ test("shows the confidence-gate message, time-window control, and peer-reviewed 
   // #601
   await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", "/e2e-fixtures/performance");
   await expect(page.locator("#view-explainer")).toContainText("Exertion slider");
-  await expect(page.locator("#effort-caveat")).toContainText("less reliable");
+  // #620 -- the standalone #effort-caveat element was removed; its
+  // "less reliable" content is now folded into #view-explainer's own copy.
+  await expect(page.locator("#view-explainer")).toContainText("less reliable");
   await expect(page.locator('[data-window="12w"]')).toBeVisible();
   await expect(page.locator("#rpe-root")).toContainText("Not enough data yet for a reliable read");
   await expect(page.locator("#rpe-root [data-evidence-tier]")).toContainText("Peer-reviewed");

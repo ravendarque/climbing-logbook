@@ -101,19 +101,32 @@ function lineScale(positionOrder) {
   };
 }
 
+// #620 -- distinct colors per line series: every caller so far only ever
+// had one series (RPE, Trends), so a single hardcoded foreground color
+// went unnoticed until Gap's own two series (Flash/Onsight max grade,
+// Send/Redpoint max grade) rendered identically and were impossible to
+// tell apart. tier-peer (a blue, already theme-aware -- see
+// client/evidence-tier.js's own text-tier-peer usage) is distinct from
+// both foreground (series 0, unchanged) and accent (already used by this
+// same chart's own bar series), so a 2-line chart never has two visually
+// competing elements sharing a color. Cycles via modulo for a
+// hypothetical 3rd+ series, though nothing today needs one.
+const LINE_COLORS = ["foreground", "tier-peer"];
+
 function linesHtml(lines, bucketCount) {
-  return lines.map(series => {
+  return lines.map((series, seriesIndex) => {
+    const color = LINE_COLORS[seriesIndex % LINE_COLORS.length];
     const y = lineScale(series.positionOrder);
     const realPoints = series.points
       .map((point, i) => (point ? { ...point, x: bucketCenterX(i, bucketCount), y: y(point.positionKey) } : null))
       .filter(Boolean);
 
     const pathD = realPoints.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
-    const pathHtml = realPoints.length > 1 ? `<path d="${pathD}" fill="none" class="stroke-foreground" stroke-width="2" />` : "";
+    const pathHtml = realPoints.length > 1 ? `<path d="${pathD}" fill="none" class="stroke-${color}" stroke-width="2" />` : "";
 
     const pointsHtml = realPoints.map(p => `
-      <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" class="fill-foreground" />
-      <text x="${p.x.toFixed(1)}" y="${(p.y - 10).toFixed(1)}" text-anchor="middle" class="fill-foreground text-[10px] font-bold">${escapeHtml(p.displayLabel)}</text>
+      <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" class="fill-${color}" />
+      <text x="${p.x.toFixed(1)}" y="${(p.y - 10).toFixed(1)}" text-anchor="middle" class="fill-${color} text-[10px] font-bold">${escapeHtml(p.displayLabel)}</text>
     `).join("");
 
     return pathHtml + pointsHtml;

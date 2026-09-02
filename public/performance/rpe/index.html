@@ -51,12 +51,14 @@
     Performance Insights
   </a>
 
-  <!-- #601 -- explanatory copy, the mirror image of #597's own per-field
-       entry-form captions: this names which field feeds this view. -->
-  <div class="row-card mb-5 max-w-[640px]" id="view-explainer">
-    <p class="text-[.85rem] text-foreground leading-[1.6]">How hard your sends have felt (self-rated exertion) alongside how hard they were (max grade sent), by time period — so you can see whether extra effort is buying real progress.</p>
-    <p class="text-[.8rem] text-muted leading-[1.6] mt-2">Bars are your average Exertion % per period; the overlaid line marks the toughest grade you sent that period, labeled directly on its points.</p>
-    <p class="text-[.78rem] text-muted leading-[1.6] mt-2">Built from the Exertion slider on each send.</p>
+  <!-- #620 -- report-style prose, not a bordered/background card --
+       same <climbing-grade-pyramid>'s own #window-note pattern (flowing
+       paragraphs, inline <strong> emphasis, no box). The mirror image of
+       #597's own per-field entry-form captions: this names which field
+       feeds this view. -->
+  <div class="max-w-[640px] mb-5" id="view-explainer">
+    <p class="text-[.95rem] text-foreground leading-[1.7]">How hard your sends have felt (self-rated exertion) alongside how hard they were (max grade sent), by time period — so you can see whether extra effort is buying real progress.</p>
+    <p class="text-[.82rem] text-muted leading-[1.7] mt-2">Bars are your average <strong class="text-foreground font-semibold">Exertion %</strong> per period; the overlaid line marks the toughest grade you sent that period, labeled directly on its points. Built from the <strong class="text-foreground font-semibold">Exertion</strong> slider on each send -- RPE readings also tend to read less reliable for newer or lower-grade climbers (Gajdošík et al., 2020), so take this trend as a loose signal, not a precise measure.</p>
   </div>
 
   <!-- #111 -- Performance insights are online-only, deliberately, not a
@@ -71,10 +73,6 @@
     <p class="text-[.82rem] text-muted mt-2">Reconnect and reload this page to see your effort trend.</p>
   </div>
 
-  <!-- #602 -- caveat before the time-window control, not after: the
-       control should sit immediately above the chart it drives, not
-       have unrelated copy sandwiched between it and the chart. -->
-  <p class="text-[.75rem] text-muted mb-3" id="effort-caveat">RPE readings tend to be less reliable for newer or lower-grade climbers (Gajdošík et al., 2020) -- take this trend as a loose signal, not a precise measure.</p>
   <div id="time-window-root" class="mb-4"></div>
   <div id="rpe-root"></div>
   <div id="evidence-overlay-root"></div>
