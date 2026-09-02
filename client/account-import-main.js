@@ -17,7 +17,6 @@ import { createDisclosure } from "./modal-utils.js";
 import { createThemeToggle } from "./theme-toggle.js";
 import { syncAdminBar } from "./admin-bar.js";
 import { buildTemplateCsv } from "../shared/csv-import.js";
-import "./components/climbing-menu-bar.js";
 
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
 const IMPORT_URL = "/logbook/api/admin/logbook/import";

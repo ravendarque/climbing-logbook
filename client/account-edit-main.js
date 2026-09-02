@@ -20,7 +20,6 @@ import { createAdminAuth } from "./admin-auth.js";
 import { createDisclosure } from "./modal-utils.js";
 import { createThemeToggle } from "./theme-toggle.js";
 import { syncAdminBar } from "./admin-bar.js";
-import "./components/climbing-menu-bar.js";
 
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
 const AUTH_BASE = "/logbook/api/auth";

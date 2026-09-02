@@ -122,7 +122,15 @@
     // itself since every consumer of that component already loads this
     // classic script first for exactly this class of fix (see
     // climbing-header's own rule above) -- no new <script> tag needed on
-    // any consuming page. Found via Raven's production report, 2026-08-10.
+    // any consuming page just for this CSS rule. Found via Raven's
+    // production report, 2026-08-10.
+    //
+    // #626 -- climbing-menu-bar.js itself later became a classic script
+    // too (public/logbook/components/climbing-menu-bar.js), loaded via
+    // its own second <script> tag right after this one -- that change is
+    // unrelated to this CSS rule (a different bug, deferred-module-script
+    // registration lag, not layout), but means every consumer of this
+    // file now also loads that one.
     "climbing-menu-bar { display: flex; align-items: center; gap: .5rem; width: 100%; }"
   ].join("\n");
 

@@ -25,7 +25,6 @@ import { loadResource } from "./fetch-json.js";
 import { buildEntriesCsv, resolveExportRows } from "../shared/csv-import.js";
 import { createBetaOptIn } from "./beta-opt-in.js";
 import { resolveBetaXUrl } from "./resolve-cross-hostname-url.js";
-import "./components/climbing-menu-bar.js";
 import "./components/beta-opt-in-modal.js";
 
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";

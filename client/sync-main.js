@@ -16,7 +16,6 @@ import { createStore } from "./store.js";
 import { isSynced, markSynced } from "./sync-status.js";
 import { getCursor, setCursor } from "./sync-cursors.js";
 import { mergeDelta } from "./delta-merge.js";
-import "./components/climbing-menu-bar.js";
 
 const PLACES_URL = "/logbook/api/places";
 const LOCATIONS_URL = "/logbook/api/locations";
