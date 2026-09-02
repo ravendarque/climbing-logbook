@@ -11,16 +11,10 @@
 // the 5-column schema (limb+side both always required) this way.
 import { escapeHtml } from "./escape-html.js";
 import { HOLD_TYPES_BY_LIMB, MOVEMENT_STYLES_BY_LIMB, VALID_WALL_ANGLES } from "../shared/entry-schema.js";
-
-// #597 -- sentence case everywhere (not Title Case): hyphens become
-// spaces, only the first letter is capitalized. Used both for this
-// module's own hand-written LIMB_SIDE_OPTIONS labels and for every raw
-// hyphenated vocabulary value (hold type, movement style, wall angle)
-// rendered as option text below, so all four dropdowns read consistently.
-function humanize(value) {
-  const s = value.replace(/-/g, " ");
-  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
-}
+// #614 -- moved to shared/tag-stats-helpers.js since shared/
+// strengths-stats.js and client/performance-strengths-main.js need the
+// exact same sentence-case convention for the same tag vocabulary.
+import { humanize } from "../shared/tag-stats-helpers.js";
 
 const LIMB_SIDE_OPTIONS = [
   { value: "hand-left", limb: "hand", side: "left" },

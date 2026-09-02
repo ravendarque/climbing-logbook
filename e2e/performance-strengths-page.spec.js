@@ -52,7 +52,9 @@ test("renders the headline and drill-down picker, and re-ranks on anchor change"
 
   await expect(page.locator("#strengths-headline")).toHaveText("Your left hand on overhanging crimps looks like a key weakness.");
   await page.locator("#strengths-anchor-select").selectOption("holdType:crimp");
-  await expect(page.locator("#strengths-ranked-list .row-card-title")).toContainText("Left Hand");
+  // #614 -- sentence case via the shared humanize() convention (#597), not
+  // the old Title Case.
+  await expect(page.locator("#strengths-ranked-list .row-card-title")).toContainText("Left hand");
   await expect(page.locator("#strengths-ranked-list")).toContainText("100% hardest (5/5)");
 });
 

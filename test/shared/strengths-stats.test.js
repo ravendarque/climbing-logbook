@@ -85,10 +85,21 @@ describe("availableAnchors", () => {
     ];
     const anchors = availableAnchors(entries);
     expect(anchors).toHaveLength(4); // limbSide, holdType, movementStyle, wallAngle -- deduplicated
-    expect(anchors).toContainEqual({ dimension: "limbSide", value: "hand-left", label: "Left Hand" });
-    expect(anchors).toContainEqual({ dimension: "holdType", value: "crimp", label: "crimp" });
-    expect(anchors).toContainEqual({ dimension: "movementStyle", value: "static", label: "static" });
-    expect(anchors).toContainEqual({ dimension: "wallAngle", value: "overhang", label: "overhang" });
+    // #614 -- sentence case via humanize(), matching client/move-tagging.js's
+    // own dropdown convention (#597).
+    expect(anchors).toContainEqual({ dimension: "limbSide", value: "hand-left", label: "Left hand" });
+    expect(anchors).toContainEqual({ dimension: "holdType", value: "crimp", label: "Crimp" });
+    expect(anchors).toContainEqual({ dimension: "movementStyle", value: "static", label: "Static" });
+    expect(anchors).toContainEqual({ dimension: "wallAngle", value: "overhang", label: "Overhang" });
+  });
+
+  // #614 -- a hyphenated value exercises humanize()'s actual space-
+  // substitution behavior; the four single-word cases above only exercise
+  // its capitalization half.
+  it("humanizes a hyphenated hold-type value into sentence case, not raw", () => {
+    const anchors = availableAnchors([entryWithMoves([moveRow({ limb: "foot", side: "right", holdType: "toe-hook" })])]);
+    expect(anchors).toContainEqual({ dimension: "holdType", value: "toe-hook", label: "Toe hook" });
+    expect(anchors).toContainEqual({ dimension: "limbSide", value: "foot-right", label: "Right foot" });
   });
 
   it("never offers an anchor value that doesn't appear in the data", () => {

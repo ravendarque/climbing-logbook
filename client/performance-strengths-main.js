@@ -23,6 +23,7 @@ import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
 import { syncAdminBar } from "./admin-bar.js";
 import { escapeHtml } from "./escape-html.js";
+import { humanize } from "../shared/tag-stats-helpers.js";
 import "./components/climbing-menu-bar.js";
 import "./components/climbing-tab-bar.js";
 
@@ -93,13 +94,14 @@ if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/logbook/sw.js").catch(() => {});
 }
 
-function capitalize(s) {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
+// #614 -- same shared humanize()-based convention as shared/
+// strengths-stats.js's own limbSideLabel()/availableAnchors(), not an
+// independent local capitalize() -- this used to render "Toe-hook"
+// (hyphen intact) where the anchor picker right above it on this same
+// page rendered a differently-cased label for the identical value.
 function cellRowHtml(cell) {
   const pct = Math.round(cell.score * 100);
-  const label = `${capitalize(cell.side)} ${capitalize(cell.limb)} · ${capitalize(cell.holdType)} · ${capitalize(cell.movementStyle)} · ${capitalize(cell.wallAngle)}`;
+  const label = `${humanize(`${cell.side}-${cell.limb}`)} · ${humanize(cell.holdType)} · ${humanize(cell.movementStyle)} · ${humanize(cell.wallAngle)}`;
   return `<div class="row-card">
     <span class="row-card-title">${escapeHtml(label)}</span>
     <p class="text-[.82rem] text-muted mt-1">${pct}% hardest (${cell.hardestCount}/${cell.total})</p>
