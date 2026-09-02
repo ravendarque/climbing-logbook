@@ -15,7 +15,7 @@ test("shows the zero-sends headline, time-window control, and community-data chi
   // #601
   await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", "/e2e-fixtures/performance");
   await expect(page.locator("#view-explainer")).toContainText("Attempts count and Flash selection");
-  await expect(page.locator('[data-window="3mo"]')).toBeVisible();
+  await expect(page.locator('[data-window="12w"]')).toBeVisible();
   await expect(page.locator("#gap-root")).toContainText("No sends logged in this window yet.");
   await expect(page.locator("#gap-root [data-evidence-tier]")).toContainText("Community data");
 });
@@ -25,15 +25,16 @@ test("renders both grade-labeled line series and the attempts bar", async ({ pag
     settings: { athleteMode: true, activeDiscipline: "boulder" },
     gapData: {
       boulder: {
-        buckets: ["Jan 2026", "Feb 2026", "Mar 2026"],
+        buckets: ["-3w", "-2w", "-1w"],
         flashMaxByBucket: [null, "6B", null],
         sendMaxByBucket: [null, "6B", "6C"],
-        // #603 -- Jan has no data at all (both grade series null that
-        // month), so its own attempts bar is null too, not a genuine 0.
+        // #603 -- the first bucket has no data at all (both grade series
+        // null that period), so its own attempts bar is null too, not a
+        // genuine 0.
         avgAttemptsByBucket: [null, 1.5, 3],
         headline: "Your best send (V5) is 1 grade-step ahead of your best flash (V4) this window.",
       },
-      lead: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], flashMaxByBucket: [null, null, null], sendMaxByBucket: [null, null, null], avgAttemptsByBucket: [null, null, null], headline: "No sends logged in this window yet." },
+      lead: { buckets: ["-3w", "-2w", "-1w"], flashMaxByBucket: [null, null, null], sendMaxByBucket: [null, null, null], avgAttemptsByBucket: [null, null, null], headline: "No sends logged in this window yet." },
     },
   });
   await page.goto("/e2e-fixtures/pages/performance-gap.html");
@@ -42,7 +43,7 @@ test("renders both grade-labeled line series and the attempts bar", async ({ pag
   await expect(page.locator("#gap-root svg")).toBeVisible();
   await expect(page.locator("#gap-root")).toContainText("V4"); // gradeDisplayLabel("6B", "boulder")
   await expect(page.locator("#gap-root")).toContainText("V5"); // gradeDisplayLabel("6C", "boulder")
-  // #603 -- Jan's null attempts bucket renders as a dash, not a rect.
+  // #603 -- the first bucket's null attempts value renders as a dash, not a rect.
   await expect(page.locator("#gap-root svg")).toContainText("–");
 });
 
@@ -57,7 +58,7 @@ test("opens and closes the evidence-tier overlay", async ({ page }) => {
   await expect(page.locator("#evidence-overlay")).toBeHidden();
 });
 
-test("switching the time window to 12mo re-fetches with a wider range", async ({ page }) => {
+test("switching the time window to 52w re-fetches with a wider range", async ({ page }) => {
   let lastRequestUrl = null;
   await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
   await page.route("**/logbook/api/performance/gap**", route => {
@@ -72,12 +73,12 @@ test("switching the time window to 12mo re-fetches with a wider range", async ({
   await expect.poll(() => lastRequestUrl).not.toBeNull();
   const initialUrl = lastRequestUrl;
 
-  await page.locator('[data-window="12mo"]').click();
+  await page.locator('[data-window="52w"]').click();
   await expect.poll(() => lastRequestUrl).not.toBe(initialUrl);
 
   const initialStart = new URL(initialUrl).searchParams.get("start");
-  const twelveMoStart = new URL(lastRequestUrl).searchParams.get("start");
-  expect(new Date(twelveMoStart).getTime()).toBeLessThan(new Date(initialStart).getTime());
+  const fiftyTwoWStart = new URL(lastRequestUrl).searchParams.get("start");
+  expect(new Date(fiftyTwoWStart).getTime()).toBeLessThan(new Date(initialStart).getTime());
 });
 
 test("shows the offline message instead of the chart when the fetch fails", async ({ page }) => {

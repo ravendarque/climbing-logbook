@@ -5,55 +5,65 @@ function entry(overrides = {}) {
   return { date: "2026-01-15", status: "send", grade: "6B", type: "boulder", firstAttempt: false, attemptsToSend: null, ...overrides };
 }
 
+// Test-only shorthand -- gapByBucket only cares about a bucket's
+// [start, end] range (see shared/volume-stats.js's own weekBuckets for
+// how a real bucket's weeksAgo label gets computed).
+function bucket(start, end) {
+  return { start, end, weeksAgo: 0 };
+}
+
+const JAN = bucket("2026-01-01", "2026-01-31");
+const FEB = bucket("2026-02-01", "2026-02-28");
+
 describe("gapByBucket", () => {
   it("ignores non-send entries entirely", () => {
-    const { sendMaxByBucket } = gapByBucket([entry({ status: "project" })], ["2026-01"]);
+    const { sendMaxByBucket } = gapByBucket([entry({ status: "project" })], [JAN]);
     expect(sendMaxByBucket).toEqual([null]);
   });
 
   it("tracks the highest send grade per bucket regardless of firstAttempt", () => {
     const entries = [entry({ grade: "6B", firstAttempt: false }), entry({ grade: "7A", firstAttempt: true, date: "2026-01-20" })];
-    const { sendMaxByBucket } = gapByBucket(entries, ["2026-01"]);
+    const { sendMaxByBucket } = gapByBucket(entries, [JAN]);
     expect(sendMaxByBucket).toEqual(["7A"]);
   });
 
   it("tracks the highest first-attempt-success grade per bucket separately", () => {
     const entries = [entry({ grade: "6B", firstAttempt: true }), entry({ grade: "7A", firstAttempt: false, date: "2026-01-20" })];
-    const { flashMaxByBucket, sendMaxByBucket } = gapByBucket(entries, ["2026-01"]);
+    const { flashMaxByBucket, sendMaxByBucket } = gapByBucket(entries, [JAN]);
     expect(flashMaxByBucket).toEqual(["6B"]);
     expect(sendMaxByBucket).toEqual(["7A"]);
   });
 
   it("reports null flashMax for a bucket with sends but no first-attempt sends", () => {
-    const { flashMaxByBucket } = gapByBucket([entry({ firstAttempt: false })], ["2026-01"]);
+    const { flashMaxByBucket } = gapByBucket([entry({ firstAttempt: false })], [JAN]);
     expect(flashMaxByBucket).toEqual([null]);
   });
 
   it("averages attemptsToSend per bucket, ignoring entries with no value", () => {
     const entries = [entry({ attemptsToSend: 2 }), entry({ attemptsToSend: 4, date: "2026-01-20" }), entry({ attemptsToSend: null, date: "2026-01-25" })];
-    const { avgAttemptsByBucket } = gapByBucket(entries, ["2026-01"]);
+    const { avgAttemptsByBucket } = gapByBucket(entries, [JAN]);
     expect(avgAttemptsByBucket).toEqual([3]);
   });
 
   it("rounds the average attempts to one decimal place", () => {
     const entries = [entry({ attemptsToSend: 1 }), entry({ attemptsToSend: 2, date: "2026-01-20" }), entry({ attemptsToSend: 2, date: "2026-01-25" })];
-    const { avgAttemptsByBucket } = gapByBucket(entries, ["2026-01"]);
+    const { avgAttemptsByBucket } = gapByBucket(entries, [JAN]);
     expect(avgAttemptsByBucket).toEqual([1.7]);
   });
 
   it("#603 -- reports null (not 0) average attempts for a bucket with no attemptsToSend data", () => {
-    const { avgAttemptsByBucket } = gapByBucket([entry({ attemptsToSend: null })], ["2026-01"]);
+    const { avgAttemptsByBucket } = gapByBucket([entry({ attemptsToSend: null })], [JAN]);
     expect(avgAttemptsByBucket).toEqual([null]);
   });
 
   it("ignores an entry whose date falls outside every given bucket", () => {
-    const { sendMaxByBucket } = gapByBucket([entry({ date: "2020-01-01" })], ["2026-01"]);
+    const { sendMaxByBucket } = gapByBucket([entry({ date: "2020-01-01" })], [JAN]);
     expect(sendMaxByBucket).toEqual([null]);
   });
 
   it("places each entry in its own correct bucket across multiple buckets", () => {
     const entries = [entry({ date: "2026-01-05", grade: "6B" }), entry({ date: "2026-02-10", grade: "7A", firstAttempt: true })];
-    const { flashMaxByBucket, sendMaxByBucket } = gapByBucket(entries, ["2026-01", "2026-02"]);
+    const { flashMaxByBucket, sendMaxByBucket } = gapByBucket(entries, [JAN, FEB]);
     expect(sendMaxByBucket).toEqual(["6B", "7A"]);
     expect(flashMaxByBucket).toEqual([null, "7A"]);
   });

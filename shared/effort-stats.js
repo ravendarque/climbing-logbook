@@ -4,7 +4,7 @@
 // volume-stats.js's own volumeByBucket() directly for the grade-line
 // computation -- identical "sends only, max grade per bucket" logic
 // already built and tested there, no reason to reimplement it here.
-import { volumeByBucket } from "./volume-stats.js";
+import { bucketIndexForDate, volumeByBucket } from "./volume-stats.js";
 import { gradeRank } from "./grade-data.js";
 
 // Same placeholder value as shared/tag-stats-helpers.js's own
@@ -19,7 +19,6 @@ const EXERTION_RISE_MARGIN = 5;
 export function effortByBucket(entries, buckets) {
   const { maxGradeByBucket } = volumeByBucket(entries, buckets);
 
-  const bucketIndex = Object.fromEntries(buckets.map((b, i) => [b, i]));
   const rpeSumByBucket = buckets.map(() => 0);
   const rpeCountByBucket = buckets.map(() => 0);
   let totalRpeSum = 0;
@@ -28,8 +27,8 @@ export function effortByBucket(entries, buckets) {
 
   for (const entry of entries) {
     if (entry.status !== "send" || !entry.date) continue;
-    const idx = bucketIndex[entry.date.slice(0, 7)];
-    if (idx === undefined) continue;
+    const idx = bucketIndexForDate(entry.date, buckets);
+    if (idx === -1) continue;
     totalSends++;
     if (entry.rpe === null || entry.rpe === undefined) continue;
     rpeSumByBucket[idx] += entry.rpe;

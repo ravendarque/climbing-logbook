@@ -1,15 +1,13 @@
 // #14 (epic #5 Phase 2) -- pure, DOM-free aggregation over entries data,
 // computed server-side (server/api/performance.js), same convention as
 // every other shared/*-stats.js module in this epic. Reuses shared/
-// volume-stats.js's own monthBuckets/bucketLabel/gradeDisplayLabel
-// directly rather than duplicating them -- both modules bucket by
-// calendar month over the same entries shape, no reason to reimplement
-// that here.
-import { gradeDisplayLabel } from "./volume-stats.js";
+// volume-stats.js's own bucketIndexForDate/gradeDisplayLabel directly
+// rather than duplicating them -- both modules bucket over the same
+// entries shape, no reason to reimplement that here.
+import { bucketIndexForDate, gradeDisplayLabel } from "./volume-stats.js";
 import { gradeRank } from "./grade-data.js";
 
 export function gapByBucket(entries, buckets) {
-  const bucketIndex = Object.fromEntries(buckets.map((b, i) => [b, i]));
   const flashMaxByBucket = buckets.map(() => null);
   const sendMaxByBucket = buckets.map(() => null);
   const attemptsSumByBucket = buckets.map(() => 0);
@@ -17,8 +15,8 @@ export function gapByBucket(entries, buckets) {
 
   for (const entry of entries) {
     if (entry.status !== "send" || !entry.date) continue;
-    const idx = bucketIndex[entry.date.slice(0, 7)];
-    if (idx === undefined) continue;
+    const idx = bucketIndexForDate(entry.date, buckets);
+    if (idx === -1) continue;
 
     if (sendMaxByBucket[idx] === null || gradeRank(entry.grade) > gradeRank(sendMaxByBucket[idx])) {
       sendMaxByBucket[idx] = entry.grade;
