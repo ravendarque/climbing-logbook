@@ -59,23 +59,40 @@ describe("renderComboChartHtml", () => {
     expect(circles[1]).toBeLessThan(circles[0]); // "6C" (index 3) is higher on the chart than "5" (index 0) -- smaller SVG y
   });
 
-  // #620 -- two line series used to render in the identical color
+  // #620/#624 -- two line series used to render in the identical color
   // (both hardcoded to stroke-foreground/fill-foreground), making Gap's
-  // Flash/Onsight vs Send/Redpoint lines impossible to tell apart.
-  it("renders each line series in a distinct color", () => {
+  // Flash/Onsight vs Send/Redpoint lines impossible to tell apart. The
+  // first fix for this (#620/#622) used `class="fill-${color}"`/
+  // `class="stroke-${color}"` string interpolation, which shipped a real,
+  // live bug: Tailwind's build-time content scanner never generates a
+  // utility class for a dynamically-interpolated name unless the
+  // complete literal string ALSO appears verbatim somewhere in source --
+  // confirmed via a real build where `.fill-tier-peer` compiled
+  // (coincidentally, from unrelated literal text elsewhere) but
+  // `.stroke-tier-peer` never did, at all, leaving series 2's connecting
+  // line invisible (`stroke: none`) even though its dots rendered
+  // correctly-colored. Each series here needs >=2 points so a real
+  // <path> (not just <circle>s) actually renders -- the original test
+  // only ever gave each series one point, so it exercised fill but never
+  // the stroke path this bug lived in.
+  it("renders each line series' connecting path and dots in a distinct, real (non-interpolated) color class", () => {
     const html = renderComboChartHtml({
-      bucketLabels: ["Jan 2026"],
+      bucketLabels: ["Jan 2026", "Feb 2026"],
       bars: [],
       lines: [
-        { label: "Flash", points: [{ positionKey: "6A", displayLabel: "V3" }], positionOrder: ["6A"] },
-        { label: "Send", points: [{ positionKey: "6B", displayLabel: "V4" }], positionOrder: ["6A", "6B"] },
+        { label: "Flash", points: [{ positionKey: "6A", displayLabel: "V3" }, { positionKey: "6B", displayLabel: "V4" }], positionOrder: ["6A", "6B"] },
+        { label: "Send", points: [{ positionKey: "6B", displayLabel: "V4" }, { positionKey: "6C", displayLabel: "V5" }], positionOrder: ["6A", "6B", "6C"] },
       ],
       headline: "h",
     });
+    const pathCount = (html.match(/<path/g) || []).length;
+    expect(pathCount).toBe(2);
+    expect(html).toContain('class="stroke-foreground"');
+    expect(html).toContain('class="stroke-tier-heuristic"');
     expect(html).toContain("fill-foreground");
     expect(html).toContain("fill-tier-heuristic");
-    // series 2's own label ("V4") sits in a fill-tier-heuristic text element, not fill-foreground.
-    expect(html).toMatch(/fill-tier-heuristic text-\[10px\] font-bold">V4</);
+    // series 2's own label ("V5") sits in a fill-tier-heuristic text element, not fill-foreground.
+    expect(html).toMatch(/fill-tier-heuristic text-\[10px\] font-bold">V5</);
   });
 
   it("skips a null point in a line series without throwing", () => {
