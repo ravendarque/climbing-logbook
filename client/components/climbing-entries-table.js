@@ -632,11 +632,37 @@ export class ClimbingEntriesTable extends HTMLElement {
     this.#update();
   }
 
+  // #627 -- entries/places/locations/locationCounts are 4 independent
+  // property setters, each calling #update() synchronously; activeDiscipline/
+  // loading/editable/etc are independent attributes, each firing
+  // attributeChangedCallback -> #update() too. Every real caller
+  // (client/log-main.js's own render(), client/profile-main.js's
+  // equivalent) sets several of these back-to-back in one synchronous
+  // function, e.g. entries first, then places, then locations -- so
+  // #update() used to run once per property, each pass reading whatever
+  // partial state existed at that exact moment. Location names (and this
+  // component's own sortable <th> header text, which is literally the
+  // location name -- see #renderSections()) come from #locations, so
+  // setting entries before locations produced a real, visible blank-name
+  // render, corrected a moment later once locations caught up -- on
+  // every single render() call, not just page load, matching Raven's own
+  // "sometimes show, then disappear, then show again" report exactly.
+  // Coalescing into one microtask-deferred pass means any number of
+  // synchronous property/attribute changes within the same tick collapse
+  // into exactly one real render, using the FINAL state of everything by
+  // the time it actually runs -- no visible intermediate state, and no
+  // caller-side change needed (every setter still "just works").
+  #updateScheduled = false;
   #update() {
-    this.#maybeInitCollapse();
-    this.#updateFilterUI();
-    this.#renderSections();
-    this.#updateCollapseAllBtn();
+    if (this.#updateScheduled) return;
+    this.#updateScheduled = true;
+    queueMicrotask(() => {
+      this.#updateScheduled = false;
+      this.#maybeInitCollapse();
+      this.#updateFilterUI();
+      this.#renderSections();
+      this.#updateCollapseAllBtn();
+    });
   }
 
   // client/main.js explicitly seeds store.setCollapsed() with every
