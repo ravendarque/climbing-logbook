@@ -70,12 +70,38 @@ export class ClimbingTabBar extends HTMLElement {
     return ["username", "active-page", "show-performance"];
   }
 
+  // #605 -- username/active-page are known synchronously (set at each
+  // composition root's module scope, before boot() even starts), but
+  // show-performance depends on a real network round trip
+  // (adminAuth.resolveActiveType()'s checkSession()/fetchSettings()) that
+  // resolves well after this element's first paint. Rendering eagerly on
+  // every attribute change -- as this used to do -- means the very first
+  // real paint shows 2 tabs, then ~100ms later a second render adds the
+  // 3rd (Performance Insights) tab, visibly reflowing the header (the
+  // "collapses then expands" report this issue tracks). #ready gates out
+  // every render until markReady() (called once, by each composition
+  // root's boot(), right after resolveActiveType() resolves) -- so
+  // there's exactly one render per page load, already in its final
+  // correct shape, at the cost of the tab bar's own first paint landing
+  // slightly later than the rest of the page rather than appearing twice.
+  #ready = false;
+
   connectedCallback() {
-    this.render();
+    if (this.#ready) this.render();
   }
 
   attributeChangedCallback() {
-    if (this.isConnected) this.render();
+    if (this.isConnected && this.#ready) this.render();
+  }
+
+  // Idempotent -- composition roots call this unconditionally once
+  // boot() reaches its own final render(), which itself can be reached
+  // more than once in principle (e.g. a future re-boot path); only the
+  // first call may transition #ready from false to true.
+  markReady() {
+    if (this.#ready) return;
+    this.#ready = true;
+    this.render();
   }
 
   render() {

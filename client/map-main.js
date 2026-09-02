@@ -118,6 +118,7 @@ async function boot() {
   await adminAuth.resolveActiveType(sessionPromise, settingsPromise);
 
   render();
+  tabBar.markReady(); // #605
 }
 
 // #497 -- caches the aggregate itself (not raw entries) after a

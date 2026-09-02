@@ -144,6 +144,7 @@ async function boot() {
   }
 
   render();
+  tabBar.markReady(); // #605
 }
 
 boot();
