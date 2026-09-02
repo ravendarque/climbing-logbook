@@ -206,6 +206,7 @@ async function boot() {
   // honest rather than a premature "you have nothing logged" flash.
   entriesTable.loading = false;
   render();
+  tabBar.markReady(); // #605
 }
 
 boot();

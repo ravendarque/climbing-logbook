@@ -183,6 +183,7 @@ async function boot() {
   );
 
   render();
+  tabBar.markReady(); // #605
 
   // #111 -- online-only, deliberately no offline fallback (see this
   // file's own header comment). A failed fetch (offline, or any other
