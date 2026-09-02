@@ -73,9 +73,9 @@ describe("renderComboChartHtml", () => {
       headline: "h",
     });
     expect(html).toContain("fill-foreground");
-    expect(html).toContain("fill-tier-peer");
-    // series 2's own label ("V4") sits in a fill-tier-peer text element, not fill-foreground.
-    expect(html).toMatch(/fill-tier-peer text-\[10px\] font-bold">V4</);
+    expect(html).toContain("fill-tier-heuristic");
+    // series 2's own label ("V4") sits in a fill-tier-heuristic text element, not fill-foreground.
+    expect(html).toMatch(/fill-tier-heuristic text-\[10px\] font-bold">V4</);
   });
 
   it("skips a null point in a line series without throwing", () => {
