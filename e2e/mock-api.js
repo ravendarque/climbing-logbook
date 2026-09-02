@@ -50,8 +50,8 @@ export async function mockApi(page, {
   // always returns the same one shape regardless of query params, so a
   // test only needs to override this when it wants non-zero sends.
   volumeData = {
-    boulder: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], sendCounts: [0, 0, 0], maxGradeByBucket: [null, null, null] },
-    lead: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], sendCounts: [0, 0, 0], maxGradeByBucket: [null, null, null] },
+    boulder: { buckets: ["-3w", "-2w", "-1w"], sendCounts: [0, 0, 0], maxGradeByBucket: [null, null, null] },
+    lead: { buckets: ["-3w", "-2w", "-1w"], sendCounts: [0, 0, 0], maxGradeByBucket: [null, null, null] },
   },
   // #14 -- server/api/performance.js's own handleGetGap() shape, same
   // "already-computed, not raw entries" contract as pyramidData/
@@ -61,8 +61,8 @@ export async function mockApi(page, {
   // 0) per bucket, matching handleGetGap/handleGetEffort's own real
   // "no data" contract, not a genuine measured zero.
   gapData = {
-    boulder: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], flashMaxByBucket: [null, null, null], sendMaxByBucket: [null, null, null], avgAttemptsByBucket: [null, null, null], headline: "No sends logged in this window yet." },
-    lead: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], flashMaxByBucket: [null, null, null], sendMaxByBucket: [null, null, null], avgAttemptsByBucket: [null, null, null], headline: "No sends logged in this window yet." },
+    boulder: { buckets: ["-3w", "-2w", "-1w"], flashMaxByBucket: [null, null, null], sendMaxByBucket: [null, null, null], avgAttemptsByBucket: [null, null, null], headline: "No sends logged in this window yet." },
+    lead: { buckets: ["-3w", "-2w", "-1w"], flashMaxByBucket: [null, null, null], sendMaxByBucket: [null, null, null], avgAttemptsByBucket: [null, null, null], headline: "No sends logged in this window yet." },
   },
   // #38 -- server/api/performance.js's own handleGetEffort() shape, same
   // "already-computed, not raw entries" contract as the routes above.
@@ -70,8 +70,8 @@ export async function mockApi(page, {
   // volumeData's own routes. Defaults below the confidence gate (null
   // headline) -- a test that needs a confident headline supplies it.
   effortData = {
-    boulder: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], maxGradeByBucket: [null, null, null], avgExertionByBucket: [null, null, null], headline: null },
-    lead: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], maxGradeByBucket: [null, null, null], avgExertionByBucket: [null, null, null], headline: null },
+    boulder: { buckets: ["-3w", "-2w", "-1w"], maxGradeByBucket: [null, null, null], avgExertionByBucket: [null, null, null], headline: null },
+    lead: { buckets: ["-3w", "-2w", "-1w"], maxGradeByBucket: [null, null, null], avgExertionByBucket: [null, null, null], headline: null },
   },
   // #498 -- true by default: seeds client/sync-status.js's own marker so
   // every EXISTING test (written before /sync existed) still lands

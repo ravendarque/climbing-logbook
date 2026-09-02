@@ -16,7 +16,7 @@ test("shows the zero-sends headline and the time-window control with no data", a
   await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", "/e2e-fixtures/performance");
   await expect(page.locator("#view-explainer")).toContainText("every logged send's grade");
   await expect(page.locator("#trends-caveat")).toContainText("send-log proxy");
-  await expect(page.locator('[data-window="3mo"]')).toBeVisible();
+  await expect(page.locator('[data-window="12w"]')).toBeVisible();
   await expect(page.locator("#trends-root")).toContainText("No sends logged in this window yet.");
 });
 
@@ -24,18 +24,18 @@ test("renders real bars and a grade-labeled line point", async ({ page }) => {
   await mockApi(page, {
     settings: { athleteMode: true, activeDiscipline: "boulder" },
     volumeData: {
-      boulder: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], sendCounts: [2, 5, 3], maxGradeByBucket: [null, "6B", "6C"] },
-      lead: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], sendCounts: [0, 0, 0], maxGradeByBucket: [null, null, null] },
+      boulder: { buckets: ["-3w", "-2w", "-1w"], sendCounts: [2, 5, 3], maxGradeByBucket: [null, "6B", "6C"] },
+      lead: { buckets: ["-3w", "-2w", "-1w"], sendCounts: [0, 0, 0], maxGradeByBucket: [null, null, null] },
     },
   });
   await page.goto("/e2e-fixtures/pages/performance-trends.html");
 
-  await expect(page.locator("#trends-root")).toContainText("10 sends logged in this window, busiest month had 5.");
+  await expect(page.locator("#trends-root")).toContainText("10 sends logged in this window, busiest period had 5.");
   await expect(page.locator("#trends-root svg")).toBeVisible();
   await expect(page.locator("#trends-root")).toContainText("V4"); // gradeDisplayLabel("6B", "boulder")
 });
 
-test("switching the time window to 12mo re-fetches with a wider range", async ({ page }) => {
+test("switching the time window to 52w re-fetches with a wider range", async ({ page }) => {
   let lastRequestUrl = null;
   await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
   await page.route("**/logbook/api/performance/volume**", route => {
@@ -52,12 +52,12 @@ test("switching the time window to 12mo re-fetches with a wider range", async ({
   await expect.poll(() => lastRequestUrl).not.toBeNull();
   const initialUrl = lastRequestUrl;
 
-  await page.locator('[data-window="12mo"]').click();
+  await page.locator('[data-window="52w"]').click();
   await expect.poll(() => lastRequestUrl).not.toBe(initialUrl);
 
   const initialStart = new URL(initialUrl).searchParams.get("start");
-  const twelveMoStart = new URL(lastRequestUrl).searchParams.get("start");
-  expect(new Date(twelveMoStart).getTime()).toBeLessThan(new Date(initialStart).getTime());
+  const fiftyTwoWStart = new URL(lastRequestUrl).searchParams.get("start");
+  expect(new Date(fiftyTwoWStart).getTime()).toBeLessThan(new Date(initialStart).getTime());
 });
 
 test("shows the offline message instead of the chart when the fetch fails", async ({ page }) => {

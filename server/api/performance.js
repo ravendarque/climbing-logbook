@@ -4,7 +4,7 @@ import { attachChildRows, rowToJson } from "./logbook.js";
 import { pyramidSplitRows } from "../../shared/pyramid-stats.js";
 import { painLogEntries, topPainCluster } from "../../shared/injury-stats.js";
 import { availableAnchors, describeWeakness, rankedForAnchor, topWeakness } from "../../shared/strengths-stats.js";
-import { bucketLabel, monthBuckets, volumeByBucket } from "../../shared/volume-stats.js";
+import { volumeByBucket, weekBuckets, weekBucketLabel } from "../../shared/volume-stats.js";
 import { gapByBucket, gapHeadline } from "../../shared/gap-stats.js";
 import { effortByBucket, effortHeadline } from "../../shared/effort-stats.js";
 
@@ -75,7 +75,17 @@ export async function handleGetStrengthsWeaknesses(request, env, userId) {
 }
 
 const DATE_SHAPE = /^\d{4}-\d{2}-\d{2}$/;
-const MAX_WINDOW_MONTHS = 120;
+// ~10 years -- same span the old MAX_WINDOW_MONTHS (120) cap enforced,
+// re-expressed in days (#600). Unlike the old monthBuckets(), weekBuckets()
+// always produces roughly TARGET_BUCKET_COUNT buckets regardless of the
+// requested span, so a bucket-count check can no longer catch an abusive
+// range -- validate the raw day-span directly instead, before doing any
+// D1 work, same "before any D1 work" ordering the old check had.
+const MAX_WINDOW_DAYS = 3653;
+
+function daysBetween(start, end) {
+  return Math.round((new Date(`${end}T00:00:00Z`) - new Date(`${start}T00:00:00Z`)) / 86400000) + 1;
+}
 
 // #15 -- same online-only, server-computed convention as the three
 // handlers above. Requires start/end (unlike the other three handlers
@@ -85,10 +95,10 @@ const MAX_WINDOW_MONTHS = 120;
 //
 // This route is in PUBLIC_GET_ROUTES (no session required), so start/end
 // need real validation, not just a presence check -- an unbounded range
-// like ?start=0001-01-01&end=9999-12-31 would otherwise make monthBuckets()
-// produce ~120,000 buckets and a multi-MB response from a ~60-byte
-// unauthenticated request. Reject malformed dates and cap the span at
-// MAX_WINDOW_MONTHS before doing any D1 work.
+// like ?start=0001-01-01&end=9999-12-31 would otherwise make weekBuckets()
+// compute an absurdly wide bucket from a ~60-byte unauthenticated request.
+// Reject malformed dates and cap the span at MAX_WINDOW_DAYS before doing
+// any D1 work.
 export async function handleGetVolume(request, env, userId) {
   const url = new URL(request.url);
   const start = url.searchParams.get("start");
@@ -97,17 +107,16 @@ export async function handleGetVolume(request, env, userId) {
   if (!DATE_SHAPE.test(start) || !DATE_SHAPE.test(end)) {
     return json({ error: "start and end must be YYYY-MM-DD dates" }, 400);
   }
-
-  const buckets = monthBuckets(start, end);
-  if (buckets.length > MAX_WINDOW_MONTHS) {
-    return json({ error: `start and end must span at most ${MAX_WINDOW_MONTHS} months` }, 400);
+  if (daysBetween(start, end) > MAX_WINDOW_DAYS) {
+    return json({ error: `start and end must span at most ${MAX_WINDOW_DAYS} days` }, 400);
   }
 
+  const buckets = weekBuckets(start, end);
   const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
 
   function forDiscipline(type) {
     const { sendCounts, maxGradeByBucket } = volumeByBucket(rows.filter(e => e.type === type), buckets);
-    return { buckets: buckets.map(bucketLabel), sendCounts, maxGradeByBucket };
+    return { buckets: buckets.map(weekBucketLabel), sendCounts, maxGradeByBucket };
   }
 
   return json({ boulder: forDiscipline("boulder"), lead: forDiscipline("lead") }, 200, { "Cache-Control": "no-store" });
@@ -126,18 +135,17 @@ export async function handleGetGap(request, env, userId) {
   if (!DATE_SHAPE.test(start) || !DATE_SHAPE.test(end)) {
     return json({ error: "start and end must be YYYY-MM-DD dates" }, 400);
   }
-
-  const buckets = monthBuckets(start, end);
-  if (buckets.length > MAX_WINDOW_MONTHS) {
-    return json({ error: `start and end must span at most ${MAX_WINDOW_MONTHS} months` }, 400);
+  if (daysBetween(start, end) > MAX_WINDOW_DAYS) {
+    return json({ error: `start and end must span at most ${MAX_WINDOW_DAYS} days` }, 400);
   }
 
+  const buckets = weekBuckets(start, end);
   const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
 
   function forDiscipline(type) {
     const { flashMaxByBucket, sendMaxByBucket, avgAttemptsByBucket } = gapByBucket(rows.filter(e => e.type === type), buckets);
     return {
-      buckets: buckets.map(bucketLabel),
+      buckets: buckets.map(weekBucketLabel),
       flashMaxByBucket,
       sendMaxByBucket,
       avgAttemptsByBucket,
@@ -160,19 +168,18 @@ export async function handleGetEffort(request, env, userId) {
   if (!DATE_SHAPE.test(start) || !DATE_SHAPE.test(end)) {
     return json({ error: "start and end must be YYYY-MM-DD dates" }, 400);
   }
-
-  const buckets = monthBuckets(start, end);
-  if (buckets.length > MAX_WINDOW_MONTHS) {
-    return json({ error: `start and end must span at most ${MAX_WINDOW_MONTHS} months` }, 400);
+  if (daysBetween(start, end) > MAX_WINDOW_DAYS) {
+    return json({ error: `start and end must span at most ${MAX_WINDOW_DAYS} days` }, 400);
   }
 
+  const buckets = weekBuckets(start, end);
   const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
 
   function forDiscipline(type) {
     const { maxGradeByBucket, avgExertionByBucket, rpeCountByBucket, overallAvgExertion, totalSends } =
       effortByBucket(rows.filter(e => e.type === type), buckets);
     return {
-      buckets: buckets.map(bucketLabel),
+      buckets: buckets.map(weekBucketLabel),
       maxGradeByBucket,
       avgExertionByBucket,
       headline: effortHeadline(maxGradeByBucket, avgExertionByBucket, rpeCountByBucket, overallAvgExertion, totalSends, type),

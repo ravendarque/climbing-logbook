@@ -16,7 +16,7 @@ test("shows the confidence-gate message, time-window control, and peer-reviewed 
   await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", "/e2e-fixtures/performance");
   await expect(page.locator("#view-explainer")).toContainText("Exertion slider");
   await expect(page.locator("#effort-caveat")).toContainText("less reliable");
-  await expect(page.locator('[data-window="3mo"]')).toBeVisible();
+  await expect(page.locator('[data-window="12w"]')).toBeVisible();
   await expect(page.locator("#rpe-root")).toContainText("Not enough data yet for a reliable read");
   await expect(page.locator("#rpe-root [data-evidence-tier]")).toContainText("Peer-reviewed");
 });
@@ -26,14 +26,15 @@ test("renders the exertion bars and grade-labeled line once the confidence gate 
     settings: { athleteMode: true, activeDiscipline: "boulder" },
     effortData: {
       boulder: {
-        buckets: ["Jan 2026", "Feb 2026", "Mar 2026"],
+        buckets: ["-3w", "-2w", "-1w"],
         maxGradeByBucket: [null, "6B", "6C"],
-        // #603 -- Jan has no grade data either, so its exertion bar is
-        // null too, not a genuine 0 (same rule as performance-gap-page.spec.js).
+        // #603 -- the first bucket has no grade data either, so its
+        // exertion bar is null too, not a genuine 0 (same rule as
+        // performance-gap-page.spec.js).
         avgExertionByBucket: [null, 70, 85],
         headline: "Your effort is rising alongside your grade -- sounds like it's paying off.",
       },
-      lead: { buckets: ["Jan 2026", "Feb 2026", "Mar 2026"], maxGradeByBucket: [null, null, null], avgExertionByBucket: [null, null, null], headline: null },
+      lead: { buckets: ["-3w", "-2w", "-1w"], maxGradeByBucket: [null, null, null], avgExertionByBucket: [null, null, null], headline: null },
     },
   });
   await page.goto("/e2e-fixtures/pages/performance-rpe.html");
@@ -42,7 +43,7 @@ test("renders the exertion bars and grade-labeled line once the confidence gate 
   await expect(page.locator("#rpe-root svg")).toBeVisible();
   await expect(page.locator("#rpe-root")).toContainText("V4"); // gradeDisplayLabel("6B", "boulder")
   await expect(page.locator("#rpe-root")).toContainText("V5"); // gradeDisplayLabel("6C", "boulder")
-  // #603 -- Jan's null exertion bucket renders as a dash, not a rect.
+  // #603 -- the first bucket's null exertion value renders as a dash, not a rect.
   await expect(page.locator("#rpe-root svg")).toContainText("–");
 });
 
@@ -57,7 +58,7 @@ test("opens and closes the evidence-tier overlay", async ({ page }) => {
   await expect(page.locator("#evidence-overlay")).toBeHidden();
 });
 
-test("switching the time window to 12mo re-fetches with a wider range", async ({ page }) => {
+test("switching the time window to 52w re-fetches with a wider range", async ({ page }) => {
   let lastRequestUrl = null;
   await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
   await page.route("**/logbook/api/performance/rpe**", route => {
@@ -73,12 +74,12 @@ test("switching the time window to 12mo re-fetches with a wider range", async ({
   await expect.poll(() => lastRequestUrl).not.toBeNull();
   const initialUrl = lastRequestUrl;
 
-  await page.locator('[data-window="12mo"]').click();
+  await page.locator('[data-window="52w"]').click();
   await expect.poll(() => lastRequestUrl).not.toBe(initialUrl);
 
   const initialStart = new URL(initialUrl).searchParams.get("start");
-  const twelveMoStart = new URL(lastRequestUrl).searchParams.get("start");
-  expect(new Date(twelveMoStart).getTime()).toBeLessThan(new Date(initialStart).getTime());
+  const fiftyTwoWStart = new URL(lastRequestUrl).searchParams.get("start");
+  expect(new Date(fiftyTwoWStart).getTime()).toBeLessThan(new Date(initialStart).getTime());
 });
 
 test("shows the offline message instead of the chart when the fetch fails", async ({ page }) => {

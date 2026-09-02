@@ -217,55 +217,63 @@ function getVolume(params, extraCookie = cookie) {
   return fetchJson(`${VOLUME_URL}?${qs}`, { headers: { Cookie: extraCookie } });
 }
 
+// #600 -- a 21-day window (2026-01-01..2026-01-21) is short enough that
+// weekBuckets() picks a 1-week bucket width (matching the old 3-monthly-
+// bucket tests' own shape: 3 buckets, "the middle one" as the target for
+// a real entry). The middle bucket covers 2026-01-08..2026-01-14 -- entries
+// use 2026-01-10 (was 2026-02-10 under the old calendar-month scheme) as
+// "falls in the middle bucket".
+const WINDOW = { start: "2026-01-01", end: "2026-01-21" };
+
 describe("handleGetVolume", () => {
   it("returns 400 when start or end is missing", async () => {
-    expect((await getVolume({ end: "2026-03-01" })).status).toBe(400);
-    expect((await getVolume({ start: "2026-01-01" })).status).toBe(400);
+    expect((await getVolume({ end: WINDOW.end })).status).toBe(400);
+    expect((await getVolume({ start: WINDOW.start })).status).toBe(400);
   });
 
   it("returns 400 when start or end isn't a YYYY-MM-DD-shaped date", async () => {
-    expect((await getVolume({ start: "not-a-date", end: "2026-03-01" })).status).toBe(400);
-    expect((await getVolume({ start: "2026-01-01", end: "not-a-date" })).status).toBe(400);
+    expect((await getVolume({ start: "not-a-date", end: WINDOW.end })).status).toBe(400);
+    expect((await getVolume({ start: WINDOW.start, end: "not-a-date" })).status).toBe(400);
   });
 
-  it("returns 400 when the requested span exceeds 120 months", async () => {
+  it("returns 400 when the requested span exceeds the max window", async () => {
     const res = await getVolume({ start: "0001-01-01", end: "9999-12-31" });
     expect(res.status).toBe(400);
   });
 
   it("returns empty per-bucket data for a user with no sends in the window", async () => {
     await postEntry({ date: "2020-01-01" }); // outside the window
-    const { boulder } = await (await getVolume({ start: "2026-01-01", end: "2026-03-01" })).json();
-    expect(boulder.buckets).toEqual(["Jan 2026", "Feb 2026", "Mar 2026"]);
+    const { boulder } = await (await getVolume(WINDOW)).json();
+    expect(boulder.buckets).toEqual(["-3w", "-2w", "-1w"]);
     expect(boulder.sendCounts).toEqual([0, 0, 0]);
   });
 
   it("reflects real sends within the window, split by discipline", async () => {
-    await postEntry({ type: "boulder", grade: "6B", date: "2026-02-10" });
-    await postEntry({ type: "lead", grade: "6a", date: "2026-02-15" });
-    const body = await (await getVolume({ start: "2026-01-01", end: "2026-03-01" })).json();
+    await postEntry({ type: "boulder", grade: "6B", date: "2026-01-10" });
+    await postEntry({ type: "lead", grade: "6a", date: "2026-01-12" });
+    const body = await (await getVolume(WINDOW)).json();
     expect(body.boulder.sendCounts).toEqual([0, 1, 0]);
     expect(body.lead.sendCounts).toEqual([0, 1, 0]);
   });
 
   it("excludes a soft-deleted entry", async () => {
-    const created = await (await postEntry({ date: "2026-02-10" })).json();
+    const created = await (await postEntry({ date: "2026-01-10" })).json();
     await del(created.entries[0].id);
-    const { boulder } = await (await getVolume({ start: "2026-01-01", end: "2026-03-01" })).json();
+    const { boulder } = await (await getVolume(WINDOW)).json();
     expect(boulder.sendCounts).toEqual([0, 0, 0]);
   });
 
   it("returns empty per-bucket data for an anonymous caller", async () => {
-    const res = await fetchJson(`${VOLUME_URL}?start=2026-01-01&end=2026-03-01`);
+    const res = await fetchJson(`${VOLUME_URL}?start=${WINDOW.start}&end=${WINDOW.end}`);
     expect(res.status).toBe(200);
     const { boulder } = await res.json();
     expect(boulder.sendCounts).toEqual([0, 0, 0]);
   });
 
   it("a second user's own request never reflects the first user's sends", async () => {
-    await postEntry({ date: "2026-02-10" });
+    await postEntry({ date: "2026-01-10" });
     const userB = await createAuthedSession();
-    const { boulder } = await (await getVolume({ start: "2026-01-01", end: "2026-03-01" }, userB.cookie)).json();
+    const { boulder } = await (await getVolume(WINDOW, userB.cookie)).json();
     expect(boulder.sendCounts).toEqual([0, 0, 0]);
   });
 });
@@ -278,53 +286,53 @@ function getGap(params, extraCookie = cookie) {
 
 describe("handleGetGap", () => {
   it("returns 400 when start or end is missing", async () => {
-    expect((await getGap({ end: "2026-03-01" })).status).toBe(400);
-    expect((await getGap({ start: "2026-01-01" })).status).toBe(400);
+    expect((await getGap({ end: WINDOW.end })).status).toBe(400);
+    expect((await getGap({ start: WINDOW.start })).status).toBe(400);
   });
 
   it("returns 400 for a malformed date", async () => {
-    expect((await getGap({ start: "not-a-date", end: "2026-03-01" })).status).toBe(400);
+    expect((await getGap({ start: "not-a-date", end: WINDOW.end })).status).toBe(400);
   });
 
-  it("returns 400 for a span exceeding 120 months", async () => {
+  it("returns 400 for a span exceeding the max window", async () => {
     expect((await getGap({ start: "0001-01-01", end: "9999-12-31" })).status).toBe(400);
   });
 
   it("returns empty per-bucket data for a user with no sends in the window", async () => {
     await postEntry({ date: "2020-01-01" }); // outside the window
-    const { boulder } = await (await getGap({ start: "2026-01-01", end: "2026-03-01" })).json();
-    expect(boulder.buckets).toEqual(["Jan 2026", "Feb 2026", "Mar 2026"]);
+    const { boulder } = await (await getGap(WINDOW)).json();
+    expect(boulder.buckets).toEqual(["-3w", "-2w", "-1w"]);
     expect(boulder.sendMaxByBucket).toEqual([null, null, null]);
     expect(boulder.headline).toBe("No sends logged in this window yet.");
   });
 
   it("reflects real sends within the window, split by discipline and firstAttempt", async () => {
-    await postEntry({ type: "boulder", grade: "6B", date: "2026-02-10", firstAttempt: true });
-    await postEntry({ type: "lead", grade: "6a", date: "2026-02-15", firstAttempt: false });
-    const body = await (await getGap({ start: "2026-01-01", end: "2026-03-01" })).json();
+    await postEntry({ type: "boulder", grade: "6B", date: "2026-01-10", firstAttempt: true });
+    await postEntry({ type: "lead", grade: "6a", date: "2026-01-12", firstAttempt: false });
+    const body = await (await getGap(WINDOW)).json();
     expect(body.boulder.flashMaxByBucket).toEqual([null, "6B", null]);
     expect(body.lead.flashMaxByBucket).toEqual([null, null, null]);
     expect(body.lead.sendMaxByBucket).toEqual([null, "6a", null]);
   });
 
   it("excludes a soft-deleted entry", async () => {
-    const created = await (await postEntry({ date: "2026-02-10" })).json();
+    const created = await (await postEntry({ date: "2026-01-10" })).json();
     await del(created.entries[0].id);
-    const { boulder } = await (await getGap({ start: "2026-01-01", end: "2026-03-01" })).json();
+    const { boulder } = await (await getGap(WINDOW)).json();
     expect(boulder.sendMaxByBucket).toEqual([null, null, null]);
   });
 
   it("returns empty per-bucket data for an anonymous caller", async () => {
-    const res = await fetchJson(`${GAP_URL}?start=2026-01-01&end=2026-03-01`);
+    const res = await fetchJson(`${GAP_URL}?start=${WINDOW.start}&end=${WINDOW.end}`);
     expect(res.status).toBe(200);
     const { boulder } = await res.json();
     expect(boulder.sendMaxByBucket).toEqual([null, null, null]);
   });
 
   it("a second user's own request never reflects the first user's sends", async () => {
-    await postEntry({ date: "2026-02-10" });
+    await postEntry({ date: "2026-01-10" });
     const userB = await createAuthedSession();
-    const { boulder } = await (await getGap({ start: "2026-01-01", end: "2026-03-01" }, userB.cookie)).json();
+    const { boulder } = await (await getGap(WINDOW, userB.cookie)).json();
     expect(boulder.sendMaxByBucket).toEqual([null, null, null]);
   });
 });
@@ -337,52 +345,52 @@ function getEffort(params, extraCookie = cookie) {
 
 describe("handleGetEffort", () => {
   it("returns 400 when start or end is missing", async () => {
-    expect((await getEffort({ end: "2026-03-01" })).status).toBe(400);
-    expect((await getEffort({ start: "2026-01-01" })).status).toBe(400);
+    expect((await getEffort({ end: WINDOW.end })).status).toBe(400);
+    expect((await getEffort({ start: WINDOW.start })).status).toBe(400);
   });
 
   it("returns 400 for a malformed date", async () => {
-    expect((await getEffort({ start: "not-a-date", end: "2026-03-01" })).status).toBe(400);
+    expect((await getEffort({ start: "not-a-date", end: WINDOW.end })).status).toBe(400);
   });
 
-  it("returns 400 for a span exceeding 120 months", async () => {
+  it("returns 400 for a span exceeding the max window", async () => {
     expect((await getEffort({ start: "0001-01-01", end: "9999-12-31" })).status).toBe(400);
   });
 
   it("returns a null headline for a user below the confidence gate", async () => {
-    await postEntry({ date: "2026-02-10", rpe: 70 });
-    const { boulder } = await (await getEffort({ start: "2026-01-01", end: "2026-03-01" })).json();
+    await postEntry({ date: "2026-01-10", rpe: 70 });
+    const { boulder } = await (await getEffort(WINDOW)).json();
     expect(boulder.headline).toBeNull();
     // #603 -- null (not 0) for a bucket with no rpe data at all.
     expect(boulder.avgExertionByBucket).toEqual([null, 70, null]);
   });
 
   it("reflects real sends within the window, split by discipline", async () => {
-    await postEntry({ type: "boulder", grade: "6B", date: "2026-02-10", rpe: 60 });
-    await postEntry({ type: "lead", grade: "6a", date: "2026-02-15", rpe: 80 });
-    const body = await (await getEffort({ start: "2026-01-01", end: "2026-03-01" })).json();
+    await postEntry({ type: "boulder", grade: "6B", date: "2026-01-10", rpe: 60 });
+    await postEntry({ type: "lead", grade: "6a", date: "2026-01-12", rpe: 80 });
+    const body = await (await getEffort(WINDOW)).json();
     expect(body.boulder.avgExertionByBucket).toEqual([null, 60, null]);
     expect(body.lead.avgExertionByBucket).toEqual([null, 80, null]);
   });
 
   it("excludes a soft-deleted entry", async () => {
-    const created = await (await postEntry({ date: "2026-02-10" })).json();
+    const created = await (await postEntry({ date: "2026-01-10" })).json();
     await del(created.entries[0].id);
-    const { boulder } = await (await getEffort({ start: "2026-01-01", end: "2026-03-01" })).json();
+    const { boulder } = await (await getEffort(WINDOW)).json();
     expect(boulder.avgExertionByBucket).toEqual([null, null, null]);
   });
 
   it("returns empty per-bucket data for an anonymous caller", async () => {
-    const res = await fetchJson(`${EFFORT_URL}?start=2026-01-01&end=2026-03-01`);
+    const res = await fetchJson(`${EFFORT_URL}?start=${WINDOW.start}&end=${WINDOW.end}`);
     expect(res.status).toBe(200);
     const { boulder } = await res.json();
     expect(boulder.avgExertionByBucket).toEqual([null, null, null]);
   });
 
   it("a second user's own request never reflects the first user's sends", async () => {
-    await postEntry({ date: "2026-02-10", rpe: 90 });
+    await postEntry({ date: "2026-01-10", rpe: 90 });
     const userB = await createAuthedSession();
-    const { boulder } = await (await getEffort({ start: "2026-01-01", end: "2026-03-01" }, userB.cookie)).json();
+    const { boulder } = await (await getEffort(WINDOW, userB.cookie)).json();
     expect(boulder.avgExertionByBucket).toEqual([null, null, null]);
   });
 });
