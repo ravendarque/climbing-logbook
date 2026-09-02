@@ -24,3 +24,17 @@ export const MIN_TAG_COUNT = 5;
 export function pluralizeHoldType(holdType) {
   return holdType.endsWith("ch") ? `${holdType}es` : `${holdType}s`;
 }
+
+// #597 -- sentence case (not Title Case): hyphens become spaces, only the
+// first letter is capitalized. Originally client/move-tagging.js-only;
+// moved here (#614) once shared/strengths-stats.js and client/
+// performance-strengths-main.js needed the exact same casing convention
+// for the same tag vocabulary -- same "extract once genuinely shared,
+// not duplicated a third time" reasoning MIN_TAG_COUNT/pluralizeHoldType
+// above already followed (#591). Run over a whole multi-word string as
+// one unit (e.g. "left-hand"), not each word separately -- humanizing
+// words independently would Title-Case every one of them again.
+export function humanize(value) {
+  const s = value.replace(/-/g, " ");
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}

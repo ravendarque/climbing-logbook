@@ -173,8 +173,11 @@ describe("handleGetStrengthsWeaknesses", () => {
   it("lists available anchors once moves are tagged", async () => {
     await postEntry({ moves: [{ difficulty: "hardest", limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "slab" }] });
     const { anchors } = await (await getStrengths()).json();
-    expect(anchors).toContainEqual({ dimension: "holdType", value: "toe-hook", label: "toe-hook" });
-    expect(anchors).toContainEqual({ dimension: "limbSide", value: "foot-right", label: "Right Foot" });
+    // #614 -- sentence case via humanize() now, not the raw value/old
+    // Title Case (see shared/strengths-stats.test.js for the dedicated
+    // humanize() coverage).
+    expect(anchors).toContainEqual({ dimension: "holdType", value: "toe-hook", label: "Toe hook" });
+    expect(anchors).toContainEqual({ dimension: "limbSide", value: "foot-right", label: "Right foot" });
   });
 
   it("returns a ranked drill-down for a fixed anchor", async () => {

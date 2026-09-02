@@ -5,7 +5,7 @@
 // MIN_TAG_COUNT/pluralizeHoldType: shared with injury-stats.js (#39),
 // extracted to shared/tag-stats-helpers.js (#591) since both files had
 // independently defined byte-identical copies of these two.
-import { MIN_TAG_COUNT, pluralizeHoldType } from "./tag-stats-helpers.js";
+import { MIN_TAG_COUNT, humanize, pluralizeHoldType } from "./tag-stats-helpers.js";
 
 export { MIN_TAG_COUNT };
 
@@ -60,15 +60,13 @@ export function topWeakness(entries, minCount = MIN_TAG_COUNT) {
   return ranked.length ? ranked[0] : null;
 }
 
-function capitalize(s) {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-// e.g. "Left Hand" -- matches client/move-tagging.js's own LIMB_SIDE_OPTIONS
-// label convention exactly (#584), so a limbSide anchor reads the same way
-// the entry form's own Limb dropdown already does.
+// e.g. "Left hand" -- matches client/move-tagging.js's own LIMB_SIDE_OPTIONS
+// label convention exactly (#597/#614), so a limbSide anchor reads the same
+// way the entry form's own Limb dropdown already does. humanize() runs over
+// the whole "side-limb" string as one unit, not each half separately, same
+// reasoning move-tagging.js's own LIMB_SIDE_OPTIONS comment gives.
 function limbSideLabel(limb, side) {
-  return `${capitalize(side)} ${capitalize(limb)}`;
+  return humanize(`${side}-${limb}`);
 }
 
 // The flattened, single-value anchor list a drill-down can pick from --
@@ -88,9 +86,9 @@ export function availableAnchors(entries) {
   }
   for (const cell of cells) {
     add("limbSide", `${cell.limb}-${cell.side}`, limbSideLabel(cell.limb, cell.side));
-    add("holdType", cell.holdType, cell.holdType);
-    add("movementStyle", cell.movementStyle, cell.movementStyle);
-    add("wallAngle", cell.wallAngle, cell.wallAngle);
+    add("holdType", cell.holdType, humanize(cell.holdType));
+    add("movementStyle", cell.movementStyle, humanize(cell.movementStyle));
+    add("wallAngle", cell.wallAngle, humanize(cell.wallAngle));
   }
   return anchors;
 }
