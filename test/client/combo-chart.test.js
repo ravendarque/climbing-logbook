@@ -59,6 +59,25 @@ describe("renderComboChartHtml", () => {
     expect(circles[1]).toBeLessThan(circles[0]); // "6C" (index 3) is higher on the chart than "5" (index 0) -- smaller SVG y
   });
 
+  // #620 -- two line series used to render in the identical color
+  // (both hardcoded to stroke-foreground/fill-foreground), making Gap's
+  // Flash/Onsight vs Send/Redpoint lines impossible to tell apart.
+  it("renders each line series in a distinct color", () => {
+    const html = renderComboChartHtml({
+      bucketLabels: ["Jan 2026"],
+      bars: [],
+      lines: [
+        { label: "Flash", points: [{ positionKey: "6A", displayLabel: "V3" }], positionOrder: ["6A"] },
+        { label: "Send", points: [{ positionKey: "6B", displayLabel: "V4" }], positionOrder: ["6A", "6B"] },
+      ],
+      headline: "h",
+    });
+    expect(html).toContain("fill-foreground");
+    expect(html).toContain("fill-tier-peer");
+    // series 2's own label ("V4") sits in a fill-tier-peer text element, not fill-foreground.
+    expect(html).toMatch(/fill-tier-peer text-\[10px\] font-bold">V4</);
+  });
+
   it("skips a null point in a line series without throwing", () => {
     const html = renderComboChartHtml({
       bucketLabels: ["Jan 2026", "Feb 2026"],

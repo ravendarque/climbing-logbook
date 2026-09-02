@@ -15,7 +15,9 @@ test("shows the zero-sends headline and the time-window control with no data", a
   // #601
   await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", "/e2e-fixtures/performance");
   await expect(page.locator("#view-explainer")).toContainText("every logged send's grade");
-  await expect(page.locator("#trends-caveat")).toContainText("send-log proxy");
+  // #620 -- the standalone #trends-caveat element was removed; its
+  // "send-log proxy" content is now folded into #view-explainer's own copy.
+  await expect(page.locator("#view-explainer")).toContainText("send-log proxy");
   await expect(page.locator('[data-window="12w"]')).toBeVisible();
   await expect(page.locator("#trends-root")).toContainText("No sends logged in this window yet.");
 });
