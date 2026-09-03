@@ -31,6 +31,13 @@ export function createEntryForm({
   adminDataUrl,
   adminLocationsUrl,
   adminPlacesUrl,
+  // #251 -- the demo profile page's own add/edit affordance: every field
+  // stays genuinely fillable (so a visitor can see the real form, not a
+  // static screenshot of one), but Save never persists anything, matching
+  // the issue's own "functional but the save button disabled" wording.
+  // Defaults false so every other caller (client/log-main.js, the only
+  // other one) is unaffected.
+  readOnly = false,
 }) {
   const entryOverlay   = document.getElementById("entry-overlay");
   const entryForm      = document.getElementById("entry-form");
@@ -59,6 +66,7 @@ export function createEntryForm({
     store, openModal, closeModal, adminFetch, isAuthRedirect,
     getQueue, setQueue,
     adminLocationsUrl, adminPlacesUrl,
+    readOnly,
   });
 
   const hardestMoves = createMoveRowList({ listEl: document.getElementById("hardest-moves-list"), addBtnEl: document.getElementById("hardest-moves-add"), hasDifficulty: true, defaultDifficulty: "hardest", listLabel: "hardest move" });
@@ -223,8 +231,16 @@ export function createEntryForm({
     editingId = entry?.id ?? null;
     entryModalTitle.textContent = editingId ? "Edit entry" : "Add entry";
     entrySubmitBtn.textContent = editingId ? "Save changes" : "Add to logbook";
-    entryDeleteBtn.hidden = !editingId;
+    entryDeleteBtn.hidden = readOnly || !editingId;
     entryMsg.className = "hidden";
+
+    // #251 -- disabled from the moment the form opens, not just on submit:
+    // a demo visitor should never wonder whether clicking Save will do
+    // something, then find out it doesn't.
+    if (readOnly) {
+      entrySubmitBtn.disabled = true;
+      entrySubmitBtn.title = "This is a demo account -- changes aren't saved.";
+    }
 
     nameInput.value  = entry?.name  ?? "";
     // Popover always reopens closed, regardless of whatever open/closed
@@ -265,6 +281,11 @@ export function createEntryForm({
   // ── Submit (online -> API, offline -> queue) ───────────────────────────
   entryForm.addEventListener("submit", async e => {
     e.preventDefault();
+    // #251 -- a disabled submit button already blocks a real click, but
+    // pressing Enter in a text field still fires this listener via the
+    // form's implicit submission -- guarded here too so readOnly mode
+    // never reaches adminFetch regardless of how submit was triggered.
+    if (readOnly) return;
     entrySubmitBtn.disabled = true;
     entryMsg.className = "hidden";
 
@@ -348,7 +369,7 @@ export function createEntryForm({
 
   // ── Delete (online -> API, offline -> queue) ───────────────────────────
   entryDeleteBtn.addEventListener("click", async () => {
-    if (!editingId) return;
+    if (readOnly || !editingId) return;
     if (!confirm(`Delete "${nameInput.value.trim()}"? This can't be undone.`)) return;
 
     entryDeleteBtn.disabled = true;

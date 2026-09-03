@@ -24,9 +24,9 @@ import { createHeaderChrome } from "./header-chrome.js";
 import { syncAdminBar } from "./admin-bar.js";
 import { escapeHtml } from "./escape-html.js";
 import { humanize } from "../shared/tag-stats-helpers.js";
+import { isDemoUsername, performanceDataUrl } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
 
-const STRENGTHS_URL = "/logbook/api/performance/strengths";
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
 
 // Same opaqueredirect-detection reasoning as client/main.js's own
@@ -41,6 +41,9 @@ function isAuthRedirect(res) {
 
 // /:username/performance/strengths -- same single-segment extraction as map-main.js.
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
+// #251 -- one of the three seeded, publicly-viewable demo accounts.
+const IS_DEMO = isDemoUsername(USERNAME);
+const STRENGTHS_URL = performanceDataUrl(USERNAME, "strengths");
 
 const store = createStore();
 store.subscribe(render);
@@ -205,7 +208,10 @@ async function boot() {
   // from under an active performance-strengths view (setActiveView("logbook")),
   // redirect to this page's own equivalent "somewhere with real content" --
   // /log.
-  if (!adminAuth.isAthleteMode()) {
+  // #251 -- skipped entirely for the three reserved demo usernames, same
+  // "not auth-gated" treatment owned-routes.js's isDemoPerformancePage
+  // already gives the page itself.
+  if (!IS_DEMO && !adminAuth.isAthleteMode()) {
     location.href = `/${encodeURIComponent(USERNAME)}/log`;
     return;
   }

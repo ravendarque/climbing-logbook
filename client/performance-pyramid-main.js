@@ -21,10 +21,10 @@ import { createStore } from "./store.js";
 import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
 import { syncAdminBar } from "./admin-bar.js";
+import { isDemoUsername, performanceDataUrl } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
 import "./components/climbing-grade-pyramid.js";
 
-const PYRAMID_URL = "/logbook/api/performance/pyramid";
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
 
 // Same opaqueredirect-detection reasoning as client/main.js's own
@@ -39,6 +39,9 @@ function isAuthRedirect(res) {
 
 // /:username/performance/pyramid -- same single-segment extraction as map-main.js.
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
+// #251 -- one of the three seeded, publicly-viewable demo accounts.
+const IS_DEMO = isDemoUsername(USERNAME);
+const PYRAMID_URL = performanceDataUrl(USERNAME, "pyramid");
 
 const store = createStore();
 store.subscribe(render);
@@ -109,7 +112,11 @@ async function boot() {
   // client/main.js's updateAdminBar() applies when the tab disappears out
   // from under an active pyramid view (setActiveView("logbook")), redirect
   // to this page's own equivalent "somewhere with real content" -- /log.
-  if (!adminAuth.isAthleteMode()) {
+  // #251 -- a demo persona's page never has Athlete Mode set at all (no
+  // real session), so this check is skipped entirely for the three
+  // reserved demo usernames -- same "not auth-gated" treatment
+  // owned-routes.js's isDemoPerformancePage already gives the page itself.
+  if (!IS_DEMO && !adminAuth.isAthleteMode()) {
     location.href = `/${encodeURIComponent(USERNAME)}/log`;
     return;
   }

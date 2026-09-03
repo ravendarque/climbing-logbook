@@ -36,6 +36,13 @@ export function createPlacePicker({
   setQueue,
   adminLocationsUrl,
   adminPlacesUrl,
+  // #251 -- entry-form.js's own readOnly, passed straight through: a demo
+  // visitor can browse and select among the seeded places, but "Add new
+  // place" opens a second, independent write flow (its own adminFetch
+  // calls) that entry-form.js's own readOnly guard never sees -- hidden
+  // here instead of threading a second no-op path through this whole
+  // modal.
+  readOnly = false,
 }) {
   const placeBtn = document.getElementById("place-btn");
   const placeBtnFlag = document.getElementById("place-btn-flag");
@@ -44,6 +51,7 @@ export function createPlacePicker({
   const placeSearch = document.getElementById("place-search");
   const placeListbox = document.getElementById("place-listbox");
   const placeAddNewBtn = document.getElementById("place-add-new-btn");
+  if (readOnly) placeAddNewBtn.hidden = true;
 
   const PLACE_PLACEHOLDER_ICON = `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20Z"></path></svg>`;
   let placeCommittedValue = ""; // the committed placeId, "" if none

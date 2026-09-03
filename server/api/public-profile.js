@@ -27,17 +27,25 @@ export async function resolvePublicUser(env, username) {
   if (!user) return null;
 
   const settings = await env.LOGBOOK_DB
-    .prepare(`SELECT logbook_public FROM settings WHERE user_id = ?`)
+    .prepare(`SELECT logbook_public, is_demo FROM settings WHERE user_id = ?`)
     .bind(user.id)
     .first();
   // No settings row yet means this user has never PATCHed settings, which
   // means the schema default still applies (logbook_public = 1, #21) --
   // same "missing row falls back to defaults" reasoning as
-  // server/api/settings.js's handleGetSettings.
+  // server/api/settings.js's handleGetSettings. is_demo has no such
+  // real-world "never PATCHed yet" case -- every demo account is seeded
+  // with a real settings row (scripts/seed-demo-accounts.mjs) -- so a
+  // missing row just means "not a demo account", same as the schema's own
+  // is_demo default.
   const isPublic = settings ? !!settings.logbook_public : true;
   if (!isPublic) return null;
 
-  return { id: user.id, displayUsername: user.displayUsername };
+  // #251 -- isDemo unlocks performance-insight data on the public read-only
+  // page (server/api/public-data.js's HANDLERS) -- still private for every
+  // real user regardless of logbook_public, #8's decision unaffected by
+  // this flag.
+  return { id: user.id, displayUsername: user.displayUsername, isDemo: !!settings?.is_demo };
 }
 
 // Real shared design tokens + <climbing-header> (#345), not a hand-copied

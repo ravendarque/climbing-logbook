@@ -55,6 +55,20 @@
       <a class="admin-btn" href="./login/">Log in</a>
     </div>
 
+    <!-- #251 -- a real visitor's other way in before committing to an
+         invite code: three pre-seeded, read-only accounts, no signup
+         needed. A disclosure popover (not a full modal, client/modal-
+         utils.js's createDisclosure() pattern hand-rolled in
+         demo-picker.js since this page has no bundled client/ module
+         graph to import it from), matching this issue's own "opens a
+         popup" wording. -->
+    <div class="relative mb-8" id="demo-picker-wrap">
+      <button type="button" class="admin-btn w-full" id="demo-picker-trigger" aria-haspopup="listbox" aria-expanded="false">View a demo first</button>
+      <div class="absolute top-[calc(100%+.4rem)] left-0 z-20 bg-background border border-border rounded-app p-[.35rem] w-full shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="demo-picker-popover" role="listbox" aria-label="Choose a demo persona" hidden>
+        <div id="demo-picker-list"></div>
+      </div>
+    </div>
+
     <!-- Closed beta (#296) -- registration needs a real invite code right
          now; this is a static page with no way to read BETA_GATE_ENABLED
          server-side, so the note stays regardless of that flag's current
@@ -68,5 +82,6 @@
     import { redirectIfLoggedIn } from "./session-redirect.js";
     redirectIfLoggedIn(document.getElementById("page-content"));
   </script>
+  <script type="module" src="./demo-picker.js"></script>
 </body>
 </html>

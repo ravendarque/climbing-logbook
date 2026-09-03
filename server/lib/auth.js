@@ -3,6 +3,7 @@ import { username } from "better-auth/plugins";
 import { createBetaGateAfterHook } from "./beta-gate.js";
 import { createEmailSender } from "./email.js";
 import { createTurnstileHook } from "./turnstile.js";
+import { DEMO_USERNAMES } from "../../shared/demo-personas.js";
 
 // Better Auth (#20) -- replaces Cloudflare Access as the auth mechanism for
 // the multi-user rollout. A factory, not a module-scope singleton: `env`
@@ -188,8 +189,13 @@ export function createAuth(env, hostname) {
     // real limits (1-30) rather than Better Auth's own defaults (3-30) --
     // it doesn't publish an official minimum, but real single-character
     // handles exist.
+    // #251 -- beginnerdemo/intermediatedemo/advanceddemo are reserved for
+    // the seeded, publicly-viewable demo accounts (scripts/seed-demo-
+    // accounts.mjs); a real visitor registering one of these usernames
+    // would either collide with or shadow the demo, so the validator
+    // rejects them the same way it rejects any other malformed candidate.
     plugins: [username({
-      usernameValidator: candidate => /^[a-z0-9._]+$/.test(candidate),
+      usernameValidator: candidate => /^[a-z0-9._]+$/.test(candidate) && !DEMO_USERNAMES.includes(candidate),
       minUsernameLength: 1,
       maxUsernameLength: 30,
     })],

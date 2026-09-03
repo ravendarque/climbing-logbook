@@ -212,4 +212,41 @@ describe("public data API", () => {
     expect(entries[0]).not.toHaveProperty("painMoves");
     expect(entries[0].name).toBe("Private Beta");
   });
+
+  // #251 -- performance-insight data (Grade Pyramid, injury log, etc.) is a
+  // deliberate, narrow carve-out over the same public-data route shape,
+  // gated on settings.is_demo rather than logbook_public alone -- a real
+  // user's performance data must stay exactly as unreachable as it was
+  // before this route existed, even with logbook_public on.
+  describe("performance-insight data is demo-only (#251)", () => {
+    it("404s a real (non-demo) public user's performance data, even though their logbook data is public", async () => {
+      await createAuthedSession({ username: "realpublicuser" });
+      const res = await fetchPublic("realpublicuser", "performance/pyramid");
+      expect(res.status).toBe(404);
+    });
+
+    it("serves performance data for a user with is_demo set", async () => {
+      const { cookie } = await createAuthedSession({ username: "demoflaguser" });
+      await jsonRequest("PATCH", "/logbook/api/admin/settings", {}, { Cookie: cookie }); // creates the settings row
+      await env.LOGBOOK_DB.prepare(`UPDATE settings SET is_demo = 1 WHERE user_id = (SELECT id FROM "user" WHERE username = 'demoflaguser')`).run();
+
+      // volume/gap/rpe additionally require start/end query params
+      // (server/api/performance.js's own date-range validation, unrelated
+      // to this test's own is_demo gating) -- present here so this test
+      // isolates the one thing it's actually checking.
+      for (const resource of ["performance/pyramid", "performance/injury", "performance/strengths"]) {
+        const res = await fetchPublic("demoflaguser", resource);
+        expect(res.status, `${resource} should 200 for an is_demo user`).toBe(200);
+      }
+      for (const resource of ["performance/volume", "performance/gap", "performance/rpe"]) {
+        const res = await fetchPublic("demoflaguser", `${resource}?start=2026-01-01&end=2026-06-01`);
+        expect(res.status, `${resource} should 200 for an is_demo user`).toBe(200);
+      }
+    });
+
+    it("404s performance data for a nonexistent username, same anti-enumeration response as every other public resource", async () => {
+      const res = await fetchPublic("nobody-by-this-name", "performance/pyramid");
+      expect(res.status).toBe(404);
+    });
+  });
 });

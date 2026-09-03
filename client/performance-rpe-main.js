@@ -30,6 +30,7 @@ import { evidenceOverlayHtml, evidenceTierButtonHtml } from "./evidence-tier.js"
 import { createModalHelpers } from "./modal-utils.js";
 import { gradeDisplayLabel } from "../shared/volume-stats.js";
 import { BOULDER_GRADES, LEAD_GRADES } from "../shared/grade-data.js";
+import { isDemoUsername, performanceDataUrl } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
 
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
@@ -46,6 +47,8 @@ function isAuthRedirect(res) {
 
 // /:username/performance/rpe -- same single-segment extraction as map-main.js.
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
+// #251 -- one of the three seeded, publicly-viewable demo accounts.
+const IS_DEMO = isDemoUsername(USERNAME);
 
 const store = createStore();
 store.subscribe(render);
@@ -122,7 +125,7 @@ function render() {
 // takes start/end query params and returns a shape keyed by discipline, not
 // a single `{ [key]: array }` list.
 async function fetchEffort(start, end) {
-  const res = await fetch(`/logbook/api/performance/rpe?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
+  const res = await fetch(`${performanceDataUrl(USERNAME, "rpe")}?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
@@ -166,7 +169,10 @@ async function boot() {
   // from under an active performance-rpe view (setActiveView("logbook")),
   // redirect to this page's own equivalent "somewhere with real content" --
   // /log.
-  if (!adminAuth.isAthleteMode()) {
+  // #251 -- skipped entirely for the three reserved demo usernames, same
+  // "not auth-gated" treatment owned-routes.js's isDemoPerformancePage
+  // already gives the page itself.
+  if (!IS_DEMO && !adminAuth.isAthleteMode()) {
     location.href = `/${encodeURIComponent(USERNAME)}/log`;
     return;
   }
