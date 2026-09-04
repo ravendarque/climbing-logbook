@@ -30,7 +30,7 @@ import { createModalHelpers } from "./modal-utils.js";
 import { flashLabel, sendLabel } from "./status.js";
 import { BOULDER_GRADES, LEAD_GRADES } from "../shared/grade-data.js";
 import { gradeDisplayLabel } from "../shared/volume-stats.js";
-import { isDemoUsername, performanceDataUrl } from "./demo-mode.js";
+import { demoDataUrl, isDemoUsername } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
 
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
@@ -131,7 +131,7 @@ function render() {
 // takes start/end query params and returns a shape keyed by discipline, not
 // a single `{ [key]: array }` list.
 async function fetchGap(start, end) {
-  const res = await fetch(`${performanceDataUrl(USERNAME, "gap")}?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
+  const res = await fetch(`${demoDataUrl(USERNAME, "/logbook/api/performance/gap", "performance/gap")}?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }

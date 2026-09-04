@@ -24,7 +24,7 @@ import { syncAdminBar } from "./admin-bar.js";
 import { describeCluster } from "../shared/injury-stats.js";
 import { escapeHtml } from "./escape-html.js";
 import { formatDate } from "../shared/date-helpers.js";
-import { isDemoUsername, performanceDataUrl } from "./demo-mode.js";
+import { demoDataUrl, isDemoUsername } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
 
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
@@ -43,7 +43,7 @@ function isAuthRedirect(res) {
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 // #251 -- one of the three seeded, publicly-viewable demo accounts.
 const IS_DEMO = isDemoUsername(USERNAME);
-const INJURY_URL = performanceDataUrl(USERNAME, "injury");
+const INJURY_URL = demoDataUrl(USERNAME, "/logbook/api/performance/injury", "performance/injury");
 
 const store = createStore();
 store.subscribe(render);

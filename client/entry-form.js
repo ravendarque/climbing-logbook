@@ -31,12 +31,13 @@ export function createEntryForm({
   adminDataUrl,
   adminLocationsUrl,
   adminPlacesUrl,
-  // #251 -- the demo profile page's own add/edit affordance: every field
-  // stays genuinely fillable (so a visitor can see the real form, not a
-  // static screenshot of one), but Save never persists anything, matching
-  // the issue's own "functional but the save button disabled" wording.
-  // Defaults false so every other caller (client/log-main.js, the only
-  // other one) is unaffected.
+  // #251 -- the /log page's own affordance when viewed as one of the three
+  // seeded demo accounts: every field stays genuinely fillable (so a
+  // visitor can see the real form, not a static screenshot of one), but
+  // Save never persists anything, matching the issue's own "functional
+  // but the save button disabled" wording. Defaults false; client/
+  // log-main.js is this function's only caller either way, threading
+  // through its own IS_DEMO check (client/demo-mode.js).
   readOnly = false,
 }) {
   const entryOverlay   = document.getElementById("entry-overlay");
@@ -66,7 +67,6 @@ export function createEntryForm({
     store, openModal, closeModal, adminFetch, isAuthRedirect,
     getQueue, setQueue,
     adminLocationsUrl, adminPlacesUrl,
-    readOnly,
   });
 
   const hardestMoves = createMoveRowList({ listEl: document.getElementById("hardest-moves-list"), addBtnEl: document.getElementById("hardest-moves-add"), hasDifficulty: true, defaultDifficulty: "hardest", listLabel: "hardest move" });

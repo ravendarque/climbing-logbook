@@ -278,9 +278,9 @@ describe("beta-gated route authorization", () => {
 // create here; the bypass itself needs none either (see
 // server/api/owned-routes.js's isDemoPerformancePage -- it serves the
 // shell directly, no DB lookup at all).
-describe("demo account performance pages (#251)", () => {
-  it("serves the performance hub and every sub-page shell with no session", async () => {
-    for (const page of ["performance", "performance/pyramid", "performance/injury", "performance/strengths", "performance/trends", "performance/gap", "performance/rpe"]) {
+describe("demo account owned pages (#251)", () => {
+  it("serves log/map/performance and every performance sub-page shell with no session", async () => {
+    for (const page of ["log", "map", "performance", "performance/pyramid", "performance/injury", "performance/strengths", "performance/trends", "performance/gap", "performance/rpe"]) {
       const res = await fetchOwnedRoute("beginnerdemo", page);
       expect(res.status, `${page} should serve for a demo username with no session`).toBe(200);
     }
@@ -288,20 +288,22 @@ describe("demo account performance pages (#251)", () => {
 
   it("works for all three reserved demo usernames", async () => {
     for (const username of ["beginnerdemo", "intermediatedemo", "advanceddemo"]) {
-      const res = await fetchOwnedRoute(username, "performance");
+      const res = await fetchOwnedRoute(username, "log");
       expect(res.status).toBe(200);
     }
   });
 
-  it("does NOT bypass log/map/sync/account -- those still redirect to login with no session, same as any other username", async () => {
-    for (const page of ["log", "map", "sync", "account"]) {
+  it("does NOT bypass sync/account -- those still redirect to login with no session, same as any other username", async () => {
+    for (const page of ["sync", "account"]) {
       const res = await fetchOwnedRoute("beginnerdemo", page);
       expect(res.status, `${page} should still be session-gated`).toBe(302);
     }
   });
 
-  it("a real (non-demo) username's performance page is still session-gated as normal", async () => {
-    const res = await fetchOwnedRoute("notademoaccount", "performance");
-    expect(res.status).toBe(302);
+  it("a real (non-demo) username's log/map/performance pages are still session-gated as normal", async () => {
+    for (const page of ["log", "map", "performance"]) {
+      const res = await fetchOwnedRoute("notademoaccount", page);
+      expect(res.status, `${page} should still be session-gated`).toBe(302);
+    }
   });
 });

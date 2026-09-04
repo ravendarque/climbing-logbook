@@ -32,16 +32,27 @@ import { createOfflineSync } from "./offline-sync.js";
 import { loadResource } from "./fetch-json.js";
 import { syncAdminBar } from "./admin-bar.js";
 import { isSynced } from "./sync-status.js";
+import { demoDataUrl, isDemoUsername } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
 import "./components/climbing-entries-table.js";
 
+// /:username/log -- same single-segment extraction as map-main.js/
+// performance-pyramid-main.js/performance-hub-main.js.
+const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
+// #251 -- one of the three seeded, publicly-viewable demo accounts.
+const IS_DEMO = isDemoUsername(USERNAME);
+
 // ── Config -- identical to client/main.js's own (#348 pages all still
-// hit /logbook/api/* -- only the page shell moved, not the API surface). ──
+// hit /logbook/api/* -- only the page shell moved, not the API surface).
+// ENTRIES_URL/PLACES_URL/LOCATIONS_URL swap to the public, target-user-
+// scoped equivalent for a demo account (server/api/public-data.js,
+// already built for the public profile page) -- a demo visitor never has
+// a session, so the plain session-scoped URLs would just return nothing. ──
 const ADMIN_DATA_URL = "/logbook/api/admin/logbook";
-const ENTRIES_URL = "/logbook/api/logbook";
-const PLACES_URL = "/logbook/api/places";
+const ENTRIES_URL = demoDataUrl(USERNAME, "/logbook/api/logbook", "logbook");
+const PLACES_URL = demoDataUrl(USERNAME, "/logbook/api/places", "places");
 const ADMIN_PLACES_URL = "/logbook/api/admin/places";
-const LOCATIONS_URL = "/logbook/api/locations";
+const LOCATIONS_URL = demoDataUrl(USERNAME, "/logbook/api/locations", "locations");
 const ADMIN_LOCATIONS_URL = "/logbook/api/admin/locations";
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
 const QUEUE_KEY = "logbook_pending_queue";
@@ -57,11 +68,15 @@ function isAuthRedirect(res) {
   return res.type === "opaqueredirect";
 }
 
-// /:username/log -- same single-segment extraction as map-main.js/
-// performance-pyramid-main.js/performance-hub-main.js.
-const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
-
-const store = createStore();
+// #251 -- a no-op storage stub for a demo account, same pattern client/
+// profile-main.js's own createStore() call already uses and for the same
+// reason: this page's entries/places/locations cache keys are global, not
+// scoped per user (this page was previously only ever the visitor's own
+// data, owned-routes.js's session check guaranteed that). A demo account
+// is now reachable by anyone, including someone already logged in as a
+// real owner in the same browser -- caching a demo's data under those
+// same keys would silently pollute their own /log on the next visit.
+const store = createStore(IS_DEMO ? { storage: { getItem: () => null, setItem: () => {} } } : undefined);
 store.subscribe(render);
 // Deliberately NOT store.setActiveView(...) here -- same temporal-dead-zone
 // hazard map-main.js's own comment documents (a real crash caught during
@@ -109,6 +124,15 @@ function render() {
 
 function updateAdminBar() {
   syncAdminBar({ store, adminAuth, headerChrome, tabBar, addBtn: document.getElementById("add-btn"), offlineSync });
+  // #251 -- a demo visitor never has a real session, so syncAdminBar's own
+  // store.isLoggedIn() checks would otherwise hide the Add button and the
+  // tab bar's Performance tab entirely -- overridden here, not in
+  // admin-bar.js itself (shared by every other owner-only page, where
+  // that "logged out" behavior stays exactly right).
+  if (IS_DEMO) {
+    document.getElementById("add-btn").hidden = false;
+    tabBar.toggleAttribute("show-performance", true);
+  }
 }
 
 const adminAuth = createAdminAuth({
@@ -141,6 +165,7 @@ const entryForm = createEntryForm({
   store, openModal, closeModal, adminFetch, isAuthRedirect,
   getQueue: offlineSync.getQueue, setQueue: offlineSync.setQueue,
   adminDataUrl: ADMIN_DATA_URL, adminLocationsUrl: ADMIN_LOCATIONS_URL, adminPlacesUrl: ADMIN_PLACES_URL,
+  readOnly: IS_DEMO,
 });
 
 if ("serviceWorker" in navigator) {
@@ -155,7 +180,11 @@ async function boot() {
   // table here. A synced device skips straight past this with no added
   // latency. /map and /performance don't carry this check -- neither
   // needs a local raw-entries cache (#497, ADR-0018).
-  if (!isSynced()) {
+  // #251 -- a demo visitor was never really logged in, so there's no local
+  // sync state (or session) to check at all -- skipped entirely, same
+  // "not auth-gated" treatment owned-routes.js's isDemoOwnedPage already
+  // gives the page itself.
+  if (!IS_DEMO && !isSynced()) {
     location.href = `/${encodeURIComponent(USERNAME)}/sync?returnTo=${encodeURIComponent(`/${USERNAME}/log`)}`;
     return;
   }
@@ -178,7 +207,20 @@ async function boot() {
   // most of that gap on the next reconnect or manual sync without
   // needing a full re-sync, narrower than the interim gap this comment
   // used to describe (Raven, 2026-08-21).
-  store.loadEntriesFromCache();
+  //
+  // #251 -- a demo visitor has no local cache at all (never really
+  // synced), so this reads over the network from ENTRIES_URL instead --
+  // already the public, target-user-scoped endpoint for a demo account
+  // (see this file's own Config comment above).
+  if (IS_DEMO) {
+    try {
+      store.setEntries(await loadResource(ENTRIES_URL, "entries"));
+    } catch {
+      // Left empty -- no local cache to fall back to for a demo page.
+    }
+  } else {
+    store.loadEntriesFromCache();
+  }
 
   try {
     store.setPlaces(await loadResource(PLACES_URL, "places"));
@@ -193,7 +235,15 @@ async function boot() {
 
   // Applied once, after all three arrays are loaded -- same ordering
   // reasoning as client/main.js's own boot().
-  store.applyPendingQueue(offlineSync.getQueue());
+  //
+  // #251 -- skipped for a demo account: offlineSync's own queue is a
+  // global localStorage key too (same class of leak as this file's own
+  // createStore() comment above), so a real owner's actual pending queue
+  // could otherwise get read and visually merged into a demo page's
+  // displayed entries in the same browser. Nothing meaningful to apply
+  // anyway -- a demo page's own entry-form never queues a write in the
+  // first place (readOnly returns before adminFetch is ever called).
+  if (!IS_DEMO) store.applyPendingQueue(offlineSync.getQueue());
 
   await adminAuth.resolveActiveType(sessionPromise, settingsPromise);
 

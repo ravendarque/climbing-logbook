@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isDemoUsername, performanceDataUrl } from "../../client/demo-mode.js";
+import { demoDataUrl, isDemoUsername } from "../../client/demo-mode.js";
 import { DEMO_PERSONAS, DEMO_USERNAMES } from "../../shared/demo-personas.js";
 
 describe("demo-mode", () => {
@@ -12,11 +12,13 @@ describe("demo-mode", () => {
   });
 
   it("builds the public, target-user-scoped URL for a demo username", () => {
-    expect(performanceDataUrl("beginnerdemo", "pyramid")).toBe("/logbook/api/public/beginnerdemo/performance/pyramid");
+    expect(demoDataUrl("beginnerdemo", "/logbook/api/performance/pyramid", "performance/pyramid")).toBe("/logbook/api/public/beginnerdemo/performance/pyramid");
+    expect(demoDataUrl("beginnerdemo", "/logbook/api/logbook", "logbook")).toBe("/logbook/api/public/beginnerdemo/logbook");
   });
 
-  it("builds the plain session-scoped URL for a real (non-demo) username", () => {
-    expect(performanceDataUrl("realuser", "pyramid")).toBe("/logbook/api/performance/pyramid");
+  it("returns the given session-scoped URL unchanged for a real (non-demo) username", () => {
+    expect(demoDataUrl("realuser", "/logbook/api/performance/pyramid", "performance/pyramid")).toBe("/logbook/api/performance/pyramid");
+    expect(demoDataUrl("realuser", "/logbook/api/logbook", "logbook")).toBe("/logbook/api/logbook");
   });
 
   it("DEMO_USERNAMES is derived from DEMO_PERSONAS, not a separately maintained list", () => {

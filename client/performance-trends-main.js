@@ -26,7 +26,7 @@ import { createTimeWindowControl } from "./time-window.js";
 import { renderComboChartHtml } from "./combo-chart.js";
 import { gradeDisplayLabel, volumeHeadline } from "../shared/volume-stats.js";
 import { BOULDER_GRADES, LEAD_GRADES } from "../shared/grade-data.js";
-import { isDemoUsername, performanceDataUrl } from "./demo-mode.js";
+import { demoDataUrl, isDemoUsername } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
 
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
@@ -102,7 +102,7 @@ function render() {
 // takes start/end query params and returns a shape keyed by discipline, not
 // a single `{ [key]: array }` list.
 async function fetchVolume(start, end) {
-  const res = await fetch(`${performanceDataUrl(USERNAME, "volume")}?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
+  const res = await fetch(`${demoDataUrl(USERNAME, "/logbook/api/performance/volume", "performance/volume")}?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }

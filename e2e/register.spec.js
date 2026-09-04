@@ -7,27 +7,18 @@
 // established for /login.
 import { execFileSync } from "node:child_process";
 import { expect, test } from "@playwright/test";
+import { mockTurnstile } from "./mock-turnstile.js";
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
-// #376 -- Turnstile's real widget script loads (async) from Cloudflare's
-// own CDN with no test-time mock; a real, previously-observed source of
-// flake (2026-08-07, across 5 full e2e runs: one page.goto() itself timed
-// out waiting for `load`, root-caused to that async script fetch
-// occasionally hanging rather than failing fast against
-// challenges.cloudflare.com from this environment). Intercepted and
-// stubbed here instead of letting the real network request happen at
-// all. Mirrors exactly what register.js's own onTurnstileLoad callback
-// needs: window.turnstile.render()/getResponse()/reset() (the same three
-// methods that file calls), and the onload query-param convention
-// Cloudflare's real script also follows (invoking window[onload] once
-// ready) -- register.js's own #turnstile-widget render call and
-// waitForTurnstile()'s getResponse() wait below both still exercise the
-// exact same code paths they did against the real widget, just without
-// the real network dependency.
+// #251 -- mockTurnstile() moved to its own shared module (e2e/mock-
+// turnstile.js) once a second, unrelated spec (e2e/climbing-header.
+// spec.js) hit the identical page.goto() hang this file's own #376
+// already documented -- see that module's own header comment for the
+// full history.
 //
-// #587 -- this only ever covered the CLIENT-side widget script. The
-// SERVER-side siteverify call that register.js's submit ultimately
+// #587 -- mockTurnstile() only ever covers the CLIENT-side widget script.
+// The SERVER-side siteverify call that register.js's submit ultimately
 // triggers (createTurnstileHook, server/lib/turnstile.js) was still a
 // real, unmocked POST to challenges.cloudflare.com on every request this
 // suite makes, including under wrangler dev here -- an observed source of
@@ -39,20 +30,6 @@ test.use({ storageState: { cookies: [], origins: [] } });
 // response for that secret. Nothing in this file needs to stub that call
 // itself -- with both the client widget and the server siteverify call
 // mocked out, this suite no longer depends on real network access at all.
-async function mockTurnstile(page) {
-  await page.route("https://challenges.cloudflare.com/turnstile/v0/api.js**", route =>
-    route.fulfill({
-      contentType: "application/javascript",
-      body: `
-        window.turnstile = {
-          render: () => "e2e-stub-widget-id",
-          getResponse: () => "e2e-stub-token",
-          reset: () => {},
-        };
-        if (typeof window.onTurnstileLoad === "function") window.onTurnstileLoad();
-      `,
-    }));
-}
 
 function seedInviteCode(code) {
   execFileSync(

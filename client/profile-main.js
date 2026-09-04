@@ -1,22 +1,13 @@
 // Composition root for the public, read-only /:username page (#351) --
 // bundled by esbuild into public/logbook/profile-app.js. Still no
-// offline-sync.js/content-overlays.js at all -- there's nothing here to
-// sync (this page is never the local device of record for anyone's real
-// data) and notes-viewing (#425) needs no wiring here either --
-// <climbing-entries-table> owns its own notes overlay now, self-contained
-// (see that component's own header comment).
-//
-// entry-form.js/place-picker.js (#251) are the one exception to this
-// page's original "security by absence" stance (#344): imported
-// unconditionally (one shared bundle for every /:username, real or demo),
-// but only ever wired to a real Add button for the three seeded demo
-// usernames -- see IS_DEMO below. This doesn't reopen the security gap
-// "security by absence" existed to close: a real (non-demo) visitor still
-// gets no Add button and no adminFetch call wired to anything, and even a
-// demo visitor's Save is a permanent client-side no-op (entry-form.js's
-// own readOnly mode) -- ADMIN_ROUTES' session check (server/index.js)
-// would 401 any real write attempt regardless, since a demo visitor never
-// has a session at all.
+// adminFetch/isAuthRedirect, no entry-form.js/place-picker.js/
+// offline-sync.js/content-overlays.js at all -- "Security by absence"
+// per #344's decision: this bundle genuinely cannot write anything, not
+// just UI-hidden from doing so. Notes-viewing (#425) needs no wiring
+// here at all -- <climbing-entries-table> owns its own notes overlay
+// now, self-contained (see that component's own header comment), fixing
+// a real bug this page used to have (the notes-btn rendered with
+// nothing to open when clicked, since nothing here ever wired it up).
 //
 // client/store.js *is* used here (#333, unlike this file's original #351
 // cut) -- purely for activeView tracking (map vs. logbook tab) now, not
@@ -47,11 +38,9 @@
 // own `location-expand` listener).
 import { createStore } from "./store.js";
 import { createMapView } from "./map-view.js";
-import { createDisclosure, createModalHelpers } from "./modal-utils.js";
+import { createDisclosure } from "./modal-utils.js";
 import { loadResource } from "./fetch-json.js";
 import { createThemeToggle } from "./theme-toggle.js";
-import { createEntryForm } from "./entry-form.js";
-import { isDemoUsername } from "./demo-mode.js";
 import "./components/climbing-entries-table.js";
 
 // /:username -- same single-segment extraction as every other
@@ -61,8 +50,6 @@ import "./components/climbing-entries-table.js";
 // scoped by it).
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 document.title = `${USERNAME} – Climbing Logbook`;
-// #251 -- one of the three seeded, publicly-viewable demo accounts.
-const IS_DEMO = isDemoUsername(USERNAME);
 
 const entriesTable = document.querySelector("climbing-entries-table");
 
@@ -120,35 +107,6 @@ createDisclosure(document.getElementById("header-menu-btn"), document.getElement
 // store.js/adminFetch this page doesn't have.
 createThemeToggle();
 
-// #251 -- demo-only Add button + Performance Insights link, both plain
-// `hidden` in the markup by default (public/profile/index.html) so a real
-// user's public profile renders exactly as before. adminFetch/isAuthRedirect
-// are never actually invoked (entry-form.js's own readOnly guard returns
-// before either would be called) -- trivial stubs rather than importing the
-// real cross-cutting pair client/log-main.js defines for itself, since
-// there's no auth-redirect concept on a page that never has a session.
-if (IS_DEMO) {
-  const demoPerformanceLink = document.getElementById("demo-performance-link");
-  demoPerformanceLink.href = `/${encodeURIComponent(USERNAME)}/performance`;
-  demoPerformanceLink.hidden = false;
-
-  const addBtn = document.getElementById("add-btn");
-  addBtn.hidden = false;
-
-  const { openModal, closeModal } = createModalHelpers(["add-place-overlay", "entry-overlay"]);
-  const entryForm = createEntryForm({
-    store, openModal, closeModal,
-    adminFetch: url => fetch(url, { redirect: "manual" }),
-    isAuthRedirect: res => res.type === "opaqueredirect",
-    getQueue: () => [], setQueue: () => {},
-    adminDataUrl: "/logbook/api/admin/logbook",
-    adminLocationsUrl: "/logbook/api/admin/locations",
-    adminPlacesUrl: "/logbook/api/admin/places",
-    readOnly: true,
-  });
-  addBtn.addEventListener("click", () => entryForm.open(null));
-}
-
 // #494 (ADR-0017) -- <climbing-entries-table lazy>'s own cue that a
 // visitor just expanded a location it doesn't have real rows for yet
 // (see that component's own #maybeExpandShell comment). One request per
@@ -197,13 +155,6 @@ async function boot() {
   entriesTable.places = places;
   entriesTable.locations = locations;
   entriesTable.locationCounts = counts;
-  // #251 -- the demo Add form's place-picker (client/place-picker.js)
-  // reads places/locations off the Store, not off entriesTable's own
-  // properties -- harmless to set unconditionally even for a real (non-
-  // demo) profile, since nothing reads them without IS_DEMO's own Add
-  // button ever being shown to wire the picker up in the first place.
-  store.setPlaces(places);
-  store.setLocations(locations);
 
   // #470 -- clears the loading state set in public/profile/index.html's
   // own markup, now that the counts-only shell fetch has resolved (real

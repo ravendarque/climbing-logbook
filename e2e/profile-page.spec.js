@@ -33,23 +33,15 @@ test("renders the shared chrome readonly -- no edit affordances or admin rows an
   await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
   await expect(page.locator("climbing-entries-table")).toBeVisible();
 
-  // "Security by absence" (#344), narrowed by #251's own demo-only
-  // carve-out: offline-sync.js/admin-auth.js are still never imported by
-  // client/profile-main.js at all (#sync-btn/.edit-btn genuinely don't
-  // exist in the DOM), but entry-form.js/place-picker.js now do -- shared,
-  // unconditionally-present markup (#add-btn/#entry-overlay/#add-place-
-  // overlay) so the same shell serves both a real user's page and the
-  // three seeded demo personas' -- see client/profile-main.js's own
-  // IS_DEMO check for why these stay hidden (not wired to anything) for
-  // every other username. This fixture's own synthetic path
-  // (/e2e-fixtures/pages/profile.html) resolves to a USERNAME of
-  // "e2e-fixtures", not one of the three reserved demo usernames, so it
-  // exercises exactly this "real user" case.
-  await expect(page.locator("#add-btn")).toBeHidden();
+  // "Security by absence" (#344) -- these controls don't exist in the DOM
+  // at all on this page, not just hidden, since entry-form.js/
+  // place-picker.js/offline-sync.js/admin-auth.js are never imported by
+  // client/profile-main.js in the first place.
+  await expect(page.locator("#add-btn")).toHaveCount(0);
   await expect(page.locator("#sync-btn")).toHaveCount(0);
   await expect(page.locator(".edit-btn")).toHaveCount(0);
-  await expect(page.locator("#entry-overlay")).toBeHidden();
-  await expect(page.locator("#add-place-overlay")).toBeHidden();
+  await expect(page.locator("#entry-overlay")).toHaveCount(0);
+  await expect(page.locator("#add-place-overlay")).toHaveCount(0);
 
   await page.locator("#header-menu-btn").click();
   await expect(page.locator("#login-toggle-btn")).toHaveCount(0);
