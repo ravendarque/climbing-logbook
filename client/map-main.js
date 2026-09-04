@@ -25,9 +25,17 @@ import { createMapView } from "./map-view.js";
 import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
 import { syncAdminBar } from "./admin-bar.js";
+import { demoDataUrl, isDemoUsername } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
 
-const MAP_COUNTS_URL = "/logbook/api/map/counts";
+// /:username/map -- the only path segment this page cares about is the
+// first one. <climbing-tab-bar> needs it to build its own /:username/log
+// etc. links.
+const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
+// #251 -- one of the three seeded, publicly-viewable demo accounts.
+const IS_DEMO = isDemoUsername(USERNAME);
+
+const MAP_COUNTS_URL = demoDataUrl(USERNAME, "/logbook/api/map/counts", "map/counts");
 // #497 -- its own small offline cache, separate from /log's raw-entries
 // one (client/store.js) -- this page never needed /sync's completeness
 // guarantee (ADR-0019) in the first place, and a bounded country x
@@ -46,11 +54,6 @@ function adminFetch(url, options) {
 function isAuthRedirect(res) {
   return res.type === "opaqueredirect";
 }
-
-// /:username/map -- the only path segment this page cares about is the
-// first one. <climbing-tab-bar> needs it to build its own /:username/log
-// etc. links.
-const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 
 const store = createStore();
 store.subscribe(render);
@@ -77,6 +80,11 @@ function render() {
 
 function updateAdminBar() {
   syncAdminBar({ store, adminAuth, headerChrome, tabBar });
+  // #251 -- same override client/log-main.js's own updateAdminBar()
+  // makes, for the same reason: a demo visitor never has a real session,
+  // so syncAdminBar's own store.isLoggedIn() check would otherwise hide
+  // the tab bar's Performance tab entirely.
+  if (IS_DEMO) tabBar.toggleAttribute("show-performance", true);
 }
 
 const adminAuth = createAdminAuth({
@@ -124,7 +132,25 @@ async function boot() {
 // successful fetch, falls back to whatever's cached on any failure --
 // same "genuinely offline-capable" shape /log's own store.js gives
 // entries, just independent of it (this page never goes through /sync).
+//
+// #251 -- MAP_COUNTS_CACHE_KEY is a single, global localStorage key, not
+// scoped per user (this page was previously only ever the visitor's own
+// data, owned-routes.js's session check guaranteed that). A demo account
+// is now reachable by anyone, including someone already logged in as a
+// real owner in the same browser -- caching a demo's counts under that
+// same key would silently pollute their own /map on the next visit.
+// Fetched fresh every time instead, no cache read or write at all, same
+// "no cache" treatment client/profile-main.js's own map aggregate uses
+// for the identical reason.
 async function loadMapCounts() {
+  if (IS_DEMO) {
+    try {
+      const res = await fetch(MAP_COUNTS_URL);
+      return res.ok ? await res.json() : {};
+    } catch {
+      return {};
+    }
+  }
   try {
     const res = await fetch(MAP_COUNTS_URL);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);

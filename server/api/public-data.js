@@ -5,6 +5,10 @@ import { handleGet as handleGetPlaces } from "./places.js";
 import { handleGet as handleGetLocations } from "./locations.js";
 import { handleGetMapCounts } from "./map.js";
 import { handleGetProfileCounts } from "./profile-counts.js";
+import {
+  handleGetEffort, handleGetGap, handleGetInjuryLog, handleGetPyramid,
+  handleGetStrengthsWeaknesses, handleGetVolume,
+} from "./performance.js";
 
 // #351 -- the read-only data feeding client/profile-main.js's
 // <climbing-entries-table>, at /logbook/api/public/:username/{logbook,
@@ -42,9 +46,39 @@ const HANDLERS = {
   "logbook/counts": handleGetProfileCounts,
 };
 
+// #251 -- performance-insight data (Grade Pyramid, injury log,
+// strengths/weaknesses, volume/trends, gap, RPE/effort) reuses
+// server/api/performance.js's existing handlers exactly like HANDLERS
+// above reuses logbook/places/locations -- each already takes a plain
+// userId with no session-derived assumptions baked in. Kept in a separate
+// map (not merged into HANDLERS) because it's gated by target.isDemo,
+// below -- real users' performance data stays owner-only regardless of
+// logbook_public, #8's decision. This is a deliberate, narrow carve-out for
+// the three seeded demo accounts' synthetic data only.
+const DEMO_ONLY_HANDLERS = {
+  "performance/pyramid": handleGetPyramid,
+  "performance/injury": handleGetInjuryLog,
+  "performance/strengths": handleGetStrengthsWeaknesses,
+  // "volume", not "trends" -- matches the real session-scoped endpoint's
+  // own name (/logbook/api/performance/volume, server/index.js's
+  // PUBLIC_GET_ROUTES), which predates and differs from the page route's
+  // own name (/performance/trends, #15).
+  "performance/volume": handleGetVolume,
+  "performance/gap": handleGetGap,
+  "performance/rpe": handleGetEffort,
+};
+
 export async function handlePublicResource(request, env, username, resource) {
   const target = await resolvePublicUser(env, username);
   if (!target) return json({ error: "Not found" }, 404, { "Cache-Control": "no-store" });
+
+  if (resource in DEMO_ONLY_HANDLERS) {
+    // Same generic 404 as "no such username" -- a real (non-demo) public
+    // user's performance data must be exactly as unreachable as if this
+    // route didn't exist at all, not distinguishably "forbidden".
+    if (!target.isDemo) return json({ error: "Not found" }, 404, { "Cache-Control": "no-store" });
+    return DEMO_ONLY_HANDLERS[resource](request, env, target.id);
+  }
 
   // #511 -- strip ?since= before dispatching: every HANDLERS entry above
   // is a server/api/*.js handleGet shared unchanged with an owner-only

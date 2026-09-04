@@ -1,5 +1,6 @@
 import { resolveUserId } from "../lib/session.js";
 import { lookupUserByUsername } from "../lib/user.js";
+import { DEMO_USERNAMES } from "../../shared/demo-personas.js";
 
 // #347 -- the per-user equivalent of what Cloudflare Access used to do for
 // the single, global /logbook URL: my.<domain>/:username/{log,map,performance}
@@ -76,8 +77,26 @@ async function resolveOwnedSession(request, env, username) {
   return targetUserId === sessionUserId ? sessionUserId : null;
 }
 
+// #251 -- the three seeded demo accounts' log/map/performance pages are
+// readable by anyone, no session at all -- same "readonly, not auth-gated"
+// treatment public-profile.js's handlePublicProfile already gives
+// /:username itself. Scoped to log/map/performance*, not sync/account:
+// sync's cold-start concept and account's settings management have no
+// meaning for a visitor who was never really logged in. A demo account's
+// own real session (there isn't one) is never consulted here --
+// resolveOwnedSession is skipped entirely for this branch, not merely
+// short-circuited, so there's no session-matching bug to worry about for
+// these three usernames.
+function isDemoOwnedPage(username, page) {
+  return DEMO_USERNAMES.includes(username) && (page === "log" || page === "map" || page.startsWith("performance"));
+}
+
 export async function handleOwnedRoute(request, env, username, page) {
   const { hostname } = new URL(request.url);
+
+  if (isDemoOwnedPage(username, page)) {
+    return env.ASSETS.fetch(new Request(new URL(SHELL_PATHS[page], request.url)));
+  }
 
   const userId = await resolveOwnedSession(request, env, username);
   if (!userId) {

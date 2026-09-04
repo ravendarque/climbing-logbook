@@ -8,6 +8,7 @@
 // each page actually wires up variant="brand" correctly, rather than
 // duplicating the full behavioral coverage four times over.
 import { expect, test } from "@playwright/test";
+import { mockTurnstile } from "./mock-turnstile.js";
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
@@ -43,6 +44,12 @@ test("footnote modal closes via its close button and via backdrop click", async 
 });
 
 test("renders on /register/", async ({ page }) => {
+  // #251/#376 -- this page loads Turnstile's real widget script; a real,
+  // sandboxed-environment hang on that request (not anything this test
+  // itself does) previously made page.goto()'s default `load` wait
+  // time out even though the page had already fully rendered -- see
+  // e2e/mock-turnstile.js's own header comment.
+  await mockTurnstile(page);
   await page.goto("/register/");
   await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
 });

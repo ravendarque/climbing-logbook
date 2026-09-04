@@ -15,6 +15,7 @@ import { createHeaderChrome } from "./header-chrome.js";
 import { syncAdminBar } from "./admin-bar.js";
 import { rowCardHtml } from "./row-card.js";
 import { flashLabel, sendLabel } from "./status.js";
+import { isDemoUsername } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
 
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
@@ -76,6 +77,8 @@ function isAuthRedirect(res) {
 }
 
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
+// #251 -- one of the three seeded, publicly-viewable demo accounts.
+const IS_DEMO = isDemoUsername(USERNAME);
 
 const store = createStore();
 store.subscribe(render);
@@ -137,7 +140,10 @@ async function boot() {
 
   await adminAuth.resolveActiveType(sessionPromise, settingsPromise);
 
-  if (!adminAuth.isAthleteMode()) {
+  // #251 -- skipped entirely for the three reserved demo usernames, same
+  // "not auth-gated" treatment owned-routes.js's isDemoPerformancePage
+  // already gives the page itself.
+  if (!IS_DEMO && !adminAuth.isAthleteMode()) {
     location.href = `/${encodeURIComponent(USERNAME)}/log`;
     return;
   }
