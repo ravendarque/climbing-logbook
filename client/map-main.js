@@ -80,11 +80,6 @@ function render() {
 
 function updateAdminBar() {
   syncAdminBar({ store, adminAuth, headerChrome, tabBar });
-  // #251 -- same override client/log-main.js's own updateAdminBar()
-  // makes, for the same reason: a demo visitor never has a real session,
-  // so syncAdminBar's own store.isLoggedIn() check would otherwise hide
-  // the tab bar's Performance tab entirely.
-  if (IS_DEMO) tabBar.toggleAttribute("show-performance", true);
 }
 
 const adminAuth = createAdminAuth({

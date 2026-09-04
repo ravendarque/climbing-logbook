@@ -124,15 +124,6 @@ function render() {
 
 function updateAdminBar() {
   syncAdminBar({ store, adminAuth, headerChrome, tabBar, addBtn: document.getElementById("add-btn"), offlineSync });
-  // #251 -- a demo visitor never has a real session, so syncAdminBar's own
-  // store.isLoggedIn() checks would otherwise hide the Add button and the
-  // tab bar's Performance tab entirely -- overridden here, not in
-  // admin-bar.js itself (shared by every other owner-only page, where
-  // that "logged out" behavior stays exactly right).
-  if (IS_DEMO) {
-    document.getElementById("add-btn").hidden = false;
-    tabBar.toggleAttribute("show-performance", true);
-  }
 }
 
 const adminAuth = createAdminAuth({
