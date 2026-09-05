@@ -126,7 +126,12 @@ export class ClimbingTabBar extends HTMLElement {
     // items-end alignment between the two (the nav's content stayed pinned
     // to the top of its own now-taller box instead of the bottom). Found
     // via direct measurement in the browser, not by eye.
-    this.innerHTML = `<nav class="flex gap-5" aria-label="View">${links}</nav>`;
+    // gap-5 (20px, the original 3-tab value) read as too wide once Map's
+    // removal (#211/#465) left only 2 tabs sharing it -- shrunk to gap-3
+    // (12px), matching picker-tabs-row's own inter-item spacing next to it.
+    // Raven's own report, found by eye in the live redesigned layout, not
+    // present in the original 3-tab bar.
+    this.innerHTML = `<nav class="flex gap-3" aria-label="View">${links}</nav>`;
   }
 }
 
