@@ -25,7 +25,7 @@
        file at all. -->
   <link rel="stylesheet" href="/logbook/tailwind.css">
   <script src="/logbook/components/climbing-header.js"></script>
-  <script src="/logbook/components/climbing-menu-bar.js"></script>
+  <script src="/logbook/components/climbing-burger-menu.js"></script>
   <script>
     (function () {
       var stored = localStorage.getItem("logbook_theme");
@@ -48,16 +48,19 @@
        instead, same pattern the account pages already use for this
        attribute.
 
-       Picker/menu row before the brand row, and align-left on
-       <climbing-header> -- matches /logbook's own layout (left-aligned
-       brand row below the header row, not centered above it). Found via
-       Raven's production report, 2026-08-10 -- see climbing-header.js's
-       own comment on the align-left attribute. -->
-  <div class="flex items-center justify-end gap-2 mb-6" id="header-row">
-    <climbing-menu-bar admin-hidden no-discipline></climbing-menu-bar>
+       #211/#465 -- burger menu now aligns with the top of the brand logo,
+       right-aligned, matching /log/map/performance's own layout, instead
+       of sharing a separate row above it. No discipline picker on this
+       page (never had one), so there's no picker-tabs-row equivalent to
+       build -- just this one row change. Raven's call, 2026-09-05: this
+       page was originally scoped out of the #211/#465 redesign entirely,
+       then brought back in once the resulting inconsistency (burger menu
+       at a different vertical position than every other page) was
+       noticed. -->
+  <div class="flex items-start justify-between gap-2" id="brand-row">
+    <climbing-header variant="brand" align-left></climbing-header>
+    <climbing-burger-menu admin-hidden></climbing-burger-menu>
   </div>
-
-  <climbing-header variant="brand" align-left></climbing-header>
 
   <!-- Real WAI-ARIA Tabs (role=tablist/tab/tabpanel), not
        <climbing-tab-bar>'s nav-landmark links -- this switches between two
@@ -69,10 +72,22 @@
        page at all (#8's decision), so there's no third tab and no hiding
        logic needed. No deep link per tab (#333, Raven's call, 2026-08-11)
        -- a public visitor switching views client-side is fine; this isn't
-       the owner's own bookmarkable-per-view pages. -->
-  <div class="flex gap-5 mb-5" id="view-tabs" role="tablist" aria-label="View">
-    <button type="button" class="bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer whitespace-nowrap text-[.95rem] font-semibold text-muted pb-2 border-b-2 border-transparent transition-colors duration-150 hover:text-foreground aria-selected:text-foreground aria-selected:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" id="view-tab-logbook" role="tab" data-view="logbook" aria-selected="true" aria-controls="panel-logbook">Logbook</button>
-    <button type="button" class="bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer whitespace-nowrap text-[.95rem] font-semibold text-muted pb-2 border-b-2 border-transparent transition-colors duration-150 hover:text-foreground aria-selected:text-foreground aria-selected:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" id="view-tab-map" role="tab" data-view="map" aria-selected="false" aria-controls="panel-map">Map</button>
+       the owner's own bookmarkable-per-view pages.
+
+       .tab-nav/.tab-nav-item (#211/#465): the same shared visual rule
+       client/components/climbing-tab-bar.js uses (see that file's own
+       comment, and climbing-header.js's rule definition) -- kept as a
+       genuinely different component (role=tab/aria-selected here vs. real
+       <a href>/aria-current=page there) but sharing one visual source
+       instead of a hand-copied Tailwind string, after a spacing fix
+       applied to only one of the two went unnoticed here (Raven's report,
+       2026-09-05). mb-5 stays local to this div, not baked into the
+       shared rule -- unlike climbing-tab-bar.js's <nav>, this container
+       isn't a flex-item sibling of anything else, so it never hit that
+       margin-absorption bug and doesn't need the margin moved out. -->
+  <div class="tab-nav mb-5" id="view-tabs" role="tablist" aria-label="View">
+    <button type="button" class="tab-nav-item" id="view-tab-logbook" role="tab" data-view="logbook" aria-selected="true" aria-controls="panel-logbook">Logbook</button>
+    <button type="button" class="tab-nav-item" id="view-tab-map" role="tab" data-view="map" aria-selected="false" aria-controls="panel-map">Map</button>
   </div>
 
   <div id="panel-logbook" role="tabpanel" aria-labelledby="view-tab-logbook">

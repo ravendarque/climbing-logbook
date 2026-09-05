@@ -20,7 +20,7 @@
        location.pathname itself rather than this file being templated. -->
   <link rel="stylesheet" href="/logbook/tailwind.css">
   <script src="/logbook/components/climbing-header.js"></script>
-  <script src="/logbook/components/climbing-menu-bar.js"></script>
+  <script src="/logbook/components/climbing-burger-menu.js"></script>
   <script>
     (function () {
       var stored = localStorage.getItem("logbook_theme");
@@ -32,7 +32,7 @@
 <body class="bg-background text-foreground font-sans px-4 pt-6 pb-16 min-w-[300px]">
 <div class="max-w-[960px] mx-auto">
   <div class="flex items-center justify-end gap-2 mb-6" id="header-row">
-    <climbing-menu-bar no-discipline></climbing-menu-bar>
+    <climbing-burger-menu></climbing-burger-menu>
   </div>
 
   <climbing-header variant="brand" align-left></climbing-header>

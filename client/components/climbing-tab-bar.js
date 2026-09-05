@@ -44,26 +44,29 @@ function encodePathSegment(value) {
   return escapeHtml(encodeURIComponent(value ?? ""));
 }
 
-// log and map are always present regardless of show-performance -- unlike
-// /logbook's own #view-tabs (whose visibility rule this component
-// originally carried forward verbatim), there's never a state where fewer
-// than 2 tabs are visible here, so this component doesn't hide itself the
-// way that one does; that check was dead code (removed via code review,
-// 2026-08-09) on every one of this component's three real consumers.
+// #211/#465 -- Map dropped from this tab bar entirely (Raven's call: the
+// /map route and page stay fully alive, just no longer linked from here --
+// "no on-page navigation between profile and app for now" is the accepted
+// gap). log is always present regardless of show-performance; performance
+// is the only conditionally-visible tab now.
 const TABS = [
   { page: "log", label: "Logbook" },
-  { page: "map", label: "Map" },
   // Performance Insights requires BOTH being logged in AND Athlete Mode on
   // (#151, carried forward from /logbook's own updateAdminBar() rule) --
   // gated by the show-performance attribute below, not hardcoded here.
-  { page: "performance", label: "Performance Insights", requiresPerformance: true },
+  // Label shortened from "Performance Insights" to "Performance" (#211) --
+  // room freed up by the discipline picker moving out of its own row and
+  // in next to this one.
+  { page: "performance", label: "Performance", requiresPerformance: true },
 ];
 
-// no-underline: these are real <a> links (unlike /logbook's own <button>-
-// based tabs, which never needed it) -- nothing in this codebase's global
-// CSS strips the browser's default anchor underline, so without it every
-// tab renders underlined. Found via Raven's production report, 2026-08-10.
-const LINK_CLASSES = "no-underline whitespace-nowrap text-[.95rem] font-semibold text-muted pb-2 border-b-2 border-transparent transition-colors duration-150 hover:text-foreground aria-[current=page]:text-foreground aria-[current=page]:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2";
+// #211/#465 -- was a locally-owned Tailwind utility string (including its
+// own no-underline fix, Raven's production report 2026-08-10); now the
+// shared .tab-nav-item rule in public/logbook/components/climbing-header.js
+// -- see that rule's own comment for why this is shared with public/
+// profile/index.html's #view-tabs despite the two being genuinely
+// different components.
+const LINK_CLASSES = "tab-nav-item";
 
 export class ClimbingTabBar extends HTMLElement {
   static get observedAttributes() {
@@ -117,7 +120,21 @@ export class ClimbingTabBar extends HTMLElement {
       `)
       .join("");
 
-    this.innerHTML = `<nav class="flex gap-5 mb-5" aria-label="View">${links}</nav>`;
+    // #211/#465 -- mb-5 moved out to the composing page's own wrapper row
+    // (picker-tabs-row), not carried here: this component now sits beside
+    // <climbing-discipline-picker> as a flex item, and a trailing margin on
+    // an element INSIDE a flex item gets absorbed into that item's own box
+    // rather than producing real sibling spacing after it -- which broke
+    // items-end alignment between the two (the nav's content stayed pinned
+    // to the top of its own now-taller box instead of the bottom). Found
+    // via direct measurement in the browser, not by eye. The container's
+    // gap (originally a local gap-5, tightened to gap-3 after Map's
+    // removal left only 2 tabs sharing it -- Raven's report) now lives in
+    // the shared .tab-nav rule instead, for the same reason LINK_CLASSES
+    // moved out: a value duplicated across this file and public/profile/
+    // index.html silently drifts out of sync when only one copy gets
+    // fixed.
+    this.innerHTML = `<nav class="tab-nav" aria-label="View">${links}</nav>`;
   }
 }
 

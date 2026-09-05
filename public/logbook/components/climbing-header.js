@@ -112,26 +112,69 @@
     // consumers rely on being able to apply block-level margin utilities
     // (e.g. mb-4) directly to <climbing-header> itself.
     "climbing-header { display: block; }",
-    // <climbing-menu-bar> (#346) is markup-only by design (see its own
-    // file comment) -- its two children (the discipline picker, the
-    // burger menu) relied on being direct children of /logbook's own flex
-    // #header-row to lay out side by side. Extracted into a custom
-    // element (default display: inline), that layout broke: both children
-    // just stack as plain blocks now, since neither establishes flex
-    // layout on its own. Fixed here rather than in climbing-menu-bar.js
-    // itself since every consumer of that component already loads this
-    // classic script first for exactly this class of fix (see
-    // climbing-header's own rule above) -- no new <script> tag needed on
-    // any consuming page just for this CSS rule. Found via Raven's
-    // production report, 2026-08-10.
-    //
-    // #626 -- climbing-menu-bar.js itself later became a classic script
-    // too (public/logbook/components/climbing-menu-bar.js), loaded via
-    // its own second <script> tag right after this one -- that change is
-    // unrelated to this CSS rule (a different bug, deferred-module-script
-    // registration lag, not layout), but means every consumer of this
-    // file now also loads that one.
-    "climbing-menu-bar { display: flex; align-items: center; gap: .5rem; width: 100%; }"
+    // <climbing-discipline-picker>/<climbing-burger-menu> (#211/#465) --
+    // split from the former <climbing-menu-bar> (#346, classic-scripted in
+    // #626), which needed `display: flex` here because it rendered TWO
+    // children (picker + menu) that had to lay out side by side within one
+    // custom element (default display: inline breaks that -- see this
+    // rule's own git history for the fuller story, found via Raven's
+    // production report, 2026-08-10). Each split-out component now wraps
+    // exactly one child div, so `display: block` is enough -- no flex
+    // layout to establish, and no `width: 100%` + ml-auto trick needed
+    // either, since positioning is now the consuming page's job (its own
+    // flex row + justify-end/justify-between), not baked into the
+    // component (see climbing-burger-menu.js's own comment).
+    "climbing-discipline-picker { display: block; }",
+    "climbing-burger-menu { display: block; }",
+    // .tab-nav/.tab-nav-item (#211/#465) -- shared visual language for
+    // "a horizontal row of view switchers with an active-item indicator",
+    // used by two components that are deliberately NOT the same element:
+    // client/components/climbing-tab-bar.js (real <a> links between
+    // separate pages -- WAI-ARIA Navigation pattern) and public/profile/
+    // index.html's own #view-tabs (an in-page WAI-ARIA Tabs widget --
+    // <button role="tab">, switching panels within one page, no
+    // navigation). That split is correct and stays -- see climbing-tab-
+    // bar.js's own comment for why merging the two into one component
+    // would be an ARIA anti-pattern. What was NOT correct: their visual
+    // styling had been hand-copy-pasted between the two files instead of
+    // sharing a source, so a spacing fix applied to one silently didn't
+    // reach the other (Raven's report, 2026-09-05). This rule is that
+    // shared source -- both consumers apply .tab-nav to their container
+    // and .tab-nav-item to each link/button, on top of whichever
+    // page-layout margin utility (e.g. mb-5) their own context needs
+    // (deliberately not baked in here, since one consumer's container is
+    // a flex-item sibling of another element and one isn't -- see
+    // climbing-tab-bar.js's own mb-5 comment for that distinction).
+    // Active-state selector covers both consumers' own attribute
+    // ([aria-current=page] for the link pattern, [aria-selected=true] for
+    // the tab pattern) in one rule rather than needing two copies.
+    // background/cursor/border-width reset folded in here too (no-ops for
+    // <a>, needed for <button>) so neither consumer needs any classes of
+    // its own beyond this one.
+    ".tab-nav { display: flex; gap: .75rem; }",
+    ".tab-nav-item {",
+    "  background: transparent;",
+    "  border-width: 0 0 2px 0;",
+    "  border-style: solid;",
+    "  border-color: transparent;",
+    "  cursor: pointer;",
+    "  text-decoration: none;",
+    "  white-space: nowrap;",
+    "  font-size: .95rem;",
+    "  font-weight: 600;",
+    "  color: var(--color-text-muted);",
+    "  padding: 0 0 .5rem 0;",
+    "  transition: color 150ms cubic-bezier(0.4, 0, 0.2, 1), border-color 150ms cubic-bezier(0.4, 0, 0.2, 1);",
+    "}",
+    ".tab-nav-item:hover { color: var(--color-text); }",
+    ".tab-nav-item[aria-current=\"page\"], .tab-nav-item[aria-selected=\"true\"] {",
+    "  color: var(--color-text);",
+    "  border-color: var(--color-accent);",
+    "}",
+    ".tab-nav-item:focus-visible {",
+    "  outline: 2px solid var(--color-text);",
+    "  outline-offset: 2px;",
+    "}"
   ].join("\n");
 
   function injectTokens() {
