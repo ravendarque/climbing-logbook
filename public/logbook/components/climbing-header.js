@@ -125,7 +125,56 @@
     // flex row + justify-end/justify-between), not baked into the
     // component (see climbing-burger-menu.js's own comment).
     "climbing-discipline-picker { display: block; }",
-    "climbing-burger-menu { display: block; }"
+    "climbing-burger-menu { display: block; }",
+    // .tab-nav/.tab-nav-item (#211/#465) -- shared visual language for
+    // "a horizontal row of view switchers with an active-item indicator",
+    // used by two components that are deliberately NOT the same element:
+    // client/components/climbing-tab-bar.js (real <a> links between
+    // separate pages -- WAI-ARIA Navigation pattern) and public/profile/
+    // index.html's own #view-tabs (an in-page WAI-ARIA Tabs widget --
+    // <button role="tab">, switching panels within one page, no
+    // navigation). That split is correct and stays -- see climbing-tab-
+    // bar.js's own comment for why merging the two into one component
+    // would be an ARIA anti-pattern. What was NOT correct: their visual
+    // styling had been hand-copy-pasted between the two files instead of
+    // sharing a source, so a spacing fix applied to one silently didn't
+    // reach the other (Raven's report, 2026-09-05). This rule is that
+    // shared source -- both consumers apply .tab-nav to their container
+    // and .tab-nav-item to each link/button, on top of whichever
+    // page-layout margin utility (e.g. mb-5) their own context needs
+    // (deliberately not baked in here, since one consumer's container is
+    // a flex-item sibling of another element and one isn't -- see
+    // climbing-tab-bar.js's own mb-5 comment for that distinction).
+    // Active-state selector covers both consumers' own attribute
+    // ([aria-current=page] for the link pattern, [aria-selected=true] for
+    // the tab pattern) in one rule rather than needing two copies.
+    // background/cursor/border-width reset folded in here too (no-ops for
+    // <a>, needed for <button>) so neither consumer needs any classes of
+    // its own beyond this one.
+    ".tab-nav { display: flex; gap: .75rem; }",
+    ".tab-nav-item {",
+    "  background: transparent;",
+    "  border-width: 0 0 2px 0;",
+    "  border-style: solid;",
+    "  border-color: transparent;",
+    "  cursor: pointer;",
+    "  text-decoration: none;",
+    "  white-space: nowrap;",
+    "  font-size: .95rem;",
+    "  font-weight: 600;",
+    "  color: var(--color-text-muted);",
+    "  padding: 0 0 .5rem 0;",
+    "  transition: color 150ms cubic-bezier(0.4, 0, 0.2, 1), border-color 150ms cubic-bezier(0.4, 0, 0.2, 1);",
+    "}",
+    ".tab-nav-item:hover { color: var(--color-text); }",
+    ".tab-nav-item[aria-current=\"page\"], .tab-nav-item[aria-selected=\"true\"] {",
+    "  color: var(--color-text);",
+    "  border-color: var(--color-accent);",
+    "}",
+    ".tab-nav-item:focus-visible {",
+    "  outline: 2px solid var(--color-text);",
+    "  outline-offset: 2px;",
+    "}"
   ].join("\n");
 
   function injectTokens() {

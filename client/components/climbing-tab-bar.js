@@ -60,11 +60,13 @@ const TABS = [
   { page: "performance", label: "Performance", requiresPerformance: true },
 ];
 
-// no-underline: these are real <a> links (unlike /logbook's own <button>-
-// based tabs, which never needed it) -- nothing in this codebase's global
-// CSS strips the browser's default anchor underline, so without it every
-// tab renders underlined. Found via Raven's production report, 2026-08-10.
-const LINK_CLASSES = "no-underline whitespace-nowrap text-[.95rem] font-semibold text-muted pb-2 border-b-2 border-transparent transition-colors duration-150 hover:text-foreground aria-[current=page]:text-foreground aria-[current=page]:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2";
+// #211/#465 -- was a locally-owned Tailwind utility string (including its
+// own no-underline fix, Raven's production report 2026-08-10); now the
+// shared .tab-nav-item rule in public/logbook/components/climbing-header.js
+// -- see that rule's own comment for why this is shared with public/
+// profile/index.html's #view-tabs despite the two being genuinely
+// different components.
+const LINK_CLASSES = "tab-nav-item";
 
 export class ClimbingTabBar extends HTMLElement {
   static get observedAttributes() {
@@ -125,13 +127,14 @@ export class ClimbingTabBar extends HTMLElement {
     // rather than producing real sibling spacing after it -- which broke
     // items-end alignment between the two (the nav's content stayed pinned
     // to the top of its own now-taller box instead of the bottom). Found
-    // via direct measurement in the browser, not by eye.
-    // gap-5 (20px, the original 3-tab value) read as too wide once Map's
-    // removal (#211/#465) left only 2 tabs sharing it -- shrunk to gap-3
-    // (12px), matching picker-tabs-row's own inter-item spacing next to it.
-    // Raven's own report, found by eye in the live redesigned layout, not
-    // present in the original 3-tab bar.
-    this.innerHTML = `<nav class="flex gap-3" aria-label="View">${links}</nav>`;
+    // via direct measurement in the browser, not by eye. The container's
+    // gap (originally a local gap-5, tightened to gap-3 after Map's
+    // removal left only 2 tabs sharing it -- Raven's report) now lives in
+    // the shared .tab-nav rule instead, for the same reason LINK_CLASSES
+    // moved out: a value duplicated across this file and public/profile/
+    // index.html silently drifts out of sync when only one copy gets
+    // fixed.
+    this.innerHTML = `<nav class="tab-nav" aria-label="View">${links}</nav>`;
   }
 }
 
