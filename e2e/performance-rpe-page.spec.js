@@ -11,7 +11,7 @@ test("shows the confidence-gate message, time-window control, and peer-reviewed 
   await page.goto("/e2e-fixtures/pages/performance-rpe.html");
 
   await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
-  await expect(page.locator("climbing-tab-bar a", { hasText: "Performance Insights" })).toHaveAttribute("aria-current", "page");
+  await expect(page.locator("climbing-tab-bar a", { hasText: "Performance" })).toHaveAttribute("aria-current", "page");
   // #601
   await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", "/e2e-fixtures/performance");
   await expect(page.locator("#view-explainer")).toContainText("Exertion slider");

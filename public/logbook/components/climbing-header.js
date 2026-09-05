@@ -112,26 +112,20 @@
     // consumers rely on being able to apply block-level margin utilities
     // (e.g. mb-4) directly to <climbing-header> itself.
     "climbing-header { display: block; }",
-    // <climbing-menu-bar> (#346) is markup-only by design (see its own
-    // file comment) -- its two children (the discipline picker, the
-    // burger menu) relied on being direct children of /logbook's own flex
-    // #header-row to lay out side by side. Extracted into a custom
-    // element (default display: inline), that layout broke: both children
-    // just stack as plain blocks now, since neither establishes flex
-    // layout on its own. Fixed here rather than in climbing-menu-bar.js
-    // itself since every consumer of that component already loads this
-    // classic script first for exactly this class of fix (see
-    // climbing-header's own rule above) -- no new <script> tag needed on
-    // any consuming page just for this CSS rule. Found via Raven's
-    // production report, 2026-08-10.
-    //
-    // #626 -- climbing-menu-bar.js itself later became a classic script
-    // too (public/logbook/components/climbing-menu-bar.js), loaded via
-    // its own second <script> tag right after this one -- that change is
-    // unrelated to this CSS rule (a different bug, deferred-module-script
-    // registration lag, not layout), but means every consumer of this
-    // file now also loads that one.
-    "climbing-menu-bar { display: flex; align-items: center; gap: .5rem; width: 100%; }"
+    // <climbing-discipline-picker>/<climbing-burger-menu> (#211/#465) --
+    // split from the former <climbing-menu-bar> (#346, classic-scripted in
+    // #626), which needed `display: flex` here because it rendered TWO
+    // children (picker + menu) that had to lay out side by side within one
+    // custom element (default display: inline breaks that -- see this
+    // rule's own git history for the fuller story, found via Raven's
+    // production report, 2026-08-10). Each split-out component now wraps
+    // exactly one child div, so `display: block` is enough -- no flex
+    // layout to establish, and no `width: 100%` + ml-auto trick needed
+    // either, since positioning is now the consuming page's job (its own
+    // flex row + justify-end/justify-between), not baked into the
+    // component (see climbing-burger-menu.js's own comment).
+    "climbing-discipline-picker { display: block; }",
+    "climbing-burger-menu { display: block; }"
   ].join("\n");
 
   function injectTokens() {

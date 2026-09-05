@@ -20,7 +20,6 @@ test("renders the shared chrome, a real map, and switches discipline (persisted 
   await page.goto("/e2e-fixtures/pages/map.html");
 
   await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
-  await expect(page.locator("climbing-tab-bar a", { hasText: "Map" })).toHaveAttribute("aria-current", "page");
 
   // A real map, not the "you need to be online" fallback.
   await expect(page.locator("#map-container svg")).toBeVisible();

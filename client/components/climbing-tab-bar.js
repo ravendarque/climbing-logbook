@@ -44,19 +44,20 @@ function encodePathSegment(value) {
   return escapeHtml(encodeURIComponent(value ?? ""));
 }
 
-// log and map are always present regardless of show-performance -- unlike
-// /logbook's own #view-tabs (whose visibility rule this component
-// originally carried forward verbatim), there's never a state where fewer
-// than 2 tabs are visible here, so this component doesn't hide itself the
-// way that one does; that check was dead code (removed via code review,
-// 2026-08-09) on every one of this component's three real consumers.
+// #211/#465 -- Map dropped from this tab bar entirely (Raven's call: the
+// /map route and page stay fully alive, just no longer linked from here --
+// "no on-page navigation between profile and app for now" is the accepted
+// gap). log is always present regardless of show-performance; performance
+// is the only conditionally-visible tab now.
 const TABS = [
   { page: "log", label: "Logbook" },
-  { page: "map", label: "Map" },
   // Performance Insights requires BOTH being logged in AND Athlete Mode on
   // (#151, carried forward from /logbook's own updateAdminBar() rule) --
   // gated by the show-performance attribute below, not hardcoded here.
-  { page: "performance", label: "Performance Insights", requiresPerformance: true },
+  // Label shortened from "Performance Insights" to "Performance" (#211) --
+  // room freed up by the discipline picker moving out of its own row and
+  // in next to this one.
+  { page: "performance", label: "Performance", requiresPerformance: true },
 ];
 
 // no-underline: these are real <a> links (unlike /logbook's own <button>-
@@ -117,7 +118,15 @@ export class ClimbingTabBar extends HTMLElement {
       `)
       .join("");
 
-    this.innerHTML = `<nav class="flex gap-5 mb-5" aria-label="View">${links}</nav>`;
+    // #211/#465 -- mb-5 moved out to the composing page's own wrapper row
+    // (picker-tabs-row), not carried here: this component now sits beside
+    // <climbing-discipline-picker> as a flex item, and a trailing margin on
+    // an element INSIDE a flex item gets absorbed into that item's own box
+    // rather than producing real sibling spacing after it -- which broke
+    // items-end alignment between the two (the nav's content stayed pinned
+    // to the top of its own now-taller box instead of the bottom). Found
+    // via direct measurement in the browser, not by eye.
+    this.innerHTML = `<nav class="flex gap-5" aria-label="View">${links}</nav>`;
   }
 }
 

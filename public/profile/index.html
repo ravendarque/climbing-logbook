@@ -25,7 +25,7 @@
        file at all. -->
   <link rel="stylesheet" href="/logbook/tailwind.css">
   <script src="/logbook/components/climbing-header.js"></script>
-  <script src="/logbook/components/climbing-menu-bar.js"></script>
+  <script src="/logbook/components/climbing-burger-menu.js"></script>
   <script>
     (function () {
       var stored = localStorage.getItem("logbook_theme");
@@ -54,7 +54,7 @@
        Raven's production report, 2026-08-10 -- see climbing-header.js's
        own comment on the align-left attribute. -->
   <div class="flex items-center justify-end gap-2 mb-6" id="header-row">
-    <climbing-menu-bar admin-hidden no-discipline></climbing-menu-bar>
+    <climbing-burger-menu admin-hidden></climbing-burger-menu>
   </div>
 
   <climbing-header variant="brand" align-left></climbing-header>
