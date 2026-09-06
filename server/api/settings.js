@@ -1,4 +1,5 @@
 import { json, parseJsonBody } from "../lib/json.js";
+import { VALID_TYPES } from "../../shared/entry-schema.js";
 
 // logbookPublic default matches the schema's own DEFAULT 1 (migrations/
 // 0003_app_data.sql) -- an anonymous caller or a logged-in user who's
@@ -63,8 +64,12 @@ export async function handlePatchSettings(request, env, userId) {
   if ("athleteMode" in body && typeof body.athleteMode !== "boolean") {
     return json({ error: "athleteMode must be a boolean" }, 400);
   }
-  if ("activeDiscipline" in body && body.activeDiscipline !== "boulder" && body.activeDiscipline !== "lead") {
-    return json({ error: "activeDiscipline must be 'boulder' or 'lead'" }, 400);
+  // #430/#641 -- VALID_TYPES (shared/entry-schema.js), not a hand-kept
+  // duplicate list -- 'sport' added there alongside 'lead' for the same
+  // reason; this check picks it up automatically rather than needing its
+  // own separate update.
+  if ("activeDiscipline" in body && !VALID_TYPES.includes(body.activeDiscipline)) {
+    return json({ error: `activeDiscipline must be one of: ${VALID_TYPES.join(", ")}` }, 400);
   }
   if ("logbookPublic" in body && typeof body.logbookPublic !== "boolean") {
     return json({ error: "logbookPublic must be a boolean" }, 400);
