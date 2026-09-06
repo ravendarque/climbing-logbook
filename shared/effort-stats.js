@@ -58,7 +58,10 @@ export function effortByBucket(entries, buckets) {
 // server-side can't import a client/*.js module (see this plan's own
 // Global Constraints; same tradeoff shared/gap-stats.js's own
 // FLASH_TERM/SEND_TERM already made).
-const SEND_TERM = { boulder: "send", lead: "redpoint" };
+// #430/#651 -- 'sport' added alongside 'lead' (Lead being renamed to
+// Sport, same wording). 'lead' stays until #642's final retirement --
+// same reasoning as shared/gap-stats.js's own identical comment.
+const SEND_TERM = { boulder: "send", lead: "redpoint", sport: "redpoint" };
 
 function firstLastIndicesWithData(hasDataFlags) {
   const indices = [];

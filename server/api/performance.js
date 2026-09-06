@@ -8,6 +8,23 @@ import { volumeByBucket, weekBuckets, weekBucketLabel } from "../../shared/volum
 import { gapByBucket, gapHeadline } from "../../shared/gap-stats.js";
 import { effortByBucket, effortHeadline } from "../../shared/effort-stats.js";
 
+// #430/#651 -- every discipline-split report below treats a 'lead'-typed
+// entry as 'sport' -- merging historical Lead data with newly-created
+// Sport data into one reported bucket. Must land before #646's data
+// cutover (which converts every entries.discipline_id from 'lead' to
+// 'sport' at the DB level, then deletes the 'lead' discipline row
+// entirely): without this, an existing user's pre-cutover Lead entries
+// would silently disappear from every Performance Insights report for
+// the gap between the two merges, and a brand new Sport entry (real
+// since #649's picker rename) wouldn't appear in any bucket at all
+// beforehand. Response key is 'sport', not 'lead', in every handler
+// below -- <climbing-grade-pyramid> and friends read it by whatever
+// discipline the picker is currently switched to (#642 renames that to
+// 'sport' too, client-side).
+function asSport(rows) {
+  return rows.map(e => (e.type === "lead" ? { ...e, type: "sport" } : e));
+}
+
 // #111 -- computes the Grade Pyramid server-side instead of shipping the
 // full entries array to /performance for the client to compute itself.
 // pyramidSplitRows() (shared/pyramid-stats.js) is an aggregate over the
@@ -30,7 +47,7 @@ export async function handleGetPyramid(request, env, userId) {
   const entries = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
   return json({
     boulder: pyramidSplitRows("boulder", entries),
-    lead: pyramidSplitRows("lead", entries),
+    sport: pyramidSplitRows("sport", asSport(entries)),
   }, 200, { "Cache-Control": "no-store" });
 }
 
@@ -112,14 +129,14 @@ export async function handleGetVolume(request, env, userId) {
   }
 
   const buckets = weekBuckets(start, end);
-  const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
+  const rows = asSport(await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true }));
 
   function forDiscipline(type) {
     const { sendCounts, maxGradeByBucket } = volumeByBucket(rows.filter(e => e.type === type), buckets);
     return { buckets: buckets.map(weekBucketLabel), sendCounts, maxGradeByBucket };
   }
 
-  return json({ boulder: forDiscipline("boulder"), lead: forDiscipline("lead") }, 200, { "Cache-Control": "no-store" });
+  return json({ boulder: forDiscipline("boulder"), sport: forDiscipline("sport") }, 200, { "Cache-Control": "no-store" });
 }
 
 // #14 -- same online-only, server-computed, start/end-validated
@@ -140,7 +157,7 @@ export async function handleGetGap(request, env, userId) {
   }
 
   const buckets = weekBuckets(start, end);
-  const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
+  const rows = asSport(await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true }));
 
   function forDiscipline(type) {
     const { flashMaxByBucket, sendMaxByBucket, avgAttemptsByBucket } = gapByBucket(rows.filter(e => e.type === type), buckets);
@@ -153,7 +170,7 @@ export async function handleGetGap(request, env, userId) {
     };
   }
 
-  return json({ boulder: forDiscipline("boulder"), lead: forDiscipline("lead") }, 200, { "Cache-Control": "no-store" });
+  return json({ boulder: forDiscipline("boulder"), sport: forDiscipline("sport") }, 200, { "Cache-Control": "no-store" });
 }
 
 // #38 -- same online-only, server-computed, start/end-validated
@@ -173,7 +190,7 @@ export async function handleGetEffort(request, env, userId) {
   }
 
   const buckets = weekBuckets(start, end);
-  const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
+  const rows = asSport(await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true }));
 
   function forDiscipline(type) {
     const { maxGradeByBucket, avgExertionByBucket, rpeCountByBucket, overallAvgExertion, totalSends } =
@@ -186,5 +203,5 @@ export async function handleGetEffort(request, env, userId) {
     };
   }
 
-  return json({ boulder: forDiscipline("boulder"), lead: forDiscipline("lead") }, 200, { "Cache-Control": "no-store" });
+  return json({ boulder: forDiscipline("boulder"), sport: forDiscipline("sport") }, 200, { "Cache-Control": "no-store" });
 }
