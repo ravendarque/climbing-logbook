@@ -48,7 +48,7 @@ describe("validateEntryShape", () => {
   );
 
   it("rejects an invalid type", () => {
-    expect(validateEntryShape(validEntry({ type: "sport" }))).toMatch(/^type must be one of/);
+    expect(validateEntryShape(validEntry({ type: "trad" }))).toMatch(/^type must be one of/);
   });
 
   it("rejects a grade not valid for the entry's type", () => {
@@ -58,6 +58,28 @@ describe("validateEntryShape", () => {
 
   it("accepts a grade valid for the lead type", () => {
     expect(validateEntryShape(validEntry({ type: "lead", grade: "6a" }))).toBeNull();
+  });
+
+  // #430/#641 -- 'sport' added alongside 'lead' (Lead being renamed to
+  // Sport, transitional -- see shared/entry-schema.js's own comment).
+  it("accepts a grade valid for the sport type", () => {
+    expect(validateEntryShape(validEntry({ type: "sport", grade: "6a" }))).toBeNull();
+  });
+
+  it("rejects sportStyle on a non-sport entry", () => {
+    expect(validateEntryShape(validEntry({ type: "boulder", sportStyle: "lead" }))).toBe("sportStyle is only valid when type is sport");
+  });
+
+  it("rejects an invalid sportStyle on a sport entry", () => {
+    expect(validateEntryShape(validEntry({ type: "sport", grade: "6a", sportStyle: "solo" }))).toMatch(/^sportStyle must be one of/);
+  });
+
+  it.each(["lead", "top_rope"])("accepts a %s sportStyle on a sport entry", sportStyle => {
+    expect(validateEntryShape(validEntry({ type: "sport", grade: "6a", sportStyle }))).toBeNull();
+  });
+
+  it("accepts a sport entry with no sportStyle at all", () => {
+    expect(validateEntryShape(validEntry({ type: "sport", grade: "6a" }))).toBeNull();
   });
 
   it("rejects an invalid status", () => {
@@ -142,9 +164,12 @@ describe("entrySchema (bulk-import's own future entry point, #224 phase 3)", () 
 
 describe("exported constants (for CSV template generation / future reuse)", () => {
   it("exposes the valid type/status/grade lists", () => {
-    expect(VALID_TYPES).toEqual(["boulder", "lead"]);
+    expect(VALID_TYPES).toEqual(["boulder", "lead", "sport"]);
     expect(VALID_STATUSES).toEqual(["send", "project", "archived", "checkout"]);
     expect(VALID_GRADES.boulder.length).toBeGreaterThan(0);
     expect(VALID_GRADES.lead.length).toBeGreaterThan(0);
+    // #430/#641 -- sport shares lead's exact grade list (both are sport
+    // climbing, one grading scale).
+    expect(VALID_GRADES.sport).toEqual(VALID_GRADES.lead);
   });
 });

@@ -18,7 +18,13 @@
 // "server-only in practice."
 import * as v from "valibot";
 
-export const VALID_TYPES = ["boulder", "lead"];
+// #430/#641 -- 'sport' added alongside 'lead' (Lead being renamed to
+// Sport, additive/transitional per migrations/0012_rename_lead_to_sport.sql's
+// own comment: 'lead' stays valid here until #646's data cutover and
+// #642's final retirement land). VALID_GRADES.sport reuses the exact same
+// list as .lead (not a separate one) -- Lead and Top Rope are both sport
+// climbing, sharing one grading scale.
+export const VALID_TYPES = ["boulder", "lead", "sport"];
 // checkout/archived (#483) -- renamed from wishlist/abandoned, deferred
 // from #63/#473's icon redesign. Display text already said "Check out"/
 // "Archived" everywhere; this is the internal id catching up to match.
@@ -28,10 +34,19 @@ export const VALID_STATUSES = ["send", "project", "archived", "checkout"];
 // client only ever offers a closed set via a dropdown, so any other value
 // reaching here is a malformed write (bad client state, a hand-crafted API
 // call, or a stale offline-queue replay), not a legitimate grade.
+const SPORT_GRADES = ["5c", "6a", "6a+", "6b", "6b+", "6c", "6c+", "7a", "7a+", "7b", "7b+", "7c", "7c+", "8a"];
 export const VALID_GRADES = {
   boulder: ["5", "5+", "5A", "5B", "5C", "6A", "6A+", "6B", "6B+", "6C", "6C+", "7A", "7A+", "7B", "7B+", "7C", "7C+", "8A", "8A+", "8B", "8B+"],
-  lead:    ["5c", "6a", "6a+", "6b", "6b+", "6c", "6c+", "7a", "7a+", "7b", "7b+", "7c", "7c+", "8a"],
+  lead:    SPORT_GRADES,
+  sport:   SPORT_GRADES,
 };
+
+// #430/#641 -- Lead vs Top Rope, only meaningful when type is 'sport'.
+// Mirrors migrations/0012_rename_lead_to_sport.sql's entries.sport_style
+// CHECK constraint -- see that migration's own comment for why this is a
+// plain enum here, not a lookup table (a structurally closed pair, no
+// realistic third protection style for sport climbing).
+export const VALID_SPORT_STYLES = ["lead", "top_rope"];
 
 // #575 Phase 2 entry-data plan -- vocabulary for entry_moves/entry_pain_moves
 // rows (#36/#572). Fixed here as the single source of truth for both the
@@ -115,6 +130,7 @@ export const entrySchema = v.pipe(
     type: anyField,
     status: anyField,
     firstAttempt: anyField,
+    sportStyle: anyField,
     date: anyField,
     video: anyField,
     notes: anyField,
@@ -159,6 +175,20 @@ export const entrySchema = v.pipe(
     if (!VALID_STATUSES.includes(entry.status)) {
       addIssue({ message: `status must be one of: ${VALID_STATUSES.join(", ")}`, path: fieldPath(entry, "status") });
       return;
+    }
+    // #430/#641 -- sportStyle only makes sense for a Sport entry; rejected
+    // outright for Boulder/Lead rather than silently ignored, same "tell
+    // the caller their input was invalid" stance as every other check in
+    // this file.
+    if (entry.sportStyle !== undefined && entry.sportStyle !== null) {
+      if (entry.type !== "sport") {
+        addIssue({ message: "sportStyle is only valid when type is sport", path: fieldPath(entry, "sportStyle") });
+        return;
+      }
+      if (!VALID_SPORT_STYLES.includes(entry.sportStyle)) {
+        addIssue({ message: `sportStyle must be one of: ${VALID_SPORT_STYLES.join(", ")}`, path: fieldPath(entry, "sportStyle") });
+        return;
+      }
     }
     // #513 -- same class of bug as placeId/name above: DATE_SHAPE.test()
     // and `new URL()` both coerce a non-string argument to a string

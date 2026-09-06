@@ -29,6 +29,9 @@ export function buildRow(entry, id, userId) {
     discipline_id: entry.type,
     status_id: entry.status,
     first_attempt: entry.status === "send" && entry.firstAttempt ? 1 : 0,
+    // #430/#641 -- entrySchema already rejects sportStyle on a non-sport
+    // entry, so this is a direct passthrough, same shape as first_attempt.
+    sport_style: entry.sportStyle ?? null,
     date: entry.date || null,
     video: entry.video || null,
     notes: entry.notes || null,
@@ -53,6 +56,7 @@ export function rowToJson(row) {
     type: row.discipline_id,
     status: row.status_id,
     firstAttempt: !!row.first_attempt,
+    sportStyle: row.sport_style,
     date: row.date,
     video: row.video,
     notes: row.notes,

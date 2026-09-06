@@ -321,10 +321,17 @@ describe("settings", () => {
     expect((await res.json()).error).toBe("athleteMode must be a boolean");
   });
 
-  it("rejects an activeDiscipline outside boulder/lead", async () => {
-    const res = await patchJson("/logbook/api/admin/settings", { activeDiscipline: "sport" });
+  it("rejects an activeDiscipline outside boulder/lead/sport", async () => {
+    const res = await patchJson("/logbook/api/admin/settings", { activeDiscipline: "trad" });
     expect(res.status).toBe(400);
-    expect((await res.json()).error).toBe("activeDiscipline must be 'boulder' or 'lead'");
+    expect((await res.json()).error).toBe("activeDiscipline must be one of: boulder, lead, sport");
+  });
+
+  // #430/#641 -- 'sport' added alongside 'lead' (Lead being renamed to
+  // Sport, transitional per shared/entry-schema.js's own comment).
+  it("accepts an activeDiscipline of sport", async () => {
+    const res = await patchJson("/logbook/api/admin/settings", { activeDiscipline: "sport" });
+    expect(res.status).toBe(200);
   });
 
   it("rejects a non-boolean logbookPublic", async () => {

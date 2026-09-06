@@ -405,7 +405,7 @@ describe("handlePost", () => {
   );
 
   it("rejects an invalid type", async () => {
-    const res = await post({ ...validEntry(), type: "sport" });
+    const res = await post({ ...validEntry(), type: "trad" });
     expect(res.status).toBe(400);
     expect((await res.json()).error).toMatch(/^type must be one of/);
   });
@@ -419,6 +419,13 @@ describe("handlePost", () => {
 
   it("accepts a grade valid for the lead type", async () => {
     const res = await post({ ...validEntry(), type: "lead", grade: "6a" });
+    expect(res.status).toBe(201);
+  });
+
+  // #430/#641 -- 'sport' added alongside 'lead' (Lead being renamed to
+  // Sport, transitional -- see shared/entry-schema.js's own comment).
+  it("accepts a grade valid for the sport type", async () => {
+    const res = await post({ ...validEntry(), type: "sport", grade: "6a" });
     expect(res.status).toBe(201);
   });
 
@@ -527,6 +534,22 @@ describe("handlePost", () => {
     const res = await post({ ...validEntry(), status: "project", firstAttempt: true });
     const { entries } = await res.json();
     expect(entries[0].firstAttempt).toBe(false);
+  });
+
+  // #430/#641 -- sportStyle round-trips like any other field once it's
+  // valid for the entry's type; entrySchema is what actually enforces the
+  // type=sport requirement (covered in test/shared/entry-schema.test.js),
+  // this just confirms the write path persists and returns it.
+  it("persists and returns sportStyle for a sport entry", async () => {
+    const res = await post({ ...validEntry(), type: "sport", grade: "6a", sportStyle: "top_rope" });
+    const { entries } = await res.json();
+    expect(entries[0].sportStyle).toBe("top_rope");
+  });
+
+  it("null-coalesces a sport entry with no sportStyle to null", async () => {
+    const res = await post({ ...validEntry(), type: "sport", grade: "6a" });
+    const { entries } = await res.json();
+    expect(entries[0].sportStyle).toBeNull();
   });
 
   it("null-coalesces omitted optional fields", async () => {

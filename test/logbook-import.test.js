@@ -103,7 +103,7 @@ describe("handleImport", () => {
   });
 
   it("reports a discipline-worded message for an invalid discipline", async () => {
-    const res = await importCsv([csvRow({ discipline: "sport" })]);
+    const res = await importCsv([csvRow({ discipline: "trad" })]);
     expect(res.status).toBe(400);
     const { errors } = await res.json();
     expect(errors[0].error).toMatch(/^discipline must be one of/);
