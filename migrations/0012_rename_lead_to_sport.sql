@@ -1,0 +1,35 @@
+-- Adds the "Sport" discipline alongside "Lead" (#430/#640) -- the first
+-- step of renaming Lead to Sport (Lead and Top Rope are both sport
+-- climbing, sharing the same grading scale -- shared/grade-data.js's
+-- LEAD_GRADES). Deliberately additive-only, NOT a hard rename: this is a
+-- standalone migration, and per docs/adr/0020-beta-environment-shared-
+-- data-tag-promotion.md, a migration deploys immediately to both beta and
+-- production and so must stay backward-compatible with whatever app code
+-- is currently live there -- today's code still hardcodes 'lead'
+-- everywhere (VALID_TYPES, admin-auth.js, map-view.js, climbing-entries-
+-- table.js, performance.js). Deleting the 'lead' row or repointing
+-- existing entries here, before that code catches up, would break the
+-- live app the moment this deploys -- confirmed empirically: doing so
+-- broke 9 real tests with a FOREIGN KEY constraint failure the instant
+-- existing 'lead'-tagged entries had nowhere to point.
+--
+-- The actual cutover (migrate every entries.discipline_id/settings.
+-- active_discipline from 'lead' to 'sport', then delete the old row) is a
+-- separate, later migration (#<phase 1.5 issue>) that only runs once the
+-- backend (#641) already tolerates both values existing side by side --
+-- at that point converting the data and retiring the old row is safe
+-- either way, backward-compatible with what's live.
+INSERT INTO disciplines (id, name) VALUES ('sport', 'Sport');
+
+-- New field for Sport entries only (#430/#640): which protection style the
+-- climb was done in. NULL for Boulder entries, and NULL for existing
+-- 'lead' entries until the cutover migration reclassifies them. A plain
+-- CHECK-constrained column, not a lookup table like disciplines/statuses
+-- -- unlike those (which have real signals they may grow), Lead vs Top
+-- Rope is a structurally closed pair for sport climbing with no realistic
+-- third option, so a lookup table + FK would be unneeded overhead
+-- (Raven's call). Named sport_style (DB) / sportStyle (JSON wire) rather
+-- than a bare "style" so the field is self-documenting about which
+-- discipline it applies to -- matches this schema's existing
+-- first_attempt/firstAttempt snake_case-DB-to-camelCase-wire convention.
+ALTER TABLE entries ADD COLUMN sport_style TEXT CHECK (sport_style IN ('lead', 'top_rope'));
