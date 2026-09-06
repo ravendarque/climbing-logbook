@@ -69,16 +69,14 @@ describe("handleGetPyramid", () => {
     expect(sport.top4.some(r => r.grade === "6a" && r.count === 1)).toBe(true);
   });
 
-  // #430/#651 -- a pre-cutover 'lead'-typed entry (still possible until
-  // #646 runs) reports under the 'sport' key too, not its own -- see
-  // server/api/performance.js's own asSport() comment for why.
-  it("merges a legacy lead-typed entry into the sport bucket", async () => {
-    await postEntry({ type: "lead", grade: "6a" });
-
-    const { sport } = await (await get()).json();
-    expect(sport.hasSends).toBe(true);
-    expect(sport.top4.some(r => r.grade === "6a" && r.count === 1)).toBe(true);
-  });
+  // #430/#651's "merges a legacy lead-typed entry into the sport bucket"
+  // test lived here -- removed in #646: the cutover migration retired the
+  // 'lead' discipline row entirely, so postEntry({ type: "lead" }) can no
+  // longer succeed via the real API at all (every environment converts
+  // its data exactly once and never has a 'lead' row again afterward).
+  // server/api/performance.js's asSport() remap stays in place regardless
+  // -- a permanent no-op once no 'lead' rows can exist -- but there's no
+  // longer a way to construct the scenario it used to guard against.
 
   it("excludes non-send statuses and out-of-window dates, same rules as the pure function", async () => {
     await postEntry({ status: "project" });

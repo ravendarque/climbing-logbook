@@ -283,9 +283,9 @@ describe("settings", () => {
   });
 
   it("updates activeDiscipline on the happy path", async () => {
-    const res = await patchJson("/logbook/api/admin/settings", { activeDiscipline: "lead" });
+    const res = await patchJson("/logbook/api/admin/settings", { activeDiscipline: "sport" });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "lead", logbookPublic: true, betaOptIn: null });
+    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "sport", logbookPublic: true, betaOptIn: null });
   });
 
   it("updates logbookPublic on the happy path", async () => {
@@ -296,8 +296,8 @@ describe("settings", () => {
 
   it("merges a partial update onto existing settings instead of overwriting", async () => {
     await patchJson("/logbook/api/admin/settings", { athleteMode: true });
-    const res = await patchJson("/logbook/api/admin/settings", { activeDiscipline: "lead" });
-    expect(await res.json()).toEqual({ athleteMode: true, activeDiscipline: "lead", logbookPublic: true, betaOptIn: null });
+    const res = await patchJson("/logbook/api/admin/settings", { activeDiscipline: "sport" });
+    expect(await res.json()).toEqual({ athleteMode: true, activeDiscipline: "sport", logbookPublic: true, betaOptIn: null });
   });
 
   it("rejects malformed JSON", async () => {
