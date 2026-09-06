@@ -38,7 +38,7 @@ describe("ClimbingTabBar", () => {
     document.body.append(el);
     el.markReady();
     const links = el.querySelectorAll("a");
-    expect(links).toHaveLength(2); // Logbook, Map -- show-performance never set
+    expect(links).toHaveLength(1); // Logbook only -- show-performance never set
     expect(links[0].getAttribute("href")).toBe("/raven/log");
     expect(links[0].getAttribute("aria-current")).toBe("page");
   });
@@ -58,12 +58,12 @@ describe("ClimbingTabBar", () => {
     el.setAttribute("active-page", "performance");
     document.body.append(el);
     el.markReady();
-    expect(el.querySelectorAll("a")).toHaveLength(2);
+    expect(el.querySelectorAll("a")).toHaveLength(1);
 
     el.toggleAttribute("show-performance", true);
     const links = el.querySelectorAll("a");
-    expect(links).toHaveLength(3);
-    expect(links[2].textContent).toBe("Performance Insights");
-    expect(links[2].getAttribute("aria-current")).toBe("page");
+    expect(links).toHaveLength(2);
+    expect(links[1].textContent).toBe("Performance");
+    expect(links[1].getAttribute("aria-current")).toBe("page");
   });
 });

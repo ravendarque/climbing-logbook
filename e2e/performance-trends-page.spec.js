@@ -11,7 +11,7 @@ test("shows the zero-sends headline and the time-window control with no data", a
   await page.goto("/e2e-fixtures/pages/performance-trends.html");
 
   await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
-  await expect(page.locator("climbing-tab-bar a", { hasText: "Performance Insights" })).toHaveAttribute("aria-current", "page");
+  await expect(page.locator("climbing-tab-bar a", { hasText: "Performance" })).toHaveAttribute("aria-current", "page");
   // #601
   await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", "/e2e-fixtures/performance");
   await expect(page.locator("#view-explainer")).toContainText("every logged send's grade");

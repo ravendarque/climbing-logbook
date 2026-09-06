@@ -25,7 +25,8 @@
        itself from location.pathname at runtime. -->
   <link rel="stylesheet" href="/logbook/tailwind.css">
   <script src="/logbook/components/climbing-header.js"></script>
-  <script src="/logbook/components/climbing-menu-bar.js"></script>
+  <script src="/logbook/components/climbing-discipline-picker.js"></script>
+  <script src="/logbook/components/climbing-burger-menu.js"></script>
   <script>
     (function () {
       var stored = localStorage.getItem("logbook_theme");
@@ -41,13 +42,15 @@
        brand row below the header row, not centered above it). Found via
        Raven's production report, 2026-08-10 -- see climbing-header.js's
        own comment on the align-left attribute. -->
-  <div class="flex items-center justify-end gap-2 mb-6" id="header-row">
-    <climbing-menu-bar></climbing-menu-bar>
+  <div class="flex items-start justify-between gap-2" id="brand-row">
+    <climbing-header variant="brand" align-left></climbing-header>
+    <climbing-burger-menu></climbing-burger-menu>
   </div>
 
-  <climbing-header variant="brand" align-left></climbing-header>
-
-  <climbing-tab-bar active-page="map"></climbing-tab-bar>
+  <div class="flex items-end gap-3 mb-5" id="picker-tabs-row">
+    <climbing-discipline-picker></climbing-discipline-picker>
+    <climbing-tab-bar active-page="map"></climbing-tab-bar>
+  </div>
 
   <p class="text-[.95rem] mb-4" id="subtitle"></p>
   <div class="relative" id="map-wrap">

@@ -49,9 +49,10 @@ test("logged out -- username/My account link/settings rows all hidden", async ({
   await expect(page.locator("#menu-username")).toBeHidden();
   await expect(page.locator("#my-account-link")).toBeHidden();
   // #445 -- Athlete Mode/Public Logbook toggles live on this page now, not
-  // the shared menu (climbing-menu-bar.js no longer renders either row at
-  // all, on any page); both start `hidden` in markup and only appear once
-  // a real session is confirmed, same as menu-username/my-account-link.
+  // the shared burger menu (climbing-burger-menu.js, née climbing-menu-bar
+  // pre-#211/#465 -- no longer renders either row at all, on any page);
+  // both start `hidden` in markup and only appear once a real session is
+  // confirmed, same as menu-username/my-account-link.
   await expect(page.locator("#athlete-mode-row")).toBeHidden();
   await expect(page.locator("#public-logbook-row")).toBeHidden();
   // #443/#546 -- same treatment as the two rows above.
