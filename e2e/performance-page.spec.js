@@ -26,7 +26,7 @@ test("#599 -- the gap tile's title is discipline-aware and updates live on a dis
   await expect(gapTile.locator(".row-card-title")).toHaveText("Send / Flash Gap");
 
   await page.locator("#discipline-btn").click();
-  await page.locator('.discipline-option[data-discipline="lead"]').click();
+  await page.locator('.discipline-option[data-discipline="sport"]').click();
   await expect(gapTile.locator(".row-card-title")).toHaveText("Redpoint / Onsight Gap");
 });
 

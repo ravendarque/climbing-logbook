@@ -16,7 +16,7 @@ import { mockApi } from "./mock-api.js";
 const SEED = {
   entries: [
     { id: "e1", placeId: "p1", type: "boulder", status: "send", grade: "6A", date: "2026-05-01", name: "Boulder Seed" },
-    { id: "e2", placeId: "p1", type: "lead", status: "send", grade: "6a", date: "2026-05-02", name: "Lead Seed" },
+    { id: "e2", placeId: "p1", type: "sport", status: "send", grade: "6a", date: "2026-05-02", name: "Sport Seed" },
   ],
   places: [{ id: "p1", locationId: "l1", area: "" }],
   locations: [{ id: "l1", name: "Test Crag", country: "United Kingdom" }],
@@ -65,9 +65,9 @@ test("renders the shared chrome and a real entries table, and switches disciplin
   await expect(page.locator("#sections")).toContainText("Boulder Seed");
 
   await page.locator("#discipline-btn").click();
-  await page.locator('.discipline-option[data-discipline="lead"]').click();
-  await expect(page.locator("#discipline-btn-label")).toHaveText("Lead");
-  await expect(page.locator("#sections")).toContainText("Lead Seed");
+  await page.locator('.discipline-option[data-discipline="sport"]').click();
+  await expect(page.locator("#discipline-btn-label")).toHaveText("Sport");
+  await expect(page.locator("#sections")).toContainText("Sport Seed");
 
   await page.locator("#discipline-btn").click();
   await page.locator('.discipline-option[data-discipline="boulder"]').click();

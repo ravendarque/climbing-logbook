@@ -26,6 +26,14 @@ describe("gradeColor", () => {
     expect(gradeColor("6a", "lead")).toBe(LEAD_GRADES.find(x => x.g === "6a").c);
   });
 
+  // #430/#649 -- regression test for a real bug: the old
+  // `type === "lead" ? LEAD_GRADES : BOULDER_GRADES` ternary silently
+  // routed any type that wasn't literally "lead" (including a brand new
+  // "sport" type) to BOULDER_GRADES instead.
+  it("returns the curated (lead-scale) color for a sport grade, not boulder's", () => {
+    expect(gradeColor("6a", "sport")).toBe(LEAD_GRADES.find(x => x.g === "6a").c);
+  });
+
   it("is case-insensitive against the curated list", () => {
     expect(gradeColor("6b", "boulder")).toBe(gradeColor("6B", "boulder"));
   });

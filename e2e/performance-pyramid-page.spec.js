@@ -22,9 +22,16 @@ import { mockApi } from "./mock-api.js";
 import { pyramidSplitRows } from "../shared/pyramid-stats.js";
 
 const today = new Date().toISOString().slice(0, 10);
+// #430/#649 -- 'sport' (Lead being renamed to Sport), not 'lead' -- this
+// mocked response shape gets ahead of the real server's own response key
+// (server/api/performance.js still returns 'lead' until #642's own
+// cutover-dependent rename), but the client only ever reads the response
+// keyed by whatever discipline it's currently switched to, so testing
+// that behavior against 'sport' now is exactly what this component needs
+// to work correctly for once #642 lands.
 const PYRAMID_DATA = {
   boulder: pyramidSplitRows("boulder", [{ type: "boulder", status: "send", grade: "6A", date: today }]),
-  lead: pyramidSplitRows("lead", [{ type: "lead", status: "send", grade: "6a", date: today }]),
+  sport: pyramidSplitRows("sport", [{ type: "sport", status: "send", grade: "6a", date: today }]),
 };
 
 test("renders the shared chrome and a real grade pyramid, and switches discipline", async ({ page }) => {
@@ -48,8 +55,8 @@ test("renders the shared chrome and a real grade pyramid, and switches disciplin
   await expect(page.locator("#performance-offline")).toBeHidden();
 
   await page.locator("#discipline-btn").click();
-  await page.locator('.discipline-option[data-discipline="lead"]').click();
-  await expect(page.locator("#discipline-btn-label")).toHaveText("Lead");
+  await page.locator('.discipline-option[data-discipline="sport"]').click();
+  await expect(page.locator("#discipline-btn-label")).toHaveText("Sport");
 
   await page.locator("#discipline-btn").click();
   await page.locator('.discipline-option[data-discipline="boulder"]').click();

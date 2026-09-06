@@ -12,7 +12,7 @@ test("renders the shared chrome, a real map, and switches discipline (persisted 
   await mockApi(page, {
     entries: [
       { id: "e1", placeId: "p1", type: "boulder", status: "send", grade: "6A", date: "2026-05-01", name: "Boulder Seed" },
-      { id: "e2", placeId: "p1", type: "lead", status: "send", grade: "6a", date: "2026-05-02", name: "Lead Seed" },
+      { id: "e2", placeId: "p1", type: "sport", status: "send", grade: "6a", date: "2026-05-02", name: "Sport Seed" },
     ],
     places: [{ id: "p1", locationId: "l1", area: "" }],
     locations: [{ id: "l1", name: "Test Crag", country: "United Kingdom" }],
@@ -29,9 +29,9 @@ test("renders the shared chrome, a real map, and switches discipline (persisted 
   await page.locator("#discipline-btn").click();
   await Promise.all([
     page.waitForResponse(res => res.url().includes("/logbook/api/admin/settings") && res.request().method() === "PATCH"),
-    page.locator('.discipline-option[data-discipline="lead"]').click(),
+    page.locator('.discipline-option[data-discipline="sport"]').click(),
   ]);
-  await expect(page.locator("#discipline-btn-label")).toHaveText("Lead");
+  await expect(page.locator("#discipline-btn-label")).toHaveText("Sport");
 
   await page.locator("#discipline-btn").click();
   await page.locator('.discipline-option[data-discipline="boulder"]').click();
