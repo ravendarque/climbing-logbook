@@ -20,6 +20,15 @@
 // "discipline-btn-label") and the "#discipline-wrap" selector passed to
 // createDisclosure() -- none of that cares where in the document this
 // element's markup physically lives.
+//
+// #430/#649 -- "Lead" option renamed to "Sport" (data-discipline="lead"
+// -> "sport"), covering both Lead and Top Rope going forward (#643 adds
+// the Lead/Top-Rope sub-choice on the entry form itself). Deliberately
+// the FIRST client-facing piece of the rename to land, ahead of the data
+// cutover (#646): entry-form.js's `type: store.getActiveType()` reads
+// directly from whichever discipline this picker last selected, so the
+// picker must stop offering "lead" before the DB stops accepting it, or
+// a real user creating a new entry in that gap gets a 500.
 (function () {
   class ClimbingDisciplinePicker extends HTMLElement {
     connectedCallback() {
@@ -34,8 +43,8 @@
         Boulder
         <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
       </button>
-      <button type="button" class="discipline-option flex items-center justify-between w-full font-sans text-[.85rem] font-semibold text-foreground bg-transparent border-0 rounded-[calc(var(--radius-app)-2px)] px-[.6rem] py-[.55rem] cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible" role="option" data-discipline="lead" aria-selected="false">
-        Lead
+      <button type="button" class="discipline-option flex items-center justify-between w-full font-sans text-[.85rem] font-semibold text-foreground bg-transparent border-0 rounded-[calc(var(--radius-app)-2px)] px-[.6rem] py-[.55rem] cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible" role="option" data-discipline="sport" aria-selected="false">
+        Sport
         <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
       </button>
     </div>

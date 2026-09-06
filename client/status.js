@@ -4,10 +4,19 @@ import { STATUS_ICONS } from "./status-icons.js";
 // "Flash"/"Send" are bouldering terms; the equivalent sport/lead terms
 // are "Onsight"/"Redpoint" (same underlying status/flash data either
 // way, see #98) -- icons stay the same, only the label text differs.
-const FLASH_LABEL = { boulder: ["Flash", "Flashes"], lead: ["Onsight", "Onsights"] };
-const SEND_LABEL  = { boulder: ["Send", "Sends"],    lead: ["Redpoint", "Redpoints"] };
-const NAME_LABEL  = { boulder: "Problem name", lead: "Route name" };
-const DISCIPLINE_LABEL = { boulder: "Boulder", lead: "Lead" };
+//
+// #430/#649 -- 'sport' added alongside 'lead' (Lead being renamed to
+// Sport, same wording lead already used -- Top Rope shares it too, see
+// #430's own scope). 'lead' stays here for now, not removed: historical
+// entries with type "lead" still exist until #646's data cutover runs,
+// and these functions get called with a real entry's own `.type` when
+// rendering it (statusBadge() etc.) -- removing 'lead' now would crash
+// rendering any not-yet-migrated entry. Final removal is #642, once #646
+// has converted every real entry away from 'lead'.
+const FLASH_LABEL = { boulder: ["Flash", "Flashes"], lead: ["Onsight", "Onsights"], sport: ["Onsight", "Onsights"] };
+const SEND_LABEL  = { boulder: ["Send", "Sends"],    lead: ["Redpoint", "Redpoints"], sport: ["Redpoint", "Redpoints"] };
+const NAME_LABEL  = { boulder: "Problem name", lead: "Route name", sport: "Route name" };
+const DISCIPLINE_LABEL = { boulder: "Boulder", lead: "Lead", sport: "Sport" };
 
 export const flashLabel = (type, plural) => FLASH_LABEL[type ?? "boulder"][plural ? 1 : 0];
 export const sendLabel  = (type, plural) => SEND_LABEL[type ?? "boulder"][plural ? 1 : 0];

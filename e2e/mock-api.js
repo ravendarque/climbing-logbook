@@ -29,7 +29,11 @@ export async function mockApi(page, {
   // (that's shared/pyramid-stats.js's own job, covered directly by
   // test/shared/pyramid-stats.test.js); a test that needs a real pyramid
   // supplies the already-split result it expects to see rendered.
-  pyramidData = { boulder: EMPTY_PYRAMID, lead: EMPTY_PYRAMID },
+  // #430/#649 -- 'sport', not 'lead' (Lead being renamed to Sport) --
+  // matches the shape a discipline-switch test now exercises, even though
+  // the real server itself still returns 'lead' until #642's cutover-
+  // dependent rename.
+  pyramidData = { boulder: EMPTY_PYRAMID, sport: EMPTY_PYRAMID },
   // #39 -- server/api/performance.js's own handleGetInjuryLog() shape
   // ({ log, cluster }), same "already-computed, not raw entries" contract
   // as pyramidData above -- a test that needs a real ranked cluster/log
@@ -51,7 +55,7 @@ export async function mockApi(page, {
   // test only needs to override this when it wants non-zero sends.
   volumeData = {
     boulder: { buckets: ["-3w", "-2w", "-1w"], sendCounts: [0, 0, 0], maxGradeByBucket: [null, null, null] },
-    lead: { buckets: ["-3w", "-2w", "-1w"], sendCounts: [0, 0, 0], maxGradeByBucket: [null, null, null] },
+    sport: { buckets: ["-3w", "-2w", "-1w"], sendCounts: [0, 0, 0], maxGradeByBucket: [null, null, null] },
   },
   // #14 -- server/api/performance.js's own handleGetGap() shape, same
   // "already-computed, not raw entries" contract as pyramidData/
@@ -62,7 +66,7 @@ export async function mockApi(page, {
   // "no data" contract, not a genuine measured zero.
   gapData = {
     boulder: { buckets: ["-3w", "-2w", "-1w"], flashMaxByBucket: [null, null, null], sendMaxByBucket: [null, null, null], avgAttemptsByBucket: [null, null, null], headline: "No sends logged in this window yet." },
-    lead: { buckets: ["-3w", "-2w", "-1w"], flashMaxByBucket: [null, null, null], sendMaxByBucket: [null, null, null], avgAttemptsByBucket: [null, null, null], headline: "No sends logged in this window yet." },
+    sport: { buckets: ["-3w", "-2w", "-1w"], flashMaxByBucket: [null, null, null], sendMaxByBucket: [null, null, null], avgAttemptsByBucket: [null, null, null], headline: "No sends logged in this window yet." },
   },
   // #38 -- server/api/performance.js's own handleGetEffort() shape, same
   // "already-computed, not raw entries" contract as the routes above.
@@ -71,7 +75,7 @@ export async function mockApi(page, {
   // headline) -- a test that needs a confident headline supplies it.
   effortData = {
     boulder: { buckets: ["-3w", "-2w", "-1w"], maxGradeByBucket: [null, null, null], avgExertionByBucket: [null, null, null], headline: null },
-    lead: { buckets: ["-3w", "-2w", "-1w"], maxGradeByBucket: [null, null, null], avgExertionByBucket: [null, null, null], headline: null },
+    sport: { buckets: ["-3w", "-2w", "-1w"], maxGradeByBucket: [null, null, null], avgExertionByBucket: [null, null, null], headline: null },
   },
   // #498 -- true by default: seeds client/sync-status.js's own marker so
   // every EXISTING test (written before /sync existed) still lands

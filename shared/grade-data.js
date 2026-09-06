@@ -64,8 +64,18 @@ const GRADE_COLOR_BANDS = [
 // rank thresholds to both compressed most of Lead's range into a couple of
 // bands (#109); per-discipline lookup sidesteps that instead of just
 // recalibrating the thresholds.
+// #430/#649 -- was `type === "lead" ? LEAD_GRADES : BOULDER_GRADES`: that
+// direction silently mis-colored anything that wasn't literally "boulder"
+// or "lead" as boulder (found while adding "sport" -- a Sport entry's
+// grade would have looked up BOULDER_GRADES's colors instead of the
+// shared boulder/lead-style scale it actually uses). `type ?? "boulder"`
+// preserves the documented "omitted type defaults to boulder" behavior
+// (test/shared/grade-data.test.js's own case) while routing every other
+// non-boulder value -- "lead", "sport", and whatever comes after either
+// -- to LEAD_GRADES, matching entry-form.js's own grade-list ternary
+// (`store.getActiveType() === "boulder" ? BOULDER_GRADES : LEAD_GRADES`).
 export function gradeColor(g, type) {
-  const list = type === "lead" ? LEAD_GRADES : BOULDER_GRADES;
+  const list = (type ?? "boulder") === "boulder" ? BOULDER_GRADES : LEAD_GRADES;
   const hit = list.find(x => x.g.toUpperCase() === String(g).toUpperCase());
   if (hit) return hit.c;
 
