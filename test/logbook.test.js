@@ -417,13 +417,10 @@ describe("handlePost", () => {
     expect((await res.json()).error).toMatch(/^grade must be one of/);
   });
 
-  it("accepts a grade valid for the lead type", async () => {
-    const res = await post({ ...validEntry(), type: "lead", grade: "6a" });
-    expect(res.status).toBe(201);
-  });
-
-  // #430/#641 -- 'sport' added alongside 'lead' (Lead being renamed to
-  // Sport, transitional -- see shared/entry-schema.js's own comment).
+  // #430/#646 -- 'lead' fully retired now (this test used to cover it
+  // directly; superseded by the 'sport' case below once the cutover
+  // migration made 'lead' permanently uncreatable at the DB layer, even
+  // though VALID_TYPES won't drop the string itself until #642).
   it("accepts a grade valid for the sport type", async () => {
     const res = await post({ ...validEntry(), type: "sport", grade: "6a" });
     expect(res.status).toBe(201);

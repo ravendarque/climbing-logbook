@@ -41,11 +41,11 @@ describe("handleGetMapCounts", () => {
     await postEntry(placeId, { type: "boulder", status: "send", firstAttempt: true });
     await postEntry(placeId, { type: "boulder", status: "send", firstAttempt: false });
     await postEntry(placeId, { type: "boulder", status: "project" });
-    await postEntry(placeId, { type: "lead", grade: "6a", status: "send", firstAttempt: true });
+    await postEntry(placeId, { type: "sport", grade: "6a", status: "send", firstAttempt: true });
 
     const counts = await (await get()).json();
     expect(counts.France.boulder).toEqual({ total: 3, flash: 1, send: 1, project: 1 });
-    expect(counts.France.lead).toEqual({ total: 1, flash: 1, send: 0, project: 0 });
+    expect(counts.France.sport).toEqual({ total: 1, flash: 1, send: 0, project: 0 });
   });
 
   it("total counts every entry regardless of status -- a pin needs to show even for a location with only archived/checkout entries", async () => {

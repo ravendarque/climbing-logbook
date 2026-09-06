@@ -1,7 +1,7 @@
 /**
  * Seeds the three reserved, publicly-viewable demo accounts (#251):
  * beginnerdemo/intermediatedemo/advanceddemo, one tiered dataset each
- * (boulder + lead, many locations/countries, a realistic broad-base grade
+ * (boulder + sport, many locations/countries, a realistic broad-base grade
  * distribution, plus RPE/attempts/move-tag/pain-move data so every
  * performance-insight view -- Grade Pyramid, Injury/Pain Log, Strengths/
  * Weaknesses, Volume/Intensity, Gap, RPE -- has real, substantial content
@@ -84,10 +84,12 @@ const AREAS = [
 // generate per discipline. Sized so advanced alone clears "hundreds of
 // climbs" on its own, with beginner/intermediate scaled down under it --
 // not just "enough to not be empty".
+// #430/#646 -- sportRange, not leadRange: the discipline is Sport now
+// (Lead renamed, covering Lead and Top Rope alike). Values unchanged.
 const TIERS = {
-  beginnerdemo: { boulderRange: [0, 6], leadRange: [0, 4], entriesPerDiscipline: 30 },
-  intermediatedemo: { boulderRange: [3, 13], leadRange: [2, 10], entriesPerDiscipline: 60 },
-  advanceddemo: { boulderRange: [6, 20], leadRange: [4, 14], entriesPerDiscipline: 120 },
+  beginnerdemo: { boulderRange: [0, 6], sportRange: [0, 4], entriesPerDiscipline: 30 },
+  intermediatedemo: { boulderRange: [3, 13], sportRange: [2, 10], entriesPerDiscipline: 60 },
+  advanceddemo: { boulderRange: [6, 20], sportRange: [4, 14], entriesPerDiscipline: 120 },
 };
 
 const HOLD_TYPES_BY_LIMB = { hand: ["crimp", "jug", "pocket", "sloper", "pinch", "edge"], foot: ["toe-hook", "heel-hook"], knee: ["kneebar"] };
@@ -151,9 +153,9 @@ function buildPersonaSql(persona) {
   });
 
   const entryIds = [];
-  for (const type of ["boulder", "lead"]) {
+  for (const type of ["boulder", "sport"]) {
     const allGrades = type === "boulder" ? BOULDER_GRADES : LEAD_GRADES;
-    const [from, to] = type === "boulder" ? tier.boulderRange : tier.leadRange;
+    const [from, to] = type === "boulder" ? tier.boulderRange : tier.sportRange;
     const grades = allGrades.slice(from, to);
 
     for (let i = 0; i < tier.entriesPerDiscipline; i++) {
@@ -179,7 +181,7 @@ function buildPersonaSql(persona) {
       const firstAttempt = status === "send" && i % 2 === 0;
       const rpe = status === "send" ? 40 + (i % 6) * 10 : null;
       const attemptsToSend = status === "send" ? 1 + (i % 4) : null;
-      const name = `${label} ${type === "boulder" ? "Boulder" : "Lead"} #${i + 1}`;
+      const name = `${label} ${type === "boulder" ? "Boulder" : "Sport"} #${i + 1}`;
 
       statements.push(`INSERT OR IGNORE INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id, first_attempt, date, video, notes, created_at, updated_at) VALUES (${sqlStr(entryId)}, ${sqlStr(userId)}, ${sqlStr(placeId)}, ${sqlStr(name)}, ${sqlStr(grade)}, ${sqlStr(type)}, ${sqlStr(status)}, ${sqlBool(firstAttempt)}, ${sqlStr(isoDateWeeksAgo(weeksAgo))}, NULL, NULL, ${now}, ${now});`);
       statements.push(`UPDATE entries SET attempts_to_send = ${attemptsToSend ?? "NULL"}, rpe = ${rpe ?? "NULL"} WHERE id = ${sqlStr(entryId)};`);

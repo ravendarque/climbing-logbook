@@ -41,12 +41,11 @@ async function seedPlace(userId, locationId, id = "place-1") {
 describe("lookup tables", () => {
   it("seeds disciplines", async () => {
     const { results } = await env.LOGBOOK_DB.prepare(`SELECT id, name FROM disciplines ORDER BY id`).all();
-    // #430/#640 -- 'sport' added alongside 'lead' (additive, not yet a
-    // hard rename -- see migrations/0012_rename_lead_to_sport.sql's own
-    // comment for why this migration can't remove 'lead' on its own).
+    // #430/#646 -- 'lead' fully retired now that the cutover migration
+    // has run (migrations/0013_cutover_lead_to_sport.sql) -- 'sport'
+    // covers Lead and Top Rope alike.
     expect(results).toEqual([
       { id: "boulder", name: "Boulder" },
-      { id: "lead", name: "Lead" },
       { id: "sport", name: "Sport" },
     ]);
   });

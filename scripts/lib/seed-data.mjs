@@ -48,14 +48,14 @@ const CURATED_ENTRIES = [
   { id: "seed-04", name: "Not So Soft", grade: "8A", placeId: "seed-place-font-95-2", type: "boulder", status: "checkout", firstAttempt: false, date: null, video: null, notes: null },
   { id: "seed-05", name: "Digitalis", grade: "7C", placeId: "seed-place-magic-wood-new-base-camp", type: "boulder", status: "project", firstAttempt: false, date: "2026-06", video: "https://vimeo.com/12345678", notes: "Big moves, need to grow 6 inches" },
   { id: "seed-06", name: "The Practice", grade: "6C", placeId: "seed-place-magic-wood-farmer-wall", type: "boulder", status: "archived", firstAttempt: false, date: "2026-02-02", video: null, notes: "Landing zone felt sketchy, bailed" },
-  { id: "seed-07", name: "Voie des Dalles", grade: "6a", placeId: "seed-place-albarracin-ventorrillo", type: "lead", status: "send", firstAttempt: true, date: "2026-01-20", video: null, notes: null },
-  { id: "seed-08", name: "Puentedura", grade: "7a+", placeId: "seed-place-albarracin", type: "lead", status: "project", firstAttempt: false, date: null, video: null, notes: "Redpoint attempt next trip" },
-  { id: "seed-09", name: "Bat Route", grade: "6b", placeId: "seed-place-southern-sandstone-harrisons", type: "lead", status: "send", firstAttempt: false, date: "2025-09-06", video: null, notes: null },
-  { id: "seed-10", name: "Slab Happy", grade: "6a+", placeId: "seed-place-portland", type: "lead", status: "checkout", firstAttempt: false, date: null, video: null, notes: null },
+  { id: "seed-07", name: "Voie des Dalles", grade: "6a", placeId: "seed-place-albarracin-ventorrillo", type: "sport", status: "send", firstAttempt: true, date: "2026-01-20", video: null, notes: null },
+  { id: "seed-08", name: "Puentedura", grade: "7a+", placeId: "seed-place-albarracin", type: "sport", status: "project", firstAttempt: false, date: null, video: null, notes: "Redpoint attempt next trip" },
+  { id: "seed-09", name: "Bat Route", grade: "6b", placeId: "seed-place-southern-sandstone-harrisons", type: "sport", status: "send", firstAttempt: false, date: "2025-09-06", video: null, notes: null },
+  { id: "seed-10", name: "Slab Happy", grade: "6a+", placeId: "seed-place-portland", type: "sport", status: "checkout", firstAttempt: false, date: null, video: null, notes: null },
 ];
 
 // #227 -- CURATED_ENTRIES above only ever had "send" status at 2 tiers per
-// discipline (6B/5C boulder, 6a/6b lead) -- pyramidCounts() (shared/
+// discipline (6B/5C boulder, 6a/6b sport) -- pyramidCounts() (shared/
 // pyramid-stats.js) only counts status === "send", so that's really only
 // 2 populated tiers each, nowhere near enough to exercise
 // pyramidReadyToPromote()'s window logic (needs several consecutive
@@ -68,12 +68,16 @@ const CURATED_ENTRIES = [
 // from promoting the top tier. Deterministic (grade index/place rotation
 // drive both date and placeId), not random -- same idempotent-reseed
 // requirement as the rest of this file.
-const PYRAMID_TIER_COUNT = { boulder: 10, lead: 8 }; // out of BOULDER_GRADES' 21 / LEAD_GRADES' 14
+// #430/#646 -- 'sport', not 'lead' (Lead renamed to Sport). Key stays
+// "sport" here even though the grade list it looks up is still named
+// LEAD_GRADES (shared/grade-data.js) -- that module's own naming is
+// unaffected by this rename.
+const PYRAMID_TIER_COUNT = { boulder: 10, sport: 8 }; // out of BOULDER_GRADES' 21 / LEAD_GRADES' 14
 const SENDS_PER_TIER = 2;
 
 function generatePyramidEntries() {
   const entries = [];
-  for (const type of ["boulder", "lead"]) {
+  for (const type of ["boulder", "sport"]) {
     const grades = (type === "boulder" ? BOULDER_GRADES : LEAD_GRADES).slice(0, PYRAMID_TIER_COUNT[type]);
     grades.forEach(({ g: grade }, tierIdx) => {
       for (let n = 0; n < SENDS_PER_TIER; n++) {
@@ -87,7 +91,7 @@ function generatePyramidEntries() {
         date.setMonth(date.getMonth() - monthsAgo);
         entries.push({
           id: `seed-pyramid-${type}-${grade.toLowerCase().replace("+", "plus")}-${n}`,
-          name: `Pyramid ${type === "boulder" ? "Boulder" : "Lead"} #${i + 1} (${grade})`,
+          name: `Pyramid ${type === "boulder" ? "Boulder" : "Sport"} #${i + 1} (${grade})`,
           grade,
           placeId: place.id,
           type,
