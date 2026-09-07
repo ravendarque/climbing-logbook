@@ -321,10 +321,10 @@ describe("settings", () => {
     expect((await res.json()).error).toBe("athleteMode must be a boolean");
   });
 
-  it("rejects an activeDiscipline outside boulder/lead/sport", async () => {
+  it("rejects an activeDiscipline outside boulder/sport", async () => {
     const res = await patchJson("/logbook/api/admin/settings", { activeDiscipline: "trad" });
     expect(res.status).toBe(400);
-    expect((await res.json()).error).toBe("activeDiscipline must be one of: boulder, lead, sport");
+    expect((await res.json()).error).toBe("activeDiscipline must be one of: boulder, sport");
   });
 
   // #430/#641 -- 'sport' added alongside 'lead' (Lead being renamed to
