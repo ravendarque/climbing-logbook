@@ -138,6 +138,24 @@
         </div>
       </div>
 
+      <!-- #643 -- Lead/Top-Rope, shown only for a Sport entry (client/
+           entry-form.js's updateSportStyleVisibility()) -- hidden by
+           default here so it never flashes visible before the form's own
+           JS runs. -->
+      <div class="mt-[1.1rem]" id="sport-style-field" hidden>
+        <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2" id="sport-style-label">Style</div>
+        <fieldset class="border border-border rounded-app overflow-x-auto flex flex-nowrap w-full mb-3 min-w-0" id="sport-style-group" aria-labelledby="sport-style-label">
+          <label class="toggle-btn bg-surface text-muted text-[.85rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex items-center justify-center px-[.3rem] py-[.65rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
+            <input type="radio" name="sport-style" value="lead" class="sr-only">
+            Lead
+          </label>
+          <label class="toggle-btn bg-surface text-muted text-[.85rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex items-center justify-center px-[.3rem] py-[.65rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
+            <input type="radio" name="sport-style" value="top_rope" class="sr-only">
+            Top Rope
+          </label>
+        </fieldset>
+      </div>
+
       <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]" id="status-group-label">Status</div>
       <fieldset class="border border-border rounded-app overflow-x-auto flex flex-nowrap w-full mb-3 min-w-0" id="status-group" aria-labelledby="status-group-label">
         <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">

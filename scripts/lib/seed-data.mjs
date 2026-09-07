@@ -48,10 +48,10 @@ const CURATED_ENTRIES = [
   { id: "seed-04", name: "Not So Soft", grade: "8A", placeId: "seed-place-font-95-2", type: "boulder", status: "checkout", firstAttempt: false, date: null, video: null, notes: null },
   { id: "seed-05", name: "Digitalis", grade: "7C", placeId: "seed-place-magic-wood-new-base-camp", type: "boulder", status: "project", firstAttempt: false, date: "2026-06", video: "https://vimeo.com/12345678", notes: "Big moves, need to grow 6 inches" },
   { id: "seed-06", name: "The Practice", grade: "6C", placeId: "seed-place-magic-wood-farmer-wall", type: "boulder", status: "archived", firstAttempt: false, date: "2026-02-02", video: null, notes: "Landing zone felt sketchy, bailed" },
-  { id: "seed-07", name: "Voie des Dalles", grade: "6a", placeId: "seed-place-albarracin-ventorrillo", type: "sport", status: "send", firstAttempt: true, date: "2026-01-20", video: null, notes: null },
-  { id: "seed-08", name: "Puentedura", grade: "7a+", placeId: "seed-place-albarracin", type: "sport", status: "project", firstAttempt: false, date: null, video: null, notes: "Redpoint attempt next trip" },
-  { id: "seed-09", name: "Bat Route", grade: "6b", placeId: "seed-place-southern-sandstone-harrisons", type: "sport", status: "send", firstAttempt: false, date: "2025-09-06", video: null, notes: null },
-  { id: "seed-10", name: "Slab Happy", grade: "6a+", placeId: "seed-place-portland", type: "sport", status: "checkout", firstAttempt: false, date: null, video: null, notes: null },
+  { id: "seed-07", name: "Voie des Dalles", grade: "6a", placeId: "seed-place-albarracin-ventorrillo", type: "sport", status: "send", firstAttempt: true, date: "2026-01-20", video: null, notes: null, sportStyle: "lead" },
+  { id: "seed-08", name: "Puentedura", grade: "7a+", placeId: "seed-place-albarracin", type: "sport", status: "project", firstAttempt: false, date: null, video: null, notes: "Redpoint attempt next trip", sportStyle: "lead" },
+  { id: "seed-09", name: "Bat Route", grade: "6b", placeId: "seed-place-southern-sandstone-harrisons", type: "sport", status: "send", firstAttempt: false, date: "2025-09-06", video: null, notes: null, sportStyle: "top_rope" },
+  { id: "seed-10", name: "Slab Happy", grade: "6a+", placeId: "seed-place-portland", type: "sport", status: "checkout", firstAttempt: false, date: null, video: null, notes: null, sportStyle: "top_rope" },
 ];
 
 // #227 -- CURATED_ENTRIES above only ever had "send" status at 2 tiers per
@@ -100,6 +100,10 @@ function generatePyramidEntries() {
           date: date.toISOString().slice(0, 10),
           video: null,
           notes: null,
+          // #643 -- required for a sport entry; alternates lead/top_rope
+          // for realistic variety rather than every generated entry
+          // sharing one style.
+          ...(type === "sport" ? { sportStyle: n % 2 === 0 ? "lead" : "top_rope" } : {}),
         });
       }
     });

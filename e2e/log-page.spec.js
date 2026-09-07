@@ -188,6 +188,50 @@ test("adds and then deletes an entry via the Add/Edit modal", async ({ page }) =
   await expect(page.locator("#sections")).not.toContainText(entryName);
 });
 
+// #430/#643 -- Lead/Top-Rope style control, shown only for a Sport entry.
+// Same gotoLogHarness/mockApi harness and #add-btn/#entry-overlay pattern
+// as the modal test above.
+test("Style control is hidden for Boulder, shown+required for Sport, and pre-fills on edit", async ({ page }) => {
+  await gotoLogHarness(page);
+
+  // Boulder is the default active discipline -- the control never even
+  // shows up for a Boulder entry.
+  await page.locator("#add-btn").click();
+  await expect(page.locator("#entry-overlay")).toBeVisible();
+  await expect(page.locator("#sport-style-field")).toBeHidden();
+  await page.locator("#entry-close").click();
+
+  // Switch to Sport -- the control appears, defaulting to Lead (same
+  // "always a real selection" reasoning Status's own default-to-Send has).
+  await page.locator("#discipline-btn").click();
+  await page.locator('.discipline-option[data-discipline="sport"]').click();
+  await page.locator("#add-btn").click();
+  await expect(page.locator("#sport-style-field")).toBeVisible();
+  await expect(page.locator('#sport-style-group input[value="lead"]')).toBeChecked();
+
+  const entryName = `E2E sport-style test ${Date.now()}`;
+  await page.locator("#entry-name").fill(entryName);
+  await page.locator("#place-btn").click();
+  await page.locator('#place-listbox li[data-key="p1"]').click();
+  // sr-only radio backed by a styled label, same `force: true` reasoning
+  // the Exertion/Status tests above already use for this kind of control.
+  await page.locator('#sport-style-group input[value="top_rope"]').check({ force: true });
+
+  const [postReq] = await Promise.all([
+    page.waitForRequest(req => req.url().includes("/logbook/api/admin/logbook") && req.method() === "POST"),
+    page.locator("#entry-submit-btn").click(),
+  ]);
+  expect(postReq.postDataJSON().sportStyle).toBe("top_rope");
+  await expect(page.locator("#entry-overlay")).toBeHidden();
+
+  // Editing the just-saved entry pre-fills the style it was saved with.
+  await page.locator("#collapse-all-btn").click();
+  const row = page.locator("tr", { has: page.getByText(entryName, { exact: true }) });
+  await row.locator(".edit-btn").click();
+  await expect(page.locator("#sport-style-field")).toBeVisible();
+  await expect(page.locator('#sport-style-group input[value="top_rope"]')).toBeChecked();
+});
+
 // #575 Phase 2 entry-data plan (Task 6) -- end-to-end coverage for the
 // Exertion slider, Attempts stepper, and Move difficulty/Pain-injury
 // cascading-dropdown sections client/entry-form.js's own open()/submit
