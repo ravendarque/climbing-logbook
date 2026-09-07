@@ -173,10 +173,19 @@ export const entrySchema = v.pipe(
       addIssue({ message: `status must be one of: ${VALID_STATUSES.join(", ")}`, path: fieldPath(entry, "status") });
       return;
     }
-    // #430/#641 -- sportStyle only makes sense for a Sport entry; rejected
-    // outright for Boulder/Lead rather than silently ignored, same "tell
-    // the caller their input was invalid" stance as every other check in
-    // this file.
+    // #430/#641/#643 -- sportStyle only makes sense for a Sport entry;
+    // rejected outright for Boulder/Lead rather than silently ignored, same
+    // "tell the caller their input was invalid" stance as every other check
+    // in this file. Required (not just validated-if-present) for Sport as
+    // of #643 -- client/entry-form.js's own Style control always submits
+    // one of VALID_SPORT_STYLES for a Sport entry, so a request reaching
+    // here with type "sport" and no sportStyle is malformed input (a
+    // hand-crafted API call or a stale pre-#643 offline-queue replay), not
+    // a legitimate "no style chosen" state.
+    if (entry.type === "sport" && !entry.sportStyle) {
+      addIssue({ message: "Missing required field: sportStyle", path: fieldPath(entry, "sportStyle") });
+      return;
+    }
     if (entry.sportStyle !== undefined && entry.sportStyle !== null) {
       if (entry.type !== "sport") {
         addIssue({ message: "sportStyle is only valid when type is sport", path: fieldPath(entry, "sportStyle") });

@@ -56,6 +56,8 @@ export function createEntryForm({
   const entryDeleteBtn = document.getElementById("entry-delete-btn");
   const entryMsg      = document.getElementById("entry-msg");
   const statusGroup = document.getElementById("status-group");
+  const sportStyleField = document.getElementById("sport-style-field");
+  const sportStyleGroup = document.getElementById("sport-style-group");
   const exertionField = document.getElementById("exertion-field");
   const exertionSlider = document.getElementById("exertion-slider");
   const exertionValue = document.getElementById("exertion-value");
@@ -211,6 +213,23 @@ export function createEntryForm({
     isFlash = flash;
   }
 
+  // ── Sport style toggle (Lead vs Top Rope, #643) ─────────────────────────
+  // Only meaningful -- and only shown -- for a Sport entry (VALID_SPORT_STYLES,
+  // shared/entry-schema.js); Boulder never reaches this field at all, since
+  // there's no protection-style distinction for a boulder problem.
+  let selectedSportStyle = "lead";
+  function setSportStyleToggle(style) {
+    document.querySelector(`#sport-style-group input[value="${style}"]`).checked = true;
+    selectedSportStyle = style;
+  }
+  function updateSportStyleVisibility() {
+    sportStyleField.hidden = store.getActiveType() !== "sport";
+  }
+  sportStyleGroup.addEventListener("change", e => {
+    if (e.target.name !== "sport-style") return;
+    selectedSportStyle = e.target.value;
+  });
+
   // ── Date picker ──────────────────────────────────────────────────────
   datePickerBtn.addEventListener("click", () => {
     const current = dateInput.value.trim();
@@ -259,6 +278,13 @@ export function createEntryForm({
     else selectGradeByIndex(0);
     updateFormStatusLabels();
     setStatusToggle(entry?.status ?? "send", Boolean(entry?.firstAttempt));
+    updateSportStyleVisibility();
+    // Pre-fills the existing value in edit mode; defaults to Lead for a new
+    // Sport entry, same "always a real selection, never blank" reasoning
+    // setStatusToggle's own default ("send") already follows above -- the
+    // control is required (entrySchema's own rule), so it's never left
+    // genuinely unselected.
+    setSportStyleToggle(entry?.sportStyle ?? "lead");
     updateExertionVisibility();
     exertionSlider.value = entry?.rpe ?? 0;
     renderExertionValue();
@@ -301,6 +327,7 @@ export function createEntryForm({
       type:   store.getActiveType(),
       status: selectedStatus,
       firstAttempt: isFlash,
+      sportStyle: store.getActiveType() === "sport" ? selectedSportStyle : null,
       date:   dateInput.value.trim() || null,
       notes:  notesInput.value.trim() || null,
       video:  videoInput.value.trim() || null,

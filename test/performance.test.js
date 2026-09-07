@@ -58,7 +58,7 @@ describe("handleGetPyramid", () => {
 
   it("returns both disciplines in one response, reflecting the caller's own sends", async () => {
     await postEntry({ type: "boulder", grade: "6B" });
-    await postEntry({ type: "sport", grade: "6a" });
+    await postEntry({ type: "sport", grade: "6a", sportStyle: "lead" });
 
     const res = await get();
     expect(res.status).toBe(200);
@@ -259,7 +259,7 @@ describe("handleGetVolume", () => {
 
   it("reflects real sends within the window, split by discipline", async () => {
     await postEntry({ type: "boulder", grade: "6B", date: "2026-01-10" });
-    await postEntry({ type: "sport", grade: "6a", date: "2026-01-12" });
+    await postEntry({ type: "sport", grade: "6a", date: "2026-01-12", sportStyle: "lead" });
     const body = await (await getVolume(WINDOW)).json();
     expect(body.boulder.sendCounts).toEqual([0, 1, 0]);
     expect(body.sport.sendCounts).toEqual([0, 1, 0]);
@@ -317,7 +317,7 @@ describe("handleGetGap", () => {
 
   it("reflects real sends within the window, split by discipline and firstAttempt", async () => {
     await postEntry({ type: "boulder", grade: "6B", date: "2026-01-10", firstAttempt: true });
-    await postEntry({ type: "sport", grade: "6a", date: "2026-01-12", firstAttempt: false });
+    await postEntry({ type: "sport", grade: "6a", date: "2026-01-12", firstAttempt: false, sportStyle: "lead" });
     const body = await (await getGap(WINDOW)).json();
     expect(body.boulder.flashMaxByBucket).toEqual([null, "6B", null]);
     expect(body.sport.flashMaxByBucket).toEqual([null, null, null]);
@@ -376,7 +376,7 @@ describe("handleGetEffort", () => {
 
   it("reflects real sends within the window, split by discipline", async () => {
     await postEntry({ type: "boulder", grade: "6B", date: "2026-01-10", rpe: 60 });
-    await postEntry({ type: "sport", grade: "6a", date: "2026-01-12", rpe: 80 });
+    await postEntry({ type: "sport", grade: "6a", date: "2026-01-12", rpe: 80, sportStyle: "lead" });
     const body = await (await getEffort(WINDOW)).json();
     expect(body.boulder.avgExertionByBucket).toEqual([null, 60, null]);
     expect(body.sport.avgExertionByBucket).toEqual([null, 80, null]);

@@ -41,7 +41,7 @@ describe("handleGetMapCounts", () => {
     await postEntry(placeId, { type: "boulder", status: "send", firstAttempt: true });
     await postEntry(placeId, { type: "boulder", status: "send", firstAttempt: false });
     await postEntry(placeId, { type: "boulder", status: "project" });
-    await postEntry(placeId, { type: "sport", grade: "6a", status: "send", firstAttempt: true });
+    await postEntry(placeId, { type: "sport", grade: "6a", status: "send", firstAttempt: true, sportStyle: "lead" });
 
     const counts = await (await get()).json();
     expect(counts.France.boulder).toEqual({ total: 3, flash: 1, send: 1, project: 1 });

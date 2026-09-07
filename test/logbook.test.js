@@ -422,7 +422,7 @@ describe("handlePost", () => {
   // migration made 'lead' permanently uncreatable at the DB layer, even
   // though VALID_TYPES won't drop the string itself until #642).
   it("accepts a grade valid for the sport type", async () => {
-    const res = await post({ ...validEntry(), type: "sport", grade: "6a" });
+    const res = await post({ ...validEntry(), type: "sport", grade: "6a", sportStyle: "lead" });
     expect(res.status).toBe(201);
   });
 
@@ -543,10 +543,13 @@ describe("handlePost", () => {
     expect(entries[0].sportStyle).toBe("top_rope");
   });
 
-  it("null-coalesces a sport entry with no sportStyle to null", async () => {
+  // #643 -- sportStyle is required for a sport entry (entrySchema's own
+  // rule, covered directly in test/shared/entry-schema.test.js); this just
+  // confirms the write path actually enforces it, not just accepts it.
+  it("rejects a sport entry with no sportStyle at all", async () => {
     const res = await post({ ...validEntry(), type: "sport", grade: "6a" });
-    const { entries } = await res.json();
-    expect(entries[0].sportStyle).toBeNull();
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("Missing required field: sportStyle");
   });
 
   it("null-coalesces omitted optional fields", async () => {

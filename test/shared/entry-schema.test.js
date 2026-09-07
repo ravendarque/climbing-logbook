@@ -58,7 +58,7 @@ describe("validateEntryShape", () => {
 
   // #430 -- Lead renamed to Sport.
   it("accepts a grade valid for the sport type", () => {
-    expect(validateEntryShape(validEntry({ type: "sport", grade: "6a" }))).toBeNull();
+    expect(validateEntryShape(validEntry({ type: "sport", grade: "6a", sportStyle: "lead" }))).toBeNull();
   });
 
   it("rejects sportStyle on a non-sport entry", () => {
@@ -73,8 +73,10 @@ describe("validateEntryShape", () => {
     expect(validateEntryShape(validEntry({ type: "sport", grade: "6a", sportStyle }))).toBeNull();
   });
 
-  it("accepts a sport entry with no sportStyle at all", () => {
-    expect(validateEntryShape(validEntry({ type: "sport", grade: "6a" }))).toBeNull();
+  // #643 -- sportStyle is required for a sport entry (the entry form's own
+  // Style control always submits one), unlike #641's original scope.
+  it.each([undefined, null, ""])("rejects a sport entry with sportStyle %p (missing, not just falsy)", sportStyle => {
+    expect(validateEntryShape(validEntry({ type: "sport", grade: "6a", sportStyle }))).toBe("Missing required field: sportStyle");
   });
 
   it("rejects an invalid status", () => {
