@@ -1,0 +1,30 @@
+-- Fixes a real gap in migrations/0013_cutover_lead_to_sport.sql (#430/
+-- #646, already merged): that migration repointed every entries.
+-- discipline_id from 'lead' to 'sport' via a plain UPDATE, but never
+-- touched sync_cursor. /log's own connectivity-first design (ADR-0006)
+-- means a real (non-demo) user's client reads entries from its local,
+-- already-synced cache, not a fresh network fetch -- staying current
+-- relies entirely on delta-sync (server/lib/d1-resource.js's
+-- listChangedForUser, `WHERE user_id = ? AND sync_cursor >= ?`). Any
+-- entry a real user had already synced before 0013 ran keeps its old
+-- cursor, permanently below whatever cursor their client already has, so
+-- delta-sync could never detect the rename -- their local cache would
+-- stay stuck showing the old, retired 'lead' value forever, with no
+-- automatic recovery path.
+--
+-- Confirmed live, not just reasoned about: seeded local dev data,
+-- verified the real /logbook/api/logbook response correctly said
+-- "sport" server-side, then confirmed via climbing-entries-table's own
+-- entries property that the browser's already-synced cache still said
+-- "lead" for the same rows -- entries silently invisible from every
+-- discipline-filtered view.
+--
+-- Bumps every Sport entry's cursor to "now," guaranteeing the next
+-- delta-pull picks it up regardless of whether it was just converted by
+-- 0013 or already existed as Sport since #649 -- harmless either way (a
+-- resync of an already-current row is a no-op cost, not a correctness
+-- issue). 0013 already ran, so there's no way to distinguish
+-- "just-converted" from "always was sport" after the fact; bumping all
+-- of them is the only option left, and the only one that's actually
+-- needed.
+UPDATE entries SET sync_cursor = CAST(unixepoch() * 1000 AS INTEGER) WHERE discipline_id = 'sport';
