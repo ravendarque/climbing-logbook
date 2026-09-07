@@ -51,12 +51,11 @@ export function gapByBucket(entries, buckets) {
 // breaking this codebase's established shared/client layering. See this
 // plan's own Global Constraints for the full reasoning -- same tradeoff
 // shared/strengths-stats.js's own WALL_ANGLE_ADJECTIVE already made.
-// #430/#651 -- 'sport' added alongside 'lead' (Lead being renamed to
-// Sport, same wording). 'lead' stays until #642's final retirement --
-// historical entries still carry it until #646's data cutover runs, and
-// server/api/performance.js calls this with a real entry's own type.
-const FLASH_TERM = { boulder: "flash", lead: "onsight", sport: "onsight" };
-const SEND_TERM = { boulder: "send", lead: "redpoint", sport: "redpoint" };
+// #430 -- Lead renamed to Sport. 'lead' briefly lived alongside 'sport'
+// here (#651) while historical entries still carried it; removed now
+// that #646's data cutover converted every real entry away from it.
+const FLASH_TERM = { boulder: "flash", sport: "onsight" };
+const SEND_TERM = { boulder: "send", sport: "redpoint" };
 
 // Compares the window's single best first-attempt-success grade against
 // its single best eventual-send grade -- not a per-bucket comparison,

@@ -74,7 +74,7 @@ describe("filteredEntries", () => {
   const entries = [
     { id: "e1", type: "boulder", status: "send", firstAttempt: true, grade: "6A", name: "Font Classic", placeId: "p1" },
     { id: "e2", type: "boulder", status: "project", firstAttempt: false, grade: "7A", name: "Karma", placeId: "p1" },
-    { id: "e3", type: "lead", status: "send", firstAttempt: false, grade: "6a", name: "Voie des Dalles", placeId: "p2" },
+    { id: "e3", type: "sport", status: "send", firstAttempt: false, grade: "6a", name: "Voie des Dalles", placeId: "p2" },
   ];
   // #63 -- statusFilters has no "empty = show every status" shortcut, so
   // a base fixture for tests that aren't themselves testing status

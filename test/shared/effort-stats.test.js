@@ -96,8 +96,8 @@ describe("effortHeadline", () => {
   it("returns the discipline-aware 'room to push harder' message as the default case", () => {
     const boulderText = effortHeadline(["6B", "6B"], [40, 40], [2, 2], 40, 5, "boulder");
     expect(boulderText).toContain("send attempts");
-    const leadText = effortHeadline(["6a", "6a"], [40, 40], [2, 2], 40, 5, "lead");
-    expect(leadText).toContain("redpoint attempts");
+    const sportText = effortHeadline(["6a", "6a"], [40, 40], [2, 2], 40, 5, "sport");
+    expect(sportText).toContain("redpoint attempts");
   });
 
   it("does not report a rising exertion trend for a sub-margin fluctuation", () => {

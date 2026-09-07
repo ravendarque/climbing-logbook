@@ -25,15 +25,15 @@
   const el = document.querySelector("climbing-entries-table");
   el.locations = [
     { id: "loc-both", name: "Both Crag", country: "United Kingdom" },
-    { id: "loc-lead-only", name: "Lead Only Crag", country: "France" },
+    { id: "loc-sport-only", name: "Sport Only Crag", country: "France" },
   ];
   el.places = [
     { id: "place-both", locationId: "loc-both", area: "" },
-    { id: "place-lead-only", locationId: "loc-lead-only", area: "" },
+    { id: "place-sport-only", locationId: "loc-sport-only", area: "" },
   ];
   el.entries = [
     { id: "e1", placeId: "place-both", type: "boulder", status: "send", grade: "6A", date: "2026-05-01", name: "Boulder problem" },
-    { id: "e2", placeId: "place-lead-only", type: "lead", status: "send", grade: "6a", date: "2026-05-02", name: "Lead route" },
+    { id: "e2", placeId: "place-sport-only", type: "sport", status: "send", grade: "6a", date: "2026-05-02", name: "Sport route" },
   ];
 </script>
 </body>

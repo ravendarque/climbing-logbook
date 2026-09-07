@@ -17,6 +17,8 @@
 // happen to be *triggered by* auth-state changes, not auth logic
 // themselves. This module exposes isAthleteMode() so main.js's
 // updateAdminBar() can still read the one piece of state that moved.
+import { VALID_TYPES } from "../shared/entry-schema.js";
+
 export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettingsUrl, updateAdminBar }) {
   const AUTH_SESSION_URL = "/logbook/api/auth/get-session";
   const AUTH_SIGN_OUT_URL = "/logbook/api/auth/sign-out";
@@ -77,7 +79,7 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
       athleteMode = !!data.athleteMode;
       // Validated defensively even though the server already validates on
       // write, since this is public data read back out of KV.
-      if (data.activeDiscipline === "boulder" || data.activeDiscipline === "lead") {
+      if (VALID_TYPES.includes(data.activeDiscipline)) {
         persistedDiscipline = data.activeDiscipline;
       }
       // Always updated, even on pages with no Public Logbook toggle UI
@@ -199,8 +201,8 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
   // already in this factory's own closure, nothing extra to inject.
   async function resolveActiveType(sessionPromise, settingsPromise) {
     const hasBoulder = store.getEntries().some(e => e.type === "boulder");
-    const hasLead = store.getEntries().some(e => e.type === "lead");
-    store.setActiveType(hasBoulder || !hasLead ? "boulder" : "lead");
+    const hasSport = store.getEntries().some(e => e.type === "sport");
+    store.setActiveType(hasBoulder || !hasSport ? "boulder" : "sport");
 
     await Promise.all([sessionPromise, settingsPromise]);
     if (persistedDiscipline) store.setActiveType(persistedDiscipline);

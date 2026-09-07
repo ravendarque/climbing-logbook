@@ -80,8 +80,8 @@ describe("gapHeadline", () => {
     expect(text).toContain("V6"); // gradeDisplayLabel("7A", "boulder")
   });
 
-  it("uses lead terminology for a lead entry", () => {
-    const text = gapHeadline([null], ["6a"], "lead");
+  it("uses onsight/redpoint terminology for a sport entry", () => {
+    const text = gapHeadline([null], ["6a"], "sport");
     expect(text).toContain("onsight");
     expect(text).toContain("redpoint");
   });

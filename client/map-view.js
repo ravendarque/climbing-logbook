@@ -92,7 +92,7 @@ export function createMapView({ store, allDisciplines = false }) {
   // discipline regardless of this flag (see this factory's own header
   // comment).
   function disciplinesInPlay() {
-    return allDisciplines ? ["boulder", "lead"] : [store.getActiveType()];
+    return allDisciplines ? ["boulder", "sport"] : [store.getActiveType()];
   }
 
   // Discipline keys actually present (non-zero) anywhere in mapCounts,
@@ -107,7 +107,7 @@ export function createMapView({ store, allDisciplines = false }) {
         if (c.total > 0) present.add(discipline);
       }
     }
-    return ["boulder", "lead"].filter(t => present.has(t));
+    return ["boulder", "sport"].filter(t => present.has(t));
   }
 
   // Best-effort only -- picks a reasonable *default* the first time the
@@ -456,7 +456,7 @@ export function createMapView({ store, allDisciplines = false }) {
     // unchanged.
     const body = allDisciplines
       ? `<div class="flex gap-4 max-[600px]:flex-col max-[600px]:gap-[.6rem]">
-          ${["boulder", "lead"].map(type => `
+          ${["boulder", "sport"].map(type => `
             <div class="flex-1 min-w-0">
               <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mb-[.3rem]">${disciplineLabel(type)}</div>
               ${statBlock(type, countryName)}
@@ -533,7 +533,7 @@ export function createMapView({ store, allDisciplines = false }) {
     // yet at all -- presentDisciplines() would otherwise return an empty
     // list, and combinedFlashLabel/combinedSendLabel of an empty list is
     // an empty string, which would render as a bare "0 " with no label.
-    const disciplines = presentDisciplines().length > 0 ? presentDisciplines() : ["boulder", "lead"];
+    const disciplines = presentDisciplines().length > 0 ? presentDisciplines() : ["boulder", "sport"];
     const inPlay = disciplinesInPlay();
 
     // Distinct countries with at least one entry in a discipline that's

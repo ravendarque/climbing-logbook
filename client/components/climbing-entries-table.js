@@ -68,10 +68,11 @@ const DEFAULT_STATUS_FILTERS = ["flash", "send", "project", "checkout"];
 const PAGE_SIZE = 100;
 // #460 -- canonical order for the two known disciplines, used wherever
 // "all disciplines" needs a deterministic iteration order (filter-panel
-// checkboxes, section ordering). A third discipline (#429/#430) is just
-// one more entry here -- nothing else in this file hardcodes "boulder"
-// and "lead" as two fixed slots.
-const DISCIPLINE_ORDER = ["boulder", "lead"];
+// checkboxes, section ordering). A third discipline is just one more
+// entry here -- nothing else in this file hardcodes "boulder" and
+// "sport" as two fixed slots. (#430 already landed: Lead was renamed to
+// Sport, covering Lead and Top Rope alike.)
+const DISCIPLINE_ORDER = ["boulder", "sport"];
 
 // #63 -- both #statusFilters and #disciplineFilters default to their full
 // set rather than empty, so "has the user changed this filter" needs a

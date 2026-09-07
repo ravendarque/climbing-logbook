@@ -16,34 +16,34 @@ describe("flashLabel/sendLabel/nameLabel", () => {
     expect(nameLabel()).toBe("Problem name");
   });
 
-  it("use lead terms for the lead discipline", () => {
-    expect(flashLabel("lead")).toBe("Onsight");
-    expect(sendLabel("lead")).toBe("Redpoint");
-    expect(nameLabel("lead")).toBe("Route name");
+  it("use sport terms for the sport discipline", () => {
+    expect(flashLabel("sport")).toBe("Onsight");
+    expect(sendLabel("sport")).toBe("Redpoint");
+    expect(nameLabel("sport")).toBe("Route name");
   });
 
   it("pluralize when asked", () => {
     expect(flashLabel("boulder", true)).toBe("Flashes");
-    expect(sendLabel("lead", true)).toBe("Redpoints");
+    expect(sendLabel("sport", true)).toBe("Redpoints");
   });
 });
 
 describe("disciplineLabel", () => {
   it("capitalizes each discipline, defaulting to boulder", () => {
     expect(disciplineLabel("boulder")).toBe("Boulder");
-    expect(disciplineLabel("lead")).toBe("Lead");
+    expect(disciplineLabel("sport")).toBe("Sport");
     expect(disciplineLabel()).toBe("Boulder");
   });
 });
 
 describe("combinedFlashLabel/combinedSendLabel", () => {
   it("joins each discipline's own wording with a slash", () => {
-    expect(combinedFlashLabel(["boulder", "lead"])).toBe("Flash / Onsight");
-    expect(combinedSendLabel(["boulder", "lead"])).toBe("Send / Redpoint");
+    expect(combinedFlashLabel(["boulder", "sport"])).toBe("Flash / Onsight");
+    expect(combinedSendLabel(["boulder", "sport"])).toBe("Send / Redpoint");
   });
 
   it("pluralizes when asked", () => {
-    expect(combinedFlashLabel(["boulder", "lead"], true)).toBe("Flashes / Onsights");
+    expect(combinedFlashLabel(["boulder", "sport"], true)).toBe("Flashes / Onsights");
   });
 
   it("de-duplicates when disciplines share identical wording", () => {
@@ -51,7 +51,7 @@ describe("combinedFlashLabel/combinedSendLabel", () => {
   });
 
   it("works for a single discipline (no slash)", () => {
-    expect(combinedFlashLabel(["lead"])).toBe("Onsight");
+    expect(combinedFlashLabel(["sport"])).toBe("Onsight");
   });
 });
 
@@ -67,8 +67,8 @@ describe("statusBadge", () => {
   });
 
   it("uses discipline-specific labels", () => {
-    expect(statusBadge({ status: "send", firstAttempt: true, type: "lead" })).toContain('title="Onsight"');
-    expect(statusBadge({ status: "send", firstAttempt: false, type: "lead" })).toContain('title="Redpoint"');
+    expect(statusBadge({ status: "send", firstAttempt: true, type: "sport" })).toContain('title="Onsight"');
+    expect(statusBadge({ status: "send", firstAttempt: false, type: "sport" })).toContain('title="Redpoint"');
   });
 
   it("shows Project for a project entry", () => {

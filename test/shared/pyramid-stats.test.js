@@ -45,7 +45,7 @@ describe("pyramidCounts", () => {
     { type: "boulder", status: "send", grade: "6A", date: isoDaysAgo(20) },
     { type: "boulder", status: "project", grade: "6A", date: isoDaysAgo(10) }, // not a send
     { type: "boulder", status: "send", grade: "6A", date: isoDaysAgo(400) },  // outside 12mo window
-    { type: "lead", status: "send", grade: "6a", date: isoDaysAgo(10) },      // wrong discipline
+    { type: "sport", status: "send", grade: "6a", date: isoDaysAgo(10) },     // wrong discipline
   ];
 
   it("counts only sends, within 12 months, matching the requested discipline", () => {

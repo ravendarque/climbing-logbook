@@ -18,10 +18,10 @@ test("a location with entries in only one discipline still starts collapsed when
   await expect(bothHeader).toHaveAttribute("aria-expanded", "false");
 
   await page.evaluate(() => {
-    document.querySelector("climbing-entries-table").activeDiscipline = "lead";
+    document.querySelector("climbing-entries-table").activeDiscipline = "sport";
   });
 
-  const leadOnlyHeader = page.locator('.place-header[data-location-id="loc-lead-only"]');
-  await expect(leadOnlyHeader).toBeVisible();
-  await expect(leadOnlyHeader).toHaveAttribute("aria-expanded", "false");
+  const sportOnlyHeader = page.locator('.place-header[data-location-id="loc-sport-only"]');
+  await expect(sportOnlyHeader).toBeVisible();
+  await expect(sportOnlyHeader).toHaveAttribute("aria-expanded", "false");
 });

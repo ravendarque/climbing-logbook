@@ -16,11 +16,11 @@ const SEED = {
 
 // #460 -- both disciplines at the same location, so the combined-view
 // tests below can exercise the real "Location (Boulder)"/"Location
-// (Lead)" split rather than just a single-discipline location.
+// (Sport)" split rather than just a single-discipline location.
 const MIXED_SEED = {
   entries: [
     { id: "e1", placeId: "p1", type: "boulder", status: "send", firstAttempt: true, grade: "6A", date: "2026-05-01", name: "Boulder Seed" },
-    { id: "e2", placeId: "p1", type: "lead", status: "send", firstAttempt: false, grade: "6a", date: "2026-05-02", name: "Lead Seed" },
+    { id: "e2", placeId: "p1", type: "sport", status: "send", firstAttempt: false, grade: "6a", date: "2026-05-02", name: "Sport Seed" },
   ],
   places: [{ id: "p1", locationId: "l1", area: "" }],
   locations: [{ id: "l1", name: "Test Crag", country: "United Kingdom" }],
@@ -105,9 +105,9 @@ test("no discipline picker anymore -- combined view shows both disciplines as se
   await page.locator("#collapse-all-btn").click();
 
   await expect(page.locator("#sections")).toContainText("Test Crag (Boulder)");
-  await expect(page.locator("#sections")).toContainText("Test Crag (Lead)");
+  await expect(page.locator("#sections")).toContainText("Test Crag (Sport)");
   await expect(page.locator("#sections")).toContainText("Boulder Seed");
-  await expect(page.locator("#sections")).toContainText("Lead Seed");
+  await expect(page.locator("#sections")).toContainText("Sport Seed");
 });
 
 test("discipline filter (#460) narrows to just the checked discipline's table section", async ({ page }) => {
@@ -118,18 +118,18 @@ test("discipline filter (#460) narrows to just the checked discipline's table se
   // #494 -- expand the (still-lazy) shell first so there's real data to
   // filter at all.
   await page.locator("#collapse-all-btn").click();
-  await expect(page.locator("#sections")).toContainText("Lead Seed");
+  await expect(page.locator("#sections")).toContainText("Sport Seed");
 
   await page.locator("#filter-btn").click();
-  // Both disciplines start checked (#63) -- narrowing to just Lead means
-  // unchecking Boulder, not checking Lead (already checked). The
+  // Both disciplines start checked (#63) -- narrowing to just Sport means
+  // unchecking Boulder, not checking Sport (already checked). The
   // checkbox itself is sr-only (same toggle-btn pattern the status
   // filter already uses) -- click its wrapping <label>, standard native
   // label-toggles-input behavior, rather than trying to .uncheck() a
   // visually-hidden element directly.
   await page.locator('#filter-discipline-group label:has(input[data-discipline="boulder"])').click();
 
-  await expect(page.locator("#sections")).toContainText("Lead Seed");
+  await expect(page.locator("#sections")).toContainText("Sport Seed");
   await expect(page.locator("#sections")).not.toContainText("Boulder Seed");
   await expect(page.locator("#sections")).not.toContainText("Test Crag (Boulder)");
 });
@@ -170,8 +170,8 @@ test("map pin popover (#460) shows both disciplines' own status breakdown togeth
   const popover = page.locator("#map-pin-popover");
   await expect(popover).toBeVisible();
   await expect(popover).toContainText("Boulder");
-  await expect(popover).toContainText("Lead");
-  // Boulder Seed is a flash (firstAttempt: true), Lead Seed a send
+  await expect(popover).toContainText("Sport");
+  // Boulder Seed is a flash (firstAttempt: true), Sport Seed a send
   // (firstAttempt: false) -- confirms the breakdown is genuinely
   // per-discipline, not one combined count.
   await expect(popover).toContainText("Flash");

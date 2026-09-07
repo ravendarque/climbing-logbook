@@ -18,13 +18,12 @@
 // "server-only in practice."
 import * as v from "valibot";
 
-// #430/#641 -- 'sport' added alongside 'lead' (Lead being renamed to
-// Sport, additive/transitional per migrations/0012_rename_lead_to_sport.sql's
-// own comment: 'lead' stays valid here until #646's data cutover and
-// #642's final retirement land). VALID_GRADES.sport reuses the exact same
-// list as .lead (not a separate one) -- Lead and Top Rope are both sport
-// climbing, sharing one grading scale.
-export const VALID_TYPES = ["boulder", "lead", "sport"];
+// #430 -- Lead renamed to Sport (Lead and Top Rope are both sport
+// climbing, sharing one grading scale -- VALID_GRADES.sport below).
+// 'lead' briefly lived alongside 'sport' here (#641) while historical
+// entries still carried it; removed (#642) now that #646's data cutover
+// converted every real entry away from it.
+export const VALID_TYPES = ["boulder", "sport"];
 // checkout/archived (#483) -- renamed from wishlist/abandoned, deferred
 // from #63/#473's icon redesign. Display text already said "Check out"/
 // "Archived" everywhere; this is the internal id catching up to match.
@@ -34,11 +33,9 @@ export const VALID_STATUSES = ["send", "project", "archived", "checkout"];
 // client only ever offers a closed set via a dropdown, so any other value
 // reaching here is a malformed write (bad client state, a hand-crafted API
 // call, or a stale offline-queue replay), not a legitimate grade.
-const SPORT_GRADES = ["5c", "6a", "6a+", "6b", "6b+", "6c", "6c+", "7a", "7a+", "7b", "7b+", "7c", "7c+", "8a"];
 export const VALID_GRADES = {
   boulder: ["5", "5+", "5A", "5B", "5C", "6A", "6A+", "6B", "6B+", "6C", "6C+", "7A", "7A+", "7B", "7B+", "7C", "7C+", "8A", "8A+", "8B", "8B+"],
-  lead:    SPORT_GRADES,
-  sport:   SPORT_GRADES,
+  sport:   ["5c", "6a", "6a+", "6b", "6b+", "6c", "6c+", "7a", "7a+", "7b", "7b+", "7c", "7c+", "8a"],
 };
 
 // #430/#641 -- Lead vs Top Rope, only meaningful when type is 'sport'.
