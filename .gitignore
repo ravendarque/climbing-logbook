@@ -4,6 +4,10 @@ node_modules/
 .env
 .wrangler-dev.log
 
+# JetBrains IDE (WebStorm/IntelliJ/etc.) project config -- personal, no
+# shared value, same reasoning as any other IDE-state directory
+.idea/
+
 # Claude Code config: settings.json (shared hooks/permissions), launch.json
 # (dev-server config for the preview tools), and skills/ (shared engineering
 # process docs, see .claude/skills/engineering-standards/) are checked in
