@@ -40,6 +40,7 @@ import { escapeHtml } from "./escape-html.js";
 import { formatDate } from "../../shared/date-helpers.js";
 import { activeGradeList, filteredEntries, groupByPlace, placeOf, sortEntries } from "../entries.js";
 import { gradeColor } from "../../shared/grade-data.js";
+import { VALID_SPORT_STYLES } from "../../shared/entry-schema.js";
 import { combinedFlashLabel, combinedSendLabel, disciplineLabel, flashLabel, hydrateStatusIcons, sendLabel, statusBadge } from "../status.js";
 import { COUNTRY_BY_NAME } from "../countries.js";
 import { createDisclosure, createModalHelpers } from "../modal-utils.js";
@@ -73,6 +74,10 @@ const PAGE_SIZE = 100;
 // "sport" as two fixed slots. (#430 already landed: Lead was renamed to
 // Sport, covering Lead and Top Rope alike.)
 const DISCIPLINE_ORDER = ["boulder", "sport"];
+// #644 -- Lead/Top-Rope filter labels; VALID_SPORT_STYLES itself (shared/
+// entry-schema.js) is the actual value order/set, this is just its
+// display text, same split as DISCIPLINE_ORDER/disciplineLabel().
+const SPORT_STYLE_LABEL = { lead: "Lead", top_rope: "Top Rope" };
 
 // #63 -- both #statusFilters and #disciplineFilters default to their full
 // set rather than empty, so "has the user changed this filter" needs a
@@ -122,6 +127,23 @@ function shellHtml(allDisciplines) {
           <div class="text-center text-[.75rem] text-foreground font-semibold mt-[.4rem]" id="grade-slider-label"></div>
         </div>`;
 
+  // #644 -- Lead/Top-Rope filter, single-discipline mode only (same
+  // "allDisciplines omits it" gate as gradeFilter above -- no per-
+  // discipline sportStyle facet exists for the combined public-profile
+  // view yet). Rendered into the static shell regardless of which
+  // discipline is currently active (so #wire()'s change listener always
+  // has somewhere to attach) -- #updateFilterUI() hides the wrapping div
+  // via the `hidden` attribute whenever activeDiscipline isn't "sport",
+  // the same dynamic-visibility approach client/entry-form.js's own
+  // #sport-style-field uses for the identical Boulder-vs-Sport gate.
+  const sportStyleFilter = allDisciplines ? "" : `
+      <div class="mt-[.9rem]" id="filter-sport-style-wrap" hidden>
+        <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mb-[.4rem]" id="filter-sport-style-label">Style</div>
+        <fieldset class="border border-border rounded-app flex flex-col w-full min-w-0" id="filter-sport-style-group" aria-labelledby="filter-sport-style-label">
+          ${VALID_SPORT_STYLES.map(style => toggleBtn("sport-style", style, "", { text: SPORT_STYLE_LABEL[style] })).join("")}
+        </fieldset>
+      </div>`;
+
   return `
   <div class="flex flex-wrap items-center gap-3 mb-6">
     <input class="flex-[0_1_220px] min-w-[140px] bg-surface border border-border rounded-app px-[.85rem] py-[.4rem] text-foreground text-[.9rem] outline-none placeholder:text-muted focus:border-accent" id="search" placeholder="Search entries…" autocomplete="off">
@@ -140,6 +162,7 @@ function shellHtml(allDisciplines) {
           ${toggleBtn("filter", "archived", `<span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="archived"></span>`, { text: "Archived" })}
         </fieldset>
         ${gradeFilter}
+        ${sportStyleFilter}
 
         <button type="button" class="block w-full mt-[.9rem] bg-transparent border-0 text-muted text-[.78rem] cursor-pointer text-center hover:text-foreground" id="filter-clear-btn">Reset filters</button>
       </div>
@@ -228,6 +251,11 @@ export class ClimbingEntriesTable extends HTMLElement {
   // (#429/#430) defaults to shown too, with no second place to remember
   // to update.
   #disciplineFilters = new Set(DISCIPLINE_ORDER);
+  // #644 -- single-discipline mode only (see shellHtml's own
+  // sportStyleFilter comment); every known style starts checked, same
+  // "checked reflects what's shown" convention as #statusFilters/
+  // #disciplineFilters above.
+  #sportStyleFilters = new Set(VALID_SPORT_STYLES);
   #gradeRange = null;
   #sortByLocation = {};
   #collapsed = new Set();
@@ -315,6 +343,7 @@ export class ClimbingEntriesTable extends HTMLElement {
       statusFilters: this.#statusFilters,
       gradeRange: this.#gradeRange,
       search: this.#search,
+      sportStyleFilters: this.#sportStyleFilters,
     });
   }
 
@@ -527,6 +556,7 @@ export class ClimbingEntriesTable extends HTMLElement {
       if (e.target.closest("#filter-clear-btn")) {
         this.#statusFilters = new Set(DEFAULT_STATUS_FILTERS);
         this.#disciplineFilters = new Set(DISCIPLINE_ORDER);
+        this.#sportStyleFilters = new Set(VALID_SPORT_STYLES);
         this.#gradeRange = null;
         this.#update();
         return;
@@ -592,6 +622,13 @@ export class ClimbingEntriesTable extends HTMLElement {
       const disciplineInput = e.target.closest("#filter-discipline-group input[data-discipline]");
       if (disciplineInput) {
         disciplineInput.checked ? this.#disciplineFilters.add(disciplineInput.dataset.discipline) : this.#disciplineFilters.delete(disciplineInput.dataset.discipline);
+        this.#update();
+        return;
+      }
+
+      const sportStyleInput = e.target.closest("#filter-sport-style-group input[data-sport-style]");
+      if (sportStyleInput) {
+        sportStyleInput.checked ? this.#sportStyleFilters.add(sportStyleInput.dataset.sportStyle) : this.#sportStyleFilters.delete(sportStyleInput.dataset.sportStyle);
         this.#update();
       }
     });
@@ -737,6 +774,13 @@ export class ClimbingEntriesTable extends HTMLElement {
       this.querySelector("#filter-flash-label").textContent = flashLabel(this.activeDiscipline);
       this.querySelector("#filter-send-label").textContent = sendLabel(this.activeDiscipline);
       this.#updateGradeSlider();
+      // #644 -- shown only for Sport, same Boulder-vs-Sport gate client/
+      // entry-form.js's own #sport-style-field uses (there's no
+      // protection-style distinction for a boulder problem to filter by).
+      this.querySelector("#filter-sport-style-wrap").hidden = this.activeDiscipline !== "sport";
+      this.querySelectorAll("#filter-sport-style-group input[data-sport-style]").forEach(input => {
+        input.checked = this.#sportStyleFilters.has(input.dataset.sportStyle);
+      });
     }
     // #63 -- neither #statusFilters nor #disciplineFilters is "empty =
     // inactive" any more (both default to their full set, not an empty
@@ -744,6 +788,7 @@ export class ClimbingEntriesTable extends HTMLElement {
     // "non-empty."
     const anyActive = setDiffersFrom(this.#statusFilters, DEFAULT_STATUS_FILTERS) ||
       setDiffersFrom(this.#disciplineFilters, DISCIPLINE_ORDER) ||
+      setDiffersFrom(this.#sportStyleFilters, VALID_SPORT_STYLES) ||
       this.#gradeRange !== null;
     const filterBtn = this.querySelector("#filter-btn");
     filterBtn.classList.toggle("active", anyActive);

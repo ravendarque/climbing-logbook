@@ -16,7 +16,7 @@ import { mockApi } from "./mock-api.js";
 const SEED = {
   entries: [
     { id: "e1", placeId: "p1", type: "boulder", status: "send", grade: "6A", date: "2026-05-01", name: "Boulder Seed" },
-    { id: "e2", placeId: "p1", type: "sport", status: "send", grade: "6a", date: "2026-05-02", name: "Sport Seed" },
+    { id: "e2", placeId: "p1", type: "sport", status: "send", grade: "6a", date: "2026-05-02", name: "Sport Seed", sportStyle: "lead" },
   ],
   places: [{ id: "p1", locationId: "l1", area: "" }],
   locations: [{ id: "l1", name: "Test Crag", country: "United Kingdom" }],
@@ -230,6 +230,49 @@ test("Style control is hidden for Boulder, shown+required for Sport, and pre-fil
   await row.locator(".edit-btn").click();
   await expect(page.locator("#sport-style-field")).toBeVisible();
   await expect(page.locator('#sport-style-group input[value="top_rope"]')).toBeChecked();
+});
+
+// #430/#644 -- Lead/Top-Rope filter, owner /log view only, active only for
+// Sport. Same #filter-btn/#filter-*-group harness pattern the archived-
+// status filter test above already uses.
+test("Style filter is hidden for Boulder, shown for Sport, and narrows the table", async ({ page }) => {
+  await gotoLogHarness(page, {
+    ...SEED,
+    entries: [
+      ...SEED.entries,
+      { id: "e3", placeId: "p1", type: "sport", status: "send", grade: "6b", date: "2026-05-03", name: "Top Rope Seed", sportStyle: "top_rope" },
+    ],
+  });
+
+  // Boulder is the default active discipline -- the filter group doesn't
+  // even exist visibly yet.
+  await page.locator("#filter-btn").click();
+  await expect(page.locator("#filter-sport-style-wrap")).toBeHidden();
+  // Closed again before switching discipline -- createDisclosure's own
+  // outside-click-closes behavior (any click outside .filter-wrap) would
+  // otherwise close this panel the moment #discipline-btn below is
+  // clicked, same as clicking anywhere else on the page would.
+  await page.locator("#filter-btn").click();
+
+  await page.locator("#discipline-btn").click();
+  await page.locator('.discipline-option[data-discipline="sport"]').click();
+  await expect(page.locator("#sections")).toContainText("Sport Seed");
+  await expect(page.locator("#sections")).toContainText("Top Rope Seed");
+
+  await page.locator("#filter-btn").click();
+  await expect(page.locator("#filter-sport-style-wrap")).toBeVisible();
+  // Default state reflects what's shown -- both styles start checked.
+  await expect(page.locator('#filter-sport-style-group input[data-sport-style="lead"]')).toBeChecked();
+  await expect(page.locator('#filter-sport-style-group input[data-sport-style="top_rope"]')).toBeChecked();
+
+  await page.locator('#filter-sport-style-group label:has(input[data-sport-style="top_rope"])').click();
+  await expect(page.locator("#sections")).toContainText("Sport Seed");
+  await expect(page.locator("#sections")).not.toContainText("Top Rope Seed");
+  await expect(page.locator("#filter-btn.active")).toHaveCount(1);
+
+  await page.locator("#filter-clear-btn").click();
+  await expect(page.locator("#sections")).toContainText("Top Rope Seed");
+  await expect(page.locator('#filter-sport-style-group input[data-sport-style="top_rope"]')).toBeChecked();
 });
 
 // #575 Phase 2 entry-data plan (Task 6) -- end-to-end coverage for the
