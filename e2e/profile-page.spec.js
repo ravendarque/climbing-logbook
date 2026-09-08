@@ -20,7 +20,7 @@ const SEED = {
 const MIXED_SEED = {
   entries: [
     { id: "e1", placeId: "p1", type: "boulder", status: "send", firstAttempt: true, grade: "6A", date: "2026-05-01", name: "Boulder Seed" },
-    { id: "e2", placeId: "p1", type: "sport", status: "send", firstAttempt: false, grade: "6a", date: "2026-05-02", name: "Sport Seed" },
+    { id: "e2", placeId: "p1", type: "sport", status: "send", firstAttempt: false, grade: "6a", date: "2026-05-02", name: "Sport Seed", sportStyle: "lead" },
   ],
   places: [{ id: "p1", locationId: "l1", area: "" }],
   locations: [{ id: "l1", name: "Test Crag", country: "United Kingdom" }],
@@ -132,6 +132,47 @@ test("discipline filter (#460) narrows to just the checked discipline's table se
   await expect(page.locator("#sections")).toContainText("Sport Seed");
   await expect(page.locator("#sections")).not.toContainText("Boulder Seed");
   await expect(page.locator("#sections")).not.toContainText("Test Crag (Boulder)");
+});
+
+// #430/#645 -- Lead/Top-Rope filter, combined all-disciplines view. Same
+// "expand the lazy shell first" harness pattern as the discipline filter
+// test above.
+test("Style filter is hidden until Sport is in view, and narrows the combined table", async ({ page }) => {
+  await mockApi(page, {
+    ...MIXED_SEED,
+    entries: [
+      ...MIXED_SEED.entries,
+      { id: "e3", placeId: "p1", type: "sport", status: "send", grade: "6b", date: "2026-05-03", name: "Top Rope Seed", sportStyle: "top_rope" },
+    ],
+  });
+  await page.goto("/e2e-fixtures/pages/profile.html");
+  await expect(page.locator("climbing-entries-table")).toBeVisible();
+
+  await page.locator("#collapse-all-btn").click();
+  await expect(page.locator("#sections")).toContainText("Sport Seed");
+  await expect(page.locator("#sections")).toContainText("Top Rope Seed");
+
+  await page.locator("#filter-btn").click();
+  await expect(page.locator("#filter-sport-style-wrap")).toBeVisible();
+  // Both styles start checked (#63), same convention every other filter
+  // facet in this component uses.
+  await expect(page.locator('#filter-sport-style-group input[data-sport-style="lead"]')).toBeChecked();
+  await expect(page.locator('#filter-sport-style-group input[data-sport-style="top_rope"]')).toBeChecked();
+
+  await page.locator('#filter-sport-style-group label:has(input[data-sport-style="top_rope"])').click();
+  await expect(page.locator("#sections")).toContainText("Sport Seed");
+  await expect(page.locator("#sections")).not.toContainText("Top Rope Seed");
+  // Boulder's own section is unaffected by a Sport-only facet.
+  await expect(page.locator("#sections")).toContainText("Boulder Seed");
+
+  // Both checkboxes are inside #filter-panel (unlike log-page.spec.js's
+  // separate, standalone #discipline-btn picker), so unchecking Sport
+  // here doesn't close the popover as an "outside click" would.
+  await page.locator('#filter-discipline-group label:has(input[data-discipline="sport"])').click();
+  await expect(page.locator("#filter-sport-style-wrap")).toBeHidden();
+
+  await page.locator("#filter-clear-btn").click();
+  await expect(page.locator("#sections")).toContainText("Top Rope Seed");
 });
 
 test("combined status filter labels span both disciplines, and there's no grade-range filter", async ({ page }) => {

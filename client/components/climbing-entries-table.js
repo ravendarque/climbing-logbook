@@ -127,16 +127,18 @@ function shellHtml(allDisciplines) {
           <div class="text-center text-[.75rem] text-foreground font-semibold mt-[.4rem]" id="grade-slider-label"></div>
         </div>`;
 
-  // #644 -- Lead/Top-Rope filter, single-discipline mode only (same
-  // "allDisciplines omits it" gate as gradeFilter above -- no per-
-  // discipline sportStyle facet exists for the combined public-profile
-  // view yet). Rendered into the static shell regardless of which
-  // discipline is currently active (so #wire()'s change listener always
-  // has somewhere to attach) -- #updateFilterUI() hides the wrapping div
-  // via the `hidden` attribute whenever activeDiscipline isn't "sport",
-  // the same dynamic-visibility approach client/entry-form.js's own
-  // #sport-style-field uses for the identical Boulder-vs-Sport gate.
-  const sportStyleFilter = allDisciplines ? "" : `
+  // #644/#645 -- Lead/Top-Rope filter, rendered in BOTH modes (unlike
+  // gradeFilter above, which genuinely has no cross-discipline equivalent
+  // yet) -- #645 gave the combined public-profile view the same facet.
+  // Rendered into the static shell regardless of whether Sport is
+  // currently shown (so #wire()'s change listener always has somewhere to
+  // attach) -- #updateFilterUI() hides the wrapping div via the `hidden`
+  // attribute whenever Sport isn't in view (single-discipline mode:
+  // activeDiscipline isn't "sport"; allDisciplines mode: "sport" isn't
+  // one of #activeDisciplines()), the same dynamic-visibility approach
+  // client/entry-form.js's own #sport-style-field uses for the identical
+  // Boulder-vs-Sport gate.
+  const sportStyleFilter = `
       <div class="mt-[.9rem]" id="filter-sport-style-wrap" hidden>
         <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mb-[.4rem]" id="filter-sport-style-label">Style</div>
         <fieldset class="border border-border rounded-app flex flex-col w-full min-w-0" id="filter-sport-style-group" aria-labelledby="filter-sport-style-label">
@@ -397,6 +399,7 @@ export class ClimbingEntriesTable extends HTMLElement {
         statusFilters: this.#statusFilters,
         gradeRange: null, // no cross-discipline grade scale exists yet -- #460 explicitly excludes grade filtering here
         search: this.#search,
+        sportStyleFilters: this.#sportStyleFilters, // #645 -- inert for boulder, filteredEntries() only applies it when discipline is "sport"
       });
       return [discipline, new Map(groupByPlace(filtered, disciplineEntries, this.#places))];
     }));
@@ -774,14 +777,22 @@ export class ClimbingEntriesTable extends HTMLElement {
       this.querySelector("#filter-flash-label").textContent = flashLabel(this.activeDiscipline);
       this.querySelector("#filter-send-label").textContent = sendLabel(this.activeDiscipline);
       this.#updateGradeSlider();
-      // #644 -- shown only for Sport, same Boulder-vs-Sport gate client/
-      // entry-form.js's own #sport-style-field uses (there's no
-      // protection-style distinction for a boulder problem to filter by).
-      this.querySelector("#filter-sport-style-wrap").hidden = this.activeDiscipline !== "sport";
-      this.querySelectorAll("#filter-sport-style-group input[data-sport-style]").forEach(input => {
-        input.checked = this.#sportStyleFilters.has(input.dataset.sportStyle);
-      });
     }
+    // #644/#645 -- shown only when Sport is actually in view, same
+    // Boulder-vs-Sport gate client/entry-form.js's own #sport-style-field
+    // uses (there's no protection-style distinction for a boulder problem
+    // to filter by). Single-discipline mode: the picker's own current
+    // choice. allDisciplines mode: Sport has to actually be one of the
+    // currently-shown sections (#activeDisciplines() -- present in the
+    // data AND not unchecked in the Discipline filter above), not just
+    // "known to exist" -- a visitor who's unchecked Sport entirely
+    // shouldn't still see a Style facet for a discipline that's hidden.
+    this.querySelector("#filter-sport-style-wrap").hidden = this.allDisciplines
+      ? !this.#activeDisciplines().includes("sport")
+      : this.activeDiscipline !== "sport";
+    this.querySelectorAll("#filter-sport-style-group input[data-sport-style]").forEach(input => {
+      input.checked = this.#sportStyleFilters.has(input.dataset.sportStyle);
+    });
     // #63 -- neither #statusFilters nor #disciplineFilters is "empty =
     // inactive" any more (both default to their full set, not an empty
     // one), so "active" means "differs from the default," not merely
