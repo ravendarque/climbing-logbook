@@ -213,6 +213,26 @@ describe("public data API", () => {
     expect(entries[0].name).toBe("Private Beta");
   });
 
+  // #430/#645/#669 -- unlike rpe/attemptsToSend/moves/painMoves above,
+  // sportStyle is public info (exactly as public as grade/status/type
+  // already are) -- omitting it from publicRowToJson wasn't a privacy
+  // choice, it was a real regression: the public profile's own Style
+  // filter (#645) defaults to both styles checked, but an entry with no
+  // sportStyle at all matches neither, so every Sport entry silently
+  // vanished from the combined public view the moment #645 shipped.
+  it("returns sportStyle for a public Sport entry, unlike the deliberately-excluded fields above", async () => {
+    const { cookie } = await createAuthedSession({ username: "sportstyleuser" });
+    const placeId = await seedPlace(cookie);
+    await jsonRequest("POST", "/logbook/api/admin/logbook", {
+      placeId, name: "Public Sport Send", grade: "6a", type: "sport", status: "send", sportStyle: "top_rope",
+    }, { Cookie: cookie });
+
+    const res = await fetchPublic("sportstyleuser", "logbook");
+    const { entries } = await res.json();
+    expect(entries).toHaveLength(1);
+    expect(entries[0].sportStyle).toBe("top_rope");
+  });
+
   // #251 -- performance-insight data (Grade Pyramid, injury log, etc.) is a
   // deliberate, narrow carve-out over the same public-data route shape,
   // gated on settings.is_demo rather than logbook_public alone -- a real

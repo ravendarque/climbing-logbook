@@ -84,6 +84,15 @@ export function publicRowToJson(row) {
     type: row.discipline_id,
     status: row.status_id,
     firstAttempt: !!row.first_attempt,
+    // #430/#645/#669 -- Lead vs Top Rope is exactly as public as grade/
+    // status/type already are (unlike rpe/attemptsToSend, deliberately
+    // excluded above for being none of a visitor's business); the public
+    // profile's own Style filter needs it to have anything to filter by.
+    // #641 explicitly deferred adding this "until #645 actually needs
+    // it" -- #645 landed without circling back, silently hiding every
+    // Sport entry from the public view (sportStyleFilters.has(undefined)
+    // is always false), a real live regression caught by Raven.
+    sportStyle: row.sport_style,
     date: row.date,
     video: row.video,
     notes: row.notes,
