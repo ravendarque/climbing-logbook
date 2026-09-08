@@ -47,7 +47,13 @@ const args = process.argv.slice(2);
 const remote = args.includes("--remote");
 const envIdx = args.indexOf("--env");
 const env = envIdx === -1 ? undefined : args[envIdx + 1];
-const d1Options = { remote, env };
+// #665 -- wrangler.jsonc's env.preview names its D1 database
+// "climbing-logbook-preview" (a distinct database from production's
+// "climbing-logbook", not just a different --env flag on the same one),
+// so every wrangler invocation below needs to be told that explicitly --
+// same fix scripts/seed-preview-data.mjs's own D1_OPTIONS already made
+// for this exact problem.
+const d1Options = { remote, env, database: env === "preview" ? "climbing-logbook-preview" : undefined };
 
 // Single quotes are the only thing SQLite string literals need escaped --
 // every value passed through this comes from this file's own literal data
