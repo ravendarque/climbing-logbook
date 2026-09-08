@@ -41,7 +41,7 @@ export function activeGradeList(activeType) {
   return activeType === "boulder" ? BOULDER_GRADES : LEAD_GRADES;
 }
 
-export function filteredEntries(entries, places, { activeType, statusFilters, gradeRange, search }) {
+export function filteredEntries(entries, places, { activeType, statusFilters, gradeRange, search, sportStyleFilters }) {
   const q = search.toLowerCase();
   return entries.filter(e => {
     if (e.type !== activeType) return false;
@@ -54,6 +54,12 @@ export function filteredEntries(entries, places, { activeType, statusFilters, gr
     // indistinguishable, in this function's own semantics, from a facet
     // that's been emptied out entirely.
     if (![...statusFilters].some(f => entryMatchesStatusFilter(e, f))) return false;
+    // #644 -- only meaningful for Sport (Boulder entries have no
+    // sportStyle at all); optional so callers that don't have this facet
+    // yet (allDisciplines mode, #460) or older tests keep working
+    // unchanged, unlike statusFilters above -- omitting it isn't the
+    // same footgun since it's genuinely inert for every non-sport entry.
+    if (activeType === "sport" && sportStyleFilters && !sportStyleFilters.has(e.sportStyle)) return false;
     if (gradeRange) {
       const list = activeGradeList(activeType);
       const r = gradeRank(e.grade);

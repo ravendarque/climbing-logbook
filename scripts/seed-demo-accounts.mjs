@@ -182,8 +182,15 @@ function buildPersonaSql(persona) {
       const rpe = status === "send" ? 40 + (i % 6) * 10 : null;
       const attemptsToSend = status === "send" ? 1 + (i % 4) : null;
       const name = `${label} ${type === "boulder" ? "Boulder" : "Sport"} #${i + 1}`;
+      // #644 -- required for a real sport entry (entrySchema's own rule);
+      // NULL for boulder, same as every other sport-only column here. A
+      // fresh %3 stride, decorrelated from weeksAgo's %7, status's %5,
+      // and firstAttempt's %2 -- same "no shared factor" reasoning this
+      // file's own comment above already gives for those three, so
+      // Style filtering isn't silently correlated with any other facet.
+      const sportStyle = type === "sport" ? (i % 3 === 0 ? "top_rope" : "lead") : null;
 
-      statements.push(`INSERT OR IGNORE INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id, first_attempt, date, video, notes, created_at, updated_at) VALUES (${sqlStr(entryId)}, ${sqlStr(userId)}, ${sqlStr(placeId)}, ${sqlStr(name)}, ${sqlStr(grade)}, ${sqlStr(type)}, ${sqlStr(status)}, ${sqlBool(firstAttempt)}, ${sqlStr(isoDateWeeksAgo(weeksAgo))}, NULL, NULL, ${now}, ${now});`);
+      statements.push(`INSERT OR IGNORE INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id, first_attempt, sport_style, date, video, notes, created_at, updated_at) VALUES (${sqlStr(entryId)}, ${sqlStr(userId)}, ${sqlStr(placeId)}, ${sqlStr(name)}, ${sqlStr(grade)}, ${sqlStr(type)}, ${sqlStr(status)}, ${sqlBool(firstAttempt)}, ${sportStyle ? sqlStr(sportStyle) : "NULL"}, ${sqlStr(isoDateWeeksAgo(weeksAgo))}, NULL, NULL, ${now}, ${now});`);
       statements.push(`UPDATE entries SET attempts_to_send = ${attemptsToSend ?? "NULL"}, rpe = ${rpe ?? "NULL"} WHERE id = ${sqlStr(entryId)};`);
     }
   }

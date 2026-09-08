@@ -74,7 +74,8 @@ describe("filteredEntries", () => {
   const entries = [
     { id: "e1", type: "boulder", status: "send", firstAttempt: true, grade: "6A", name: "Font Classic", placeId: "p1" },
     { id: "e2", type: "boulder", status: "project", firstAttempt: false, grade: "7A", name: "Karma", placeId: "p1" },
-    { id: "e3", type: "sport", status: "send", firstAttempt: false, grade: "6a", name: "Voie des Dalles", placeId: "p2" },
+    { id: "e3", type: "sport", status: "send", firstAttempt: false, grade: "6a", name: "Voie des Dalles", placeId: "p2", sportStyle: "lead" },
+    { id: "e4", type: "sport", status: "send", firstAttempt: false, grade: "6b", name: "Top-Rope Route", placeId: "p2", sportStyle: "top_rope" },
   ];
   // #63 -- statusFilters has no "empty = show every status" shortcut, so
   // a base fixture for tests that aren't themselves testing status
@@ -108,6 +109,29 @@ describe("filteredEntries", () => {
   it("filters by search text against name or area", () => {
     expect(filteredEntries(entries, PLACES, { ...baseFilters, search: "karma" }).map(e => e.id)).toEqual(["e2"]);
     expect(filteredEntries(entries, PLACES, { ...baseFilters, search: "cuvier" }).map(e => e.id)).toEqual(["e1", "e2"]);
+  });
+
+  // #644 -- Lead/Top-Rope filter on the owner /log view.
+  const sportFilters = { ...baseFilters, activeType: "sport", statusFilters: new Set(["send"]) };
+
+  it("filters by sportStyle when active type is sport", () => {
+    const result = filteredEntries(entries, PLACES, { ...sportFilters, sportStyleFilters: new Set(["lead"]) });
+    expect(result.map(e => e.id)).toEqual(["e3"]);
+  });
+
+  it("an empty sportStyleFilters shows nothing, same 'means exactly what it contains' rule as statusFilters (#63)", () => {
+    const result = filteredEntries(entries, PLACES, { ...sportFilters, sportStyleFilters: new Set() });
+    expect(result).toEqual([]);
+  });
+
+  it("sportStyleFilters is inert when omitted -- backward compatible for callers with no such facet", () => {
+    const result = filteredEntries(entries, PLACES, sportFilters);
+    expect(result.map(e => e.id)).toEqual(["e3", "e4"]);
+  });
+
+  it("sportStyleFilters never applies to a non-sport entry", () => {
+    const result = filteredEntries(entries, PLACES, { ...baseFilters, sportStyleFilters: new Set() });
+    expect(result.map(e => e.id)).toEqual(["e1", "e2"]);
   });
 });
 
