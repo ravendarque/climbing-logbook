@@ -363,11 +363,19 @@ export async function mockApi(page, {
   // (file read, request, success/error panel toggling) -- the real
   // parsing/validation/resolution logic is Vitest's job
   // (test/logbook-import.test.js), not re-tested here.
+  // #639 -- a JSON upload's Content-Type (client/account-import-main.js's
+  // own extension-based detection) is what this branches on, mirroring
+  // server/api/logbook-import.js's own parserFor() -- an array's own
+  // length is the "row" count here, not a newline split, since a JSON
+  // body isn't line-per-entry shaped the way CSV is.
   await page.route("**/logbook/api/admin/logbook/import", async route => {
     if (route.request().method() !== "POST") return route.continue();
-    const rows = (route.request().postData() || "").trim().split("\n").slice(1).filter(Boolean);
-    _entries = [..._entries, ...rows.map((_, i) => ({ id: `imported-${_entries.length + i}` }))];
-    return route.fulfill({ status: 201, json: { imported: rows.length, entries: _entries } });
+    const contentType = route.request().headers()["content-type"] ?? "";
+    const rowCount = contentType.includes("json")
+      ? (JSON.parse(route.request().postData() || "[]").length)
+      : (route.request().postData() || "").trim().split("\n").slice(1).filter(Boolean).length;
+    _entries = [..._entries, ...Array.from({ length: rowCount }, (_, i) => ({ id: `imported-${_entries.length + i}` }))];
+    return route.fulfill({ status: 201, json: { imported: rowCount, entries: _entries } });
   });
 
   // #490 -- mirrors server/lib/d1-resource.js's own dedup-on-write: a

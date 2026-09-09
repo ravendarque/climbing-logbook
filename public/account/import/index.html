@@ -57,16 +57,16 @@
   <div class="max-w-[520px] flex flex-col gap-4" id="import-steps">
 
     <div class="row-card">
-      <div class="row-card-title mb-1">1. Download the template</div>
-      <p class="text-[.85rem] text-muted mb-3">A CSV file with the columns this page expects. Fill in one row per entry, keeping the header row as-is.</p>
+      <div class="row-card-title mb-1">1. Download the template, or use an existing JSON export</div>
+      <p class="text-[.85rem] text-muted mb-3">A CSV file with the columns this page expects -- fill in one row per entry, keeping the header row as-is. Already have a JSON file from this app's own "Export as JSON"? That's importable as-is, no template needed.</p>
       <button type="button" class="admin-btn" id="download-template-btn">Download CSV template</button>
     </div>
 
     <div class="row-card">
       <div class="row-card-title mb-1">2. Upload your filled-in file</div>
-      <p class="text-[.85rem] text-muted mb-3">Nothing is imported until every row in the file is valid -- if anything's wrong, you'll see every problem row at once so you can fix the whole file in one pass.</p>
+      <p class="text-[.85rem] text-muted mb-3">CSV (from the template above) or JSON (from this app's own export) -- nothing is imported until every row/entry in the file is valid, so you'll see every problem at once and can fix the whole file in one pass.</p>
       <form class="flex flex-wrap items-center gap-2" id="import-form">
-        <input class="flex-1 min-w-0 text-[.85rem]" id="import-file-input" name="file" type="file" accept=".csv,text/csv" required>
+        <input class="flex-1 min-w-0 text-[.85rem]" id="import-file-input" name="file" type="file" accept=".csv,.json,text/csv,application/json" required>
         <button type="submit" class="admin-btn admin-btn-primary shrink-0" id="import-submit-btn">Import</button>
       </form>
     </div>

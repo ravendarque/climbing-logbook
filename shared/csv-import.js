@@ -1,14 +1,14 @@
-// CSV template/parsing for bulk entry import (#224 phase 2/3) and CSV/JSON
-// serialization for export (#27). Shared between client/account-import-
-// main.js (template download, upload), client/account-main.js (export),
-// and server/api/logbook-import.js (upload parsing) -- same reasoning as
-// entry-schema.js: one column list, one parser, one serializer, not
-// several copies drifting apart. Deliberately hand-written, not a
-// dependency -- no CSV code anywhere in this repo yet, and the format
-// needed (one flat header row, no nested/multi-line records beyond
-// RFC4180 quoting) is small enough that a library would cost more in
-// bundle size (this app's own entry-schema.js precedent, #224 phase 1)
-// than it'd save in code.
+// CSV template/parsing for bulk entry import (#224 phase 2/3), CSV/JSON
+// serialization for export (#27), and JSON import (#639). Shared between
+// client/account-import-main.js (template download, upload), client/
+// account-main.js (export), and server/api/logbook-import.js (upload
+// parsing) -- same reasoning as entry-schema.js: one column list, one
+// parser per format, one serializer, not several copies drifting apart.
+// Deliberately hand-written, not a dependency -- no CSV code anywhere in
+// this repo yet, and the format needed (one flat header row, no
+// nested/multi-line records beyond RFC4180 quoting) is small enough that
+// a library would cost more in bundle size (this app's own
+// entry-schema.js precedent, #224 phase 1) than it'd save in code.
 
 // Order matters -- this IS the template's header row, and
 // logbook-import.js requires an uploaded file's header to match exactly
@@ -17,9 +17,17 @@
 // resolved server-side against the user's existing Locations/Places the
 // same way client/place-picker.js's own match-or-create flow already
 // does for the single-entry form (#224's own body).
+// #639 -- sportStyle appended at the end (not inserted mid-list) so an
+// already-downloaded-but-not-yet-uploaded old template only needs the one
+// new trailing column added, not every column shifting position. Named
+// "sportStyle" here, matching entrySchema's own field name exactly
+// (unlike location/discipline, which differ from the wire names placeId/
+// type and need toCsvFieldNames' translation below) -- required, not
+// optional, for a discipline of "sport" (entrySchema's own #643 rule);
+// blank/omitted for "boulder", same as every other sport-only column.
 export const CSV_COLUMNS = [
   "name", "grade", "discipline", "status", "firstAttempt",
-  "date", "location", "area", "country", "video", "notes",
+  "date", "location", "area", "country", "video", "notes", "sportStyle",
 ];
 
 export function buildTemplateCsv() {
@@ -107,6 +115,53 @@ export function parseCsvText(text) {
   return { ok: true, rows: parsedRows };
 }
 
+// #639 -- imports the JSON format resolveExportRows/the "Export as JSON"
+// button (below) already produce, giving export/import parity. Normalizes
+// into the exact same row shape parseCsvText produces above (every field
+// a string, firstAttempt as "true"/"false" not a real boolean) so
+// server/api/logbook-import.js's handleImport can feed either parser's
+// output through the same resolveLocationsAndPlaces/draftEntry/
+// entrySchema pipeline unchanged -- one shared row shape, two parsers,
+// not two independent import pipelines. Deliberately permissive about a
+// row's exact key set (unlike parseCsvText's strict header-must-match
+// rule, which has no real JSON equivalent) -- a missing/blank field
+// normalizes to "", the same as an empty CSV cell, and entrySchema's own
+// downstream check is what actually reports it as invalid, same
+// "resolve once, validate once" split as everything else in this file.
+export function parseJsonText(text) {
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return { ok: false, error: "JSON file isn't valid JSON." };
+  }
+  if (!Array.isArray(parsed)) return { ok: false, error: "JSON file must be an array of entries, the same shape 'Export as JSON' produces." };
+  if (parsed.length === 0) return { ok: false, error: "JSON file has no entries to import." };
+
+  const rows = [];
+  for (let i = 0; i < parsed.length; i++) {
+    const row = parsed[i];
+    if (typeof row !== "object" || row === null || Array.isArray(row)) {
+      return { ok: false, error: `Entry ${i + 1} isn't a valid object.` };
+    }
+    // String(true)/String(false) for a real JSON boolean (the export's own
+    // shape); String(row.firstAttempt ?? "") for anything else (a
+    // hand-edited "true"/"false" string, or genuinely absent) --
+    // anything other than a literal true/boolean-true-as-string
+    // normalizes to "false", same permissive-by-default convention
+    // draftEntry()'s own `.toLowerCase() === "true"` check already has.
+    const normalized = {};
+    CSV_COLUMNS.forEach(col => {
+      normalized[col] = col === "firstAttempt"
+        ? (String(row.firstAttempt) === "true" ? "true" : "false")
+        : String(row[col] ?? "").trim();
+    });
+    rows.push(normalized);
+  }
+
+  return { ok: true, rows };
+}
+
 // #27 -- the export-side mirror of a CSV row: joins the wire-shape entry
 // (placeId, type) the /logbook API already returns against places/
 // locations to reconstruct the same location/area/country text columns
@@ -137,6 +192,7 @@ export function resolveExportRows(entries, places, locations) {
       country: location?.country ?? "",
       video: entry.video ?? "",
       notes: entry.notes ?? "",
+      sportStyle: entry.sportStyle ?? "",
     };
   });
 }

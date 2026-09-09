@@ -4,10 +4,11 @@
 // the real client/account-import-main.js -> account-import-app.js bundle
 // against a verbatim copy of public/account/import/index.html, with
 // fabricated /logbook/api/* responses (mock-api.js's own import route).
-// The real CSV parsing/validation/location-resolution logic is Vitest's
-// job (test/logbook-import.test.js, test/shared/csv-import.test.js) --
-// this file only proves the client's own wiring: template download,
-// file upload -> request, success/error panel toggling.
+// The real CSV/JSON (#639) parsing/validation/location-resolution logic
+// is Vitest's job (test/logbook-import.test.js, test/shared/
+// csv-import.test.js) -- this file only proves the client's own wiring:
+// template download, file upload -> request (including which Content-Type
+// a JSON vs. CSV upload sets), success/error panel toggling.
 import { expect, test } from "@playwright/test";
 import { mockApi } from "./mock-api.js";
 
@@ -42,6 +43,34 @@ test("uploads a valid CSV and shows the success summary", async ({ page }) => {
   await expect(page.locator("#import-success")).toBeVisible();
   await expect(page.locator("#import-success-message")).toHaveText("Imported 1 entry.");
   await expect(page.locator("#import-errors")).toBeHidden();
+});
+
+// #639 -- JSON import, parity with "Export as JSON". Same client-wiring
+// scope as the CSV test above -- proves the upload sets Content-Type:
+// application/json (client/account-import-main.js's own extension-based
+// detection) and the request/response flow renders success, not the real
+// parsing logic (Vitest's job, test/shared/csv-import.test.js/
+// test/logbook-import.test.js).
+test("uploads a valid JSON export and shows the success summary, with the right Content-Type", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/e2e-fixtures/pages/account-import.html");
+
+  const validJson = JSON.stringify([
+    { name: "Test Route", grade: "6B", discipline: "boulder", status: "send", firstAttempt: true, date: "2026-07-30", location: "Test Crag", area: "Sector 1", country: "Testland", video: "", notes: "", sportStyle: "" },
+  ]);
+  await page.locator("#import-file-input").setInputFiles({
+    name: "export.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(validJson),
+  });
+  const [request] = await Promise.all([
+    page.waitForRequest(req => req.url().includes("/logbook/api/admin/logbook/import") && req.method() === "POST"),
+    page.locator("#import-submit-btn").click(),
+  ]);
+
+  expect(request.headers()["content-type"]).toBe("application/json");
+  await expect(page.locator("#import-success")).toBeVisible();
+  await expect(page.locator("#import-success-message")).toHaveText("Imported 1 entry.");
 });
 
 test("shows every row's error at once when the server rejects the file", async ({ page }) => {

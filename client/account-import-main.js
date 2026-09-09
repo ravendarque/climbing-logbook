@@ -125,10 +125,17 @@ importForm.addEventListener("submit", async e => {
   importStatus.textContent = "Validating and importing…";
   importStatus.hidden = false;
 
+  // #639 -- JSON import, parity with the "Export as JSON" button.
+  // Extension-based, not file.type -- a browser's own MIME-sniffed type
+  // for a local .json file is inconsistent across platforms (empty
+  // string is common), where the extension the user themself chose when
+  // saving/downloading the file is reliable either way.
+  const contentType = file.name.toLowerCase().endsWith(".json") ? "application/json" : "text/csv";
+
   try {
     const res = await adminFetch(IMPORT_URL, {
       method: "POST",
-      headers: { "Content-Type": "text/csv" },
+      headers: { "Content-Type": contentType },
       body: await file.text(),
     });
     if (isAuthRedirect(res)) { window.location.href = LOGIN_PAGE_URL; return; }
