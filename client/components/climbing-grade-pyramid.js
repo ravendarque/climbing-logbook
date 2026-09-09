@@ -162,7 +162,7 @@ export class ClimbingGradePyramid extends HTMLElement {
   // and this component only ever renders the already-split result. Keeps
   // a large logbook's entries array from ever needing to reach this
   // component -- or the client -- at all.
-  #pyramidData = { boulder: EMPTY_PYRAMID, lead: EMPTY_PYRAMID };
+  #pyramidData = { boulder: EMPTY_PYRAMID, sport: EMPTY_PYRAMID };
   #lowerGradesExpanded = false;
   #wired = false;
   // #516 -- createModalHelpers()'s own openModal, captured once when
@@ -175,7 +175,7 @@ export class ClimbingGradePyramid extends HTMLElement {
   }
 
   get pyramidData() { return this.#pyramidData; }
-  set pyramidData(v) { this.#pyramidData = v ?? { boulder: EMPTY_PYRAMID, lead: EMPTY_PYRAMID }; this.#render(); }
+  set pyramidData(v) { this.#pyramidData = v ?? { boulder: EMPTY_PYRAMID, sport: EMPTY_PYRAMID }; this.#render(); }
 
   get activeDiscipline() { return this.getAttribute("active-discipline") || "boulder"; }
   set activeDiscipline(v) { this.setAttribute("active-discipline", v); }
