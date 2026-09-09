@@ -14,14 +14,18 @@ inspection. (That specific drift is already fixed — see the settings-row
 entry below — but the catalog exists so the *next* one doesn't slip
 through unnoticed the same way.)
 
-**Format:** each entry is a name, a description of when to use it, and a
-real, copy-pasteable code snippet — the actual classes in use, not an
-abstracted approximation, so it's always syntactically correct to start
-from. Screenshots are a deliberate fast-follow, not included in this first
-pass (see "Not yet in this catalog" at the bottom) — regenerating one when
-something visibly changes is a deliberate, visible act, which is exactly
-the property that makes a screenshot worth having here rather than a live
-page that would silently reflect drift without anyone noticing.
+**Format:** each entry is a name, a description of when to use it, a
+screenshot of the real rendered result (light and dark — GitHub swaps
+which one you see based on your own site theme, `#gh-dark-mode-only`/
+`#gh-light-mode-only`), and a real, copy-pasteable code snippet — the
+actual classes in use, not an abstracted approximation, so it's always
+syntactically correct to start from.
+
+Every screenshot in `docs/ui-component-catalog/` was captured against the
+real, currently-compiled `public/logbook/tailwind.css` and the real token
+stylesheet `climbing-header.js` injects (not a hand-copied approximation
+of either) — see that directory's own generation script for exactly how,
+next time these need regenerating after a real visual change.
 
 **Source of truth for the custom component classes below:**
 `styles/tailwind.css`'s `@utility` blocks (not the compiled
@@ -46,6 +50,9 @@ setting with its own control.
 
 Title text plus a trailing chevron, the whole row a clickable `<a>`.
 
+![row-card nav-link variant](ui-component-catalog/row-card-nav-dark.png#gh-dark-mode-only)
+![row-card nav-link variant](ui-component-catalog/row-card-nav-light.png#gh-light-mode-only)
+
 ```html
 <a class="row-card flex items-center justify-between row-card-title hover:border-accent" id="edit-account-link" href="#">
   Edit account details
@@ -68,6 +75,9 @@ were migrated onto this one shape in #575, specifically because the old
 stacked shape caused a real layout bug: a taller control pushed the text
 block down, creating dead space the two-column shape doesn't have).
 
+![row-card settings-row variant with a switch control](ui-component-catalog/row-card-settings-switch-dark.png#gh-dark-mode-only)
+![row-card settings-row variant with a switch control](ui-component-catalog/row-card-settings-switch-light.png#gh-light-mode-only)
+
 ```html
 <div class="row-card flex items-center gap-3" id="athlete-mode-row">
   <div class="flex-1 min-w-0">
@@ -83,13 +93,16 @@ block down, creating dead space the two-column shape doesn't have).
 A button-triggered variant of the same shape (used when the control is a
 real flow/modal, not an instant toggle):
 
+![row-card settings-row variant with a button control](ui-component-catalog/row-card-settings-button-dark.png#gh-dark-mode-only)
+![row-card settings-row variant with a button control](ui-component-catalog/row-card-settings-button-light.png#gh-light-mode-only)
+
 ```html
 <div class="row-card flex items-center gap-3" id="beta-opt-in-row">
   <div class="flex-1 min-w-0">
     <span class="row-card-title">Check our beta</span>
     <p class="text-[.82rem] text-muted mt-2">Opt in to get early access to new features before they're released.</p>
   </div>
-  <button type="button" class="admin-btn shrink-0" id="beta-opt-in-manage-btn">Manage</button>
+  <button type="button" class="btn shrink-0" id="beta-opt-in-manage-btn">Manage</button>
 </div>
 ```
 
@@ -97,19 +110,26 @@ real flow/modal, not an instant toggle):
 by `client/row-card.js` for the Performance hub; keep both in sync if
 either changes (see that file's own header comment).
 
-## `admin-btn` / `admin-btn-primary`
+## `btn` / `btn-primary`
 
-**Definition:** `styles/tailwind.css`. `admin-btn` is a plain bordered
-button (surface background, border, `var(--radius-app)`, `.82rem` bold
-text); `admin-btn-primary` overrides background/border/text to the accent
-color for the one primary action in a group.
+**Definition:** `styles/tailwind.css`. `btn` is a plain bordered button
+(surface background, border, `var(--radius-app)`, `.82rem` bold text);
+`btn-primary` overrides background/border/text to the accent color for
+the one primary action in a group. Named `btn`, not `admin-btn` (#459) —
+despite the app-wide session gate, this is the app's general button
+style, used well outside any admin/owner-only context (the always-
+logged-out login form and apex marketing page both use it too).
 
-**When to use:** any admin/owner-facing action button outside a full
-modal-form context — export buttons, a "Manage" trigger, add/sync actions.
+**When to use:** any action button outside a full modal-form context —
+export buttons, a "Manage" trigger, add/sync actions, the login form's
+own submit button.
+
+![btn and btn-primary](ui-component-catalog/btn-dark.png#gh-dark-mode-only)
+![btn and btn-primary](ui-component-catalog/btn-light.png#gh-light-mode-only)
 
 ```html
-<button type="button" class="admin-btn" id="export-csv-btn">CSV</button>
-<button type="button" class="admin-btn admin-btn-primary min-w-24 justify-center" id="add-btn">Add</button>
+<button type="button" class="btn" id="export-csv-btn">CSV</button>
+<button type="button" class="btn btn-primary min-w-24 justify-center" id="add-btn">Add</button>
 ```
 
 (`public/account/index.html`, `public/log/index.html`)
@@ -126,7 +146,8 @@ hand-written `@utility` blocks rather than Tailwind's built-in
 would clobber rather than compose with.
 
 **When to use:** any real on/off preference that should apply immediately
-on click, no separate save step (Athlete Mode, Public Logbook).
+on click, no separate save step (Athlete Mode, Public Logbook). Shown in
+context in the settings-row screenshot above.
 
 ```html
 <button type="button" class="group inline-flex items-center bg-transparent border border-transparent cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shrink-0" role="switch" aria-checked="false">
@@ -147,6 +168,9 @@ heading text with `row-card`'s own inner text below it.
 **When to use:** the top-level heading for a grouped section of `row-card`s
 ("My account", "Settings").
 
+![section-heading](ui-component-catalog/section-heading-dark.png#gh-dark-mode-only)
+![section-heading](ui-component-catalog/section-heading-light.png#gh-light-mode-only)
+
 ```html
 <h2 class="section-heading">Settings</h2>
 ```
@@ -159,6 +183,9 @@ every modal in the app: a fixed, full-viewport, semi-transparent backdrop
 centered flex, `role="dialog" aria-modal="true"`), containing one bordered
 card (`bg-background border border-border rounded-app p-5`) with a
 title-plus-close-button header row.
+
+![modal/overlay card shape](ui-component-catalog/modal-shape-dark.png#gh-dark-mode-only)
+![modal/overlay card shape](ui-component-catalog/modal-shape-light.png#gh-light-mode-only)
 
 ```html
 <div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-center justify-center px-4 py-6 overflow-y-auto" id="citations-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="citations-title" tabindex="-1">
@@ -187,6 +214,9 @@ arrays — each grade entry carries its own CSS custom-property reference
 so the actual color scale lives in the theme tokens (`public/logbook/
 components/climbing-header.js`), not repeated per-grade.
 
+![sample grade badges](ui-component-catalog/grade-colors-dark.png#gh-dark-mode-only)
+![sample grade badges](ui-component-catalog/grade-colors-light.png#gh-light-mode-only)
+
 **Evidence-tier colors:** three tiers, each with a dark- and light-theme
 value (`public/logbook/components/climbing-header.js`):
 
@@ -195,6 +225,9 @@ value (`public/logbook/components/climbing-header.js`):
 | `--tier-peer` | `#5b8def` | `#2e5fb8` | Peer-reviewed research |
 | `--tier-heuristic` | `#dba43a` | `#a6740a` | Widely-used coaching heuristic, not (yet) peer-reviewed |
 | `--tier-community` | `#cd7cae` | `#a34a7a` | Community/data-analysis source, weakest evidence tier |
+
+![evidence-tier label colors](ui-component-catalog/evidence-tiers-dark.png#gh-dark-mode-only)
+![evidence-tier label colors](ui-component-catalog/evidence-tiers-light.png#gh-light-mode-only)
 
 An evidence-tier label renders as a small colored, clickable text button
 that opens the evidence-tier overlay explaining what the tier means:
@@ -216,14 +249,9 @@ exists at all.)
 
 ## Not yet in this catalog
 
-Deliberately deferred rather than guessed at, since none of these were
-part of the original motivating gap:
+Deliberately deferred rather than guessed at, since neither was part of
+the original motivating gap:
 
-- **Screenshots** (light + dark) for each entry above — the format this
-  catalog is designed around, not included in this first pass. Add as a
-  fast-follow once there's a reliable way to capture them that doesn't
-  rot immediately (e.g. as part of a documentation-refresh pass rather
-  than hand-captured once and never revisited).
 - Filter-panel patterns (`climbing-entries-table.js`'s `toggle-btn`
   checkbox-styled-as-button pattern) — real and reused, but has enough of
   its own variation (icon vs. no-icon, single vs. multi-select) that it

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>UI component catalog swatch (screenshot source -- see generate.mjs)</title>
+<!-- #565 -- isolated markup for each docs/ui-component-catalog.md entry,
+     styled against the REAL compiled CSS (via the two tags below, both
+     pointed at a running `pnpm dev` server) rather than a hand-copied
+     approximation of it, so the screenshots generate.mjs captures from
+     this page are always byte-accurate to what the real app renders.
+     Never served by the app itself -- opened directly (file://) by
+     generate.mjs, or in a browser for a quick visual check, not linked
+     from anywhere real. -->
+<script>
+  // Matches client/theme-toggle.js's own mechanism: <html data-theme="...">,
+  // not prefers-color-scheme -- set from a ?theme= query param so
+  // generate.mjs can select light/dark deterministically.
+  document.documentElement.dataset.theme = new URLSearchParams(location.search).get("theme") || "dark";
+</script>
+<!-- Real compiled Tailwind output from the running dev server -- not a
+     hand-copied approximation, so these swatches are byte-identical to
+     what the real app renders. Requires `pnpm dev` running locally. -->
+<link rel="stylesheet" href="http://my.localhost:5173/logbook/tailwind.css">
+<!-- The actual color/font CSS custom properties (--color-accent etc.)
+     are injected by this script's own synchronous IIFE, not by
+     tailwind.css -- see its own header comment. Needed for any of the
+     var(--color-*) references below to resolve to something real. -->
+<script src="http://my.localhost:5173/logbook/components/climbing-header.js"></script>
+<style>
+  body { margin: 0; padding: 2rem; background: var(--color-background); font-family: var(--font-body, sans-serif); }
+  .swatch { margin-bottom: 2.5rem; }
+  .swatch-label { color: var(--color-muted, #999); font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; margin-bottom: .6rem; font-family: monospace; }
+  .swatch-body { max-width: 480px; }
+</style>
+</head>
+<body>
+
+<div class="swatch" id="s-row-card-nav">
+  <div class="swatch-label">row-card — nav-link variant</div>
+  <div class="swatch-body">
+    <a class="row-card flex items-center justify-between row-card-title hover:border-accent" href="#">
+      Edit account details
+      <svg class="w-4 h-4 stroke-muted fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+    </a>
+  </div>
+</div>
+
+<div class="swatch" id="s-row-card-settings">
+  <div class="swatch-label">row-card — settings-row variant (switch control)</div>
+  <div class="swatch-body">
+    <div class="row-card flex items-center gap-3">
+      <div class="flex-1 min-w-0">
+        <span class="row-card-title">Athlete Mode</span>
+        <p class="text-[.82rem] text-muted mt-2">Unlocks performance insights on your Performance page, visible only to you.</p>
+      </div>
+      <button type="button" class="group inline-flex items-center bg-transparent border border-transparent cursor-pointer shrink-0" role="switch" aria-checked="true">
+        <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="swatch" id="s-row-card-btn">
+  <div class="swatch-label">row-card — settings-row variant (button control)</div>
+  <div class="swatch-body">
+    <div class="row-card flex items-center gap-3">
+      <div class="flex-1 min-w-0">
+        <span class="row-card-title">Check our beta</span>
+        <p class="text-[.82rem] text-muted mt-2">Opt in to get early access to new features before they're released.</p>
+      </div>
+      <button type="button" class="btn shrink-0">Manage</button>
+    </div>
+  </div>
+</div>
+
+<div class="swatch" id="s-btn">
+  <div class="swatch-label">btn / btn-primary</div>
+  <div class="swatch-body">
+    <div class="flex gap-2">
+      <button type="button" class="btn">CSV</button>
+      <button type="button" class="btn btn-primary">Add</button>
+    </div>
+  </div>
+</div>
+
+<div class="swatch" id="s-section-heading">
+  <div class="swatch-label">section-heading</div>
+  <div class="swatch-body">
+    <h2 class="section-heading">Settings</h2>
+  </div>
+</div>
+
+<div class="swatch" id="s-modal">
+  <div class="swatch-label">Modal / overlay shape</div>
+  <div class="swatch-body" style="position:relative; height: 220px; background: color-mix(in srgb, black 60%, transparent); display:flex; align-items:center; justify-content:center; border-radius: 8px;">
+    <div class="bg-background border border-border rounded-app p-5 w-full max-w-[340px]">
+      <div class="flex items-center justify-between mb-[14px]">
+        <span class="text-[1.05rem] font-bold text-accent">Sources</span>
+        <button type="button" class="inline-flex items-center justify-center w-8 h-8 border-none bg-transparent text-muted text-[1.1rem] leading-none cursor-pointer">✕</button>
+      </div>
+      <p class="text-[.84rem] text-foreground m-0">Modal body content goes here.</p>
+    </div>
+  </div>
+</div>
+
+<div class="swatch" id="s-grades">
+  <div class="swatch-label">Grade colors</div>
+  <div class="swatch-body flex gap-2 flex-wrap">
+    <span class="inline-flex items-center justify-center w-12 h-8 rounded-app font-bold text-[.85rem]" style="background: color-mix(in srgb, var(--grade-easy) 20%, var(--color-surface)); color: var(--grade-easy); border: 1px solid color-mix(in srgb, var(--grade-easy) 40%, transparent);">5C</span>
+    <span class="inline-flex items-center justify-center w-12 h-8 rounded-app font-bold text-[.85rem]" style="background: color-mix(in srgb, var(--grade-6a) 20%, var(--color-surface)); color: var(--grade-6a); border: 1px solid color-mix(in srgb, var(--grade-6a) 40%, transparent);">6A</span>
+    <span class="inline-flex items-center justify-center w-12 h-8 rounded-app font-bold text-[.85rem]" style="background: color-mix(in srgb, var(--grade-6b) 20%, var(--color-surface)); color: var(--grade-6b); border: 1px solid color-mix(in srgb, var(--grade-6b) 40%, transparent);">6B</span>
+  </div>
+</div>
+
+<div class="swatch" id="s-tiers">
+  <div class="swatch-label">Evidence-tier colors</div>
+  <div class="swatch-body flex gap-3 flex-wrap">
+    <span style="color: var(--tier-peer); font-weight:700; font-size:.82rem;">Peer-reviewed</span>
+    <span style="color: var(--tier-heuristic); font-weight:700; font-size:.82rem;">Coaching heuristic</span>
+    <span style="color: var(--tier-community); font-weight:700; font-size:.82rem;">Community source</span>
+  </div>
+</div>
+
+</body>
+</html>
