@@ -7,14 +7,14 @@ describe("rowCardHtml", () => {
       id: "test-row",
       title: "Grade Pyramid",
       description: "See your climbs broken down by grade.",
-      controlHtml: '<a class="admin-btn shrink-0" href="/alice/performance/pyramid">View</a>',
+      controlHtml: '<a class="btn shrink-0" href="/alice/performance/pyramid">View</a>',
     });
 
     expect(html).toContain('id="test-row"');
     expect(html).toContain('class="row-card flex items-center gap-3"');
     expect(html).toContain('<span class="row-card-title">Grade Pyramid</span>');
     expect(html).toContain("See your climbs broken down by grade.");
-    expect(html).toContain('<a class="admin-btn shrink-0" href="/alice/performance/pyramid">View</a>');
+    expect(html).toContain('<a class="btn shrink-0" href="/alice/performance/pyramid">View</a>');
   });
 
   it("omits the status line when status is not given", () => {

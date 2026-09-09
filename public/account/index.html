@@ -37,7 +37,7 @@
 
   <climbing-header variant="brand" align-left></climbing-header>
 
-  <!-- #457 -- a real button (admin-btn admin-btn-primary, the app's
+  <!-- #457 -- a real button (btn btn-primary, the app's
        actual red filled-button look -- Raven's own call, plain muted
        link text "isn't visibly a button"), not the same treatment as
        public/account/edit/index.html's back-to-account-link. Flush left
@@ -49,13 +49,13 @@
        than the headings looking arbitrarily offset from the flush-left
        brand header above. mt-4 (not the account-sections grid's own
        margin/padding, tried and reverted earlier) is what actually
-       widens the header-to-content gap Raven asked for -- admin-btn is
+       widens the header-to-content gap Raven asked for -- btn is
        inline-flex, so unlike a block-level element its margin doesn't
        collapse with #brand-header-row's own mb-4 above it (confirmed
        empirically: measured gap grew from 16px to 32px). href set in
        client/account-main.js (needs USERNAME, not available at
        static-shell time). -->
-  <a class="admin-btn admin-btn-primary mt-4 mb-5" id="back-to-logbook-link" href="#">
+  <a class="btn btn-primary mt-4 mb-5" id="back-to-logbook-link" href="#">
     <svg class="w-[.9rem] h-[.9rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
     My Climbing Logbook
   </a>
@@ -102,8 +102,8 @@
         <div class="row-card flex items-center justify-between row-card-title">
           Export entries
           <div class="flex gap-2">
-            <button type="button" class="admin-btn" id="export-csv-btn">CSV</button>
-            <button type="button" class="admin-btn" id="export-json-btn">JSON</button>
+            <button type="button" class="btn" id="export-csv-btn">CSV</button>
+            <button type="button" class="btn" id="export-json-btn">JSON</button>
           </div>
         </div>
         <p class="text-[.85rem] text-accent" id="export-error" hidden></p>
@@ -173,11 +173,11 @@
             <p class="text-[.82rem] text-muted mt-2">Opt in to get early access to new features before they're released.</p>
             <!-- text-accent (not text-muted, like the description above)
                  -- matches the switch rows' own "on" color (switch-track-
-                 on) and admin-btn-primary, both var(--color-accent) --
+                 on) and btn-primary, both var(--color-accent) --
                  this status line is state, not a caption. -->
             <p class="text-[.78rem] text-accent mt-1" id="beta-opt-in-status" hidden></p>
           </div>
-          <button type="button" class="admin-btn shrink-0" id="beta-opt-in-manage-btn">Manage</button>
+          <button type="button" class="btn shrink-0" id="beta-opt-in-manage-btn">Manage</button>
         </div>
       </div>
     </div>

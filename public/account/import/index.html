@@ -38,9 +38,9 @@
   <climbing-header variant="brand" align-left></climbing-header>
 
   <!-- #224 -- same treatment as public/account/edit/index.html's
-       back-to-account-link: a real button (admin-btn admin-btn-primary),
+       back-to-account-link: a real button (btn btn-primary),
        not plain muted link text, with the same mt-4/mb-5 spacing. -->
-  <a class="admin-btn admin-btn-primary mt-4 mb-5" id="back-to-account-link" href="#">
+  <a class="btn btn-primary mt-4 mb-5" id="back-to-account-link" href="#">
     <svg class="w-[.9rem] h-[.9rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
     My Account
   </a>
@@ -59,7 +59,7 @@
     <div class="row-card">
       <div class="row-card-title mb-1">1. Download the template, or use an existing JSON export</div>
       <p class="text-[.85rem] text-muted mb-3">A CSV file with the columns this page expects -- fill in one row per entry, keeping the header row as-is. Already have a JSON file from this app's own "Export as JSON"? That's importable as-is, no template needed.</p>
-      <button type="button" class="admin-btn" id="download-template-btn">Download CSV template</button>
+      <button type="button" class="btn" id="download-template-btn">Download CSV template</button>
     </div>
 
     <div class="row-card">
@@ -67,7 +67,7 @@
       <p class="text-[.85rem] text-muted mb-3">CSV (from the template above) or JSON (from this app's own export) -- nothing is imported until every row/entry in the file is valid, so you'll see every problem at once and can fix the whole file in one pass.</p>
       <form class="flex flex-wrap items-center gap-2" id="import-form">
         <input class="flex-1 min-w-0 text-[.85rem]" id="import-file-input" name="file" type="file" accept=".csv,.json,text/csv,application/json" required>
-        <button type="submit" class="admin-btn admin-btn-primary shrink-0" id="import-submit-btn">Import</button>
+        <button type="submit" class="btn btn-primary shrink-0" id="import-submit-btn">Import</button>
       </form>
     </div>
 

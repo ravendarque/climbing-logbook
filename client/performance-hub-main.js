@@ -94,7 +94,7 @@ function renderTiles() {
     id: insight.id,
     title: typeof insight.title === "function" ? insight.title(type) : insight.title,
     description: insight.description,
-    controlHtml: `<a class="admin-btn shrink-0" href="/${encodeURIComponent(USERNAME)}/performance/${insight.route}">View</a>`,
+    controlHtml: `<a class="btn shrink-0" href="/${encodeURIComponent(USERNAME)}/performance/${insight.route}">View</a>`,
   })).join("");
 }
 
