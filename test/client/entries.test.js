@@ -188,4 +188,15 @@ describe("sortEntries", () => {
     sortEntries(entries, { col: "grade", dir: "asc" }, PLACES);
     expect(entries).toEqual(original);
   });
+
+  // #461 -- regression: gradeRank() used to default to Boulder's order
+  // regardless of the entries' real discipline, silently mis-sorting any
+  // Sport grade whose real rank diverged from Boulder's own list.
+  it("sorts Sport entries by grade against Sport's own order, not Boulder's", () => {
+    const sportEntries = [
+      { id: "s1", grade: "6a", date: "2025-01-01", name: "Zebra", placeId: "p2" },
+      { id: "s2", grade: "4a", date: "2026-01-01", name: "Apple", placeId: "p1" },
+    ];
+    expect(sortEntries(sportEntries, { col: "grade", dir: "asc" }, PLACES, "sport").map(e => e.id)).toEqual(["s2", "s1"]);
+  });
 });

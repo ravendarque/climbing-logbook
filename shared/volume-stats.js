@@ -70,7 +70,11 @@ export function bucketIndexForDate(date, buckets) {
   return buckets.findIndex(b => date >= b.start && date <= b.end);
 }
 
-export function volumeByBucket(entries, buckets) {
+// #461 -- takes `type` explicitly: entries are always already filtered
+// to one discipline by the caller, but gradeRank() needs telling which
+// discipline's order to rank against, not left to its "boulder" default
+// (which silently mis-ranked every Sport grade before this fix).
+export function volumeByBucket(entries, buckets, type) {
   const sendCounts = buckets.map(() => 0);
   const maxGradeByBucket = buckets.map(() => null);
 
@@ -79,7 +83,7 @@ export function volumeByBucket(entries, buckets) {
     const idx = bucketIndexForDate(entry.date, buckets);
     if (idx === -1) continue;
     sendCounts[idx]++;
-    if (maxGradeByBucket[idx] === null || gradeRank(entry.grade) > gradeRank(maxGradeByBucket[idx])) {
+    if (maxGradeByBucket[idx] === null || gradeRank(entry.grade, type) > gradeRank(maxGradeByBucket[idx], type)) {
       maxGradeByBucket[idx] = entry.grade;
     }
   }

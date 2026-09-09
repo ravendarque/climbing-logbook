@@ -7,7 +7,11 @@
 import { bucketIndexForDate, gradeDisplayLabel } from "./volume-stats.js";
 import { gradeRank } from "./grade-data.js";
 
-export function gapByBucket(entries, buckets) {
+// #461 -- takes `type` explicitly now: entries here are always already
+// filtered to one discipline by the caller (server/api/performance.js's
+// own `rows.filter(e => e.type === type)`), but gradeRank() itself needs
+// telling which discipline's order to rank against, not left to default.
+export function gapByBucket(entries, buckets, type) {
   const flashMaxByBucket = buckets.map(() => null);
   const sendMaxByBucket = buckets.map(() => null);
   const attemptsSumByBucket = buckets.map(() => 0);
@@ -18,10 +22,10 @@ export function gapByBucket(entries, buckets) {
     const idx = bucketIndexForDate(entry.date, buckets);
     if (idx === -1) continue;
 
-    if (sendMaxByBucket[idx] === null || gradeRank(entry.grade) > gradeRank(sendMaxByBucket[idx])) {
+    if (sendMaxByBucket[idx] === null || gradeRank(entry.grade, type) > gradeRank(sendMaxByBucket[idx], type)) {
       sendMaxByBucket[idx] = entry.grade;
     }
-    if (entry.firstAttempt && (flashMaxByBucket[idx] === null || gradeRank(entry.grade) > gradeRank(flashMaxByBucket[idx]))) {
+    if (entry.firstAttempt && (flashMaxByBucket[idx] === null || gradeRank(entry.grade, type) > gradeRank(flashMaxByBucket[idx], type))) {
       flashMaxByBucket[idx] = entry.grade;
     }
     if (entry.attemptsToSend !== null && entry.attemptsToSend !== undefined) {
@@ -67,15 +71,15 @@ export function gapHeadline(flashMaxByBucket, sendMaxByBucket, type) {
 
   const sendGrades = sendMaxByBucket.filter(g => g !== null);
   if (sendGrades.length === 0) return "No sends logged in this window yet.";
-  const bestSend = sendGrades.reduce((best, g) => (gradeRank(g) > gradeRank(best) ? g : best));
+  const bestSend = sendGrades.reduce((best, g) => (gradeRank(g, type) > gradeRank(best, type) ? g : best));
 
   const flashGrades = flashMaxByBucket.filter(g => g !== null);
   if (flashGrades.length === 0) {
     return `No ${flashTerm} sends logged in this window yet -- your best ${sendTerm} is ${gradeDisplayLabel(bestSend, type)}.`;
   }
-  const bestFlash = flashGrades.reduce((best, g) => (gradeRank(g) > gradeRank(best) ? g : best));
+  const bestFlash = flashGrades.reduce((best, g) => (gradeRank(g, type) > gradeRank(best, type) ? g : best));
 
-  const gap = gradeRank(bestSend) - gradeRank(bestFlash);
+  const gap = gradeRank(bestSend, type) - gradeRank(bestFlash, type);
   if (gap <= 0) {
     return `Your best ${flashTerm} (${gradeDisplayLabel(bestFlash, type)}) matches or beats your best ${sendTerm} (${gradeDisplayLabel(bestSend, type)}) this window.`;
   }

@@ -877,7 +877,13 @@ export class ClimbingEntriesTable extends HTMLElement {
     if (section.items === null) return this.#renderShellSection(section);
     const { key, locationId, discipline, items } = section;
     const location = this.#locations.find(l => l.id === locationId) ?? { name: "", country: "" };
-    const sorted = sortEntries(items, this.#getSort(key), this.#places);
+    // #461 -- section.discipline is only set in allDisciplines mode
+    // (single-discipline mode's own sections carry `discipline: null`,
+    // a "not applicable in this shape" marker, not "mixed disciplines" --
+    // items are already filtered to activeDiscipline either way); resolve
+    // to whichever one actually applies so sortEntries always ranks
+    // grades against the right discipline's own order.
+    const sorted = sortEntries(items, this.#getSort(key), this.#places, discipline ?? this.activeDiscipline);
     const { col, dir } = this.#getSort(key);
     const isCollapsed = this.#collapsed.has(key);
     const editable = this.editable;

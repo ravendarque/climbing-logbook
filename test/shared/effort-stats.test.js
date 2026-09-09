@@ -28,6 +28,15 @@ describe("effortByBucket", () => {
     expect(maxGradeByBucket).toEqual(["7A"]);
   });
 
+  // #461 -- regression: `type` used to be dropped entirely on the way
+  // into volumeByBucket()'s own gradeRank() calls, defaulting every
+  // discipline to Boulder's order.
+  it("ranks Sport grades against Sport's own order, not Boulder's", () => {
+    const entries = [entry({ grade: "4a", type: "sport" }), entry({ grade: "6a", type: "sport", date: "2026-01-20" })];
+    const { maxGradeByBucket } = effortByBucket(entries, [JAN], "sport");
+    expect(maxGradeByBucket).toEqual(["6a"]);
+  });
+
   it("averages rpe per bucket, ignoring entries with no rpe value", () => {
     const entries = [entry({ rpe: 60 }), entry({ rpe: 80, date: "2026-01-20" }), entry({ rpe: null, date: "2026-01-25" })];
     const { avgExertionByBucket, rpeCountByBucket } = effortByBucket(entries, [JAN]);

@@ -15,6 +15,33 @@ describe("gradeRank", () => {
   it("returns 99 for a grade outside the known order", () => {
     expect(gradeRank("not-a-grade")).toBe(99);
   });
+
+  // #461 -- the regression this issue exists to fix: a flat, Boulder-only
+  // order meant every Sport grade fell through to the `?? 99` fallback
+  // unless it happened to share notation with a Boulder string. These
+  // Sport grades never existed in the old list at all.
+  it("ranks Sport grades in ascending difficulty order, using Sport's own order", () => {
+    expect(gradeRank("6a", "sport")).toBeLessThan(gradeRank("6a+", "sport"));
+    expect(gradeRank("6c+", "sport")).toBeLessThan(gradeRank("7a", "sport"));
+    expect(gradeRank("7c+", "sport")).toBeLessThan(gradeRank("8a", "sport"));
+  });
+
+  it("does not fall through to 99 for a Sport grade outside Boulder's notation", () => {
+    expect(gradeRank("4a", "sport")).not.toBe(99);
+    expect(gradeRank("4b", "sport")).toBeLessThan(gradeRank("4c", "sport"));
+  });
+
+  it("defaults to Boulder's order when type is omitted, matching gradeColor()'s own default", () => {
+    expect(gradeRank("6A")).toBe(gradeRank("6A", "boulder"));
+  });
+
+  it("ranks a grade against the wrong discipline's order differently -- type is not cosmetic", () => {
+    // "6A" isn't a Sport-notation grade at all (Sport uses lowercase
+    // "6a"), but gradeRank() is case-insensitive by design -- ranking it
+    // as Sport still has to resolve against Sport's own order, not
+    // Boulder's, proving `type` actually changes which table is used.
+    expect(gradeRank("6A", "boulder")).not.toBe(gradeRank("6A", "sport"));
+  });
 });
 
 describe("gradeColor", () => {
