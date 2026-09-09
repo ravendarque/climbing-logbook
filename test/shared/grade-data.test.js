@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BOULDER_GRADES, LEAD_GRADES, gradeColor, gradeRank } from "../../shared/grade-data.js";
+import { BOULDER_GRADES, LEAD_GRADES, gradeColor, gradeRank, gradeTier } from "../../shared/grade-data.js";
 
 describe("gradeRank", () => {
   it("ranks grades in ascending difficulty order", () => {
@@ -114,5 +114,53 @@ describe("BOULDER_GRADES/LEAD_GRADES (#129 range extension)", () => {
   it("every new grade in both lists has a real curated colour, not undefined", () => {
     for (const g of BOULDER_GRADES) expect(g.c).toMatch(/^var\(--grade-/);
     for (const g of LEAD_GRADES) expect(g.c).toMatch(/^var\(--grade-/);
+  });
+});
+
+// #462 -- five-tier headline classification, decided 2026-09-09. Every
+// boundary tested at both edges (the grade just below it, and the grade
+// itself) for both disciplines, since the boundaries are Raven's own
+// felt-sense decision, not a derived formula -- there's no shortcut to
+// "these five numbers are right" other than pinning down every edge.
+describe("gradeTier", () => {
+  it.each([
+    ["5C", "beginner"], ["6A", "intermediate"],
+    ["6C+", "intermediate"], ["7A", "advanced"],
+    ["7C", "advanced"], ["7C+", "elite"],
+    ["8B", "elite"], ["8B+", "hyper-elite"],
+    ["9A", "hyper-elite"],
+  ])("classifies Boulder %s as %s", (grade, tier) => {
+    expect(gradeTier(grade, "boulder")).toBe(tier);
+  });
+
+  it.each([
+    ["5c", "beginner"], ["6a", "intermediate"],
+    ["6c+", "intermediate"], ["7a", "advanced"],
+    ["7c", "advanced"], ["7c+", "elite"],
+    ["8b", "elite"], ["8b+", "hyper-elite"],
+    ["9c+", "hyper-elite"],
+  ])("classifies Sport %s as %s", (grade, tier) => {
+    expect(gradeTier(grade, "sport")).toBe(tier);
+  });
+
+  it("is case-insensitive, matching gradeRank()'s own behavior", () => {
+    expect(gradeTier("7a", "boulder")).toBe(gradeTier("7A", "boulder"));
+  });
+
+  it("defaults to Boulder's thresholds when type is omitted", () => {
+    expect(gradeTier("7A")).toBe(gradeTier("7A", "boulder"));
+  });
+
+  it("the lowest grade in each discipline's own list is always beginner", () => {
+    expect(gradeTier(BOULDER_GRADES[0].g, "boulder")).toBe("beginner");
+    expect(gradeTier(LEAD_GRADES[0].g, "sport")).toBe("beginner");
+  });
+
+  it("the same numeral/letter grade resolves independently per discipline, not cross-checked against the other", () => {
+    // "6A" (Boulder, uppercase) and "6a" (Sport, lowercase) sit at the
+    // same tier boundary in both disciplines' own decided ranges --
+    // this isn't gradeTier() treating them as equivalent, each is
+    // resolved purely against its own discipline's thresholds.
+    expect(gradeTier("6A", "boulder")).toBe(gradeTier("6a", "sport"));
   });
 });
