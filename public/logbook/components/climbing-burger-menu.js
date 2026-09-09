@@ -31,7 +31,7 @@
     // flex-col items-end already right-aligns any child that's just its
     // natural content width, which is what "pop more" (Raven, 2026-08-11)
     // actually needed: real weight/size, not a full-width bordered row.
-    // my-account-link deliberately isn't admin-btn (that's the bordered/
+    // my-account-link deliberately isn't btn (that's the bordered/
     // filled "card" look Raven flagged) -- styled as a plain accent link
     // instead. No hover:underline (Raven flagged links underlining as
     // "creeping in" and unwanted, #457) -- styles/tailwind.css's own
@@ -48,7 +48,7 @@
     var adminRows = adminHidden ? "" : `
       <div class="max-w-[11rem] truncate text-[.9rem] font-bold text-foreground text-right" id="menu-username" hidden></div>
       <a class="text-[.9rem] font-bold text-accent" id="my-account-link" href="#" hidden>My account</a>`;
-    var loginBtn = adminHidden ? "" : `<button type="button" class="admin-btn" id="login-toggle-btn">Log in</button>`;
+    var loginBtn = adminHidden ? "" : `<button type="button" class="btn" id="login-toggle-btn">Log in</button>`;
     // The divider (border-t/pt-2/mt-1) only makes sense when something is
     // actually visible above it -- menu-username/my-account-link are the
     // only things that can occupy the top section now (#445), and both are

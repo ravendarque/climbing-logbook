@@ -57,8 +57,8 @@ const TEMPLATE = `
         </div>
         <p class="text-[.85rem] text-accent mb-3" id="beta-opt-in-error" hidden></p>
         <div class="flex gap-2">
-          <button type="submit" class="admin-btn admin-btn-primary" id="beta-opt-in-submit">Submit</button>
-          <button type="button" class="admin-btn" id="beta-opt-in-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="beta-opt-in-submit">Submit</button>
+          <button type="button" class="btn" id="beta-opt-in-cancel">Cancel</button>
         </div>
       </form>
     </div>

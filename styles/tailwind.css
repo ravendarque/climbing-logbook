@@ -200,7 +200,7 @@
    repeating the same ~10 utility classes across every button instance
    in a template-string-based app with no component/framework layer to
    extract them into otherwise. */
-@utility admin-btn {
+@utility btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -220,7 +220,7 @@
   }
 }
 
-@utility admin-btn-primary {
+@utility btn-primary {
   background: var(--color-accent);
   color: var(--color-accent-foreground);
   border-color: var(--color-accent);
@@ -232,7 +232,7 @@
    row, public-logbook-row, username/email/password-row -- eight
    occurrences before this existed) -- extracted once rather than kept
    as a copy-pasted utility string per occurrence, same reasoning as
-   admin-btn above. */
+   btn above. */
 @utility row-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);

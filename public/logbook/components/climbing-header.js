@@ -41,7 +41,7 @@
     // Carried over from public/logbook/index.html's own second :root
     // block (predates #345 -- these never made it into this shared token
     // set when it was created, so every /:username/{log,map,performance}
-    // page and the public profile page had .admin-btn/the discipline
+    // page and the public profile page had .btn/the discipline
     // picker/grade prev-next buttons collapse to zero vertical padding
     // (var(--field-h) resolving to nothing), and every grade badge/
     // evidence-tier color (client/grade-data.js, the citations/evidence-
