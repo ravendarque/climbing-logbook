@@ -65,7 +65,15 @@ The single tier that gets the achievement/celebratory treatment (Scenario B and 
 
 ## Truth table
 
-Worked against Boulder's actual grade list (`5, 5+, 5A, 5B, 5C, 6A, 6A+, 6B, 6B+, 6C, 6C+, 7A, ...`, indices 0-20) and `PYRAMID_IDEAL_BY_POSITION = [1, 2, 4, 8]`.
+Worked against Boulder's actual grade list at the time this doc was
+written (`5, 5+, 5A, 5B, 5C, 6A, 6A+, 6B, 6B+, 6C, 6C+, 7A, ...`, indices
+0-20) and `PYRAMID_IDEAL_BY_POSITION = [1, 2, 4, 8]`. #129 later extended
+the list down to `1`/`1A` and up to `9A` (44 entries, `9A` now the
+top/index 43) -- the algorithm itself is unaffected (it's generic over
+whatever `order.length` is), so the scenarios below still hold, just
+against a longer list; #209 will further change how the *low* end of
+that list actually renders (aggregated into one "Below 6A" tier rather
+than one rung per grade) without changing this table's own reasoning.
 
 | # | Scenario | Sends (last 12mo) | `topIdx` before → after | Displayed window (tier 4 → tier 1) | Outcome |
 |---|---|---|---|---|---|
@@ -75,11 +83,14 @@ Worked against Boulder's actual grade list (`5, 5+, 5A, 5B, 5C, 6A, 6A+, 6B, 6B+
 | 4 | C: growing, real send lands on the celebratory tier | 5: 2, 5+: 1 | 1 (5+) → 1 (no promotion — 5+ has < 2 sends) | 5 (2/8), 5+ (1/4, now real — no longer celebratory), 5A (plain), 5B (plain) | Back to ordinary Scenario A per point 3 — no un-promotion logic needed, the anchor just moved |
 | 5 | C: more volume at the base only | 5: 5 (no other sends) | 0 (5) → 1 (5+) | 5 (5/8), 5+ (celebratory, 0/4), 5A (plain), 5B (plain) | Same result as #3 — extra sends at a lower tier widen that bar but don't change which tier is aspirational |
 | 6 | Skipping a tier entirely | 5: 2, 5A: 1 (5+ has 0) | 2 (5A) → 2 (no promotion — 5A has < 2 sends) | 5 (2/8), **5+ (0/4, ordinary gap — not celebratory)**, 5A (1/2), 5B (plain) | Per point 3: a real send beyond the aspirational tier means it's sandwiched by real data and reverts to an ordinary missing-tier gap, not a celebration |
-| 7 | Already at the hardest supported grade | 8B+: 1 (plus a filled window below it) | 20 (8B+) → 20 (guarded: no grade left to promote into) | 8A, 8A+, 8B, 8B+ | No promotion ever triggers past the top of the list, matching Scenario B's "grades we currently support" constraint |
+| 7 | Already at the hardest supported grade | 9A: 1 (plus a filled window below it) | 43 (9A) → 43 (guarded: no grade left to promote into) | 8B+, 8C, 8C+, 9A | No promotion ever triggers past the top of the list, matching Scenario B's "grades we currently support" constraint (`9A` is the ceiling since #129; was `8B+` when this row was first written) |
 
-Edge case worth noting rather than a full row: a discipline list shorter than 4 grades (neither Boulder's 21 nor Lead's 14 are anywhere near this today) degrades gracefully under the same clamps (`min(3, order.length - 1)`), just showing fewer than 4 tiers — no special-case code needed.
+Edge case worth noting rather than a full row: a discipline list shorter than 4 grades (neither Boulder's 44 nor Sport's 36, post-#129, are anywhere near this) degrades gracefully under the same clamps (`min(3, order.length - 1)`), just showing fewer than 4 tiers — no special-case code needed.
 
 # Related work
 I think we should make a decision on the grading scale we use. Currently we offer Font 5A, 5B,and 5C in Bouldering and I'm happy to stick with this but it does seem to be a departure from the information I can find online which has only 5 and 5+ at that grade. I want to be definitive in what we provide but I also don't want to confuse people if a location uses non-standard grading (like Magic Wood and Fontainebleau). We could simply provide both 5/5+ as additional text in the grade picker which might solve the issue in a simple way. I like this resource which covers all grades (including other scales that we will need to support in future) in a clear and engaging format: https://climbinghouse.com/grades-charts-conversion/
 
-Tracked separately in #129 — Boulder's picker already offers both notations today (`5`, `5+`, `5A`, `5B`, `5C` all map to V0-V2), so the actual question is whether to combine them into fewer, unified labels, pending a reliable conversion between the two scales at this band.
+Resolved by #129 (2026-09-09): no conversion attempted between `5`/`5+`
+and `5A`/`5B`/`5C` — both notations stay side by side as genuinely
+distinct picker entries, the same pattern now extended all the way down
+to `1`/`1A`. See #129 itself for the full decision and reasoning.

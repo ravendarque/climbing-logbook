@@ -70,9 +70,49 @@ describe("gradeColor", () => {
   });
 
   it("bands a grade outside the curated list by fractional rank instead of throwing", () => {
-    // "9A+" is above BOULDER_GRADES' curated range (tops out at 8B+) --
-    // this exercises the fallback banding path, not a list lookup hit.
+    // "9A+" is above BOULDER_GRADES' curated range (tops out at 9A,
+    // per #129) -- this exercises the fallback banding path, not a
+    // list lookup hit.
     expect(() => gradeColor("9A+", "boulder")).not.toThrow();
     expect(typeof gradeColor("9A+", "boulder")).toBe("string");
+  });
+});
+
+// #129 -- Boulder extended down to 1/1A and up to 9A; Sport extended down
+// to French 1 and up to 9c+.
+describe("BOULDER_GRADES/LEAD_GRADES (#129 range extension)", () => {
+  it("Boulder's new low end ranks below its existing V0 threshold, and both notations coexist", () => {
+    expect(gradeRank("1A", "boulder")).toBeLessThan(gradeRank("5", "boulder"));
+    expect(gradeRank("1", "boulder")).toBeLessThan(gradeRank("1A", "boulder"));
+  });
+
+  it("Boulder's new low end is labeled VB, not a reused V0", () => {
+    expect(BOULDER_GRADES.find(x => x.g === "1A").v).toBe("VB");
+    expect(BOULDER_GRADES.find(x => x.g === "4C").v).toBe("VB");
+    // V0 still means exactly what it always did -- extending the range
+    // downward doesn't relabel the existing cutoff.
+    expect(BOULDER_GRADES.find(x => x.g === "5").v).toBe("V0");
+  });
+
+  it("Boulder's new top end (8C/8C+/9A) ranks above the previous ceiling", () => {
+    expect(gradeRank("8B+", "boulder")).toBeLessThan(gradeRank("8C", "boulder"));
+    expect(gradeRank("8C", "boulder")).toBeLessThan(gradeRank("8C+", "boulder"));
+    expect(gradeRank("8C+", "boulder")).toBeLessThan(gradeRank("9A", "boulder"));
+  });
+
+  it("Sport's new low end ranks below its previous floor (5c)", () => {
+    expect(gradeRank("4a", "sport")).toBeLessThan(gradeRank("5c", "sport"));
+    expect(gradeRank("1", "sport")).toBeLessThan(gradeRank("1+", "sport"));
+  });
+
+  it("Sport's new top end (8a+...9c+) ranks above the previous ceiling (8a)", () => {
+    expect(gradeRank("8a", "sport")).toBeLessThan(gradeRank("8a+", "sport"));
+    expect(gradeRank("9b+", "sport")).toBeLessThan(gradeRank("9c", "sport"));
+    expect(gradeRank("9c", "sport")).toBeLessThan(gradeRank("9c+", "sport"));
+  });
+
+  it("every new grade in both lists has a real curated colour, not undefined", () => {
+    for (const g of BOULDER_GRADES) expect(g.c).toMatch(/^var\(--grade-/);
+    for (const g of LEAD_GRADES) expect(g.c).toMatch(/^var\(--grade-/);
   });
 });
