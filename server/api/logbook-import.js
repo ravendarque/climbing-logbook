@@ -1,7 +1,7 @@
 import * as v from "valibot";
 import { json } from "../lib/json.js";
 import { entrySchema } from "../../shared/entry-schema.js";
-import { parseCsvText } from "../../shared/csv-import.js";
+import { parseCsvText, parseJsonText } from "../../shared/csv-import.js";
 import { insertRow, listForUser } from "../lib/d1-resource.js";
 import { attachChildRows, buildRow as buildEntryRow, rowToJson as entryRowToJson } from "./logbook.js";
 import { buildRow as buildLocationRow } from "./locations.js";
@@ -94,12 +94,31 @@ function draftEntry(row, placeId) {
     date: row.date,
     video: row.video,
     notes: row.notes,
+    // #639 -- required by entrySchema for a "sport" discipline (#643),
+    // blank for "boulder" same as every other sport-only column here.
+    // `||`, not `??` -- a blank CSV cell/JSON "" both need to normalize
+    // to undefined ("missing"), matching entrySchema's own "empty string
+    // treated as missing" rule for every other required field, not just
+    // a genuinely-absent key.
+    sportStyle: row.sportStyle || undefined,
   };
+}
+
+// #639 -- JSON import, parity with the "Export as JSON" button. Dispatched
+// on Content-Type, which client/account-import-main.js's own upload
+// handler sets from the file's extension -- same client-sets-the-header
+// convention the rest of this app's own POST bodies already use (e.g.
+// entry-form.js's "Content-Type: application/json" for a single entry).
+// Anything not recognized as JSON falls back to the CSV parser, unchanged
+// behavior for every caller that predates this.
+function parserFor(contentType) {
+  return (contentType ?? "").includes("json") ? parseJsonText : parseCsvText;
 }
 
 export async function handleImport(request, env, userId) {
   const text = await request.text();
-  const parsed = parseCsvText(text);
+  const isJson = (request.headers.get("Content-Type") ?? "").includes("json");
+  const parsed = parserFor(request.headers.get("Content-Type"))(text);
   if (!parsed.ok) return json({ error: parsed.error }, 400);
 
   const { newLocations, newPlaces, placeIds } = await resolveLocationsAndPlaces(env, userId, parsed.rows);
@@ -111,13 +130,19 @@ export async function handleImport(request, env, userId) {
   // a user fixing only the errors shown still might not be done in one
   // pass if their file has other issues an earlier row's error was
   // masking -- same limitation the single-entry form has always had, not
-  // new here.
+  // new here. toCsvFieldNames applies equally to a JSON-sourced draft --
+  // both parsers normalize into the same location/discipline-named row
+  // shape (see parseJsonText's own comment), so entrySchema's messages
+  // need the same placeId/type -> location/discipline translation either
+  // way.
   const rowErrors = [];
   drafts.forEach((draft, i) => {
     const result = v.safeParse(entrySchema, draft);
-    // CSV row 1 is the header -- the first *data* row is line 2, matching
-    // what a user sees opening the file in a spreadsheet app.
-    if (!result.success) rowErrors.push({ row: i + 2, error: toCsvFieldNames(result.issues[0].message) });
+    // CSV row 1 is the header, so its first *data* row is line 2, matching
+    // what a user sees opening the file in a spreadsheet app -- a JSON
+    // array has no header, so its first entry is simply 1 (matching
+    // parseJsonText's own "Entry 1" numbering for a structural error).
+    if (!result.success) rowErrors.push({ row: i + (isJson ? 1 : 2), error: toCsvFieldNames(result.issues[0].message) });
   });
   if (rowErrors.length > 0) return json({ errors: rowErrors }, 400);
 

@@ -245,7 +245,7 @@ test("Export JSON downloads the resolved rows as JSON", async ({ page }) => {
   expect(json).toEqual([{
     name: "La Marie-Rose", grade: "6B", discipline: "boulder", status: "send",
     firstAttempt: true, date: "2026-07-30", location: "Fontainebleau",
-    area: "Bas Cuvier", country: "France", video: "", notes: "",
+    area: "Bas Cuvier", country: "France", video: "", notes: "", sportStyle: "",
   }]);
 });
 
