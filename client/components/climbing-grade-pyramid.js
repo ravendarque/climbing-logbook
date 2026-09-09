@@ -286,6 +286,21 @@ export class ClimbingGradePyramid extends HTMLElement {
     }
 
     const gapRow = top4.find(r => r.count === 0);
+    // #633 -- "no gap" (every tier non-zero) was being treated as the sole
+    // signal of a healthy shape, but presence isn't the same claim as
+    // ratio: a pyramid can have zero empty tiers and still be genuinely
+    // top-heavy/under-consolidated -- e.g. more sends at a harder tier
+    // than at an easier one beneath it (docs/climbing-analytics-
+    // research.md §1's "under-consolidation / premature advancement":
+    // "a climber who has sent one route at their limit grade but very
+    // few at the grade(s) just below it"). top4 is ordered hardest (index
+    // 0) to easiest-of-the-four (index 3), so a healthy/consolidating
+    // pyramid never has an easier tier with FEWER sends than the harder
+    // tier immediately above it -- that specific inversion is what
+    // "top-heavy" means here, distinct from (and checked only once
+    // there's no literal zero-count gapRow above, which already has its
+    // own, more specific message).
+    const topHeavyRow = top4.find((r, i) => i > 0 && r.count < top4[i - 1].count);
     if (gapRow) {
       healthEl.className = "flex gap-3 px-4 py-[14px] rounded-app mb-7 [&_svg]:w-[1.2rem] [&_svg]:h-[1.2rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:mt-[2px] [&_svg]:shrink-0 bg-[color-mix(in_srgb,var(--color-tier-heuristic)_8%,var(--color-surface))] border border-[color-mix(in_srgb,var(--color-tier-heuristic)_30%,transparent)] text-tier-heuristic";
       healthEl.innerHTML = `
@@ -294,11 +309,19 @@ export class ClimbingGradePyramid extends HTMLElement {
           <p class="text-[.86rem] leading-[1.5] text-foreground">No sends logged at ${escapeHtml(gapRow.grade)} in the last 12 months, right in the middle of your pyramid window.</p>
           <p class="text-[.8rem] leading-[1.5] text-muted mt-[6px]">Heuristic guidance, not diagnosis — might be worth spending more mileage there before pushing your top grade again.</p>
         </div>`;
+    } else if (topHeavyRow) {
+      healthEl.className = "flex gap-3 px-4 py-[14px] rounded-app mb-7 [&_svg]:w-[1.2rem] [&_svg]:h-[1.2rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:mt-[2px] [&_svg]:shrink-0 bg-[color-mix(in_srgb,var(--color-tier-heuristic)_8%,var(--color-surface))] border border-[color-mix(in_srgb,var(--color-tier-heuristic)_30%,transparent)] text-tier-heuristic";
+      healthEl.innerHTML = `
+        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+        <div>
+          <p class="text-[.86rem] leading-[1.5] text-foreground">This pyramid is top-heavy — you've got fewer sends at ${escapeHtml(topHeavyRow.grade)} than at the harder tier above it.</p>
+          <p class="text-[.8rem] leading-[1.5] text-muted mt-[6px]">Heuristic guidance, not diagnosis — a broader base at the easier tiers usually means a more sustainable base to build from.</p>
+        </div>`;
     } else {
       healthEl.className = "flex gap-3 px-4 py-[14px] rounded-app mb-7 [&_svg]:w-[1.2rem] [&_svg]:h-[1.2rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:mt-[2px] [&_svg]:shrink-0 bg-[color-mix(in_srgb,var(--color-tier-heuristic)_8%,var(--color-surface))] border border-[color-mix(in_srgb,var(--color-tier-heuristic)_30%,transparent)] text-tier-heuristic";
       healthEl.innerHTML = `
         <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
-        <div><p class="text-[.86rem] leading-[1.5] text-foreground">No gaps in this window — every tier from your base to your max has sends behind it.</p></div>`;
+        <div><p class="text-[.86rem] leading-[1.5] text-foreground">No gaps or inversions in this window — sends build up from your base to your max, the shape a healthy pyramid is expected to have.</p></div>`;
     }
   }
 }
