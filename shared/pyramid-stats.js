@@ -103,3 +103,39 @@ export function pyramidSplitRows(type, entries) {
 
   return { top4, lower, hasSends: true, promotedGrade };
 }
+
+// #687 -- the health-card message-selection logic used to live inline in
+// client/components/climbing-grade-pyramid.js's own #render(), the one
+// Performance Insights view whose coaching message wasn't a pure,
+// unit-tested shared/*.js function (see docs/coaching-messaging-rules.md,
+// #633). Extracted here, decision-only -- no HTML/icon/copy, same
+// "resolve once, format per consumer" split every other function in this
+// file already follows. top4 is ordered hardest (index 0) to
+// easiest-of-the-four (index 3), matching pyramidSplitRows' own output
+// and PYRAMID_IDEAL_BY_POSITION's [1,2,4,8] ordering.
+//
+// Branches, in priority order (docs/coaching-messaging-rules.md has the
+// full reasoning for each):
+// - "promoted": ready to push into a new grade (stillBuilding further
+//   distinguishes whether every other displayed tier already has
+//   volume, or the climber is still building the base under a
+//   fresh promotion).
+// - "gap": a literal zero-count tier -- checked before top-heavy so a
+//   real gap gets its own, more specific message rather than being
+//   folded into the ratio check below.
+// - "top-heavy": no literal gap, but a harder tier (top4[i-1]) has MORE
+//   sends than an easier tier beneath it (top4[i]) -- an inversion
+//   relative to the 8-4-2-1 shape, distinct from mere presence.
+// - "healthy": neither of the above -- every tier is non-zero and
+//   non-increasing toward the base.
+export function pyramidHealth(top4, promotedGrade) {
+  if (promotedGrade) {
+    const stillBuilding = top4.some(r => r.count === 0 && r.grade !== promotedGrade);
+    return { kind: "promoted", stillBuilding, grade: promotedGrade };
+  }
+  const gapRow = top4.find(r => r.count === 0);
+  if (gapRow) return { kind: "gap", grade: gapRow.grade };
+  const topHeavyRow = top4.find((r, i) => i > 0 && r.count < top4[i - 1].count);
+  if (topHeavyRow) return { kind: "top-heavy", grade: topHeavyRow.grade };
+  return { kind: "healthy" };
+}

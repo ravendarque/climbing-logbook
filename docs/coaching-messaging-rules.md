@@ -32,25 +32,32 @@ Copy is quoted verbatim from source, with template placeholders shown as
 
 ## Grade Pyramid
 
-**Where:** `client/components/climbing-grade-pyramid.js`, `#render()`
-(health-card block). Notably, this is the *one* view whose coaching message
-does not live in a pure `shared/*.js` function — `shared/pyramid-stats.js`
-only produces structural data (`pyramidCounts`/`pyramidReadyToPromote`/
-`pyramidSplitRows`), never a headline string. Every other view below
-generates its message in a shared, unit-testable pure function; the pyramid
-generates its inline, in a Web Component. This asymmetry is itself worth
-noting for anyone extending this view — a future change should consider
-moving this logic into `shared/pyramid-stats.js` for consistency, but that's
-a refactor, not required by this fix.
+**Where:** branch selection is `shared/pyramid-stats.js`'s `pyramidHealth()`
+(returns `{ kind, grade?, stillBuilding? }`, decision-only); rendering is
+`client/components/climbing-grade-pyramid.js`'s `#render()` (health-card
+block), which maps `kind` onto its own HTML/icon/copy. Until #687, this was
+the *one* view whose coaching message didn't live in a pure `shared/*.js`
+function — `shared/pyramid-stats.js` used to produce only structural data
+(`pyramidCounts`/`pyramidReadyToPromote`/`pyramidSplitRows`), never a
+decision. Every view below already followed the "resolve once in shared/,
+render per consumer" split; #687 extracted `pyramidHealth()` out of the Web
+Component so the pyramid now follows it too, with its own unit tests in
+`test/shared/pyramid-stats.test.js` covering every branch below.
 
 | # | Rule | Templated copy |
 |---|---|---|
-| 1 | `!hasSends` — no sends in the 12-month window at all | "No ${disciplineLabel(type)} sends logged in the last 12 months yet -- log a send to see your pyramid." |
-| 2a | `promotedGrade` truthy **and** `stillBuilding` (some other displayed tier still has zero sends) | "Still building your pyramid from the base up — but you've already got enough mileage to give ${promotedGrade} a go." / "Keep adding sends at your lower tiers too — a full 8-4-2-1 pyramid needs volume all the way down, not just at the top." |
-| 2b | `promotedGrade` truthy, no other gaps | "You've logged enough at every tier below to be ready to push into ${promotedGrade}." / "Heuristic guidance, not diagnosis — only you know if the moves suit you." |
-| 3 | `gapRow` — a literal gap: at least one displayed tier has zero sends (`top4.find(r => r.count === 0)`) | "No sends logged at ${gapRow.grade} in the last 12 months, right in the middle of your pyramid window." / "Heuristic guidance, not diagnosis — might be worth spending more mileage there before pushing your top grade again." |
-| 4 | `topHeavyRow` (added by #633) — no literal gap, but a harder tier has *more* sends than an easier tier beneath it (`top4.find((r, i) => i > 0 && r.count < top4[i - 1].count)`) | "This pyramid is top-heavy — you've got fewer sends at ${topHeavyRow.grade} than at the harder tier above it." / "Heuristic guidance, not diagnosis — a broader base at the easier tiers usually means a more sustainable base to build from." |
-| 5 | Healthy — none of the above match | "No gaps or inversions in this window — sends build up from your base to your max, the shape a healthy pyramid is expected to have." |
+| 1 | `!hasSends` — no sends in the 12-month window at all (checked by the component itself, before `pyramidHealth()` is ever called — there's no health card at all to reason about yet) | "No ${disciplineLabel(type)} sends logged in the last 12 months yet -- log a send to see your pyramid." |
+| 2a | `pyramidHealth()` returns `{ kind: "promoted", stillBuilding: true }` — `promotedGrade` truthy **and** some other displayed tier still has zero sends | "Still building your pyramid from the base up — but you've already got enough mileage to give ${grade} a go." / "Keep adding sends at your lower tiers too — a full 8-4-2-1 pyramid needs volume all the way down, not just at the top." |
+| 2b | `{ kind: "promoted", stillBuilding: false }` — `promotedGrade` truthy, no other gaps | "You've logged enough at every tier below to be ready to push into ${grade}." / "Heuristic guidance, not diagnosis — only you know if the moves suit you." |
+| 3 | `{ kind: "gap" }` — a literal gap: at least one displayed tier has zero sends (`top4.find(r => r.count === 0)`) | "No sends logged at ${grade} in the last 12 months, right in the middle of your pyramid window." / "Heuristic guidance, not diagnosis — might be worth spending more mileage there before pushing your top grade again." |
+| 4 | `{ kind: "top-heavy" }` (added by #633) — no literal gap, but a harder tier has *more* sends than an easier tier beneath it (`top4.find((r, i) => i > 0 && r.count < top4[i - 1].count)`) | "This pyramid is top-heavy — you've got fewer sends at ${grade} than at the harder tier above it." / "Heuristic guidance, not diagnosis — a broader base at the easier tiers usually means a more sustainable base to build from." |
+| 5 | `{ kind: "healthy" }` — none of the above match | "No gaps or inversions in this window — sends build up from your base to your max, the shape a healthy pyramid is expected to have." |
+
+All five outcomes above are `pyramidHealth(top4, promotedGrade)`'s complete
+return space (`shared/pyramid-stats.js`) except row 1, which never reaches
+it. `climbing-grade-pyramid.js`'s `#render()` does nothing but switch on
+`kind` to pick HTML/icon/copy — no coaching logic lives in the component
+itself any more.
 
 Row 4 is the fix: `docs/climbing-analytics-research.md` §1 "Diagnosing
 plateau, overreaching, and under-consolidation from pyramid shape" names

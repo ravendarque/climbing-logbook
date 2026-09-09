@@ -40,7 +40,7 @@
 // no such file exists at client/escape-html.js either).
 import { escapeHtml } from "./escape-html.js";
 import { gradeColor } from "../../shared/grade-data.js";
-import { PYRAMID_IDEAL_BY_POSITION } from "../../shared/pyramid-stats.js";
+import { PYRAMID_IDEAL_BY_POSITION, pyramidHealth } from "../../shared/pyramid-stats.js";
 import { createModalHelpers } from "../modal-utils.js";
 import { disciplineLabel } from "../status.js";
 
@@ -266,59 +266,51 @@ export class ClimbingGradePyramid extends HTMLElement {
       btn.addEventListener("click", () => this.#openModal(this.querySelector("#evidence-overlay")))
     );
 
-    if (promotedGrade) {
-      healthEl.className = "flex gap-3 px-4 py-[14px] rounded-app mb-7 [&_svg]:w-[1.2rem] [&_svg]:h-[1.2rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:mt-[2px] [&_svg]:shrink-0 bg-[color-mix(in_srgb,var(--pyramid-status-promoted)_10%,var(--color-surface))] border border-[color-mix(in_srgb,var(--pyramid-status-promoted)_35%,transparent)] text-pyramid-promoted";
-      const stillBuilding = top4.some(r => r.count === 0 && r.grade !== promotedGrade);
-      healthEl.innerHTML = stillBuilding
+    // #687 -- branch selection itself now lives in shared/pyramid-stats.js's
+    // pyramidHealth() (docs/coaching-messaging-rules.md has the full rule
+    // table); this component only maps the returned {kind} onto its own
+    // HTML/icon/copy, the same "resolve once, render per consumer" split
+    // every other Performance Insights view already uses.
+    const health = pyramidHealth(top4, promotedGrade);
+    const promotedClass = "flex gap-3 px-4 py-[14px] rounded-app mb-7 [&_svg]:w-[1.2rem] [&_svg]:h-[1.2rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:mt-[2px] [&_svg]:shrink-0 bg-[color-mix(in_srgb,var(--pyramid-status-promoted)_10%,var(--color-surface))] border border-[color-mix(in_srgb,var(--pyramid-status-promoted)_35%,transparent)] text-pyramid-promoted";
+    const heuristicClass = "flex gap-3 px-4 py-[14px] rounded-app mb-7 [&_svg]:w-[1.2rem] [&_svg]:h-[1.2rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:mt-[2px] [&_svg]:shrink-0 bg-[color-mix(in_srgb,var(--color-tier-heuristic)_8%,var(--color-surface))] border border-[color-mix(in_srgb,var(--color-tier-heuristic)_30%,transparent)] text-tier-heuristic";
+
+    if (health.kind === "promoted") {
+      healthEl.className = promotedClass;
+      healthEl.innerHTML = health.stillBuilding
         ? `
           <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${PYRAMID_ICON_PROMOTED}</svg>
           <div>
-            <p class="text-[.86rem] leading-[1.5] text-foreground">Still building your pyramid from the base up — but you've already got enough mileage to give ${escapeHtml(promotedGrade)} a go.</p>
+            <p class="text-[.86rem] leading-[1.5] text-foreground">Still building your pyramid from the base up — but you've already got enough mileage to give ${escapeHtml(health.grade)} a go.</p>
             <p class="text-[.8rem] leading-[1.5] text-muted mt-[6px]">Keep adding sends at your lower tiers too — a full 8-4-2-1 pyramid needs volume all the way down, not just at the top.</p>
           </div>`
         : `
           <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${PYRAMID_ICON_PROMOTED}</svg>
           <div>
-            <p class="text-[.86rem] leading-[1.5] text-foreground">You've logged enough at every tier below to be ready to push into ${escapeHtml(promotedGrade)}.</p>
+            <p class="text-[.86rem] leading-[1.5] text-foreground">You've logged enough at every tier below to be ready to push into ${escapeHtml(health.grade)}.</p>
             <p class="text-[.8rem] leading-[1.5] text-muted mt-[6px]">Heuristic guidance, not diagnosis — only you know if the moves suit you.</p>
           </div>`;
       return;
     }
 
-    const gapRow = top4.find(r => r.count === 0);
-    // #633 -- "no gap" (every tier non-zero) was being treated as the sole
-    // signal of a healthy shape, but presence isn't the same claim as
-    // ratio: a pyramid can have zero empty tiers and still be genuinely
-    // top-heavy/under-consolidated -- e.g. more sends at a harder tier
-    // than at an easier one beneath it (docs/climbing-analytics-
-    // research.md §1's "under-consolidation / premature advancement":
-    // "a climber who has sent one route at their limit grade but very
-    // few at the grade(s) just below it"). top4 is ordered hardest (index
-    // 0) to easiest-of-the-four (index 3), so a healthy/consolidating
-    // pyramid never has an easier tier with FEWER sends than the harder
-    // tier immediately above it -- that specific inversion is what
-    // "top-heavy" means here, distinct from (and checked only once
-    // there's no literal zero-count gapRow above, which already has its
-    // own, more specific message).
-    const topHeavyRow = top4.find((r, i) => i > 0 && r.count < top4[i - 1].count);
-    if (gapRow) {
-      healthEl.className = "flex gap-3 px-4 py-[14px] rounded-app mb-7 [&_svg]:w-[1.2rem] [&_svg]:h-[1.2rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:mt-[2px] [&_svg]:shrink-0 bg-[color-mix(in_srgb,var(--color-tier-heuristic)_8%,var(--color-surface))] border border-[color-mix(in_srgb,var(--color-tier-heuristic)_30%,transparent)] text-tier-heuristic";
+    if (health.kind === "gap") {
+      healthEl.className = heuristicClass;
       healthEl.innerHTML = `
         <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
         <div>
-          <p class="text-[.86rem] leading-[1.5] text-foreground">No sends logged at ${escapeHtml(gapRow.grade)} in the last 12 months, right in the middle of your pyramid window.</p>
+          <p class="text-[.86rem] leading-[1.5] text-foreground">No sends logged at ${escapeHtml(health.grade)} in the last 12 months, right in the middle of your pyramid window.</p>
           <p class="text-[.8rem] leading-[1.5] text-muted mt-[6px]">Heuristic guidance, not diagnosis — might be worth spending more mileage there before pushing your top grade again.</p>
         </div>`;
-    } else if (topHeavyRow) {
-      healthEl.className = "flex gap-3 px-4 py-[14px] rounded-app mb-7 [&_svg]:w-[1.2rem] [&_svg]:h-[1.2rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:mt-[2px] [&_svg]:shrink-0 bg-[color-mix(in_srgb,var(--color-tier-heuristic)_8%,var(--color-surface))] border border-[color-mix(in_srgb,var(--color-tier-heuristic)_30%,transparent)] text-tier-heuristic";
+    } else if (health.kind === "top-heavy") {
+      healthEl.className = heuristicClass;
       healthEl.innerHTML = `
         <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
         <div>
-          <p class="text-[.86rem] leading-[1.5] text-foreground">This pyramid is top-heavy — you've got fewer sends at ${escapeHtml(topHeavyRow.grade)} than at the harder tier above it.</p>
+          <p class="text-[.86rem] leading-[1.5] text-foreground">This pyramid is top-heavy — you've got fewer sends at ${escapeHtml(health.grade)} than at the harder tier above it.</p>
           <p class="text-[.8rem] leading-[1.5] text-muted mt-[6px]">Heuristic guidance, not diagnosis — a broader base at the easier tiers usually means a more sustainable base to build from.</p>
         </div>`;
     } else {
-      healthEl.className = "flex gap-3 px-4 py-[14px] rounded-app mb-7 [&_svg]:w-[1.2rem] [&_svg]:h-[1.2rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:mt-[2px] [&_svg]:shrink-0 bg-[color-mix(in_srgb,var(--color-tier-heuristic)_8%,var(--color-surface))] border border-[color-mix(in_srgb,var(--color-tier-heuristic)_30%,transparent)] text-tier-heuristic";
+      healthEl.className = heuristicClass;
       healthEl.innerHTML = `
         <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
         <div><p class="text-[.86rem] leading-[1.5] text-foreground">No gaps or inversions in this window — sends build up from your base to your max, the shape a healthy pyramid is expected to have.</p></div>`;

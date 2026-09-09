@@ -4,6 +4,7 @@ import {
   PYRAMID_IDEAL_BY_POSITION,
   isWithinLast12Months,
   pyramidCounts,
+  pyramidHealth,
   pyramidReadyToPromote,
   pyramidSplitRows,
 } from "../../shared/pyramid-stats.js";
@@ -119,6 +120,82 @@ describe("pyramidSplitRows", () => {
     const { promotedGrade, top4 } = pyramidSplitRows("boulder", entries);
     expect(promotedGrade).toBe(boulderOrder[topIdx + 1]);
     expect(top4[0].grade).toBe(promotedGrade);
+  });
+});
+
+describe("pyramidHealth", () => {
+  // top4 is always ordered hardest (index 0) to easiest-of-the-four (index
+  // 3), same convention pyramidSplitRows' own output follows.
+
+  it("is 'promoted' with stillBuilding=true when another displayed tier still has zero sends", () => {
+    const top4 = [
+      { grade: "7A", count: 0 }, // the just-promoted tier itself
+      { grade: "6C", count: 0 }, // a different tier, also zero
+      { grade: "6B", count: 8 },
+      { grade: "6A", count: 8 },
+    ];
+    expect(pyramidHealth(top4, "7A")).toEqual({ kind: "promoted", stillBuilding: true, grade: "7A" });
+  });
+
+  it("is 'promoted' with stillBuilding=false when every other tier already has volume", () => {
+    const top4 = [
+      { grade: "7A", count: 0 }, // the just-promoted tier itself -- excluded from the stillBuilding check
+      { grade: "6C", count: 4 },
+      { grade: "6B", count: 8 },
+      { grade: "6A", count: 8 },
+    ];
+    expect(pyramidHealth(top4, "7A")).toEqual({ kind: "promoted", stillBuilding: false, grade: "7A" });
+  });
+
+  it("is 'gap' when a displayed tier has zero sends and there's no promotion", () => {
+    const top4 = [
+      { grade: "7A", count: 2 },
+      { grade: "6C", count: 0 },
+      { grade: "6B", count: 8 },
+      { grade: "6A", count: 8 },
+    ];
+    expect(pyramidHealth(top4, null)).toEqual({ kind: "gap", grade: "6C" });
+  });
+
+  it("is 'top-heavy' when an easier tier has fewer sends than the harder tier above it, with no literal gap", () => {
+    const top4 = [
+      { grade: "7A", count: 3 },
+      { grade: "6C", count: 1 }, // fewer than 7A above it, but not zero
+      { grade: "6B", count: 8 },
+      { grade: "6A", count: 8 },
+    ];
+    expect(pyramidHealth(top4, null)).toEqual({ kind: "top-heavy", grade: "6C" });
+  });
+
+  it("is 'healthy' when every tier is non-zero and non-increasing toward the base", () => {
+    const top4 = [
+      { grade: "7A", count: 1 },
+      { grade: "6C", count: 2 },
+      { grade: "6B", count: 4 },
+      { grade: "6A", count: 8 },
+    ];
+    expect(pyramidHealth(top4, null)).toEqual({ kind: "healthy" });
+  });
+
+  it("prioritizes a literal gap over a top-heavy inversion elsewhere in the same window", () => {
+    const top4 = [
+      { grade: "7A", count: 3 },
+      { grade: "6C", count: 1 }, // would be top-heavy on its own
+      { grade: "6B", count: 0 }, // but this literal gap takes priority
+      { grade: "6A", count: 8 },
+    ];
+    expect(pyramidHealth(top4, null)).toEqual({ kind: "gap", grade: "6B" });
+  });
+
+  it("prioritizes promotion over both gap and top-heavy checks", () => {
+    const top4 = [
+      { grade: "7A", count: 0 }, // would read as a literal gap...
+      { grade: "6C", count: 1 }, // ...and this would read as top-heavy...
+      { grade: "6B", count: 8 },
+      { grade: "6A", count: 8 },
+    ];
+    // ...but a truthy promotedGrade short-circuits both.
+    expect(pyramidHealth(top4, "7A").kind).toBe("promoted");
   });
 });
 
