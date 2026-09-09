@@ -113,6 +113,11 @@ function pyramidStatusIcon(actual, ideal, promoted) {
   return { cls: "good", color: "var(--pyramid-status-good)", svg: PYRAMID_ICON_GOOD, label: `Meets or exceeds the ${ideal}-send tier` };
 }
 
+// #209 -- `row.grade` stays a real, colorable grade even for the
+// aggregated "Below 6A"/"Below 6a" base row shared/pyramid-stats.js's
+// pyramidSplitRows() can now return; `row.label`, when present, is the
+// text actually shown, so gradeColor() below never sees a synthetic
+// string it doesn't recognize.
 function pyramidBarRow(row, { ideal = null, scaleMax, lower = false, type, promoted = false } = {}) {
   const actualPct = row.count === 0 ? 0 : (row.count / scaleMax) * 100;
   const barColor = gradeColor(row.grade, type);
@@ -140,7 +145,7 @@ function pyramidBarRow(row, { ideal = null, scaleMax, lower = false, type, promo
   const countText = ideal !== null ? `${row.count}/${ideal}` : `${row.count}`;
   return `
     <div class="${rowClasses}">
-      <div class="text-[.8rem] font-bold text-right tabular-nums text-muted">${escapeHtml(row.grade)}</div>
+      <div class="text-[.8rem] font-bold text-right tabular-nums text-muted">${escapeHtml(row.label ?? row.grade)}</div>
       <div class="relative h-[1.3rem]">
         <div class="absolute top-0 left-1/2 -translate-x-1/2 h-full rounded-[4px] transition-[width] duration-300" style="${barStyle}"></div>
         ${idealOutline}

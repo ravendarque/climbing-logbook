@@ -75,6 +75,20 @@ export function pyramidReadyToPromote(order, counts, idx) {
 // promoted this render, for the achievement-styled treatment; a real
 // send landing at or beyond it on a later render moves `maxSentIdx`
 // there directly, so there's nothing to "un-promote".
+// #209 -- everything below each discipline's Beginner/Intermediate
+// boundary (#462: Boulder `6A`, Sport `6a`) collapses into one
+// aggregated base row in `lower` instead of a rung per grade. #129's own
+// range extension (Boulder down to `1`/`1A`, Sport down to French `1`)
+// means the unaggregated `lower` section could otherwise show dozens of
+// near-empty historical rows -- the pyramid's job is showing progress
+// near the climber's limit, not auditing their entire logged history.
+// Deliberately scoped to `lower` only, never `top4`: a genuine beginner
+// whose near-limit progress sits entirely below this boundary still
+// sees their real per-grade 8-4-2-1 window, not one flattened bucket --
+// the aggregation only declutters the collapsed-by-default section
+// below that window, per #209's own reasoning.
+const BELOW_TIER_THRESHOLD = { boulder: "6A", sport: "6a" };
+
 export function pyramidSplitRows(type, entries) {
   const { order, counts } = pyramidCounts(type, entries);
   const sentTiers = order.filter(g => counts[g] > 0);
@@ -97,9 +111,38 @@ export function pyramidSplitRows(type, entries) {
     .reverse(); // hardest (ideal 1) first
 
   const firstSentIdx = order.indexOf(sentTiers[0]);
-  const lower = order.slice(firstSentIdx, windowStartIdx)
+
+  // `boundary` clamps the discipline's own threshold index into
+  // [firstSentIdx, windowStartIdx] -- the actual span `lower` ever
+  // covers -- so every one of the three real shapes below falls out of
+  // the same slicing logic instead of three hand-written branches:
+  // threshold above the whole span (nothing to aggregate, unchanged
+  // behavior), threshold below the whole span (one aggregated row, no
+  // individual rows), or threshold strictly inside it (both).
+  const belowThresholdGrade = BELOW_TIER_THRESHOLD[type];
+  const boundary = Math.min(Math.max(order.indexOf(belowThresholdGrade), firstSentIdx), windowStartIdx);
+
+  const individual = order.slice(boundary, windowStartIdx)
     .map(g => ({ grade: g, count: counts[g] }))
     .reverse();
+
+  const aggregatedRange = order.slice(firstSentIdx, boundary);
+  const lower = aggregatedRange.length
+    ? [
+        ...individual,
+        {
+          // `grade` stays a real grade (the hardest of the aggregated
+          // range) so gradeColor() still resolves a real curated colour
+          // -- "Below 6A" itself isn't a grade `gradeColor()`/`gradeRank()`
+          // know about, and would otherwise fall through to the
+          // fractional-banding fallback at the wrong end of the scale.
+          // `label` carries the actual display text instead.
+          grade: order[boundary - 1],
+          label: `Below ${belowThresholdGrade}`,
+          count: aggregatedRange.reduce((sum, g) => sum + counts[g], 0),
+        },
+      ]
+    : individual;
 
   return { top4, lower, hasSends: true, promotedGrade };
 }
