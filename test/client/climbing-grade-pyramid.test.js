@@ -104,3 +104,32 @@ describe("ClimbingGradePyramid health card", () => {
     expect(health).toContain("ready to push into 8A");
   });
 });
+
+describe("ClimbingGradePyramid lower-grades rows", () => {
+  // #209 -- shared/pyramid-stats.js's pyramidSplitRows() can return an
+  // aggregated { grade: "5C", label: "Below 6A", count } row for the
+  // base of `lower`; this confirms the component renders the label text
+  // (not the real "5C" it carries for gradeColor()'s benefit) and never
+  // throws trying to color it.
+  it("renders an aggregated lower row by its label, not its underlying color-anchor grade", () => {
+    el.pyramidData = pyramidData(
+      [
+        { grade: "7A", count: 2 },
+        { grade: "6C+", count: 0 },
+        { grade: "6C", count: 0 },
+        { grade: "6B+", count: 0 },
+      ],
+      {
+        lower: [
+          { grade: "6B", count: 1 },
+          { grade: "5C", label: "Below 6A", count: 5 },
+        ],
+      }
+    );
+    el.querySelector("#show-lower-link").click();
+    const lowerText = el.querySelector("#lower-rows").textContent;
+    expect(lowerText).toContain("Below 6A");
+    expect(lowerText).not.toContain("5C");
+    expect(lowerText).toContain("6B");
+  });
+});

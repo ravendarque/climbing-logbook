@@ -121,6 +121,56 @@ describe("pyramidSplitRows", () => {
     expect(promotedGrade).toBe(boulderOrder[topIdx + 1]);
     expect(top4[0].grade).toBe(promotedGrade);
   });
+
+  // #209 -- everything below 6A (Boulder) / 6a (Sport) collapses into one
+  // aggregated row in `lower`, but only within `lower` -- never `top4`.
+  describe("#209 -- below-threshold aggregation in `lower`", () => {
+    function send(type, grade, count = 1) {
+      return Array(count).fill({ type, status: "send", grade, date: isoDaysAgo(10) });
+    }
+
+    it("aggregates old sub-6A sends while showing 6A-and-up rows individually, top4 untouched", () => {
+      // "3A" (well below 6A) gets aggregated; "6B" (above 6A, below the
+      // top4 window) stays individual; "7A" anchors a real, unaffected
+      // top4 window that's nowhere near the threshold.
+      const entries = [...send("boulder", "3A", 2), ...send("boulder", "6B"), ...send("boulder", "7A")];
+      const { top4, lower } = pyramidSplitRows("boulder", entries);
+
+      expect(top4.map(r => r.grade)).toEqual(["7A", "6C+", "6C", "6B+"]);
+      expect(lower).toEqual([
+        { grade: "6B", count: 1 },
+        { grade: "6A+", count: 0 },
+        { grade: "6A", count: 0 },
+        { grade: "5C", label: "Below 6A", count: 2 },
+      ]);
+    });
+
+    it("aggregates the entire lower section when it's all below 6A, but leaves an all-sub-6A top4 window as real individual tiers", () => {
+      // Every send here (including the whole top4 window) is below 6A --
+      // the aggregation must still never touch top4, per #209's own
+      // "top4 always shows real per-grade progress" reasoning.
+      const entries = [...send("boulder", "1B", 3), ...send("boulder", "3B")];
+      const { top4, lower } = pyramidSplitRows("boulder", entries);
+
+      expect(top4.map(r => r.grade)).toEqual(["3B", "3A", "3+", "3"]);
+      expect(lower).toEqual([{ grade: "2C", label: "Below 6A", count: 3 }]);
+    });
+
+    it("aggregates nothing when every lower row is already 6A or above, matching pre-#209 behavior exactly", () => {
+      const entries = [...send("boulder", "6B"), ...send("boulder", "8A")];
+      const { lower } = pyramidSplitRows("boulder", entries);
+
+      expect(lower.every(r => r.label === undefined)).toBe(true);
+      expect(lower.map(r => r.grade)).toEqual(["7B", "7A+", "7A", "6C+", "6C", "6B+", "6B"]);
+    });
+
+    it("uses Sport's own 6a threshold, independent of Boulder's", () => {
+      const entries = [...send("sport", "4b", 4), ...send("sport", "6b"), ...send("sport", "7b")];
+      const { lower } = pyramidSplitRows("sport", entries);
+
+      expect(lower.at(-1)).toEqual({ grade: "5c", label: "Below 6a", count: 4 });
+    });
+  });
 });
 
 describe("pyramidHealth", () => {
