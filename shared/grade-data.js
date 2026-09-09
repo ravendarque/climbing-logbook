@@ -191,3 +191,51 @@ export function gradeColor(g, type) {
   const idx = Math.min(GRADE_COLOR_BANDS.length - 1, Math.max(0, Math.floor(frac * GRADE_COLOR_BANDS.length)));
   return GRADE_COLOR_BANDS[idx];
 }
+
+// #462 -- five-tier headline classification, decided 2026-09-09 (see the
+// issue for the full reasoning): Raven's own felt sense of each
+// discipline's grade distribution, not a scientific equivalence -- and
+// Boulder's boundaries applied verbatim to Sport (same letters/numbers,
+// Sport's own lowercase notation), not derived from any cross-system
+// conversion table (an earlier attempt at that badly misfired, see the
+// issue). Deliberately narrower bands the higher the tier, cross-checked
+// against Rockfax's 2020 grade-comparison posters and found to require
+// *more* to reach each label than that now-dated reference does, by
+// design -- climbing has gotten more competitive since 2020.
+//
+// Each entry is [tierName, thresholdGrade] in ascending order; `null`
+// marks the bottom (no lower bound). The two disciplines never compare
+// against each other -- each grade resolves against its own thresholds
+// only, matching #461's own "no consumer needs true cross-discipline
+// comparability yet" scoping.
+const GRADE_TIER_THRESHOLDS = {
+  boulder: [
+    ["beginner", null],
+    ["intermediate", "6A"],
+    ["advanced", "7A"],
+    ["elite", "7C+"],
+    ["hyper-elite", "8B+"],
+  ],
+  sport: [
+    ["beginner", null],
+    ["intermediate", "6a"],
+    ["advanced", "7a"],
+    ["elite", "7c+"],
+    ["hyper-elite", "8b+"],
+  ],
+};
+
+// Purely the numeric classification -- no UI/naming/visual treatment
+// here (#463 wires this into rendering; #689 is the still-open design
+// conversation about how a tier actually looks). Returns one of
+// "beginner"/"intermediate"/"advanced"/"elite"/"hyper-elite".
+export function gradeTier(g, type) {
+  const resolvedType = type ?? "boulder";
+  const thresholds = GRADE_TIER_THRESHOLDS[resolvedType] ?? GRADE_TIER_THRESHOLDS.boulder;
+  const r = gradeRank(g, resolvedType);
+  let tier = thresholds[0][0];
+  for (const [name, fromGrade] of thresholds) {
+    if (fromGrade !== null && r >= gradeRank(fromGrade, resolvedType)) tier = name;
+  }
+  return tier;
+}
