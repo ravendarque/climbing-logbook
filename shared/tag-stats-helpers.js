@@ -8,11 +8,11 @@
 // differ, and capitalize() was never actually duplicated across these two
 // files in the first place.
 
-// Placeholder threshold (design doc's own "tune once there's real data"
-// framing) -- a cluster/cell needs at least this many total tags across the
-// user's whole logbook before it's presented as a real pattern rather than
-// noise from one or two climbs.
-export const MIN_TAG_COUNT = 5;
+// Tuned from the design doc's original placeholder of 5 (#591) down to 3
+// (#671 review) -- a cluster/cell needs at least this many total tags
+// across the user's whole logbook before it's presented as a real pattern
+// rather than noise from one or two climbs.
+export const MIN_TAG_COUNT = 3;
 
 // Only "pinch" in the current hold-type vocabulary (shared/entry-
 // schema.js's HOLD_TYPES_BY_LIMB) needs the "es" branch -- a plain
