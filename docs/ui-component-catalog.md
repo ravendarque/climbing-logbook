@@ -152,8 +152,11 @@ hand-written `@utility` blocks rather than Tailwind's built-in
 would clobber rather than compose with.
 
 **When to use:** any real on/off preference that should apply immediately
-on click, no separate save step (Athlete Mode, Public Logbook). Shown in
-context in the settings-row screenshot above.
+on click, no separate save step (Athlete Mode, Public Logbook).
+
+| Dark | Light |
+|---|---|
+| ![switch control, off and on](ui-component-catalog/switch-control-dark.png) | ![switch control, off and on](ui-component-catalog/switch-control-light.png) |
 
 ```html
 <button type="button" class="group inline-flex items-center bg-transparent border border-transparent cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shrink-0" role="switch" aria-checked="false">
