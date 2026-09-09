@@ -17,6 +17,7 @@
 // the same way, so it's the one that actually delivers "shared" rather than
 // "server-only in practice."
 import * as v from "valibot";
+import { BOULDER_GRADES, LEAD_GRADES } from "./grade-data.js";
 
 // #430 -- Lead renamed to Sport (Lead and Top Rope are both sport
 // climbing, sharing one grading scale -- VALID_GRADES.sport below).
@@ -29,13 +30,22 @@ export const VALID_TYPES = ["boulder", "sport"];
 // "Archived" everywhere; this is the internal id catching up to match.
 export const VALID_STATUSES = ["send", "project", "archived", "checkout"];
 
-// Mirrors BOULDER_GRADES/LEAD_GRADES in public/logbook/index.html -- the
-// client only ever offers a closed set via a dropdown, so any other value
-// reaching here is a malformed write (bad client state, a hand-crafted API
-// call, or a stale offline-queue replay), not a legitimate grade.
+// #129 -- derived directly from BOULDER_GRADES/LEAD_GRADES (shared/
+// grade-data.js), not a second, separately-maintained literal list.
+// This used to be its own hand-copied array ("mirrors BOULDER_GRADES/
+// LEAD_GRADES in public/logbook/index.html" -- itself a stale reference,
+// that file hasn't been the real source in a long time); #129's own
+// range extension would otherwise have needed updating two independent
+// lists in lockstep, exactly the kind of drift this file's own header
+// comment warns every other duplicated-validation-logic case against.
+// The client only ever offers a closed set via a dropdown, so any value
+// outside either list reaching here is still a malformed write (bad
+// client state, a hand-crafted API call, or a stale offline-queue
+// replay), not a legitimate grade -- same guarantee as before, just
+// sourced from one place.
 export const VALID_GRADES = {
-  boulder: ["5", "5+", "5A", "5B", "5C", "6A", "6A+", "6B", "6B+", "6C", "6C+", "7A", "7A+", "7B", "7B+", "7C", "7C+", "8A", "8A+", "8B", "8B+"],
-  sport:   ["5c", "6a", "6a+", "6b", "6b+", "6c", "6c+", "7a", "7a+", "7b", "7b+", "7c", "7c+", "8a"],
+  boulder: BOULDER_GRADES.map(x => x.g),
+  sport:   LEAD_GRADES.map(x => x.g),
 };
 
 // #430/#641 -- Lead vs Top Rope, only meaningful when type is 'sport'.

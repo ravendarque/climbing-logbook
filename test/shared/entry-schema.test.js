@@ -6,6 +6,7 @@
 // round-trip.
 import { describe, expect, it } from "vitest";
 import { entrySchema, validateEntryShape, VALID_GRADES, VALID_STATUSES, VALID_TYPES } from "../../shared/entry-schema.js";
+import { BOULDER_GRADES, LEAD_GRADES } from "../../shared/grade-data.js";
 import * as v from "valibot";
 
 function validEntry(overrides = {}) {
@@ -165,5 +166,25 @@ describe("exported constants (for CSV template generation / future reuse)", () =
     expect(VALID_STATUSES).toEqual(["send", "project", "archived", "checkout"]);
     expect(VALID_GRADES.boulder.length).toBeGreaterThan(0);
     expect(VALID_GRADES.sport.length).toBeGreaterThan(0);
+  });
+
+  // #129 -- VALID_GRADES used to be its own hand-copied list, independent
+  // of BOULDER_GRADES/LEAD_GRADES (shared/grade-data.js) -- extending one
+  // without the other would silently reject every new grade at the
+  // server even though the client picker offered it. Now derived
+  // directly, so this just has to prove the two never diverge again.
+  it("derives boulder/sport grades directly from BOULDER_GRADES/LEAD_GRADES, never a separate copy", () => {
+    expect(VALID_GRADES.boulder).toEqual(BOULDER_GRADES.map(x => x.g));
+    expect(VALID_GRADES.sport).toEqual(LEAD_GRADES.map(x => x.g));
+  });
+
+  it("accepts a Boulder entry at #129's new low and high ends", () => {
+    expect(v.safeParse(entrySchema, validEntry({ grade: "1A" })).success).toBe(true);
+    expect(v.safeParse(entrySchema, validEntry({ grade: "9A" })).success).toBe(true);
+  });
+
+  it("accepts a Sport entry at #129's new low and high ends", () => {
+    expect(v.safeParse(entrySchema, validEntry({ type: "sport", grade: "4a", sportStyle: "lead" })).success).toBe(true);
+    expect(v.safeParse(entrySchema, validEntry({ type: "sport", grade: "9c+", sportStyle: "lead" })).success).toBe(true);
   });
 });

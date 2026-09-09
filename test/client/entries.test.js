@@ -9,6 +9,7 @@ import {
   placeOf,
   sortEntries,
 } from "../../client/entries.js";
+import { BOULDER_GRADES, LEAD_GRADES } from "../../shared/grade-data.js";
 
 const LOCATIONS = [
   { id: "l1", name: "Fontainebleau", country: "France" },
@@ -64,9 +65,14 @@ describe("entryMatchesStatusFilter", () => {
 });
 
 describe("activeGradeList", () => {
+  // Compares against BOULDER_GRADES/LEAD_GRADES directly (not a hardcoded
+  // first-grade string) so this doesn't go stale again the next time
+  // either list's range changes, the way it did under #129's own
+  // extension (this test previously hardcoded "5"/"5c" as the first
+  // grade of each list).
   it("picks boulder vs lead by discipline", () => {
-    expect(activeGradeList("boulder")[0].g).toBe("5");
-    expect(activeGradeList("lead")[0].g).toBe("5c");
+    expect(activeGradeList("boulder")[0].g).toBe(BOULDER_GRADES[0].g);
+    expect(activeGradeList("lead")[0].g).toBe(LEAD_GRADES[0].g);
   });
 });
 
