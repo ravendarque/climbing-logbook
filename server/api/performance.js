@@ -115,7 +115,7 @@ export async function handleGetVolume(request, env, userId) {
   const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
 
   function forDiscipline(type) {
-    const { sendCounts, maxGradeByBucket } = volumeByBucket(rows.filter(e => e.type === type), buckets);
+    const { sendCounts, maxGradeByBucket } = volumeByBucket(rows.filter(e => e.type === type), buckets, type);
     return { buckets: buckets.map(weekBucketLabel), sendCounts, maxGradeByBucket };
   }
 
@@ -143,7 +143,7 @@ export async function handleGetGap(request, env, userId) {
   const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
 
   function forDiscipline(type) {
-    const { flashMaxByBucket, sendMaxByBucket, avgAttemptsByBucket } = gapByBucket(rows.filter(e => e.type === type), buckets);
+    const { flashMaxByBucket, sendMaxByBucket, avgAttemptsByBucket } = gapByBucket(rows.filter(e => e.type === type), buckets, type);
     return {
       buckets: buckets.map(weekBucketLabel),
       flashMaxByBucket,
@@ -177,7 +177,7 @@ export async function handleGetEffort(request, env, userId) {
 
   function forDiscipline(type) {
     const { maxGradeByBucket, avgExertionByBucket, rpeCountByBucket, overallAvgExertion, totalSends } =
-      effortByBucket(rows.filter(e => e.type === type), buckets);
+      effortByBucket(rows.filter(e => e.type === type), buckets, type);
     return {
       buckets: buckets.map(weekBucketLabel),
       maxGradeByBucket,

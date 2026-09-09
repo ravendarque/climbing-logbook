@@ -16,8 +16,11 @@ const MIN_SEND_SAMPLE = 5;
 const HIGH_EXERTION_THRESHOLD = 80;
 const EXERTION_RISE_MARGIN = 5;
 
-export function effortByBucket(entries, buckets) {
-  const { maxGradeByBucket } = volumeByBucket(entries, buckets);
+// #461 -- takes `type` explicitly, threaded straight through to
+// volumeByBucket() -- same "entries are one discipline, but gradeRank()
+// needs telling which" fix as gap-stats.js's own gapByBucket().
+export function effortByBucket(entries, buckets, type) {
+  const { maxGradeByBucket } = volumeByBucket(entries, buckets, type);
 
   const rpeSumByBucket = buckets.map(() => 0);
   const rpeCountByBucket = buckets.map(() => 0);
@@ -74,7 +77,7 @@ export function effortHeadline(maxGradeByBucket, avgExertionByBucket, rpeCountBy
   if (totalSends < MIN_SEND_SAMPLE) return null;
 
   const gradeRange = firstLastIndicesWithData(maxGradeByBucket.map(g => g !== null));
-  const gradeTrendUp = gradeRange !== null && gradeRank(maxGradeByBucket[gradeRange[1]]) > gradeRank(maxGradeByBucket[gradeRange[0]]);
+  const gradeTrendUp = gradeRange !== null && gradeRank(maxGradeByBucket[gradeRange[1]], type) > gradeRank(maxGradeByBucket[gradeRange[0]], type);
 
   const rpeRange = firstLastIndicesWithData(rpeCountByBucket.map(c => c > 0));
   const exertionTrendUp = rpeRange !== null && (avgExertionByBucket[rpeRange[1]] - avgExertionByBucket[rpeRange[0]]) >= EXERTION_RISE_MARGIN;

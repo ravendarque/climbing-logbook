@@ -117,6 +117,16 @@ describe("volumeByBucket", () => {
     expect(maxGradeByBucket).toEqual([null]);
   });
 
+  // #461 -- regression: gradeRank() used to default to Boulder's order
+  // regardless of the entries' real discipline; "4a" (Sport's low end,
+  // added by #129, absent from Boulder's notation) fell through to the
+  // `?? 99` fallback and always "won" the max-grade comparison.
+  it("ranks Sport grades against Sport's own order, not Boulder's", () => {
+    const entries = [entry({ grade: "4a", type: "sport" }), entry({ grade: "6a", type: "sport", date: "2026-01-20" })];
+    const { maxGradeByBucket } = volumeByBucket(entries, [bucket("2026-01-01", "2026-01-31")], "sport");
+    expect(maxGradeByBucket).toEqual(["6a"]);
+  });
+
   it("places each entry in its own correct bucket across multiple buckets", () => {
     const entries = [entry({ date: "2026-01-05" }), entry({ date: "2026-02-10", grade: "7A" })];
     const { sendCounts, maxGradeByBucket } = volumeByBucket(entries, [bucket("2026-01-01", "2026-01-31"), bucket("2026-02-01", "2026-02-28")]);

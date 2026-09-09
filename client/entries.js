@@ -62,8 +62,8 @@ export function filteredEntries(entries, places, { activeType, statusFilters, gr
     if (activeType === "sport" && sportStyleFilters && !sportStyleFilters.has(e.sportStyle)) return false;
     if (gradeRange) {
       const list = activeGradeList(activeType);
-      const r = gradeRank(e.grade);
-      if (r < gradeRank(list[gradeRange.min].g) || r > gradeRank(list[gradeRange.max].g)) return false;
+      const r = gradeRank(e.grade, activeType);
+      if (r < gradeRank(list[gradeRange.min].g, activeType) || r > gradeRank(list[gradeRange.max].g, activeType)) return false;
     }
     if (q && !e.name.toLowerCase().includes(q) && !placeOf(e, places).area.toLowerCase().includes(q)) return false;
     return true;
@@ -95,10 +95,16 @@ export function groupByPlace(entries, allEntries, places) {
     .map(id => [id, map.get(id)]);
 }
 
-export function sortEntries(entries, { col, dir }, places) {
+// #461 -- `type` is new: `entries` here is always already single-
+// discipline (grouped by location+discipline before this is called --
+// see climbing-entries-table.js's own #renderLocationSection), but
+// gradeRank() needs telling which discipline's order to sort against,
+// not left to its "boulder" default (which used to silently mis-sort
+// Sport rows whenever their real rank diverged from Boulder's list).
+export function sortEntries(entries, { col, dir }, places, type) {
   const m = dir === "asc" ? 1 : -1;
   return [...entries].sort((a, b) => {
-    if (col === "grade")  return m * (gradeRank(a.grade) - gradeRank(b.grade));
+    if (col === "grade")  return m * (gradeRank(a.grade, type) - gradeRank(b.grade, type));
     if (col === "date")   return m * (dateRank(a.date) - dateRank(b.date));
     if (col === "name")   return m * a.name.localeCompare(b.name);
     if (col === "area")   return m * placeOf(a, places).area.localeCompare(placeOf(b, places).area);

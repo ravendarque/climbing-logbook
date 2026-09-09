@@ -3,16 +3,48 @@
 // client/main.js (#206) -- first pure-logic module pulled out of the
 // former inline script.
 
-const GRADE_ORDER = [
+// #461 -- gradeRank() used to share ONE flat, Boulder-only order across
+// both disciplines: every caller (gap-stats.js, effort-stats.js,
+// volume-stats.js, client/entries.js) called it directly on raw entry
+// grades, boulder or sport alike, and it "worked" for Sport only by
+// coincidence -- Sport's a/b/c notation happened to collide with a
+// Boulder substring in the old list that sorted the same direction.
+// #129's own low/high-end extension (Sport grades like "4a"/"9c+" that
+// don't exist in Boulder's notation at all) exposed this: those grades
+// fell through to the `?? 99` fallback, tying every one of them at
+// "harder than everything." Real per-discipline order now.
+//
+// Each list is deliberately WIDER than its own current picker
+// (BOULDER_GRADES/LEAD_GRADES below) -- same reasoning the original
+// Boulder list already followed for pre-#60 sub-picker historical
+// entries (a grade a user logged before the picker's range was what it
+// is today still needs a real rank, not the fallback). Applied to Sport
+// for the first time here, defensively, since the same kind of
+// historical/out-of-picker entry could exist for Sport too.
+const BOULDER_ORDER = [
   "3","3+","4","4+","5","5+","5A","5A+","5B","5B+","5C",
   "6A","6A+","6B","6B+","6C","6C+",
   "7A","7A+","7B","7B+","7C","7C+",
   "8A","8A+","8B","8B+","8C","8C+",
   "9A","9A+"
 ];
-const GRADE_RANK = Object.fromEntries(GRADE_ORDER.map((g, i) => [g.toUpperCase(), i]));
+const LEAD_ORDER = [
+  "1","1+","2","2+","3","3+","4A","4B","4C","5A","5B",
+  "5C","6A","6A+","6B","6B+","6C","6C+",
+  "7A","7A+","7B","7B+","7C","7C+",
+  "8A","8A+","8B"
+];
+const BOULDER_RANK = Object.fromEntries(BOULDER_ORDER.map((g, i) => [g, i]));
+const LEAD_RANK = Object.fromEntries(LEAD_ORDER.map((g, i) => [g, i]));
 
-export function gradeRank(g) { return GRADE_RANK[g.toUpperCase()] ?? 99; }
+// `type` defaults to "boulder", matching gradeColor()'s own documented
+// default (and every other type-defaulting function in this file) --
+// an omitted type is never silently routed to whichever discipline
+// happened to be checked first.
+export function gradeRank(g, type) {
+  const rank = (type ?? "boulder") === "boulder" ? BOULDER_RANK : LEAD_RANK;
+  return rank[String(g).toUpperCase()] ?? 99;
+}
 
 export const BOULDER_GRADES = [
   { g: "5",   v: "V0",  c: "var(--grade-easy)" },
@@ -75,7 +107,8 @@ const GRADE_COLOR_BANDS = [
 // -- to LEAD_GRADES, matching entry-form.js's own grade-list ternary
 // (`store.getActiveType() === "boulder" ? BOULDER_GRADES : LEAD_GRADES`).
 export function gradeColor(g, type) {
-  const list = (type ?? "boulder") === "boulder" ? BOULDER_GRADES : LEAD_GRADES;
+  const resolvedType = type ?? "boulder";
+  const list = resolvedType === "boulder" ? BOULDER_GRADES : LEAD_GRADES;
   const hit = list.find(x => x.g.toUpperCase() === String(g).toUpperCase());
   if (hit) return hit.c;
 
@@ -83,9 +116,9 @@ export function gradeColor(g, type) {
   // entries) have no curated color -- band by fraction of this
   // discipline's own rank span so a short list still spreads across
   // the full band range instead of bunching up.
-  const minR = gradeRank(list[0].g);
-  const maxR = gradeRank(list[list.length - 1].g);
-  const frac = (gradeRank(g) - minR) / (maxR - minR);
+  const minR = gradeRank(list[0].g, resolvedType);
+  const maxR = gradeRank(list[list.length - 1].g, resolvedType);
+  const frac = (gradeRank(g, resolvedType) - minR) / (maxR - minR);
   const idx = Math.min(GRADE_COLOR_BANDS.length - 1, Math.max(0, Math.floor(frac * GRADE_COLOR_BANDS.length)));
   return GRADE_COLOR_BANDS[idx];
 }

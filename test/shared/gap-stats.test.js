@@ -34,6 +34,20 @@ describe("gapByBucket", () => {
     expect(sendMaxByBucket).toEqual(["7A"]);
   });
 
+  // #461 -- regression: without a real per-discipline order, "4a" (a
+  // grade #129 adds to Sport's low end, absent from Boulder's notation
+  // entirely) fell through gradeRank()'s `?? 99` fallback and tied with
+  // every other unrecognized grade at "hardest possible" -- silently
+  // inverting a Sport max-grade comparison like this one.
+  it("ranks Sport grades against Sport's own order, not Boulder's", () => {
+    const entries = [
+      entry({ grade: "4a", type: "sport" }),
+      entry({ grade: "6a", type: "sport", date: "2026-01-20" }),
+    ];
+    const { sendMaxByBucket } = gapByBucket(entries, [JAN], "sport");
+    expect(sendMaxByBucket).toEqual(["6a"]);
+  });
+
   it("reports null flashMax for a bucket with sends but no first-attempt sends", () => {
     const { flashMaxByBucket } = gapByBucket([entry({ firstAttempt: false })], [JAN]);
     expect(flashMaxByBucket).toEqual([null]);
