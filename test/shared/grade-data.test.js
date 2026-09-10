@@ -44,37 +44,49 @@ describe("gradeRank", () => {
   });
 });
 
+// #463 -- gradeColor() is now purely gradeTier()-based: no more
+// per-grade curated `c` field on BOULDER_GRADES/LEAD_GRADES, no more
+// fractional-banding fallback for out-of-picker grades. Every grade
+// (in-picker or not) goes through the exact same path.
 describe("gradeColor", () => {
-  it("returns the curated color for a boulder grade", () => {
-    expect(gradeColor("6A", "boulder")).toBe(BOULDER_GRADES.find(x => x.g === "6A").c);
+  it("colors a grade by its tier, matching gradeTier()'s own classification", () => {
+    expect(gradeColor("6A", "boulder")).toBe(gradeColor("6B", "boulder")); // both intermediate
+    expect(gradeColor("6A", "boulder")).not.toBe(gradeColor("7A", "boulder")); // intermediate vs advanced
   });
 
-  it("returns the curated color for a lead grade", () => {
-    expect(gradeColor("6a", "lead")).toBe(LEAD_GRADES.find(x => x.g === "6a").c);
+  // #430/#649 -- regression test for a real, older bug: the pre-#463
+  // ternary silently routed any type that wasn't literally "lead"
+  // (including "sport") to BOULDER_GRADES instead. Confirmed here at
+  // the tier level: the two disciplines' own thresholds genuinely
+  // diverge (Sport's "7A" isn't a real Sport grade -- it's "7a" -- so
+  // resolving it as Sport should NOT match resolving the real Boulder
+  // "7A"'s color if type routing were broken and silently fell back to
+  // Boulder for "sport").
+  it("does not silently fall back to Boulder's tiers for a sport grade", () => {
+    expect(gradeColor("4a", "sport")).toBe(gradeColor("5C", "boulder")); // both beginner
+    expect(gradeColor("4a", "sport")).not.toBe(gradeColor("6A", "boulder")); // beginner vs intermediate
   });
 
-  // #430/#649 -- regression test for a real bug: the old
-  // `type === "lead" ? LEAD_GRADES : BOULDER_GRADES` ternary silently
-  // routed any type that wasn't literally "lead" (including a brand new
-  // "sport" type) to BOULDER_GRADES instead.
-  it("returns the curated (lead-scale) color for a sport grade, not boulder's", () => {
-    expect(gradeColor("6a", "sport")).toBe(LEAD_GRADES.find(x => x.g === "6a").c);
-  });
-
-  it("is case-insensitive against the curated list", () => {
+  it("is case-insensitive, matching gradeTier()'s own behavior", () => {
     expect(gradeColor("6b", "boulder")).toBe(gradeColor("6B", "boulder"));
   });
 
-  it("defaults to the boulder list when type is omitted", () => {
-    expect(gradeColor("6A")).toBe(BOULDER_GRADES.find(x => x.g === "6A").c);
+  it("defaults to Boulder's tiers when type is omitted", () => {
+    expect(gradeColor("6A")).toBe(gradeColor("6A", "boulder"));
   });
 
-  it("bands a grade outside the curated list by fractional rank instead of throwing", () => {
-    // "9A+" is above BOULDER_GRADES' curated range (tops out at 9A,
-    // per #129) -- this exercises the fallback banding path, not a
-    // list lookup hit.
+  it("never throws for a grade outside the picker range -- gradeTier()'s own gradeRank() fallback handles it", () => {
     expect(() => gradeColor("9A+", "boulder")).not.toThrow();
     expect(typeof gradeColor("9A+", "boulder")).toBe("string");
+  });
+
+  it("returns a real CSS custom-property reference for every tier, not undefined", () => {
+    // One real grade per tier, in ascending order.
+    expect(gradeColor("5C", "boulder")).toMatch(/^var\(--grade-tier-/);
+    expect(gradeColor("6A", "boulder")).toMatch(/^var\(--grade-tier-/);
+    expect(gradeColor("7A", "boulder")).toMatch(/^var\(--grade-tier-/);
+    expect(gradeColor("7C+", "boulder")).toMatch(/^var\(--grade-tier-/);
+    expect(gradeColor("8B+", "boulder")).toMatch(/^var\(--grade-tier-/);
   });
 });
 
@@ -111,9 +123,14 @@ describe("BOULDER_GRADES/LEAD_GRADES (#129 range extension)", () => {
     expect(gradeRank("9c", "sport")).toBeLessThan(gradeRank("9c+", "sport"));
   });
 
-  it("every new grade in both lists has a real curated colour, not undefined", () => {
-    for (const g of BOULDER_GRADES) expect(g.c).toMatch(/^var\(--grade-/);
-    for (const g of LEAD_GRADES) expect(g.c).toMatch(/^var\(--grade-/);
+  // #463 -- BOULDER_GRADES/LEAD_GRADES no longer carry a per-grade `c`
+  // field at all; colouring is gradeColor()/gradeTier()-based now, which
+  // resolves every grade through gradeRank() regardless of whether it's
+  // in either list -- this just proves that holds for #129's new
+  // low/high-end grades specifically, not just the pre-existing ones.
+  it("every new low/high-end grade in both lists still colors correctly via gradeColor()", () => {
+    for (const g of BOULDER_GRADES) expect(gradeColor(g.g, "boulder")).toMatch(/^var\(--grade-tier-/);
+    for (const g of LEAD_GRADES) expect(gradeColor(g.g, "sport")).toMatch(/^var\(--grade-tier-/);
   });
 });
 

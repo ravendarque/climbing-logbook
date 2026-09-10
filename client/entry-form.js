@@ -12,7 +12,7 @@
 // render() (the Store's sole subscriber) picks up every change here on
 // its own; nothing in this module needs to trigger it manually.
 import { escapeHtml } from "./escape-html.js";
-import { BOULDER_GRADES, LEAD_GRADES } from "../shared/grade-data.js";
+import { BOULDER_GRADES, LEAD_GRADES, gradeColor } from "../shared/grade-data.js";
 import { flashLabel, sendLabel, nameLabel, hydrateStatusIcons } from "./status.js";
 import { createPlacePicker } from "./place-picker.js";
 import { createMoveRowList } from "./move-tagging.js";
@@ -102,10 +102,14 @@ export function createEntryForm({
   function selectGradeByIndex(index) {
     const grades = currentGrades();
     const wrapped = ((index % grades.length) + grades.length) % grades.length;
-    const { g, c } = grades[wrapped];
+    const { g } = grades[wrapped];
     selectedGrade = g;
     gradeSelect.value = g;
-    gradeSelect.style.color = c;
+    // #463 -- was grades[wrapped].c (a per-grade curated colour field
+    // on BOULDER_GRADES/LEAD_GRADES); that field's gone now that
+    // colouring is tier-based, so this goes through gradeColor() like
+    // every other consumer instead of reading a raw field directly.
+    gradeSelect.style.color = gradeColor(g, store.getActiveType());
   }
   function selectGradeByValue(value, type) {
     const grades = type === "boulder" ? BOULDER_GRADES : LEAD_GRADES;
