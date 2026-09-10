@@ -49,22 +49,26 @@
     // Raven's production report, 2026-08-10 -- values copied exactly, not
     // re-derived, to keep these pages pixel-identical to /logbook's own.
     "  --field-h:     2.25rem;",
-    // #170/#462/#463 -- five colours picked from #170's own decided
-    // "Fiery Red Sunset" palette (10 raw hex values spanning VB->V17,
-    // https://coolors.co -- see #170's issue body for the full named
-    // 10-colour set), collapsed to #462's five grade tiers: both true
-    // endpoints kept (ink_black for the easiest tier, amber_flame for
-    // the hardest), three more spread evenly across the remaining eight
-    // for the tiers in between. Same value in both themes below --
-    // this is a fixed, decided brand palette, not something that
-    // adapts per theme the way most tokens above it do. Replaces the
-    // old per-grade --grade-easy..--grade-8a tokens (#463) -- those are
-    // gone now that shared/grade-data.js's gradeColor() is tier-based.
-    "  --grade-tier-beginner:     #03071e;",
-    "  --grade-tier-intermediate: #6a040f;",
-    "  --grade-tier-advanced:     #dc2f02;",
-    "  --grade-tier-elite:        #f48c06;",
+    // #170/#462/#463/#696 -- five colours from #170's own decided "Fiery
+    // Red Sunset" palette (10 raw hex spanning VB->V17, see #170's issue
+    // body for the full named set), collapsed to #462's five grade
+    // tiers. #696: the brighter warm end (indices 5-9, red_ochre ->
+    // amber_flame) -- the earlier pick reached to the dark near-black
+    // end and read as muddy in the UI. These are the pill *background*
+    // now, not the grade text (see grade-badge/grade-select in
+    // styles/tailwind.css). Same value in both themes -- a fixed,
+    // decided brand palette, not something that adapts per theme.
+    // Replaces the old per-grade --grade-easy..--grade-8a tokens (#463).
+    "  --grade-tier-beginner:     #dc2f02;",
+    "  --grade-tier-intermediate: #e85d04;",
+    "  --grade-tier-advanced:     #f48c06;",
+    "  --grade-tier-elite:        #faa307;",
     "  --grade-tier-hyper-elite:  #ffba08;",
+    // #696 -- uniform grade-badge/grade-select text colour. Dark in both
+    // themes on purpose: the pills above are bright warm colours in both
+    // themes, so a literal light/dark text flip would leave the gold
+    // tiers unreadable in dark mode.
+    "  --grade-badge-ink: #1c1917;",
     "  --tier-peer:      #5b8def;",
     "  --tier-heuristic: #dba43a;",
     "  --tier-community: #cd7cae;",
@@ -100,11 +104,12 @@
     "  --color-border:      #dcdcdc;",
     // Same fixed values as the dark block above -- deliberately not
     // theme-adapted, see that block's own comment.
-    "  --grade-tier-beginner:     #03071e;",
-    "  --grade-tier-intermediate: #6a040f;",
-    "  --grade-tier-advanced:     #dc2f02;",
-    "  --grade-tier-elite:        #f48c06;",
+    "  --grade-tier-beginner:     #dc2f02;",
+    "  --grade-tier-intermediate: #e85d04;",
+    "  --grade-tier-advanced:     #f48c06;",
+    "  --grade-tier-elite:        #faa307;",
     "  --grade-tier-hyper-elite:  #ffba08;",
+    "  --grade-badge-ink: #1c1917;",
     "  --tier-peer:      #2e5fb8;",
     "  --tier-heuristic: #a6740a;",
     "  --tier-community: #a34a7a;",

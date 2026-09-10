@@ -108,8 +108,10 @@ export function createEntryForm({
     // #463 -- was grades[wrapped].c (a per-grade curated colour field
     // on BOULDER_GRADES/LEAD_GRADES); that field's gone now that
     // colouring is tier-based, so this goes through gradeColor() like
-    // every other consumer instead of reading a raw field directly.
-    gradeSelect.style.color = gradeColor(g, store.getActiveType());
+    // every other consumer. #696 -- the tier colour is the control's
+    // background now, not its text (text is a uniform ink from the
+    // grade-select utility).
+    gradeSelect.style.backgroundColor = gradeColor(g, store.getActiveType());
   }
   function selectGradeByValue(value, type) {
     const grades = type === "boulder" ? BOULDER_GRADES : LEAD_GRADES;
