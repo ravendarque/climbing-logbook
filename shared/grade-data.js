@@ -60,137 +60,67 @@ export function gradeRank(g, type) {
 // V0 threshold is `VB`, not a reused V0 -- V0 is the real cutoff (`5`/
 // `5+`/`5A`), so extending the range downward can't also silently
 // relabel what V0 already means. New top end (8C/8C+/9A) continues the
-// same V-count-up pattern (V15/V16/V17) and reuses the existing top
-// colour band (`--grade-8a`) rather than inventing a new token for
-// three more grades -- #689's own grade-tier colour redesign will
-// replace this whole per-grade colour scheme soon anyway.
+// same V-count-up pattern (V15/V16/V17). No per-grade colour field
+// anymore -- #463 moved colouring onto gradeColor()/gradeTier() below,
+// which needs only `type`, not a per-grade lookup table.
 export const BOULDER_GRADES = [
-  { g: "1",   v: "VB",  c: "var(--grade-easy)" },
-  { g: "1+",  v: "VB",  c: "var(--grade-easy)" },
-  { g: "1A",  v: "VB",  c: "var(--grade-easy)" },
-  { g: "1B",  v: "VB",  c: "var(--grade-easy)" },
-  { g: "1C",  v: "VB",  c: "var(--grade-easy)" },
-  { g: "2",   v: "VB",  c: "var(--grade-easy)" },
-  { g: "2+",  v: "VB",  c: "var(--grade-easy)" },
-  { g: "2A",  v: "VB",  c: "var(--grade-easy)" },
-  { g: "2B",  v: "VB",  c: "var(--grade-easy)" },
-  { g: "2C",  v: "VB",  c: "var(--grade-easy)" },
-  { g: "3",   v: "VB",  c: "var(--grade-easy)" },
-  { g: "3+",  v: "VB",  c: "var(--grade-easy)" },
-  { g: "3A",  v: "VB",  c: "var(--grade-easy)" },
-  { g: "3B",  v: "VB",  c: "var(--grade-easy)" },
-  { g: "3C",  v: "VB",  c: "var(--grade-easy)" },
-  { g: "4",   v: "VB",  c: "var(--grade-easy)" },
-  { g: "4+",  v: "VB",  c: "var(--grade-easy)" },
-  { g: "4A",  v: "VB",  c: "var(--grade-easy)" },
-  { g: "4B",  v: "VB",  c: "var(--grade-easy)" },
-  { g: "4C",  v: "VB",  c: "var(--grade-easy)" },
-  { g: "5",   v: "V0",  c: "var(--grade-easy)" },
-  { g: "5+",  v: "V0",  c: "var(--grade-easy)" },
-  { g: "5A",  v: "V0",  c: "var(--grade-easy)" },
-  { g: "5B",  v: "V1",  c: "var(--grade-easy)" },
-  { g: "5C",  v: "V2",  c: "var(--grade-easy)" },
-  { g: "6A",  v: "V3",  c: "var(--grade-6a)"   },
-  { g: "6A+", v: "V3",  c: "var(--grade-6a)"   },
-  { g: "6B",  v: "V4",  c: "var(--grade-6b)"   },
-  { g: "6B+", v: "V4",  c: "var(--grade-6b)"   },
-  { g: "6C",  v: "V5",  c: "var(--grade-6c)"   },
-  { g: "6C+", v: "V5",  c: "var(--grade-6c)"   },
-  { g: "7A",  v: "V6",  c: "var(--grade-7a)"   },
-  { g: "7A+", v: "V7",  c: "var(--grade-7a)"   },
-  { g: "7B",  v: "V8",  c: "var(--grade-7b)"   },
-  { g: "7B+", v: "V8",  c: "var(--grade-7b)"   },
-  { g: "7C",  v: "V9",  c: "var(--grade-7c)"   },
-  { g: "7C+", v: "V10", c: "var(--grade-7c)"   },
-  { g: "8A",  v: "V11", c: "var(--grade-8a)"   },
-  { g: "8A+", v: "V12", c: "var(--grade-8a)"   },
-  { g: "8B",  v: "V13", c: "var(--grade-8a)"   },
-  { g: "8B+", v: "V14", c: "var(--grade-8a)"   },
-  { g: "8C",  v: "V15", c: "var(--grade-8a)"   },
-  { g: "8C+", v: "V16", c: "var(--grade-8a)"   },
-  { g: "9A",  v: "V17", c: "var(--grade-8a)"   },
+  { g: "1",   v: "VB" },
+  { g: "1+",  v: "VB" },
+  { g: "1A",  v: "VB" },
+  { g: "1B",  v: "VB" },
+  { g: "1C",  v: "VB" },
+  { g: "2",   v: "VB" },
+  { g: "2+",  v: "VB" },
+  { g: "2A",  v: "VB" },
+  { g: "2B",  v: "VB" },
+  { g: "2C",  v: "VB" },
+  { g: "3",   v: "VB" },
+  { g: "3+",  v: "VB" },
+  { g: "3A",  v: "VB" },
+  { g: "3B",  v: "VB" },
+  { g: "3C",  v: "VB" },
+  { g: "4",   v: "VB" },
+  { g: "4+",  v: "VB" },
+  { g: "4A",  v: "VB" },
+  { g: "4B",  v: "VB" },
+  { g: "4C",  v: "VB" },
+  { g: "5",   v: "V0" },
+  { g: "5+",  v: "V0" },
+  { g: "5A",  v: "V0" },
+  { g: "5B",  v: "V1" },
+  { g: "5C",  v: "V2" },
+  { g: "6A",  v: "V3" },
+  { g: "6A+", v: "V3" },
+  { g: "6B",  v: "V4" },
+  { g: "6B+", v: "V4" },
+  { g: "6C",  v: "V5" },
+  { g: "6C+", v: "V5" },
+  { g: "7A",  v: "V6" },
+  { g: "7A+", v: "V7" },
+  { g: "7B",  v: "V8" },
+  { g: "7B+", v: "V8" },
+  { g: "7C",  v: "V9" },
+  { g: "7C+", v: "V10" },
+  { g: "8A",  v: "V11" },
+  { g: "8A+", v: "V12" },
+  { g: "8B",  v: "V13" },
+  { g: "8B+", v: "V14" },
+  { g: "8C",  v: "V15" },
+  { g: "8C+", v: "V16" },
+  { g: "9A",  v: "V17" },
 ];
 // #129 -- extended down to French `1` and up to `9c+`. Low end (1-5b)
 // uses the scale's own standard progression (letters start at 4, per
 // the real French system -- no equivalent to Boulder's 5/5A ambiguity
-// here, so no parallel notation decision was needed). New top end
-// (8a+...9c+) reuses the existing top colour band, same reasoning as
-// BOULDER_GRADES' own extension above.
+// here, so no parallel notation decision was needed).
 export const LEAD_GRADES = [
-  { g: "1",   c: "var(--grade-easy)" },
-  { g: "1+",  c: "var(--grade-easy)" },
-  { g: "2",   c: "var(--grade-easy)" },
-  { g: "2+",  c: "var(--grade-easy)" },
-  { g: "3",   c: "var(--grade-easy)" },
-  { g: "3+",  c: "var(--grade-easy)" },
-  { g: "4a",  c: "var(--grade-easy)" },
-  { g: "4b",  c: "var(--grade-easy)" },
-  { g: "4c",  c: "var(--grade-easy)" },
-  { g: "5a",  c: "var(--grade-easy)" },
-  { g: "5b",  c: "var(--grade-easy)" },
-  { g: "5c",  c: "var(--grade-easy)" },
-  { g: "6a",  c: "var(--grade-6a)"   },
-  { g: "6a+", c: "var(--grade-6a)"   },
-  { g: "6b",  c: "var(--grade-6b)"   },
-  { g: "6b+", c: "var(--grade-6b)"   },
-  { g: "6c",  c: "var(--grade-6c)"   },
-  { g: "6c+", c: "var(--grade-6c)"   },
-  { g: "7a",  c: "var(--grade-7a)"   },
-  { g: "7a+", c: "var(--grade-7a)"   },
-  { g: "7b",  c: "var(--grade-7b)"   },
-  { g: "7b+", c: "var(--grade-7b)"   },
-  { g: "7c",  c: "var(--grade-7c)"   },
-  { g: "7c+", c: "var(--grade-7c)"   },
-  { g: "8a",  c: "var(--grade-8a)"   },
-  { g: "8a+", c: "var(--grade-8a)"   },
-  { g: "8b",  c: "var(--grade-8a)"   },
-  { g: "8b+", c: "var(--grade-8a)"   },
-  { g: "8c",  c: "var(--grade-8a)"   },
-  { g: "8c+", c: "var(--grade-8a)"   },
-  { g: "9a",  c: "var(--grade-8a)"   },
-  { g: "9a+", c: "var(--grade-8a)"   },
-  { g: "9b",  c: "var(--grade-8a)"   },
-  { g: "9b+", c: "var(--grade-8a)"   },
-  { g: "9c",  c: "var(--grade-8a)"   },
-  { g: "9c+", c: "var(--grade-8a)"   },
+  { g: "1" }, { g: "1+" }, { g: "2" }, { g: "2+" }, { g: "3" }, { g: "3+" },
+  { g: "4a" }, { g: "4b" }, { g: "4c" }, { g: "5a" }, { g: "5b" }, { g: "5c" },
+  { g: "6a" }, { g: "6a+" }, { g: "6b" }, { g: "6b+" }, { g: "6c" }, { g: "6c+" },
+  { g: "7a" }, { g: "7a+" }, { g: "7b" }, { g: "7b+" }, { g: "7c" }, { g: "7c+" },
+  { g: "8a" }, { g: "8a+" }, { g: "8b" }, { g: "8b+" }, { g: "8c" }, { g: "8c+" },
+  { g: "9a" }, { g: "9a+" }, { g: "9b" }, { g: "9b+" }, { g: "9c" }, { g: "9c+" },
 ];
-
-const GRADE_COLOR_BANDS = [
-  "var(--grade-easy)", "var(--grade-6a)", "var(--grade-6b)", "var(--grade-6c)",
-  "var(--grade-7a)",   "var(--grade-7b)", "var(--grade-7c)", "var(--grade-8a)",
-];
-// BOULDER_GRADES/LEAD_GRADES already carry a curated `c` per entry -- look
-// those up directly rather than re-deriving a color from rank. Lead's list
-// is only 14 entries against Boulder's 21, so applying one set of absolute
-// rank thresholds to both compressed most of Lead's range into a couple of
-// bands (#109); per-discipline lookup sidesteps that instead of just
-// recalibrating the thresholds.
-// #430/#649 -- was `type === "lead" ? LEAD_GRADES : BOULDER_GRADES`: that
-// direction silently mis-colored anything that wasn't literally "boulder"
-// or "lead" as boulder (found while adding "sport" -- a Sport entry's
-// grade would have looked up BOULDER_GRADES's colors instead of the
-// shared boulder/lead-style scale it actually uses). `type ?? "boulder"`
-// preserves the documented "omitted type defaults to boulder" behavior
-// (test/shared/grade-data.test.js's own case) while routing every other
-// non-boulder value -- "lead", "sport", and whatever comes after either
-// -- to LEAD_GRADES, matching entry-form.js's own grade-list ternary
-// (`store.getActiveType() === "boulder" ? BOULDER_GRADES : LEAD_GRADES`).
-export function gradeColor(g, type) {
-  const resolvedType = type ?? "boulder";
-  const list = resolvedType === "boulder" ? BOULDER_GRADES : LEAD_GRADES;
-  const hit = list.find(x => x.g.toUpperCase() === String(g).toUpperCase());
-  if (hit) return hit.c;
-
-  // Grades outside the current picker range (e.g. pre-#60 sub-5 boulder
-  // entries) have no curated color -- band by fraction of this
-  // discipline's own rank span so a short list still spreads across
-  // the full band range instead of bunching up.
-  const minR = gradeRank(list[0].g, resolvedType);
-  const maxR = gradeRank(list[list.length - 1].g, resolvedType);
-  const frac = (gradeRank(g, resolvedType) - minR) / (maxR - minR);
-  const idx = Math.min(GRADE_COLOR_BANDS.length - 1, Math.max(0, Math.floor(frac * GRADE_COLOR_BANDS.length)));
-  return GRADE_COLOR_BANDS[idx];
-}
 
 // #462 -- five-tier headline classification, decided 2026-09-09 (see the
 // issue for the full reasoning): Raven's own felt sense of each
@@ -238,4 +168,31 @@ export function gradeTier(g, type) {
     if (fromGrade !== null && r >= gradeRank(fromGrade, resolvedType)) tier = name;
   }
   return tier;
+}
+
+// #463 -- five colours picked from #170's own decided "Fiery Red Sunset"
+// palette (see public/logbook/components/climbing-header.js's own
+// --grade-tier-* tokens for the real hex values and the reasoning
+// behind which five were picked). One shared mapping across both
+// disciplines -- a tier name means the same thing regardless of which
+// discipline produced it, so there's exactly one colour per tier, not
+// two independent sets that happen to agree.
+const GRADE_TIER_COLORS = {
+  beginner: "var(--grade-tier-beginner)",
+  intermediate: "var(--grade-tier-intermediate)",
+  advanced: "var(--grade-tier-advanced)",
+  elite: "var(--grade-tier-elite)",
+  "hyper-elite": "var(--grade-tier-hyper-elite)",
+};
+
+// #463 -- replaces the old per-grade curated-colour lookup (a `c` field
+// on every BOULDER_GRADES/LEAD_GRADES entry, plus a fractional-banding
+// fallback for anything outside the current picker range) with tier-
+// based colouring throughout. gradeTier() already resolves *any* grade
+// via gradeRank() -- in-picker or not -- to one of five tiers, so the
+// separate fallback-banding math the old implementation needed for
+// out-of-range grades isn't needed here at all; every grade just goes
+// through the same one path.
+export function gradeColor(g, type) {
+  return GRADE_TIER_COLORS[gradeTier(g, type)];
 }

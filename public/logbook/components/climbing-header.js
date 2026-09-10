@@ -49,14 +49,6 @@
     // Raven's production report, 2026-08-10 -- values copied exactly, not
     // re-derived, to keep these pages pixel-identical to /logbook's own.
     "  --field-h:     2.25rem;",
-    "  --grade-easy:  #94a3b8;",
-    "  --grade-6a:    #22d3ee;",
-    "  --grade-6b:    #4ade80;",
-    "  --grade-6c:    #a3e635;",
-    "  --grade-7a:    #facc15;",
-    "  --grade-7b:    #fb923c;",
-    "  --grade-7c:    #f87171;",
-    "  --grade-8a:    #c084fc;",
     // #170/#462/#463 -- five colours picked from #170's own decided
     // "Fiery Red Sunset" palette (10 raw hex values spanning VB->V17,
     // https://coolors.co -- see #170's issue body for the full named
@@ -65,10 +57,9 @@
     // the hardest), three more spread evenly across the remaining eight
     // for the tiers in between. Same value in both themes below --
     // this is a fixed, decided brand palette, not something that
-    // adapts per theme the way most tokens above it do. Not yet
-    // consumed anywhere (#463 wires gradeColor() onto these; the old
-    // --grade-easy..--grade-8a tokens above stay in place until that
-    // PR removes them, so the two changes land together).
+    // adapts per theme the way most tokens above it do. Replaces the
+    // old per-grade --grade-easy..--grade-8a tokens (#463) -- those are
+    // gone now that shared/grade-data.js's gradeColor() is tier-based.
     "  --grade-tier-beginner:     #03071e;",
     "  --grade-tier-intermediate: #6a040f;",
     "  --grade-tier-advanced:     #dc2f02;",
@@ -107,14 +98,6 @@
     "  --color-accent:      #ff2727;",
     "  --color-accent-text: #ffffff;",
     "  --color-border:      #dcdcdc;",
-    "  --grade-easy:  #64748b;",
-    "  --grade-6a:    #0891b2;",
-    "  --grade-6b:    #16a34a;",
-    "  --grade-6c:    #65a30d;",
-    "  --grade-7a:    #ca8a04;",
-    "  --grade-7b:    #ea580c;",
-    "  --grade-7c:    #b91c1c;",
-    "  --grade-8a:    #9333ea;",
     // Same fixed values as the dark block above -- deliberately not
     // theme-adapted, see that block's own comment.
     "  --grade-tier-beginner:     #03071e;",
