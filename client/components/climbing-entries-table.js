@@ -920,7 +920,7 @@ export class ClimbingEntriesTable extends HTMLElement {
       return `
       <tr class="border-b border-[color-mix(in_srgb,var(--color-border)_40%,transparent)] last:border-b-0 ${rowBg}">
         <td class="${TD_BASE} text-center">${statusBadge(e)}</td>
-        <td class="${TD_BASE}"><span class="grade-badge" style="color:${gradeColor(e.grade, e.type)}">${escapeHtml(e.grade)}</span></td>
+        <td class="${TD_BASE}"><span class="grade-badge" style="background:${gradeColor(e.grade, e.type)}">${escapeHtml(e.grade)}</span></td>
         <td class="${TD_BASE} overflow-hidden">
           <span class="font-medium truncate inline-block max-w-full align-bottom ${e._pendingDelete ? "line-through text-muted" : ""}">${escapeHtml(e.name)}</span>
           ${pendingBadge}
