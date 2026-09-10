@@ -22,12 +22,18 @@
 // for the first time here, defensively, since the same kind of
 // historical/out-of-picker entry could exist for Sport too.
 // #129 -- extended alongside BOULDER_GRADES/LEAD_GRADES below: both
-// orders need to keep covering at least their own discipline's full
-// current picker range, or a newly-added grade would fall straight
-// back into the `?? 99` fallback this file was just fixed to avoid.
+// orders MUST stay a superset of their own discipline's full current
+// picker range, or a picker grade would fall straight back into the
+// `?? 99` fallback this file was fixed to avoid. (These are still hand-
+// maintained separately from BOULDER_GRADES/LEAD_GRADES -- #698 caught
+// that drift: 3A-4C were added to the Boulder picker by #129 but not
+// here, so every one of those six grades mis-ranked as 99. Worth
+// deriving these from the picker lists + a couple of explicit
+// out-of-picker extras in a future cleanup.)
 const BOULDER_ORDER = [
   "1","1+","1A","1B","1C","2","2+","2A","2B","2C",
-  "3","3+","4","4+","5","5+","5A","5A+","5B","5B+","5C",
+  "3","3+","3A","3B","3C","4","4+","4A","4B","4C",
+  "5","5+","5A","5A+","5B","5B+","5C",
   "6A","6A+","6B","6B+","6C","6C+",
   "7A","7A+","7B","7B+","7C","7C+",
   "8A","8A+","8B","8B+","8C","8C+",
@@ -195,4 +201,37 @@ const GRADE_TIER_COLORS = {
 // through the same one path.
 export function gradeColor(g, type) {
   return GRADE_TIER_COLORS[gradeTier(g, type)];
+}
+
+// #698 -- the Grade Pyramid's 8-4-2-1 window is only ~4 grades wide and
+// spans at most two tiers, often just one, so gradeColor()'s flat
+// per-tier colour would leave every bar the same. This walks the full
+// 10-colour "Fiery Red Sunset" palette (the same one --grade-tier-*
+// above picks five of) continuously by grade rank, so every grade in
+// the window gets a distinct, monotonic shade in the warm red->gold
+// family. Continuous rather than a discrete "2-3 steps per tier":
+// tiers vary in width (Intermediate is 6 grades, Elite is 4), so a
+// fixed per-tier sub-palette differentiates unevenly depending where
+// the window lands -- interpolating by rank guarantees adjacent bars
+// always differ. Only the pyramid uses this; every other view shows
+// enough grades at once that gradeColor()'s tier banding reads fine.
+const FIERY_RED_SUNSET = [
+  "#03071e", "#370617", "#6a040f", "#9d0208", "#d00000",
+  "#dc2f02", "#e85d04", "#f48c06", "#faa307", "#ffba08",
+];
+export function gradePyramidColor(g, type) {
+  const resolvedType = type ?? "boulder";
+  // Normalised against the discipline's real picker range (BOULDER_GRADES/
+  // LEAD_GRADES), not BOULDER_ORDER/LEAD_ORDER's defensive superset -- the
+  // pyramid only ever shows grades from within the picker, so its top
+  // grade should map to the palette's brightest end exactly.
+  const list = resolvedType === "boulder" ? BOULDER_GRADES : LEAD_GRADES;
+  const maxRank = gradeRank(list[list.length - 1].g, resolvedType);
+  const frac = Math.min(1, Math.max(0, gradeRank(g, resolvedType) / maxRank));
+  const pos = frac * (FIERY_RED_SUNSET.length - 1);
+  const lo = Math.floor(pos);
+  if (pos === lo) return FIERY_RED_SUNSET[lo]; // lands exactly on a palette stop
+  const hi = lo + 1;
+  const loPct = Math.round((hi - pos) * 100);
+  return `color-mix(in srgb, ${FIERY_RED_SUNSET[lo]} ${loPct}%, ${FIERY_RED_SUNSET[hi]})`;
 }

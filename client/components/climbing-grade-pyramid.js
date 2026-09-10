@@ -39,7 +39,7 @@
 // /performance page: esbuild failed outright on "../escape-html.js" since
 // no such file exists at client/escape-html.js either).
 import { escapeHtml } from "./escape-html.js";
-import { gradeColor } from "../../shared/grade-data.js";
+import { gradePyramidColor } from "../../shared/grade-data.js";
 import { PYRAMID_IDEAL_BY_POSITION, pyramidHealth } from "../../shared/pyramid-stats.js";
 import { createModalHelpers } from "../modal-utils.js";
 import { disciplineLabel } from "../status.js";
@@ -116,11 +116,14 @@ function pyramidStatusIcon(actual, ideal, promoted) {
 // #209 -- `row.grade` stays a real, colorable grade even for the
 // aggregated "Below 6A"/"Below 6a" base row shared/pyramid-stats.js's
 // pyramidSplitRows() can now return; `row.label`, when present, is the
-// text actually shown, so gradeColor() below never sees a synthetic
-// string it doesn't recognize.
+// text actually shown, so gradePyramidColor() below never sees a
+// synthetic string it doesn't recognize.
 function pyramidBarRow(row, { ideal = null, scaleMax, lower = false, type, promoted = false } = {}) {
   const actualPct = row.count === 0 ? 0 : (row.count / scaleMax) * 100;
-  const barColor = gradeColor(row.grade, type);
+  // #698 -- per-grade shade across the full palette, not gradeColor()'s
+  // flat per-tier colour: the pyramid window is too narrow (~4 grades,
+  // <=2 tiers) for tier banding to differentiate the bars.
+  const barColor = gradePyramidColor(row.grade, type);
   const barStyle = lower
     ? `width:${actualPct}%; background:${barColor}; filter:saturate(.18) brightness(1.12)`
     : `width:${actualPct}%; background:${barColor}`;

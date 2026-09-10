@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BOULDER_GRADES, LEAD_GRADES, gradeColor, gradeRank, gradeTier } from "../../shared/grade-data.js";
+import { BOULDER_GRADES, LEAD_GRADES, gradeColor, gradePyramidColor, gradeRank, gradeTier } from "../../shared/grade-data.js";
 
 describe("gradeRank", () => {
   it("ranks grades in ascending difficulty order", () => {
@@ -29,6 +29,21 @@ describe("gradeRank", () => {
   it("does not fall through to 99 for a Sport grade outside Boulder's notation", () => {
     expect(gradeRank("4a", "sport")).not.toBe(99);
     expect(gradeRank("4b", "sport")).toBeLessThan(gradeRank("4c", "sport"));
+  });
+
+  // #698 -- regression: BOULDER_ORDER is hand-maintained separately from
+  // BOULDER_GRADES and had drifted -- 3A-4C were added to the Boulder
+  // picker by #129 but not to BOULDER_ORDER, so all six mis-ranked as 99.
+  it("ranks every grade the Boulder picker offers -- BOULDER_ORDER stays a superset", () => {
+    for (const { g } of BOULDER_GRADES) expect(gradeRank(g, "boulder")).not.toBe(99);
+    for (const { g } of LEAD_GRADES) expect(gradeRank(g, "sport")).not.toBe(99);
+  });
+
+  it("ranks Boulder's lettered low-end grades in order (3A < 3B < 3C < 4A)", () => {
+    expect(gradeRank("3A", "boulder")).toBeLessThan(gradeRank("3B", "boulder"));
+    expect(gradeRank("3B", "boulder")).toBeLessThan(gradeRank("3C", "boulder"));
+    expect(gradeRank("3C", "boulder")).toBeLessThan(gradeRank("4A", "boulder"));
+    expect(gradeRank("3+", "boulder")).toBeLessThan(gradeRank("3A", "boulder"));
   });
 
   it("defaults to Boulder's order when type is omitted, matching gradeColor()'s own default", () => {
@@ -87,6 +102,49 @@ describe("gradeColor", () => {
     expect(gradeColor("7A", "boulder")).toMatch(/^var\(--grade-tier-/);
     expect(gradeColor("7C+", "boulder")).toMatch(/^var\(--grade-tier-/);
     expect(gradeColor("8B+", "boulder")).toMatch(/^var\(--grade-tier-/);
+  });
+});
+
+// #698 -- the Grade Pyramid's own per-grade shade across the full
+// 10-colour palette, distinct from gradeColor()'s flat per-tier colour.
+describe("gradePyramidColor", () => {
+  it("returns the exact palette endpoints for the lowest and highest grades", () => {
+    expect(gradePyramidColor(BOULDER_GRADES[0].g, "boulder")).toBe("#03071e");
+    expect(gradePyramidColor(BOULDER_GRADES.at(-1).g, "boulder")).toBe("#ffba08");
+    expect(gradePyramidColor(LEAD_GRADES[0].g, "sport")).toBe("#03071e");
+    expect(gradePyramidColor(LEAD_GRADES.at(-1).g, "sport")).toBe("#ffba08");
+  });
+
+  it("gives adjacent grades distinct shades -- the whole point, since a pyramid window can sit entirely in one tier", () => {
+    // A 4-grade window entirely within Advanced (all one tier, so
+    // gradeColor() would return one flat colour for all four).
+    const window = ["7A", "7A+", "7B", "7B+"].map(g => gradePyramidColor(g, "boulder"));
+    expect(new Set(window).size).toBe(4);
+  });
+
+  it("is monotonic -- a harder grade never maps to an earlier palette position", () => {
+    const PALETTE = ["#03071e", "#370617", "#6a040f", "#9d0208", "#d00000", "#dc2f02", "#e85d04", "#f48c06", "#faa307", "#ffba08"];
+    // Effective continuous palette position: an exact hex is its own
+    // index; a color-mix "lo X%, hi" sits at loIdx + (1 - X/100).
+    function palettePos(c) {
+      if (c.startsWith("#")) return PALETTE.indexOf(c);
+      const [, loHex, pct] = c.match(/#([0-9a-f]{6})\s+(\d+)%/);
+      return PALETTE.indexOf(`#${loHex}`) + (1 - Number(pct) / 100);
+    }
+    const grades = ["1", "3A", "5C", "6B", "7A", "7C+", "8B", "9A"];
+    const positions = grades.map(g => palettePos(gradePyramidColor(g, "boulder")));
+    for (let i = 1; i < positions.length; i++) {
+      expect(positions[i]).toBeGreaterThan(positions[i - 1]);
+    }
+  });
+
+  it("returns a color-mix() for grades that land between palette stops", () => {
+    // Some mid-range grade that won't land exactly on a 1/9 boundary.
+    expect(gradePyramidColor("6B", "boulder")).toMatch(/^color-mix\(in srgb, #[0-9a-f]{6} \d+%, #[0-9a-f]{6}\)$/);
+  });
+
+  it("clamps an out-of-range grade to the brightest end instead of overflowing the palette", () => {
+    expect(gradePyramidColor("Z99", "boulder")).toBe("#ffba08");
   });
 });
 
