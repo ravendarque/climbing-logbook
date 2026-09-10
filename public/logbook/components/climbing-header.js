@@ -57,6 +57,23 @@
     "  --grade-7b:    #fb923c;",
     "  --grade-7c:    #f87171;",
     "  --grade-8a:    #c084fc;",
+    // #170/#462/#463 -- five colours picked from #170's own decided
+    // "Fiery Red Sunset" palette (10 raw hex values spanning VB->V17,
+    // https://coolors.co -- see #170's issue body for the full named
+    // 10-colour set), collapsed to #462's five grade tiers: both true
+    // endpoints kept (ink_black for the easiest tier, amber_flame for
+    // the hardest), three more spread evenly across the remaining eight
+    // for the tiers in between. Same value in both themes below --
+    // this is a fixed, decided brand palette, not something that
+    // adapts per theme the way most tokens above it do. Not yet
+    // consumed anywhere (#463 wires gradeColor() onto these; the old
+    // --grade-easy..--grade-8a tokens above stay in place until that
+    // PR removes them, so the two changes land together).
+    "  --grade-tier-beginner:     #03071e;",
+    "  --grade-tier-intermediate: #6a040f;",
+    "  --grade-tier-advanced:     #dc2f02;",
+    "  --grade-tier-elite:        #f48c06;",
+    "  --grade-tier-hyper-elite:  #ffba08;",
     "  --tier-peer:      #5b8def;",
     "  --tier-heuristic: #dba43a;",
     "  --tier-community: #cd7cae;",
@@ -98,6 +115,13 @@
     "  --grade-7b:    #ea580c;",
     "  --grade-7c:    #b91c1c;",
     "  --grade-8a:    #9333ea;",
+    // Same fixed values as the dark block above -- deliberately not
+    // theme-adapted, see that block's own comment.
+    "  --grade-tier-beginner:     #03071e;",
+    "  --grade-tier-intermediate: #6a040f;",
+    "  --grade-tier-advanced:     #dc2f02;",
+    "  --grade-tier-elite:        #f48c06;",
+    "  --grade-tier-hyper-elite:  #ffba08;",
     "  --tier-peer:      #2e5fb8;",
     "  --tier-heuristic: #a6740a;",
     "  --tier-community: #a34a7a;",
