@@ -227,6 +227,14 @@ describe("SCALES / SCALES_BY_DISCIPLINE", () => {
       "norwegian","uiaa","v-scale","yds",
     ]);
   });
+  // #703 -- every scale needs a human-readable display name for the
+  // entry-form/reports pickers (and, later, the reference page).
+  it("every scale has a real, non-empty display name", () => {
+    for (const scale of Object.values(SCALES)) {
+      expect(typeof scale.name).toBe("string");
+      expect(scale.name.length).toBeGreaterThan(0);
+    }
+  });
   it("splits by discipline correctly", () => {
     expect(SCALES_BY_DISCIPLINE.boulder.map(s => s.id).sort()).toEqual(["font","font-non-standard","v-scale"]);
     expect(SCALES_BY_DISCIPLINE.sport.map(s => s.id).sort()).toEqual(["ewbank","french","french-non-standard","norwegian","uiaa","yds"]);
