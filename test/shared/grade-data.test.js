@@ -5,6 +5,8 @@ import {
   FONT_NON_STANDARD, FRENCH_NON_STANDARD,
   FONT_STANDARD, FRENCH_STANDARD, V_SCALE,
   UIAA_SCALE, YDS_SCALE, NORWEGIAN_SCALE, EWBANK_SCALE, GRADE_CONVERSION_MATRIX,
+  SCALES, SCALES_BY_DISCIPLINE, gradeOrdinal, gradeRankForScale,
+  gradeTierForScale, gradeColorForScale, gradePyramidColorForScale,
 } from "../../shared/grade-data.js";
 
 // #702 -- canonical grade model, sub-issue A of #183. See
@@ -214,6 +216,44 @@ describe("GRADE_CONVERSION_MATRIX", () => {
       expect(row.label).toBeTruthy();
       expect(row.frenchAnchor).toBeTruthy();
       expect(row.source).toBeTruthy();
+    }
+  });
+});
+
+describe("SCALES / SCALES_BY_DISCIPLINE", () => {
+  it("has all 9 scales, keyed by id", () => {
+    expect(Object.keys(SCALES).sort()).toEqual([
+      "ewbank","font","font-non-standard","french","french-non-standard",
+      "norwegian","uiaa","v-scale","yds",
+    ]);
+  });
+  it("splits by discipline correctly", () => {
+    expect(SCALES_BY_DISCIPLINE.boulder.map(s => s.id).sort()).toEqual(["font","font-non-standard","v-scale"]);
+    expect(SCALES_BY_DISCIPLINE.sport.map(s => s.id).sort()).toEqual(["ewbank","french","french-non-standard","norwegian","uiaa","yds"]);
+  });
+});
+
+describe("gradeOrdinal / gradeRankForScale / gradeTierForScale / gradeColorForScale / gradePyramidColorForScale", () => {
+  it("gradeOrdinal resolves through the right scale", () => {
+    expect(gradeOrdinal("6A", "font")).toBe(FONT_STANDARD.toOrdinal("6A"));
+    expect(gradeOrdinal("6a+", "french")).toBe(FRENCH_STANDARD.toOrdinal("6a+"));
+    expect(gradeOrdinal("not-a-grade", "font")).toBeNull();
+  });
+  it("gradeRankForScale ranks two grades in different scales correctly, same discipline", () => {
+    // V4 (boulder, Font 6B) should rank above V1 (Font 5) -- proves
+    // cross-scale ranking actually works, not just parroting one scale's
+    // own order.
+    const v4 = gradeRankForScale("V4", "v-scale", "boulder");
+    const v1 = gradeRankForScale("V1", "v-scale", "boulder");
+    expect(v4).toBeGreaterThan(v1);
+  });
+  it("gradeTierForScale/gradeColorForScale/gradePyramidColorForScale don't throw and return sane shapes across every scale", () => {
+    for (const scale of Object.values(SCALES)) {
+      const type = scale.discipline;
+      const anyLabel = scale.discipline === "boulder" ? scale.toLabel(gradeOrdinal("6A", "font")) : scale.toLabel(gradeOrdinal("6a", "french"));
+      expect(typeof gradeTierForScale(anyLabel, scale.id, type)).toBe("string");
+      expect(typeof gradeColorForScale(anyLabel, scale.id, type)).toBe("string");
+      expect(typeof gradePyramidColorForScale(anyLabel, scale.id, type)).toBe("string");
     }
   });
 });

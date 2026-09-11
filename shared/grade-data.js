@@ -309,6 +309,30 @@ export const GRADE_CONVERSION_MATRIX = [
   { scaleId: "v-scale", label: "V9", frenchAnchor: "7c", source: "hakaru.io V-scale converter; cross-checked Wikipedia: Grade (climbing) ('exactly aligns after V9/7C')" },
 ];
 
+// #702 -- every scale keyed by id, and split by discipline -- what
+// sub-issue B/C's future picker UI enumerates, and what gradeOrdinal()
+// below resolves through.
+export const SCALES = {
+  [FONT_STANDARD.id]: FONT_STANDARD,
+  [FONT_NON_STANDARD.id]: FONT_NON_STANDARD,
+  [V_SCALE.id]: V_SCALE,
+  [FRENCH_STANDARD.id]: FRENCH_STANDARD,
+  [FRENCH_NON_STANDARD.id]: FRENCH_NON_STANDARD,
+  [UIAA_SCALE.id]: UIAA_SCALE,
+  [YDS_SCALE.id]: YDS_SCALE,
+  [NORWEGIAN_SCALE.id]: NORWEGIAN_SCALE,
+  [EWBANK_SCALE.id]: EWBANK_SCALE,
+};
+export const SCALES_BY_DISCIPLINE = {
+  boulder: Object.values(SCALES).filter(s => s.discipline === "boulder"),
+  sport: Object.values(SCALES).filter(s => s.discipline === "sport"),
+};
+
+export function gradeOrdinal(grade, scaleId) {
+  const scale = SCALES[scaleId];
+  return scale ? scale.toOrdinal(grade) : null;
+}
+
 // #461 -- gradeRank() used to share ONE flat, Boulder-only order across
 // both disciplines: every caller (gap-stats.js, effort-stats.js,
 // volume-stats.js, client/entries.js) called it directly on raw entry
@@ -537,6 +561,57 @@ export function gradePyramidColor(g, type) {
   const pos = frac * (FIERY_RED_SUNSET.length - 1);
   const lo = Math.floor(pos);
   if (pos === lo) return FIERY_RED_SUNSET[lo]; // lands exactly on a palette stop
+  const hi = lo + 1;
+  const loPct = Math.round((hi - pos) * 100);
+  return `color-mix(in srgb, ${FIERY_RED_SUNSET[lo]} ${loPct}%, ${FIERY_RED_SUNSET[hi]})`;
+}
+
+// #702 -- scale-aware siblings of gradeRank/gradeTier/gradeColor/
+// gradePyramidColor above, added alongside them (Global Constraints:
+// the 2-arg forms above keep their exact current behavior unchanged --
+// these new 3-arg forms are what B/C/E/F build on once entries can
+// genuinely carry a scale other than each discipline's implicit
+// default).
+
+// Same `?? 99` "rank unknown as harder than everything" fallback as
+// today's gradeRank() -- deliberate continuity, not an oversight (#461's
+// own comment already explains why this beats crashing or silently
+// sorting an out-of-model grade first).
+export function gradeRankForScale(grade, scaleId, type) {
+  return gradeOrdinal(grade, scaleId) ?? 99;
+}
+
+export function gradeTierForScale(grade, scaleId, type) {
+  const resolvedType = type ?? "boulder";
+  const thresholds = GRADE_TIER_THRESHOLDS[resolvedType] ?? GRADE_TIER_THRESHOLDS.boulder;
+  // Thresholds are still expressed as labels in the discipline's own
+  // primary scale (Font-standard / French-standard) -- resolve those
+  // through that scale, and compare against the grade being classified
+  // via the shared canonical ordinal both sides now share (Task 1's
+  // whole point) regardless of which scale the grade itself is in.
+  const primaryScaleId = resolvedType === "boulder" ? "font" : "french";
+  const r = gradeOrdinal(grade, scaleId) ?? 99;
+  let tier = thresholds[0][0];
+  for (const [name, fromGrade] of thresholds) {
+    if (fromGrade !== null && r >= (gradeOrdinal(fromGrade, primaryScaleId) ?? 99)) tier = name;
+  }
+  return tier;
+}
+
+export function gradeColorForScale(grade, scaleId, type) {
+  return GRADE_TIER_COLORS[gradeTierForScale(grade, scaleId, type)];
+}
+
+export function gradePyramidColorForScale(grade, scaleId, type) {
+  const resolvedType = type ?? "boulder";
+  const primaryScaleId = resolvedType === "boulder" ? "font" : "french";
+  const list = resolvedType === "boulder" ? FONT_STANDARD_LABELS : FRENCH_STANDARD_LABELS;
+  const maxRank = gradeOrdinal(list[list.length - 1], primaryScaleId);
+  const r = gradeOrdinal(grade, scaleId) ?? 0;
+  const frac = Math.min(1, Math.max(0, r / maxRank));
+  const pos = frac * (FIERY_RED_SUNSET.length - 1);
+  const lo = Math.floor(pos);
+  if (pos === lo) return FIERY_RED_SUNSET[lo];
   const hi = lo + 1;
   const loPct = Math.round((hi - pos) * 100);
   return `color-mix(in srgb, ${FIERY_RED_SUNSET[lo]} ${loPct}%, ${FIERY_RED_SUNSET[hi]})`;
