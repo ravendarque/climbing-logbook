@@ -116,6 +116,11 @@ function makeParsedScale(id, discipline, name, labels) {
     id,
     discipline,
     name,
+    // #703 -- the entry-form/reports pickers need each scale's own
+    // ordered label list to populate a dropdown; a copy (not the
+    // original array reference) so a consumer can't mutate this scale's
+    // own internal order.
+    labels: [...labels],
     toOrdinal(label) { return byLabel.get(String(label).toLowerCase()) ?? null; },
     toLabel(ordinal) { return byOrdinal.get(ordinal) ?? null; },
   };
@@ -155,6 +160,11 @@ export const V_SCALE = {
   id: "v-scale",
   discipline: "boulder",
   name: "V-scale (Hueco)",
+  // #703 -- V_SCALE_TO_FONT's own keys are already in ascending order
+  // (object literal insertion order, verified by every test asserting
+  // this scale's monotonicity) -- reused directly rather than a third
+  // hand-kept copy of the same 21 labels.
+  labels: Object.keys(V_SCALE_TO_FONT).map(k => k.toUpperCase()),
   toOrdinal(label) {
     const font = V_SCALE_TO_FONT[String(label).toLowerCase()];
     return font ? FONT_STANDARD.toOrdinal(font) : null;
@@ -244,6 +254,7 @@ function makeAnchoredScale(id, name, labels, anchors) {
     id,
     discipline: "sport",
     name,
+    labels: [...labels],
     toOrdinal(label) { return ordinalByLowerLabel.get(String(label).toLowerCase()) ?? null; },
     toLabel(ordinal) {
       if (labelByOrdinal.has(ordinal)) return labelByOrdinal.get(ordinal);
