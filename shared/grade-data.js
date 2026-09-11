@@ -130,20 +130,38 @@ export const LEAD_GRADES = [
 
 // #462 -- five-tier headline classification, decided 2026-09-09 (see the
 // issue for the full reasoning): Raven's own felt sense of each
-// discipline's grade distribution, not a scientific equivalence -- and
-// Boulder's boundaries applied verbatim to Sport (same letters/numbers,
-// Sport's own lowercase notation), not derived from any cross-system
-// conversion table (an earlier attempt at that badly misfired, see the
-// issue). Deliberately narrower bands the higher the tier, cross-checked
-// against Rockfax's 2020 grade-comparison posters and found to require
-// *more* to reach each label than that now-dated reference does, by
-// design -- climbing has gotten more competitive since 2020.
+// discipline's grade distribution, not a scientific equivalence, not
+// derived from any cross-system conversion table (an earlier attempt at
+// that badly misfired, see the issue). Deliberately narrower bands the
+// higher the tier, cross-checked against Rockfax's 2020 grade-comparison
+// posters and found to require *more* to reach each label than that
+// now-dated reference does, by design -- climbing has gotten more
+// competitive since 2020.
+//
+// #710 -- Sport's own boundaries, corrected: #462 originally applied
+// Boulder's boundaries to Sport verbatim (same letters/numbers, lowercase
+// notation). That worked fine through Advanced, but Sport's real grade
+// range extends much further past `8b+` than Boulder's extends past
+// `8B+` (Sport's picker runs to `9c+`, Boulder's stops at `9A`), so
+// Sport's Hyper Elite ended up the *widest* tier (9 real grade-steps)
+// instead of the narrowest -- the opposite of this file's own stated
+// design principle above. Investigated proportional grade-count scaling
+// and real athlete-rarity data (hardestclimbs.info vs. 8a.nu) as ways to
+// derive a precise fix; neither held up (proportional scaling shifted
+// every boundary upward, not just the top one; the two rarity sources
+// turned out to measure genuinely different things and couldn't support
+// a specific number). Settled by the same felt-sense method #462 itself
+// used, not a formula: `6a`-`7a` / `7a+`-`8a` / `8a+`-`9a` / `9a+` and up
+// -- 7/6/6/5 real grade-steps per tier, a real narrowing toward the top.
+// Boulder's own boundaries are unchanged.
 //
 // Each entry is [tierName, thresholdGrade] in ascending order; `null`
 // marks the bottom (no lower bound). The two disciplines never compare
 // against each other -- each grade resolves against its own thresholds
 // only, matching #461's own "no consumer needs true cross-discipline
-// comparability yet" scoping.
+// comparability yet" scoping. Sport's thresholds no longer share
+// Boulder's exact letters past Intermediate -- that divergence is
+// deliberate, not an oversight (see #710).
 const GRADE_TIER_THRESHOLDS = {
   boulder: [
     ["beginner", null],
@@ -155,9 +173,9 @@ const GRADE_TIER_THRESHOLDS = {
   sport: [
     ["beginner", null],
     ["intermediate", "6a"],
-    ["advanced", "7a"],
-    ["elite", "7c+"],
-    ["hyper-elite", "8b+"],
+    ["advanced", "7a+"],
+    ["elite", "8a+"],
+    ["hyper-elite", "9a+"],
   ],
 };
 
