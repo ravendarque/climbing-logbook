@@ -2,6 +2,19 @@ import { json, parseJsonBody } from "../lib/json.js";
 import { createD1ResourceHandlers, findOwnedRow, listChangedForUser, listForUser } from "../lib/d1-resource.js";
 import { validateEntryShape } from "../../shared/entry-schema.js";
 
+// #702 -- the exact same finite legacy low-end list
+// migrations/0016_add_grade_scale.sql's own backfill UPDATE targets --
+// MUST stay in sync with that SQL file's own WHERE clause; both encode
+// "which pre-correction Sport grades were never real FFME notation."
+// Boulder has no equivalent branch: every existing/legacy Boulder grade
+// string is a valid font-non-standard label once compared
+// case-insensitively (see the migration's own comment for why).
+const LEGACY_SPORT_NON_STANDARD_GRADES = new Set(["1", "1+", "2", "2+", "3", "3+"]);
+function defaultGradeScale(entry) {
+  if (entry.type === "boulder") return "font-non-standard";
+  return LEGACY_SPORT_NON_STANDARD_GRADES.has(entry.grade) ? "french-non-standard" : "french";
+}
+
 // placeId gets a real referential check -- not just "does this row
 // exist" (the FK constraint alone covers that) but "does it belong to
 // *this* user" -- same reasoning as places.js's locationId check. Without
@@ -26,6 +39,11 @@ export function buildRow(entry, id, userId) {
     place_id: entry.placeId,
     name: entry.name,
     grade: entry.grade,
+    // #702 -- storage is "as logged": grade stays exactly as entered
+    // above, grade_scale records which of the 9 scales it's in. Defaults
+    // when the client doesn't send one -- client/entry-form.js doesn't
+    // yet (sub-issue #703 adds the picker that will).
+    grade_scale: entry.gradeScale ?? defaultGradeScale(entry),
     discipline_id: entry.type,
     status_id: entry.status,
     first_attempt: entry.status === "send" && entry.firstAttempt ? 1 : 0,
@@ -52,6 +70,7 @@ export function rowToJson(row) {
     id: row.id,
     name: row.name,
     grade: row.grade,
+    gradeScale: row.grade_scale,
     placeId: row.place_id,
     type: row.discipline_id,
     status: row.status_id,
@@ -80,6 +99,11 @@ export function publicRowToJson(row) {
     id: row.id,
     name: row.name,
     grade: row.grade,
+    // #702 -- exactly as public as grade itself already is (same
+    // reasoning as sportStyle below) -- a public grade string is less
+    // interpretable, not more private, without knowing which scale it's
+    // in.
+    gradeScale: row.grade_scale,
     placeId: row.place_id,
     type: row.discipline_id,
     status: row.status_id,
