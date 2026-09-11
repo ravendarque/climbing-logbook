@@ -1,5 +1,122 @@
 import { describe, expect, it } from "vitest";
 import { BOULDER_GRADES, LEAD_GRADES, gradeColor, gradePyramidColor, gradeRank, gradeTier } from "../../shared/grade-data.js";
+import {
+  nonStandardOrdinal, nonStandardLabel, parseNonStandardLabel,
+  FONT_NON_STANDARD, FRENCH_NON_STANDARD,
+} from "../../shared/grade-data.js";
+
+// #702 -- canonical grade model, sub-issue A of #183. See
+// docs/superpowers/specs/2026-09-10-configurable-grade-systems-design.md
+// and docs/superpowers/plans/2026-09-11-grade-canonical-model.md.
+describe("nonStandardOrdinal", () => {
+  it("orders the 12 sub-positions within one number correctly -- bare -/plain at the bottom, lettered positions in the middle, bare + at the very top (corrected 2026-09-11, see Raven's worked example below)", () => {
+    const ordinals = [
+      nonStandardOrdinal(2, null, "-"),
+      nonStandardOrdinal(2, null, null),
+      nonStandardOrdinal(2, "a", "-"),
+      nonStandardOrdinal(2, "a", null),
+      nonStandardOrdinal(2, "a", "+"),
+      nonStandardOrdinal(2, "b", "-"),
+      nonStandardOrdinal(2, "b", null),
+      nonStandardOrdinal(2, "b", "+"),
+      nonStandardOrdinal(2, "c", "-"),
+      nonStandardOrdinal(2, "c", null),
+      nonStandardOrdinal(2, "c", "+"),
+      nonStandardOrdinal(2, null, "+"),
+    ];
+    for (let i = 1; i < ordinals.length; i++) {
+      expect(ordinals[i]).toBeGreaterThan(ordinals[i - 1]);
+    }
+  });
+
+  it("crosses from one number to the next without a gap or overlap -- bare N+ (not Nc+) is the last item before (N+1)-", () => {
+    expect(nonStandardOrdinal(2, null, "+")).toBe(nonStandardOrdinal(3, null, "-") - 1);
+  });
+
+  it("covers all 9 numbers x 12 sub-positions as 108 distinct, contiguous ordinals", () => {
+    const seen = new Set();
+    for (let n = 1; n <= 9; n++) {
+      for (const letter of [null, "a", "b", "c"]) {
+        for (const modifier of ["-", null, "+"]) {
+          seen.add(nonStandardOrdinal(n, letter, modifier));
+        }
+      }
+    }
+    expect(seen.size).toBe(108);
+    expect(Math.min(...seen)).toBe(0);
+    expect(Math.max(...seen)).toBe(107);
+  });
+
+  it("matches the worked example: N-, N, Na-, Na, Na+, Nb-, Nb, Nb+, Nc-, Nc, Nc+, N+", () => {
+    // number=1 (base offset 0): 1-=0, 1=1, 1a-=2, 1a=3, 1a+=4, 1b-=5,
+    // 1b=6, 1b+=7, 1c-=8, 1c=9, 1c+=10, 1+=11 -- "+" on the BARE number
+    // moves to the very end, not right after bare "1", per Raven's own
+    // ordering ("2a+" must sort between bare "2" and bare "2+").
+    expect(nonStandardOrdinal(1, null, "-")).toBe(0);
+    expect(nonStandardOrdinal(1, null, null)).toBe(1);
+    expect(nonStandardOrdinal(1, "a", "-")).toBe(2);
+    expect(nonStandardOrdinal(1, "a", null)).toBe(3);
+    expect(nonStandardOrdinal(1, "a", "+")).toBe(4);
+    expect(nonStandardOrdinal(1, "c", "+")).toBe(10);
+    expect(nonStandardOrdinal(1, null, "+")).toBe(11);
+  });
+
+  it("matches Raven's own real-entries example: grades logged as \"2\", \"2a+\", \"2+\" sort 2 < 2a+ < 2+", () => {
+    const bare2 = nonStandardOrdinal(2, null, null);
+    const twoAPlus = nonStandardOrdinal(2, "a", "+");
+    const bare2Plus = nonStandardOrdinal(2, null, "+");
+    expect(bare2).toBeLessThan(twoAPlus);
+    expect(twoAPlus).toBeLessThan(bare2Plus);
+  });
+});
+
+describe("nonStandardLabel / parseNonStandardLabel round-trip", () => {
+  const cases = [
+    [2, null, "-", "2-"],
+    [2, null, null, "2"],
+    [2, null, "+", "2+"],
+    [6, "a", "-", "6a-"],
+    [6, "a", null, "6a"],
+    [6, "a", "+", "6a+"],
+    [9, "c", "+", "9c+"],
+  ];
+  for (const [number, letter, modifier, label] of cases) {
+    it(`renders ${JSON.stringify({ number, letter, modifier })} as "${label}"`, () => {
+      expect(nonStandardLabel(number, letter, modifier)).toBe(label);
+    });
+    it(`parses "${label}" back to {number:${number}, letter:${JSON.stringify(letter)}, modifier:${JSON.stringify(modifier)}}`, () => {
+      expect(parseNonStandardLabel(label)).toEqual({ number, letter, modifier });
+    });
+  }
+
+  it("returns null for an unparseable string", () => {
+    expect(parseNonStandardLabel("banana")).toBeNull();
+    expect(parseNonStandardLabel("")).toBeNull();
+    expect(parseNonStandardLabel("6d")).toBeNull(); // letter must be a-c
+  });
+});
+
+describe("FONT_NON_STANDARD / FRENCH_NON_STANDARD", () => {
+  it("both scales use the identical formula -- same ordinal for the same triple", () => {
+    expect(FONT_NON_STANDARD.toOrdinal("6a+")).toBe(FRENCH_NON_STANDARD.toOrdinal("6a+"));
+  });
+  it("round-trips label -> ordinal -> label for every one of the 108 positions, both scales", () => {
+    for (const scale of [FONT_NON_STANDARD, FRENCH_NON_STANDARD]) {
+      for (let n = 1; n <= 9; n++) {
+        for (const letter of [null, "a", "b", "c"]) {
+          for (const modifier of ["-", null, "+"]) {
+            const label = nonStandardLabel(n, letter, modifier);
+            expect(scale.toLabel(scale.toOrdinal(label))).toBe(label);
+          }
+        }
+      }
+    }
+  });
+  it("is case-insensitive and rejects garbage", () => {
+    expect(FONT_NON_STANDARD.toOrdinal("6A+")).toBe(FONT_NON_STANDARD.toOrdinal("6a+"));
+    expect(FONT_NON_STANDARD.toOrdinal("not-a-grade")).toBeNull();
+  });
+});
 
 describe("gradeRank", () => {
   it("ranks grades in ascending difficulty order", () => {

@@ -3,6 +3,94 @@
 // client/main.js (#206) -- first pure-logic module pulled out of the
 // former inline script.
 
+// #702 -- the canonical ordinal. One shared, discipline-agnostic formula:
+// every number 1-9 takes the full combination of an optional letter (a-c)
+// and an optional modifier (+/-), independently -- confirmed with Raven
+// 2026-09-11 against real guidebooks (Jingo Wobbly uses "-" for Font in
+// the wild), not just the two verified real scales (Font-extended, FFME)
+// this was originally derived from. No per-discipline parameters --
+// Boulder and Sport each interpret this same numbering as their own
+// separate ordinal space (never cross-compared, same as #461's
+// BOULDER_RANK/LEAD_RANK split), but the formula computing a position
+// within one number is identical for both.
+//
+// Sub-position order within one number, corrected 2026-09-11 per Raven's
+// own worked example (three real climbs logged as "2", "2+", and "2a+"
+// must sort as 2 < 2a+ < 2+): bare "-"/plain sit at the very bottom
+// (Raven's earlier "bare sits at the bottom" call, unchanged) -- but bare
+// "+" moves to the very TOP of the number's range instead of sitting
+// right after plain. "+" on a bare number reads as "the strong edge of
+// this number, bordering the next one," the same intuition "+" already
+// carries everywhere else in this matrix (UIAA/Norwegian's own -/plain/+
+// triads, French's a+/b+/c+). An explicit ordered list, not a derived
+// formula -- once "+" moves out of sequence for the no-letter case
+// specifically, the ordering isn't a clean arithmetic function of
+// (letterSlot, modifierSlot) anymore, so spelling out the 12 positions
+// directly is clearer (and less error-prone) than a formula hiding a
+// special case.
+const SUB_POSITION_ORDER = [
+  [null, "-"], [null, null],
+  ["a", "-"], ["a", null], ["a", "+"],
+  ["b", "-"], ["b", null], ["b", "+"],
+  ["c", "-"], ["c", null], ["c", "+"],
+  [null, "+"],
+];
+const SUB_POSITION_INDEX = new Map(
+  SUB_POSITION_ORDER.map(([letter, modifier], i) => [`${letter ?? null}|${modifier ?? null}`, i])
+);
+export function nonStandardOrdinal(number, letter, modifier) {
+  const key = `${letter ?? null}|${modifier ?? null}`;
+  const subPosition = SUB_POSITION_INDEX.get(key);
+  if (subPosition === undefined) return null;
+  return (number - 1) * 12 + subPosition;
+}
+
+export function nonStandardLabel(number, letter, modifier) {
+  return `${number}${letter ?? ""}${modifier ?? ""}`;
+}
+
+// Strict shape: one digit 1-9, optional single lowercase letter a-c,
+// optional trailing +/-. Case-insensitive on input (real logged text may
+// be uppercase); always normalizes letter to lowercase, matching
+// nonStandardLabel()'s own output so toOrdinal(toLabel(x)) round-trips.
+const NON_STANDARD_RE = /^([1-9])([abc])?([+-])?$/i;
+export function parseNonStandardLabel(label) {
+  const m = NON_STANDARD_RE.exec(String(label).trim());
+  if (!m) return null;
+  return {
+    number: Number(m[1]),
+    letter: m[2] ? m[2].toLowerCase() : null,
+    modifier: m[3] ?? null,
+  };
+}
+
+function makeNonStandardScale(id, discipline) {
+  return {
+    id,
+    discipline,
+    toOrdinal(label) {
+      const parsed = parseNonStandardLabel(label);
+      return parsed ? nonStandardOrdinal(parsed.number, parsed.letter, parsed.modifier) : null;
+    },
+    toLabel(ordinal) {
+      const number = Math.floor(ordinal / 12) + 1;
+      const withinNumber = ordinal - (number - 1) * 12;
+      const [letter, modifier] = SUB_POSITION_ORDER[withinNumber];
+      return nonStandardLabel(number, letter, modifier);
+    },
+  };
+}
+
+// #702 -- Font (Non-standard) and French (Non-standard): not lookup
+// tables, real guidebooks use letters/modifiers inconsistently (the
+// exact class of drift bug #698 found in a hand-maintained list can't
+// recur here since there's no list at all, just the shared formula
+// above). Both delegate to the identical function -- per Raven's
+// explicit call, there are no per-discipline parameters left; the only
+// difference between the two is `id`/`discipline`.
+export const FONT_NON_STANDARD = makeNonStandardScale("font-non-standard", "boulder");
+export const FRENCH_NON_STANDARD = makeNonStandardScale("french-non-standard", "sport");
+
 // #461 -- gradeRank() used to share ONE flat, Boulder-only order across
 // both disciplines: every caller (gap-stats.js, effort-stats.js,
 // volume-stats.js, client/entries.js) called it directly on raw entry
