@@ -4,6 +4,7 @@ import {
   nonStandardOrdinal, nonStandardLabel, parseNonStandardLabel,
   FONT_NON_STANDARD, FRENCH_NON_STANDARD,
   FONT_STANDARD, FRENCH_STANDARD, V_SCALE,
+  UIAA_SCALE, YDS_SCALE, NORWEGIAN_SCALE, EWBANK_SCALE, GRADE_CONVERSION_MATRIX,
 } from "../../shared/grade-data.js";
 
 // #702 -- canonical grade model, sub-issue A of #183. See
@@ -175,6 +176,45 @@ describe("V_SCALE", () => {
     expect(V_SCALE.toOrdinal("V0-")).toBe(FONT_STANDARD.toOrdinal("3+"));
     expect(V_SCALE.toOrdinal("V0")).toBe(FONT_STANDARD.toOrdinal("4"));
     expect(V_SCALE.toOrdinal("V0+")).toBe(FONT_STANDARD.toOrdinal("4+"));
+  });
+});
+
+describe("UIAA_SCALE / YDS_SCALE / NORWEGIAN_SCALE / EWBANK_SCALE", () => {
+  it("UIAA: VI+ anchors to French 6a (Wikipedia Grade(climbing) anchor row)", () => {
+    expect(UIAA_SCALE.toOrdinal("VI+")).toBe(FRENCH_STANDARD.toOrdinal("6a"));
+  });
+  it("YDS: 5.10a anchors to French 6a (same Wikipedia anchor row)", () => {
+    expect(YDS_SCALE.toOrdinal("5.10a")).toBe(FRENCH_STANDARD.toOrdinal("6a"));
+  });
+  it("Norwegian: 6- anchors to French 6a (theCrag)", () => {
+    expect(NORWEGIAN_SCALE.toOrdinal("6-")).toBe(FRENCH_STANDARD.toOrdinal("6a"));
+  });
+  it("Ewbank: 18 anchors to French 6a (Wikipedia anchor row, '18-19≈6a')", () => {
+    expect(EWBANK_SCALE.toOrdinal("18")).toBe(FRENCH_STANDARD.toOrdinal("6a"));
+  });
+  it("every scale is monotonically increasing across its full label list", () => {
+    for (const [scale, labels] of [
+      [UIAA_SCALE, ["I","II","III-","III","III+","IV-","IV","IV+","V-","V","V+","VI-","VI","VI+","VII-","VII","VII+","VIII-","VIII","VIII+","IX-","IX","IX+","X-","X","X+","XI-","XI","XI+","XII-","XII","XII+"]],
+      [YDS_SCALE, ["5.0","5.1","5.2","5.3","5.4","5.5","5.6","5.7","5.8","5.9","5.10a","5.10b","5.10c","5.10d","5.11a","5.11b","5.11c","5.11d","5.12a","5.12b","5.12c","5.12d","5.13a","5.13b","5.13c","5.13d","5.14a","5.14b","5.14c","5.14d","5.15a","5.15b","5.15c","5.15d"]],
+      [NORWEGIAN_SCALE, ["1","1+","2-","2","2+","3-","3","3+","4-","4","4+","5-","5","5+","6-","6","6+","7-","7","7+","8-","8","8+","9-","9","9+","10-","10","10+","11-","11"]],
+      [EWBANK_SCALE, Array.from({length: 40}, (_, i) => String(i + 1))],
+    ]) {
+      const ordinals = labels.map(l => scale.toOrdinal(l));
+      expect(ordinals.every(o => o !== null)).toBe(true);
+      for (let i = 1; i < ordinals.length; i++) expect(ordinals[i]).toBeGreaterThanOrEqual(ordinals[i - 1]);
+    }
+  });
+});
+
+describe("GRADE_CONVERSION_MATRIX", () => {
+  it("has a source for every anchor row", () => {
+    expect(GRADE_CONVERSION_MATRIX.length).toBeGreaterThan(0);
+    for (const row of GRADE_CONVERSION_MATRIX) {
+      expect(row.scaleId).toBeTruthy();
+      expect(row.label).toBeTruthy();
+      expect(row.frenchAnchor).toBeTruthy();
+      expect(row.source).toBeTruthy();
+    }
   });
 });
 

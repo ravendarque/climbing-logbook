@@ -170,6 +170,145 @@ export const V_SCALE = {
   },
 };
 
+// #702 -- shared by the four "no natural decomposition" Sport scales.
+// `anchors` is the ordered subset of `labels` whose French-standard
+// equivalent is actually sourced (spec "The conversion matrix"/"Risks --
+// Matrix authority"); every other label in `labels` is spaced evenly
+// between its neighboring anchors. Two anchors with the same French
+// ordinal are allowed (multiple coarse labels legitimately collapsing to
+// one French grade) -- the labels between them then also collapse to
+// that same ordinal (zero-width interpolation), which is exactly the
+// "coarse scale, several ordinals->one label" shape the spec already
+// documents for these scales.
+function makeAnchoredScale(id, labels, anchors) {
+  const anchorIndex = new Map(anchors.map(a => [a.label, FRENCH_STANDARD.toOrdinal(a.frenchAnchor)]));
+  const ordinalByLabel = new Map();
+  let lastAnchorPos = -1, lastAnchorOrdinal = null;
+  const anchoredPositions = labels
+    .map((l, i) => (anchorIndex.has(l) ? i : -1))
+    .filter(i => i !== -1);
+
+  for (let i = 0; i < labels.length; i++) {
+    const label = labels[i];
+    if (anchorIndex.has(label)) {
+      ordinalByLabel.set(label, anchorIndex.get(label));
+      lastAnchorPos = i;
+      lastAnchorOrdinal = anchorIndex.get(label);
+      continue;
+    }
+    const nextAnchorPos = anchoredPositions.find(p => p > i);
+    if (lastAnchorPos === -1) {
+      // Before the first anchor: extrapolate backward from the first two
+      // anchors' slope, clamped so it never goes negative. With only one
+      // anchor (UIAA/YDS/Ewbank each have exactly one sourced anchor --
+      // GRADE_CONVERSION_MATRIX below), there's no second real anchor to
+      // derive a slope from -- fall back to a 1:1 slope (one label step
+      // = one French canonical-ordinal step), matching the spec's own
+      // "French<->UIAA<->YDS are roughly 1:1" framing near the anchor.
+      const firstPos = anchoredPositions[0];
+      const secondPos = anchoredPositions[1];
+      const slope = secondPos === undefined ? 1
+        : (anchorIndex.get(labels[secondPos]) - anchorIndex.get(labels[firstPos])) / (secondPos - firstPos);
+      ordinalByLabel.set(label, Math.max(0, Math.round(anchorIndex.get(labels[firstPos]) - slope * (firstPos - i))));
+      continue;
+    }
+    if (nextAnchorPos === undefined) {
+      // After the last anchor: extrapolate forward from the last two, or
+      // the same 1:1 fallback slope if there's only one anchor overall.
+      const lastTwo = anchoredPositions.slice(-2);
+      const slope = lastTwo.length < 2 ? 1
+        : (anchorIndex.get(labels[lastTwo[1]]) - anchorIndex.get(labels[lastTwo[0]])) / (lastTwo[1] - lastTwo[0]);
+      ordinalByLabel.set(label, Math.round(lastAnchorOrdinal + slope * (i - lastAnchorPos)));
+      continue;
+    }
+    const nextOrdinal = anchorIndex.get(labels[nextAnchorPos]);
+    const t = (i - lastAnchorPos) / (nextAnchorPos - lastAnchorPos);
+    ordinalByLabel.set(label, Math.round(lastAnchorOrdinal + t * (nextOrdinal - lastAnchorOrdinal)));
+  }
+
+  const labelByOrdinal = new Map();
+  for (const [label, ordinal] of ordinalByLabel) if (!labelByOrdinal.has(ordinal)) labelByOrdinal.set(ordinal, label);
+
+  // Case-insensitive lookup keyed separately from the raw label ->
+  // ordinal map above -- the raw map keeps each scale's own real casing
+  // (UIAA's Roman numerals, YDS's lowercase a/b/c/d) for toLabel()'s
+  // reverse output, while this one normalizes both sides to lowercase
+  // for toOrdinal(), so "vi+"/"VI+"/"Vi+" all resolve the same way (same
+  // case-insensitivity every other scale in this file already has).
+  const ordinalByLowerLabel = new Map([...ordinalByLabel].map(([l, o]) => [l.toLowerCase(), o]));
+
+  return {
+    id,
+    discipline: "sport",
+    toOrdinal(label) { return ordinalByLowerLabel.get(String(label).toLowerCase()) ?? null; },
+    toLabel(ordinal) {
+      if (labelByOrdinal.has(ordinal)) return labelByOrdinal.get(ordinal);
+      let closest = null, closestDist = Infinity;
+      for (const [o, l] of labelByOrdinal) {
+        const d = Math.abs(o - ordinal);
+        if (d < closestDist) { closest = l; closestDist = d; }
+      }
+      return closest;
+    },
+  };
+}
+
+const UIAA_LABELS = [
+  "I","II","III-","III","III+","IV-","IV","IV+","V-","V","V+","VI-","VI","VI+",
+  "VII-","VII","VII+","VIII-","VIII","VIII+","IX-","IX","IX+","X-","X","X+",
+  "XI-","XI","XI+","XII-","XII","XII+",
+];
+// Wikipedia "Grade (climbing)" comparison table anchor row:
+// 5.10a ~ 6a ~ VI+ ~ Ewbank 18-19 ~ Norwegian 6-.
+const UIAA_ANCHORS = [
+  { label: "VI+", frenchAnchor: "6a", source: "Wikipedia: Grade (climbing)" },
+];
+export const UIAA_SCALE = makeAnchoredScale("uiaa", UIAA_LABELS, UIAA_ANCHORS);
+
+const YDS_LABELS = [
+  "5.0","5.1","5.2","5.3","5.4","5.5","5.6","5.7","5.8","5.9",
+  "5.10a","5.10b","5.10c","5.10d","5.11a","5.11b","5.11c","5.11d",
+  "5.12a","5.12b","5.12c","5.12d","5.13a","5.13b","5.13c","5.13d",
+  "5.14a","5.14b","5.14c","5.14d","5.15a","5.15b","5.15c","5.15d",
+];
+const YDS_ANCHORS = [
+  { label: "5.10a", frenchAnchor: "6a", source: "Wikipedia: Grade (climbing)" },
+];
+export const YDS_SCALE = makeAnchoredScale("yds", YDS_LABELS, YDS_ANCHORS);
+
+const NORWEGIAN_LABELS = [
+  "1","1+","2-","2","2+","3-","3","3+","4-","4","4+","5-","5","5+",
+  "6-","6","6+","7-","7","7+","8-","8","8+","9-","9","9+","10-","10","10+","11-","11",
+];
+// theCrag's Norwegian conversion, both points the spec cites: 6a=6-, and
+// the "6a...8c=9+" upper anchor.
+const NORWEGIAN_ANCHORS = [
+  { label: "6-", frenchAnchor: "6a", source: "theCrag: Norwegian grade conversion" },
+  { label: "9+", frenchAnchor: "8c", source: "theCrag: Norwegian grade conversion" },
+];
+export const NORWEGIAN_SCALE = makeAnchoredScale("norwegian", NORWEGIAN_LABELS, NORWEGIAN_ANCHORS);
+
+const EWBANK_LABELS = Array.from({ length: 40 }, (_, i) => String(i + 1));
+const EWBANK_ANCHORS = [
+  { label: "18", frenchAnchor: "6a", source: "Wikipedia: Grade (climbing)" },
+];
+export const EWBANK_SCALE = makeAnchoredScale("ewbank", EWBANK_LABELS, EWBANK_ANCHORS);
+
+// #702 -- the committed conversion matrix: every anchor used above, in
+// one place, with its source -- what sub-issue E's reference page reads
+// to cite where each equivalence came from. Deliberately only the
+// ANCHORS (not every interpolated label) -- an interpolated label isn't
+// a sourced claim, it's this module's own best-effort fill-in, and the
+// spec's "Matrix authority" risk note is explicit that this whole thing
+// is tunable data, not settled fact.
+export const GRADE_CONVERSION_MATRIX = [
+  ...UIAA_ANCHORS.map(a => ({ scaleId: "uiaa", ...a })),
+  ...YDS_ANCHORS.map(a => ({ scaleId: "yds", ...a })),
+  ...NORWEGIAN_ANCHORS.map(a => ({ scaleId: "norwegian", ...a })),
+  ...EWBANK_ANCHORS.map(a => ({ scaleId: "ewbank", ...a })),
+  { scaleId: "v-scale", label: "V9", frenchAnchor: "7c", source: "hakaru.io V-scale converter; cross-checked Wikipedia: Grade (climbing) ('exactly aligns after V9/7C')" },
+];
+
 // #461 -- gradeRank() used to share ONE flat, Boulder-only order across
 // both disciplines: every caller (gap-stats.js, effort-stats.js,
 // volume-stats.js, client/entries.js) called it directly on raw entry
