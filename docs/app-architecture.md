@@ -1025,6 +1025,10 @@ Entry {
                       // that issue for why location/area/country moved
                       // from per-entry fields to real shared entities)
   name, grade: string,
+  gradeScale: string,   // which of the 9 grade scales `grade` is in --
+                         // see "Canonical grade model" below. Optional on
+                         // write (server defaults it when absent -- see
+                         // that section); always present on read.
   type: "boulder" | "lead",
   status: "send" | "project" | "archived" | "checkout",
   firstAttempt: boolean,   // only meaningful when status === "send" -- discipline-neutral name for flash/onsight
@@ -1037,6 +1041,58 @@ Entry {
 `type`/`status` on the wire map directly onto D1's `discipline_id`/
 `status_id` columns (#21's lookup tables use the same slugs as natural
 keys) — a column rename at the boundary, not a value translation.
+
+### Canonical grade model
+
+`shared/grade-data.js` (#702) defines one canonical ordinal per
+discipline — a pure formula, `(number - 1) * 12 + subPosition`, not a
+backing array — and 9 grade scales, each `{ id, discipline,
+toOrdinal(label), toLabel(ordinal) }`:
+
+| Discipline | Scales |
+|---|---|
+| Boulder | `font`, `font-non-standard`, `v-scale` |
+| Sport | `french`, `french-non-standard`, `uiaa`, `yds`, `norwegian`, `ewbank` |
+
+**Storage is "as logged", not canonical.** `entries.grade` stays exactly
+as entered; `entries.grade_scale` (added by
+`migrations/0016_add_grade_scale.sql`) records which scale it's in. The
+canonical ordinal is **never stored** — always computed on demand via
+`gradeOrdinal(grade, scaleId)`, the same way `gradeRank()` computed a
+rank from a single implicit scale before this. This directly serves a
+real requirement: a climber logs a grade exactly as their guidebook
+shows it, sees it in the logbook exactly as logged, and exports it
+exactly as logged — none of that is possible if the stored value is
+already converted to some canonical notation. `gradeScale` is optional
+on write (`server/api/logbook.js`'s `defaultGradeScale()` infers a
+sensible value when a client omits it — `client/entry-form.js` doesn't
+send it yet; sub-issue #703 adds the picker that will).
+
+**The two Non-standard scales** (`font-non-standard`,
+`french-non-standard`) aren't lookup tables — real guidebooks use
+letters and `+`/`-` modifiers inconsistently (e.g. Jingo Wobbly for
+Font), so both accept the full combinatorial space (a number 1–9, an
+optional letter a–c, an optional modifier `+`/`-`) via one shared,
+discipline-agnostic formula (`nonStandardOrdinal`) rather than an
+enumerated list — the exact class of drift bug #698 found in the old
+`BOULDER_ORDER` hand-kept list can't recur here since there's no second
+list to fall out of sync.
+
+**The other 7 scales** resolve onto that same canonical numbering:
+Font-standard, French-standard, and V-scale from real, verified tables
+(Font/French decompose through the same number+letter+modifier shape;
+V-scale is an explicit anchor table against Font-standard, corrected
+2026-09-11 against hakaru.io's V-scale converter — earlier internal
+drafts of this had `6A≈V0`, which no real chart shows). UIAA, YDS,
+Norwegian, and Ewbank have no natural decomposition and no single
+authoritative source, so each is anchor-interpolated:
+`GRADE_CONVERSION_MATRIX` records every anchor point actually used, with
+its source, and every label between two anchors is spaced evenly — a
+documented best-effort, not settled fact (see the design spec's "Matrix
+authority" note).
+
+Design spec: `docs/superpowers/specs/2026-09-10-configurable-grade-systems-design.md`.
+Implementation plan: `docs/superpowers/plans/2026-09-11-grade-canonical-model.md`.
 
 `buildRow()`/`rowToJson()` (`server/api/logbook.js`, `server/api/places.js`,
 `server/api/locations.js`, alongside the shared `server/lib/d1-resource.js`

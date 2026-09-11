@@ -426,6 +426,36 @@ describe("handlePost", () => {
     expect(res.status).toBe(201);
   });
 
+  // #702 -- gradeScale round-trips when the client sends it explicitly...
+  it("creates an entry with an explicit gradeScale, and reports it back", async () => {
+    const res = await post({ ...validEntry(), gradeScale: "font-non-standard" });
+    expect(res.status).toBe(201);
+    const { entries } = await res.json();
+    expect(entries[0].gradeScale).toBe("font-non-standard");
+  });
+
+  // ...and the server defaults it sensibly when the client omits it
+  // entirely -- client/entry-form.js doesn't send this field yet
+  // (sub-issue #703 adds the picker that will), so every current create
+  // must keep working and still get a real, usable gradeScale back.
+  it("defaults gradeScale to font-non-standard for a Boulder entry when the client omits it", async () => {
+    const res = await post(validEntry());
+    const { entries } = await res.json();
+    expect(entries[0].gradeScale).toBe("font-non-standard");
+  });
+
+  it("defaults gradeScale to french for a Sport entry using the current low end when the client omits it", async () => {
+    const res = await post({ ...validEntry(), type: "sport", grade: "6a", sportStyle: "lead" });
+    const { entries } = await res.json();
+    expect(entries[0].gradeScale).toBe("french");
+  });
+
+  it("rejects a gradeScale that doesn't belong to the entry's discipline", async () => {
+    const res = await post({ ...validEntry(), gradeScale: "french" });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/^gradeScale must be one of/);
+  });
+
   it("rejects an invalid status", async () => {
     const res = await post({ ...validEntry(), status: "flashed" });
     expect(res.status).toBe(400);

@@ -4,7 +4,7 @@
 // stats.js/shared/strengths-stats.js. Sends only -- same scoping
 // shared/pyramid-stats.js's own pyramidCounts() already applies for this
 // exact kind of aggregate.
-import { BOULDER_GRADES, gradeRank } from "./grade-data.js";
+import { BOULDER_GRADES, gradeRank, gradeOrdinal, V_SCALE } from "./grade-data.js";
 
 // #600 -- replaces the old calendar-month bucketing (monthBuckets/
 // bucketLabel): a real send log has no reason to snap to calendar-month
@@ -101,6 +101,21 @@ export function gradeDisplayLabel(grade, type) {
   if (type !== "boulder") return grade;
   const hit = BOULDER_GRADES.find(x => x.g.toUpperCase() === String(grade).toUpperCase());
   return hit ? hit.v : grade;
+}
+
+// #702 -- scale-aware sibling of gradeDisplayLabel() above, added
+// alongside it (Global Constraints: the 2-arg form above keeps its exact
+// current behavior unchanged). Same V-scale display quirk (Boulder's
+// V-grade text isn't 1:1 with Font internally), generalized: for
+// Boulder, always render the V-scale label regardless of which scale
+// `grade` was logged in, by converting through the shared canonical
+// ordinal (gradeOrdinal) rather than a direct BOULDER_GRADES string
+// match, which only worked because every grade used to be in one
+// implicit scale.
+export function gradeDisplayLabelForScale(grade, scaleId, type) {
+  if (type !== "boulder") return grade;
+  const ordinal = gradeOrdinal(grade, scaleId);
+  return ordinal === null ? grade : V_SCALE.toLabel(ordinal);
 }
 
 export function volumeHeadline(sendCounts) {

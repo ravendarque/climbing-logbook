@@ -1,5 +1,262 @@
 import { describe, expect, it } from "vitest";
 import { BOULDER_GRADES, LEAD_GRADES, gradeColor, gradePyramidColor, gradeRank, gradeTier } from "../../shared/grade-data.js";
+import {
+  nonStandardOrdinal, nonStandardLabel, parseNonStandardLabel,
+  FONT_NON_STANDARD, FRENCH_NON_STANDARD,
+  FONT_STANDARD, FRENCH_STANDARD, V_SCALE,
+  UIAA_SCALE, YDS_SCALE, NORWEGIAN_SCALE, EWBANK_SCALE, GRADE_CONVERSION_MATRIX,
+  SCALES, SCALES_BY_DISCIPLINE, gradeOrdinal, gradeRankForScale,
+  gradeTierForScale, gradeColorForScale, gradePyramidColorForScale,
+} from "../../shared/grade-data.js";
+
+// #702 -- canonical grade model, sub-issue A of #183. See
+// docs/superpowers/specs/2026-09-10-configurable-grade-systems-design.md
+// and docs/superpowers/plans/2026-09-11-grade-canonical-model.md.
+describe("nonStandardOrdinal", () => {
+  it("orders the 12 sub-positions within one number correctly -- bare -/plain at the bottom, lettered positions in the middle, bare + at the very top (corrected 2026-09-11, see Raven's worked example below)", () => {
+    const ordinals = [
+      nonStandardOrdinal(2, null, "-"),
+      nonStandardOrdinal(2, null, null),
+      nonStandardOrdinal(2, "a", "-"),
+      nonStandardOrdinal(2, "a", null),
+      nonStandardOrdinal(2, "a", "+"),
+      nonStandardOrdinal(2, "b", "-"),
+      nonStandardOrdinal(2, "b", null),
+      nonStandardOrdinal(2, "b", "+"),
+      nonStandardOrdinal(2, "c", "-"),
+      nonStandardOrdinal(2, "c", null),
+      nonStandardOrdinal(2, "c", "+"),
+      nonStandardOrdinal(2, null, "+"),
+    ];
+    for (let i = 1; i < ordinals.length; i++) {
+      expect(ordinals[i]).toBeGreaterThan(ordinals[i - 1]);
+    }
+  });
+
+  it("crosses from one number to the next without a gap or overlap -- bare N+ (not Nc+) is the last item before (N+1)-", () => {
+    expect(nonStandardOrdinal(2, null, "+")).toBe(nonStandardOrdinal(3, null, "-") - 1);
+  });
+
+  it("covers all 9 numbers x 12 sub-positions as 108 distinct, contiguous ordinals", () => {
+    const seen = new Set();
+    for (let n = 1; n <= 9; n++) {
+      for (const letter of [null, "a", "b", "c"]) {
+        for (const modifier of ["-", null, "+"]) {
+          seen.add(nonStandardOrdinal(n, letter, modifier));
+        }
+      }
+    }
+    expect(seen.size).toBe(108);
+    expect(Math.min(...seen)).toBe(0);
+    expect(Math.max(...seen)).toBe(107);
+  });
+
+  it("matches the worked example: N-, N, Na-, Na, Na+, Nb-, Nb, Nb+, Nc-, Nc, Nc+, N+", () => {
+    // number=1 (base offset 0): 1-=0, 1=1, 1a-=2, 1a=3, 1a+=4, 1b-=5,
+    // 1b=6, 1b+=7, 1c-=8, 1c=9, 1c+=10, 1+=11 -- "+" on the BARE number
+    // moves to the very end, not right after bare "1", per Raven's own
+    // ordering ("2a+" must sort between bare "2" and bare "2+").
+    expect(nonStandardOrdinal(1, null, "-")).toBe(0);
+    expect(nonStandardOrdinal(1, null, null)).toBe(1);
+    expect(nonStandardOrdinal(1, "a", "-")).toBe(2);
+    expect(nonStandardOrdinal(1, "a", null)).toBe(3);
+    expect(nonStandardOrdinal(1, "a", "+")).toBe(4);
+    expect(nonStandardOrdinal(1, "c", "+")).toBe(10);
+    expect(nonStandardOrdinal(1, null, "+")).toBe(11);
+  });
+
+  it("matches Raven's own real-entries example: grades logged as \"2\", \"2a+\", \"2+\" sort 2 < 2a+ < 2+", () => {
+    const bare2 = nonStandardOrdinal(2, null, null);
+    const twoAPlus = nonStandardOrdinal(2, "a", "+");
+    const bare2Plus = nonStandardOrdinal(2, null, "+");
+    expect(bare2).toBeLessThan(twoAPlus);
+    expect(twoAPlus).toBeLessThan(bare2Plus);
+  });
+});
+
+describe("nonStandardLabel / parseNonStandardLabel round-trip", () => {
+  const cases = [
+    [2, null, "-", "2-"],
+    [2, null, null, "2"],
+    [2, null, "+", "2+"],
+    [6, "a", "-", "6a-"],
+    [6, "a", null, "6a"],
+    [6, "a", "+", "6a+"],
+    [9, "c", "+", "9c+"],
+  ];
+  for (const [number, letter, modifier, label] of cases) {
+    it(`renders ${JSON.stringify({ number, letter, modifier })} as "${label}"`, () => {
+      expect(nonStandardLabel(number, letter, modifier)).toBe(label);
+    });
+    it(`parses "${label}" back to {number:${number}, letter:${JSON.stringify(letter)}, modifier:${JSON.stringify(modifier)}}`, () => {
+      expect(parseNonStandardLabel(label)).toEqual({ number, letter, modifier });
+    });
+  }
+
+  it("returns null for an unparseable string", () => {
+    expect(parseNonStandardLabel("banana")).toBeNull();
+    expect(parseNonStandardLabel("")).toBeNull();
+    expect(parseNonStandardLabel("6d")).toBeNull(); // letter must be a-c
+  });
+});
+
+describe("FONT_NON_STANDARD / FRENCH_NON_STANDARD", () => {
+  it("both scales use the identical formula -- same ordinal for the same triple", () => {
+    expect(FONT_NON_STANDARD.toOrdinal("6a+")).toBe(FRENCH_NON_STANDARD.toOrdinal("6a+"));
+  });
+  it("round-trips label -> ordinal -> label for every one of the 108 positions, both scales", () => {
+    for (const scale of [FONT_NON_STANDARD, FRENCH_NON_STANDARD]) {
+      for (let n = 1; n <= 9; n++) {
+        for (const letter of [null, "a", "b", "c"]) {
+          for (const modifier of ["-", null, "+"]) {
+            const label = nonStandardLabel(n, letter, modifier);
+            expect(scale.toLabel(scale.toOrdinal(label))).toBe(label);
+          }
+        }
+      }
+    }
+  });
+  it("is case-insensitive and rejects garbage", () => {
+    expect(FONT_NON_STANDARD.toOrdinal("6A+")).toBe(FONT_NON_STANDARD.toOrdinal("6a+"));
+    expect(FONT_NON_STANDARD.toOrdinal("not-a-grade")).toBeNull();
+  });
+});
+
+describe("FONT_STANDARD", () => {
+  it("round-trips every label in the spec's verified Font-standard list", () => {
+    const labels = [
+      "3","3+","4","4+","5","5+","6A","6A+","6B","6B+","6C","6C+",
+      "7A","7A+","7B","7B+","7C","7C+","8A","8A+","8B","8B+","8C","8C+","9A",
+    ];
+    for (const label of labels) {
+      expect(FONT_STANDARD.toLabel(FONT_STANDARD.toOrdinal(label)).toUpperCase()).toBe(label);
+    }
+  });
+  it("is monotonically increasing across the full list", () => {
+    const labels = ["3","3+","4","4+","5","5+","6A","6A+","6B","6B+","6C","6C+","7A","9A"];
+    const ordinals = labels.map(l => FONT_STANDARD.toOrdinal(l));
+    for (let i = 1; i < ordinals.length; i++) expect(ordinals[i]).toBeGreaterThan(ordinals[i - 1]);
+  });
+  it("matches the hand-computed anchor from the plan: 6A is ordinal 63", () => {
+    // number=6, letter="a", modifier=null -> subPosition 3 (SUB_POSITION_ORDER:
+    // [null,-]=0, [null,null]=1, [a,-]=2, [a,null]=3, ...) -> (6-1)*12+3 = 63.
+    expect(FONT_STANDARD.toOrdinal("6A")).toBe(63);
+  });
+});
+
+describe("FRENCH_STANDARD", () => {
+  it("round-trips every label in the spec's verified FFME list", () => {
+    const labels = [
+      "1","2","3a","3b","3c","4a","4b","4c","5a","5a+","5b","5b+","5c","5c+",
+      "6a","6a+","6b","6b+","6c","6c+","7a","7a+","7b","7b+","7c","7c+",
+      "8a","8a+","8b","8b+","8c","8c+","9a","9a+","9b","9b+","9c","9c+",
+    ];
+    for (const label of labels) {
+      expect(FRENCH_STANDARD.toLabel(FRENCH_STANDARD.toOrdinal(label))).toBe(label);
+    }
+  });
+  it("places 6a and Font-standard's 6A at the same canonical ordinal -- both disciplines share the same numbering formula, even though they're never cross-compared", () => {
+    expect(FRENCH_STANDARD.toOrdinal("6a")).toBe(FONT_STANDARD.toOrdinal("6A"));
+  });
+});
+
+describe("V_SCALE", () => {
+  it("matches every anchor from the corrected hakaru.io table", () => {
+    const oneToOne = [["VB","3"],["V1","5"],["V2","5+"],["V6","7A"],["V9","7C"],["V10","7C+"],
+      ["V11","8A"],["V12","8A+"],["V13","8B"],["V14","8B+"],["V15","8C"],["V16","8C+"],["V17","9A"]];
+    for (const [v, font] of oneToOne) {
+      expect(V_SCALE.toOrdinal(v)).toBe(FONT_STANDARD.toOrdinal(font));
+    }
+  });
+  it("resolves a 2-wide V-scale step (V3/V4/V5/V8) to the LOWER of its two Font ordinals on input -- Raven's 'no true middle of a 2-wide range' ruling", () => {
+    expect(V_SCALE.toOrdinal("V3")).toBe(FONT_STANDARD.toOrdinal("6A"));
+    expect(V_SCALE.toOrdinal("V4")).toBe(FONT_STANDARD.toOrdinal("6B"));
+    expect(V_SCALE.toOrdinal("V5")).toBe(FONT_STANDARD.toOrdinal("6C"));
+    expect(V_SCALE.toOrdinal("V8")).toBe(FONT_STANDARD.toOrdinal("7B"));
+  });
+  it("V0- is Font 3+ (the corrected mapping, not the old wrong 6A=V0)", () => {
+    expect(V_SCALE.toOrdinal("V0-")).toBe(FONT_STANDARD.toOrdinal("3+"));
+    expect(V_SCALE.toOrdinal("V0")).toBe(FONT_STANDARD.toOrdinal("4"));
+    expect(V_SCALE.toOrdinal("V0+")).toBe(FONT_STANDARD.toOrdinal("4+"));
+  });
+});
+
+describe("UIAA_SCALE / YDS_SCALE / NORWEGIAN_SCALE / EWBANK_SCALE", () => {
+  it("UIAA: VI+ anchors to French 6a (Wikipedia Grade(climbing) anchor row)", () => {
+    expect(UIAA_SCALE.toOrdinal("VI+")).toBe(FRENCH_STANDARD.toOrdinal("6a"));
+  });
+  it("YDS: 5.10a anchors to French 6a (same Wikipedia anchor row)", () => {
+    expect(YDS_SCALE.toOrdinal("5.10a")).toBe(FRENCH_STANDARD.toOrdinal("6a"));
+  });
+  it("Norwegian: 6- anchors to French 6a (theCrag)", () => {
+    expect(NORWEGIAN_SCALE.toOrdinal("6-")).toBe(FRENCH_STANDARD.toOrdinal("6a"));
+  });
+  it("Ewbank: 18 anchors to French 6a (Wikipedia anchor row, '18-19≈6a')", () => {
+    expect(EWBANK_SCALE.toOrdinal("18")).toBe(FRENCH_STANDARD.toOrdinal("6a"));
+  });
+  it("every scale is monotonically increasing across its full label list", () => {
+    for (const [scale, labels] of [
+      [UIAA_SCALE, ["I","II","III-","III","III+","IV-","IV","IV+","V-","V","V+","VI-","VI","VI+","VII-","VII","VII+","VIII-","VIII","VIII+","IX-","IX","IX+","X-","X","X+","XI-","XI","XI+","XII-","XII","XII+"]],
+      [YDS_SCALE, ["5.0","5.1","5.2","5.3","5.4","5.5","5.6","5.7","5.8","5.9","5.10a","5.10b","5.10c","5.10d","5.11a","5.11b","5.11c","5.11d","5.12a","5.12b","5.12c","5.12d","5.13a","5.13b","5.13c","5.13d","5.14a","5.14b","5.14c","5.14d","5.15a","5.15b","5.15c","5.15d"]],
+      [NORWEGIAN_SCALE, ["1","1+","2-","2","2+","3-","3","3+","4-","4","4+","5-","5","5+","6-","6","6+","7-","7","7+","8-","8","8+","9-","9","9+","10-","10","10+","11-","11"]],
+      [EWBANK_SCALE, Array.from({length: 40}, (_, i) => String(i + 1))],
+    ]) {
+      const ordinals = labels.map(l => scale.toOrdinal(l));
+      expect(ordinals.every(o => o !== null)).toBe(true);
+      for (let i = 1; i < ordinals.length; i++) expect(ordinals[i]).toBeGreaterThanOrEqual(ordinals[i - 1]);
+    }
+  });
+});
+
+describe("GRADE_CONVERSION_MATRIX", () => {
+  it("has a source for every anchor row", () => {
+    expect(GRADE_CONVERSION_MATRIX.length).toBeGreaterThan(0);
+    for (const row of GRADE_CONVERSION_MATRIX) {
+      expect(row.scaleId).toBeTruthy();
+      expect(row.label).toBeTruthy();
+      expect(row.frenchAnchor).toBeTruthy();
+      expect(row.source).toBeTruthy();
+    }
+  });
+});
+
+describe("SCALES / SCALES_BY_DISCIPLINE", () => {
+  it("has all 9 scales, keyed by id", () => {
+    expect(Object.keys(SCALES).sort()).toEqual([
+      "ewbank","font","font-non-standard","french","french-non-standard",
+      "norwegian","uiaa","v-scale","yds",
+    ]);
+  });
+  it("splits by discipline correctly", () => {
+    expect(SCALES_BY_DISCIPLINE.boulder.map(s => s.id).sort()).toEqual(["font","font-non-standard","v-scale"]);
+    expect(SCALES_BY_DISCIPLINE.sport.map(s => s.id).sort()).toEqual(["ewbank","french","french-non-standard","norwegian","uiaa","yds"]);
+  });
+});
+
+describe("gradeOrdinal / gradeRankForScale / gradeTierForScale / gradeColorForScale / gradePyramidColorForScale", () => {
+  it("gradeOrdinal resolves through the right scale", () => {
+    expect(gradeOrdinal("6A", "font")).toBe(FONT_STANDARD.toOrdinal("6A"));
+    expect(gradeOrdinal("6a+", "french")).toBe(FRENCH_STANDARD.toOrdinal("6a+"));
+    expect(gradeOrdinal("not-a-grade", "font")).toBeNull();
+  });
+  it("gradeRankForScale ranks two grades in different scales correctly, same discipline", () => {
+    // V4 (boulder, Font 6B) should rank above V1 (Font 5) -- proves
+    // cross-scale ranking actually works, not just parroting one scale's
+    // own order.
+    const v4 = gradeRankForScale("V4", "v-scale", "boulder");
+    const v1 = gradeRankForScale("V1", "v-scale", "boulder");
+    expect(v4).toBeGreaterThan(v1);
+  });
+  it("gradeTierForScale/gradeColorForScale/gradePyramidColorForScale don't throw and return sane shapes across every scale", () => {
+    for (const scale of Object.values(SCALES)) {
+      const type = scale.discipline;
+      const anyLabel = scale.discipline === "boulder" ? scale.toLabel(gradeOrdinal("6A", "font")) : scale.toLabel(gradeOrdinal("6a", "french"));
+      expect(typeof gradeTierForScale(anyLabel, scale.id, type)).toBe("string");
+      expect(typeof gradeColorForScale(anyLabel, scale.id, type)).toBe("string");
+      expect(typeof gradePyramidColorForScale(anyLabel, scale.id, type)).toBe("string");
+    }
+  });
+});
 
 describe("gradeRank", () => {
   it("ranks grades in ascending difficulty order", () => {

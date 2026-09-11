@@ -62,6 +62,27 @@ describe("validateEntryShape", () => {
     expect(validateEntryShape(validEntry({ type: "sport", grade: "6a", sportStyle: "lead" }))).toBeNull();
   });
 
+  // #702 -- gradeScale is optional, not required: client/entry-form.js
+  // doesn't send it yet (sub-issue #703 adds the picker that will).
+  // Validated only when present, so every current entry create/edit
+  // keeps working completely unchanged until #703 ships.
+  it("accepts an entry with no gradeScale at all", () => {
+    expect(validateEntryShape(validEntry())).toBeNull();
+  });
+
+  it("accepts a valid gradeScale for the entry's discipline", () => {
+    expect(validateEntryShape(validEntry({ gradeScale: "font-non-standard" }))).toBeNull();
+  });
+
+  it("rejects a gradeScale that doesn't belong to the entry's discipline", () => {
+    // "french" is a Sport scale, entry is Boulder
+    expect(validateEntryShape(validEntry({ gradeScale: "french" }))).toMatch(/^gradeScale must be one of/);
+  });
+
+  it("rejects an unknown gradeScale id", () => {
+    expect(validateEntryShape(validEntry({ gradeScale: "not-a-real-scale" }))).toMatch(/^gradeScale must be one of/);
+  });
+
   it("rejects sportStyle on a non-sport entry", () => {
     expect(validateEntryShape(validEntry({ type: "boulder", sportStyle: "lead" }))).toBe("sportStyle is only valid when type is sport");
   });

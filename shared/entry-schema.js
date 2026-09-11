@@ -17,7 +17,7 @@
 // the same way, so it's the one that actually delivers "shared" rather than
 // "server-only in practice."
 import * as v from "valibot";
-import { BOULDER_GRADES, LEAD_GRADES } from "./grade-data.js";
+import { BOULDER_GRADES, LEAD_GRADES, SCALES_BY_DISCIPLINE } from "./grade-data.js";
 
 // #430 -- Lead renamed to Sport (Lead and Top Rope are both sport
 // climbing, sharing one grading scale -- VALID_GRADES.sport below).
@@ -134,6 +134,7 @@ export const entrySchema = v.pipe(
     placeId: anyField,
     name: anyField,
     grade: anyField,
+    gradeScale: anyField,
     type: anyField,
     status: anyField,
     firstAttempt: anyField,
@@ -178,6 +179,17 @@ export const entrySchema = v.pipe(
     if (!VALID_GRADES[entry.type].includes(entry.grade)) {
       addIssue({ message: `grade must be one of: ${VALID_GRADES[entry.type].join(", ")}`, path: fieldPath(entry, "grade") });
       return;
+    }
+    // #702 -- optional, not required: client/entry-form.js doesn't send
+    // this yet (sub-issue #703 adds the picker that will). Validated
+    // only when present, so every current entry create/edit keeps
+    // working completely unchanged until #703 ships.
+    if (entry.gradeScale !== undefined && entry.gradeScale !== null) {
+      const validScaleIds = SCALES_BY_DISCIPLINE[entry.type]?.map(s => s.id) ?? [];
+      if (!validScaleIds.includes(entry.gradeScale)) {
+        addIssue({ message: `gradeScale must be one of: ${validScaleIds.join(", ")}`, path: fieldPath(entry, "gradeScale") });
+        return;
+      }
     }
     if (!VALID_STATUSES.includes(entry.status)) {
       addIssue({ message: `status must be one of: ${VALID_STATUSES.join(", ")}`, path: fieldPath(entry, "status") });

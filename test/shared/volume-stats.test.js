@@ -1,5 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { bucketIndexForDate, gradeDisplayLabel, volumeByBucket, volumeHeadline, weekBucketLabel, weekBuckets } from "../../shared/volume-stats.js";
+import { bucketIndexForDate, gradeDisplayLabel, gradeDisplayLabelForScale, volumeByBucket, volumeHeadline, weekBucketLabel, weekBuckets } from "../../shared/volume-stats.js";
+
+// #702 -- scale-aware sibling of gradeDisplayLabel, added alongside it
+// (see docs/superpowers/plans/2026-09-11-grade-canonical-model.md Task 4).
+describe("gradeDisplayLabelForScale", () => {
+  it("renders the V-scale label for a Boulder grade regardless of which scale it was logged in", () => {
+    expect(gradeDisplayLabelForScale("6A", "font", "boulder")).toBe("V3");
+    expect(gradeDisplayLabelForScale("V3", "v-scale", "boulder")).toBe("V3");
+    expect(gradeDisplayLabelForScale("6a", "font-non-standard", "boulder")).toBe("V3");
+  });
+  it("returns the grade unchanged for Sport", () => {
+    expect(gradeDisplayLabelForScale("6a", "french", "sport")).toBe("6a");
+  });
+  it("falls back to the raw grade for an unresolvable (grade, scale) pair", () => {
+    expect(gradeDisplayLabelForScale("not-a-grade", "font", "boulder")).toBe("not-a-grade");
+  });
+});
 
 function entry(overrides = {}) {
   return { date: "2026-01-15", status: "send", grade: "6B", type: "boulder", ...overrides };
