@@ -208,11 +208,13 @@ describe("gradeTier", () => {
     expect(gradeTier(grade, "boulder")).toBe(tier);
   });
 
+  // #710 -- Sport's own boundaries, no longer Boulder's letters applied
+  // verbatim past Intermediate (see grade-data.js's own comment for why).
   it.each([
     ["5c", "beginner"], ["6a", "intermediate"],
-    ["6c+", "intermediate"], ["7a", "advanced"],
-    ["7c", "advanced"], ["7c+", "elite"],
-    ["8b", "elite"], ["8b+", "hyper-elite"],
+    ["7a", "intermediate"], ["7a+", "advanced"],
+    ["8a", "advanced"], ["8a+", "elite"],
+    ["9a", "elite"], ["9a+", "hyper-elite"],
     ["9c+", "hyper-elite"],
   ])("classifies Sport %s as %s", (grade, tier) => {
     expect(gradeTier(grade, "sport")).toBe(tier);
@@ -232,10 +234,15 @@ describe("gradeTier", () => {
   });
 
   it("the same numeral/letter grade resolves independently per discipline, not cross-checked against the other", () => {
-    // "6A" (Boulder, uppercase) and "6a" (Sport, lowercase) sit at the
-    // same tier boundary in both disciplines' own decided ranges --
-    // this isn't gradeTier() treating them as equivalent, each is
-    // resolved purely against its own discipline's thresholds.
+    // "6A" (Boulder, uppercase) and "6a" (Sport, lowercase) both start
+    // Intermediate in their own discipline's decided range -- this isn't
+    // gradeTier() treating them as equivalent, each is resolved purely
+    // against its own discipline's thresholds.
     expect(gradeTier("6A", "boulder")).toBe(gradeTier("6a", "sport"));
+  });
+
+  it("#710 -- Sport's boundaries genuinely diverge from Boulder's past Intermediate: 7A is Boulder-advanced, but 7a is still Sport-intermediate", () => {
+    expect(gradeTier("7A", "boulder")).toBe("advanced");
+    expect(gradeTier("7a", "sport")).toBe("intermediate");
   });
 });
