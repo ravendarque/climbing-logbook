@@ -110,14 +110,63 @@
       <div class="flex flex-wrap gap-[.6rem] mb-3 mt-[1.1rem]">
         <div class="flex-1 min-w-[9rem]">
           <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Grade</div>
-          <div class="h-[var(--field-h)] flex items-stretch gap-2">
-            <button type="button" class="flex-[0_0_var(--field-h)] flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent active:scale-[.94]" id="grade-prev" aria-label="Previous grade">
+          <div class="flex items-stretch gap-2">
+            <button type="button" class="flex-[0_0_2.6rem] flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent active:scale-[.94]" id="grade-prev" aria-label="Previous grade">
               <svg class="w-[.8rem] h-[.8rem] fill-current" viewBox="0 0 24 24"><polygon points="16 5 6 12 16 19"></polygon></svg>
             </button>
-            <select class="grade-select flex-1 min-w-0 h-[var(--field-h)]" id="grade-select"></select>
-            <button type="button" class="flex-[0_0_var(--field-h)] flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent active:scale-[.94]" id="grade-next" aria-label="Next grade">
+            <!-- #703 -- button + popover listbox, not a native <select> --
+                 a native select's own OPEN dropdown panel is OS/browser-
+                 rendered chrome that plain CSS can't restyle to match this
+                 app's own popover convention (rounded-app border, the
+                 top-[calc(100%+.4rem)] gap, the shadow) the way every
+                 other picker in this app already does (place picker,
+                 discipline picker, header menu -- client/modal-utils.js's
+                 createDisclosure). -->
+            <div class="relative flex-1 min-w-0" id="grade-value-wrap">
+              <button type="button" class="grade-select w-full py-[.65rem]" id="grade-value-btn" aria-haspopup="listbox" aria-expanded="false"></button>
+              <div class="absolute top-[calc(100%+.4rem)] left-0 z-20 bg-background border border-border rounded-app p-[.35rem] min-w-full w-max max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="grade-value-popover" role="listbox" aria-label="Grade" hidden>
+                <ul class="max-h-[13rem] overflow-y-auto m-0 p-0 list-none" id="grade-value-listbox"></ul>
+              </div>
+            </div>
+            <button type="button" class="flex-[0_0_2.6rem] flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent active:scale-[.94]" id="grade-next" aria-label="Next grade">
               <svg class="w-[.8rem] h-[.8rem] fill-current" viewBox="0 0 24 24"><polygon points="8 5 18 12 8 19"></polygon></svg>
             </button>
+            <!-- structured number/letter/modifier input, shown instead of
+                 the prev/value/next group above when a Non-standard scale
+                 is chosen (real Font/French guidebooks use letters/
+                 modifiers inconsistently, so this covers the full
+                 combinatorial space rather than a flat list --
+                 shared/grade-data.js's nonStandardOrdinal). Hidden by
+                 default; client/entry-form.js toggles which group shows
+                 based on the chosen scale. -->
+            <div class="flex flex-1 min-w-0 gap-2" id="grade-ns-fields" hidden>
+              <div class="relative flex-1 min-w-[2.6rem]" id="grade-ns-number-wrap">
+                <button type="button" class="grade-select w-full py-[.65rem]" id="grade-ns-number-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Grade number"></button>
+                <div class="absolute top-[calc(100%+.4rem)] left-0 z-20 bg-background border border-border rounded-app p-[.35rem] w-full min-w-[3.5rem] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="grade-ns-number-popover" role="listbox" aria-label="Grade number" hidden>
+                  <ul class="max-h-[10rem] overflow-y-auto m-0 p-0 list-none" id="grade-ns-number-listbox"></ul>
+                </div>
+              </div>
+              <div class="relative flex-[0_0_2.6rem]" id="grade-ns-letter-wrap">
+                <button type="button" class="grade-select w-full py-[.65rem]" id="grade-ns-letter-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Grade letter"></button>
+                <div class="absolute top-[calc(100%+.4rem)] left-0 z-20 bg-background border border-border rounded-app p-[.35rem] w-16 shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="grade-ns-letter-popover" role="listbox" aria-label="Grade letter" hidden>
+                  <ul class="m-0 p-0 list-none" id="grade-ns-letter-listbox"></ul>
+                </div>
+              </div>
+              <div class="relative flex-[0_0_2.6rem]" id="grade-ns-modifier-wrap">
+                <button type="button" class="grade-select w-full py-[.65rem]" id="grade-ns-modifier-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Grade modifier"></button>
+                <div class="absolute top-[calc(100%+.4rem)] left-0 z-20 bg-background border border-border rounded-app p-[.35rem] w-16 shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="grade-ns-modifier-popover" role="listbox" aria-label="Grade modifier" hidden>
+                  <ul class="m-0 p-0 list-none" id="grade-ns-modifier-listbox"></ul>
+                </div>
+              </div>
+            </div>
+            <div class="relative flex-[0_0_2.6rem]" id="grade-scale-wrap">
+              <button type="button" class="w-full h-full flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent active:scale-[.94]" id="grade-scale-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Change grade scale">
+                <svg class="w-[1.05rem] h-[1.05rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"></path><path d="M4 7h16"></path><path d="m16 21 4-4-4-4"></path><path d="M20 17H4"></path></svg>
+              </button>
+              <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 bg-background border border-border rounded-app p-[.35rem] w-56 max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="grade-scale-popover" role="listbox" aria-label="Grade scale" hidden>
+                <ul class="m-0 p-0 list-none" id="grade-scale-listbox"></ul>
+              </div>
+            </div>
           </div>
         </div>
         <div class="flex-1 min-w-[9rem]">

@@ -12,11 +12,13 @@
 // render() (the Store's sole subscriber) picks up every change here on
 // its own; nothing in this module needs to trigger it manually.
 import { escapeHtml } from "./escape-html.js";
-import { BOULDER_GRADES, LEAD_GRADES, gradeColor } from "../shared/grade-data.js";
+import { SCALES, SCALES_BY_DISCIPLINE, gradeOrdinal, gradeColorForScale, nonStandardLabel, parseNonStandardLabel } from "../shared/grade-data.js";
+import { gradeDisplayLabelForScale } from "../shared/volume-stats.js";
 import { flashLabel, sendLabel, nameLabel, hydrateStatusIcons } from "./status.js";
 import { createPlacePicker } from "./place-picker.js";
 import { createMoveRowList } from "./move-tagging.js";
 import { validateEntryShape } from "../shared/entry-schema.js";
+import { createDisclosure } from "./modal-utils.js";
 
 const ERROR_MSG_CLASS = "mt-[.85rem] px-4 py-3 rounded-app text-[.9rem] bg-[color-mix(in_srgb,#f87171_12%,var(--color-surface))] border border-[color-mix(in_srgb,#f87171_40%,transparent)] text-red-400";
 
@@ -46,9 +48,9 @@ export function createEntryForm({
   const nameInput  = document.getElementById("entry-name");
   const notesInput = document.getElementById("entry-notes");
   const videoInput = document.getElementById("entry-video");
-  const gradeSelect = document.getElementById("grade-select");
   const gradePrev   = document.getElementById("grade-prev");
   const gradeNext   = document.getElementById("grade-next");
+  const gradeNsFields   = document.getElementById("grade-ns-fields");
   const dateInput  = document.getElementById("entry-date");
   const dateNative = document.getElementById("date-native");
   const datePickerBtn = document.getElementById("date-picker-btn");
@@ -88,50 +90,254 @@ export function createEntryForm({
     document.getElementById("form-name-label").textContent = nameLabel(store.getActiveType());
   }
 
-  // ── Grade picker (dropdown + prev/next) ────────────────────────────────
-  let selectedGrade = "";
-  function currentGrades() {
-    return store.getActiveType() === "boulder" ? BOULDER_GRADES : LEAD_GRADES;
+  // ── Grade pickers (#703) ────────────────────────────────────────────────
+  // Button + popover listbox throughout, not native <select>s -- a native
+  // select's own OPEN dropdown panel is OS/browser-rendered chrome that
+  // plain CSS can't restyle to match this app's established popover
+  // convention (rounded-app border, the top-[calc(100%+.4rem)] gap, the
+  // shadow) the way every other picker in this app already does (place
+  // picker, discipline picker, header menu -- all via
+  // client/modal-utils.js's createDisclosure). Raven, 2026-09-11: caught
+  // in review, comparing directly against the Place picker on this same
+  // form and the header's own burger menu.
+
+  // Which of the discipline's scales the grade controls below currently
+  // show. Distinct from the persisted per-discipline PREFERENCE
+  // (gradeScaleByType) -- editing an existing entry shows its own actual
+  // gradeScale regardless of the preference (spec's own acceptance
+  // criterion), so this is reset explicitly in open(), not derived from
+  // the preference every time.
+  // A Non-standard scale is never the default for either discipline --
+  // it exists for when a guidebook's own notation doesn't match the real
+  // published scale, not as the ordinary starting point (Raven, 2026-09-11).
+  const DEFAULT_SCALE_BY_TYPE = { boulder: "font", sport: "french" };
+  function isNonStandardScaleId(id) {
+    return id === "font-non-standard" || id === "french-non-standard";
   }
+  function gradeScalePrefKey(type) {
+    return `logbook_grade_scale_entry_${type}`;
+  }
+  // Guards every localStorage call -- this module has no test file of its
+  // own today (DOM-coupled, e2e-verified only, same as every other picker
+  // in this file), but the Workers pool other client/*.js tests run under
+  // has no localStorage global at all (store.js's own comment), so a bare
+  // call here would be one accidental import away from crashing a future
+  // test file that does exercise this module.
+  function loadGradeScalePref(type) {
+    let stored = null;
+    try { stored = localStorage.getItem(gradeScalePrefKey(type)); } catch { /* ignore */ }
+    const validIds = SCALES_BY_DISCIPLINE[type].map(s => s.id);
+    return validIds.includes(stored) ? stored : DEFAULT_SCALE_BY_TYPE[type];
+  }
+  function saveGradeScalePref(type, scaleId) {
+    try { localStorage.setItem(gradeScalePrefKey(type), scaleId); } catch { /* ignore */ }
+  }
+
+  let activeGradeScaleId = DEFAULT_SCALE_BY_TYPE.boulder; // real value set in open()
+  function currentGradeScaleId() { return activeGradeScaleId; }
+
+  // Same role="option"/data-key/checkmark convention as client/
+  // place-picker.js's own place-listbox (#241/#403) and the discipline
+  // picker's static options (public/logbook/components/climbing-
+  // discipline-picker.js) -- one shared renderer instead of five
+  // near-identical copies.
+  function renderOptionList(listboxEl, items, { getKey, getLabel, isSelected }) {
+    listboxEl.innerHTML = items.map(item => `
+      <li role="option" data-key="${escapeHtml(getKey(item))}" aria-selected="${isSelected(item)}" class="flex items-center justify-between gap-[.5rem] px-[.6rem] py-[.5rem] rounded-[calc(var(--radius-app)-2px)] cursor-pointer text-[.85rem] text-foreground hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible">
+        ${escapeHtml(getLabel(item))}
+        <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+      </li>`).join("");
+  }
+
+  // Generic disclosure-backed single-select list picker -- wraps
+  // createDisclosure (client/modal-utils.js) with the render-on-open +
+  // click-to-select wiring every grade picker below shares. `render` is
+  // set after construction (setRender), not passed in up front, since
+  // several of these pickers need to close over state (selectedGrade,
+  // the current scale) that isn't settled until later in this factory.
+  function makeListPicker(idPrefix) {
+    const trigger = document.getElementById(`${idPrefix}-btn`);
+    const popover = document.getElementById(`${idPrefix}-popover`);
+    const listbox = document.getElementById(`${idPrefix}-listbox`);
+    let render = () => {};
+    let onSelect = () => {};
+    const { close } = createDisclosure(trigger, popover, `#${idPrefix}-wrap`, {
+      onOpen: () => render(),
+    });
+    listbox.addEventListener("click", e => {
+      const opt = e.target.closest("[role=option][data-key]");
+      if (!opt) return;
+      onSelect(opt.dataset.key);
+      close();
+      trigger.focus();
+    });
+    return {
+      trigger, close,
+      setRender(fn) { render = fn; },
+      setOnSelect(fn) { onSelect = fn; },
+    };
+  }
+
+  const gradeValuePicker = makeListPicker("grade-value");
+  const gradeNsNumberPicker = makeListPicker("grade-ns-number");
+  const gradeNsLetterPicker = makeListPicker("grade-ns-letter");
+  const gradeNsModifierPicker = makeListPicker("grade-ns-modifier");
+  const gradeScalePicker = makeListPicker("grade-scale");
+
+  gradeScalePicker.setRender(() => {
+    const type = store.getActiveType();
+    const currentId = currentGradeScaleId();
+    renderOptionList(document.getElementById("grade-scale-listbox"), SCALES_BY_DISCIPLINE[type], {
+      getKey: s => s.id, getLabel: s => s.name, isSelected: s => s.id === currentId,
+    });
+  });
+  gradeScalePicker.setOnSelect(scaleId => chooseScale(scaleId));
+
+  function chooseScale(newScaleId) {
+    const type = store.getActiveType();
+    const priorScaleId = currentGradeScaleId();
+    // Preserve the closest equivalent grade across the scale change via
+    // the shared canonical ordinal -- switching from Font to V-scale
+    // while "6A" is selected should land on "V3", not silently reset to
+    // the new scale's first grade.
+    const priorOrdinal = gradeOrdinal(selectedGrade, priorScaleId);
+    activeGradeScaleId = newScaleId;
+    gradeScaleByType[type] = newScaleId;
+    saveGradeScalePref(type, newScaleId);
+    renderGradeOptions();
+    const preservedLabel = priorOrdinal !== null ? SCALES[newScaleId].toLabel(priorOrdinal) : null;
+    if (preservedLabel !== null) selectGradeByValue(preservedLabel, type, newScaleId);
+    else selectDefaultGrade();
+  }
+
+  // ── Non-standard scale fields (number/letter/modifier) ─────────────────
+  // Both Non-standard scales (font-non-standard/french-non-standard)
+  // share the identical field shape -- shared/grade-data.js's own
+  // nonStandardOrdinal formula has no per-discipline parameters either --
+  // so these three lists never need re-rendering per scale, only
+  // re-rendering to reflect the currently-selected value (isSelected).
+  const NS_NUMBERS = Array.from({ length: 9 }, (_, i) => i + 1);
+  const NS_LETTERS = [null, "a", "b", "c"];
+  const NS_MODIFIERS = [null, "-", "+"];
+  function nsButtonLabel(v) { return v === null ? "–" : String(v); }
+
+  let nsNumber = 1, nsLetter = null, nsModifier = null;
+
+  gradeNsNumberPicker.setRender(() => {
+    renderOptionList(document.getElementById("grade-ns-number-listbox"), NS_NUMBERS, {
+      getKey: n => String(n), getLabel: n => String(n), isSelected: n => n === nsNumber,
+    });
+  });
+  gradeNsNumberPicker.setOnSelect(key => { nsNumber = Number(key); updateNonStandardFields(); });
+
+  gradeNsLetterPicker.setRender(() => {
+    renderOptionList(document.getElementById("grade-ns-letter-listbox"), NS_LETTERS, {
+      getKey: l => l ?? "", getLabel: l => nsButtonLabel(l), isSelected: l => l === nsLetter,
+    });
+  });
+  gradeNsLetterPicker.setOnSelect(key => { nsLetter = key || null; updateNonStandardFields(); });
+
+  gradeNsModifierPicker.setRender(() => {
+    renderOptionList(document.getElementById("grade-ns-modifier-listbox"), NS_MODIFIERS, {
+      getKey: m => m ?? "", getLabel: m => nsButtonLabel(m), isSelected: m => m === nsModifier,
+    });
+  });
+  gradeNsModifierPicker.setOnSelect(key => { nsModifier = key || null; updateNonStandardFields(); });
+
+  function nonStandardValueFromFields() {
+    return nonStandardLabel(nsNumber, nsLetter, nsModifier);
+  }
+  function updateNonStandardFields() {
+    selectedGrade = nonStandardValueFromFields();
+    gradeNsNumberPicker.trigger.textContent = String(nsNumber);
+    gradeNsLetterPicker.trigger.textContent = nsButtonLabel(nsLetter);
+    gradeNsModifierPicker.trigger.textContent = nsButtonLabel(nsModifier);
+    // #463/#696/#702 -- tier colour via the scale-aware gradeColorForScale,
+    // the control's background, not its text (text is a uniform ink from
+    // the grade-select utility).
+    const bg = gradeColorForScale(selectedGrade, currentGradeScaleId(), store.getActiveType());
+    [gradeNsNumberPicker.trigger, gradeNsLetterPicker.trigger, gradeNsModifierPicker.trigger]
+      .forEach(el => { el.style.backgroundColor = bg; });
+  }
+  function setNonStandardFieldsFromLabel(label) {
+    const parsed = parseNonStandardLabel(label) ?? { number: 1, letter: null, modifier: null };
+    nsNumber = parsed.number;
+    nsLetter = parsed.letter;
+    nsModifier = parsed.modifier;
+    updateNonStandardFields();
+  }
+
+  // ── Grade value picker (button + popover, for the 7 data-driven scales) ─
+  let selectedGrade = "";
+  // Both the entry-form preference (used to default a NEW entry's scale)
+  // and the modal's own active scale (activeGradeScaleId above) start
+  // from this -- reset properly for the real active discipline in
+  // renderGradeOptions()'s own first call below and every open().
+  let gradeScaleByType = { boulder: loadGradeScalePref("boulder"), sport: loadGradeScalePref("sport") };
+
+  function updateGradeFieldVisibility() {
+    const nonStandard = isNonStandardScaleId(currentGradeScaleId());
+    gradePrev.hidden = nonStandard;
+    document.getElementById("grade-value-wrap").hidden = nonStandard;
+    gradeNext.hidden = nonStandard;
+    gradeNsFields.hidden = !nonStandard;
+  }
+
+  function gradeOptionLabel(label, scaleId, type) {
+    const boulder = type === "boulder";
+    // #12/#463's own "show the V-scale equivalent alongside the Font
+    // label" convenience, generalized: shown for any Boulder scale other
+    // than V-scale itself (which would be redundant against its own
+    // label).
+    const hint = boulder && scaleId !== "v-scale" ? `/${gradeDisplayLabelForScale(label, scaleId, type)}` : "";
+    return `${label}${hint}`;
+  }
+  gradeValuePicker.setRender(() => {
+    const type = store.getActiveType();
+    const scaleId = currentGradeScaleId();
+    renderOptionList(document.getElementById("grade-value-listbox"), SCALES[scaleId].labels, {
+      getKey: g => g, getLabel: g => gradeOptionLabel(g, scaleId, type), isSelected: g => g === selectedGrade,
+    });
+  });
+  gradeValuePicker.setOnSelect(label => selectGradeByValue(label, store.getActiveType(), currentGradeScaleId()));
+
   function renderGradeOptions() {
-    const boulder = store.getActiveType() === "boulder";
-    gradeSelect.innerHTML = currentGrades()
-      .map(({ g, v }) => `<option class="font-bold bg-surface text-foreground" value="${g}">${boulder ? `${g}/${v}` : g}</option>`)
-      .join("");
+    updateGradeFieldVisibility();
+    // Popover contents render lazily on open (gradeValuePicker's own
+    // onOpen) -- nothing to pre-populate here beyond visibility.
   }
   function selectGradeByIndex(index) {
-    const grades = currentGrades();
-    const wrapped = ((index % grades.length) + grades.length) % grades.length;
-    const { g } = grades[wrapped];
+    const labels = SCALES[currentGradeScaleId()].labels;
+    const wrapped = ((index % labels.length) + labels.length) % labels.length;
+    const g = labels[wrapped];
     selectedGrade = g;
-    gradeSelect.value = g;
-    // #463 -- was grades[wrapped].c (a per-grade curated colour field
-    // on BOULDER_GRADES/LEAD_GRADES); that field's gone now that
-    // colouring is tier-based, so this goes through gradeColor() like
-    // every other consumer. #696 -- the tier colour is the control's
-    // background now, not its text (text is a uniform ink from the
-    // grade-select utility).
-    gradeSelect.style.backgroundColor = gradeColor(g, store.getActiveType());
+    gradeValuePicker.trigger.textContent = gradeOptionLabel(g, currentGradeScaleId(), store.getActiveType());
+    gradeValuePicker.trigger.style.backgroundColor = gradeColorForScale(g, currentGradeScaleId(), store.getActiveType());
   }
-  function selectGradeByValue(value, type) {
-    const grades = type === "boulder" ? BOULDER_GRADES : LEAD_GRADES;
-    const idx = grades.findIndex(({ g }) => g.toUpperCase() === String(value).toUpperCase());
+  function selectGradeByValue(value, type, scaleId) {
+    if (isNonStandardScaleId(scaleId)) {
+      setNonStandardFieldsFromLabel(value);
+      return;
+    }
+    const idx = SCALES[scaleId].labels.findIndex(g => g.toUpperCase() === String(value).toUpperCase());
     selectGradeByIndex(idx === -1 ? 0 : idx);
   }
+  function selectDefaultGrade() {
+    if (isNonStandardScaleId(currentGradeScaleId())) setNonStandardFieldsFromLabel(nonStandardLabel(1, null, null));
+    else selectGradeByIndex(0);
+  }
   function currentGradeIndex() {
-    const idx = currentGrades().findIndex(({ g }) => g === selectedGrade);
+    const idx = SCALES[currentGradeScaleId()].labels.findIndex(g => g === selectedGrade);
     return idx === -1 ? 0 : idx;
   }
-  gradeSelect.addEventListener("change", () => selectGradeByIndex(
-    currentGrades().findIndex(({ g }) => g === gradeSelect.value)
-  ));
   gradePrev.addEventListener("click", () => selectGradeByIndex(currentGradeIndex() - 1));
   gradeNext.addEventListener("click", () => selectGradeByIndex(currentGradeIndex() + 1));
-  // Populated up front (not lazily on first modal open) so the <select>
+  // Populated up front (not lazily on first modal open) so the button
   // isn't empty the very first time -- same reasoning boot() used to call
   // this explicitly before; now just part of this module's own setup.
+  activeGradeScaleId = gradeScaleByType[store.getActiveType()];
   renderGradeOptions();
-  selectGradeByIndex(0);
+  selectDefaultGrade();
 
   // ── Status toggle (Flash = status send, flash=true) ────────────────────
   let selectedStatus = "send";
@@ -279,9 +485,19 @@ export function createEntryForm({
     // didn't notice and just clicked Save (#139).
     dateInput.value  = entry ? (entry.date ?? "") : new Date().toISOString().slice(0, 10);
 
+    // #703 -- editing shows the entry's own actual gradeScale, not the
+    // current entry-form preference (spec's own acceptance criterion);
+    // only a NEW entry seeds from the persisted per-discipline
+    // preference. entry.gradeScale can be absent on an older/imported
+    // entry -- defaults the same way the server does (defaultGradeScale,
+    // server/api/logbook.js).
+    const type = store.getActiveType();
+    activeGradeScaleId = entry
+      ? (entry.gradeScale ?? DEFAULT_SCALE_BY_TYPE[type])
+      : loadGradeScalePref(type);
     renderGradeOptions();
-    if (entry) selectGradeByValue(entry.grade, entry.type);
-    else selectGradeByIndex(0);
+    if (entry) selectGradeByValue(entry.grade, type, activeGradeScaleId);
+    else selectDefaultGrade();
     updateFormStatusLabels();
     setStatusToggle(entry?.status ?? "send", Boolean(entry?.firstAttempt));
     updateSportStyleVisibility();
@@ -330,6 +546,7 @@ export function createEntryForm({
       placeId: placePicker.getPlaceId(),
       name,
       grade:  selectedGrade,
+      gradeScale: activeGradeScaleId,
       type:   store.getActiveType(),
       status: selectedStatus,
       firstAttempt: isFlash,
