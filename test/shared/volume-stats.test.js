@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bucketIndexForDate, gradeDisplayLabel, gradeDisplayLabelForScale, volumeByBucket, volumeHeadline, weekBucketLabel, weekBuckets } from "../../shared/volume-stats.js";
+import { bucketIndexForDate, gradeDisplayLabel, gradeDisplayLabelForScale, reportGradeLabel, reportGradeOrdinal, reportPositionOrder, volumeByBucket, volumeHeadline, weekBucketLabel, weekBuckets } from "../../shared/volume-stats.js";
 
 // #702 -- scale-aware sibling of gradeDisplayLabel, added alongside it
 // (see docs/superpowers/plans/2026-09-11-grade-canonical-model.md Task 4).
@@ -14,6 +14,36 @@ describe("gradeDisplayLabelForScale", () => {
   });
   it("falls back to the raw grade for an unresolvable (grade, scale) pair", () => {
     expect(gradeDisplayLabelForScale("not-a-grade", "font", "boulder")).toBe("not-a-grade");
+  });
+});
+
+// #704 -- assumes every entry's grade is in the discipline's primary
+// stored scale (font-non-standard for Boulder, french for Sport,
+// matching #702's migration) -- see #717 for the tracked follow-up once
+// that assumption stops holding.
+describe("reportGradeOrdinal / reportGradeLabel / reportPositionOrder", () => {
+  it("reportGradeOrdinal reads a Boulder grade as font-non-standard", () => {
+    expect(reportGradeOrdinal("6a", "boulder")).not.toBeNull();
+    expect(reportGradeOrdinal("6a+", "boulder")).toBeGreaterThan(reportGradeOrdinal("6a", "boulder"));
+  });
+  it("reportGradeOrdinal reads a Sport grade as french", () => {
+    expect(reportGradeOrdinal("6a+", "sport")).not.toBeNull();
+    expect(reportGradeOrdinal("6b", "sport")).toBeGreaterThan(reportGradeOrdinal("6a+", "sport"));
+  });
+  it("reportGradeLabel renders a Boulder grade in whichever scale the viewer chose", () => {
+    expect(reportGradeLabel("6a", "boulder", "font-non-standard")).toBe("6a");
+    expect(reportGradeLabel("6a", "boulder", "font")).toBe("6A");
+    expect(reportGradeLabel("6a", "boulder", "v-scale")).toBe("V3");
+  });
+  it("reportGradeLabel falls back to the raw grade for an unknown view scale", () => {
+    expect(reportGradeLabel("6a", "boulder", "not-a-real-scale")).toBe("6a");
+  });
+  it("reportPositionOrder is a strictly ascending ordinal range covering the discipline's real picker", () => {
+    for (const type of ["boulder", "sport"]) {
+      const order = reportPositionOrder(type);
+      expect(order.length).toBeGreaterThan(0);
+      for (let i = 1; i < order.length; i++) expect(order[i]).toBeGreaterThan(order[i - 1]);
+    }
   });
 });
 
