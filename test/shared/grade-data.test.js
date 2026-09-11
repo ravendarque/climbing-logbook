@@ -3,6 +3,7 @@ import { BOULDER_GRADES, LEAD_GRADES, gradeColor, gradePyramidColor, gradeRank, 
 import {
   nonStandardOrdinal, nonStandardLabel, parseNonStandardLabel,
   FONT_NON_STANDARD, FRENCH_NON_STANDARD,
+  FONT_STANDARD, FRENCH_STANDARD, V_SCALE,
 } from "../../shared/grade-data.js";
 
 // #702 -- canonical grade model, sub-issue A of #183. See
@@ -115,6 +116,65 @@ describe("FONT_NON_STANDARD / FRENCH_NON_STANDARD", () => {
   it("is case-insensitive and rejects garbage", () => {
     expect(FONT_NON_STANDARD.toOrdinal("6A+")).toBe(FONT_NON_STANDARD.toOrdinal("6a+"));
     expect(FONT_NON_STANDARD.toOrdinal("not-a-grade")).toBeNull();
+  });
+});
+
+describe("FONT_STANDARD", () => {
+  it("round-trips every label in the spec's verified Font-standard list", () => {
+    const labels = [
+      "3","3+","4","4+","5","5+","6A","6A+","6B","6B+","6C","6C+",
+      "7A","7A+","7B","7B+","7C","7C+","8A","8A+","8B","8B+","8C","8C+","9A",
+    ];
+    for (const label of labels) {
+      expect(FONT_STANDARD.toLabel(FONT_STANDARD.toOrdinal(label)).toUpperCase()).toBe(label);
+    }
+  });
+  it("is monotonically increasing across the full list", () => {
+    const labels = ["3","3+","4","4+","5","5+","6A","6A+","6B","6B+","6C","6C+","7A","9A"];
+    const ordinals = labels.map(l => FONT_STANDARD.toOrdinal(l));
+    for (let i = 1; i < ordinals.length; i++) expect(ordinals[i]).toBeGreaterThan(ordinals[i - 1]);
+  });
+  it("matches the hand-computed anchor from the plan: 6A is ordinal 63", () => {
+    // number=6, letter="a", modifier=null -> subPosition 3 (SUB_POSITION_ORDER:
+    // [null,-]=0, [null,null]=1, [a,-]=2, [a,null]=3, ...) -> (6-1)*12+3 = 63.
+    expect(FONT_STANDARD.toOrdinal("6A")).toBe(63);
+  });
+});
+
+describe("FRENCH_STANDARD", () => {
+  it("round-trips every label in the spec's verified FFME list", () => {
+    const labels = [
+      "1","2","3a","3b","3c","4a","4b","4c","5a","5a+","5b","5b+","5c","5c+",
+      "6a","6a+","6b","6b+","6c","6c+","7a","7a+","7b","7b+","7c","7c+",
+      "8a","8a+","8b","8b+","8c","8c+","9a","9a+","9b","9b+","9c","9c+",
+    ];
+    for (const label of labels) {
+      expect(FRENCH_STANDARD.toLabel(FRENCH_STANDARD.toOrdinal(label))).toBe(label);
+    }
+  });
+  it("places 6a and Font-standard's 6A at the same canonical ordinal -- both disciplines share the same numbering formula, even though they're never cross-compared", () => {
+    expect(FRENCH_STANDARD.toOrdinal("6a")).toBe(FONT_STANDARD.toOrdinal("6A"));
+  });
+});
+
+describe("V_SCALE", () => {
+  it("matches every anchor from the corrected hakaru.io table", () => {
+    const oneToOne = [["VB","3"],["V1","5"],["V2","5+"],["V6","7A"],["V9","7C"],["V10","7C+"],
+      ["V11","8A"],["V12","8A+"],["V13","8B"],["V14","8B+"],["V15","8C"],["V16","8C+"],["V17","9A"]];
+    for (const [v, font] of oneToOne) {
+      expect(V_SCALE.toOrdinal(v)).toBe(FONT_STANDARD.toOrdinal(font));
+    }
+  });
+  it("resolves a 2-wide V-scale step (V3/V4/V5/V8) to the LOWER of its two Font ordinals on input -- Raven's 'no true middle of a 2-wide range' ruling", () => {
+    expect(V_SCALE.toOrdinal("V3")).toBe(FONT_STANDARD.toOrdinal("6A"));
+    expect(V_SCALE.toOrdinal("V4")).toBe(FONT_STANDARD.toOrdinal("6B"));
+    expect(V_SCALE.toOrdinal("V5")).toBe(FONT_STANDARD.toOrdinal("6C"));
+    expect(V_SCALE.toOrdinal("V8")).toBe(FONT_STANDARD.toOrdinal("7B"));
+  });
+  it("V0- is Font 3+ (the corrected mapping, not the old wrong 6A=V0)", () => {
+    expect(V_SCALE.toOrdinal("V0-")).toBe(FONT_STANDARD.toOrdinal("3+"));
+    expect(V_SCALE.toOrdinal("V0")).toBe(FONT_STANDARD.toOrdinal("4"));
+    expect(V_SCALE.toOrdinal("V0+")).toBe(FONT_STANDARD.toOrdinal("4+"));
   });
 });
 

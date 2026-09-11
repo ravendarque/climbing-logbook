@@ -91,6 +91,85 @@ function makeNonStandardScale(id, discipline) {
 export const FONT_NON_STANDARD = makeNonStandardScale("font-non-standard", "boulder");
 export const FRENCH_NON_STANDARD = makeNonStandardScale("french-non-standard", "sport");
 
+// #702 -- Font-standard and French-standard both decompose exactly
+// through the same number+letter+modifier shape parseNonStandardLabel
+// already parses -- neither real table ever uses "-", and French's 1/2
+// simply have no letter (parseNonStandardLabel already treats a missing
+// letter as valid). Built from the literal, already-verified label lists
+// (spec "The eight -- now nine -- scales"), not re-typed as raw
+// ordinals -- one source of truth per scale, same "derive, don't
+// hand-duplicate" fix this whole rework exists to make (the #698
+// BOULDER_ORDER drift bug was exactly two hand-kept lists of the same
+// data going out of sync).
+function makeParsedScale(id, discipline, labels) {
+  const byLabel = new Map();
+  const byOrdinal = new Map();
+  for (const label of labels) {
+    const parsed = parseNonStandardLabel(label);
+    if (!parsed) throw new Error(`${id}: "${label}" doesn't parse as number+letter+modifier`);
+    const ordinal = nonStandardOrdinal(parsed.number, parsed.letter, parsed.modifier);
+    byLabel.set(label.toLowerCase(), ordinal);
+    byOrdinal.set(ordinal, label);
+  }
+  return {
+    id,
+    discipline,
+    toOrdinal(label) { return byLabel.get(String(label).toLowerCase()) ?? null; },
+    toLabel(ordinal) { return byOrdinal.get(ordinal) ?? null; },
+  };
+}
+
+const FONT_STANDARD_LABELS = [
+  "3","3+","4","4+","5","5+","6A","6A+","6B","6B+","6C","6C+",
+  "7A","7A+","7B","7B+","7C","7C+","8A","8A+","8B","8B+","8C","8C+","9A",
+];
+export const FONT_STANDARD = makeParsedScale("font", "boulder", FONT_STANDARD_LABELS);
+
+const FRENCH_STANDARD_LABELS = [
+  "1","2","3a","3b","3c","4a","4b","4c","5a","5a+","5b","5b+","5c","5c+",
+  "6a","6a+","6b","6b+","6c","6c+","7a","7a+","7b","7b+","7c","7c+",
+  "8a","8a+","8b","8b+","8c","8c+","9a","9a+","9b","9b+","9c","9c+",
+];
+export const FRENCH_STANDARD = makeParsedScale("french", "sport", FRENCH_STANDARD_LABELS);
+
+// #702 -- V-scale doesn't decompose through the number/letter/modifier
+// shape at all (VB/V0-/V0/V0+/V1... isn't that pattern) -- an explicit
+// anchor table against FONT_STANDARD's own ordinals instead, using the
+// corrected hakaru.io-sourced correspondence (the spec's first draft had
+// this wrong: 6A=V0, which no real chart shows). V3/V4/V5/V8 are
+// genuinely 2-wide (map to two Font ordinals) -- everything else is 1:1.
+const V_SCALE_TO_FONT = {
+  "vb": "3", "v0-": "3+", "v0": "4", "v0+": "4+", "v1": "5", "v2": "5+",
+  "v3": "6A", "v4": "6B", "v5": "6C", "v6": "7A", "v7": "7A+",
+  "v8": "7B", "v9": "7C", "v10": "7C+", "v11": "8A", "v12": "8A+",
+  "v13": "8B", "v14": "8B+", "v15": "8C", "v16": "8C+", "v17": "9A",
+};
+// The upper bound of each V-scale step's range, for 2-wide steps -- used
+// only if a future consumer needs the "upper" edge (C's cross-scale
+// rendering); toOrdinal() below always resolves the LOWER edge on input,
+// per Raven's "no true middle of a 2-wide range" ruling.
+const V_SCALE_UPPER = { v3: "6A+", v4: "6B+", v5: "6C+", v8: "7B+" };
+export const V_SCALE = {
+  id: "v-scale",
+  discipline: "boulder",
+  toOrdinal(label) {
+    const font = V_SCALE_TO_FONT[String(label).toLowerCase()];
+    return font ? FONT_STANDARD.toOrdinal(font) : null;
+  },
+  toLabel(ordinal) {
+    // Reverse lookup: find the V-scale key whose Font ordinal (or, for a
+    // 2-wide step, whose UPPER Font ordinal) is the smallest one >=
+    // `ordinal` -- i.e. which V-scale bucket this canonical ordinal falls
+    // into. Table is small (21 entries); linear scan is fine.
+    const entries = Object.entries(V_SCALE_TO_FONT);
+    for (const [vKey, fontLabel] of entries) {
+      const upperLabel = V_SCALE_UPPER[vKey] ?? fontLabel;
+      if (ordinal <= FONT_STANDARD.toOrdinal(upperLabel)) return vKey.toUpperCase();
+    }
+    return entries[entries.length - 1][0].toUpperCase();
+  },
+};
+
 // #461 -- gradeRank() used to share ONE flat, Boulder-only order across
 // both disciplines: every caller (gap-stats.js, effort-stats.js,
 // volume-stats.js, client/entries.js) called it directly on raw entry
