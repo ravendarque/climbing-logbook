@@ -97,9 +97,11 @@ function renderEffort() {
   const positionOrder = reportPositionOrder(type);
 
   // #704 -- positionKey is the canonical ordinal now, not a raw grade
-  // string -- see performance-trends-main.js's own equivalent comment.
-  const points = maxGradeByBucket.map(grade => grade
-    ? { positionKey: reportGradeOrdinal(grade, type), displayLabel: reportGradeLabel(grade, type, viewScaleId) }
+  // string. #717 -- each bucket's own winner is a real
+  // { grade, gradeScale } pair now -- see performance-trends-main.js's
+  // own equivalent comment.
+  const points = maxGradeByBucket.map(pair => pair
+    ? { positionKey: reportGradeOrdinal(pair.grade, pair.gradeScale, type), displayLabel: reportGradeLabel(pair.grade, pair.gradeScale, type, viewScaleId) }
     : null);
 
   const headlineText = headline ?? "Not enough data yet for a reliable read -- log a few more sends and check back.";

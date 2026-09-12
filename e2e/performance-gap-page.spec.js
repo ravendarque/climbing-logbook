@@ -26,8 +26,8 @@ test("renders both grade-labeled line series and the attempts bar", async ({ pag
     gapData: {
       boulder: {
         buckets: ["-3w", "-2w", "-1w"],
-        flashMaxByBucket: [null, "6B", null],
-        sendMaxByBucket: [null, "6B", "6C"],
+        flashMaxByBucket: [null, { grade: "6B", gradeScale: "font-non-standard" }, null],
+        sendMaxByBucket: [null, { grade: "6B", gradeScale: "font-non-standard" }, { grade: "6C", gradeScale: "font-non-standard" }],
         // #603 -- the first bucket has no data at all (both grade series
         // null that period), so its own attempts bar is null too, not a
         // genuine 0.
@@ -57,8 +57,8 @@ test("switching the report grade scale relabels both grade line series", async (
     gapData: {
       boulder: {
         buckets: ["-3w", "-2w", "-1w"],
-        flashMaxByBucket: [null, "6B", null],
-        sendMaxByBucket: [null, "6B", "6C"],
+        flashMaxByBucket: [null, { grade: "6B", gradeScale: "font-non-standard" }, null],
+        sendMaxByBucket: [null, { grade: "6B", gradeScale: "font-non-standard" }, { grade: "6C", gradeScale: "font-non-standard" }],
         avgAttemptsByBucket: [null, 1.5, 3],
         headline: "Your best send (V5) is 1 grade-step ahead of your best flash (V4) this window.",
       },

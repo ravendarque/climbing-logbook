@@ -70,21 +70,53 @@ export function bucketIndexForDate(date, buckets) {
   return buckets.findIndex(b => date >= b.start && date <= b.end);
 }
 
-// #461 -- takes `type` explicitly: entries are always already filtered
-// to one discipline by the caller, but gradeRank() needs telling which
-// discipline's order to rank against, not left to its "boulder" default
-// (which silently mis-ranked every Sport grade before this fix).
+// #717 -- each bucket's own "best grade so far" used to be tracked as a
+// bare grade string, compared via the 2-arg gradeRank(entry.grade, type)
+// -- correct only under the assumption every entry in the discipline is
+// in one single implicit scale. #703 already lets a send be logged in
+// any of the discipline's real scales, so that assumption is no longer
+// safe: a Boulder climb logged in V-scale ("V8") ranked via gradeRank
+// falls through to that function's own `?? 99` "unknown, harder than
+// everything" fallback, capable of silently winning a bucket's own "max
+// grade" it never actually earned.
+//
+// Fixed the same way #728 fixed shared/pyramid-stats.js's own identical
+// disease: compare via the shared canonical ordinal
+// (gradeOrdinal(entry.grade, entry.gradeScale)), not gradeRank. Each
+// bucket's own winner is now a real { grade, gradeScale } pair -- the
+// "as logged" representation #702's storage model is built around --
+// not a bare string, so a caller can always resolve its own real
+// canonical ordinal or display label later without having to guess
+// which scale it came from.
+//
+// `entry.gradeScale` is expected on every real row today (#702's
+// migration backfilled it, server/api/logbook.js's defaultGradeScale()
+// guarantees every future write sets one) -- the discipline's own
+// primary stored scale (matching #702's own migration backfill:
+// font-non-standard for Boulder, french for Sport) is used only as a
+// defensive fallback if that's ever violated. One shared constant --
+// reportGradeOrdinal/reportGradeLabel below use the identical fallback,
+// no reason for two names for the same thing.
+const PRIMARY_SCALE_BY_TYPE = { boulder: "font-non-standard", sport: "french" };
+
+function bestGradeOrdinal(entry, type) {
+  return gradeOrdinal(entry.grade, entry.gradeScale ?? PRIMARY_SCALE_BY_TYPE[type] ?? PRIMARY_SCALE_BY_TYPE.boulder);
+}
+
 export function volumeByBucket(entries, buckets, type) {
   const sendCounts = buckets.map(() => 0);
   const maxGradeByBucket = buckets.map(() => null);
+  const maxOrdinalByBucket = buckets.map(() => null);
 
   for (const entry of entries) {
     if (entry.status !== "send" || !entry.date) continue;
     const idx = bucketIndexForDate(entry.date, buckets);
     if (idx === -1) continue;
     sendCounts[idx]++;
-    if (maxGradeByBucket[idx] === null || gradeRank(entry.grade, type) > gradeRank(maxGradeByBucket[idx], type)) {
-      maxGradeByBucket[idx] = entry.grade;
+    const ordinal = bestGradeOrdinal(entry, type);
+    if (ordinal !== null && (maxOrdinalByBucket[idx] === null || ordinal > maxOrdinalByBucket[idx])) {
+      maxOrdinalByBucket[idx] = ordinal;
+      maxGradeByBucket[idx] = { grade: entry.grade, gradeScale: entry.gradeScale ?? PRIMARY_SCALE_BY_TYPE[type] ?? PRIMARY_SCALE_BY_TYPE.boulder };
     }
   }
 
@@ -118,30 +150,25 @@ export function gradeDisplayLabelForScale(grade, scaleId, type) {
   return ordinal === null ? grade : V_SCALE.toLabel(ordinal);
 }
 
-// #704 -- assumes every entry's grade is in the discipline's PRIMARY
-// stored scale (matching #702's own migration backfill: font-non-standard
-// for Boulder, french for Sport) -- correct for every entry that exists
-// today, since #703's picker is the only way a user could ever log in a
-// different scale, and no report-aggregation call site
-// (volumeByBucket/gapByBucket/effortByBucket below and in gap-stats.js)
-// threads each entry's own gradeScale through yet. A known, tracked
-// limitation, not a silent gap -- see #717 (follow-up: real per-entry
-// scale-aware report aggregation), filed alongside this sub-issue.
-const REPORT_PRIMARY_SCALE = { boulder: "font-non-standard", sport: "french" };
-
-export function reportGradeOrdinal(grade, type) {
-  return gradeOrdinal(grade, REPORT_PRIMARY_SCALE[type] ?? REPORT_PRIMARY_SCALE.boulder);
+// #717 -- takes the entry's own real gradeScale now (as produced by
+// volumeByBucket/gapByBucket/effortByBucket's own { grade, gradeScale }
+// pairs above), not an assumption that every entry is in the
+// discipline's primary stored scale. `gradeScale` defaults to that
+// primary scale when omitted -- backward-compatible for any caller
+// still passing a bare grade string, and the same defensive fallback
+// bestGradeOrdinal() above already uses.
+export function reportGradeOrdinal(grade, gradeScale, type) {
+  return gradeOrdinal(grade, gradeScale ?? PRIMARY_SCALE_BY_TYPE[type] ?? PRIMARY_SCALE_BY_TYPE.boulder);
 }
 
-// Converts a report-computed raw grade (assumed to be in the discipline's
-// primary scale, see reportGradeOrdinal above) into whichever scale the
-// viewer currently has the report displayed in -- the #704 scale picker's
-// whole point. Falls back to the raw grade string if either step can't
-// resolve (an unrecognized scale id, or a viewScaleId this build doesn't
-// know about), same "never throw, degrade to the raw value" stance
+// Converts a report-computed grade into whichever scale the viewer
+// currently has the report displayed in -- the #704 scale picker's whole
+// point. Falls back to the raw grade string if either step can't resolve
+// (an unrecognized scale id, or a viewScaleId this build doesn't know
+// about), same "never throw, degrade to the raw value" stance
 // gradeDisplayLabel/gradeDisplayLabelForScale above already take.
-export function reportGradeLabel(grade, type, viewScaleId) {
-  const ordinal = reportGradeOrdinal(grade, type);
+export function reportGradeLabel(grade, gradeScale, type, viewScaleId) {
+  const ordinal = reportGradeOrdinal(grade, gradeScale, type);
   if (ordinal === null) return grade;
   const scale = SCALES[viewScaleId];
   if (!scale) return grade;
