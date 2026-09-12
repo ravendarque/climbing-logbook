@@ -16,6 +16,12 @@ test("renders the shared chrome and one tile per insight, linking to its own sub
   await expect(pyramidTile).toBeVisible();
   await expect(pyramidTile.locator(".row-card-title")).toHaveText("Grade Pyramid");
   await expect(pyramidTile.locator("a", { hasText: "View" })).toHaveAttribute("href", /\/performance\/pyramid$/);
+
+  // #705
+  const gradesTile = page.locator("#insight-grades");
+  await expect(gradesTile).toBeVisible();
+  await expect(gradesTile.locator(".row-card-title")).toHaveText("Grade Scales & Conversion");
+  await expect(gradesTile.locator("a", { hasText: "View" })).toHaveAttribute("href", /\/performance\/grades$/);
 });
 
 test("#599 -- the gap tile's title is discipline-aware and updates live on a discipline switch", async ({ page }) => {

@@ -188,6 +188,14 @@
               </button>
               <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 bg-background border border-border rounded-app p-[.35rem] w-56 max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="grade-scale-popover" role="listbox" aria-label="Grade scale" hidden>
                 <ul class="m-0 p-0 list-none" id="grade-scale-listbox"></ul>
+                <!-- #705 -- href set client-side in client/log-main.js once
+                     USERNAME is known, same pattern as #back-to-performance-
+                     link on every Performance Insights page. Gated by
+                     Athlete Mode like the reference page itself is -- a
+                     visitor without it on lands on /log after following
+                     this, the same redirect any other /performance/* link
+                     would give them. -->
+                <a class="block text-[.72rem] text-accent text-center pt-[.4rem] mt-[.2rem] border-t border-border hover:brightness-90" id="grade-scale-reference-link" href="#">What's this?</a>
               </div>
             </div>
           </div>

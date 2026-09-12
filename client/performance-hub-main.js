@@ -67,6 +67,17 @@ const INSIGHTS = [
     description: "See how hard you're pushing relative to your grade progress, and whether there's room to try harder.",
     route: "rpe",
   },
+  {
+    // #705 -- not a personal-data insight like the six tiles above (it
+    // renders no per-user data at all), but lives here anyway as the
+    // discoverable home for it -- same gate (owned route + Athlete Mode)
+    // as every other Performance Insights page, and the natural place
+    // both scale pickers' (#703/#704) own links point to.
+    id: "insight-grades",
+    title: "Grade Scales & Conversion",
+    description: "See how this discipline's own grade scales line up against each other, and where every equivalence in this app comes from.",
+    route: "grades",
+  },
 ];
 
 function adminFetch(url, options) {
