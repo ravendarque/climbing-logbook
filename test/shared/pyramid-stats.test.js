@@ -63,36 +63,69 @@ describe("pyramidCounts", () => {
   // #726 -- real production regression (Raven's own account, beta.x,
   // 2026-09-12): #702's migration (migrations/0016_add_grade_scale.sql)
   // permanently lowercased every existing Boulder entry's grade text to
-  // match Font-non-standard's real notation, but BOULDER_GRADES's own
-  // `.g` values stayed uppercase (a Global Constraint of that work) --
-  // an exact-match lookup silently dropped every lettered grade (6A and
-  // up, plus the ad-hoc extended low end 1A-5C), which is virtually the
-  // whole real climbing range. Only bare-number grades (5, 5+, ...)
-  // happened to survive LOWER() unchanged and kept matching.
-  it("counts a lowercase Boulder grade against its real, uppercase BOULDER_GRADES entry (#702's migration lowercased real Boulder rows)", () => {
+  // match Font-non-standard's real notation. #726 patched this with a
+  // case-insensitive string match, which Raven correctly called out as a
+  // hack sitting on the pre-#702 system -- #728 replaced it with a real
+  // join through the shared canonical ordinal (gradeOrdinal), which
+  // fixes the case mismatch as a side effect of fixing the actual gap:
+  // matching by canonical ordinal, not by string.
+  it("counts a lowercase Boulder grade against its real BOULDER_GRADES entry (#702's migration lowercased real Boulder rows)", () => {
     const lowered = [
-      { type: "boulder", status: "send", grade: "7b", date: isoDaysAgo(10) },
-      { type: "boulder", status: "send", grade: "7b", date: isoDaysAgo(20) },
-      { type: "boulder", status: "send", grade: "7b", date: isoDaysAgo(30) },
-      { type: "boulder", status: "send", grade: "7a", date: isoDaysAgo(40) },
+      { type: "boulder", status: "send", grade: "7b", gradeScale: "font-non-standard", date: isoDaysAgo(10) },
+      { type: "boulder", status: "send", grade: "7b", gradeScale: "font-non-standard", date: isoDaysAgo(20) },
+      { type: "boulder", status: "send", grade: "7b", gradeScale: "font-non-standard", date: isoDaysAgo(30) },
+      { type: "boulder", status: "send", grade: "7a", gradeScale: "font-non-standard", date: isoDaysAgo(40) },
     ];
     const { counts } = pyramidCounts("boulder", lowered);
     expect(counts["7B"]).toBe(3);
     expect(counts["7A"]).toBe(1);
   });
 
-  // Sport/Lead's own BOULDER_GRADES-equivalent (LEAD_GRADES) is
-  // lowercase already -- confirms the fix's case-insensitive match
-  // doesn't depend on Boulder's specific uppercase convention, and a
-  // real Sport entry (never touched by #702's migration) still counts
-  // correctly either way it's cased.
-  it("still counts a Sport grade correctly regardless of its own casing", () => {
+  // #728 -- the real gap #726's own case-insensitive patch left wide
+  // open: BOULDER_GRADES/LEAD_GRADES only ever cover each discipline's
+  // ad-hoc hybrid notation, but #703 already lets a send be logged in
+  // ANY of a discipline's real scales. A send logged directly in
+  // V-scale ("V8", gradeScale: "v-scale") has no string in
+  // BOULDER_GRADES to match at all, case-insensitively or otherwise --
+  // it converts through the shared canonical ordinal instead, landing
+  // on the same row a "7B" (font-non-standard) send would.
+  it("counts a V-scale-logged Boulder send against its real Font-equivalent row", () => {
+    const entries = [
+      { type: "boulder", status: "send", grade: "V8", gradeScale: "v-scale", date: isoDaysAgo(10) },
+      { type: "boulder", status: "send", grade: "7b", gradeScale: "font-non-standard", date: isoDaysAgo(20) },
+    ];
+    const { counts } = pyramidCounts("boulder", entries);
+    expect(counts["7B"]).toBe(2);
+  });
+
+  // A real Sport entry, still keyed by LEAD_GRADES's own lowercase
+  // convention (untouched by #702's migration) -- confirms the ordinal
+  // join works the same way regardless of which discipline's own row
+  // list happens to already agree with its stored casing.
+  it("still counts a real Sport grade correctly", () => {
     const sportEntries = [
-      { type: "sport", status: "send", grade: "7b", date: isoDaysAgo(10) },
-      { type: "sport", status: "send", grade: "7B", date: isoDaysAgo(20) },
+      { type: "sport", status: "send", grade: "7b", gradeScale: "french", date: isoDaysAgo(10) },
+      { type: "sport", status: "send", grade: "7B", gradeScale: "french", date: isoDaysAgo(20) },
     ];
     const { counts } = pyramidCounts("sport", sportEntries);
     expect(counts["7b"]).toBe(2);
+  });
+
+  // #728 -- BOULDER_GRADES's own hand-typed order predates the
+  // corrected canonical sub-position rule (Raven's own "2 < 2a+ < 2+"
+  // worked example, 2026-09-11) -- a bare "+" is the TOP of its
+  // number's range, harder than any of that number's lettered variants,
+  // not a notch above the bare number. `order` is now sorted by each
+  // row's real ordinal, not its position in the array literal.
+  it("orders rows by their real canonical ordinal, not BOULDER_GRADES's own stale array order", () => {
+    const { order } = pyramidCounts("boulder", []);
+    const oneToOne = order.indexOf("1+");
+    const oneA = order.indexOf("1A");
+    const oneC = order.indexOf("1C");
+    // "1+" (bare) is canonically harder than every one of "1A"/"1B"/"1C"
+    // -- it belongs AFTER them now, not right after "1".
+    expect(oneToOne).toBeGreaterThan(oneC);
+    expect(oneA).toBeLessThan(oneC);
   });
 });
 
@@ -193,11 +226,19 @@ describe("pyramidSplitRows", () => {
       const { top4, lower } = pyramidSplitRows("boulder", entries);
 
       expect(top4.map(r => r.grade)).toEqual(["7A", "6C+", "6C", "6B+"]);
+      // #728 -- the aggregated row's own `grade` is the hardest ROW in
+      // the aggregated ordinal range (for gradeColor()'s benefit), not
+      // necessarily a sent one -- "5+" now, not "5C": a bare "+" sits at
+      // the TOP of its number's range under the corrected canonical
+      // sub-position rule (Raven's own "2 < 2a+ < 2+" example,
+      // 2026-09-11), one real step harder than "5C" (ordinal 59 vs 57).
+      // BOULDER_GRADES's own hand-typed order had never been re-sorted
+      // against that correction until #728.
       expect(lower).toEqual([
         { grade: "6B", count: 1 },
         { grade: "6A+", count: 0 },
         { grade: "6A", count: 0 },
-        { grade: "5C", label: "Below 6A", count: 2 },
+        { grade: "5+", label: "Below 6A", count: 2 },
       ]);
     });
 
@@ -208,7 +249,13 @@ describe("pyramidSplitRows", () => {
       const entries = [...send("boulder", "1B", 3), ...send("boulder", "3B")];
       const { top4, lower } = pyramidSplitRows("boulder", entries);
 
-      expect(top4.map(r => r.grade)).toEqual(["3B", "3A", "3+", "3"]);
+      // #728 -- "3+" no longer appears here: under the corrected
+      // canonical sub-position rule a bare "+" is the TOP of its
+      // number's range (ordinal 35), genuinely HARDER than "3B"
+      // (ordinal 30) -- it doesn't belong in a window anchored at "3B"
+      // at all. The real 4 hardest rows at or below "3B" are now
+      // 3B/3A/3/2+ (ordinals 30/27/25/23).
+      expect(top4.map(r => r.grade)).toEqual(["3B", "3A", "3", "2+"]);
       expect(lower).toEqual([{ grade: "2C", label: "Below 6A", count: 3 }]);
     });
 
