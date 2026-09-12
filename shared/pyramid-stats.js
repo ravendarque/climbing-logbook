@@ -6,7 +6,7 @@
 // functions now run in the Worker too (server/api/performance.js computes
 // the full pyramid server-side, so a large logbook never ships raw entries
 // to /performance at all), not just the client.
-import { BOULDER_GRADES, LEAD_GRADES } from "./grade-data.js";
+import { BOULDER_GRADES, LEAD_GRADES, gradeOrdinal } from "./grade-data.js";
 
 // 8-4-2-1 is a widely used coaching heuristic (Hörst, Hampton -- see the
 // citations dialog), not a scientifically validated ratio; framed that
@@ -30,34 +30,65 @@ export function isWithinLast12Months(d) {
   return t >= cutoff.getTime();
 }
 
-// #726 -- production bug (Raven's own real account, beta.x, 2026-09-12):
-// this used to key `counts` by e.grade verbatim, an exact-string match
-// against BOULDER_GRADES/LEAD_GRADES's own fixed `.g` casing (Boulder
-// uppercase, Sport/Lead lowercase -- the two lists have never agreed on
-// a convention). That was only ever safe because every stored
-// entries.grade happened to already be in its own discipline's matching
-// case. #702's migration (migrations/0016_add_grade_scale.sql)
-// permanently lowercased every existing Boulder row's grade text to
-// match Font-non-standard's real notation -- correct for that migration's
-// own purpose, but it silently broke this exact-match lookup for every
-// lettered Boulder grade (virtually the whole real range: 6A and up,
-// plus the ad-hoc extended low end 1A-5C) -- only bare-number grades
-// (5, 5+, ...) still matched, which is exactly the "shows only 4B, 4C, 5,
-// 5+" symptom Raven reported: real 7A/7B sends silently dropped to zero,
-// so the promotion window anchored near the bottom of the range instead
-// of around the climber's real max. Fixed to match case-insensitively,
-// same normalization gradeRank()/gradeDisplayLabel() above already use
-// -- `order`'s own casing (and therefore `counts`'s own keys) is
-// untouched, so every other consumer of this return value keeps working
-// unchanged; only the increment step's lookup is normalized.
+// #728 -- #726 patched the reported symptom (a case mismatch) with a
+// case-insensitive string match against BOULDER_GRADES/LEAD_GRADES's own
+// fixed labels -- a hack sitting on the pre-#702 system, not the
+// canonical model this whole epic exists to deliver. That left the real
+// gap open: those two lists only ever cover each discipline's OLD ad-hoc
+// hybrid notation, and #703 already lets a send be logged in any of a
+// discipline's real scales (V-scale, UIAA, YDS, Norwegian, Ewbank) --
+// none of which appear in these lists at all, so they were (and without
+// this fix, still would be) silently dropped regardless of casing.
+//
+// Fixed properly: every entry joins via the shared canonical ordinal
+// (gradeOrdinal), the same building block #704/#705 already used for
+// reports and the reference page, not a string/case match against one
+// hand-typed list -- correctly resolves a send logged in ANY of the
+// discipline's scales onto the right existing row.
+//
+// `ROW_SCALE_BY_TYPE` is used only to resolve each ROW's own ordinal
+// (BOULDER_GRADES/LEAD_GRADES's own labels already decompose through
+// this exact formula -- that's exactly why #702's migration lowercased
+// Boulder's stored grade text to fit it), independent of whatever real
+// scale a given ENTRY was actually logged in.
+const ROW_SCALE_BY_TYPE = { boulder: "font-non-standard", sport: "french-non-standard" };
+// Fallback only for an entry with no real gradeScale at all -- shouldn't
+// happen for any real row today (#702's migration backfilled every
+// existing row, server/api/logbook.js's defaultGradeScale() guarantees
+// every future write sets one), but a cheap defensive default avoids a
+// silently-dropped entry if that guarantee is ever violated, rather than
+// crashing or comparing against `undefined`.
+const DEFAULT_SCALE_BY_TYPE = ROW_SCALE_BY_TYPE;
+
+// BOULDER_GRADES's own hand-typed order (`1, 1+, 1A, 1B, 1C, 2, ...`)
+// predates the corrected canonical sub-position rule (`2 < 2a+ < 2+`,
+// Raven's own worked example, 2026-09-11 -- a bare `+` is the TOP of its
+// number, not a notch above the bare number) -- it still sorts `N+`
+// right after `N`, ahead of the lettered grades, for every number 1-5.
+// Sport's own order already agrees with the corrected rule (confirmed by
+// checking every ordinal directly), so re-sorting is a real behavior fix
+// for Boulder's low end and a no-op for Sport. Row labels themselves are
+// unchanged -- this corrects matching and ordering, not what the pyramid
+// displays.
+function buildRows(type) {
+  const rowScale = ROW_SCALE_BY_TYPE[type];
+  return (type === "boulder" ? BOULDER_GRADES : LEAD_GRADES)
+    .map(x => ({ label: x.g, ordinal: gradeOrdinal(x.g, rowScale) }))
+    .sort((a, b) => a.ordinal - b.ordinal);
+}
+
 export function pyramidCounts(type, entries) {
-  const order = (type === "boulder" ? BOULDER_GRADES : LEAD_GRADES).map(x => x.g);
+  const rows = buildRows(type);
+  const order = rows.map(r => r.label);
   const counts = Object.fromEntries(order.map(g => [g, 0]));
-  const keyByUpper = new Map(order.map(g => [g.toUpperCase(), g]));
+  const rowByOrdinal = new Map(rows.map(r => [r.ordinal, r.label]));
+  const defaultScale = DEFAULT_SCALE_BY_TYPE[type];
   for (const e of entries) {
     if (e.type !== type || e.status !== "send" || !isWithinLast12Months(e.date)) continue;
-    const key = keyByUpper.get(String(e.grade).toUpperCase());
-    if (key !== undefined) counts[key]++;
+    const ordinal = gradeOrdinal(e.grade, e.gradeScale ?? defaultScale);
+    if (ordinal === null) continue;
+    const row = rowByOrdinal.get(ordinal);
+    if (row !== undefined) counts[row]++;
   }
   return { order, counts };
 }
