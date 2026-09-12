@@ -59,6 +59,41 @@ describe("pyramidCounts", () => {
     expect(order.length).toBeGreaterThan(0);
     for (const g of order) expect(counts[g]).toBeGreaterThanOrEqual(0);
   });
+
+  // #726 -- real production regression (Raven's own account, beta.x,
+  // 2026-09-12): #702's migration (migrations/0016_add_grade_scale.sql)
+  // permanently lowercased every existing Boulder entry's grade text to
+  // match Font-non-standard's real notation, but BOULDER_GRADES's own
+  // `.g` values stayed uppercase (a Global Constraint of that work) --
+  // an exact-match lookup silently dropped every lettered grade (6A and
+  // up, plus the ad-hoc extended low end 1A-5C), which is virtually the
+  // whole real climbing range. Only bare-number grades (5, 5+, ...)
+  // happened to survive LOWER() unchanged and kept matching.
+  it("counts a lowercase Boulder grade against its real, uppercase BOULDER_GRADES entry (#702's migration lowercased real Boulder rows)", () => {
+    const lowered = [
+      { type: "boulder", status: "send", grade: "7b", date: isoDaysAgo(10) },
+      { type: "boulder", status: "send", grade: "7b", date: isoDaysAgo(20) },
+      { type: "boulder", status: "send", grade: "7b", date: isoDaysAgo(30) },
+      { type: "boulder", status: "send", grade: "7a", date: isoDaysAgo(40) },
+    ];
+    const { counts } = pyramidCounts("boulder", lowered);
+    expect(counts["7B"]).toBe(3);
+    expect(counts["7A"]).toBe(1);
+  });
+
+  // Sport/Lead's own BOULDER_GRADES-equivalent (LEAD_GRADES) is
+  // lowercase already -- confirms the fix's case-insensitive match
+  // doesn't depend on Boulder's specific uppercase convention, and a
+  // real Sport entry (never touched by #702's migration) still counts
+  // correctly either way it's cased.
+  it("still counts a Sport grade correctly regardless of its own casing", () => {
+    const sportEntries = [
+      { type: "sport", status: "send", grade: "7b", date: isoDaysAgo(10) },
+      { type: "sport", status: "send", grade: "7B", date: isoDaysAgo(20) },
+    ];
+    const { counts } = pyramidCounts("sport", sportEntries);
+    expect(counts["7b"]).toBe(2);
+  });
 });
 
 describe("pyramidReadyToPromote", () => {
@@ -91,6 +126,27 @@ describe("pyramidReadyToPromote", () => {
 describe("pyramidSplitRows", () => {
   it("reports no sends when nothing matches", () => {
     expect(pyramidSplitRows("boulder", [])).toEqual({ top4: [], lower: [], hasSends: false, promotedGrade: null });
+  });
+
+  // #726 -- the exact real-account scenario reported on beta.x: 3 sends
+  // logged as "7b", 1 as "7a" (as stored today -- lowercase, post-#702's
+  // migration). Before the fix, pyramidCounts() dropped all four (silent
+  // exact-match miss against BOULDER_GRADES's uppercase "7A"/"7B"), so
+  // hasSends came back false / the window anchored at the bottom of the
+  // range instead of the climber's real max ("7B as the top tier and
+  // 6C+ as the bottom", Raven's own expectation from the report).
+  it("windows correctly on real lowercase Boulder grades (#702's migration shape)", () => {
+    const entries = [
+      { type: "boulder", status: "send", grade: "7b", date: isoDaysAgo(5) },
+      { type: "boulder", status: "send", grade: "7b", date: isoDaysAgo(10) },
+      { type: "boulder", status: "send", grade: "7b", date: isoDaysAgo(15) },
+      { type: "boulder", status: "send", grade: "7a", date: isoDaysAgo(20) },
+    ];
+    const { top4, hasSends } = pyramidSplitRows("boulder", entries);
+    expect(hasSends).toBe(true);
+    expect(top4[0].grade).toBe("7B");
+    expect(top4[0].count).toBe(3);
+    expect(top4.at(-1).grade).toBe("6C+");
   });
 
   it("windows to the top 4 tiers ending at the max sent grade", () => {

@@ -30,12 +30,34 @@ export function isWithinLast12Months(d) {
   return t >= cutoff.getTime();
 }
 
+// #726 -- production bug (Raven's own real account, beta.x, 2026-09-12):
+// this used to key `counts` by e.grade verbatim, an exact-string match
+// against BOULDER_GRADES/LEAD_GRADES's own fixed `.g` casing (Boulder
+// uppercase, Sport/Lead lowercase -- the two lists have never agreed on
+// a convention). That was only ever safe because every stored
+// entries.grade happened to already be in its own discipline's matching
+// case. #702's migration (migrations/0016_add_grade_scale.sql)
+// permanently lowercased every existing Boulder row's grade text to
+// match Font-non-standard's real notation -- correct for that migration's
+// own purpose, but it silently broke this exact-match lookup for every
+// lettered Boulder grade (virtually the whole real range: 6A and up,
+// plus the ad-hoc extended low end 1A-5C) -- only bare-number grades
+// (5, 5+, ...) still matched, which is exactly the "shows only 4B, 4C, 5,
+// 5+" symptom Raven reported: real 7A/7B sends silently dropped to zero,
+// so the promotion window anchored near the bottom of the range instead
+// of around the climber's real max. Fixed to match case-insensitively,
+// same normalization gradeRank()/gradeDisplayLabel() above already use
+// -- `order`'s own casing (and therefore `counts`'s own keys) is
+// untouched, so every other consumer of this return value keeps working
+// unchanged; only the increment step's lookup is normalized.
 export function pyramidCounts(type, entries) {
   const order = (type === "boulder" ? BOULDER_GRADES : LEAD_GRADES).map(x => x.g);
   const counts = Object.fromEntries(order.map(g => [g, 0]));
+  const keyByUpper = new Map(order.map(g => [g.toUpperCase(), g]));
   for (const e of entries) {
     if (e.type !== type || e.status !== "send" || !isWithinLast12Months(e.date)) continue;
-    if (counts[e.grade] !== undefined) counts[e.grade]++;
+    const key = keyByUpper.get(String(e.grade).toUpperCase());
+    if (key !== undefined) counts[key]++;
   }
   return { order, counts };
 }
