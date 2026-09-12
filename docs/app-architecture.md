@@ -1094,6 +1094,29 @@ authority" note).
 Design spec: `docs/superpowers/specs/2026-09-10-configurable-grade-systems-design.md`.
 Implementation plan: `docs/superpowers/plans/2026-09-11-grade-canonical-model.md`.
 
+**Sub-issue F (#708) — logbook grade filter (tiers) + grade search**
+replaces `client/entries.js`'s old min/max `gradeRange` facet
+(`client/components/climbing-entries-table.js`'s hand-rolled drag
+slider) with a multi-select tier facet, same `Set` shape and "means
+exactly what it contains" convention `statusFilters`/`sportStyleFilters`
+already established — filters on `gradeTierForScale(entry.grade,
+entry.gradeScale, activeType)` (#702), so it classifies correctly
+regardless of which scale the entry was logged in. The existing free-text
+`search` predicate (name + area) now also matches the as-logged `grade`
+label (`client/entries.js`'s `gradeMatchesSearch`): a query with no
+trailing `+`/`-` matches the grade's base, modifier stripped either side
+(searching `7a` matches `7A`, `7a`, `7A+`, and `7a+`); a query with a
+trailing modifier matches the full label exactly. Deliberately literal,
+not cross-scale — the tier facet above already covers cross-scale
+equivalence, so grade search stays a small, predictable text feature
+rather than a second conversion engine. Not wired into
+`climbing-entries-table.js`'s `allDisciplines` mode (the public combined
+profile view) — a tier facet is genuinely cross-discipline-comparable
+now (unlike the old range facet, which needed a discipline to even find
+its step count), but plumbing a real per-discipline tier facet through
+that mode's own combined `filteredEntries()` call sites is separate
+scope from this facet's own replacement.
+
 `buildRow()`/`rowToJson()` (`server/api/logbook.js`, `server/api/places.js`,
 `server/api/locations.js`, alongside the shared `server/lib/d1-resource.js`
 factory) reconstruct these fixed shapes from the incoming payload on

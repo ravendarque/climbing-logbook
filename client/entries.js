@@ -8,7 +8,7 @@
 // keeps thin same-named wrapper methods (placeOf, locationOf, etc.)
 // that close over its own state and call these, so none of the
 // ~25 existing call sites throughout the codebase needed to change.
-import { BOULDER_GRADES, LEAD_GRADES, gradeRank } from "../shared/grade-data.js";
+import { gradeRank, gradeTierForScale } from "../shared/grade-data.js";
 import { dateRank } from "../shared/date-helpers.js";
 
 // Entry -> Place -> Location join, degrading gracefully (never null,
@@ -33,15 +33,29 @@ export function entryMatchesStatusFilter(entry, filter) {
   return entry.status === filter;
 }
 
-// Active discipline's own grade list -- BOULDER_GRADES/LEAD_GRADES, not
-// the shared GRADE_ORDER/gradeRank table -- so the range filter's step
-// count and bounds always match what the entry-form picker itself offers
-// for this discipline (21 boulder grades vs. 14 lead grades) (#161).
-export function activeGradeList(activeType) {
-  return activeType === "boulder" ? BOULDER_GRADES : LEAD_GRADES;
+// #708 -- as-logged grade-label search, deliberately literal string
+// matching, not cross-scale/canonical (the tier facet below already
+// covers cross-scale equivalence -- this is a small, predictable text
+// feature, not a second conversion engine). `lowerQuery` is already
+// lowercased by filteredEntries() below.
+//
+// A query WITHOUT a trailing +/- matches the grade's own base
+// (number+letter, modifier stripped) -- searching "7a" matches "7A",
+// "7a", "7A+", and "7a+" alike. A query WITH a trailing +/- matches the
+// grade's full label, modifier included -- searching "7a+" matches only
+// "7a+"/"7A+", not the bare "7a". Exact-equality after that
+// normalization, not a substring test like the name/area predicate
+// below -- "6" is deliberately not a match for "6A" (that's what the
+// tier filter is for), only a real grade-shaped query does anything.
+const GRADE_SEARCH_MODIFIER_RE = /[+-]$/;
+export function gradeMatchesSearch(grade, lowerQuery) {
+  const g = grade.toLowerCase();
+  return GRADE_SEARCH_MODIFIER_RE.test(lowerQuery)
+    ? g === lowerQuery
+    : g.replace(GRADE_SEARCH_MODIFIER_RE, "") === lowerQuery;
 }
 
-export function filteredEntries(entries, places, { activeType, statusFilters, gradeRange, search, sportStyleFilters }) {
+export function filteredEntries(entries, places, { activeType, statusFilters, gradeTiers, search, sportStyleFilters }) {
   const q = search.toLowerCase();
   return entries.filter(e => {
     if (e.type !== activeType) return false;
@@ -60,12 +74,15 @@ export function filteredEntries(entries, places, { activeType, statusFilters, gr
     // unchanged, unlike statusFilters above -- omitting it isn't the
     // same footgun since it's genuinely inert for every non-sport entry.
     if (activeType === "sport" && sportStyleFilters && !sportStyleFilters.has(e.sportStyle)) return false;
-    if (gradeRange) {
-      const list = activeGradeList(activeType);
-      const r = gradeRank(e.grade, activeType);
-      if (r < gradeRank(list[gradeRange.min].g, activeType) || r > gradeRank(list[gradeRange.max].g, activeType)) return false;
-    }
-    if (q && !e.name.toLowerCase().includes(q) && !placeOf(e, places).area.toLowerCase().includes(q)) return false;
+    // #708 -- replaces the old min/max gradeRange facet: filters on the
+    // canonical tier derived from (grade, grade_scale), same "means
+    // exactly what it contains" convention statusFilters/sportStyleFilters
+    // already established (an empty Set shows nothing, not everything) --
+    // optional, same "inert for a caller with no such facet yet" carve-out
+    // sportStyleFilters has, for allDisciplines mode (#460), which has no
+    // per-discipline tier facet of its own yet.
+    if (gradeTiers && !gradeTiers.has(gradeTierForScale(e.grade, e.gradeScale, activeType))) return false;
+    if (q && !e.name.toLowerCase().includes(q) && !placeOf(e, places).area.toLowerCase().includes(q) && !gradeMatchesSearch(e.grade, q)) return false;
     return true;
   });
 }
