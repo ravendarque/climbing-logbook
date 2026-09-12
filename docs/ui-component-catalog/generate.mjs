@@ -32,6 +32,8 @@ const ENTRIES = [
   ["s-modal", "modal-shape"],
   ["s-grades", "grade-colors"],
   ["s-tiers", "evidence-tiers"],
+  ["s-list-picker", "list-picker"],
+  ["s-date-picker", "date-picker"],
 ];
 
 const browser = await chromium.launch();
