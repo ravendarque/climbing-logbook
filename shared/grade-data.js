@@ -102,6 +102,62 @@ export const FRENCH_NON_STANDARD = makeNonStandardScale("french-non-standard", "
 // hand-duplicate" fix this whole rework exists to make (the #698
 // BOULDER_ORDER drift bug was exactly two hand-kept lists of the same
 // data going out of sync).
+
+// #733 -- shared by makeAnchoredScale's own toLabel(): a named scale
+// (UIAA, YDS, Norwegian, Ewbank) has far fewer real steps than the full
+// canonical ordinal space it's anchored/interpolated against, so
+// converting an arbitrary ordinal needs a "closest real step" fallback,
+// not an exact-or-nothing lookup. `labelByOrdinal` must already be in
+// ascending-ordinal iteration order (true here -- each scale's own
+// `labels` array is itself real-world ascending order) so a genuine tie
+// rounds DOWN to the lower/earlier-registered step, not up.
+function closestLabel(ordinal, labelByOrdinal) {
+  if (labelByOrdinal.has(ordinal)) return labelByOrdinal.get(ordinal);
+  let closest = null, closestDist = Infinity;
+  for (const [o, l] of labelByOrdinal) {
+    const d = Math.abs(o - ordinal);
+    if (d < closestDist) { closest = l; closestDist = d; }
+  }
+  return closest;
+}
+
+// #733 -- makeParsedScale's own toLabel() degrade is DELIBERATELY not
+// closestLabel() above: Font-standard/French-standard share the exact
+// same number+letter+modifier ordinal space as Font/French-Non-standard
+// (they're a curated SUBSET of it, not a separately-anchored scale), so
+// a Non-standard grade with no exact standard-scale match degrades to
+// the closest step WITHIN ITS OWN NUMBER -- "5-" is defined
+// (SUB_POSITION_ORDER's own comment) as the low edge of NUMBER 5's own
+// range, not a bridge into number 4's, so it must never be compared
+// against "4+" (a different number) at all, even though "4+" happens to
+// sit one ordinal-step closer in the raw combined space than "5" does at
+// the family boundary. When the input's own number has NO standard-scale
+// representation at all (numbers 1-2, below Font-standard's real floor
+// of 3), this returns null -- NOT the scale's lowest label. Raven,
+// 2026-09-12: clamping a genuinely-easier grade up to the scale's floor
+// is grade inflation, not a conversion; a Non-standard grade below what
+// a named scale represents is simply excluded from that scale's view,
+// the same way reportGradeLabel's own callers already treat a null
+// label as "no point here" for a bucket with no data at all. Confirmed
+// against Raven's own worked example: 5-/5a-/5a/5a+/5b-/5b -> "5",
+// 5b+/5c-/5c/5c+ -> "5+" (a genuine tie, e.g. "5b", rounds DOWN to the
+// lower/earlier-registered step within that same number).
+function numberOfOrdinal(ordinal) {
+  return Math.floor(ordinal / 12) + 1;
+}
+function closestParsedLabel(ordinal, byOrdinal) {
+  if (byOrdinal.has(ordinal)) return byOrdinal.get(ordinal);
+  const num = numberOfOrdinal(ordinal);
+  const sameNumber = [...byOrdinal].filter(([o]) => numberOfOrdinal(o) === num);
+  if (sameNumber.length === 0) return null;
+  let closest = null, closestDist = Infinity;
+  for (const [o, l] of sameNumber) {
+    const d = Math.abs(o - ordinal);
+    if (d < closestDist) { closest = l; closestDist = d; }
+  }
+  return closest;
+}
+
 function makeParsedScale(id, discipline, name, labels) {
   const byLabel = new Map();
   const byOrdinal = new Map();
@@ -122,7 +178,16 @@ function makeParsedScale(id, discipline, name, labels) {
     // own internal order.
     labels: [...labels],
     toOrdinal(label) { return byLabel.get(String(label).toLowerCase()) ?? null; },
-    toLabel(ordinal) { return byOrdinal.get(ordinal) ?? null; },
+    // #733 -- was an exact-or-null lookup; a Non-standard grade with no
+    // exact match in this named scale (e.g. Font-standard has no "5a")
+    // now degrades to its closest real step within the SAME number
+    // (closestParsedLabel, not the plain global-nearest closestLabel --
+    // see that function's own comment for why) instead of returning
+    // null, which reportGradeLabel's own `?? grade` fallback would
+    // otherwise turn into the RAW, un-converted grade string leaking
+    // through -- the bug Raven caught live: Font showing grades that
+    // don't exist in Font at all.
+    toLabel(ordinal) { return closestParsedLabel(ordinal, byOrdinal); },
   };
 }
 
@@ -256,15 +321,9 @@ function makeAnchoredScale(id, name, labels, anchors) {
     name,
     labels: [...labels],
     toOrdinal(label) { return ordinalByLowerLabel.get(String(label).toLowerCase()) ?? null; },
-    toLabel(ordinal) {
-      if (labelByOrdinal.has(ordinal)) return labelByOrdinal.get(ordinal);
-      let closest = null, closestDist = Infinity;
-      for (const [o, l] of labelByOrdinal) {
-        const d = Math.abs(o - ordinal);
-        if (d < closestDist) { closest = l; closestDist = d; }
-      }
-      return closest;
-    },
+    // #733 -- now the same shared closestLabel() helper makeParsedScale
+    // uses, rather than a second hand-kept copy of this exact fallback.
+    toLabel(ordinal) { return closestLabel(ordinal, labelByOrdinal); },
   };
 }
 

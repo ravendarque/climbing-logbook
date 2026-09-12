@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bucketIndexForDate, gradeDisplayLabel, gradeDisplayLabelForScale, reportGradeLabel, reportGradeOrdinal, reportPositionOrder, volumeByBucket, volumeHeadline, weekBucketLabel, weekBuckets } from "../../shared/volume-stats.js";
+import { bucketIndexForDate, gradeDisplayLabel, gradeDisplayLabelForScale, reportGradeLabel, reportGradeOrdinal, reportGradePoint, reportPositionOrder, volumeByBucket, volumeHeadline, weekBucketLabel, weekBuckets } from "../../shared/volume-stats.js";
 
 // #702 -- scale-aware sibling of gradeDisplayLabel, added alongside it
 // (see docs/superpowers/plans/2026-09-11-grade-canonical-model.md Task 4).
@@ -48,6 +48,28 @@ describe("reportGradeOrdinal / reportGradeLabel / reportPositionOrder", () => {
   });
   it("reportGradeLabel falls back to the raw grade for an unknown view scale", () => {
     expect(reportGradeLabel("6a", "font-non-standard", "boulder", "not-a-real-scale")).toBe("6a");
+  });
+
+  // #733 -- a genuinely below-floor grade (Font-standard's real floor is
+  // "3") returns null, not the raw grade and not the scale's own lowest
+  // label -- clamping it up to "3" would be grade inflation, not a
+  // conversion (Raven, 2026-09-12). Callers (reportGradePoint below)
+  // treat this null as "no point here", the same convention every other
+  // "no data" case in this file already uses.
+  it("reportGradeLabel returns null for a grade the chosen view scale has no representation for at all", () => {
+    expect(reportGradeLabel("2+", "font-non-standard", "boulder", "font")).toBeNull();
+    expect(reportGradeLabel("1", "font-non-standard", "boulder", "font")).toBeNull();
+  });
+
+  it("reportGradePoint returns null (not a point with a null label) when the view scale can't represent the grade", () => {
+    expect(reportGradePoint({ grade: "2+", gradeScale: "font-non-standard" }, "boulder", "font")).toBeNull();
+  });
+  it("reportGradePoint returns null for a null pair (no data in this bucket)", () => {
+    expect(reportGradePoint(null, "boulder", "font")).toBeNull();
+  });
+  it("reportGradePoint returns a real point for a representable grade", () => {
+    expect(reportGradePoint({ grade: "6a", gradeScale: "font-non-standard" }, "boulder", "font"))
+      .toEqual({ positionKey: reportGradeOrdinal("6a", "font-non-standard", "boulder"), displayLabel: "6A" });
   });
   it("reportPositionOrder is a strictly ascending ordinal range covering the discipline's real picker", () => {
     for (const type of ["boulder", "sport"]) {

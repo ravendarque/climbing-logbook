@@ -116,7 +116,10 @@ describe("gapHeadline", () => {
   it("reports no flash/onsight sends yet when only sendMax data exists", () => {
     const text = gapHeadline([null, null], [pair("6B"), pair("7A")], "boulder");
     expect(text).toContain("No flash sends logged in this window yet");
-    expect(text).toContain("V6"); // gradeDisplayLabelForScale("7A", "font-non-standard", "boulder")
+    // No viewScaleId passed -- defaults to DEFAULT_VIEW_SCALE_BY_TYPE's
+    // "font", same as the picker's own opening default, so "7A" (font-
+    // non-standard) round-trips through Font-standard as itself.
+    expect(text).toContain("7A");
   });
 
   it("uses onsight/redpoint terminology for a sport entry", () => {
@@ -135,12 +138,44 @@ describe("gapHeadline", () => {
     expect(text).toContain("matches or beats");
   });
 
-  // #717 -- the headline's own display now resolves through each grade's
-  // real gradeScale (gradeDisplayLabelForScale), not the old scale-
-  // oblivious gradeDisplayLabel -- a V-scale-logged best send still
-  // renders as its correct V-scale-equivalent Boulder display label.
-  it("renders a V-scale-logged best send with its correct display label", () => {
-    const text = gapHeadline([null], [pair("V3", "v-scale")], "boulder");
+  // #717 -- the headline's own display resolves through each grade's
+  // real gradeScale via reportGradeLabel, not gradeRank's old scale-
+  // oblivious display -- a V-scale-logged best send still renders
+  // correctly once the viewer is actually viewing in V-scale.
+  it("renders a V-scale-logged best send with its correct display label when viewing in V-scale", () => {
+    const text = gapHeadline([null], [pair("V3", "v-scale")], "boulder", "v-scale");
     expect(text).toContain("V3");
+  });
+
+  // #733 -- the real bug this fixes: gapHeadline used to call
+  // gradeDisplayLabelForScale, a DIFFERENT helper that always renders
+  // Boulder grades in V-scale regardless of any picker -- so switching
+  // the report's scale picker relabeled the chart's own points but never
+  // touched this headline text at all. Same entry, two different
+  // viewScaleId values, two different rendered labels -- proves the
+  // headline now actually responds to the picker.
+  it("relabels its own grade mentions when the viewer's chosen scale changes, matching the chart's points", () => {
+    const inFont = gapHeadline([null], [pair("V3", "v-scale")], "boulder", "font");
+    const inVScale = gapHeadline([null], [pair("V3", "v-scale")], "boulder", "v-scale");
+    expect(inFont).toContain("6A");
+    expect(inVScale).toContain("V3");
+  });
+
+  it("defaults to Font/French (never a Non-standard scale) when no viewScaleId is given, matching the picker's own opening default", () => {
+    const boulderText = gapHeadline([null], [pair("7A")], "boulder");
+    expect(boulderText).toContain("7A");
+    const sportText = gapHeadline([null], [pair("6a", "french")], "sport");
+    expect(sportText).toContain("6a");
+  });
+
+  // #733 -- a best send genuinely below Font-standard's own floor has no
+  // representation there at all (reportGradeLabel returns null) -- the
+  // prose can't just drop the mention the way a chart drops a point, so
+  // it falls back to the grade's own logged (Non-standard) scale for
+  // that one mention rather than a broken "(null)" or the raw-string bug
+  // this whole fix exists to close.
+  it("falls back to the grade's own logged scale when the chosen view scale can't represent a below-floor best send", () => {
+    const text = gapHeadline([null], [pair("2+", "font-non-standard")], "boulder", "font");
+    expect(text).toContain("2+");
   });
 });

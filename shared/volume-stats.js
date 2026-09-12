@@ -163,16 +163,42 @@ export function reportGradeOrdinal(grade, gradeScale, type) {
 
 // Converts a report-computed grade into whichever scale the viewer
 // currently has the report displayed in -- the #704 scale picker's whole
-// point. Falls back to the raw grade string if either step can't resolve
-// (an unrecognized scale id, or a viewScaleId this build doesn't know
-// about), same "never throw, degrade to the raw value" stance
-// gradeDisplayLabel/gradeDisplayLabelForScale above already take.
+// point. Falls back to the raw grade string only when resolution itself
+// fails (an unrecognized scale id, or a viewScaleId this build doesn't
+// know about) -- a genuine "we don't know what this is" case, same
+// "never throw, degrade to the raw value" stance gradeDisplayLabel/
+// gradeDisplayLabelForScale above already take.
+//
+// #733 -- a null from scale.toLabel() is DIFFERENT from those and must
+// propagate as null, not fall back to the raw grade: it means the
+// chosen view scale legitimately has no representation for this grade
+// at all (e.g. a Font-non-standard "2+" viewed in Font-standard, whose
+// real floor is "3") -- falling back to the raw un-converted string was
+// exactly the live bug Raven caught (Font showing grades that don't
+// exist in Font), and clamping it up to the scale's lowest label instead
+// would be grade inflation, not a fix (Raven, 2026-09-12). Every caller
+// of this function already treats a null grade/label as "no point here"
+// (the same convention volumeByBucket/gapByBucket/effortByBucket use for
+// a bucket with no data at all), so this grade is simply excluded from
+// that scale's view rather than shown as something it isn't.
 export function reportGradeLabel(grade, gradeScale, type, viewScaleId) {
   const ordinal = reportGradeOrdinal(grade, gradeScale, type);
   if (ordinal === null) return grade;
   const scale = SCALES[viewScaleId];
   if (!scale) return grade;
-  return scale.toLabel(ordinal) ?? grade;
+  return scale.toLabel(ordinal);
+}
+
+// #733 -- shared by every report chart's point-building (performance-
+// trends/gap/rpe-main.js): a bucket's { grade, gradeScale } pair becomes
+// a null POINT (not a point with a null/undefined displayLabel) when the
+// chosen view scale has no representation for that grade at all -- same
+// "null means no point here" convention combo-chart.js already renders
+// as a gap, one place instead of four separate null-checks.
+export function reportGradePoint(pair, type, viewScaleId) {
+  if (!pair) return null;
+  const displayLabel = reportGradeLabel(pair.grade, pair.gradeScale, type, viewScaleId);
+  return displayLabel ? { positionKey: reportGradeOrdinal(pair.grade, pair.gradeScale, type), displayLabel } : null;
 }
 
 // Ascending canonical-ordinal range spanning the discipline's real

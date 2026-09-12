@@ -1,11 +1,21 @@
 // #14 (epic #5 Phase 2) -- pure, DOM-free aggregation over entries data,
 // computed server-side (server/api/performance.js), same convention as
 // every other shared/*-stats.js module in this epic. Reuses shared/
-// volume-stats.js's own bucketIndexForDate/gradeDisplayLabelForScale
-// directly rather than duplicating them -- both modules bucket over the
-// same entries shape, no reason to reimplement that here.
-import { bucketIndexForDate, gradeDisplayLabelForScale, reportPositionOrder } from "./volume-stats.js";
+// volume-stats.js's own bucketIndexForDate/reportGradeLabel directly
+// rather than duplicating them -- both modules bucket over the same
+// entries shape, no reason to reimplement that here.
+import { bucketIndexForDate, reportGradeLabel, reportPositionOrder } from "./volume-stats.js";
 import { gradeOrdinal } from "./grade-data.js";
+
+// Mirrors client/report-grade-scale-picker.js's own DEFAULT_SCALE_BY_TYPE
+// exactly -- gapHeadline is computed server-side (server/api/
+// performance.js) before the client's own picker preference is known, so
+// its first render needs the same "non-standard scales are never the
+// default" fallback the picker itself opens on. The client's own
+// renderGap() always re-calls this with the real, current viewScaleId
+// once it mounts (see performance-gap-main.js), so this default only
+// ever shows in the brief window before that first client-side render.
+const DEFAULT_VIEW_SCALE_BY_TYPE = { boulder: "font", sport: "french" };
 
 // #717 -- flash/send "best so far" used to be tracked as a bare grade
 // string, compared via the 2-arg gradeRank(entry.grade, type) -- the
@@ -109,11 +119,28 @@ function stepIndex(ordinal, positionOrder) {
 // its single best eventual-send grade -- not a per-bucket comparison,
 // since the two bests can legitimately land in different months and the
 // headline is about what's been demonstrated across the whole window.
-export function gapHeadline(flashMaxByBucket, sendMaxByBucket, type) {
+export function gapHeadline(flashMaxByBucket, sendMaxByBucket, type, viewScaleId = DEFAULT_VIEW_SCALE_BY_TYPE[type]) {
   const flashTerm = FLASH_TERM[type];
   const sendTerm = SEND_TERM[type];
   const positionOrder = reportPositionOrder(type);
-  const label = pair => gradeDisplayLabelForScale(pair.grade, pair.gradeScale, type);
+  // #704/#733 -- was gradeDisplayLabelForScale, a DIFFERENT helper that
+  // deliberately always renders Boulder grades in V-scale (the "/V3"
+  // hint next to entry-form.js's own Font picker) regardless of any
+  // report-page scale preference -- reusing it here meant this headline
+  // never responded to the picker at all, unlike the chart's own line
+  // labels (which already used reportGradeLabel below). Found live: the
+  // picker visibly relabels the chart's points but the headline text
+  // stayed stuck in V-scale ("VB") no matter what was selected.
+  //
+  // #733 -- unlike a chart POINT, this prose mention can't just be
+  // dropped when the chosen view scale has no representation for a
+  // grade (e.g. a Font-non-standard "2+" best send, viewed in
+  // Font-standard) -- there's no equivalent of "no point here" for a
+  // sentence about your own best send. Falls back to the grade's own
+  // logged scale for that one mention rather than a broken "(null)" or
+  // reintroducing the raw-string bug this whole fix exists to close.
+  const label = pair => reportGradeLabel(pair.grade, pair.gradeScale, type, viewScaleId)
+    ?? reportGradeLabel(pair.grade, pair.gradeScale, type, pair.gradeScale);
   const ordinalOf = pair => bestGradeOrdinal(pair, type);
 
   const sendGrades = sendMaxByBucket.filter(g => g !== null);

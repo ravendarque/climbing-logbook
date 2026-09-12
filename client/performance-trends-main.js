@@ -25,7 +25,7 @@ import { syncAdminBar } from "./admin-bar.js";
 import { createTimeWindowControl } from "./time-window.js";
 import { createReportGradeScalePicker } from "./report-grade-scale-picker.js";
 import { renderComboChartHtml } from "./combo-chart.js";
-import { reportGradeLabel, reportGradeOrdinal, reportPositionOrder, volumeHeadline } from "../shared/volume-stats.js";
+import { reportGradePoint, reportPositionOrder, volumeHeadline } from "../shared/volume-stats.js";
 import { demoDataUrl, isDemoUsername } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
 
@@ -97,10 +97,10 @@ function renderTrends() {
   // volumeByBucket()), not a bare string assumed to be in the
   // discipline's primary scale -- resolves correctly regardless of
   // which of the discipline's real scales that particular send was
-  // logged in.
-  const points = maxGradeByBucket.map(pair => pair
-    ? { positionKey: reportGradeOrdinal(pair.grade, pair.gradeScale, type), displayLabel: reportGradeLabel(pair.grade, pair.gradeScale, type, viewScaleId) }
-    : null);
+  // logged in. #733 -- a null point (not just a null label) when the
+  // chosen view scale can't represent that grade at all, rather than
+  // showing it as something it isn't.
+  const points = maxGradeByBucket.map(pair => reportGradePoint(pair, type, viewScaleId));
 
   trendsRootEl.innerHTML = renderComboChartHtml({
     bucketLabels: buckets,
