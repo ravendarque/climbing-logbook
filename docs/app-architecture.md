@@ -1094,6 +1094,34 @@ authority" note).
 Design spec: `docs/superpowers/specs/2026-09-10-configurable-grade-systems-design.md`.
 Implementation plan: `docs/superpowers/plans/2026-09-11-grade-canonical-model.md`.
 
+**Sub-issue E (#705) — the "Grade scales & conversion" reference page**
+(`/:username/performance/grades`, `client/performance-grades-main.js` +
+`client/grade-scale-matrix.js`) renders the full cross-scale matrix for
+whichever discipline is active: one row per the discipline's own
+reference scale (`FONT_STANDARD` for Boulder, `FRENCH_STANDARD` for
+Sport — the same choice #704's `REPORT_PRIMARY_SCALE` made, for the same
+reason: the one scale per discipline with an exhaustive, non-interpolated
+label list), one column per that discipline's own scales, each cell
+resolved through `scale.toLabel(ordinal)`. A coarser scale's label
+naturally repeats across more than one row (V-scale's 2-wide steps,
+Sport's high-end scales flattening past their own real range) — the
+real, documented lossiness the spec's own "conversions are lossy and
+known to be" section describes, not a bug. The page's own "Sources" list
+is built directly from `GRADE_CONVERSION_MATRIX`, deduped by citation, so
+it can't drift out of sync with the conversions it's citing — the same
+class of drift #698 found in a hand-kept list. `GRADE_CONVERSION_MATRIX`'s
+anchor objects are all named `frenchAnchor` regardless of discipline
+(every Sport anchor really is against French-standard, but Boulder's one
+entry — V-scale — is anchored against Font-standard instead), so the
+citation renderer looks up the correct reference-scale name per
+discipline rather than hardcoding "French". Reads no live API — like
+every other Performance Insights page it's gated by owned route +
+Athlete Mode, but unlike its siblings it renders no per-user data at all,
+only #702's already-committed conversion data. Linked from both scale
+pickers' own popovers (#703's `client/entry-form.js`, #704's
+`client/report-grade-scale-picker.js`) via a "What's this?" footer link,
+and from the Performance Insights hub page as its own tile.
+
 `buildRow()`/`rowToJson()` (`server/api/logbook.js`, `server/api/places.js`,
 `server/api/locations.js`, alongside the shared `server/lib/d1-resource.js`
 factory) reconstruct these fixed shapes from the incoming payload on

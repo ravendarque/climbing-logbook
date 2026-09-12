@@ -57,8 +57,19 @@ export function createReportGradeScalePicker({ containerEl, getType, onChange })
       </button>
       <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 bg-background border border-border rounded-app p-[.35rem] min-w-full w-max max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="report-grade-scale-popover" role="listbox" aria-label="Grade scale" hidden>
         <ul class="max-h-[13rem] overflow-y-auto m-0 p-0 list-none" id="report-grade-scale-listbox"></ul>
+        <!-- #705 -- same "What's this?" link as #703's own entry-form
+             picker (public/log/index.html), pointing at the reference
+             page. location.pathname's own leading segment is USERNAME on
+             every page this picker is used from (the three performance-
+             report composition roots), same extraction every one of them
+             already does for itself -- no need to thread it through this
+             factory's own params. -->
+        <a class="block text-[.72rem] text-accent text-center pt-[.4rem] mt-[.2rem] border-t border-border hover:brightness-90" id="report-grade-scale-reference-link" href="#">What's this?</a>
       </div>
     </div>`;
+
+  const username = location.pathname.split("/").filter(Boolean)[0] || "";
+  containerEl.querySelector("#report-grade-scale-reference-link").href = `/${encodeURIComponent(username)}/performance/grades`;
 
   const btnLabel = containerEl.querySelector("#report-grade-scale-btn-label");
   const picker = createListPicker({

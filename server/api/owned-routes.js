@@ -44,6 +44,10 @@ const SHELL_PATHS = {
   "performance/trends": "/performance/trends/index.html",
   "performance/gap": "/performance/gap/index.html",
   "performance/rpe": "/performance/rpe/index.html",
+  // #705 -- reads only A's (#702) already-committed data, no live API;
+  // still gated the same as every other Performance Insights page (owned
+  // route + Athlete Mode), per the design spec's own scoping.
+  "performance/grades": "/performance/grades/index.html",
   // #498 -- the cold-start/delta full-sync interstitial (ADR-0019).
   // Session-gated the same as every other owned page here -- it reads
   // the same session-scoped /logbook/api/logbook data /log itself does,
