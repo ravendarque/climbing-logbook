@@ -15,8 +15,8 @@ import { mockApi } from "./mock-api.js";
 
 const SEED = {
   entries: [
-    { id: "e1", placeId: "p1", type: "boulder", status: "send", grade: "6A", date: "2026-05-01", name: "Boulder Seed" },
-    { id: "e2", placeId: "p1", type: "sport", status: "send", grade: "6a", date: "2026-05-02", name: "Sport Seed", sportStyle: "lead" },
+    { id: "e1", placeId: "p1", type: "boulder", status: "send", grade: "6A", gradeScale: "font", date: "2026-05-01", name: "Boulder Seed" },
+    { id: "e2", placeId: "p1", type: "sport", status: "send", grade: "6a", gradeScale: "french", date: "2026-05-02", name: "Sport Seed", sportStyle: "lead" },
   ],
   places: [{ id: "p1", locationId: "l1", area: "" }],
   locations: [{ id: "l1", name: "Test Crag", country: "United Kingdom" }],
@@ -156,6 +156,69 @@ test("archived climbs are hidden by default (#63), shown once explicitly filtere
   await expect(page.locator("#sections")).not.toContainText("Archived Seed");
   await expect(page.locator('#filter-status-group input[data-filter="archived"]')).not.toBeChecked();
   await expect(page.locator('#filter-status-group input[data-filter="flash"]')).toBeChecked();
+});
+
+// #708 -- replaces the old min/max grade-range slider with a multi-
+// select grade-tier filter, and extends the free-text search to also
+// match the as-logged grade label.
+test("grade-tier filter narrows the table by tier, and Clear restores every tier", async ({ page }) => {
+  await gotoLogHarness(page, {
+    ...SEED,
+    entries: [
+      ...SEED.entries,
+      // "9A" is Boulder's Hyper Elite tier (shared/grade-data.js's own
+      // GRADE_TIER_THRESHOLDS); "6A" (Boulder Seed, already in SEED) is
+      // Intermediate.
+      { id: "e3", placeId: "p1", type: "boulder", status: "send", grade: "9A", gradeScale: "font", date: "2026-05-04", name: "Elite Roof" },
+    ],
+  });
+
+  await expect(page.locator("#sections")).toContainText("Boulder Seed");
+  await expect(page.locator("#sections")).toContainText("Elite Roof");
+
+  await page.locator("#filter-btn").click();
+  // Every tier starts checked -- "means exactly what it contains," same
+  // convention as the Status group's own default-checked rows above.
+  await expect(page.locator('#filter-grade-tier-group input[data-grade-tier="intermediate"]')).toBeChecked();
+  await expect(page.locator('#filter-grade-tier-group input[data-grade-tier="hyper-elite"]')).toBeChecked();
+
+  await page.locator('#filter-grade-tier-group label:has(input[data-grade-tier="hyper-elite"])').click();
+  await expect(page.locator("#sections")).toContainText("Boulder Seed");
+  await expect(page.locator("#sections")).not.toContainText("Elite Roof");
+  await expect(page.locator("#filter-btn.active")).toHaveCount(1);
+
+  await page.locator("#filter-clear-btn").click();
+  await expect(page.locator("#sections")).toContainText("Elite Roof");
+  await expect(page.locator('#filter-grade-tier-group input[data-grade-tier="hyper-elite"]')).toBeChecked();
+});
+
+test("search matches an as-logged grade label, case-insensitively, per the modifier rule", async ({ page }) => {
+  await gotoLogHarness(page, {
+    ...SEED,
+    entries: [
+      ...SEED.entries,
+      { id: "e3", placeId: "p1", type: "boulder", status: "send", grade: "7A+", gradeScale: "font", date: "2026-05-04", name: "Plus Route" },
+    ],
+  });
+
+  // No trailing modifier -- matches the base regardless of the entry's
+  // own modifier: bare "6a" matches bare "6A" (Boulder Seed) and does not
+  // pull in "7A+" (a different base entirely); "7a" matches "7A+" (same
+  // base, modifier stripped) even though the search text carries no "+".
+  await page.locator("#search").fill("6a");
+  await expect(page.locator("#sections")).toContainText("Boulder Seed");
+  await expect(page.locator("#sections")).not.toContainText("Plus Route");
+
+  await page.locator("#search").fill("7a");
+  await expect(page.locator("#sections")).toContainText("Plus Route");
+  await expect(page.locator("#sections")).not.toContainText("Boulder Seed");
+
+  // Trailing modifier -- matches the full label only, not the bare base.
+  await page.locator("#search").fill("7a+");
+  await expect(page.locator("#sections")).toContainText("Plus Route");
+
+  await page.locator("#search").fill("7a-");
+  await expect(page.locator("#sections")).not.toContainText("Plus Route");
 });
 
 test("adds and then deletes an entry via the Add/Edit modal", async ({ page }) => {
