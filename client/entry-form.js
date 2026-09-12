@@ -11,13 +11,14 @@
 // store.applyPendingQueue() are all Store mutations, so main.js's
 // render() (the Store's sole subscriber) picks up every change here on
 // its own; nothing in this module needs to trigger it manually.
+import { escapeHtml } from "./escape-html.js";
 import { SCALES, SCALES_BY_DISCIPLINE, gradeOrdinal, gradeColorForScale, nonStandardLabel, parseNonStandardLabel } from "../shared/grade-data.js";
 import { gradeDisplayLabelForScale } from "../shared/volume-stats.js";
 import { flashLabel, sendLabel, nameLabel, hydrateStatusIcons } from "./status.js";
 import { createPlacePicker } from "./place-picker.js";
 import { createMoveRowList } from "./move-tagging.js";
 import { validateEntryShape } from "../shared/entry-schema.js";
-import { createListPicker, renderOptionList } from "./modal-utils.js";
+import { createDisclosure, createListPicker, renderOptionList } from "./modal-utils.js";
 
 const ERROR_MSG_CLASS = "mt-[.85rem] px-4 py-3 rounded-app text-[.9rem] bg-[color-mix(in_srgb,#f87171_12%,var(--color-surface))] border border-[color-mix(in_srgb,#f87171_40%,transparent)] text-red-400";
 
