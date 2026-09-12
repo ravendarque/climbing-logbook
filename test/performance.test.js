@@ -319,9 +319,13 @@ describe("handleGetGap", () => {
     await postEntry({ type: "boulder", grade: "6B", date: "2026-01-10", firstAttempt: true });
     await postEntry({ type: "sport", grade: "6a", date: "2026-01-12", firstAttempt: false, sportStyle: "lead" });
     const body = await (await getGap(WINDOW)).json();
-    expect(body.boulder.flashMaxByBucket).toEqual([null, "6B", null]);
+    // #717 -- each bucket's own winner is a real { grade, gradeScale }
+    // pair now, not a bare string -- defaultGradeScale() (server/api/
+    // logbook.js) infers font-non-standard/french here since neither
+    // postEntry() call above sets gradeScale explicitly.
+    expect(body.boulder.flashMaxByBucket).toEqual([null, { grade: "6B", gradeScale: "font-non-standard" }, null]);
     expect(body.sport.flashMaxByBucket).toEqual([null, null, null]);
-    expect(body.sport.sendMaxByBucket).toEqual([null, "6a", null]);
+    expect(body.sport.sendMaxByBucket).toEqual([null, { grade: "6a", gradeScale: "french" }, null]);
   });
 
   it("excludes a soft-deleted entry", async () => {

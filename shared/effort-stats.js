@@ -4,8 +4,7 @@
 // volume-stats.js's own volumeByBucket() directly for the grade-line
 // computation -- identical "sends only, max grade per bucket" logic
 // already built and tested there, no reason to reimplement it here.
-import { bucketIndexForDate, volumeByBucket } from "./volume-stats.js";
-import { gradeRank } from "./grade-data.js";
+import { bucketIndexForDate, volumeByBucket, reportGradeOrdinal } from "./volume-stats.js";
 
 // Same placeholder value as shared/tag-stats-helpers.js's own
 // MIN_TAG_COUNT, but a distinctly-named local constant -- this gates on
@@ -76,8 +75,16 @@ function firstLastIndicesWithData(hasDataFlags) {
 export function effortHeadline(maxGradeByBucket, avgExertionByBucket, rpeCountByBucket, overallAvgExertion, totalSends, type) {
   if (totalSends < MIN_SEND_SAMPLE) return null;
 
+  // #717 -- maxGradeByBucket entries are now { grade, gradeScale } pairs
+  // (shared/volume-stats.js's own volumeByBucket() fix), and this is
+  // purely a trend DIRECTION check (is the later bucket harder than the
+  // earlier one), not a display -- compares each pair's own canonical
+  // ordinal directly rather than gradeRank's scale-oblivious rank, same
+  // fix #728/gap-stats.js's own equivalent comparisons already made.
   const gradeRange = firstLastIndicesWithData(maxGradeByBucket.map(g => g !== null));
-  const gradeTrendUp = gradeRange !== null && gradeRank(maxGradeByBucket[gradeRange[1]], type) > gradeRank(maxGradeByBucket[gradeRange[0]], type);
+  const gradeTrendUp = gradeRange !== null &&
+    reportGradeOrdinal(maxGradeByBucket[gradeRange[1]].grade, maxGradeByBucket[gradeRange[1]].gradeScale, type) >
+    reportGradeOrdinal(maxGradeByBucket[gradeRange[0]].grade, maxGradeByBucket[gradeRange[0]].gradeScale, type);
 
   const rpeRange = firstLastIndicesWithData(rpeCountByBucket.map(c => c > 0));
   const exertionTrendUp = rpeRange !== null && (avgExertionByBucket[rpeRange[1]] - avgExertionByBucket[rpeRange[0]]) >= EXERTION_RISE_MARGIN;

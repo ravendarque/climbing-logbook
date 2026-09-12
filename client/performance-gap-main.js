@@ -97,12 +97,14 @@ function renderGap() {
   const positionOrder = reportPositionOrder(type);
 
   // #704 -- positionKey is the canonical ordinal now, not a raw grade
-  // string -- see performance-trends-main.js's own equivalent comment.
-  const flashPoints = flashMaxByBucket.map(grade => grade
-    ? { positionKey: reportGradeOrdinal(grade, type), displayLabel: reportGradeLabel(grade, type, viewScaleId) }
+  // string. #717 -- each bucket's own winner is a real
+  // { grade, gradeScale } pair now -- see performance-trends-main.js's
+  // own equivalent comment.
+  const flashPoints = flashMaxByBucket.map(pair => pair
+    ? { positionKey: reportGradeOrdinal(pair.grade, pair.gradeScale, type), displayLabel: reportGradeLabel(pair.grade, pair.gradeScale, type, viewScaleId) }
     : null);
-  const sendPoints = sendMaxByBucket.map(grade => grade
-    ? { positionKey: reportGradeOrdinal(grade, type), displayLabel: reportGradeLabel(grade, type, viewScaleId) }
+  const sendPoints = sendMaxByBucket.map(pair => pair
+    ? { positionKey: reportGradeOrdinal(pair.grade, pair.gradeScale, type), displayLabel: reportGradeLabel(pair.grade, pair.gradeScale, type, viewScaleId) }
     : null);
 
   const chartHtml = renderComboChartHtml({
