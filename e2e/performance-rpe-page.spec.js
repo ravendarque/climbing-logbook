@@ -29,7 +29,7 @@ test("renders the exertion bars and grade-labeled line once the confidence gate 
     effortData: {
       boulder: {
         buckets: ["-3w", "-2w", "-1w"],
-        maxGradeByBucket: [null, "6B", "6C"],
+        maxGradeByBucket: [null, { grade: "6B", gradeScale: "font-non-standard" }, { grade: "6C", gradeScale: "font-non-standard" }],
         // #603 -- the first bucket has no grade data either, so its
         // exertion bar is null too, not a genuine 0 (same rule as
         // performance-gap-page.spec.js).
@@ -59,7 +59,7 @@ test("switching the report grade scale relabels the chart's grade point", async 
     effortData: {
       boulder: {
         buckets: ["-3w", "-2w", "-1w"],
-        maxGradeByBucket: [null, "6B", "6C"],
+        maxGradeByBucket: [null, { grade: "6B", gradeScale: "font-non-standard" }, { grade: "6C", gradeScale: "font-non-standard" }],
         avgExertionByBucket: [null, 70, 85],
         headline: "Your effort is rising alongside your grade -- sounds like it's paying off.",
       },
