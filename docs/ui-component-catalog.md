@@ -260,6 +260,111 @@ opens the citations overlay:
 of both patterns, since Performance Insights is where evidence-tiering
 exists at all.)
 
+## List-picker (button + popover)
+
+**Definition:** `client/modal-utils.js`'s `createListPicker`/
+`renderOptionList` — a button that opens a `role="listbox"` popover
+below it (`top-[calc(100%+.4rem)]`, `rounded-app` border, the same
+drop-shadow every popover in the app uses), each row a `role="option"`
+with an invisible-until-`aria-selected` checkmark. Built for #703 to
+replace a native `<select>` — a native select's own OPEN dropdown panel
+is OS/browser-rendered chrome that plain CSS can't restyle to match this
+convention, the same reason every other picker in the app (place picker,
+discipline picker, header menu) was already built this way rather than
+as a real `<select>`.
+
+**When to use:** any single-select field where the option list itself
+needs real styling (not just the closed trigger) — a grade value, which
+scale is active, anything a native `<select>`'s own chrome would
+otherwise leak through on.
+
+| Dark | Light |
+|---|---|
+| ![list-picker button + popover](ui-component-catalog/list-picker-dark.png) | ![list-picker button + popover](ui-component-catalog/list-picker-light.png) |
+
+```html
+<div class="relative" id="grade-value-wrap">
+  <button type="button" class="grade-select w-full py-[.65rem]" id="grade-value-btn" aria-haspopup="listbox" aria-expanded="false"></button>
+  <div class="absolute top-[calc(100%+.4rem)] left-0 z-20 bg-background border border-border rounded-app p-[.35rem] min-w-full w-max max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="grade-value-popover" role="listbox" aria-label="Grade" hidden>
+    <ul class="max-h-[13rem] overflow-y-auto m-0 p-0 list-none" id="grade-value-listbox"></ul>
+  </div>
+</div>
+```
+
+Each `<li>` `renderOptionList` generates:
+
+```html
+<li role="option" data-key="6B" aria-selected="true" class="flex items-center justify-between gap-[.5rem] px-[.6rem] py-[.5rem] rounded-[calc(var(--radius-app)-2px)] cursor-pointer text-[.85rem] text-foreground hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible">
+  6B
+  <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+</li>
+```
+
+Open/close/outside-click/Escape is `client/modal-utils.js`'s
+`createDisclosure` (same as the Modal / overlay shape above uses
+`createModalHelpers`) — never hand-roll that part. `client/entry-form.js`
+(grade value, scale, and the Non-standard number/letter/modifier fields)
+and `client/report-grade-scale-picker.js` (#704) are the two real
+consumers.
+
+**A form-field trigger is `text-[1rem]` regular weight, matching its
+row's other fields** — `.grade-select`'s own `font-size`/`font-weight`
+(`styles/tailwind.css`) had drifted to `.85rem`/`700` (carried over
+unquestioned from `grade-badge`'s own *display* styling, a different
+context) before #703's review pass caught it: Name/Place/Date on the
+same row are `1rem` regular, and the smaller font-size was quietly
+producing a shorter line-height too, reading as the whole control being
+too short even though its padding matched. Worth checking directly
+(`getComputedStyle`) against a real sibling field, not assumed, if a
+future control in this family looks subtly off.
+
+## Date picker (calendar popover)
+
+**Definition:** `client/entry-form.js`'s date-picker section — a real
+month-grid popover (Prev/Next month header, a 7-column weekday grid),
+same button+popover shape as the list-picker above, built for #703's
+review pass to replace a native `<input type="date">` + `.showPicker()`
+call. That native picker's own open panel is OS/browser chrome for the
+identical reason a native `<select>`'s dropdown is — unstylable, so it
+never matched this app's own popover convention.
+
+**When to use:** any full-date (`YYYY-MM-DD`) selection. It can't
+represent a partial date (`YYYY-MM`, no day) — `client/entry-form.js`'s
+own date field keeps its free-text input alongside this button for
+exactly that case; the picker only ever writes a complete date.
+
+| Dark | Light |
+|---|---|
+| ![date picker calendar popover](ui-component-catalog/date-picker-dark.png) | ![date picker calendar popover](ui-component-catalog/date-picker-light.png) |
+
+```html
+<div class="relative flex-[0_0_2.75rem]" id="date-picker-wrap">
+  <button type="button" class="w-full h-full flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent" id="date-picker-btn" aria-haspopup="dialog" aria-expanded="false" aria-label="Pick a date">
+    <svg class="w-[1.1rem] h-[1.1rem] stroke-current" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+      <line x1="3" y1="10" x2="21" y2="10"></line>
+      <line x1="8" y1="3" x2="8" y2="7"></line>
+      <line x1="16" y1="3" x2="16" y2="7"></line>
+    </svg>
+  </button>
+  <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 bg-background border border-border rounded-app p-[.6rem] w-[16rem] max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="date-picker-popover" role="dialog" aria-label="Pick a date" hidden>
+    <!-- Prev/Next month header + weekday row -- see client/entry-form.js's own renderDatePicker() -->
+    <div class="grid grid-cols-7 gap-[.15rem]" id="date-picker-grid"></div>
+  </div>
+</div>
+```
+
+Each day cell:
+
+```html
+<button type="button" class="h-7 flex items-center justify-center rounded-[calc(var(--radius-app)-2px)] text-[.78rem] text-foreground border-0 bg-transparent cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] aria-selected:bg-accent aria-selected:text-accent-foreground aria-selected:hover:bg-accent aria-[current=date]:font-bold aria-[current=date]:text-accent" data-date="2026-09-13" aria-selected="true" aria-current="false">13</button>
+```
+
+The displayed month is its own state, independent of the field's actual
+value — Prev/Next is browsing, not selecting. It only re-syncs to
+whatever the field currently holds each time the popover opens, same
+"render on open" convention `createListPicker` above already uses.
+
 ## Not yet in this catalog
 
 Deliberately deferred rather than guessed at, since neither was part of
@@ -270,6 +375,6 @@ the original motivating gap:
   its own variation (icon vs. no-icon, single vs. multi-select) that it
   deserves its own entry written with more care than a quick addition
   here would give it.
-- Form-field patterns from `entry-form.js`'s modal (grade picker,
-  status toggle, sport-style toggle) — same reasoning as filter-panel
-  patterns above.
+- Status/sport-style toggle groups from `entry-form.js`'s modal — same
+  reasoning as filter-panel patterns above (the grade/date pickers that
+  used to sit in this same bucket now have their own entries, above).
