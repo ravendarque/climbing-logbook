@@ -34,7 +34,32 @@ test("renders real bars and a grade-labeled line point", async ({ page }) => {
 
   await expect(page.locator("#trends-root")).toContainText("10 sends logged in this window, busiest period had 5.");
   await expect(page.locator("#trends-root svg")).toBeVisible();
-  await expect(page.locator("#trends-root")).toContainText("V4"); // gradeDisplayLabel("6B", "boulder")
+  // #704 -- default report scale is Font (never a Non-standard scale, and
+  // never an unconditional V-scale-only rendering the way this page used
+  // to work) -- Font's own native label for this exact grade is "6B",
+  // same text as the seeded raw grade.
+  await expect(page.locator("#trends-root")).toContainText("6B");
+});
+
+// #704 -- proves the scale picker actually changes what a chart renders,
+// not just that a default label appears.
+test("switching the report grade scale relabels the chart's grade point", async ({ page }) => {
+  await mockApi(page, {
+    settings: { athleteMode: true, activeDiscipline: "boulder" },
+    volumeData: {
+      boulder: { buckets: ["-3w", "-2w", "-1w"], sendCounts: [2, 5, 3], maxGradeByBucket: [null, "6B", "6C"] },
+      lead: { buckets: ["-3w", "-2w", "-1w"], sendCounts: [0, 0, 0], maxGradeByBucket: [null, null, null] },
+    },
+  });
+  await page.goto("/e2e-fixtures/pages/performance-trends.html");
+  await expect(page.locator("#trends-root")).toContainText("6B");
+
+  await page.locator("#report-grade-scale-btn").click();
+  await page.locator('#report-grade-scale-listbox [role="option"]', { hasText: "V-scale" }).click();
+  await expect(page.locator("#trends-root")).toContainText("V4"); // reportGradeLabel("6B", "boulder", "v-scale")
+
+  // Persists to localStorage, same as #703's own entry-form preference.
+  expect(await page.evaluate(() => localStorage.getItem("logbook_grade_scale_reports_boulder"))).toBe("v-scale");
 });
 
 test("switching the time window to 52w re-fetches with a wider range", async ({ page }) => {

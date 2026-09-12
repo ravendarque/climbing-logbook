@@ -23,9 +23,9 @@ import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
 import { syncAdminBar } from "./admin-bar.js";
 import { createTimeWindowControl } from "./time-window.js";
+import { createReportGradeScalePicker } from "./report-grade-scale-picker.js";
 import { renderComboChartHtml } from "./combo-chart.js";
-import { gradeDisplayLabel, volumeHeadline } from "../shared/volume-stats.js";
-import { BOULDER_GRADES, LEAD_GRADES } from "../shared/grade-data.js";
+import { reportGradeLabel, reportGradeOrdinal, reportPositionOrder, volumeHeadline } from "../shared/volume-stats.js";
 import { demoDataUrl, isDemoUsername } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
 
@@ -60,6 +60,7 @@ document.getElementById("back-to-performance-link").href = `/${encodeURIComponen
 
 const trendsRootEl = document.getElementById("trends-root");
 const timeWindowRootEl = document.getElementById("time-window-root");
+const reportGradeScaleRootEl = document.getElementById("report-grade-scale-root");
 const offlineEl = document.getElementById("performance-offline");
 
 let latestVolumeData = null;
@@ -71,23 +72,37 @@ let latestVolumeData = null;
 // scoped to this file's own onChange callback instead of a <select>.
 let latestVolumeRequestId = 0;
 
-function positionOrderFor(type) {
-  return (type === "boulder" ? BOULDER_GRADES : LEAD_GRADES).map(x => x.g);
-}
+// #704 -- which scale this page currently renders grades in, one
+// preference shared across every report page (not #703's own,
+// per-add/edit-form preference). Constructed after `store` exists
+// (below) since its onChange re-renders through this file's own
+// renderTrends().
+const gradeScalePicker = createReportGradeScalePicker({
+  containerEl: reportGradeScaleRootEl,
+  getType: () => store.getActiveType(),
+  onChange: renderTrends,
+});
 
 function renderTrends() {
   if (!latestVolumeData) return;
   const type = store.getActiveType();
   const { buckets, sendCounts, maxGradeByBucket } = latestVolumeData[type];
+  const viewScaleId = gradeScalePicker.getScaleId();
 
+  // #704 -- positionKey is now the canonical ordinal, not a raw grade
+  // string -- scale-independent by construction (#702), so a point
+  // plots correctly regardless of which scale its own displayLabel
+  // renders in. reportGradeOrdinal/reportGradeLabel both assume the
+  // entry's grade is in the discipline's primary stored scale (#717
+  // tracks the real per-entry-scale follow-up).
   const points = maxGradeByBucket.map(grade => grade
-    ? { positionKey: grade, displayLabel: gradeDisplayLabel(grade, type) }
+    ? { positionKey: reportGradeOrdinal(grade, type), displayLabel: reportGradeLabel(grade, type, viewScaleId) }
     : null);
 
   trendsRootEl.innerHTML = renderComboChartHtml({
     bucketLabels: buckets,
     bars: [{ label: "Sends", values: sendCounts }],
-    lines: [{ label: "Max grade", points, positionOrder: positionOrderFor(type) }],
+    lines: [{ label: "Max grade", points, positionOrder: reportPositionOrder(type) }],
     headline: volumeHeadline(sendCounts),
   });
 }
@@ -95,6 +110,7 @@ function renderTrends() {
 function render() {
   headerChrome.updateDisciplinePicker();
   updateAdminBar();
+  gradeScalePicker.refresh(); // discipline may have changed under us
   renderTrends();
 }
 

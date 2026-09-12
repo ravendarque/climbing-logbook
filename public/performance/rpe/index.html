@@ -77,7 +77,12 @@
     <p class="text-[.82rem] text-muted mt-2">Reconnect and reload this page to see your effort trend.</p>
   </div>
 
-  <div id="time-window-root" class="mb-4"></div>
+  <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
+    <div id="time-window-root"></div>
+    <!-- #704 -- which of this discipline's scales the chart below
+         renders grades in; client/report-grade-scale-picker.js. -->
+    <div id="report-grade-scale-root"></div>
+  </div>
   <div id="rpe-root"></div>
   <div id="evidence-overlay-root"></div>
 

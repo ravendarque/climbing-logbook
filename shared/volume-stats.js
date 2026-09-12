@@ -4,7 +4,7 @@
 // stats.js/shared/strengths-stats.js. Sends only -- same scoping
 // shared/pyramid-stats.js's own pyramidCounts() already applies for this
 // exact kind of aggregate.
-import { BOULDER_GRADES, gradeRank, gradeOrdinal, V_SCALE } from "./grade-data.js";
+import { BOULDER_GRADES, gradeRank, gradeOrdinal, V_SCALE, SCALES, FONT_STANDARD, FRENCH_STANDARD } from "./grade-data.js";
 
 // #600 -- replaces the old calendar-month bucketing (monthBuckets/
 // bucketLabel): a real send log has no reason to snap to calendar-month
@@ -116,6 +116,53 @@ export function gradeDisplayLabelForScale(grade, scaleId, type) {
   if (type !== "boulder") return grade;
   const ordinal = gradeOrdinal(grade, scaleId);
   return ordinal === null ? grade : V_SCALE.toLabel(ordinal);
+}
+
+// #704 -- assumes every entry's grade is in the discipline's PRIMARY
+// stored scale (matching #702's own migration backfill: font-non-standard
+// for Boulder, french for Sport) -- correct for every entry that exists
+// today, since #703's picker is the only way a user could ever log in a
+// different scale, and no report-aggregation call site
+// (volumeByBucket/gapByBucket/effortByBucket below and in gap-stats.js)
+// threads each entry's own gradeScale through yet. A known, tracked
+// limitation, not a silent gap -- see #717 (follow-up: real per-entry
+// scale-aware report aggregation), filed alongside this sub-issue.
+const REPORT_PRIMARY_SCALE = { boulder: "font-non-standard", sport: "french" };
+
+export function reportGradeOrdinal(grade, type) {
+  return gradeOrdinal(grade, REPORT_PRIMARY_SCALE[type] ?? REPORT_PRIMARY_SCALE.boulder);
+}
+
+// Converts a report-computed raw grade (assumed to be in the discipline's
+// primary scale, see reportGradeOrdinal above) into whichever scale the
+// viewer currently has the report displayed in -- the #704 scale picker's
+// whole point. Falls back to the raw grade string if either step can't
+// resolve (an unrecognized scale id, or a viewScaleId this build doesn't
+// know about), same "never throw, degrade to the raw value" stance
+// gradeDisplayLabel/gradeDisplayLabelForScale above already take.
+export function reportGradeLabel(grade, type, viewScaleId) {
+  const ordinal = reportGradeOrdinal(grade, type);
+  if (ordinal === null) return grade;
+  const scale = SCALES[viewScaleId];
+  if (!scale) return grade;
+  return scale.toLabel(ordinal) ?? grade;
+}
+
+// Ascending canonical-ordinal range spanning the discipline's real
+// picker -- client/combo-chart.js's own positionOrder, generalized to
+// work regardless of which scale a report is currently displaying in:
+// ordinal position is scale-independent by construction (#702's whole
+// point), so a chart point plots correctly no matter which scale its own
+// displayLabel happens to be rendered in. Deliberately FONT_STANDARD/
+// FRENCH_STANDARD here, not REPORT_PRIMARY_SCALE's own Non-standard
+// scales above -- font-non-standard/french don't have a `.labels` array
+// at all (they're the structured-field scales, not a flat list -- see
+// #703), but they share the exact same canonical ordinal space as
+// Font-standard/French-standard, so either pair spans the identical
+// real range regardless of which one supplies it.
+export function reportPositionOrder(type) {
+  const scale = type === "boulder" ? FONT_STANDARD : FRENCH_STANDARD;
+  return scale.labels.map(label => scale.toOrdinal(label));
 }
 
 export function volumeHeadline(sendCounts) {
