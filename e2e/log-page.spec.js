@@ -434,13 +434,24 @@ test("choosing Font (Non-standard) switches to the number/letter/modifier fields
   await page.locator('#grade-scale-listbox [role="option"]', { hasText: "Font (Non-standard)" }).click();
   await expect(page.locator("#grade-value-wrap")).toBeHidden();
   await expect(page.locator("#grade-ns-fields")).toBeVisible();
-
-  await page.locator("#grade-ns-number-btn").click();
-  await page.locator('#grade-ns-number-listbox [role="option"]', { hasText: "6" }).click();
+  // Raven, 2026-09-12 -- "no letter"/"no modifier" reads as "n/a",
+  // lowercase, both on the trigger and as the popover's own first option.
+  await expect(page.locator("#grade-ns-letter-btn")).toHaveText("n/a");
+  await expect(page.locator("#grade-ns-modifier-btn")).toHaveText("n/a");
   await page.locator("#grade-ns-letter-btn").click();
-  await page.locator('#grade-ns-letter-listbox [role="option"]', { hasText: "a" }).click();
+  await expect(page.locator('#grade-ns-letter-listbox [role="option"][data-key=""]')).toHaveText("n/a");
+  await page.locator("#grade-ns-letter-btn").click();
+
+  // Exact data-key match, not hasText -- a substring match on "a" now
+  // also matches the "n/a" (Raven, 2026-09-12) no-value option, the same
+  // strict-mode-violation class every other picker in this file avoids
+  // by keying on data-key instead.
+  await page.locator("#grade-ns-number-btn").click();
+  await page.locator('#grade-ns-number-listbox [role="option"][data-key="6"]').click();
+  await page.locator("#grade-ns-letter-btn").click();
+  await page.locator('#grade-ns-letter-listbox [role="option"][data-key="a"]').click();
   await page.locator("#grade-ns-modifier-btn").click();
-  await page.locator('#grade-ns-modifier-listbox [role="option"]', { hasText: "+" }).click();
+  await page.locator('#grade-ns-modifier-listbox [role="option"][data-key="+"]').click();
 
   await Promise.all([
     page.waitForResponse(res => res.url().includes("/logbook/api/admin/logbook") && res.request().method() === "POST"),

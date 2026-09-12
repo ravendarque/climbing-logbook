@@ -219,7 +219,11 @@ export function createEntryForm({
   const NS_NUMBERS = Array.from({ length: 9 }, (_, i) => i + 1);
   const NS_LETTERS = [null, "a", "b", "c"];
   const NS_MODIFIERS = [null, "-", "+"];
-  function nsButtonLabel(v) { return v === null ? "–" : String(v); }
+  // Raven, 2026-09-12: "no letter"/"no modifier" reads as "n/a", lowercase
+  // -- not an en dash (that read as a placeholder/unset state, when null
+  // is actually a real, selectable value here, same as every other
+  // letter/modifier option).
+  function nsButtonLabel(v) { return v === null ? "n/a" : String(v); }
 
   let nsNumber = 1, nsLetter = null, nsModifier = null;
 
