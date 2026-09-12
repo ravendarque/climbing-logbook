@@ -109,18 +109,24 @@ describe("handleImport", () => {
     expect(errors[0].error).toMatch(/^discipline must be one of/);
   });
 
+  // #703 -- "6a" is no longer a meaningful invalid-Boulder-grade case: it's
+  // genuinely valid now, via font-non-standard's identical
+  // number+letter+modifier shape (both Non-standard scales share the same
+  // combinatorial space). "VI+" (UIAA notation, Sport-only) is still
+  // invalid for Boulder under any of its scales -- see shared/entry-
+  // schema.test.js's own equivalent fix for the full reasoning.
   it("reports every invalid row, not just the first", async () => {
-    const res = await importCsv([csvRow({ grade: "6a" }), csvRow({ status: "flashed" })]);
+    const res = await importCsv([csvRow({ grade: "VI+" }), csvRow({ status: "flashed" })]);
     expect(res.status).toBe(400);
     const { errors } = await res.json();
     expect(errors).toEqual([
-      { row: 2, error: expect.stringMatching(/^grade must be one of/) },
+      { row: 2, error: expect.stringMatching(/^grade is not a valid grade for/) },
       { row: 3, error: expect.stringMatching(/^status must be one of/) },
     ]);
   });
 
   it("writes nothing when any row is invalid (all-or-nothing)", async () => {
-    const res = await importCsv([csvRow(), csvRow({ grade: "6a" })]);
+    const res = await importCsv([csvRow(), csvRow({ grade: "VI+" })]);
     expect(res.status).toBe(400);
 
     const entries = await (await fetchJson("/logbook/api/logbook", { headers: { Cookie: cookie } })).json();
@@ -222,7 +228,7 @@ describe("handleImport (JSON, #639)", () => {
   });
 
   it("writes nothing when any entry is invalid (all-or-nothing, same as CSV)", async () => {
-    const res = await importJson([jsonEntry(), jsonEntry({ grade: "6a" })]);
+    const res = await importJson([jsonEntry(), jsonEntry({ grade: "VI+" })]);
     expect(res.status).toBe(400);
     const entries = await (await fetchJson("/logbook/api/logbook", { headers: { Cookie: cookie } })).json();
     expect(entries.entries).toEqual([]);

@@ -137,13 +137,24 @@
    not an actual design choice, and <select> doesn't inherit font-family
    from its ancestors by default in any browser (same as every other
    form control) -- inherit explicitly rather than relying on landing in
-   the same layer-cascade order as the app-wide form-control fix. */
+   the same layer-cascade order as the app-wide form-control fix.
+   font-size matches Name/Place/Date's own 1rem (Raven, 2026-09-12) --
+   previously .85rem, same as grade-badge's, but that's this row's own
+   *display* size, not a reason for the entry-form's INPUT controls to
+   run smaller than every sibling field. The smaller font pulled the
+   line box short too: with identical py-[.65rem] padding, its "normal"
+   line-height rendered ~3px shorter than Name/Place/Date's own
+   1rem-driven height (41.6px), which read as the whole row being too
+   short even though the vertical padding was always correct. Not bold
+   either (Raven, 2026-09-12) -- grade-badge's own 700 weight was carried
+   over unquestioned, but Name/Place/Date are all regular weight; these
+   are still input controls, not the display badges grade-badge is. */
 @utility grade-select {
   border: 1px solid color-mix(in srgb, var(--grade-badge-ink) 22%, transparent);
   border-radius: var(--radius-app);
   color: var(--grade-badge-ink);
-  font-size: .85rem;
-  font-weight: 700;
+  font-size: 1rem;
+  font-weight: 400;
   font-family: inherit;
   text-align: center;
   text-align-last: center;

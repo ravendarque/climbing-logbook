@@ -421,17 +421,33 @@ selected":
 
 | Preference | Scope | Default when never set |
 |---|---|---|
-| `gradeScale.entry.<discipline>` | the add/edit form's grade picker only | Font (Non-standard) / French |
-| `gradeScale.reports.<discipline>` | performance reports only — **not** the logbook, which always shows as-logged (requirement 4) | Font (Non-standard) / French |
+| `gradeScale.entry.<discipline>` | the add/edit form's grade picker only | Font / French |
+| `gradeScale.reports.<discipline>` | performance reports only — **not** the logbook, which always shows as-logged (requirement 4) | Font / French |
+
+**Correction, 2026-09-11 (sub-issue B):** the default was originally
+written as "Font (Non-standard) / French" — wrong, caught during B's
+implementation. A Non-standard scale is never the default for either
+discipline; it exists specifically for when a guidebook's own notation
+doesn't match the real published scale, not as the ordinary starting
+point. Boulder defaults to plain `font`; Sport was already correct
+(`french`).
 
 Renamed from `gradeScale.view.*` in the first draft, which implied every
 view (including the logbook) shared one displayed scale — that's no
 longer true.
 
-Stored the same way the app already persists lightweight client
-preferences (match the existing discipline-picker / theme-toggle
-persistence, whatever that is — `localStorage` or a settings row; follow
-precedent, don't invent).
+**Persistence, confirmed during B's implementation:** the "discipline
+picker" precedent this section originally pointed to turned out not to
+persist at all (`client/store.js`'s `activeType` is in-memory only, reset
+from real entries data on every load) — the actual precedent is
+`client/theme-toggle.js`'s plain, direct `localStorage` calls (not
+`store.js`'s injectable-storage abstraction, which exists for testability
+of a module `entry-form.js` doesn't share). `gradeScale.entry.<discipline>`
+is stored as two plain keys, `logbook_grade_scale_entry_boulder`/
+`logbook_grade_scale_entry_sport`, guarded the same defensive way
+(`try`/`catch` around every call) since `entry-form.js` has no test file
+of its own today but the pattern costs nothing to keep consistent with
+the rest of this codebase's `localStorage` usage.
 
 ## Delivery — sub-issues (dependency order)
 

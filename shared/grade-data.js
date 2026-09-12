@@ -64,10 +64,11 @@ export function parseNonStandardLabel(label) {
   };
 }
 
-function makeNonStandardScale(id, discipline) {
+function makeNonStandardScale(id, discipline, name) {
   return {
     id,
     discipline,
+    name,
     toOrdinal(label) {
       const parsed = parseNonStandardLabel(label);
       return parsed ? nonStandardOrdinal(parsed.number, parsed.letter, parsed.modifier) : null;
@@ -88,8 +89,8 @@ function makeNonStandardScale(id, discipline) {
 // above). Both delegate to the identical function -- per Raven's
 // explicit call, there are no per-discipline parameters left; the only
 // difference between the two is `id`/`discipline`.
-export const FONT_NON_STANDARD = makeNonStandardScale("font-non-standard", "boulder");
-export const FRENCH_NON_STANDARD = makeNonStandardScale("french-non-standard", "sport");
+export const FONT_NON_STANDARD = makeNonStandardScale("font-non-standard", "boulder", "Font (Non-standard)");
+export const FRENCH_NON_STANDARD = makeNonStandardScale("french-non-standard", "sport", "French (Non-standard)");
 
 // #702 -- Font-standard and French-standard both decompose exactly
 // through the same number+letter+modifier shape parseNonStandardLabel
@@ -101,7 +102,7 @@ export const FRENCH_NON_STANDARD = makeNonStandardScale("french-non-standard", "
 // hand-duplicate" fix this whole rework exists to make (the #698
 // BOULDER_ORDER drift bug was exactly two hand-kept lists of the same
 // data going out of sync).
-function makeParsedScale(id, discipline, labels) {
+function makeParsedScale(id, discipline, name, labels) {
   const byLabel = new Map();
   const byOrdinal = new Map();
   for (const label of labels) {
@@ -114,6 +115,12 @@ function makeParsedScale(id, discipline, labels) {
   return {
     id,
     discipline,
+    name,
+    // #703 -- the entry-form/reports pickers need each scale's own
+    // ordered label list to populate a dropdown; a copy (not the
+    // original array reference) so a consumer can't mutate this scale's
+    // own internal order.
+    labels: [...labels],
     toOrdinal(label) { return byLabel.get(String(label).toLowerCase()) ?? null; },
     toLabel(ordinal) { return byOrdinal.get(ordinal) ?? null; },
   };
@@ -123,14 +130,14 @@ const FONT_STANDARD_LABELS = [
   "3","3+","4","4+","5","5+","6A","6A+","6B","6B+","6C","6C+",
   "7A","7A+","7B","7B+","7C","7C+","8A","8A+","8B","8B+","8C","8C+","9A",
 ];
-export const FONT_STANDARD = makeParsedScale("font", "boulder", FONT_STANDARD_LABELS);
+export const FONT_STANDARD = makeParsedScale("font", "boulder", "Font", FONT_STANDARD_LABELS);
 
 const FRENCH_STANDARD_LABELS = [
   "1","2","3a","3b","3c","4a","4b","4c","5a","5a+","5b","5b+","5c","5c+",
   "6a","6a+","6b","6b+","6c","6c+","7a","7a+","7b","7b+","7c","7c+",
   "8a","8a+","8b","8b+","8c","8c+","9a","9a+","9b","9b+","9c","9c+",
 ];
-export const FRENCH_STANDARD = makeParsedScale("french", "sport", FRENCH_STANDARD_LABELS);
+export const FRENCH_STANDARD = makeParsedScale("french", "sport", "French", FRENCH_STANDARD_LABELS);
 
 // #702 -- V-scale doesn't decompose through the number/letter/modifier
 // shape at all (VB/V0-/V0/V0+/V1... isn't that pattern) -- an explicit
@@ -152,6 +159,12 @@ const V_SCALE_UPPER = { v3: "6A+", v4: "6B+", v5: "6C+", v8: "7B+" };
 export const V_SCALE = {
   id: "v-scale",
   discipline: "boulder",
+  name: "V-scale (Hueco)",
+  // #703 -- V_SCALE_TO_FONT's own keys are already in ascending order
+  // (object literal insertion order, verified by every test asserting
+  // this scale's monotonicity) -- reused directly rather than a third
+  // hand-kept copy of the same 21 labels.
+  labels: Object.keys(V_SCALE_TO_FONT).map(k => k.toUpperCase()),
   toOrdinal(label) {
     const font = V_SCALE_TO_FONT[String(label).toLowerCase()];
     return font ? FONT_STANDARD.toOrdinal(font) : null;
@@ -180,7 +193,7 @@ export const V_SCALE = {
 // that same ordinal (zero-width interpolation), which is exactly the
 // "coarse scale, several ordinals->one label" shape the spec already
 // documents for these scales.
-function makeAnchoredScale(id, labels, anchors) {
+function makeAnchoredScale(id, name, labels, anchors) {
   const anchorIndex = new Map(anchors.map(a => [a.label, FRENCH_STANDARD.toOrdinal(a.frenchAnchor)]));
   const ordinalByLabel = new Map();
   let lastAnchorPos = -1, lastAnchorOrdinal = null;
@@ -240,6 +253,8 @@ function makeAnchoredScale(id, labels, anchors) {
   return {
     id,
     discipline: "sport",
+    name,
+    labels: [...labels],
     toOrdinal(label) { return ordinalByLowerLabel.get(String(label).toLowerCase()) ?? null; },
     toLabel(ordinal) {
       if (labelByOrdinal.has(ordinal)) return labelByOrdinal.get(ordinal);
@@ -263,7 +278,7 @@ const UIAA_LABELS = [
 const UIAA_ANCHORS = [
   { label: "VI+", frenchAnchor: "6a", source: "Wikipedia: Grade (climbing)" },
 ];
-export const UIAA_SCALE = makeAnchoredScale("uiaa", UIAA_LABELS, UIAA_ANCHORS);
+export const UIAA_SCALE = makeAnchoredScale("uiaa", "UIAA", UIAA_LABELS, UIAA_ANCHORS);
 
 const YDS_LABELS = [
   "5.0","5.1","5.2","5.3","5.4","5.5","5.6","5.7","5.8","5.9",
@@ -274,7 +289,7 @@ const YDS_LABELS = [
 const YDS_ANCHORS = [
   { label: "5.10a", frenchAnchor: "6a", source: "Wikipedia: Grade (climbing)" },
 ];
-export const YDS_SCALE = makeAnchoredScale("yds", YDS_LABELS, YDS_ANCHORS);
+export const YDS_SCALE = makeAnchoredScale("yds", "YDS", YDS_LABELS, YDS_ANCHORS);
 
 const NORWEGIAN_LABELS = [
   "1","1+","2-","2","2+","3-","3","3+","4-","4","4+","5-","5","5+",
@@ -286,13 +301,13 @@ const NORWEGIAN_ANCHORS = [
   { label: "6-", frenchAnchor: "6a", source: "theCrag: Norwegian grade conversion" },
   { label: "9+", frenchAnchor: "8c", source: "theCrag: Norwegian grade conversion" },
 ];
-export const NORWEGIAN_SCALE = makeAnchoredScale("norwegian", NORWEGIAN_LABELS, NORWEGIAN_ANCHORS);
+export const NORWEGIAN_SCALE = makeAnchoredScale("norwegian", "Norwegian", NORWEGIAN_LABELS, NORWEGIAN_ANCHORS);
 
 const EWBANK_LABELS = Array.from({ length: 40 }, (_, i) => String(i + 1));
 const EWBANK_ANCHORS = [
   { label: "18", frenchAnchor: "6a", source: "Wikipedia: Grade (climbing)" },
 ];
-export const EWBANK_SCALE = makeAnchoredScale("ewbank", EWBANK_LABELS, EWBANK_ANCHORS);
+export const EWBANK_SCALE = makeAnchoredScale("ewbank", "Australian (Ewbank)", EWBANK_LABELS, EWBANK_ANCHORS);
 
 // #702 -- the committed conversion matrix: every anchor used above, in
 // one place, with its source -- what sub-issue E's reference page reads

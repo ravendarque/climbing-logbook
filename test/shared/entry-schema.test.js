@@ -52,9 +52,19 @@ describe("validateEntryShape", () => {
     expect(validateEntryShape(validEntry({ type: "trad" }))).toMatch(/^type must be one of/);
   });
 
-  it("rejects a grade not valid for the entry's type", () => {
-    // "6a" is a valid *sport* grade, not a valid boulder grade
-    expect(validateEntryShape(validEntry({ type: "boulder", grade: "6a" }))).toMatch(/^grade must be one of/);
+  // #703 -- "6a" is no longer a meaningful cross-discipline-leak test:
+  // it's now genuinely valid for Boulder too, via font-non-standard's
+  // identical number+letter+modifier shape (both Non-standard scales
+  // share the same combinatorial space -- shared/grade-data.js's
+  // nonStandardOrdinal). Documented explicitly, not an oversight.
+  it("accepts \"6a\" for boulder now -- valid under font-non-standard, ambiguous by design when no gradeScale is given", () => {
+    expect(validateEntryShape(validEntry({ type: "boulder", grade: "6a" }))).toBeNull();
+  });
+
+  it("rejects a grade not valid for the entry's type in any of its scales", () => {
+    // "VI+" is UIAA notation -- a Sport-only scale, no Boulder scale
+    // (font/font-non-standard/v-scale) recognizes it at all.
+    expect(validateEntryShape(validEntry({ type: "boulder", grade: "VI+" }))).toMatch(/^grade is not a valid grade for/);
   });
 
   // #430 -- Lead renamed to Sport.

@@ -227,6 +227,26 @@ describe("SCALES / SCALES_BY_DISCIPLINE", () => {
       "norwegian","uiaa","v-scale","yds",
     ]);
   });
+  // #703 -- every scale needs a human-readable display name for the
+  // entry-form/reports pickers (and, later, the reference page).
+  it("every scale has a real, non-empty display name", () => {
+    for (const scale of Object.values(SCALES)) {
+      expect(typeof scale.name).toBe("string");
+      expect(scale.name.length).toBeGreaterThan(0);
+    }
+  });
+  // #703 -- the 7 data-driven scales expose their own ordered label list
+  // (for the entry-form/reports pickers' dropdowns); the 2 Non-standard
+  // scales don't need one -- pickers use the structured field UI for
+  // those instead, never a flat dropdown.
+  it("every data-driven scale exposes its own ordered, non-empty labels array", () => {
+    for (const scale of Object.values(SCALES)) {
+      if (scale.id === "font-non-standard" || scale.id === "french-non-standard") continue;
+      expect(Array.isArray(scale.labels)).toBe(true);
+      expect(scale.labels.length).toBeGreaterThan(0);
+      for (const label of scale.labels) expect(scale.toOrdinal(label)).not.toBeNull();
+    }
+  });
   it("splits by discipline correctly", () => {
     expect(SCALES_BY_DISCIPLINE.boulder.map(s => s.id).sort()).toEqual(["font","font-non-standard","v-scale"]);
     expect(SCALES_BY_DISCIPLINE.sport.map(s => s.id).sort()).toEqual(["ewbank","french","french-non-standard","norwegian","uiaa","yds"]);

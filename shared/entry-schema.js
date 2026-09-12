@@ -17,7 +17,7 @@
 // the same way, so it's the one that actually delivers "shared" rather than
 // "server-only in practice."
 import * as v from "valibot";
-import { BOULDER_GRADES, LEAD_GRADES, SCALES_BY_DISCIPLINE } from "./grade-data.js";
+import { BOULDER_GRADES, LEAD_GRADES, SCALES_BY_DISCIPLINE, gradeOrdinal } from "./grade-data.js";
 
 // #430 -- Lead renamed to Sport (Lead and Top Rope are both sport
 // climbing, sharing one grading scale -- VALID_GRADES.sport below).
@@ -176,20 +176,37 @@ export const entrySchema = v.pipe(
       addIssue({ message: `type must be one of: ${VALID_TYPES.join(", ")}`, path: fieldPath(entry, "type") });
       return; // grade's own valid set depends on a type we don't have
     }
-    if (!VALID_GRADES[entry.type].includes(entry.grade)) {
-      addIssue({ message: `grade must be one of: ${VALID_GRADES[entry.type].join(", ")}`, path: fieldPath(entry, "grade") });
-      return;
-    }
-    // #702 -- optional, not required: client/entry-form.js doesn't send
-    // this yet (sub-issue #703 adds the picker that will). Validated
-    // only when present, so every current entry create/edit keeps
-    // working completely unchanged until #703 ships.
+    // #703 -- validated before grade below, not just after: a bad
+    // gradeScale should get its own clear error rather than surfacing as
+    // a confusing "grade is invalid" once the check below can no longer
+    // tell which scale was meant. Optional, not required -- an older
+    // client (or a row from before #703 shipped) may omit it entirely,
+    // and the server defaults it sensibly on write either way
+    // (server/api/logbook.js's defaultGradeScale()).
     if (entry.gradeScale !== undefined && entry.gradeScale !== null) {
       const validScaleIds = SCALES_BY_DISCIPLINE[entry.type]?.map(s => s.id) ?? [];
       if (!validScaleIds.includes(entry.gradeScale)) {
         addIssue({ message: `gradeScale must be one of: ${validScaleIds.join(", ")}`, path: fieldPath(entry, "gradeScale") });
         return;
       }
+    }
+    // #703 -- re-pointed from the old VALID_GRADES[entry.type].includes()
+    // check, which only ever recognized BOULDER_GRADES/LEAD_GRADES' own
+    // frozen ~44-entry hybrid list (#702's Global Constraints deliberately
+    // left this exact re-pointing for this sub-issue, once entries could
+    // genuinely be logged in any of the 9 scales -- French/UIAA/YDS/
+    // Norwegian/Ewbank grades, and the full Non-standard combinatorial
+    // space, were never valid Boulder/Sport grades under the old check at
+    // all). When gradeScale is given, grade must resolve within that
+    // exact scale; when it's absent, grade must resolve in at least one
+    // of the discipline's scales (the server infers which one on write).
+    const candidateScaleIds = entry.gradeScale
+      ? [entry.gradeScale]
+      : (SCALES_BY_DISCIPLINE[entry.type]?.map(s => s.id) ?? []);
+    if (!candidateScaleIds.some(id => gradeOrdinal(entry.grade, id) !== null)) {
+      const scope = entry.gradeScale ? `scale "${entry.gradeScale}"` : `type ${entry.type}`;
+      addIssue({ message: `grade is not a valid grade for ${scope}`, path: fieldPath(entry, "grade") });
+      return;
     }
     if (!VALID_STATUSES.includes(entry.status)) {
       addIssue({ message: `status must be one of: ${VALID_STATUSES.join(", ")}`, path: fieldPath(entry, "status") });

@@ -410,11 +410,15 @@ describe("handlePost", () => {
     expect((await res.json()).error).toMatch(/^type must be one of/);
   });
 
-  it("rejects a grade not valid for the entry's type", async () => {
-    // "6a" is a valid *lead* grade, not a valid boulder grade
-    const res = await post({ ...validEntry(), type: "boulder", grade: "6a" });
+  // #703 -- "6a" is now genuinely valid for Boulder too, via
+  // font-non-standard's identical number+letter+modifier shape -- see
+  // shared/entry-schema.test.js's own equivalent test for the reasoning.
+  it("rejects a grade not valid for the entry's type in any of its scales", async () => {
+    // "VI+" is UIAA notation -- a Sport-only scale, no Boulder scale
+    // recognizes it at all.
+    const res = await post({ ...validEntry(), type: "boulder", grade: "VI+" });
     expect(res.status).toBe(400);
-    expect((await res.json()).error).toMatch(/^grade must be one of/);
+    expect((await res.json()).error).toMatch(/^grade is not a valid grade for/);
   });
 
   // #430/#646 -- 'lead' fully retired now (this test used to cover it

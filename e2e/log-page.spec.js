@@ -188,6 +188,41 @@ test("adds and then deletes an entry via the Add/Edit modal", async ({ page }) =
   await expect(page.locator("#sections")).not.toContainText(entryName);
 });
 
+// #703-review, Raven 2026-09-12 -- the date field's own calendar
+// popover, replacing the native <input type="date"> + showPicker() this
+// used before (real month-grid markup, same button+popover convention as
+// every other picker in this form -- see public/log/index.html's own
+// comment on this markup).
+test("date picker: opens on the field's current month, navigates, selects a day, and re-syncs on reopen", async ({ page }) => {
+  await gotoLogHarness(page);
+  await page.locator("#add-btn").click();
+  await expect(page.locator("#entry-overlay")).toBeVisible();
+
+  await page.locator("#entry-date").fill("2026-08-15");
+  await page.locator("#date-picker-btn").click();
+  await expect(page.locator("#date-picker-popover")).toBeVisible();
+  await expect(page.locator("#date-picker-month-label")).toHaveText("August 2026");
+  await expect(page.locator('#date-picker-grid button[data-date="2026-08-15"]')).toHaveAttribute("aria-selected", "true");
+
+  await page.locator("#date-picker-next-month").click();
+  await expect(page.locator("#date-picker-month-label")).toHaveText("September 2026");
+  // Navigating away from the selected month is a view change, not a new
+  // selection -- nothing in September should read as selected.
+  await expect(page.locator('#date-picker-grid button[aria-selected="true"]')).toHaveCount(0);
+
+  await page.locator("#date-picker-prev-month").click();
+  await expect(page.locator("#date-picker-month-label")).toHaveText("August 2026");
+  await page.locator('#date-picker-grid button[data-date="2026-08-03"]').click();
+  await expect(page.locator("#date-picker-popover")).toBeHidden();
+  await expect(page.locator("#entry-date")).toHaveValue("2026-08-03");
+
+  // Reopening re-syncs the view to whatever the field now holds, not
+  // wherever navigation last left it.
+  await page.locator("#date-picker-btn").click();
+  await expect(page.locator("#date-picker-month-label")).toHaveText("August 2026");
+  await expect(page.locator('#date-picker-grid button[data-date="2026-08-03"]')).toHaveAttribute("aria-selected", "true");
+});
+
 // #430/#643 -- Lead/Top-Rope style control, shown only for a Sport entry.
 // Same gotoLogHarness/mockApi harness and #add-btn/#entry-overlay pattern
 // as the modal test above.
@@ -395,6 +430,126 @@ test("editing an entry pre-populates its existing moves into the right list", as
   await expect(page.locator("#hardest-moves-list [data-move-row]")).toHaveCount(1);
   await expect(page.locator("#easiest-moves-list [data-move-row]")).toHaveCount(0);
   await expect(page.locator("#pain-moves-list [data-move-row]")).toHaveCount(1);
+});
+
+// #703 -- entry-form grade scale picker (sub-issue B of #183). Same
+// gotoLogHarness/mockApi harness and #add-btn/#entry-overlay open
+// pattern as every other entry-modal test above.
+test("Boulder defaults to the Font scale (button + popover), and the picker lists Boulder's 3 scales", async ({ page }) => {
+  await gotoLogHarness(page);
+  await page.locator("#add-btn").click();
+  await expect(page.locator("#entry-overlay")).toBeVisible();
+
+  await expect(page.locator("#grade-value-btn")).toBeVisible();
+  await expect(page.locator("#grade-ns-fields")).toBeHidden();
+  // Font's own real range starts at "3" -- V0 is its own V-scale hint
+  // (gradeDisplayLabelForScale), same "6A/V3"-style convenience #463
+  // already established.
+  await expect(page.locator("#grade-value-btn")).toHaveText("3/VB");
+
+  await page.locator("#grade-scale-btn").click();
+  await expect(page.locator('#grade-scale-listbox [role="option"]')).toHaveText(["Font", "Font (Non-standard)", "V-scale (Hueco)"]);
+});
+
+test("choosing Font (Non-standard) switches to the number/letter/modifier fields, and submits the built label + scale", async ({ page }) => {
+  await gotoLogHarness(page);
+
+  let submittedBody;
+  await page.route("**/logbook/api/admin/logbook*", async route => {
+    submittedBody = route.request().postDataJSON();
+    await route.fulfill({ status: 201, json: { entries: [{ ...submittedBody, id: "new-id" }] } });
+  });
+
+  await page.locator("#add-btn").click();
+  await page.locator("#entry-name").fill("Non-standard test");
+  await page.locator("#place-btn").click();
+  await page.locator('#place-listbox li[data-key="p1"]').click();
+
+  await page.locator("#grade-scale-btn").click();
+  await page.locator('#grade-scale-listbox [role="option"]', { hasText: "Font (Non-standard)" }).click();
+  await expect(page.locator("#grade-value-wrap")).toBeHidden();
+  await expect(page.locator("#grade-ns-fields")).toBeVisible();
+  // Raven, 2026-09-12 -- "no letter"/"no modifier" reads as "n/a",
+  // lowercase, both on the trigger and as the popover's own first option.
+  await expect(page.locator("#grade-ns-letter-btn")).toHaveText("n/a");
+  await expect(page.locator("#grade-ns-modifier-btn")).toHaveText("n/a");
+  await page.locator("#grade-ns-letter-btn").click();
+  await expect(page.locator('#grade-ns-letter-listbox [role="option"][data-key=""]')).toHaveText("n/a");
+  await page.locator("#grade-ns-letter-btn").click();
+
+  // Exact data-key match, not hasText -- a substring match on "a" now
+  // also matches the "n/a" (Raven, 2026-09-12) no-value option, the same
+  // strict-mode-violation class every other picker in this file avoids
+  // by keying on data-key instead.
+  await page.locator("#grade-ns-number-btn").click();
+  await page.locator('#grade-ns-number-listbox [role="option"][data-key="6"]').click();
+  await page.locator("#grade-ns-letter-btn").click();
+  await page.locator('#grade-ns-letter-listbox [role="option"][data-key="a"]').click();
+  await page.locator("#grade-ns-modifier-btn").click();
+  await page.locator('#grade-ns-modifier-listbox [role="option"][data-key="+"]').click();
+
+  await Promise.all([
+    page.waitForResponse(res => res.url().includes("/logbook/api/admin/logbook") && res.request().method() === "POST"),
+    page.locator("#entry-submit-btn").click(),
+  ]);
+
+  expect(submittedBody.grade).toBe("6a+");
+  expect(submittedBody.gradeScale).toBe("font-non-standard");
+});
+
+test("switching scale preserves the equivalent grade via the shared canonical ordinal", async ({ page }) => {
+  await gotoLogHarness(page);
+  await page.locator("#add-btn").click();
+  await page.locator("#grade-value-btn").click();
+  // Exact data-key match -- a substring hasText match on "6A" also
+  // catches "6A+" (rendered as "6A+/V3").
+  await page.locator('#grade-value-listbox [role="option"][data-key="6A"]').click();
+
+  await page.locator("#grade-scale-btn").click();
+  await page.locator('#grade-scale-listbox [role="option"]', { hasText: "V-scale" }).click();
+  await expect(page.locator("#grade-value-btn")).toHaveText("V3");
+});
+
+test("the entry-form grade scale preference persists to localStorage", async ({ page }) => {
+  await gotoLogHarness(page);
+  await page.locator("#add-btn").click();
+  await page.locator("#grade-scale-btn").click();
+  await page.locator('#grade-scale-listbox [role="option"]', { hasText: "V-scale" }).click();
+
+  // Checks the persisted value directly rather than reloading -- see the
+  // theme-toggle test above's own comment on why (mockApi()'s
+  // addInitScript(() => localStorage.clear()) re-fires on a mid-test
+  // reload too, wiping the just-set preference first).
+  expect(await page.evaluate(() => localStorage.getItem("logbook_grade_scale_entry_boulder"))).toBe("v-scale");
+});
+
+test("editing an entry shows its own actual gradeScale, not the current entry-form preference", async ({ page }) => {
+  await gotoLogHarness(page, {
+    ...SEED,
+    entries: [
+      ...SEED.entries,
+      { id: "e4", placeId: "p1", type: "boulder", status: "send", grade: "6a+", gradeScale: "font-non-standard", date: "2026-05-05", name: "Non-standard Seed" },
+    ],
+  });
+
+  // Sets the entry-form preference to V-scale first, so it genuinely
+  // differs from the seeded entry's own gradeScale below.
+  await page.locator("#add-btn").click();
+  await page.locator("#grade-scale-btn").click();
+  await page.locator('#grade-scale-listbox [role="option"]', { hasText: "V-scale" }).click();
+  await page.locator("#entry-close").click();
+
+  await page.locator("#collapse-all-btn").click();
+  const row = page.locator("tr", { has: page.getByText("Non-standard Seed", { exact: true }) });
+  await row.locator(".edit-btn").click();
+  await expect(page.locator("#entry-overlay")).toBeVisible();
+
+  // Shows the entry's own font-non-standard fields, not V-scale.
+  await expect(page.locator("#grade-ns-fields")).toBeVisible();
+  await expect(page.locator("#grade-value-wrap")).toBeHidden();
+  await expect(page.locator("#grade-ns-number-btn")).toHaveText("6");
+  await expect(page.locator("#grade-ns-letter-btn")).toHaveText("a");
+  await expect(page.locator("#grade-ns-modifier-btn")).toHaveText("+");
 });
 
 test("add-place modal: brand-new location leaves the country field open", async ({ page }) => {
