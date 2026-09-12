@@ -188,6 +188,41 @@ test("adds and then deletes an entry via the Add/Edit modal", async ({ page }) =
   await expect(page.locator("#sections")).not.toContainText(entryName);
 });
 
+// #703-review, Raven 2026-09-12 -- the date field's own calendar
+// popover, replacing the native <input type="date"> + showPicker() this
+// used before (real month-grid markup, same button+popover convention as
+// every other picker in this form -- see public/log/index.html's own
+// comment on this markup).
+test("date picker: opens on the field's current month, navigates, selects a day, and re-syncs on reopen", async ({ page }) => {
+  await gotoLogHarness(page);
+  await page.locator("#add-btn").click();
+  await expect(page.locator("#entry-overlay")).toBeVisible();
+
+  await page.locator("#entry-date").fill("2026-08-15");
+  await page.locator("#date-picker-btn").click();
+  await expect(page.locator("#date-picker-popover")).toBeVisible();
+  await expect(page.locator("#date-picker-month-label")).toHaveText("August 2026");
+  await expect(page.locator('#date-picker-grid button[data-date="2026-08-15"]')).toHaveAttribute("aria-selected", "true");
+
+  await page.locator("#date-picker-next-month").click();
+  await expect(page.locator("#date-picker-month-label")).toHaveText("September 2026");
+  // Navigating away from the selected month is a view change, not a new
+  // selection -- nothing in September should read as selected.
+  await expect(page.locator('#date-picker-grid button[aria-selected="true"]')).toHaveCount(0);
+
+  await page.locator("#date-picker-prev-month").click();
+  await expect(page.locator("#date-picker-month-label")).toHaveText("August 2026");
+  await page.locator('#date-picker-grid button[data-date="2026-08-03"]').click();
+  await expect(page.locator("#date-picker-popover")).toBeHidden();
+  await expect(page.locator("#entry-date")).toHaveValue("2026-08-03");
+
+  // Reopening re-syncs the view to whatever the field now holds, not
+  // wherever navigation last left it.
+  await page.locator("#date-picker-btn").click();
+  await expect(page.locator("#date-picker-month-label")).toHaveText("August 2026");
+  await expect(page.locator('#date-picker-grid button[data-date="2026-08-03"]')).toHaveAttribute("aria-selected", "true");
+});
+
 // #430/#643 -- Lead/Top-Rope style control, shown only for a Sport entry.
 // Same gotoLogHarness/mockApi harness and #add-btn/#entry-overlay pattern
 // as the modal test above.

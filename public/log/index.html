@@ -161,7 +161,7 @@
                   <ul class="max-h-[10rem] overflow-y-auto m-0 p-0 list-none" id="grade-ns-number-listbox"></ul>
                 </div>
               </div>
-              <div class="relative flex-[0_0_2.6rem]" id="grade-ns-letter-wrap">
+              <div class="relative flex-[0_0_3.2rem]" id="grade-ns-letter-wrap">
                 <button type="button" class="grade-select w-full py-[.65rem]" id="grade-ns-letter-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Grade letter"></button>
                 <!-- w-16 (64px) was too narrow once "n/a" (Raven,
                      2026-09-12, replacing the old "–") is the widest
@@ -171,7 +171,7 @@
                   <ul class="m-0 p-0 list-none" id="grade-ns-letter-listbox"></ul>
                 </div>
               </div>
-              <div class="relative flex-[0_0_2.6rem]" id="grade-ns-modifier-wrap">
+              <div class="relative flex-[0_0_3.2rem]" id="grade-ns-modifier-wrap">
                 <button type="button" class="grade-select w-full py-[.65rem]" id="grade-ns-modifier-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Grade modifier"></button>
                 <!-- w-16 -> w-20, same reason as the letter popover above. -->
                 <div class="absolute top-[calc(100%+.4rem)] left-0 z-20 bg-background border border-border rounded-app p-[.35rem] w-20 shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="grade-ns-modifier-popover" role="listbox" aria-label="Grade modifier" hidden>
@@ -181,7 +181,10 @@
             </div>
             <div class="relative flex-[0_0_2.6rem]" id="grade-scale-wrap">
               <button type="button" class="w-full h-full flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent active:scale-[.94]" id="grade-scale-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Change grade scale">
-                <svg class="w-[1.05rem] h-[1.05rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"></path><path d="M4 7h16"></path><path d="m16 21 4-4-4-4"></path><path d="M20 17H4"></path></svg>
+                <!-- Raven, 2026-09-12: "ruler-dimension-line" (Lucide) --
+                     reads as "measure/convert this grade" more directly
+                     than the old swap-arrows glyph. -->
+                <svg class="w-[1.05rem] h-[1.05rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v-3"></path><path d="M14 15v-3"></path><path d="M18 15v-3"></path><path d="M2 8V4"></path><path d="M22 6H2"></path><path d="M22 8V4"></path><path d="M6 15v-3"></path><rect x="2" y="12" width="20" height="8" rx="2"></rect></svg>
               </button>
               <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 bg-background border border-border rounded-app p-[.35rem] w-56 max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="grade-scale-popover" role="listbox" aria-label="Grade scale" hidden>
                 <ul class="m-0 p-0 list-none" id="grade-scale-listbox"></ul>
@@ -193,15 +196,41 @@
           <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Date</div>
           <div class="flex items-stretch gap-2">
             <input type="text" class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent flex-1 min-w-0" id="entry-date">
-            <button type="button" class="flex-[0_0_2.75rem] flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent" id="date-picker-btn" aria-label="Pick a date">
-              <svg class="w-[1.1rem] h-[1.1rem] stroke-current" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="5" width="18" height="16" rx="2"></rect>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-                <line x1="8" y1="3" x2="8" y2="7"></line>
-                <line x1="16" y1="3" x2="16" y2="7"></line>
-              </svg>
-            </button>
-            <input type="date" id="date-native" class="absolute w-px h-px opacity-0 pointer-events-none" tabindex="-1" aria-hidden="true">
+            <!-- #703-review, Raven 2026-09-12 -- a real month-grid popover,
+                 same button+popover convention as every other picker built
+                 this session (createDisclosure, rounded-app border, the
+                 top-[calc(100%+.4rem)] gap, the shadow), replacing the
+                 native <input type="date"> + showPicker() this used
+                 before -- that native picker panel is OS/browser chrome,
+                 unstylable, the exact class of problem this whole
+                 button+popover pattern exists to solve. Only ever needs to
+                 produce a full YYYY-MM-DD (a calendar day grid has no way
+                 to represent "just a month"), same real limit the native
+                 date input already had -- the free-text field above is
+                 still how a YYYY-MM-only date gets entered. -->
+            <div class="relative flex-[0_0_2.75rem]" id="date-picker-wrap">
+              <button type="button" class="w-full h-full flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent" id="date-picker-btn" aria-haspopup="dialog" aria-expanded="false" aria-label="Pick a date">
+                <svg class="w-[1.1rem] h-[1.1rem] stroke-current" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                  <line x1="8" y1="3" x2="8" y2="7"></line>
+                  <line x1="16" y1="3" x2="16" y2="7"></line>
+                </svg>
+              </button>
+              <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 bg-background border border-border rounded-app p-[.6rem] w-[16rem] max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="date-picker-popover" role="dialog" aria-label="Pick a date" hidden>
+                <div class="flex items-center justify-between mb-2">
+                  <button type="button" class="w-7 h-7 flex items-center justify-center border-0 bg-transparent text-foreground cursor-pointer rounded-[calc(var(--radius-app)-2px)] hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)]" id="date-picker-prev-month" aria-label="Previous month">
+                    <svg class="w-[.7rem] h-[.7rem] fill-current" viewBox="0 0 24 24"><polygon points="16 5 6 12 16 19"></polygon></svg>
+                  </button>
+                  <span class="text-[.85rem] font-semibold text-foreground" id="date-picker-month-label"></span>
+                  <button type="button" class="w-7 h-7 flex items-center justify-center border-0 bg-transparent text-foreground cursor-pointer rounded-[calc(var(--radius-app)-2px)] hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)]" id="date-picker-next-month" aria-label="Next month">
+                    <svg class="w-[.7rem] h-[.7rem] fill-current" viewBox="0 0 24 24"><polygon points="8 5 18 12 8 19"></polygon></svg>
+                  </button>
+                </div>
+                <div class="grid grid-cols-7 gap-[.15rem] text-center text-[.68rem] font-semibold text-muted mb-1" id="date-picker-weekdays"></div>
+                <div class="grid grid-cols-7 gap-[.15rem]" id="date-picker-grid"></div>
+              </div>
+            </div>
           </div>
           <div class="text-[.75rem] text-muted mt-[.3rem]">YYYY-MM or YYYY-MM-DD</div>
         </div>

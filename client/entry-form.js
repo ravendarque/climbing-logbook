@@ -52,8 +52,13 @@ export function createEntryForm({
   const gradeNext   = document.getElementById("grade-next");
   const gradeNsFields   = document.getElementById("grade-ns-fields");
   const dateInput  = document.getElementById("entry-date");
-  const dateNative = document.getElementById("date-native");
   const datePickerBtn = document.getElementById("date-picker-btn");
+  const datePickerPopover = document.getElementById("date-picker-popover");
+  const datePickerMonthLabel = document.getElementById("date-picker-month-label");
+  const datePickerWeekdays = document.getElementById("date-picker-weekdays");
+  const datePickerGrid = document.getElementById("date-picker-grid");
+  const datePickerPrevMonth = document.getElementById("date-picker-prev-month");
+  const datePickerNextMonth = document.getElementById("date-picker-next-month");
   const entrySubmitBtn = document.getElementById("entry-submit-btn");
   const entryDeleteBtn = document.getElementById("entry-delete-btn");
   const entryMsg      = document.getElementById("entry-msg");
@@ -446,19 +451,75 @@ export function createEntryForm({
     selectedSportStyle = e.target.value;
   });
 
-  // ── Date picker ──────────────────────────────────────────────────────
-  datePickerBtn.addEventListener("click", () => {
-    const current = dateInput.value.trim();
-    dateNative.value = /^\d{4}-\d{2}-\d{2}$/.test(current)
-      ? current
-      : /^\d{4}-\d{2}$/.test(current)
-        ? `${current}-01`
-        : new Date().toISOString().slice(0, 10);
-    if (dateNative.showPicker) dateNative.showPicker();
-    else dateNative.focus();
+  // ── Date picker (#703-review) ────────────────────────────────────────
+  // A real month-grid popover, same button+popover convention as every
+  // other picker in this form -- see public/log/index.html's own comment
+  // on this markup for why the native <input type="date"> it replaces
+  // had to go. Only ever writes a full YYYY-MM-DD (a day grid can't
+  // represent "just a month") -- the free-text field is still how a
+  // YYYY-MM-only date gets entered, unchanged.
+  const DATE_PICKER_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const DATE_PICKER_WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
+  const DAY_CELL_CLASSES = "h-7 flex items-center justify-center rounded-[calc(var(--radius-app)-2px)] text-[.78rem] text-foreground border-0 bg-transparent cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] aria-selected:bg-accent aria-selected:text-accent-foreground aria-selected:hover:bg-accent aria-[current=date]:font-bold aria-[current=date]:text-accent";
+
+  // The view can navigate away from whatever the field's own value is
+  // (Prev/Next month) without that being a real selection -- kept as its
+  // own state, only re-seeded from the field's current value each time
+  // the popover opens (onOpen below), not on every render.
+  let calendarViewYear, calendarViewMonth; // month is 0-indexed, Date's own convention
+
+  // Accepts the same two shapes the free-text field itself does
+  // (YYYY-MM-DD, YYYY-MM) -- an unparseable or empty value falls back to
+  // today's own month, same fallback the old native-picker code path had.
+  function parseDateFieldValue() {
+    const m = /^(\d{4})-(\d{2})(?:-(\d{2}))?$/.exec(dateInput.value.trim());
+    if (m) return { year: +m[1], month: +m[2] - 1, day: m[3] ? +m[3] : null };
+    const today = new Date();
+    return { year: today.getFullYear(), month: today.getMonth(), day: null };
+  }
+
+  function renderDatePicker() {
+    const selected = parseDateFieldValue();
+    datePickerMonthLabel.textContent = `${DATE_PICKER_MONTHS[calendarViewMonth]} ${calendarViewYear}`;
+    datePickerWeekdays.innerHTML = DATE_PICKER_WEEKDAYS.map(w => `<span>${escapeHtml(w)}</span>`).join("");
+
+    const startWeekday = new Date(calendarViewYear, calendarViewMonth, 1).getDay(); // 0 = Sunday
+    const daysInMonth = new Date(calendarViewYear, calendarViewMonth + 1, 0).getDate();
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    const cells = Array.from({ length: startWeekday }, () => "<span></span>");
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${calendarViewYear}-${String(calendarViewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      const isSelected = selected.year === calendarViewYear && selected.month === calendarViewMonth && selected.day === day;
+      cells.push(`<button type="button" class="${DAY_CELL_CLASSES}" data-date="${dateStr}" aria-selected="${isSelected}" aria-current="${dateStr === todayStr ? "date" : "false"}">${day}</button>`);
+    }
+    datePickerGrid.innerHTML = cells.join("");
+  }
+
+  const { close: closeDatePicker } = createDisclosure(datePickerBtn, datePickerPopover, "#date-picker-wrap", {
+    onOpen: () => {
+      const { year, month } = parseDateFieldValue();
+      calendarViewYear = year;
+      calendarViewMonth = month;
+      renderDatePicker();
+    },
   });
-  dateNative.addEventListener("change", () => {
-    if (dateNative.value) dateInput.value = dateNative.value;
+  datePickerPrevMonth.addEventListener("click", () => {
+    calendarViewMonth--;
+    if (calendarViewMonth < 0) { calendarViewMonth = 11; calendarViewYear--; }
+    renderDatePicker();
+  });
+  datePickerNextMonth.addEventListener("click", () => {
+    calendarViewMonth++;
+    if (calendarViewMonth > 11) { calendarViewMonth = 0; calendarViewYear++; }
+    renderDatePicker();
+  });
+  datePickerGrid.addEventListener("click", e => {
+    const cell = e.target.closest("button[data-date]");
+    if (!cell) return;
+    dateInput.value = cell.dataset.date;
+    closeDatePicker();
+    datePickerBtn.focus();
   });
 
   // ── Modal open/close ─────────────────────────────────────────────────
