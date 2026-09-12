@@ -159,6 +159,15 @@ describe("owned route authorization", () => {
     expect(html).toContain('src="/logbook/performance-rpe-app.js"');
   });
 
+  it("serves the real static shell for performance/grades", async () => {
+    const { cookie } = await createAuthedSession({ username: "gradesshelluser", hostname: "climbinglogbook.com" });
+    const res = await fetchOwnedRoute("gradesshelluser", "performance/grades", { cookie });
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain('id="grade-scale-matrix-root"');
+    expect(html).toContain('src="/logbook/performance-grades-app.js"');
+  });
+
   it("serves the real static shell for log", async () => {
     const { cookie } = await createAuthedSession({ username: "logshelluser", hostname: "climbinglogbook.com" });
     const res = await fetchOwnedRoute("logshelluser", "log", { cookie });
@@ -280,7 +289,7 @@ describe("beta-gated route authorization", () => {
 // shell directly, no DB lookup at all).
 describe("demo account owned pages (#251)", () => {
   it("serves log/map/performance and every performance sub-page shell with no session", async () => {
-    for (const page of ["log", "map", "performance", "performance/pyramid", "performance/injury", "performance/strengths", "performance/trends", "performance/gap", "performance/rpe"]) {
+    for (const page of ["log", "map", "performance", "performance/pyramid", "performance/injury", "performance/strengths", "performance/trends", "performance/gap", "performance/rpe", "performance/grades"]) {
       const res = await fetchOwnedRoute("beginnerdemo", page);
       expect(res.status, `${page} should serve for a demo username with no session`).toBe(200);
     }
