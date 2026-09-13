@@ -6,7 +6,7 @@
 // functions now run in the Worker too (server/api/performance.js computes
 // the full pyramid server-side, so a large logbook never ships raw entries
 // to /performance at all), not just the client.
-import { BOULDER_GRADES, LEAD_GRADES, gradeOrdinal } from "./grade-data.js";
+import { BOULDER_GRADES, LEAD_GRADES, gradeOrdinal, SCALES } from "./grade-data.js";
 
 // 8-4-2-1 is a widely used coaching heuristic (Hörst, Hampton -- see the
 // citations dialog), not a scientifically validated ratio; framed that
@@ -51,7 +51,12 @@ export function isWithinLast12Months(d) {
 // this exact formula -- that's exactly why #702's migration lowercased
 // Boulder's stored grade text to fit it), independent of whatever real
 // scale a given ENTRY was actually logged in.
-const ROW_SCALE_BY_TYPE = { boulder: "font-non-standard", sport: "french-non-standard" };
+// #737 -- exported: buildRows()/pyramidCounts() below need it to know
+// which viewScaleId counts as "the native view" (using BOULDER_GRADES/
+// LEAD_GRADES's own curated list) versus any other scale (using that
+// scale's own `labels`); server/api/performance.js also reads it as the
+// default viewScaleId when a request doesn't specify one.
+export const ROW_SCALE_BY_TYPE = { boulder: "font-non-standard", sport: "french-non-standard" };
 // Fallback only for an entry with no real gradeScale at all -- shouldn't
 // happen for any real row today (#702's migration backfilled every
 // existing row, server/api/logbook.js's defaultGradeScale() guarantees
@@ -59,6 +64,27 @@ const ROW_SCALE_BY_TYPE = { boulder: "font-non-standard", sport: "french-non-sta
 // silently-dropped entry if that guarantee is ever violated, rather than
 // crashing or comparing against `undefined`.
 const DEFAULT_SCALE_BY_TYPE = ROW_SCALE_BY_TYPE;
+
+// #737 -- Raven, 2026-09-12: switching the report scale picker isn't a
+// relabeling of the SAME fixed rows -- "the tiers should represent 4
+// sequential grades in the selected scale." A coarser scale genuinely
+// has fewer real steps than font-non-standard/french-non-standard (e.g.
+// V-scale's V3 spans both Font 6A and 6A+), so viewing in that scale
+// means the row LIST itself changes: 6A and 6A+ become ONE real V3 row
+// with their counts combined, not two rows that happen to share a label
+// (which is what merely relabeling the fixed native rows produced --
+// confirmed live as a real bug, two differently-countED rows both
+// reading "V3").
+//
+// For the discipline's own native (non-standard) scale, rows are still
+// BOULDER_GRADES/LEAD_GRADES's curated, real-climbing-relevant list
+// (unchanged from before this rework). Every OTHER scale a viewer can
+// pick already carries its own finite, curated `labels` list (font/
+// french-standard, v-scale, uiaa, yds, norwegian, ewbank) -- that list
+// IS the real row set for that scale, no separate curation needed.
+function nativeRowLabels(type) {
+  return (type === "boulder" ? BOULDER_GRADES : LEAD_GRADES).map(x => x.g);
+}
 
 // BOULDER_GRADES's own hand-typed order (`1, 1+, 1A, 1B, 1C, 2, ...`)
 // predates the corrected canonical sub-position rule (`2 < 2a+ < 2+`,
@@ -69,26 +95,50 @@ const DEFAULT_SCALE_BY_TYPE = ROW_SCALE_BY_TYPE;
 // checking every ordinal directly), so re-sorting is a real behavior fix
 // for Boulder's low end and a no-op for Sport. Row labels themselves are
 // unchanged -- this corrects matching and ordering, not what the pyramid
-// displays.
-function buildRows(type) {
+// displays. Every non-native scale's own `labels` array is already in
+// real ascending order, so this sort is a no-op there -- kept unified
+// (not branched) since sorting an already-sorted list is cheap and this
+// keeps buildRows() correct even if a scale's own list order ever drifts.
+function buildRows(type, viewScaleId) {
   const rowScale = ROW_SCALE_BY_TYPE[type];
-  return (type === "boulder" ? BOULDER_GRADES : LEAD_GRADES)
-    .map(x => ({ label: x.g, ordinal: gradeOrdinal(x.g, rowScale) }))
+  const labels = viewScaleId === rowScale ? nativeRowLabels(type) : SCALES[viewScaleId].labels;
+  return labels
+    .map(label => ({ label, ordinal: gradeOrdinal(label, viewScaleId) }))
     .sort((a, b) => a.ordinal - b.ordinal);
 }
 
-export function pyramidCounts(type, entries) {
-  const rows = buildRows(type);
+// `viewScaleId` defaults to the discipline's own native row scale --
+// every existing caller (this file's own pyramidSplitRows below, and
+// every existing test) that doesn't pass one keeps its exact prior
+// behavior.
+export function pyramidCounts(type, entries, viewScaleId = ROW_SCALE_BY_TYPE[type]) {
+  const rowScale = ROW_SCALE_BY_TYPE[type];
+  const rows = buildRows(type, viewScaleId);
   const order = rows.map(r => r.label);
   const counts = Object.fromEntries(order.map(g => [g, 0]));
-  const rowByOrdinal = new Map(rows.map(r => [r.ordinal, r.label]));
   const defaultScale = DEFAULT_SCALE_BY_TYPE[type];
+  const isNativeView = viewScaleId === rowScale;
+  // Native view: exact-ordinal match only, same behavior as before this
+  // rework -- BOULDER_GRADES/LEAD_GRADES is a curated SUBSET of the full
+  // non-standard combinatorial space, and an entry at an uncurated sub-
+  // position (e.g. "6a-") isn't silently reassigned to a neighboring row
+  // here (a real, separate, pre-existing gap -- not this rework's to fix).
+  // Non-native view: the chosen scale's own toLabel() already implements
+  // the correct "which real step does this ordinal belong to" resolution
+  // (closest-match for Font/French-standard and the anchored scales,
+  // V-scale's own multi-wide-step floor logic) -- reused directly rather
+  // than a second bucketing algorithm; null (below that scale's own
+  // floor) means the entry is excluded from this view, never inflated
+  // onto a row it doesn't belong at (Raven's own explicit correction,
+  // 2026-09-12).
+  const rowByOrdinal = isNativeView ? new Map(rows.map(r => [r.ordinal, r.label])) : null;
+  const viewScale = SCALES[viewScaleId];
   for (const e of entries) {
     if (e.type !== type || e.status !== "send" || !isWithinLast12Months(e.date)) continue;
     const ordinal = gradeOrdinal(e.grade, e.gradeScale ?? defaultScale);
     if (ordinal === null) continue;
-    const row = rowByOrdinal.get(ordinal);
-    if (row !== undefined) counts[row]++;
+    const row = isNativeView ? rowByOrdinal.get(ordinal) : viewScale.toLabel(ordinal);
+    if (row != null && counts[row] !== undefined) counts[row]++;
   }
   return { order, counts };
 }
@@ -113,39 +163,38 @@ export function pyramidReadyToPromote(order, counts, idx) {
   return true;
 }
 
-// Splits the discipline's full grade order into the 8-4-2-1 window and
-// everything below it (shown collapsed by default -- see show/hide-
-// lower-grades link in renderPyramid). The window used to be "count
-// down 4 tiers from the max sent grade, clamped at the low end", which
-// degraded to a 1-tier "complete" pyramid once max-sent was already
-// the lowest supported grade (#131). It's now a promotion-step anchor,
-// stateless and recomputed fresh from current sends every render: if
-// the top (up to) 3 real tiers already have enough volume to be ready
-// for the next grade up, the window promotes by one -- even into a
-// grade with zero sends yet -- and the display always spans a full 4
-// tiers, extending upward rather than truncating near the list's
+// Splits the discipline's full grade order into the 8-4-2-1 window --
+// a pure 8-4-2-1 report, nothing below it (#737 removed the "Show lower
+// grades" section entirely, see its own note below). The window used to
+// be "count down 4 tiers from the max sent grade, clamped at the low
+// end", which degraded to a 1-tier "complete" pyramid once max-sent was
+// already the lowest supported grade (#131). It's now a promotion-step
+// anchor, stateless and recomputed fresh from current sends every
+// render: if the top (up to) 3 real tiers already have enough volume to
+// be ready for the next grade up, the window promotes by one -- even
+// into a grade with zero sends yet -- and the display always spans a
+// full 4 tiers, extending upward rather than truncating near the list's
 // start. `promotedGrade` marks the single tier (if any) that was just
 // promoted this render, for the achievement-styled treatment; a real
 // send landing at or beyond it on a later render moves `maxSentIdx`
 // there directly, so there's nothing to "un-promote".
-// #209 -- everything below each discipline's Beginner/Intermediate
-// boundary (#462: Boulder `6A`, Sport `6a`) collapses into one
-// aggregated base row in `lower` instead of a rung per grade. #129's own
-// range extension (Boulder down to `1`/`1A`, Sport down to French `1`)
-// means the unaggregated `lower` section could otherwise show dozens of
-// near-empty historical rows -- the pyramid's job is showing progress
-// near the climber's limit, not auditing their entire logged history.
-// Deliberately scoped to `lower` only, never `top4`: a genuine beginner
-// whose near-limit progress sits entirely below this boundary still
-// sees their real per-grade 8-4-2-1 window, not one flattened bucket --
-// the aggregation only declutters the collapsed-by-default section
-// below that window, per #209's own reasoning.
-const BELOW_TIER_THRESHOLD = { boulder: "6A", sport: "6a" };
-
-export function pyramidSplitRows(type, entries) {
-  const { order, counts } = pyramidCounts(type, entries);
+//
+// #209 originally added a "lower" section below this window (everything
+// the climber has ever sent, collapsed below 6A/6a into one aggregated
+// row -- a workaround for the OLD pre-#702 combined grading, where that
+// boundary was also where Font/V-scale naming diverged). #737 first
+// fixed the aggregation's own boundary math, then removed the whole
+// section outright (Raven, 2026-09-13): once every row shows
+// individually (no more lossy aggregation to hide behind), a discipline
+// with fine-grained non-standard notation produces a very long list of
+// mostly-zero rows with no real value -- a per-grade volume BREAKDOWN
+// is a genuinely different, useful report in its own right (tracked
+// separately, #739), not something to bolt onto this one. The pyramid
+// is a pure 8-4-2-1 report now.
+export function pyramidSplitRows(type, entries, viewScaleId = ROW_SCALE_BY_TYPE[type]) {
+  const { order, counts } = pyramidCounts(type, entries, viewScaleId);
   const sentTiers = order.filter(g => counts[g] > 0);
-  if (!sentTiers.length) return { top4: [], lower: [], hasSends: false, promotedGrade: null };
+  if (!sentTiers.length) return { top4: [], hasSends: false, promotedGrade: null };
 
   const maxGrade = sentTiers[sentTiers.length - 1];
   let topIdx = order.indexOf(maxGrade);
@@ -163,41 +212,7 @@ export function pyramidSplitRows(type, entries) {
     .map(g => ({ grade: g, count: counts[g] }))
     .reverse(); // hardest (ideal 1) first
 
-  const firstSentIdx = order.indexOf(sentTiers[0]);
-
-  // `boundary` clamps the discipline's own threshold index into
-  // [firstSentIdx, windowStartIdx] -- the actual span `lower` ever
-  // covers -- so every one of the three real shapes below falls out of
-  // the same slicing logic instead of three hand-written branches:
-  // threshold above the whole span (nothing to aggregate, unchanged
-  // behavior), threshold below the whole span (one aggregated row, no
-  // individual rows), or threshold strictly inside it (both).
-  const belowThresholdGrade = BELOW_TIER_THRESHOLD[type];
-  const boundary = Math.min(Math.max(order.indexOf(belowThresholdGrade), firstSentIdx), windowStartIdx);
-
-  const individual = order.slice(boundary, windowStartIdx)
-    .map(g => ({ grade: g, count: counts[g] }))
-    .reverse();
-
-  const aggregatedRange = order.slice(firstSentIdx, boundary);
-  const lower = aggregatedRange.length
-    ? [
-        ...individual,
-        {
-          // `grade` stays a real grade (the hardest of the aggregated
-          // range) so gradeColor() still resolves a real curated colour
-          // -- "Below 6A" itself isn't a grade `gradeColor()`/`gradeRank()`
-          // know about, and would otherwise fall through to the
-          // fractional-banding fallback at the wrong end of the scale.
-          // `label` carries the actual display text instead.
-          grade: order[boundary - 1],
-          label: `Below ${belowThresholdGrade}`,
-          count: aggregatedRange.reduce((sum, g) => sum + counts[g], 0),
-        },
-      ]
-    : individual;
-
-  return { top4, lower, hasSends: true, promotedGrade };
+  return { top4, hasSends: true, promotedGrade };
 }
 
 // #687 -- the health-card message-selection logic used to live inline in

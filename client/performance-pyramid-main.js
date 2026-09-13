@@ -21,6 +21,7 @@ import { createStore } from "./store.js";
 import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
 import { syncAdminBar } from "./admin-bar.js";
+import { createReportGradeScalePicker } from "./report-grade-scale-picker.js";
 import { demoDataUrl, isDemoUsername } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
 import "./components/climbing-grade-pyramid.js";
@@ -57,21 +58,83 @@ document.getElementById("back-to-performance-link").href = `/${encodeURIComponen
 
 const pyramidEl = document.querySelector("climbing-grade-pyramid");
 const offlineEl = document.getElementById("performance-offline");
+const reportGradeScaleRootEl = document.getElementById("report-grade-scale-root");
+
+// #737 -- which of this discipline's scales the pyramid's rows/health-
+// card render in; the same shared per-discipline
+// `logbook_grade_scale_reports_<type>` preference the trends/gap/rpe
+// reports already use, not a separate pyramid-only one. Unlike those
+// three pages, an explicit scale change here needs a real re-fetch (see
+// loadPyramid() below) -- the ROWS themselves change, not just their
+// label text, which only the full entries dataset server-side can
+// recompute (Raven, 2026-09-12: "the tiers should represent 4 sequential
+// grades in the selected scale").
+const gradeScalePicker = createReportGradeScalePicker({
+  containerEl: reportGradeScaleRootEl,
+  getType: () => store.getActiveType(),
+  onChange: () => loadPyramid(),
+});
 
 function render() {
   headerChrome.updateDisciplinePicker();
   pyramidEl.activeDiscipline = store.getActiveType();
+  // A discipline switch always resolves to a different scale id (each
+  // discipline has its own independent preference), so this also fires
+  // onChange -> an extra loadPyramid() call even though a discipline
+  // switch alone never needs new data (both disciplines' rows are
+  // already in pyramidEl.pyramidData from the last real fetch) -- a
+  // redundant-but-harmless network round-trip, same tradeoff client/
+  // performance-{trends,gap,rpe}-main.js's own render()/refresh()
+  // pairing already accepts for its own (free, client-side-only) resync.
+  gradeScalePicker.refresh();
+  pyramidEl.viewScaleId = gradeScalePicker.getScaleId();
   updateAdminBar();
 }
 
-// #111 -- a plain fetch, not fetch-json.js's loadResource(): that helper
-// assumes a single `{ [key]: array }` shape (defaulting to `[]` on a
-// missing key), but this endpoint returns both disciplines' already-split
-// pyramid results in one object, not a list.
+// #111/#737 -- a plain fetch, not fetch-json.js's loadResource(): that
+// helper assumes a single `{ [key]: array }` shape (defaulting to `[]`
+// on a missing key), but this endpoint returns both disciplines'
+// already-split pyramid results in one object, not a list. Both
+// disciplines' current scale preference go along on every request (not
+// just the active one) -- the server computes both disciplines in one
+// response regardless of which is currently shown.
 async function fetchPyramid() {
-  const res = await fetch(PYRAMID_URL);
+  const params = new URLSearchParams({
+    boulderScale: gradeScalePicker.getScaleIdFor("boulder"),
+    sportScale: gradeScalePicker.getScaleIdFor("sport"),
+  });
+  const res = await fetch(`${PYRAMID_URL}?${params}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
+}
+
+// A rapid scale-picker change could let an earlier, now-stale
+// fetchPyramid() resolve after a later one -- same hazard class client/
+// performance-strengths-main.js's own onAnchorChange() guards against
+// (see that file's own comment), just scoped to this file's own
+// gradeScalePicker.onChange callback instead of a <select>.
+let latestPyramidRequestId = 0;
+
+async function loadPyramid() {
+  const requestId = ++latestPyramidRequestId;
+  try {
+    const data = await fetchPyramid();
+    if (requestId !== latestPyramidRequestId) return; // a newer request has since started
+    // viewScaleId set before pyramidData, and both synchronously (no
+    // await between them) -- setting pyramidData first would briefly
+    // render the NEW rows through the OLD viewScaleId's color mapping;
+    // ordering them this way (plus no yield point in between for the
+    // browser to paint) means the two-property update is atomic from
+    // the viewer's own perspective.
+    pyramidEl.viewScaleId = gradeScalePicker.getScaleId();
+    pyramidEl.pyramidData = data;
+    offlineEl.hidden = true;
+    pyramidEl.hidden = false;
+  } catch {
+    if (requestId !== latestPyramidRequestId) return;
+    offlineEl.hidden = false;
+    pyramidEl.hidden = true;
+  }
 }
 
 function updateAdminBar() {
@@ -87,7 +150,11 @@ const adminAuth = createAdminAuth({
 const headerChrome = createHeaderChrome({
   store, adminFetch, isAuthRedirect,
   adminSettingsUrl: ADMIN_SETTINGS_URL,
-  resetPyramidExpansion: () => pyramidEl.resetExpansion(),
+  // #737 -- <climbing-grade-pyramid>'s own resetExpansion() (the "Show
+  // lower grades" toggle it reset on discipline switch) no longer
+  // exists -- that whole section is gone -- so this page now passes the
+  // same no-op every other composition root already does.
+  resetPyramidExpansion: () => {},
 });
 
 if ("serviceWorker" in navigator) {
@@ -129,14 +196,7 @@ async function boot() {
   // network/server error) shows the "needs a connection" message instead
   // of attempting to render anything -- never a locally-computed or
   // stale-cached number.
-  try {
-    pyramidEl.pyramidData = await fetchPyramid();
-    offlineEl.hidden = true;
-    pyramidEl.hidden = false;
-  } catch {
-    offlineEl.hidden = false;
-    pyramidEl.hidden = true;
-  }
+  await loadPyramid();
 }
 
 boot();

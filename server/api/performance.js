@@ -1,7 +1,8 @@
 import { json } from "../lib/json.js";
 import { listForUser } from "../lib/d1-resource.js";
 import { attachChildRows, rowToJson } from "./logbook.js";
-import { pyramidSplitRows } from "../../shared/pyramid-stats.js";
+import { pyramidSplitRows, ROW_SCALE_BY_TYPE } from "../../shared/pyramid-stats.js";
+import { SCALES_BY_DISCIPLINE } from "../../shared/grade-data.js";
 import { painLogEntries, topPainCluster } from "../../shared/injury-stats.js";
 import { availableAnchors, describeWeakness, rankedForAnchor, topWeakness } from "../../shared/strengths-stats.js";
 import { volumeByBucket, weekBuckets, weekBucketLabel } from "../../shared/volume-stats.js";
@@ -24,13 +25,45 @@ import { effortByBucket, effortHeadline } from "../../shared/effort-stats.js";
 // is owner-only in practice (owned-routes.js gates the page before this
 // bundle ever loads) -- consistent with every other GET route here, not
 // a special case.
+//
+// #737 -- ?boulderScale=<id>&sportScale=<id>: which scale each
+// discipline's rows/health-card text render in. Both disciplines still
+// computed in one response (this file's own header comment's "no
+// re-fetch per discipline switch" reasoning is unchanged), but changing
+// the VIEW SCALE now genuinely changes the row structure itself (Raven,
+// 2026-09-12: "the tiers should represent 4 sequential grades in the
+// selected scale", not a relabeling of fixed rows) -- something only the
+// full entries dataset here can recompute, so
+// client/performance-pyramid-main.js re-fetches on a picker change the
+// same way client/time-window.js's own control changes already do for
+// the other report pages. An unrecognized/missing scale id falls back to
+// the discipline's own native row scale, same defensive default
+// ROW_SCALE_BY_TYPE already provides pyramidCounts() itself.
+// #737 -- a request-supplied scale id reaches this endpoint unauthenticated
+// (this route needs no session, see this function's own header comment)
+// and gets used as a bare object key/property lookup (buildRows()'s own
+// SCALES[viewScaleId].labels) -- an arbitrary or cross-discipline value
+// (Sport's "french" for a Boulder request) would otherwise crash the
+// request or silently mix disciplines' scales, so it's validated against
+// that discipline's own real picker list before use, same "never trust a
+// query param as a safe object key" discipline server/api/logbook.js's
+// own writes already apply.
+function resolveViewScale(type, requested) {
+  const validIds = SCALES_BY_DISCIPLINE[type].map(s => s.id);
+  return validIds.includes(requested) ? requested : ROW_SCALE_BY_TYPE[type];
+}
+
 export async function handleGetPyramid(request, env, userId) {
+  const url = new URL(request.url);
+  const boulderScale = resolveViewScale("boulder", url.searchParams.get("boulderScale"));
+  const sportScale = resolveViewScale("sport", url.searchParams.get("sportScale"));
+
   // #499 -- excludeDeleted: a soft-deleted send shouldn't still count
   // toward the pyramid.
   const entries = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
   return json({
-    boulder: pyramidSplitRows("boulder", entries),
-    sport: pyramidSplitRows("sport", entries),
+    boulder: pyramidSplitRows("boulder", entries, boulderScale),
+    sport: pyramidSplitRows("sport", entries, sportScale),
   }, 200, { "Cache-Control": "no-store" });
 }
 

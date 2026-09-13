@@ -51,8 +51,8 @@ describe("handleGetPyramid", () => {
     const res = await fetchJson(PYRAMID_URL);
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({
-      boulder: { top4: [], lower: [], hasSends: false, promotedGrade: null },
-      sport: { top4: [], lower: [], hasSends: false, promotedGrade: null },
+      boulder: { top4: [], hasSends: false, promotedGrade: null },
+      sport: { top4: [], hasSends: false, promotedGrade: null },
     });
   });
 
@@ -96,9 +96,36 @@ describe("handleGetPyramid", () => {
     const userB = await createAuthedSession();
     const res = await get(userB.cookie);
     expect(await res.json()).toEqual({
-      boulder: { top4: [], lower: [], hasSends: false, promotedGrade: null },
-      sport: { top4: [], lower: [], hasSends: false, promotedGrade: null },
+      boulder: { top4: [], hasSends: false, promotedGrade: null },
+      sport: { top4: [], hasSends: false, promotedGrade: null },
     });
+  });
+
+  // #737 -- ?boulderScale/?sportScale: the picker's whole point is that
+  // the row STRUCTURE itself changes with the chosen scale, not just its
+  // label text (Raven, 2026-09-12) -- verified here end-to-end through
+  // the real HTTP route, not just the pure function.
+  it("builds rows from the requested view scale, not just the native default", async () => {
+    await postEntry({ type: "boulder", grade: "6A", gradeScale: "font-non-standard" });
+    const res = await fetchJson(`${PYRAMID_URL}?boulderScale=v-scale`, { headers: { Cookie: cookie } });
+    const { boulder } = await res.json();
+    expect(boulder.top4.some(r => r.grade === "V3" && r.count === 1)).toBe(true);
+    expect(boulder.top4.some(r => r.grade === "6A")).toBe(false);
+  });
+
+  it("falls back to the discipline's own native scale for an unrecognized or cross-discipline scale id, rather than crashing", async () => {
+    await postEntry({ type: "boulder", grade: "6B" });
+    const bogus = await fetchJson(`${PYRAMID_URL}?boulderScale=not-a-real-scale`, { headers: { Cookie: cookie } });
+    expect(bogus.status).toBe(200);
+    const { boulder: bogusBoulder } = await bogus.json();
+    expect(bogusBoulder.top4.some(r => r.grade === "6B" && r.count === 1)).toBe(true);
+
+    // "french" is a real scale id, just not one of Boulder's own -- must
+    // not be accepted as Boulder's view scale either.
+    const crossDiscipline = await fetchJson(`${PYRAMID_URL}?boulderScale=french`, { headers: { Cookie: cookie } });
+    expect(crossDiscipline.status).toBe(200);
+    const { boulder: crossBoulder } = await crossDiscipline.json();
+    expect(crossBoulder.top4.some(r => r.grade === "6B" && r.count === 1)).toBe(true);
   });
 });
 

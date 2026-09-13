@@ -39,7 +39,7 @@
 // /performance page: esbuild failed outright on "../escape-html.js" since
 // no such file exists at client/escape-html.js either).
 import { escapeHtml } from "./escape-html.js";
-import { gradePyramidColor } from "../../shared/grade-data.js";
+import { gradePyramidColorForScale } from "../../shared/grade-data.js";
 import { PYRAMID_IDEAL_BY_POSITION, pyramidHealth } from "../../shared/pyramid-stats.js";
 import { createModalHelpers } from "../modal-utils.js";
 import { disciplineLabel } from "../status.js";
@@ -113,42 +113,41 @@ function pyramidStatusIcon(actual, ideal, promoted) {
   return { cls: "good", color: "var(--pyramid-status-good)", svg: PYRAMID_ICON_GOOD, label: `Meets or exceeds the ${ideal}-send tier` };
 }
 
-// #209 -- `row.grade` stays a real, colorable grade even for the
-// aggregated "Below 6A"/"Below 6a" base row shared/pyramid-stats.js's
-// pyramidSplitRows() can now return; `row.label`, when present, is the
-// text actually shown, so gradePyramidColor() below never sees a
-// synthetic string it doesn't recognize.
-function pyramidBarRow(row, { ideal = null, scaleMax, lower = false, type, promoted = false } = {}) {
+// #737 -- `row.grade` already arrives from the server in whichever scale
+// the viewer picked (shared/pyramid-stats.js's own buildRows() builds
+// the row LIST itself from that scale, not just its label text) -- this
+// component does no further grade conversion of its own, only needs
+// `viewScaleId` to tell gradePyramidColorForScale() which scale
+// `row.grade` is actually in. `row.label` (an override #209's own
+// aggregated "Below X" base row used to carry) no longer exists at all
+// -- #737 removed that aggregation, see pyramidSplitRows()'s own
+// comment -- so `row.grade` is always the real display text now too.
+// #737 -- was also called for #209's own "lower" section rows (a muted,
+// dimmer/no-ideal-outline treatment via a `lower` flag) -- removed along
+// with that whole section, so every call is now a real top4 row with a
+// real `ideal` count; the conditionals that used to branch on `ideal`
+// possibly being null/absent are gone too.
+function pyramidBarRow(row, { ideal, scaleMax, type, promoted = false, viewScaleId }) {
   const actualPct = row.count === 0 ? 0 : (row.count / scaleMax) * 100;
   // #698 -- per-grade shade across the full palette, not gradeColor()'s
   // flat per-tier colour: the pyramid window is too narrow (~4 grades,
   // <=2 tiers) for tier banding to differentiate the bars.
-  const barColor = gradePyramidColor(row.grade, type);
-  const barStyle = lower
-    ? `width:${actualPct}%; background:${barColor}; filter:saturate(.18) brightness(1.12)`
-    : `width:${actualPct}%; background:${barColor}`;
-  const idealOutline = ideal !== null
-    ? promoted
-      ? `<div class="absolute top-0 left-1/2 -translate-x-1/2 h-full box-border rounded-[4px] border-[1.25px] border-dashed border-pyramid-promoted bg-[color-mix(in_srgb,var(--pyramid-status-promoted)_22%,transparent)] shadow-[0_0_10px_-1px_var(--pyramid-status-promoted)] [filter:drop-shadow(0_0_1px_var(--color-surface))_drop-shadow(0_0_1px_var(--color-surface))] pointer-events-none" style="width:${(ideal / scaleMax) * 100}%"></div>`
-      : `<div class="absolute top-0 left-1/2 -translate-x-1/2 h-full box-border rounded-[4px] border-[1.25px] border-dashed border-[color-mix(in_srgb,var(--color-foreground)_65%,transparent)] [filter:drop-shadow(0_0_1px_var(--color-surface))_drop-shadow(0_0_1px_var(--color-surface))] pointer-events-none" style="width:${(ideal / scaleMax) * 100}%"></div>`
-    : "";
-  const icon = ideal !== null ? pyramidStatusIcon(row.count, ideal, promoted) : null;
-  const iconHtml = icon
-    ? `<svg class="w-[1.15rem] h-[1.15rem] shrink-0" viewBox="0 0 24 24" fill="none" stroke="${icon.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icon.svg}</svg>
-       <span class="sr-only">${icon.label}</span>`
-    : "";
-  const rowClasses = lower
-    ? "grid grid-cols-[3.2rem_1fr_4.2rem] max-[480px]:grid-cols-[2rem_1fr_3.4rem] items-center gap-[10px] max-[480px]:gap-[8px] mb-[14px] opacity-[.82]"
-    : promoted
-      ? "grid grid-cols-[3.2rem_1fr_4.2rem] max-[480px]:grid-cols-[2rem_1fr_3.4rem] items-center gap-[10px] max-[480px]:gap-[8px] mb-[14px] -mx-[.5rem] px-[.5rem] py-[.25rem] rounded-[8px] bg-[color-mix(in_srgb,var(--pyramid-status-promoted)_10%,transparent)]"
-      : "grid grid-cols-[3.2rem_1fr_4.2rem] max-[480px]:grid-cols-[2rem_1fr_3.4rem] items-center gap-[10px] max-[480px]:gap-[8px] mb-[14px]";
-  const countClasses = lower
-    ? "flex items-center gap-[.35rem] text-[.82rem] font-semibold tabular-nums text-muted"
-    : "flex items-center gap-[.35rem] text-[.82rem] font-bold tabular-nums text-foreground";
-  const countText = ideal !== null ? `${row.count}/${ideal}` : `${row.count}`;
+  const barColor = gradePyramidColorForScale(row.grade, viewScaleId, type);
+  const barStyle = `width:${actualPct}%; background:${barColor}`;
+  const idealOutline = promoted
+    ? `<div class="absolute top-0 left-1/2 -translate-x-1/2 h-full box-border rounded-[4px] border-[1.25px] border-dashed border-pyramid-promoted bg-[color-mix(in_srgb,var(--pyramid-status-promoted)_22%,transparent)] shadow-[0_0_10px_-1px_var(--pyramid-status-promoted)] [filter:drop-shadow(0_0_1px_var(--color-surface))_drop-shadow(0_0_1px_var(--color-surface))] pointer-events-none" style="width:${(ideal / scaleMax) * 100}%"></div>`
+    : `<div class="absolute top-0 left-1/2 -translate-x-1/2 h-full box-border rounded-[4px] border-[1.25px] border-dashed border-[color-mix(in_srgb,var(--color-foreground)_65%,transparent)] [filter:drop-shadow(0_0_1px_var(--color-surface))_drop-shadow(0_0_1px_var(--color-surface))] pointer-events-none" style="width:${(ideal / scaleMax) * 100}%"></div>`;
+  const icon = pyramidStatusIcon(row.count, ideal, promoted);
+  const iconHtml = `<svg class="w-[1.15rem] h-[1.15rem] shrink-0" viewBox="0 0 24 24" fill="none" stroke="${icon.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icon.svg}</svg>
+       <span class="sr-only">${icon.label}</span>`;
+  const rowClasses = promoted
+    ? "grid grid-cols-[3.2rem_1fr_4.2rem] max-[480px]:grid-cols-[2rem_1fr_3.4rem] items-center gap-[10px] max-[480px]:gap-[8px] mb-[14px] -mx-[.5rem] px-[.5rem] py-[.25rem] rounded-[8px] bg-[color-mix(in_srgb,var(--pyramid-status-promoted)_10%,transparent)]"
+    : "grid grid-cols-[3.2rem_1fr_4.2rem] max-[480px]:grid-cols-[2rem_1fr_3.4rem] items-center gap-[10px] max-[480px]:gap-[8px] mb-[14px]";
+  const countClasses = "flex items-center gap-[.35rem] text-[.82rem] font-bold tabular-nums text-foreground";
+  const countText = `${row.count}/${ideal}`;
   return `
     <div class="${rowClasses}">
-      <div class="text-[.8rem] font-bold text-right tabular-nums text-muted">${escapeHtml(row.label ?? row.grade)}</div>
+      <div class="text-[.8rem] font-bold text-right tabular-nums text-muted">${escapeHtml(row.grade)}</div>
       <div class="relative h-[1.3rem]">
         <div class="absolute top-0 left-1/2 -translate-x-1/2 h-full rounded-[4px] transition-[width] duration-300" style="${barStyle}"></div>
         ${idealOutline}
@@ -160,7 +159,7 @@ function pyramidBarRow(row, { ideal = null, scaleMax, lower = false, type, promo
 // Matches pyramidSplitRows()'s own no-sends-yet shape (shared/pyramid-stats.js)
 // -- the component's own initial/unset state before a real pyramidData
 // payload ever arrives, same "no sends logged yet" render path either way.
-const EMPTY_PYRAMID = { top4: [], lower: [], hasSends: false, promotedGrade: null };
+const EMPTY_PYRAMID = { top4: [], hasSends: false, promotedGrade: null };
 
 export class ClimbingGradePyramid extends HTMLElement {
   // #111 -- server-computed, not raw entries. server/api/performance.js
@@ -171,12 +170,24 @@ export class ClimbingGradePyramid extends HTMLElement {
   // a large logbook's entries array from ever needing to reach this
   // component -- or the client -- at all.
   #pyramidData = { boulder: EMPTY_PYRAMID, sport: EMPTY_PYRAMID };
-  #lowerGradesExpanded = false;
   #wired = false;
   // #516 -- createModalHelpers()'s own openModal, captured once when
   // #wireOverlays() runs -- #render() below (the citation/evidence-tier
   // marker click handlers) needs it too, not just #wireOverlays() itself.
   #openModal = null;
+  // #737 -- which scale `pyramidData`'s own rows are ALREADY expressed
+  // in (shared/pyramid-stats.js builds the row list itself from this
+  // scale server-side -- this component does no grade conversion of its
+  // own). Only needed here so pyramidBarRow()'s color computation
+  // (gradePyramidColorForScale) knows how to interpret `row.grade`. A
+  // plain property (not an attribute, unlike active-discipline) matching
+  // pyramidData's own convention -- this isn't reflected HTML state,
+  // just a value the composition root hands in, kept in sync with
+  // whichever scale the LAST successful fetch actually used. Starts
+  // null (harmless -- pyramidData also starts at EMPTY_PYRAMID, so
+  // there's nothing real to color yet) until loadPyramid() sets both
+  // together.
+  #viewScaleId = null;
 
   static get observedAttributes() {
     return ["active-discipline"];
@@ -187,6 +198,9 @@ export class ClimbingGradePyramid extends HTMLElement {
 
   get activeDiscipline() { return this.getAttribute("active-discipline") || "boulder"; }
   set activeDiscipline(v) { this.setAttribute("active-discipline", v); }
+
+  get viewScaleId() { return this.#viewScaleId; }
+  set viewScaleId(v) { this.#viewScaleId = v; this.#render(); }
 
   connectedCallback() {
     if (!this.#wired) {
@@ -199,14 +213,6 @@ export class ClimbingGradePyramid extends HTMLElement {
 
   attributeChangedCallback() {
     if (this.#wired) this.#render();
-  }
-
-  // Called externally by whichever discipline-picker wiring the
-  // consuming page uses (client/header-chrome.js today) when switching
-  // disciplines -- lowerGradesExpanded is private state here, same
-  // reasoning pyramid-view.js's own resetExpansion() already had.
-  resetExpansion() {
-    this.#lowerGradesExpanded = false;
   }
 
   // #516 -- createModalHelpers(["citations-overlay", "evidence-overlay"])
@@ -227,7 +233,8 @@ export class ClimbingGradePyramid extends HTMLElement {
 
   #render() {
     const type = this.activeDiscipline;
-    const { top4, lower, hasSends, promotedGrade } = this.#pyramidData[type] ?? EMPTY_PYRAMID;
+    const viewScaleId = this.#viewScaleId;
+    const { top4, hasSends, promotedGrade } = this.#pyramidData[type] ?? EMPTY_PYRAMID;
     const pyramidEl = this.querySelector("#pyramid");
     const healthEl = this.querySelector("#health-card");
     const windowNoteEl = this.querySelector("#window-note");
@@ -240,28 +247,13 @@ export class ClimbingGradePyramid extends HTMLElement {
     }
 
     const top4Scale = Math.max(8, ...top4.map(r => r.count));
-    const top4Html = top4.map((r, i) => pyramidBarRow(r, { ideal: PYRAMID_IDEAL_BY_POSITION[i], scaleMax: top4Scale, type, promoted: r.grade === promotedGrade })).join("");
-
-    let lowerHtml = "";
-    if (lower.length) {
-      const lowerScale = Math.max(1, ...lower.map(r => r.count));
-      lowerHtml = `
-        <div class="text-center my-1 mb-[14px]">
-          <button type="button" class="font-sans text-[.8rem] font-semibold text-muted bg-transparent border-b-0 border-l-0 border-r-0 border-t border-border py-[14px] min-h-[2.75rem] w-full cursor-pointer hover:text-accent" id="show-lower-link" aria-expanded="${this.#lowerGradesExpanded}" aria-controls="lower-rows">${this.#lowerGradesExpanded ? "Hide lower grades ▴" : "Show lower grades ▾"}</button>
-        </div>
-        <div id="lower-rows">${this.#lowerGradesExpanded ? lower.map(r => pyramidBarRow(r, { scaleMax: lowerScale, lower: true, type })).join("") : ""}</div>`;
-    }
-
-    pyramidEl.innerHTML = top4Html + lowerHtml;
-
-    if (lower.length) {
-      const link = this.querySelector("#show-lower-link");
-      link.addEventListener("click", () => {
-        this.#lowerGradesExpanded = !this.#lowerGradesExpanded;
-        this.#render();
-        this.querySelector("#show-lower-link").focus();
-      });
-    }
+    // #737 -- a pure 8-4-2-1 report now: #209's own "Show lower grades"
+    // section is gone (see pyramidSplitRows()'s own comment) -- once
+    // every row rendered individually (no more lossy aggregation), a
+    // fine-grained non-standard scale produced a long list of mostly-
+    // zero rows with no real value. A per-grade volume breakdown is
+    // tracked as its own separate report instead (#739).
+    pyramidEl.innerHTML = top4.map((r, i) => pyramidBarRow(r, { ideal: PYRAMID_IDEAL_BY_POSITION[i], scaleMax: top4Scale, type, viewScaleId, promoted: r.grade === promotedGrade })).join("");
 
     windowNoteEl.innerHTML =
       `Sends from the <strong class="text-foreground font-semibold">last 12 months only</strong>${CITATION_MARKER}, showing your

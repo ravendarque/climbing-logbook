@@ -127,6 +127,69 @@ describe("pyramidCounts", () => {
     expect(oneToOne).toBeGreaterThan(oneC);
     expect(oneA).toBeLessThan(oneC);
   });
+
+  // #737 -- Raven, 2026-09-12: switching the report scale picker isn't a
+  // relabeling of the SAME fixed rows -- "the tiers should represent 4
+  // sequential grades in the selected scale." Confirmed live as a real
+  // bug when this was first built as a client-side relabel: 6A and 6A+
+  // (two distinct Font rows) both read "V3" when merely relabeled,
+  // showing as two rows with the same text but different counts.
+  describe("viewScaleId", () => {
+    it("defaults to the discipline's own native scale, unchanged from every test above", () => {
+      const entries = [{ type: "boulder", status: "send", grade: "6A", date: isoDaysAgo(10) }];
+      const withDefault = pyramidCounts("boulder", entries);
+      const explicit = pyramidCounts("boulder", entries, "font-non-standard");
+      expect(withDefault).toEqual(explicit);
+    });
+
+    it("builds the row list from the chosen scale's own labels, not the native scale's, when non-native", () => {
+      const { order } = pyramidCounts("boulder", [], "v-scale");
+      expect(order).toContain("V3");
+      expect(order).not.toContain("6A");
+      expect(order).not.toContain("6A+");
+    });
+
+    it("merges two native rows that collapse to the same coarser-scale row into ONE row with combined counts, rather than two rows sharing a label", () => {
+      const entries = [
+        { type: "boulder", status: "send", grade: "6A", gradeScale: "font-non-standard", date: isoDaysAgo(10) },
+        { type: "boulder", status: "send", grade: "6A+", gradeScale: "font-non-standard", date: isoDaysAgo(20) },
+      ];
+      const { order, counts } = pyramidCounts("boulder", entries, "v-scale");
+      // Exactly one "V3" row, not two -- and its count is the SUM of
+      // both the 6A and 6A+ sends, not just one of them.
+      expect(order.filter(g => g === "V3")).toHaveLength(1);
+      expect(counts["V3"]).toBe(2);
+    });
+
+    it("excludes a send whose grade has no representation in the chosen view scale, rather than inflating it onto the floor", () => {
+      const entries = [{ type: "boulder", status: "send", grade: "2+", gradeScale: "font-non-standard", date: isoDaysAgo(10) }];
+      const { order, counts } = pyramidCounts("boulder", entries, "font"); // Font-standard's real floor is "3"
+      expect(order).not.toContain("2+");
+      expect(Object.values(counts).reduce((a, b) => a + b, 0)).toBe(0);
+    });
+
+    // #737 -- pyramidSplitRows is a pure 8-4-2-1 report now (no more
+    // "lower" section, see its own comment) -- confirms top4 itself is
+    // still built from the chosen scale, not the native scale relabeled.
+    it("pyramidSplitRows' top4 is built from the chosen scale, not the native scale's rows relabeled", () => {
+      const entries = [{ type: "boulder", status: "send", grade: "7A", gradeScale: "font-non-standard", date: isoDaysAgo(10) }];
+      const { top4 } = pyramidSplitRows("boulder", entries, "v-scale");
+      expect(top4.some(r => r.grade === "V6")).toBe(true);
+      expect(top4.some(r => r.grade === "7A")).toBe(false);
+    });
+
+    it("pyramidSplitRows' top4 window itself reflects the chosen scale's own real 4-tier granularity", () => {
+      // Every one of these lands in Font's 6A/6A+/6B/6B+ range -- as
+      // Font-non-standard rows that's 4 distinct tiers, but in V-scale
+      // (V3/V3/V4/V4) it's only 2 REAL tiers, so the window must reach
+      // further down to still show 4 real sequential V-scale grades.
+      const entries = [
+        { type: "boulder", status: "send", grade: "6B+", gradeScale: "font-non-standard", date: isoDaysAgo(10) },
+      ];
+      const { top4 } = pyramidSplitRows("boulder", entries, "v-scale");
+      expect(top4.map(r => r.grade)).toEqual(["V4", "V3", "V2", "V1"]);
+    });
+  });
 });
 
 describe("pyramidReadyToPromote", () => {
@@ -158,7 +221,7 @@ describe("pyramidReadyToPromote", () => {
 
 describe("pyramidSplitRows", () => {
   it("reports no sends when nothing matches", () => {
-    expect(pyramidSplitRows("boulder", [])).toEqual({ top4: [], lower: [], hasSends: false, promotedGrade: null });
+    expect(pyramidSplitRows("boulder", [])).toEqual({ top4: [], hasSends: false, promotedGrade: null });
   });
 
   // #726 -- the exact real-account scenario reported on beta.x: 3 sends
@@ -211,68 +274,19 @@ describe("pyramidSplitRows", () => {
     expect(top4[0].grade).toBe(promotedGrade);
   });
 
-  // #209 -- everything below 6A (Boulder) / 6a (Sport) collapses into one
-  // aggregated row in `lower`, but only within `lower` -- never `top4`.
-  describe("#209 -- below-threshold aggregation in `lower`", () => {
-    function send(type, grade, count = 1) {
-      return Array(count).fill({ type, status: "send", grade, date: isoDaysAgo(10) });
-    }
-
-    it("aggregates old sub-6A sends while showing 6A-and-up rows individually, top4 untouched", () => {
-      // "3A" (well below 6A) gets aggregated; "6B" (above 6A, below the
-      // top4 window) stays individual; "7A" anchors a real, unaffected
-      // top4 window that's nowhere near the threshold.
-      const entries = [...send("boulder", "3A", 2), ...send("boulder", "6B"), ...send("boulder", "7A")];
-      const { top4, lower } = pyramidSplitRows("boulder", entries);
-
-      expect(top4.map(r => r.grade)).toEqual(["7A", "6C+", "6C", "6B+"]);
-      // #728 -- the aggregated row's own `grade` is the hardest ROW in
-      // the aggregated ordinal range (for gradeColor()'s benefit), not
-      // necessarily a sent one -- "5+" now, not "5C": a bare "+" sits at
-      // the TOP of its number's range under the corrected canonical
-      // sub-position rule (Raven's own "2 < 2a+ < 2+" example,
-      // 2026-09-11), one real step harder than "5C" (ordinal 59 vs 57).
-      // BOULDER_GRADES's own hand-typed order had never been re-sorted
-      // against that correction until #728.
-      expect(lower).toEqual([
-        { grade: "6B", count: 1 },
-        { grade: "6A+", count: 0 },
-        { grade: "6A", count: 0 },
-        { grade: "5+", label: "Below 6A", count: 2 },
-      ]);
-    });
-
-    it("aggregates the entire lower section when it's all below 6A, but leaves an all-sub-6A top4 window as real individual tiers", () => {
-      // Every send here (including the whole top4 window) is below 6A --
-      // the aggregation must still never touch top4, per #209's own
-      // "top4 always shows real per-grade progress" reasoning.
-      const entries = [...send("boulder", "1B", 3), ...send("boulder", "3B")];
-      const { top4, lower } = pyramidSplitRows("boulder", entries);
-
-      // #728 -- "3+" no longer appears here: under the corrected
-      // canonical sub-position rule a bare "+" is the TOP of its
-      // number's range (ordinal 35), genuinely HARDER than "3B"
-      // (ordinal 30) -- it doesn't belong in a window anchored at "3B"
-      // at all. The real 4 hardest rows at or below "3B" are now
-      // 3B/3A/3/2+ (ordinals 30/27/25/23).
-      expect(top4.map(r => r.grade)).toEqual(["3B", "3A", "3", "2+"]);
-      expect(lower).toEqual([{ grade: "2C", label: "Below 6A", count: 3 }]);
-    });
-
-    it("aggregates nothing when every lower row is already 6A or above, matching pre-#209 behavior exactly", () => {
-      const entries = [...send("boulder", "6B"), ...send("boulder", "8A")];
-      const { lower } = pyramidSplitRows("boulder", entries);
-
-      expect(lower.every(r => r.label === undefined)).toBe(true);
-      expect(lower.map(r => r.grade)).toEqual(["7B", "7A+", "7A", "6C+", "6C", "6B+", "6B"]);
-    });
-
-    it("uses Sport's own 6a threshold, independent of Boulder's", () => {
-      const entries = [...send("sport", "4b", 4), ...send("sport", "6b"), ...send("sport", "7b")];
-      const { lower } = pyramidSplitRows("sport", entries);
-
-      expect(lower.at(-1)).toEqual({ grade: "5c", label: "Below 6a", count: 4 });
-    });
+  // #209 originally collapsed everything below 6A (Boulder) / 6a (Sport)
+  // into one aggregated row in a "lower" section below the 8-4-2-1
+  // window -- a workaround for the OLD combined grading, where that
+  // boundary was also where Font/V-scale naming diverged (Raven,
+  // 2026-09-13). #737 removed the whole section: pyramidSplitRows() is
+  // a pure 8-4-2-1 report now (top4 only) -- a per-grade volume
+  // breakdown across the whole scale is tracked as its own separate
+  // report instead (#739).
+  it("returns only top4 -- no lower/below-window section at all", () => {
+    const entries = [{ type: "boulder", status: "send", grade: "7A", date: isoDaysAgo(10) }];
+    const result = pyramidSplitRows("boulder", entries);
+    expect(result).toEqual({ top4: result.top4, hasSends: true, promotedGrade: null });
+    expect(result.lower).toBeUndefined();
   });
 });
 

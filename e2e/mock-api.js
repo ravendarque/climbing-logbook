@@ -241,7 +241,10 @@ export async function mockApi(page, {
     return route.fulfill({ json: { locations: changed, cursor } });
   });
   await page.route("**/logbook/api/settings", route => route.fulfill({ json: _settings }));
-  await page.route("**/logbook/api/performance/pyramid", route => route.fulfill({ json: pyramidData }));
+  // #737 -- trailing ** (unlike settings/injury above): the real request
+  // now carries ?boulderScale=&sportScale= query params, same reasoning
+  // volume/gap/rpe's own routes below already needed for their ?start=&end=.
+  await page.route("**/logbook/api/performance/pyramid**", route => route.fulfill({ json: pyramidData }));
   await page.route("**/logbook/api/performance/injury", route => route.fulfill({ json: injuryData }));
   // #13 -- single route, branches on the request's own query params
   // (unlike pyramidData/injuryData above, which each always return one

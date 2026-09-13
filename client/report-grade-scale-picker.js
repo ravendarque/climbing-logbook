@@ -99,6 +99,12 @@ export function createReportGradeScalePicker({ containerEl, getType, onChange })
 
   return {
     getScaleId: currentScaleId,
+    // #737 -- the pyramid page needs BOTH disciplines' current scale
+    // preference at once (the server computes both in one response, so
+    // it needs both as query params on every fetch), not just whichever
+    // discipline is currently active -- every other caller of this
+    // picker only ever needs getScaleId() for the active type.
+    getScaleIdFor: t => scaleByType[t],
     // Called by the composition root's own render() when the active
     // discipline may have changed (the header's discipline picker,
     // exactly the same "type can change under us" case #703's own

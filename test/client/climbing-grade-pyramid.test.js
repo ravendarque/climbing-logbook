@@ -19,8 +19,8 @@ let el;
 // matching PYRAMID_IDEAL_BY_POSITION's own [1,2,4,8] ordering.
 function pyramidData(top4, overrides = {}) {
   return {
-    boulder: { top4, lower: [], hasSends: true, promotedGrade: null, ...overrides },
-    sport: { top4: [], lower: [], hasSends: false, promotedGrade: null },
+    boulder: { top4, hasSends: true, promotedGrade: null, ...overrides },
+    sport: { top4: [], hasSends: false, promotedGrade: null },
   };
 }
 
@@ -35,7 +35,7 @@ afterEach(() => {
 
 describe("ClimbingGradePyramid health card", () => {
   it("shows the no-sends state when hasSends is false", () => {
-    el.pyramidData = { boulder: { top4: [], lower: [], hasSends: false, promotedGrade: null }, sport: { top4: [], lower: [], hasSends: false, promotedGrade: null } };
+    el.pyramidData = { boulder: { top4: [], hasSends: false, promotedGrade: null }, sport: { top4: [], hasSends: false, promotedGrade: null } };
     expect(el.querySelector("#pyramid").textContent).toContain("No Boulder sends logged");
     expect(el.querySelector("#health-card").innerHTML).toBe("");
   });
@@ -105,31 +105,44 @@ describe("ClimbingGradePyramid health card", () => {
   });
 });
 
-describe("ClimbingGradePyramid lower-grades rows", () => {
-  // #209 -- shared/pyramid-stats.js's pyramidSplitRows() can return an
-  // aggregated { grade: "5C", label: "Below 6A", count } row for the
-  // base of `lower`; this confirms the component renders the label text
-  // (not the real "5C" it carries for gradeColor()'s benefit) and never
-  // throws trying to color it.
-  it("renders an aggregated lower row by its label, not its underlying color-anchor grade", () => {
-    el.pyramidData = pyramidData(
-      [
-        { grade: "7A", count: 2 },
-        { grade: "6C+", count: 0 },
-        { grade: "6C", count: 0 },
-        { grade: "6B+", count: 0 },
-      ],
-      {
-        lower: [
-          { grade: "6B", count: 1 },
-          { grade: "5C", label: "Below 6A", count: 5 },
-        ],
-      }
-    );
-    el.querySelector("#show-lower-link").click();
-    const lowerText = el.querySelector("#lower-rows").textContent;
-    expect(lowerText).toContain("Below 6A");
-    expect(lowerText).not.toContain("5C");
-    expect(lowerText).toContain("6B");
+// #737 -- #209's own "Show lower grades" section (and its own describe
+// block of tests here) is gone entirely -- the pyramid is a pure
+// 8-4-2-1 report now, see pyramidSplitRows()'s and this component's own
+// #render() comments. A per-grade volume breakdown across the whole
+// scale is tracked as its own separate report instead (#739).
+
+// #737 -- shared/pyramid-stats.js now builds the ROW LIST ITSELF from
+// whichever scale the report picker has selected (server-side, since
+// only the full entries dataset can recompute it correctly -- "the
+// tiers should represent 4 sequential grades in the selected scale",
+// not a relabeling of fixed rows, Raven 2026-09-12). This component
+// does no grade conversion of its own any more: `pyramidData`'s own
+// `grade`/`label` text is already correct for whatever scale the
+// server was asked for, rendered verbatim. `viewScaleId` exists here
+// only so pyramidBarRow()'s color computation
+// (gradePyramidColorForScale) knows which scale `row.grade` is
+// actually expressed in.
+describe("ClimbingGradePyramid viewScaleId", () => {
+  it("renders row grades verbatim, regardless of viewScaleId -- the server already converted them", () => {
+    el.pyramidData = pyramidData([{ grade: "V3", count: 3 }]);
+    el.viewScaleId = "v-scale";
+    expect(el.querySelector("#pyramid").textContent).toContain("V3");
+  });
+
+  it("colors a row consistently for the same real difficulty, regardless of which scale its grade is expressed in", () => {
+    const extractBg = html => html.match(/background:([^;"]+)/)[1];
+
+    el.pyramidData = pyramidData([{ grade: "6A", count: 1 }]);
+    el.viewScaleId = "font";
+    const fontBg = extractBg(el.querySelector("#pyramid").innerHTML);
+
+    el.pyramidData = pyramidData([{ grade: "V3", count: 1 }]);
+    el.viewScaleId = "v-scale";
+    const vScaleBg = extractBg(el.querySelector("#pyramid").innerHTML);
+
+    // 6A (Font) and V3 (V-scale) are the same real grade -- same color,
+    // proving gradePyramidColorForScale is actually reading viewScaleId
+    // rather than assuming a fixed native scale.
+    expect(vScaleBg).toBe(fontBg);
   });
 });

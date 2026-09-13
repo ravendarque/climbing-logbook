@@ -40,21 +40,12 @@ test("climbing-grade-pyramid: citations overlay opens and closes on Escape", asy
   await expect(page.locator("#citations-overlay")).toBeHidden();
 });
 
-test("climbing-grade-pyramid: show/hide lower grades toggles visibility and its own label", async ({ page }) => {
-  await page.goto("/e2e-fixtures/pyramid-harness.html");
-  await expect(page.locator("climbing-grade-pyramid #pyramid")).toBeVisible();
-
-  const showLowerLink = page.locator("#show-lower-link");
-  await expect(showLowerLink).toHaveText(/Show lower grades/);
-  await expect(page.locator("#lower-rows")).toBeEmpty();
-
-  await showLowerLink.click();
-  await expect(showLowerLink).toHaveText(/Hide lower grades/);
-  await expect(page.locator("#lower-rows")).not.toBeEmpty();
-
-  await showLowerLink.click();
-  await expect(showLowerLink).toHaveText(/Show lower grades/);
-});
+// #737 -- "show/hide lower grades toggles visibility and its own label"
+// lived here (#209's own "Show lower grades" section) -- removed along
+// with that whole feature. The pyramid is a pure 8-4-2-1 report now
+// (shared/pyramid-stats.js's own pyramidSplitRows() comment); a per-
+// grade volume breakdown across the whole scale is tracked as its own
+// separate report instead (#739).
 
 test("map-view.js: zoom/pan controls appear once the map has loaded", async ({ page }) => {
   await page.goto("/e2e-fixtures/map-harness.html");
