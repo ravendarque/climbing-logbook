@@ -219,11 +219,15 @@ behavior is centralized in `client/modal-utils.js`'s `createModalHelpers()`
 
 ## Grade colors & evidence-tier colors
 
-**Grade colors:** `shared/grade-data.js`'s `BOULDER_GRADES`/`LEAD_GRADES`
-arrays — each grade entry carries its own CSS custom-property reference
-(`{ g: "6A", v: "V3", c: "var(--grade-6a)" }`), not a hardcoded hex value,
-so the actual color scale lives in the theme tokens (`public/logbook/
-components/climbing-header.js`), not repeated per-grade.
+**Grade colors:** `shared/grade-data.js`'s `gradeColor(grade, type)`
+resolves any grade to one of five tier colors via `GRADE_TIER_COLORS`
+(`{ beginner: "var(--grade-tier-beginner)", ... }`) — a flat per-tier
+mapping, not a per-grade one, so the actual color scale lives entirely in
+the theme tokens (`public/logbook/components/climbing-header.js`'s
+`--grade-tier-*` custom properties), never repeated per-grade. Rendered
+via the shared `grade-badge` utility class (`styles/tailwind.css`), with
+the tier color set as an inline `background` (see `climbing-entries-
+table.js`'s own grade-badge markup).
 
 | Dark | Light |
 |---|---|
