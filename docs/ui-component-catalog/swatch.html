@@ -117,10 +117,19 @@
 
 <div class="swatch" id="s-grades">
   <div class="swatch-label">Grade colors</div>
+  <!-- #732 -- was hardcoding the pre-#463 per-grade custom properties
+       (--grade-easy/--grade-6a/--grade-6b), removed from tailwind.css
+       once #463 replaced them with the 5-tier palette below. Markup now
+       matches climbing-entries-table.js's own real grade-badge rendering
+       exactly: the `grade-badge` utility class (monospace, dark ink text)
+       plus an inline `background` set to one of the five tier colors,
+       same as gradeColor()'s own real output. -->
   <div class="swatch-body flex gap-2 flex-wrap">
-    <span class="inline-flex items-center justify-center w-12 h-8 rounded-app font-bold text-[.85rem]" style="background: color-mix(in srgb, var(--grade-easy) 20%, var(--color-surface)); color: var(--grade-easy); border: 1px solid color-mix(in srgb, var(--grade-easy) 40%, transparent);">5C</span>
-    <span class="inline-flex items-center justify-center w-12 h-8 rounded-app font-bold text-[.85rem]" style="background: color-mix(in srgb, var(--grade-6a) 20%, var(--color-surface)); color: var(--grade-6a); border: 1px solid color-mix(in srgb, var(--grade-6a) 40%, transparent);">6A</span>
-    <span class="inline-flex items-center justify-center w-12 h-8 rounded-app font-bold text-[.85rem]" style="background: color-mix(in srgb, var(--grade-6b) 20%, var(--color-surface)); color: var(--grade-6b); border: 1px solid color-mix(in srgb, var(--grade-6b) 40%, transparent);">6B</span>
+    <span class="grade-badge" style="background: var(--grade-tier-beginner);">5C</span>
+    <span class="grade-badge" style="background: var(--grade-tier-intermediate);">6A</span>
+    <span class="grade-badge" style="background: var(--grade-tier-advanced);">6B</span>
+    <span class="grade-badge" style="background: var(--grade-tier-elite);">7A</span>
+    <span class="grade-badge" style="background: var(--grade-tier-hyper-elite);">8A</span>
   </div>
 </div>
 

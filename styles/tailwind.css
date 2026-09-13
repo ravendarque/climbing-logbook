@@ -85,15 +85,6 @@
   --color-accent-foreground: var(--color-accent-text);
   --color-border:            var(--color-border);
 
-  --color-grade-easy:        var(--grade-easy);
-  --color-grade-6a:          var(--grade-6a);
-  --color-grade-6b:          var(--grade-6b);
-  --color-grade-6c:          var(--grade-6c);
-  --color-grade-7a:          var(--grade-7a);
-  --color-grade-7b:          var(--grade-7b);
-  --color-grade-7c:          var(--grade-7c);
-  --color-grade-8a:          var(--grade-8a);
-
   --color-tier-peer:         var(--tier-peer);
   --color-tier-heuristic:    var(--tier-heuristic);
   --color-tier-community:    var(--tier-community);
