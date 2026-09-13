@@ -7,17 +7,29 @@ describe("renderComboChartHtml", () => {
     expect(html).toContain("3 sends this month.");
   });
 
-  it("renders one <rect> per bar value", () => {
+  it("renders one bar <rect> per bar value", () => {
+    // Scoped to fill-accent (the real bars) -- #735's plot-frame rect is
+    // also a <rect>, so a bare /<rect/g count would double-count it.
     const html = renderComboChartHtml({ bucketLabels: ["Jan 2026", "Feb 2026"], bars: [{ label: "Sends", values: [3, 5] }], lines: [], headline: "h" });
-    const rectCount = (html.match(/<rect/g) || []).length;
+    const rectCount = (html.match(/<rect[^>]*class="fill-accent"/g) || []).length;
     expect(rectCount).toBe(2);
   });
 
   it("renders a taller bar for a larger value", () => {
     const html = renderComboChartHtml({ bucketLabels: ["Jan 2026", "Feb 2026"], bars: [{ label: "Sends", values: [2, 8] }], lines: [], headline: "h" });
-    const heights = [...html.matchAll(/<rect[^>]*height="([\d.]+)"/g)].map(m => Number(m[1]));
+    const heights = [...html.matchAll(/<rect[^>]*height="([\d.]+)"[^>]*class="fill-accent"/g)].map(m => Number(m[1]));
     expect(heights).toHaveLength(2);
     expect(heights[1]).toBeGreaterThan(heights[0]);
+  });
+
+  it("renders a border framing the full plot area, even when every bar is short", () => {
+    // #735 -- when every value in the current window is low, the plotted
+    // bars/lines cluster near the bottom axis and the mostly-empty upper
+    // plot area is visually indistinguishable from the chart not having
+    // rendered at all. A frame around the whole plot area makes the
+    // chart's own boundary visible regardless of where the data sits.
+    const html = renderComboChartHtml({ bucketLabels: ["Jan 2026"], bars: [{ label: "Sends", values: [1] }], lines: [], headline: "h" });
+    expect(html).toMatch(/<rect[^>]*class="fill-none stroke-border"/);
   });
 
   it("renders a numeric data label on each bar", () => {
@@ -141,7 +153,10 @@ describe("renderComboChartHtml", () => {
 
   it("#603 -- renders a null bar value as a dash, not a zero-height rect", () => {
     const html = renderComboChartHtml({ bucketLabels: ["Jan 2026"], bars: [{ label: "Avg attempts", values: [null] }], lines: [], headline: "h" });
-    const rectCount = (html.match(/<rect/g) || []).length;
+    // Scoped to fill-accent -- #735's plot-frame rect always renders,
+    // regardless of bar values, so a bare /<rect/g count would no longer
+    // read as zero here.
+    const rectCount = (html.match(/<rect[^>]*class="fill-accent"/g) || []).length;
     expect(rectCount).toBe(0);
     expect(html).toContain(">–<");
     // Not asserting the whole SVG never contains ">0<" -- the y-axis's own
@@ -173,7 +188,7 @@ describe("renderComboChartHtml", () => {
 
   it("#603 -- an all-null bar series doesn't throw and produces no rects", () => {
     const html = renderComboChartHtml({ bucketLabels: ["Jan 2026", "Feb 2026"], bars: [{ label: "Avg attempts", values: [null, null] }], lines: [], headline: "h" });
-    const rectCount = (html.match(/<rect/g) || []).length;
+    const rectCount = (html.match(/<rect[^>]*class="fill-accent"/g) || []).length;
     expect(rectCount).toBe(0);
     const dashCount = (html.match(/>–</g) || []).length;
     expect(dashCount).toBe(2);
@@ -186,7 +201,7 @@ describe("renderComboChartHtml", () => {
       lines: [],
       headline: "h",
     });
-    const xs = [...html.matchAll(/<rect[^>]*x="([\d.]+)"/g)].map(m => Number(m[1]));
+    const xs = [...html.matchAll(/<rect[^>]*x="([\d.]+)"[^>]*class="fill-accent"/g)].map(m => Number(m[1]));
     expect(xs).toHaveLength(2);
     expect(xs[0]).not.toBe(xs[1]);
   });
