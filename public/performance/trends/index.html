@@ -77,7 +77,12 @@
     <p class="text-[.82rem] text-muted mt-2">Reconnect and reload this page to see your volume/intensity trend.</p>
   </div>
 
-  <div id="time-window-root" class="mb-4"></div>
+  <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
+    <div id="time-window-root"></div>
+    <!-- #704 -- which of this discipline's scales the chart/headline
+         below render grades in; client/report-grade-scale-picker.js. -->
+    <div id="report-grade-scale-root"></div>
+  </div>
   <div id="trends-root"></div>
 
   <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>

@@ -24,12 +24,12 @@ import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
 import { syncAdminBar } from "./admin-bar.js";
 import { createTimeWindowControl } from "./time-window.js";
+import { createReportGradeScalePicker } from "./report-grade-scale-picker.js";
 import { renderComboChartHtml } from "./combo-chart.js";
 import { evidenceOverlayHtml, evidenceTierButtonHtml } from "./evidence-tier.js";
 import { createModalHelpers } from "./modal-utils.js";
 import { flashLabel, sendLabel } from "./status.js";
-import { BOULDER_GRADES, LEAD_GRADES } from "../shared/grade-data.js";
-import { gradeDisplayLabel } from "../shared/volume-stats.js";
+import { reportGradeLabel, reportGradeOrdinal, reportPositionOrder } from "../shared/volume-stats.js";
 import { demoDataUrl, isDemoUsername } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
 
@@ -64,6 +64,7 @@ document.getElementById("back-to-performance-link").href = `/${encodeURIComponen
 
 const gapRootEl = document.getElementById("gap-root");
 const timeWindowRootEl = document.getElementById("time-window-root");
+const reportGradeScaleRootEl = document.getElementById("report-grade-scale-root");
 const offlineEl = document.getElementById("performance-offline");
 
 let latestGapData = null;
@@ -80,21 +81,28 @@ let modalHelpers;
 // scoped to this file's own onChange callback instead of a <select>.
 let latestGapRequestId = 0;
 
-function positionOrderFor(type) {
-  return (type === "boulder" ? BOULDER_GRADES : LEAD_GRADES).map(x => x.g);
-}
+// #704 -- which scale this page currently renders grades in, one
+// preference shared across every report page.
+const gradeScalePicker = createReportGradeScalePicker({
+  containerEl: reportGradeScaleRootEl,
+  getType: () => store.getActiveType(),
+  onChange: renderGap,
+});
 
 function renderGap() {
   if (!latestGapData) return;
   const type = store.getActiveType();
   const { buckets, flashMaxByBucket, sendMaxByBucket, avgAttemptsByBucket, headline } = latestGapData[type];
-  const positionOrder = positionOrderFor(type);
+  const viewScaleId = gradeScalePicker.getScaleId();
+  const positionOrder = reportPositionOrder(type);
 
+  // #704 -- positionKey is the canonical ordinal now, not a raw grade
+  // string -- see performance-trends-main.js's own equivalent comment.
   const flashPoints = flashMaxByBucket.map(grade => grade
-    ? { positionKey: grade, displayLabel: gradeDisplayLabel(grade, type) }
+    ? { positionKey: reportGradeOrdinal(grade, type), displayLabel: reportGradeLabel(grade, type, viewScaleId) }
     : null);
   const sendPoints = sendMaxByBucket.map(grade => grade
-    ? { positionKey: grade, displayLabel: gradeDisplayLabel(grade, type) }
+    ? { positionKey: reportGradeOrdinal(grade, type), displayLabel: reportGradeLabel(grade, type, viewScaleId) }
     : null);
 
   const chartHtml = renderComboChartHtml({
@@ -124,6 +132,7 @@ function renderGap() {
 function render() {
   headerChrome.updateDisciplinePicker();
   updateAdminBar();
+  gradeScalePicker.refresh(); // discipline may have changed under us
   renderGap();
 }
 

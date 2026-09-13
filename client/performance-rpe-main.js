@@ -25,11 +25,11 @@ import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
 import { syncAdminBar } from "./admin-bar.js";
 import { createTimeWindowControl } from "./time-window.js";
+import { createReportGradeScalePicker } from "./report-grade-scale-picker.js";
 import { renderComboChartHtml } from "./combo-chart.js";
 import { evidenceOverlayHtml, evidenceTierButtonHtml } from "./evidence-tier.js";
 import { createModalHelpers } from "./modal-utils.js";
-import { gradeDisplayLabel } from "../shared/volume-stats.js";
-import { BOULDER_GRADES, LEAD_GRADES } from "../shared/grade-data.js";
+import { reportGradeLabel, reportGradeOrdinal, reportPositionOrder } from "../shared/volume-stats.js";
 import { demoDataUrl, isDemoUsername } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
 
@@ -64,6 +64,7 @@ document.getElementById("back-to-performance-link").href = `/${encodeURIComponen
 
 const rpeRootEl = document.getElementById("rpe-root");
 const timeWindowRootEl = document.getElementById("time-window-root");
+const reportGradeScaleRootEl = document.getElementById("report-grade-scale-root");
 const offlineEl = document.getElementById("performance-offline");
 
 let latestEffortData = null;
@@ -80,18 +81,25 @@ let modalHelpers;
 // scoped to this file's own onChange callback instead of a <select>.
 let latestEffortRequestId = 0;
 
-function positionOrderFor(type) {
-  return (type === "boulder" ? BOULDER_GRADES : LEAD_GRADES).map(x => x.g);
-}
+// #704 -- which scale this page currently renders grades in, one
+// preference shared across every report page.
+const gradeScalePicker = createReportGradeScalePicker({
+  containerEl: reportGradeScaleRootEl,
+  getType: () => store.getActiveType(),
+  onChange: renderEffort,
+});
 
 function renderEffort() {
   if (!latestEffortData) return;
   const type = store.getActiveType();
   const { buckets, maxGradeByBucket, avgExertionByBucket, headline } = latestEffortData[type];
-  const positionOrder = positionOrderFor(type);
+  const viewScaleId = gradeScalePicker.getScaleId();
+  const positionOrder = reportPositionOrder(type);
 
+  // #704 -- positionKey is the canonical ordinal now, not a raw grade
+  // string -- see performance-trends-main.js's own equivalent comment.
   const points = maxGradeByBucket.map(grade => grade
-    ? { positionKey: grade, displayLabel: gradeDisplayLabel(grade, type) }
+    ? { positionKey: reportGradeOrdinal(grade, type), displayLabel: reportGradeLabel(grade, type, viewScaleId) }
     : null);
 
   const headlineText = headline ?? "Not enough data yet for a reliable read -- log a few more sends and check back.";
@@ -118,6 +126,7 @@ function renderEffort() {
 function render() {
   headerChrome.updateDisciplinePicker();
   updateAdminBar();
+  gradeScalePicker.refresh(); // discipline may have changed under us
   renderEffort();
 }
 

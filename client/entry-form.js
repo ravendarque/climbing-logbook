@@ -18,7 +18,7 @@ import { flashLabel, sendLabel, nameLabel, hydrateStatusIcons } from "./status.j
 import { createPlacePicker } from "./place-picker.js";
 import { createMoveRowList } from "./move-tagging.js";
 import { validateEntryShape } from "../shared/entry-schema.js";
-import { createDisclosure } from "./modal-utils.js";
+import { createDisclosure, createListPicker, renderOptionList } from "./modal-utils.js";
 
 const ERROR_MSG_CLASS = "mt-[.85rem] px-4 py-3 rounded-app text-[.9rem] bg-[color-mix(in_srgb,#f87171_12%,var(--color-surface))] border border-[color-mix(in_srgb,#f87171_40%,transparent)] text-red-400";
 
@@ -144,43 +144,18 @@ export function createEntryForm({
   // Same role="option"/data-key/checkmark convention as client/
   // place-picker.js's own place-listbox (#241/#403) and the discipline
   // picker's static options (public/logbook/components/climbing-
-  // discipline-picker.js) -- one shared renderer instead of five
-  // near-identical copies.
-  function renderOptionList(listboxEl, items, { getKey, getLabel, isSelected }) {
-    listboxEl.innerHTML = items.map(item => `
-      <li role="option" data-key="${escapeHtml(getKey(item))}" aria-selected="${isSelected(item)}" class="flex items-center justify-between gap-[.5rem] px-[.6rem] py-[.5rem] rounded-[calc(var(--radius-app)-2px)] cursor-pointer text-[.85rem] text-foreground hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible">
-        ${escapeHtml(getLabel(item))}
-        <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
-      </li>`).join("");
-  }
-
-  // Generic disclosure-backed single-select list picker -- wraps
-  // createDisclosure (client/modal-utils.js) with the render-on-open +
-  // click-to-select wiring every grade picker below shares. `render` is
-  // set after construction (setRender), not passed in up front, since
-  // several of these pickers need to close over state (selectedGrade,
-  // the current scale) that isn't settled until later in this factory.
+  // discipline-picker.js) -- one shared implementation
+  // (client/modal-utils.js's createListPicker/renderOptionList) instead
+  // of a local copy per consumer (#704 needed the identical pattern for
+  // its own report scale picker, which is what prompted extracting this
+  // out of this file rather than leaving it as a second near-duplicate).
   function makeListPicker(idPrefix) {
-    const trigger = document.getElementById(`${idPrefix}-btn`);
-    const popover = document.getElementById(`${idPrefix}-popover`);
-    const listbox = document.getElementById(`${idPrefix}-listbox`);
-    let render = () => {};
-    let onSelect = () => {};
-    const { close } = createDisclosure(trigger, popover, `#${idPrefix}-wrap`, {
-      onOpen: () => render(),
+    return createListPicker({
+      trigger: document.getElementById(`${idPrefix}-btn`),
+      popover: document.getElementById(`${idPrefix}-popover`),
+      listbox: document.getElementById(`${idPrefix}-listbox`),
+      containerSelector: `#${idPrefix}-wrap`,
     });
-    listbox.addEventListener("click", e => {
-      const opt = e.target.closest("[role=option][data-key]");
-      if (!opt) return;
-      onSelect(opt.dataset.key);
-      close();
-      trigger.focus();
-    });
-    return {
-      trigger, close,
-      setRender(fn) { render = fn; },
-      setOnSelect(fn) { onSelect = fn; },
-    };
   }
 
   const gradeValuePicker = makeListPicker("grade-value");

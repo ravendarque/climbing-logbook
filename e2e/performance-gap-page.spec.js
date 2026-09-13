@@ -41,10 +41,37 @@ test("renders both grade-labeled line series and the attempts bar", async ({ pag
 
   await expect(page.locator("#gap-root")).toContainText("1 grade-step ahead");
   await expect(page.locator("#gap-root svg")).toBeVisible();
-  await expect(page.locator("#gap-root")).toContainText("V4"); // gradeDisplayLabel("6B", "boulder")
-  await expect(page.locator("#gap-root")).toContainText("V5"); // gradeDisplayLabel("6C", "boulder")
+  // #704 -- default report scale is Font, not V-scale -- Font's own native
+  // label for these two grades is unchanged from the seeded raw grade.
+  await expect(page.locator("#gap-root")).toContainText("6B");
+  await expect(page.locator("#gap-root")).toContainText("6C");
   // #603 -- the first bucket's null attempts value renders as a dash, not a rect.
   await expect(page.locator("#gap-root svg")).toContainText("–");
+});
+
+// #704 -- proves the scale picker actually changes what a chart renders,
+// not just that a default label appears.
+test("switching the report grade scale relabels both grade line series", async ({ page }) => {
+  await mockApi(page, {
+    settings: { athleteMode: true, activeDiscipline: "boulder" },
+    gapData: {
+      boulder: {
+        buckets: ["-3w", "-2w", "-1w"],
+        flashMaxByBucket: [null, "6B", null],
+        sendMaxByBucket: [null, "6B", "6C"],
+        avgAttemptsByBucket: [null, 1.5, 3],
+        headline: "Your best send (V5) is 1 grade-step ahead of your best flash (V4) this window.",
+      },
+      lead: { buckets: ["-3w", "-2w", "-1w"], flashMaxByBucket: [null, null, null], sendMaxByBucket: [null, null, null], avgAttemptsByBucket: [null, null, null], headline: "No sends logged in this window yet." },
+    },
+  });
+  await page.goto("/e2e-fixtures/pages/performance-gap.html");
+  await expect(page.locator("#gap-root")).toContainText("6B");
+
+  await page.locator("#report-grade-scale-btn").click();
+  await page.locator('#report-grade-scale-listbox [role="option"]', { hasText: "V-scale" }).click();
+  await expect(page.locator("#gap-root")).toContainText("V4"); // reportGradeLabel("6B", "boulder", "v-scale")
+  await expect(page.locator("#gap-root")).toContainText("V5"); // reportGradeLabel("6C", "boulder", "v-scale")
 });
 
 test("opens and closes the evidence-tier overlay", async ({ page }) => {

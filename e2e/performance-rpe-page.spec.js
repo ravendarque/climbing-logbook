@@ -43,10 +43,36 @@ test("renders the exertion bars and grade-labeled line once the confidence gate 
 
   await expect(page.locator("#rpe-root")).toContainText("sounds like it's paying off");
   await expect(page.locator("#rpe-root svg")).toBeVisible();
-  await expect(page.locator("#rpe-root")).toContainText("V4"); // gradeDisplayLabel("6B", "boulder")
-  await expect(page.locator("#rpe-root")).toContainText("V5"); // gradeDisplayLabel("6C", "boulder")
+  // #704 -- default report scale is Font, not V-scale -- Font's own native
+  // label for these two grades is unchanged from the seeded raw grade.
+  await expect(page.locator("#rpe-root")).toContainText("6B");
+  await expect(page.locator("#rpe-root")).toContainText("6C");
   // #603 -- the first bucket's null exertion value renders as a dash, not a rect.
   await expect(page.locator("#rpe-root svg")).toContainText("–");
+});
+
+// #704 -- proves the scale picker actually changes what a chart renders,
+// not just that a default label appears.
+test("switching the report grade scale relabels the chart's grade point", async ({ page }) => {
+  await mockApi(page, {
+    settings: { athleteMode: true, activeDiscipline: "boulder" },
+    effortData: {
+      boulder: {
+        buckets: ["-3w", "-2w", "-1w"],
+        maxGradeByBucket: [null, "6B", "6C"],
+        avgExertionByBucket: [null, 70, 85],
+        headline: "Your effort is rising alongside your grade -- sounds like it's paying off.",
+      },
+      lead: { buckets: ["-3w", "-2w", "-1w"], maxGradeByBucket: [null, null, null], avgExertionByBucket: [null, null, null], headline: null },
+    },
+  });
+  await page.goto("/e2e-fixtures/pages/performance-rpe.html");
+  await expect(page.locator("#rpe-root")).toContainText("6B");
+
+  await page.locator("#report-grade-scale-btn").click();
+  await page.locator('#report-grade-scale-listbox [role="option"]', { hasText: "V-scale" }).click();
+  await expect(page.locator("#rpe-root")).toContainText("V4"); // reportGradeLabel("6B", "boulder", "v-scale")
+  await expect(page.locator("#rpe-root")).toContainText("V5"); // reportGradeLabel("6C", "boulder", "v-scale")
 });
 
 test("opens and closes the evidence-tier overlay", async ({ page }) => {
