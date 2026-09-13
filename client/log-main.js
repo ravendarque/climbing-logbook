@@ -159,6 +159,12 @@ const entryForm = createEntryForm({
   readOnly: IS_DEMO,
 });
 
+// #705 -- links the grade-scale popover's "What's this?" footer to the
+// reference page; set here rather than threaded through createEntryForm's
+// own params, same "compute once, assign the href" pattern every other
+// page's #back-to-performance-link already uses.
+document.getElementById("grade-scale-reference-link").href = `/${encodeURIComponent(USERNAME)}/performance/grades`;
+
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/logbook/sw.js").catch(() => {});
 }

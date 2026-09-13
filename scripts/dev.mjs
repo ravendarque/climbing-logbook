@@ -75,8 +75,8 @@ console.log("==> Starting dev server");
 // `pnpm run dev:vite` here doubled that noise. `dev:vite` stays in
 // package.json for anyone who wants to run it standalone.
 const dev = spawn("concurrently", [
-  "-n", "vite,tailwind,map,performance-pyramid,performance-hub,performance-injury,performance-strengths,performance-trends,performance-gap,performance-rpe,log,profile,account,account-edit,account-import,sync",
-  "-c", "blue,magenta,yellow,cyan,white,gray,blue,magenta,yellow,cyan,white,gray,blue,magenta,yellow,cyan",
+  "-n", "vite,tailwind,map,performance-pyramid,performance-hub,performance-injury,performance-strengths,performance-trends,performance-gap,performance-rpe,performance-grades,log,profile,account,account-edit,account-import,sync",
+  "-c", "blue,magenta,yellow,cyan,white,gray,blue,magenta,yellow,cyan,white,gray,blue,magenta,yellow,cyan,white",
   "vite dev",
   "tailwindcss -i ./styles/tailwind.css -o ./public/logbook/tailwind.css --watch",
   "pnpm run map:watch",
@@ -87,6 +87,7 @@ const dev = spawn("concurrently", [
   "pnpm run performance-trends:watch",
   "pnpm run performance-gap:watch",
   "pnpm run performance-rpe:watch",
+  "pnpm run performance-grades:watch",
   "pnpm run log:watch",
   "pnpm run profile:watch",
   "pnpm run account:watch",

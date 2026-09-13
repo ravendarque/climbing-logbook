@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grade Scales &amp; Conversion – Climbing Logbook</title>
+  <link rel="manifest" href="/logbook/manifest.json">
+  <link rel="icon" type="image/png" sizes="32x32" href="/logbook/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/logbook/favicon-16.png">
+  <link rel="apple-touch-icon" href="/logbook/apple-touch-icon.png">
+  <meta name="theme-color" content="#ff2727">
+  <!-- #470 -- starts the brand font fetch during initial parsing rather
+       than waiting for layout to discover climbing-header.js's own
+       @font-face rule -- see public/index.html's own comment for the
+       fuller reasoning. -->
+  <link rel="preload" as="font" type="font/woff2" href="/logbook/fonts/BebasNeue-Regular.woff2" crossorigin>
+  <!-- Genuinely static shell (#348, #705), same pattern as public/
+       performance/trends/index.html -- see that file's own comment for
+       why every path below is absolute and client/performance-grades-
+       main.js reads the username from location.pathname itself rather
+       than this file being templated. Unlike the other 5 report pages,
+       this one has no offline fallback and no #time-window-root: it
+       reads only #702's already-committed conversion data
+       (shared/grade-data.js), never a live API. -->
+  <link rel="stylesheet" href="/logbook/tailwind.css">
+  <script src="/logbook/components/climbing-header.js"></script>
+  <script src="/logbook/components/climbing-discipline-picker.js"></script>
+  <script src="/logbook/components/climbing-burger-menu.js"></script>
+  <script>
+    (function () {
+      var stored = localStorage.getItem("logbook_theme");
+      var theme = stored || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+</head>
+<body class="bg-background text-foreground font-sans px-4 pt-6 pb-16 min-w-[300px]">
+<div class="max-w-[960px] mx-auto">
+  <!-- Picker/menu row before the brand row, and align-left on
+       <climbing-header> -- matches /logbook's own layout (left-aligned
+       brand row below the header row, not centered above it). Found via
+       Raven's production report, 2026-08-10 -- see climbing-header.js's
+       own comment on the align-left attribute. -->
+  <div class="flex items-start justify-between gap-2" id="brand-row">
+    <climbing-header variant="brand" align-left></climbing-header>
+    <climbing-burger-menu></climbing-burger-menu>
+  </div>
+
+  <div class="flex items-end gap-3 mb-5" id="picker-tabs-row">
+    <climbing-discipline-picker></climbing-discipline-picker>
+    <climbing-tab-bar active-page="performance"></climbing-tab-bar>
+  </div>
+
+  <!-- #601 -- same btn back-link pattern as every other report page;
+       href set client-side in client/performance-grades-main.js once
+       USERNAME is known. -->
+  <a class="btn btn-primary mt-4 mb-5" id="back-to-performance-link" href="#">
+    <svg class="w-[.9rem] h-[.9rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+    Performance Insights
+  </a>
+
+  <div class="mb-5" id="view-explainer">
+    <p class="text-[.95rem] text-foreground leading-[1.7]">How this discipline's own grade scales line up against each other, and where every equivalence in this app comes from.</p>
+  </div>
+
+  <div id="grade-scale-matrix-root"></div>
+
+  <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>
+</div>
+
+<script type="module" src="/logbook/performance-grades-app.js"></script>
+</body>
+</html>
