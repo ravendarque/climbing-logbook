@@ -143,6 +143,25 @@ export function createAuth(env, hostname) {
       // only ever uses that already-validated Host header/request URL.
       trustedProxyHeaders: false,
       crossSubDomainCookies: crossSubDomainCookies(hostname),
+      // #740 -- better-auth 1.7 added a schema-introspection check
+      // (advanced.database.validateSchema) that runs on every
+      // betterAuth() construction, catching its own errors internally
+      // and only ever logging them (confirmed against the installed
+      // source, auth/base.mjs's own createBetterAuth -- it's a
+      // .catch()'d async check, never thrown/blocking). Harmless for a
+      // typical long-lived Node process that constructs betterAuth()
+      // once at boot, but this factory is called fresh on EVERY request
+      // (env/the D1 binding only exist inside a request's own fetch(),
+      // see this function's own header comment) -- so this check would
+      // otherwise re-run its own D1 introspection queries on every
+      // single request, real added latency for a check whose entire
+      // value (catching a forgotten migration) is already covered by
+      // this repo's own `wrangler d1 migrations apply` pipeline
+      // (migrations/*.sql, never better-auth's own `auth migrate` CLI).
+      // Confirmed live: CI's e2e run degraded badly enough under this
+      // per-request overhead to blow the webServer's own 60s readiness
+      // timeout once the bump to 1.7.4 turned this check on.
+      database: { validateSchema: false },
     },
     emailAndPassword: {
       enabled: true,
