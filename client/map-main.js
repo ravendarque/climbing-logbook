@@ -91,11 +91,6 @@ const adminAuth = createAdminAuth({
 const headerChrome = createHeaderChrome({
   store, adminFetch, isAuthRedirect,
   adminSettingsUrl: ADMIN_SETTINGS_URL,
-  // No pyramid view on this page at all -- the discipline picker's reset
-  // callback is a required param, not an optional one, so this is a
-  // deliberate no-op rather than a conditional call at the one site that
-  // needs it.
-  resetPyramidExpansion: () => {},
 });
 
 if ("serviceWorker" in navigator) {

@@ -167,7 +167,6 @@ const adminAuth = createAdminAuth({
 const headerChrome = createHeaderChrome({
   store, adminFetch, isAuthRedirect,
   adminSettingsUrl: ADMIN_SETTINGS_URL,
-  resetPyramidExpansion: () => {},
 });
 
 if ("serviceWorker" in navigator) {

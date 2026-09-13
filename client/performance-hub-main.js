@@ -131,12 +131,6 @@ const adminAuth = createAdminAuth({
 const headerChrome = createHeaderChrome({
   store, adminFetch, isAuthRedirect,
   adminSettingsUrl: ADMIN_SETTINGS_URL,
-  // client/header-chrome.js:68 calls resetPyramidExpansion()
-  // unconditionally from the discipline-picker's option-click handler --
-  // no guard, no optional chaining. The hub page renders no pyramid, but
-  // omitting this callback entirely would throw the moment a visitor
-  // used the discipline picker here, so it's a real no-op, not left out.
-  resetPyramidExpansion: () => {},
 });
 
 if ("serviceWorker" in navigator) {

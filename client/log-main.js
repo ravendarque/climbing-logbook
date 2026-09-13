@@ -135,9 +135,6 @@ const adminAuth = createAdminAuth({
 const headerChrome = createHeaderChrome({
   store, adminFetch, isAuthRedirect,
   adminSettingsUrl: ADMIN_SETTINGS_URL,
-  // No pyramid view on this page at all -- same deliberate no-op
-  // map-main.js's own createHeaderChrome() call already established.
-  resetPyramidExpansion: () => {},
 });
 
 // Same edit-btn -> entry-form.js delegation as client/main.js's own --
