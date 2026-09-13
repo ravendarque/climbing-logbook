@@ -38,7 +38,7 @@
 // /performance page.
 import { escapeHtml } from "./escape-html.js";
 import { formatDate } from "../../shared/date-helpers.js";
-import { activeGradeList, filteredEntries, groupByPlace, placeOf, sortEntries } from "../entries.js";
+import { filteredEntries, groupByPlace, placeOf, sortEntries } from "../entries.js";
 import { gradeColor } from "../../shared/grade-data.js";
 import { VALID_SPORT_STYLES } from "../../shared/entry-schema.js";
 import { combinedFlashLabel, combinedSendLabel, disciplineLabel, flashLabel, hydrateStatusIcons, sendLabel, statusBadge } from "../status.js";
@@ -79,6 +79,23 @@ const DISCIPLINE_ORDER = ["boulder", "sport"];
 // display text, same split as DISCIPLINE_ORDER/disciplineLabel().
 const SPORT_STYLE_LABEL = { lead: "Lead", top_rope: "Top Rope" };
 
+// #708 -- the five grade tiers (#462), in ascending order, with the
+// display labels the issue itself specifies ("Beginner…Hyper Elite").
+// shared/grade-data.js's own gradeTier()/gradeTierForScale() already
+// resolve any grade to one of these five string ids -- this is purely
+// this filter UI's own id-order + label pairing, first real consumer of
+// a "how does a tier actually look" list (#689's own still-open design
+// note in that file), not promoted to a shared export until a second
+// consumer needs the same pairing.
+const GRADE_TIERS = [
+  { id: "beginner", label: "Beginner" },
+  { id: "intermediate", label: "Intermediate" },
+  { id: "advanced", label: "Advanced" },
+  { id: "elite", label: "Elite" },
+  { id: "hyper-elite", label: "Hyper Elite" },
+];
+const GRADE_TIER_IDS = GRADE_TIERS.map(t => t.id);
+
 // #63 -- both #statusFilters and #disciplineFilters default to their full
 // set rather than empty, so "has the user changed this filter" needs a
 // real comparison against that default, not just a size > 0 check.
@@ -115,16 +132,20 @@ function shellHtml(allDisciplines) {
           ${DISCIPLINE_ORDER.map(d => toggleBtn("discipline", d, "", { text: disciplineLabel(d) })).join("")}
         </fieldset>` : "";
 
+  // #708 -- replaces the old min/max grade-range slider with a tier
+  // multi-select, same fieldset-of-toggleBtn shape as the Status/Style
+  // groups above/below rather than a bespoke drag-slider widget. Still
+  // gated out of allDisciplines mode (#460's own "no cross-discipline
+  // grade scale exists yet" reasoning no longer applies -- a tier IS
+  // cross-discipline comparable -- but wiring a per-discipline facet into
+  // that mode's own combined filteredEntries() call sites is separate
+  // scope, not part of this facet's own replacement).
   const gradeFilter = allDisciplines ? "" : `
-        <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mt-[.9rem] mb-[.4rem]" id="filter-grade-label">Grade</div>
-        <div class="border border-border rounded-app bg-surface px-[.7rem] py-3">
-          <div class="relative h-4 mx-2 flex items-center cursor-pointer" id="grade-slider-track">
-            <div class="absolute left-0 right-0 h-1 bg-border rounded-full"></div>
-            <div class="absolute h-1 bg-accent rounded-full" id="grade-slider-fill"></div>
-            <button type="button" class="absolute w-4 h-4 -ml-2 top-1/2 -translate-y-1/2 bg-accent border-2 border-background rounded-full shadow-[0_1px_3px_color-mix(in_srgb,black_40%,transparent)] cursor-grab touch-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" id="grade-thumb-min" role="slider" aria-label="Minimum grade" aria-valuemin="0" tabindex="0"></button>
-            <button type="button" class="absolute w-4 h-4 -ml-2 top-1/2 -translate-y-1/2 bg-accent border-2 border-background rounded-full shadow-[0_1px_3px_color-mix(in_srgb,black_40%,transparent)] cursor-grab touch-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" id="grade-thumb-max" role="slider" aria-label="Maximum grade" aria-valuemin="0" tabindex="0"></button>
-          </div>
-          <div class="text-center text-[.75rem] text-foreground font-semibold mt-[.4rem]" id="grade-slider-label"></div>
+        <div class="mt-[.9rem]" id="filter-grade-tier-wrap">
+          <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mb-[.4rem]" id="filter-grade-tier-label">Grade</div>
+          <fieldset class="border border-border rounded-app flex flex-col w-full min-w-0" id="filter-grade-tier-group" aria-labelledby="filter-grade-tier-label">
+            ${GRADE_TIERS.map(tier => toggleBtn("grade-tier", tier.id, "", { text: tier.label })).join("")}
+          </fieldset>
         </div>`;
 
   // #644/#645 -- Lead/Top-Rope filter, rendered in BOTH modes (unlike
@@ -258,11 +279,14 @@ export class ClimbingEntriesTable extends HTMLElement {
   // "checked reflects what's shown" convention as #statusFilters/
   // #disciplineFilters above.
   #sportStyleFilters = new Set(VALID_SPORT_STYLES);
-  #gradeRange = null;
+  // #708 -- replaces the old #gradeRange (min/max index into
+  // activeGradeList()) with a tier Set, same "checked reflects shown,
+  // means exactly what it contains" convention as #statusFilters/
+  // #sportStyleFilters above -- every tier starts checked, not empty.
+  #gradeTiers = new Set(GRADE_TIER_IDS);
   #sortByLocation = {};
   #collapsed = new Set();
   #collapseInitialized = false;
-  #dragThumb = null; // "min" | "max" | null
   #wired = false;
 
   static get observedAttributes() {
@@ -343,7 +367,7 @@ export class ClimbingEntriesTable extends HTMLElement {
     return filteredEntries(this.#entries, this.#places, {
       activeType: this.activeDiscipline,
       statusFilters: this.#statusFilters,
-      gradeRange: this.#gradeRange,
+      gradeTiers: this.#gradeTiers,
       search: this.#search,
       sportStyleFilters: this.#sportStyleFilters,
     });
@@ -397,7 +421,7 @@ export class ClimbingEntriesTable extends HTMLElement {
       const filtered = filteredEntries(disciplineEntries, this.#places, {
         activeType: discipline,
         statusFilters: this.#statusFilters,
-        gradeRange: null, // no cross-discipline grade scale exists yet -- #460 explicitly excludes grade filtering here
+        gradeTiers: null, // #460/#708 -- no per-discipline tier facet wired into allDisciplines mode yet
         search: this.#search,
         sportStyleFilters: this.#sportStyleFilters, // #645 -- inert for boulder, filteredEntries() only applies it when discipline is "sport"
       });
@@ -499,68 +523,12 @@ export class ClimbingEntriesTable extends HTMLElement {
     createDisclosure(filterBtn, filterPanel, ".filter-wrap");
     this.#wireNotesOverlay();
 
-    // #460 -- the grade slider doesn't exist in the DOM at all in
-    // allDisciplines mode (shellHtml() omits it entirely, no cross-
-    // discipline grade scale exists yet), so none of its wiring applies.
-    if (!this.allDisciplines) {
-      const gradeSliderTrack = this.querySelector("#grade-slider-track");
-      const gradeThumbMin = this.querySelector("#grade-thumb-min");
-      const gradeThumbMax = this.querySelector("#grade-thumb-max");
-
-      const indexFromClientX = clientX => {
-        const rect = gradeSliderTrack.getBoundingClientRect();
-        const lastIdx = activeGradeList(this.activeDiscipline).length - 1;
-        const pct = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-        return Math.round(pct * lastIdx);
-      };
-
-      const setGradeBound = (which, index) => {
-        const lastIdx = activeGradeList(this.activeDiscipline).length - 1;
-        index = Math.min(lastIdx, Math.max(0, index));
-        const current = this.#gradeRange ?? { min: 0, max: lastIdx };
-        const next = { ...current };
-        if (which === "min") next.min = Math.min(index, current.max);
-        else next.max = Math.max(index, current.min);
-        if (next.min === current.min && next.max === current.max) return;
-        this.#gradeRange = next;
-        this.#update();
-      };
-
-      gradeThumbMin.addEventListener("pointerdown", e => { this.#dragThumb = "min"; gradeThumbMin.setPointerCapture(e.pointerId); });
-      gradeThumbMax.addEventListener("pointerdown", e => { this.#dragThumb = "max"; gradeThumbMax.setPointerCapture(e.pointerId); });
-      gradeSliderTrack.addEventListener("pointermove", e => {
-        if (!this.#dragThumb) return;
-        setGradeBound(this.#dragThumb, indexFromClientX(e.clientX));
-      });
-      gradeSliderTrack.addEventListener("pointerup", () => { this.#dragThumb = null; });
-      gradeSliderTrack.addEventListener("pointercancel", () => { this.#dragThumb = null; });
-
-      gradeSliderTrack.addEventListener("pointerdown", e => {
-        if (e.target === gradeThumbMin || e.target === gradeThumbMax) return;
-        const index = indexFromClientX(e.clientX);
-        const range = this.#gradeRange ?? { min: 0, max: activeGradeList(this.activeDiscipline).length - 1 };
-        const which = Math.abs(index - range.min) <= Math.abs(index - range.max) ? "min" : "max";
-        setGradeBound(which, index);
-      });
-
-      [[gradeThumbMin, "min"], [gradeThumbMax, "max"]].forEach(([thumb, which]) => {
-        thumb.addEventListener("keydown", e => {
-          const range = this.#gradeRange ?? { min: 0, max: activeGradeList(this.activeDiscipline).length - 1 };
-          const current = range[which];
-          if (e.key === "ArrowLeft" || e.key === "ArrowDown") { setGradeBound(which, current - 1); e.preventDefault(); }
-          else if (e.key === "ArrowRight" || e.key === "ArrowUp") { setGradeBound(which, current + 1); e.preventDefault(); }
-          else if (e.key === "Home") { setGradeBound(which, 0); e.preventDefault(); }
-          else if (e.key === "End") { setGradeBound(which, activeGradeList(this.activeDiscipline).length - 1); e.preventDefault(); }
-        });
-      });
-    }
-
     this.addEventListener("click", e => {
       if (e.target.closest("#filter-clear-btn")) {
         this.#statusFilters = new Set(DEFAULT_STATUS_FILTERS);
         this.#disciplineFilters = new Set(DISCIPLINE_ORDER);
         this.#sportStyleFilters = new Set(VALID_SPORT_STYLES);
-        this.#gradeRange = null;
+        this.#gradeTiers = new Set(GRADE_TIER_IDS);
         this.#update();
         return;
       }
@@ -632,6 +600,13 @@ export class ClimbingEntriesTable extends HTMLElement {
       const sportStyleInput = e.target.closest("#filter-sport-style-group input[data-sport-style]");
       if (sportStyleInput) {
         sportStyleInput.checked ? this.#sportStyleFilters.add(sportStyleInput.dataset.sportStyle) : this.#sportStyleFilters.delete(sportStyleInput.dataset.sportStyle);
+        this.#update();
+        return;
+      }
+
+      const gradeTierInput = e.target.closest("#filter-grade-tier-group input[data-grade-tier]");
+      if (gradeTierInput) {
+        gradeTierInput.checked ? this.#gradeTiers.add(gradeTierInput.dataset.gradeTier) : this.#gradeTiers.delete(gradeTierInput.dataset.gradeTier);
         this.#update();
       }
     });
@@ -776,7 +751,9 @@ export class ClimbingEntriesTable extends HTMLElement {
     } else {
       this.querySelector("#filter-flash-label").textContent = flashLabel(this.activeDiscipline);
       this.querySelector("#filter-send-label").textContent = sendLabel(this.activeDiscipline);
-      this.#updateGradeSlider();
+      this.querySelectorAll("#filter-grade-tier-group input[data-grade-tier]").forEach(input => {
+        input.checked = this.#gradeTiers.has(input.dataset.gradeTier);
+      });
     }
     // #644/#645 -- shown only when Sport is actually in view, same
     // Boulder-vs-Sport gate client/entry-form.js's own #sport-style-field
@@ -800,37 +777,10 @@ export class ClimbingEntriesTable extends HTMLElement {
     const anyActive = setDiffersFrom(this.#statusFilters, DEFAULT_STATUS_FILTERS) ||
       setDiffersFrom(this.#disciplineFilters, DISCIPLINE_ORDER) ||
       setDiffersFrom(this.#sportStyleFilters, VALID_SPORT_STYLES) ||
-      this.#gradeRange !== null;
+      setDiffersFrom(this.#gradeTiers, GRADE_TIER_IDS);
     const filterBtn = this.querySelector("#filter-btn");
     filterBtn.classList.toggle("active", anyActive);
     filterBtn.setAttribute("aria-pressed", String(anyActive));
-  }
-
-  #updateGradeSlider() {
-    const list = activeGradeList(this.activeDiscipline);
-    const lastIdx = list.length - 1;
-    const range = this.#gradeRange ?? { min: 0, max: lastIdx };
-    const pct = i => lastIdx === 0 ? 0 : (i / lastIdx) * 100;
-
-    const gradeThumbMin = this.querySelector("#grade-thumb-min");
-    const gradeThumbMax = this.querySelector("#grade-thumb-max");
-    const gradeSliderFill = this.querySelector("#grade-slider-fill");
-
-    gradeThumbMin.style.left = `${pct(range.min)}%`;
-    gradeThumbMax.style.left = `${pct(range.max)}%`;
-    gradeThumbMin.setAttribute("aria-valuemax", String(lastIdx));
-    gradeThumbMax.setAttribute("aria-valuemax", String(lastIdx));
-    gradeThumbMin.setAttribute("aria-valuenow", String(range.min));
-    gradeThumbMax.setAttribute("aria-valuenow", String(range.max));
-    gradeThumbMin.setAttribute("aria-valuetext", list[range.min].g);
-    gradeThumbMax.setAttribute("aria-valuetext", list[range.max].g);
-
-    gradeSliderFill.style.left = `${pct(range.min)}%`;
-    gradeSliderFill.style.right = `${100 - pct(range.max)}%`;
-
-    this.querySelector("#grade-slider-label").textContent = range.min === range.max
-      ? list[range.min].g
-      : `${list[range.min].g} – ${list[range.max].g}`;
   }
 
   #updateCollapseAllBtn() {

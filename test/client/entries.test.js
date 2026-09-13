@@ -1,15 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
-  activeGradeList,
   entryLocation,
   entryMatchesStatusFilter,
   filteredEntries,
+  gradeMatchesSearch,
   groupByPlace,
   locationOf,
   placeOf,
   sortEntries,
 } from "../../client/entries.js";
-import { BOULDER_GRADES, LEAD_GRADES } from "../../shared/grade-data.js";
 
 const LOCATIONS = [
   { id: "l1", name: "Fontainebleau", country: "France" },
@@ -64,31 +63,40 @@ describe("entryMatchesStatusFilter", () => {
   });
 });
 
-describe("activeGradeList", () => {
-  // Compares against BOULDER_GRADES/LEAD_GRADES directly (not a hardcoded
-  // first-grade string) so this doesn't go stale again the next time
-  // either list's range changes, the way it did under #129's own
-  // extension (this test previously hardcoded "5"/"5c" as the first
-  // grade of each list).
-  it("picks boulder vs lead by discipline", () => {
-    expect(activeGradeList("boulder")[0].g).toBe(BOULDER_GRADES[0].g);
-    expect(activeGradeList("lead")[0].g).toBe(LEAD_GRADES[0].g);
+describe("gradeMatchesSearch", () => {
+  it("a query with no trailing modifier matches the grade's base, both modifier variants included", () => {
+    expect(gradeMatchesSearch("7A", "7a")).toBe(true);
+    expect(gradeMatchesSearch("7a", "7a")).toBe(true);
+    expect(gradeMatchesSearch("7A+", "7a")).toBe(true);
+    expect(gradeMatchesSearch("7a-", "7a")).toBe(true);
+  });
+
+  it("a query with a trailing modifier matches the grade's full label, modifier included", () => {
+    expect(gradeMatchesSearch("7a+", "7a+")).toBe(true);
+    expect(gradeMatchesSearch("7A+", "7a+")).toBe(true);
+    expect(gradeMatchesSearch("7a", "7a+")).toBe(false);
+    expect(gradeMatchesSearch("7a-", "7a+")).toBe(false);
+  });
+
+  it("is exact-equality after normalization, not a substring test", () => {
+    expect(gradeMatchesSearch("6A", "6")).toBe(false);
+    expect(gradeMatchesSearch("16A", "6a")).toBe(false);
   });
 });
 
 describe("filteredEntries", () => {
   const entries = [
-    { id: "e1", type: "boulder", status: "send", firstAttempt: true, grade: "6A", name: "Font Classic", placeId: "p1" },
-    { id: "e2", type: "boulder", status: "project", firstAttempt: false, grade: "7A", name: "Karma", placeId: "p1" },
-    { id: "e3", type: "sport", status: "send", firstAttempt: false, grade: "6a", name: "Voie des Dalles", placeId: "p2", sportStyle: "lead" },
-    { id: "e4", type: "sport", status: "send", firstAttempt: false, grade: "6b", name: "Top-Rope Route", placeId: "p2", sportStyle: "top_rope" },
+    { id: "e1", type: "boulder", status: "send", firstAttempt: true, grade: "6A", gradeScale: "font", name: "Font Classic", placeId: "p1" },
+    { id: "e2", type: "boulder", status: "project", firstAttempt: false, grade: "7A", gradeScale: "font", name: "Karma", placeId: "p1" },
+    { id: "e3", type: "sport", status: "send", firstAttempt: false, grade: "6a", gradeScale: "french", name: "Voie des Dalles", placeId: "p2", sportStyle: "lead" },
+    { id: "e4", type: "sport", status: "send", firstAttempt: false, grade: "6b", gradeScale: "french", name: "Top-Rope Route", placeId: "p2", sportStyle: "top_rope" },
   ];
   // #63 -- statusFilters has no "empty = show every status" shortcut, so
   // a base fixture for tests that aren't themselves testing status
   // filtering needs to explicitly list every status these entries use
   // (flash+send+project cover all three above), not rely on an empty set
   // meaning "no constraint."
-  const baseFilters = { activeType: "boulder", statusFilters: new Set(["flash", "send", "project"]), gradeRange: null, search: "" };
+  const baseFilters = { activeType: "boulder", statusFilters: new Set(["flash", "send", "project"]), gradeTiers: null, search: "" };
 
   it("filters to only the active discipline", () => {
     const result = filteredEntries(entries, PLACES, baseFilters);
@@ -105,16 +113,34 @@ describe("filteredEntries", () => {
     expect(result).toEqual([]);
   });
 
-  it("filters by grade range", () => {
-    const list = activeGradeList("boulder");
-    const sixAIdx = list.findIndex(g => g.g === "6A");
-    const result = filteredEntries(entries, PLACES, { ...baseFilters, gradeRange: { min: sixAIdx, max: sixAIdx } });
-    expect(result.map(e => e.id)).toEqual(["e1"]);
+  // #708 -- replaces the old min/max gradeRange facet with a tier Set,
+  // same "means exactly what it contains" convention as statusFilters.
+  // e1's "6A" (Font) is exactly Boulder's Intermediate threshold; e2's
+  // "7A" is exactly its Advanced threshold (shared/grade-data.js's own
+  // GRADE_TIER_THRESHOLDS).
+  it("filters by grade tier, derived from (grade, gradeScale)", () => {
+    expect(filteredEntries(entries, PLACES, { ...baseFilters, gradeTiers: new Set(["intermediate"]) }).map(e => e.id)).toEqual(["e1"]);
+    expect(filteredEntries(entries, PLACES, { ...baseFilters, gradeTiers: new Set(["advanced"]) }).map(e => e.id)).toEqual(["e2"]);
+  });
+
+  it("an empty gradeTiers shows nothing, same 'means exactly what it contains' rule as statusFilters (#63)", () => {
+    expect(filteredEntries(entries, PLACES, { ...baseFilters, gradeTiers: new Set() })).toEqual([]);
+  });
+
+  it("gradeTiers is inert when omitted/null -- backward compatible for callers with no such facet (allDisciplines mode, #460)", () => {
+    expect(filteredEntries(entries, PLACES, baseFilters).map(e => e.id)).toEqual(["e1", "e2"]);
   });
 
   it("filters by search text against name or area", () => {
     expect(filteredEntries(entries, PLACES, { ...baseFilters, search: "karma" }).map(e => e.id)).toEqual(["e2"]);
     expect(filteredEntries(entries, PLACES, { ...baseFilters, search: "cuvier" }).map(e => e.id)).toEqual(["e1", "e2"]);
+  });
+
+  // #708 -- as-logged grade-label search, case-insensitive, modifier-
+  // aware (see gradeMatchesSearch's own tests below for the full rule).
+  it("filters by grade label search, alongside name/area", () => {
+    expect(filteredEntries(entries, PLACES, { ...baseFilters, search: "6a" }).map(e => e.id)).toEqual(["e1"]);
+    expect(filteredEntries(entries, PLACES, { ...baseFilters, activeType: "sport", statusFilters: new Set(["send"]), search: "6a" }).map(e => e.id)).toEqual(["e3"]);
   });
 
   // #644 -- Lead/Top-Rope filter on the owner /log view.

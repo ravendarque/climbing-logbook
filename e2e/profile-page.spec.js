@@ -175,7 +175,7 @@ test("Style filter is hidden until Sport is in view, and narrows the combined ta
   await expect(page.locator("#sections")).toContainText("Top Rope Seed");
 });
 
-test("combined status filter labels span both disciplines, and there's no grade-range filter", async ({ page }) => {
+test("combined status filter labels span both disciplines, and there's no grade-tier filter", async ({ page }) => {
   await mockApi(page, MIXED_SEED);
   await page.goto("/e2e-fixtures/pages/profile.html");
   await expect(page.locator("climbing-entries-table")).toBeVisible();
@@ -183,11 +183,11 @@ test("combined status filter labels span both disciplines, and there's no grade-
   await page.locator("#filter-btn").click();
   await expect(page.locator("#filter-flash-label")).toHaveText("Flash / Onsight");
   await expect(page.locator("#filter-send-label")).toHaveText("Send / Redpoint");
-  // #460 -- no cross-discipline grade scale exists yet, deliberately out
-  // of scope; the grade slider isn't just hidden, it's absent from the
-  // DOM entirely (client/components/climbing-entries-table.js's own
-  // shellHtml(allDisciplines)).
-  await expect(page.locator("#grade-slider-track")).toHaveCount(0);
+  // #460/#708 -- no per-discipline tier facet wired into allDisciplines
+  // mode yet, deliberately out of scope; the tier filter isn't just
+  // hidden, it's absent from the DOM entirely (client/components/
+  // climbing-entries-table.js's own shellHtml(allDisciplines)).
+  await expect(page.locator("#filter-grade-tier-group")).toHaveCount(0);
 });
 
 test("filter panel status icons render real SVG content (#63 -- this page never loads entry-form.js, which used to be the only thing hydrating them)", async ({ page }) => {
