@@ -87,6 +87,40 @@ test("switching the time window to 52w re-fetches with a wider range", async ({ 
   expect(new Date(fiftyTwoWStart).getTime()).toBeLessThan(new Date(initialStart).getTime());
 });
 
+// #736 -- Custom range's two date pickers used to be native
+// <input type="date">s; this is the one e2e coverage of the calendar-
+// popover version actually driving a real page (unit coverage of the
+// widget itself lives in test/client/calendar-date-picker.test.js, and
+// of the integration contract in test/client/time-window.test.js -- this
+// is the "does it really work in a browser" check CLAUDE.md's own
+// verification standard asks for on UI changes).
+test("Custom range: picking a start date via the calendar popover re-fetches with that date", async ({ page }) => {
+  let lastRequestUrl = null;
+  await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
+  await page.route("**/logbook/api/performance/volume**", route => {
+    lastRequestUrl = route.request().url();
+    return route.fulfill({ json: { boulder: { buckets: [], sendCounts: [], maxGradeByBucket: [] }, lead: { buckets: [], sendCounts: [], maxGradeByBucket: [] } } });
+  });
+  await page.goto("/e2e-fixtures/pages/performance-trends.html");
+  await expect.poll(() => lastRequestUrl).not.toBeNull();
+
+  await page.locator('[data-window="custom"]').click();
+  await page.locator("#time-window-start-btn").click();
+  await expect(page.locator("#time-window-start-popover")).toBeVisible();
+
+  const dayCell = page.locator('#time-window-start-grid button[data-date]').first();
+  const pickedDate = await dayCell.getAttribute("data-date");
+  await dayCell.click();
+
+  await expect(page.locator("#time-window-start-popover")).toBeHidden();
+  await expect.poll(() => new URL(lastRequestUrl).searchParams.get("start")).toBe(pickedDate);
+
+  // The picked date is now shown as readable text next to the button.
+  const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const [, y, mo, d] = /^(\d{4})-(\d{2})-(\d{2})$/.exec(pickedDate);
+  await expect(page.locator("#time-window-root")).toContainText(`${MONTHS_SHORT[+mo - 1]} ${+d}, ${y}`);
+});
+
 test("shows the offline message instead of the chart when the fetch fails", async ({ page }) => {
   await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
   await page.route("**/logbook/api/performance/volume**", route => route.fulfill({ status: 500 }));

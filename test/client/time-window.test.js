@@ -9,6 +9,24 @@ beforeEach(() => {
   containerEl = document.getElementById("container");
 });
 
+// #736 -- Custom range now uses two calendar-date-picker.js instances
+// instead of native <input type="date">s. This file tests the
+// INTEGRATION contract only (Custom mode wires two pickers to
+// customRange.start/end, selecting a day fires onChange with the
+// updated range) -- the calendar widget's own internals (month nav,
+// today/selected marking, value parsing) are already covered directly by
+// test/client/calendar-date-picker.test.js, not re-tested here. Picks
+// whatever day cell isn't already selected, rather than a hardcoded
+// date, so these tests don't depend on which month the picker's initial
+// value happens to open on relative to the current system time.
+function pickAnyOtherDay(idPrefix) {
+  containerEl.querySelector(`#${idPrefix}-btn`).click();
+  const cell = [...containerEl.querySelectorAll(`#${idPrefix}-grid button[data-date]`)]
+    .find(el => el.getAttribute("aria-selected") !== "true");
+  cell.click();
+  return cell.dataset.date;
+}
+
 describe("createTimeWindowControl", () => {
   it("calls onChange immediately with the initial 12w range", () => {
     const onChange = vi.fn();
@@ -37,25 +55,22 @@ describe("createTimeWindowControl", () => {
     expect(new Date(start52w).getTime()).toBeLessThan(new Date(start12w).getTime());
   });
 
-  it("switching to Custom reveals two native date inputs, not present before", () => {
+  it("switching to Custom reveals two calendar-date-picker buttons, not present before", () => {
     createTimeWindowControl({ containerEl, onChange: () => {} });
-    expect(containerEl.querySelector('input[type="date"]')).toBeFalsy();
+    expect(containerEl.querySelector("#time-window-start-btn")).toBeFalsy();
     containerEl.querySelector('[data-window="custom"]').click();
-    const dateInputs = containerEl.querySelectorAll('input[type="date"]');
-    expect(dateInputs).toHaveLength(2);
+    expect(containerEl.querySelector("#time-window-start-btn")).toBeTruthy();
+    expect(containerEl.querySelector("#time-window-end-btn")).toBeTruthy();
   });
 
-  it("changing both custom date inputs fires onChange with the chosen range", () => {
+  it("picking both custom dates fires onChange with the chosen range", () => {
     const onChange = vi.fn();
     createTimeWindowControl({ containerEl, onChange });
     containerEl.querySelector('[data-window="custom"]').click();
-    const [startInput, endInput] = containerEl.querySelectorAll('input[type="date"]');
-    startInput.value = "2026-01-01";
-    startInput.dispatchEvent(new Event("change", { bubbles: true }));
-    endInput.value = "2026-02-15";
-    endInput.dispatchEvent(new Event("change", { bubbles: true }));
+    const pickedStart = pickAnyOtherDay("time-window-start");
+    const pickedEnd = pickAnyOtherDay("time-window-end");
     const last = onChange.mock.calls.at(-1)[0];
-    expect(last).toEqual({ start: "2026-01-01", end: "2026-02-15" });
+    expect(last).toEqual({ start: pickedStart, end: pickedEnd });
   });
 
   it("getRange() returns the currently active range", () => {
@@ -97,18 +112,15 @@ describe("createTimeWindowControl", () => {
     // Switch to Custom
     containerEl.querySelector('[data-window="custom"]').click();
     // Update the dates
-    const [startInput, endInput] = containerEl.querySelectorAll('input[type="date"]');
-    startInput.value = "2026-01-01";
-    startInput.dispatchEvent(new Event("change", { bubbles: true }));
-    endInput.value = "2026-02-15";
-    endInput.dispatchEvent(new Event("change", { bubbles: true }));
+    const pickedStart = pickAnyOtherDay("time-window-start");
+    const pickedEnd = pickAnyOtherDay("time-window-end");
     // Clear the mock to count only calls after this point
     onChange.mockClear();
     // Re-click Custom (should NOT reset to 12w range)
     containerEl.querySelector('[data-window="custom"]').click();
     // Check that onChange was called but with the preserved dates
     const lastCall = onChange.mock.calls.at(-1)[0];
-    expect(lastCall).toEqual({ start: "2026-01-01", end: "2026-02-15" });
+    expect(lastCall).toEqual({ start: pickedStart, end: pickedEnd });
   });
 
   it("pill buttons carry real styling utility classes, not just the non-functional toggle-btn label", () => {
@@ -118,11 +130,39 @@ describe("createTimeWindowControl", () => {
     expect(btn.className).toContain("aria-[pressed=true]:bg-accent");
   });
 
-  it("Custom date inputs set an explicit foreground text color (dark-mode readability, #600)", () => {
+  it("Custom range's picked-date labels set an explicit foreground text color (dark-mode readability, #600)", () => {
     createTimeWindowControl({ containerEl, onChange: () => {} });
     containerEl.querySelector('[data-window="custom"]').click();
-    for (const input of containerEl.querySelectorAll('input[type="date"]')) {
-      expect(input.className).toContain("text-foreground");
-    }
+    // #736 -- the label showing the picked date replaced the old native
+    // date inputs (which needed this same explicit color fix, #600, so
+    // the value text wasn't invisible against a dark background) as the
+    // one thing in Custom mode displaying date text directly.
+    const labels = containerEl.querySelectorAll(".flex.items-center.gap-2 > span.text-foreground");
+    expect(labels).toHaveLength(2);
+  });
+
+  it("Custom range shows the picked start/end dates as readable text, not just raw ISO strings", () => {
+    vi.setSystemTime(new Date("2026-01-15T12:00:00Z"));
+    createTimeWindowControl({ containerEl, onChange: () => {} });
+    containerEl.querySelector('[data-window="custom"]').click();
+    expect(containerEl.textContent).toContain("2026"); // the year is real content, not asserting exact formatting here
+    expect(containerEl.textContent).not.toContain("undefined");
+  });
+
+  it("destroys the previous Custom pickers' listeners on every re-render, not just the DOM", () => {
+    // #736 -- render() fully rebuilds containerEl.innerHTML on every
+    // state change; without destroy()ing the previous pair of
+    // calendar-date-picker instances first, their document-level
+    // listeners (createDisclosure's outside-click/Escape handlers) would
+    // pile up forever across repeated picks, each one keeping its own
+    // now-detached button/popover alive too.
+    const removeSpy = vi.spyOn(document, "removeEventListener");
+    createTimeWindowControl({ containerEl, onChange: () => {} });
+    containerEl.querySelector('[data-window="custom"]').click();
+    removeSpy.mockClear();
+    pickAnyOtherDay("time-window-start"); // triggers a re-render
+    // 2 pickers x 2 document-level listeners each (outside-click, Escape)
+    expect(removeSpy.mock.calls.length).toBe(4);
+    removeSpy.mockRestore();
   });
 });

@@ -1,10 +1,15 @@
 // Shared time-window control (#15, epic #5 Phase 2) -- a segmented pill
 // (12w / 52w / Custom), same implementation granularity as client/
 // combo-chart.js and client/row-card.js (a plain JS module, not a Custom
-// Element). Custom reveals two native date inputs -- same pattern client/
-// entry-form.js's own date-picker-btn/date-native already establishes,
-// not a hand-built calendar widget.
+// Element). Custom reveals two calendar-date-picker.js pickers (#736) --
+// originally two native <input type="date">s, which turned out to be
+// exactly the OS/browser-chrome pattern entry-form.js's own #703-review
+// date picker had already been built to replace; #736 extracted that
+// fix into a shared component instead of leaving this control as the
+// one place still using the old pattern (confirmed live during #717/
+// #733 review, 2026-09-12).
 import { escapeHtml } from "./escape-html.js";
+import { calendarDatePickerHtml, createCalendarDatePicker } from "./calendar-date-picker.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -39,29 +44,60 @@ const PILL_LABELS = { "12w": "12 weeks", "52w": "52 weeks", custom: "Custom" };
 // same job, same pattern client/components/climbing-tab-bar.js's own
 // LINK_CLASSES already uses for aria-[current=page]:.
 const PILL_CLASSES = "border border-border rounded-app bg-surface text-muted text-[.82rem] font-semibold cursor-pointer transition-colors duration-150 hover:text-foreground px-3 py-1 aria-[pressed=true]:bg-accent aria-[pressed=true]:text-accent-foreground aria-[pressed=true]:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2";
-// text-foreground -- same dark-mode fix #597 already applied to client/
-// move-tagging.js's selects (the working precedent, .grade-select, sets
-// this explicitly); these date inputs had no text color at all, falling
-// back to the browser's native black-on-dark default.
-const DATE_INPUT_CLASSES = "bg-surface border border-border rounded-app px-2 py-1 text-[.85rem] text-foreground";
+
+const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// Unlike entry-form.js's date field -- an icon-only picker button beside
+// a free-text field that already shows the value -- there's no sibling
+// field here, so the picked date needs its own visible text. Rendered as
+// a plain label next to the picker's own icon-only button rather than
+// teaching calendar-date-picker.js to grow a second button shape: this
+// file's render() already fully rebuilds on every state change (see the
+// pill click handler below), so a label baked straight into the same
+// template string that already re-renders on every customRange change
+// needs no extra "keep it in sync" wiring of its own.
+function formatDateLabel(dateStr) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+  if (!m) return dateStr;
+  const [, y, mo, d] = m;
+  return `${MONTHS_SHORT[+mo - 1]} ${+d}, ${y}`;
+}
 
 export function createTimeWindowControl({ containerEl, onChange, initial = "12w" }) {
   let mode = initial;
   let customRange = presetRange(WINDOWS["12w"]);
+  // #736 -- render() below fully rebuilds containerEl.innerHTML on every
+  // state change, so the two calendar pickers it creates each carry a
+  // real createDisclosure() with document-level listeners that need
+  // tearing down before the next rebuild -- otherwise every pill click
+  // or date pick piles up another pair of listeners forever, each
+  // keeping its own now-detached trigger/popover alive too. Tracked here
+  // so render() can destroy() the previous pair before creating the
+  // next.
+  let startPicker = null, endPicker = null;
 
   function currentRange() {
     return mode === "custom" ? customRange : presetRange(WINDOWS[mode]);
   }
 
   function render() {
+    startPicker?.destroy();
+    endPicker?.destroy();
     const pillsHtml = ["12w", "52w", "custom"].map(m => `
       <button type="button" class="${PILL_CLASSES}" data-window="${m}" aria-pressed="${m === mode}">${PILL_LABELS[m]}</button>
     `).join("");
 
     const customHtml = mode === "custom"
-      ? `<div class="flex gap-2 mt-2">
-          <input type="date" class="${DATE_INPUT_CLASSES}" id="time-window-start" value="${escapeHtml(customRange.start)}">
-          <input type="date" class="${DATE_INPUT_CLASSES}" id="time-window-end" value="${escapeHtml(customRange.end)}">
+      ? `<div class="flex items-center gap-2 mt-2 flex-wrap">
+          <div class="flex items-center gap-2">
+            ${calendarDatePickerHtml("time-window-start", { label: "Pick a start date" })}
+            <span class="text-[.85rem] text-foreground">${escapeHtml(formatDateLabel(customRange.start))}</span>
+          </div>
+          <span class="text-muted text-[.82rem]">–</span>
+          <div class="flex items-center gap-2">
+            ${calendarDatePickerHtml("time-window-end", { label: "Pick an end date" })}
+            <span class="text-[.85rem] text-foreground">${escapeHtml(formatDateLabel(customRange.end))}</span>
+          </div>
         </div>`
       : "";
 
@@ -78,14 +114,29 @@ export function createTimeWindowControl({ containerEl, onChange, initial = "12w"
     }
 
     if (mode === "custom") {
-      const startInput = containerEl.querySelector("#time-window-start");
-      const endInput = containerEl.querySelector("#time-window-end");
-      const onCustomChange = () => {
-        customRange = { start: startInput.value, end: endInput.value };
-        onChange(currentRange());
-      };
-      startInput.addEventListener("change", onCustomChange);
-      endInput.addEventListener("change", onCustomChange);
+      startPicker = createCalendarDatePicker({
+        containerEl,
+        idPrefix: "time-window-start",
+        getValue: () => customRange.start,
+        onSelect: dateStr => {
+          customRange = { ...customRange, start: dateStr };
+          render();
+          onChange(currentRange());
+        },
+      });
+      endPicker = createCalendarDatePicker({
+        containerEl,
+        idPrefix: "time-window-end",
+        getValue: () => customRange.end,
+        onSelect: dateStr => {
+          customRange = { ...customRange, end: dateStr };
+          render();
+          onChange(currentRange());
+        },
+      });
+    } else {
+      startPicker = null;
+      endPicker = null;
     }
   }
 
