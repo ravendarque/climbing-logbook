@@ -39,7 +39,18 @@ can't catch:**
    grade ordering, date helpers, offline-queue merge logic, grade-pyramid
    stats, map geometry: anything with no DOM dependency gets pulled out of
    the DOM-heavy composition root and gains direct unit coverage as it's
-   extracted (see ADR-0012).
+   extracted (see ADR-0012). A narrower sibling to this layer covers
+   modules that DO need a real DOM but aren't full-page composition
+   roots (client/move-tagging.js, client/modal-utils.js,
+   client/calendar-date-picker.js, and the Custom Elements) --
+   vitest.config.js's own "client-dom" project runs just these files
+   under happy-dom (confirmed: workerd's own `node:vm` shim doesn't
+   support happy-dom's setup at all, so this can't be a per-file
+   `@vitest-environment` override on the layer-1/2 "workers" project
+   above -- it needs a separate Vitest project). Still Vitest, still
+   in-process, still nowhere near Playwright's real-browser weight --
+   the pyramid's actual three layers are unchanged by this, it's an
+   internal split within layer 2.
 3. **Playwright, against a real browser and a real `wrangler dev`**
    (#218) — the top layer, covering a handful of golden-path flows (app
    loads and renders, log a climb, toggle Athlete Mode, switch discipline
