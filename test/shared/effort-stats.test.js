@@ -1,8 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { effortByBucket, effortHeadline } from "../../shared/effort-stats.js";
 
+// #717 -- gradeScale defaults to whichever discipline's own primary
+// scale matches this fixture's own default grade casing (font-non-
+// standard's real notation for Boulder, french for Sport) -- a test
+// exercising a specific scale passes its own gradeScale override.
 function entry(overrides = {}) {
-  return { date: "2026-01-15", status: "send", grade: "6B", type: "boulder", rpe: 70, ...overrides };
+  const type = overrides.type ?? "boulder";
+  const gradeScale = type === "boulder" ? "font-non-standard" : "french";
+  return { date: "2026-01-15", status: "send", grade: "6B", type, gradeScale, rpe: 70, ...overrides };
+}
+
+function pair(grade, gradeScale = "font-non-standard") {
+  return { grade, gradeScale };
 }
 
 // Test-only shorthand -- effortByBucket only cares about a bucket's
@@ -25,7 +35,7 @@ describe("effortByBucket", () => {
   it("tracks the highest send grade per bucket, matching volumeByBucket's own logic", () => {
     const entries = [entry({ grade: "6B" }), entry({ grade: "7A", date: "2026-01-20" })];
     const { maxGradeByBucket } = effortByBucket(entries, [JAN]);
-    expect(maxGradeByBucket).toEqual(["7A"]);
+    expect(maxGradeByBucket).toEqual([pair("7A")]);
   });
 
   // #461 -- regression: `type` used to be dropped entirely on the way
@@ -34,7 +44,7 @@ describe("effortByBucket", () => {
   it("ranks Sport grades against Sport's own order, not Boulder's", () => {
     const entries = [entry({ grade: "4a", type: "sport" }), entry({ grade: "6a", type: "sport", date: "2026-01-20" })];
     const { maxGradeByBucket } = effortByBucket(entries, [JAN], "sport");
-    expect(maxGradeByBucket).toEqual(["6a"]);
+    expect(maxGradeByBucket).toEqual([pair("6a", "french")]);
   });
 
   it("averages rpe per bucket, ignoring entries with no rpe value", () => {
@@ -82,7 +92,20 @@ describe("effortByBucket", () => {
     const entries = [entry({ date: "2026-01-05", rpe: 60 }), entry({ date: "2026-02-10", rpe: 80, grade: "7A" })];
     const { avgExertionByBucket, maxGradeByBucket } = effortByBucket(entries, [JAN, FEB]);
     expect(avgExertionByBucket).toEqual([60, 80]);
-    expect(maxGradeByBucket).toEqual(["6B", "7A"]);
+    expect(maxGradeByBucket).toEqual([pair("6B"), pair("7A")]);
+  });
+
+  // #717 -- the real fix: a Boulder send logged in V-scale has no string
+  // in the old BOULDER_ORDER hybrid notation to rank against -- the old
+  // gradeRank()-based comparison fell through to its own `?? 99`
+  // fallback, silently "winning" regardless of its real difficulty.
+  it("correctly compares a send logged in a non-primary scale against one in the primary scale", () => {
+    const entries = [
+      entry({ grade: "7c" }), // harder, font-non-standard
+      entry({ grade: "V3", gradeScale: "v-scale", date: "2026-01-20" }), // easier (Font 6A-equivalent)
+    ];
+    const { maxGradeByBucket } = effortByBucket(entries, [JAN]);
+    expect(maxGradeByBucket).toEqual([pair("7c")]);
   });
 });
 
@@ -93,29 +116,38 @@ describe("effortHeadline", () => {
   });
 
   it("returns the 'paying off' message when both grade and exertion rise from first to last data point", () => {
-    const text = effortHeadline(["6B", "7A"], [60, 80], [2, 2], 70, 5, "boulder");
+    const text = effortHeadline([pair("6B"), pair("7A")], [60, 80], [2, 2], 70, 5, "boulder");
     expect(text).toContain("paying off");
   });
 
   it("returns the 'maxing out effort' message for high average exertion with no grade progress", () => {
-    const text = effortHeadline(["6B", "6B"], [85, 85], [2, 2], 85, 5, "boulder");
+    const text = effortHeadline([pair("6B"), pair("6B")], [85, 85], [2, 2], 85, 5, "boulder");
     expect(text).toContain("technique work");
   });
 
   it("returns the discipline-aware 'room to push harder' message as the default case", () => {
-    const boulderText = effortHeadline(["6B", "6B"], [40, 40], [2, 2], 40, 5, "boulder");
+    const boulderText = effortHeadline([pair("6B"), pair("6B")], [40, 40], [2, 2], 40, 5, "boulder");
     expect(boulderText).toContain("send attempts");
-    const sportText = effortHeadline(["6a", "6a"], [40, 40], [2, 2], 40, 5, "sport");
+    const sportText = effortHeadline([pair("6a", "french"), pair("6a", "french")], [40, 40], [2, 2], 40, 5, "sport");
     expect(sportText).toContain("redpoint attempts");
   });
 
   it("does not report a rising exertion trend for a sub-margin fluctuation", () => {
-    const text = effortHeadline(["6B", "7A"], [70, 73], [2, 2], 71, 5, "boulder");
+    const text = effortHeadline([pair("6B"), pair("7A")], [70, 73], [2, 2], 71, 5, "boulder");
     expect(text).not.toContain("paying off");
   });
 
   it("falls through to the default case with only one bucket of real data (no possible trend)", () => {
-    const text = effortHeadline(["6B"], [50], [3], 50, 5, "boulder");
+    const text = effortHeadline([pair("6B")], [50], [3], 50, 5, "boulder");
     expect(text).toContain("room to push harder");
+  });
+
+  // #717 -- the trend comparison now resolves each bucket's own pair via
+  // its real canonical ordinal (reportGradeOrdinal), not gradeRank --
+  // confirms a V-scale-logged grade compares correctly against a
+  // font-non-standard one for trend-direction purposes.
+  it("correctly detects a rising grade trend across a mix of real scales", () => {
+    const text = effortHeadline([pair("V3", "v-scale"), pair("7A")], [60, 80], [2, 2], 70, 5, "boulder");
+    expect(text).toContain("paying off");
   });
 });

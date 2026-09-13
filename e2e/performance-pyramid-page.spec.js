@@ -69,7 +69,11 @@ test("renders the shared chrome and a real grade pyramid, and switches disciplin
 // anything -- never a locally-computed or stale-cached number.
 test("shows the offline message instead of a pyramid when the fetch fails", async ({ page }) => {
   await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
-  await page.route("**/logbook/api/performance/pyramid", route => route.fulfill({ status: 500 }));
+  // #737 -- trailing ** (not an exact-path match): the real request now
+  // carries ?boulderScale=&sportScale= query params, same convention
+  // e2e/performance-{trends,gap}-page.spec.js's own volume/gap route
+  // mocks already use for their own query-param-bearing endpoints.
+  await page.route("**/logbook/api/performance/pyramid**", route => route.fulfill({ status: 500 }));
   await page.goto("/e2e-fixtures/pages/performance-pyramid.html");
 
   await expect(page.locator("#performance-offline")).toBeVisible();

@@ -29,7 +29,8 @@ import { renderComboChartHtml } from "./combo-chart.js";
 import { evidenceOverlayHtml, evidenceTierButtonHtml } from "./evidence-tier.js";
 import { createModalHelpers } from "./modal-utils.js";
 import { flashLabel, sendLabel } from "./status.js";
-import { reportGradeLabel, reportGradeOrdinal, reportPositionOrder } from "../shared/volume-stats.js";
+import { reportGradePoint, reportPositionOrder } from "../shared/volume-stats.js";
+import { gapHeadline } from "../shared/gap-stats.js";
 import { demoDataUrl, isDemoUsername } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
 
@@ -92,18 +93,26 @@ const gradeScalePicker = createReportGradeScalePicker({
 function renderGap() {
   if (!latestGapData) return;
   const type = store.getActiveType();
-  const { buckets, flashMaxByBucket, sendMaxByBucket, avgAttemptsByBucket, headline } = latestGapData[type];
+  const { buckets, flashMaxByBucket, sendMaxByBucket, avgAttemptsByBucket } = latestGapData[type];
   const viewScaleId = gradeScalePicker.getScaleId();
   const positionOrder = reportPositionOrder(type);
 
   // #704 -- positionKey is the canonical ordinal now, not a raw grade
-  // string -- see performance-trends-main.js's own equivalent comment.
-  const flashPoints = flashMaxByBucket.map(grade => grade
-    ? { positionKey: reportGradeOrdinal(grade, type), displayLabel: reportGradeLabel(grade, type, viewScaleId) }
-    : null);
-  const sendPoints = sendMaxByBucket.map(grade => grade
-    ? { positionKey: reportGradeOrdinal(grade, type), displayLabel: reportGradeLabel(grade, type, viewScaleId) }
-    : null);
+  // string. #717 -- each bucket's own winner is a real
+  // { grade, gradeScale } pair now -- see performance-trends-main.js's
+  // own equivalent comment. #733 -- reportGradePoint returns a null
+  // POINT (not just a null label) when the chosen view scale can't
+  // represent that grade at all.
+  const flashPoints = flashMaxByBucket.map(pair => reportGradePoint(pair, type, viewScaleId));
+  const sendPoints = sendMaxByBucket.map(pair => reportGradePoint(pair, type, viewScaleId));
+
+  // #733 -- recomputed here (not read from latestGapData[type].headline,
+  // the server's own initial-render value) so switching the picker
+  // relabels the headline's own grade mentions exactly like it already
+  // relabels the chart's points -- gapHeadline is the same shared,
+  // DOM-free function server/api/performance.js calls for that initial
+  // value, just re-invoked with the viewer's real current viewScaleId.
+  const headline = gapHeadline(flashMaxByBucket, sendMaxByBucket, type, viewScaleId);
 
   const chartHtml = renderComboChartHtml({
     bucketLabels: buckets,

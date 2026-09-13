@@ -29,7 +29,7 @@ import { createReportGradeScalePicker } from "./report-grade-scale-picker.js";
 import { renderComboChartHtml } from "./combo-chart.js";
 import { evidenceOverlayHtml, evidenceTierButtonHtml } from "./evidence-tier.js";
 import { createModalHelpers } from "./modal-utils.js";
-import { reportGradeLabel, reportGradeOrdinal, reportPositionOrder } from "../shared/volume-stats.js";
+import { reportGradePoint, reportPositionOrder } from "../shared/volume-stats.js";
 import { demoDataUrl, isDemoUsername } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
 
@@ -97,10 +97,12 @@ function renderEffort() {
   const positionOrder = reportPositionOrder(type);
 
   // #704 -- positionKey is the canonical ordinal now, not a raw grade
-  // string -- see performance-trends-main.js's own equivalent comment.
-  const points = maxGradeByBucket.map(grade => grade
-    ? { positionKey: reportGradeOrdinal(grade, type), displayLabel: reportGradeLabel(grade, type, viewScaleId) }
-    : null);
+  // string. #717 -- each bucket's own winner is a real
+  // { grade, gradeScale } pair now -- see performance-trends-main.js's
+  // own equivalent comment. #733 -- reportGradePoint returns a null
+  // POINT (not just a null label) when the chosen view scale can't
+  // represent that grade at all.
+  const points = maxGradeByBucket.map(pair => reportGradePoint(pair, type, viewScaleId));
 
   const headlineText = headline ?? "Not enough data yet for a reliable read -- log a few more sends and check back.";
 

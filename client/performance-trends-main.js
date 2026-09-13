@@ -25,7 +25,7 @@ import { syncAdminBar } from "./admin-bar.js";
 import { createTimeWindowControl } from "./time-window.js";
 import { createReportGradeScalePicker } from "./report-grade-scale-picker.js";
 import { renderComboChartHtml } from "./combo-chart.js";
-import { reportGradeLabel, reportGradeOrdinal, reportPositionOrder, volumeHeadline } from "../shared/volume-stats.js";
+import { reportGradePoint, reportPositionOrder, volumeHeadline } from "../shared/volume-stats.js";
 import { demoDataUrl, isDemoUsername } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
 
@@ -89,15 +89,18 @@ function renderTrends() {
   const { buckets, sendCounts, maxGradeByBucket } = latestVolumeData[type];
   const viewScaleId = gradeScalePicker.getScaleId();
 
-  // #704 -- positionKey is now the canonical ordinal, not a raw grade
+  // #704 -- positionKey is the canonical ordinal, not a raw grade
   // string -- scale-independent by construction (#702), so a point
   // plots correctly regardless of which scale its own displayLabel
-  // renders in. reportGradeOrdinal/reportGradeLabel both assume the
-  // entry's grade is in the discipline's primary stored scale (#717
-  // tracks the real per-entry-scale follow-up).
-  const points = maxGradeByBucket.map(grade => grade
-    ? { positionKey: reportGradeOrdinal(grade, type), displayLabel: reportGradeLabel(grade, type, viewScaleId) }
-    : null);
+  // renders in. #717 -- each bucket's own winner is a real
+  // { grade, gradeScale } pair now (shared/volume-stats.js's own
+  // volumeByBucket()), not a bare string assumed to be in the
+  // discipline's primary scale -- resolves correctly regardless of
+  // which of the discipline's real scales that particular send was
+  // logged in. #733 -- a null point (not just a null label) when the
+  // chosen view scale can't represent that grade at all, rather than
+  // showing it as something it isn't.
+  const points = maxGradeByBucket.map(pair => reportGradePoint(pair, type, viewScaleId));
 
   trendsRootEl.innerHTML = renderComboChartHtml({
     bucketLabels: buckets,

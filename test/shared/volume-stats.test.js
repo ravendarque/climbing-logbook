@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bucketIndexForDate, gradeDisplayLabel, gradeDisplayLabelForScale, reportGradeLabel, reportGradeOrdinal, reportPositionOrder, volumeByBucket, volumeHeadline, weekBucketLabel, weekBuckets } from "../../shared/volume-stats.js";
+import { bucketIndexForDate, gradeDisplayLabel, gradeDisplayLabelForScale, reportGradeLabel, reportGradeOrdinal, reportGradePoint, reportPositionOrder, volumeByBucket, volumeHeadline, weekBucketLabel, weekBuckets } from "../../shared/volume-stats.js";
 
 // #702 -- scale-aware sibling of gradeDisplayLabel, added alongside it
 // (see docs/superpowers/plans/2026-09-11-grade-canonical-model.md Task 4).
@@ -17,26 +17,59 @@ describe("gradeDisplayLabelForScale", () => {
   });
 });
 
-// #704 -- assumes every entry's grade is in the discipline's primary
-// stored scale (font-non-standard for Boulder, french for Sport,
-// matching #702's migration) -- see #717 for the tracked follow-up once
-// that assumption stops holding.
+// #717 -- reportGradeOrdinal/reportGradeLabel now take the entry's own
+// real gradeScale explicitly (as produced by volumeByBucket/gapByBucket/
+// effortByBucket's own { grade, gradeScale } pairs), not an assumption
+// that every entry is in the discipline's primary stored scale --
+// gradeScale still defaults to that primary scale when omitted/null,
+// covering a caller that hasn't been updated.
 describe("reportGradeOrdinal / reportGradeLabel / reportPositionOrder", () => {
-  it("reportGradeOrdinal reads a Boulder grade as font-non-standard", () => {
-    expect(reportGradeOrdinal("6a", "boulder")).not.toBeNull();
-    expect(reportGradeOrdinal("6a+", "boulder")).toBeGreaterThan(reportGradeOrdinal("6a", "boulder"));
+  it("reportGradeOrdinal reads a Boulder grade via its own real scale", () => {
+    expect(reportGradeOrdinal("6a", "font-non-standard", "boulder")).not.toBeNull();
+    expect(reportGradeOrdinal("6a+", "font-non-standard", "boulder")).toBeGreaterThan(reportGradeOrdinal("6a", "font-non-standard", "boulder"));
   });
-  it("reportGradeOrdinal reads a Sport grade as french", () => {
-    expect(reportGradeOrdinal("6a+", "sport")).not.toBeNull();
-    expect(reportGradeOrdinal("6b", "sport")).toBeGreaterThan(reportGradeOrdinal("6a+", "sport"));
+  it("reportGradeOrdinal reads a Sport grade via its own real scale", () => {
+    expect(reportGradeOrdinal("6a+", "french", "sport")).not.toBeNull();
+    expect(reportGradeOrdinal("6b", "french", "sport")).toBeGreaterThan(reportGradeOrdinal("6a+", "french", "sport"));
+  });
+  it("reportGradeOrdinal falls back to the discipline's primary scale when gradeScale is omitted", () => {
+    expect(reportGradeOrdinal("6a", null, "boulder")).toBe(reportGradeOrdinal("6a", "font-non-standard", "boulder"));
+  });
+  it("reportGradeOrdinal correctly resolves a grade logged in a NON-primary scale (#717's own real fix)", () => {
+    // "V3" (v-scale) and "6a" (font-non-standard) are the same real
+    // Boulder grade -- must resolve to the identical canonical ordinal
+    // regardless of which of Boulder's real scales it was logged in.
+    expect(reportGradeOrdinal("V3", "v-scale", "boulder")).toBe(reportGradeOrdinal("6a", "font-non-standard", "boulder"));
   });
   it("reportGradeLabel renders a Boulder grade in whichever scale the viewer chose", () => {
-    expect(reportGradeLabel("6a", "boulder", "font-non-standard")).toBe("6a");
-    expect(reportGradeLabel("6a", "boulder", "font")).toBe("6A");
-    expect(reportGradeLabel("6a", "boulder", "v-scale")).toBe("V3");
+    expect(reportGradeLabel("6a", "font-non-standard", "boulder", "font-non-standard")).toBe("6a");
+    expect(reportGradeLabel("6a", "font-non-standard", "boulder", "font")).toBe("6A");
+    expect(reportGradeLabel("6a", "font-non-standard", "boulder", "v-scale")).toBe("V3");
   });
   it("reportGradeLabel falls back to the raw grade for an unknown view scale", () => {
-    expect(reportGradeLabel("6a", "boulder", "not-a-real-scale")).toBe("6a");
+    expect(reportGradeLabel("6a", "font-non-standard", "boulder", "not-a-real-scale")).toBe("6a");
+  });
+
+  // #733 -- a genuinely below-floor grade (Font-standard's real floor is
+  // "3") returns null, not the raw grade and not the scale's own lowest
+  // label -- clamping it up to "3" would be grade inflation, not a
+  // conversion (Raven, 2026-09-12). Callers (reportGradePoint below)
+  // treat this null as "no point here", the same convention every other
+  // "no data" case in this file already uses.
+  it("reportGradeLabel returns null for a grade the chosen view scale has no representation for at all", () => {
+    expect(reportGradeLabel("2+", "font-non-standard", "boulder", "font")).toBeNull();
+    expect(reportGradeLabel("1", "font-non-standard", "boulder", "font")).toBeNull();
+  });
+
+  it("reportGradePoint returns null (not a point with a null label) when the view scale can't represent the grade", () => {
+    expect(reportGradePoint({ grade: "2+", gradeScale: "font-non-standard" }, "boulder", "font")).toBeNull();
+  });
+  it("reportGradePoint returns null for a null pair (no data in this bucket)", () => {
+    expect(reportGradePoint(null, "boulder", "font")).toBeNull();
+  });
+  it("reportGradePoint returns a real point for a representable grade", () => {
+    expect(reportGradePoint({ grade: "6a", gradeScale: "font-non-standard" }, "boulder", "font"))
+      .toEqual({ positionKey: reportGradeOrdinal("6a", "font-non-standard", "boulder"), displayLabel: "6A" });
   });
   it("reportPositionOrder is a strictly ascending ordinal range covering the discipline's real picker", () => {
     for (const type of ["boulder", "sport"]) {
@@ -47,8 +80,14 @@ describe("reportGradeOrdinal / reportGradeLabel / reportPositionOrder", () => {
   });
 });
 
+// #717 -- gradeScale defaults to whichever discipline's own primary
+// scale matches this fixture's own default grade casing (font-non-
+// standard's real notation for Boulder, french for Sport) -- a test
+// exercising a specific scale passes its own gradeScale override.
 function entry(overrides = {}) {
-  return { date: "2026-01-15", status: "send", grade: "6B", type: "boulder", ...overrides };
+  const type = overrides.type ?? "boulder";
+  const gradeScale = type === "boulder" ? "font-non-standard" : "french";
+  return { date: "2026-01-15", status: "send", grade: "6B", type, gradeScale, ...overrides };
 }
 
 // Test-only shorthand -- most volumeByBucket/gapByBucket/effortByBucket
@@ -152,10 +191,25 @@ describe("volumeByBucket", () => {
     expect(sendCounts).toEqual([0]);
   });
 
-  it("tracks the highest-ranked grade sent per bucket", () => {
+  it("tracks the highest-ranked grade sent per bucket, as a { grade, gradeScale } pair", () => {
     const entries = [entry({ grade: "6B" }), entry({ grade: "7A", date: "2026-01-20" })];
     const { maxGradeByBucket } = volumeByBucket(entries, [bucket("2026-01-01", "2026-01-31")]);
-    expect(maxGradeByBucket).toEqual(["7A"]);
+    expect(maxGradeByBucket).toEqual([{ grade: "7A", gradeScale: "font-non-standard" }]);
+  });
+
+  // #717 -- the real fix: a Boulder send logged in V-scale ("V8") has no
+  // string in BOULDER_ORDER's own hybrid notation to rank against at
+  // all -- the old gradeRank()-based comparison fell through to its own
+  // `?? 99` fallback, silently "winning" every bucket regardless of its
+  // real difficulty. Compares via the shared canonical ordinal instead,
+  // so a V-scale-logged send only wins when it's genuinely the hardest.
+  it("correctly compares a send logged in a non-primary scale against one in the primary scale", () => {
+    const entries = [
+      entry({ grade: "7c", gradeScale: "font-non-standard" }), // harder
+      entry({ grade: "V3", gradeScale: "v-scale", date: "2026-01-20" }), // easier (Font 6A-equivalent)
+    ];
+    const { maxGradeByBucket } = volumeByBucket(entries, [bucket("2026-01-01", "2026-01-31")]);
+    expect(maxGradeByBucket).toEqual([{ grade: "7c", gradeScale: "font-non-standard" }]);
   });
 
   it("returns null for a bucket with no sends", () => {
@@ -170,14 +224,17 @@ describe("volumeByBucket", () => {
   it("ranks Sport grades against Sport's own order, not Boulder's", () => {
     const entries = [entry({ grade: "4a", type: "sport" }), entry({ grade: "6a", type: "sport", date: "2026-01-20" })];
     const { maxGradeByBucket } = volumeByBucket(entries, [bucket("2026-01-01", "2026-01-31")], "sport");
-    expect(maxGradeByBucket).toEqual(["6a"]);
+    expect(maxGradeByBucket).toEqual([{ grade: "6a", gradeScale: "french" }]);
   });
 
   it("places each entry in its own correct bucket across multiple buckets", () => {
     const entries = [entry({ date: "2026-01-05" }), entry({ date: "2026-02-10", grade: "7A" })];
     const { sendCounts, maxGradeByBucket } = volumeByBucket(entries, [bucket("2026-01-01", "2026-01-31"), bucket("2026-02-01", "2026-02-28")]);
     expect(sendCounts).toEqual([1, 1]);
-    expect(maxGradeByBucket).toEqual(["6B", "7A"]);
+    expect(maxGradeByBucket).toEqual([
+      { grade: "6B", gradeScale: "font-non-standard" },
+      { grade: "7A", gradeScale: "font-non-standard" },
+    ]);
   });
 });
 

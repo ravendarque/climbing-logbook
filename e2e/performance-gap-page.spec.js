@@ -26,20 +26,30 @@ test("renders both grade-labeled line series and the attempts bar", async ({ pag
     gapData: {
       boulder: {
         buckets: ["-3w", "-2w", "-1w"],
-        flashMaxByBucket: [null, "6B", null],
-        sendMaxByBucket: [null, "6B", "6C"],
+        flashMaxByBucket: [null, { grade: "6B", gradeScale: "font-non-standard" }, null],
+        sendMaxByBucket: [null, { grade: "6B", gradeScale: "font-non-standard" }, { grade: "6C", gradeScale: "font-non-standard" }],
         // #603 -- the first bucket has no data at all (both grade series
         // null that period), so its own attempts bar is null too, not a
         // genuine 0.
         avgAttemptsByBucket: [null, 1.5, 3],
-        headline: "Your best send (V5) is 1 grade-step ahead of your best flash (V4) this window.",
+        // #733 -- dead field: performance-gap-main.js's own renderGap()
+        // now recomputes the headline client-side via the real
+        // gapHeadline() (shared/gap-stats.js) so it responds to the
+        // scale picker, rather than trusting this mocked server value
+        // verbatim -- left here only so this fixture's own shape still
+        // matches the real server response, never actually read.
+        headline: "unused -- recomputed client-side, see #733",
       },
       lead: { buckets: ["-3w", "-2w", "-1w"], flashMaxByBucket: [null, null, null], sendMaxByBucket: [null, null, null], avgAttemptsByBucket: [null, null, null], headline: "No sends logged in this window yet." },
     },
   });
   await page.goto("/e2e-fixtures/pages/performance-gap.html");
 
-  await expect(page.locator("#gap-root")).toContainText("1 grade-step ahead");
+  // Font-standard's real sequence has 6B+ between 6B and 6C, so this is
+  // genuinely 2 named grade-steps apart, not 1 (stepIndex/
+  // reportPositionOrder walk real named steps, not a raw ordinal
+  // difference -- see shared/gap-stats.js's own stepIndex comment).
+  await expect(page.locator("#gap-root")).toContainText("2 grade-steps ahead");
   await expect(page.locator("#gap-root svg")).toBeVisible();
   // #704 -- default report scale is Font, not V-scale -- Font's own native
   // label for these two grades is unchanged from the seeded raw grade.
@@ -57,10 +67,10 @@ test("switching the report grade scale relabels both grade line series", async (
     gapData: {
       boulder: {
         buckets: ["-3w", "-2w", "-1w"],
-        flashMaxByBucket: [null, "6B", null],
-        sendMaxByBucket: [null, "6B", "6C"],
+        flashMaxByBucket: [null, { grade: "6B", gradeScale: "font-non-standard" }, null],
+        sendMaxByBucket: [null, { grade: "6B", gradeScale: "font-non-standard" }, { grade: "6C", gradeScale: "font-non-standard" }],
         avgAttemptsByBucket: [null, 1.5, 3],
-        headline: "Your best send (V5) is 1 grade-step ahead of your best flash (V4) this window.",
+        headline: "unused -- recomputed client-side, see #733", // see the other test's own comment
       },
       lead: { buckets: ["-3w", "-2w", "-1w"], flashMaxByBucket: [null, null, null], sendMaxByBucket: [null, null, null], avgAttemptsByBucket: [null, null, null], headline: "No sends logged in this window yet." },
     },

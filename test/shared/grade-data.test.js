@@ -142,6 +142,46 @@ describe("FONT_STANDARD", () => {
     // [null,-]=0, [null,null]=1, [a,-]=2, [a,null]=3, ...) -> (6-1)*12+3 = 63.
     expect(FONT_STANDARD.toOrdinal("6A")).toBe(63);
   });
+
+  // #733 -- a Non-standard grade with no exact Font-standard equivalent
+  // (Font-standard only has "5"/"5+" at that number, none of the
+  // letter/modifier sub-positions Non-standard allows) degrades to its
+  // closest real Font-standard step instead of returning null (which
+  // used to leak the raw, un-converted grade text straight through
+  // reportGradeLabel's own `?? grade` fallback -- the live bug Raven
+  // caught: Font (Standard) showing grades that don't exist in Font at
+  // all). Worked out by hand against Raven's own example (2026-09-12):
+  // ties (equidistant from both neighbors) round DOWN to the lower one.
+  // #733 -- closestParsedLabel() restricts the search to Font-standard's
+  // OWN labels within the same number first ("5-" is number 5's own low
+  // edge, per SUB_POSITION_ORDER's own comment -- never compared against
+  // "4+", a different number, even though it happens to sit one ordinal-
+  // step closer in the raw combined space). Matches Raven's own worked
+  // example exactly (2026-09-12).
+  it("degrades an unrepresentable Non-standard grade to its closest real Font-standard step, within the same number", () => {
+    const closestTo5 = ["5-", "5a-", "5a", "5a+", "5b-"];
+    for (const g of closestTo5) {
+      expect(FONT_STANDARD.toLabel(gradeOrdinal(g, "font-non-standard"))).toBe("5");
+    }
+    // "5b" sits exactly 5 ordinal-steps from both "5" and "5+" -- a
+    // genuine tie within the same number, rounds down to the lower/
+    // earlier-registered step.
+    expect(FONT_STANDARD.toLabel(gradeOrdinal("5b", "font-non-standard"))).toBe("5");
+    const closestTo5Plus = ["5b+", "5c-", "5c", "5c+"];
+    for (const g of closestTo5Plus) {
+      expect(FONT_STANDARD.toLabel(gradeOrdinal(g, "font-non-standard"))).toBe("5+");
+    }
+  });
+
+  // #733 -- Raven, 2026-09-12: clamping a grade below Font-standard's
+  // own floor up to "3" is grade inflation (it makes a genuinely easier
+  // climb read as harder than it is), not a real conversion -- it's
+  // simply excluded (null) instead, same as returning the raw grade
+  // unconverted was also wrong (the original live bug).
+  it("returns null for a grade below Font-standard's own floor, rather than clamping it up or leaking it through unconverted", () => {
+    expect(FONT_STANDARD.toLabel(gradeOrdinal("1", "font-non-standard"))).toBeNull();
+    expect(FONT_STANDARD.toLabel(gradeOrdinal("2+", "font-non-standard"))).toBeNull();
+  });
 });
 
 describe("FRENCH_STANDARD", () => {
@@ -157,6 +197,15 @@ describe("FRENCH_STANDARD", () => {
   });
   it("places 6a and Font-standard's 6A at the same canonical ordinal -- both disciplines share the same numbering formula, even though they're never cross-compared", () => {
     expect(FRENCH_STANDARD.toOrdinal("6a")).toBe(FONT_STANDARD.toOrdinal("6A"));
+  });
+
+  // #733 -- same closest-step degrade as FONT_STANDARD above, for a
+  // Sport discipline example: French-standard's "3a"/"3b" pair has
+  // nothing between them, but French-non-standard's own 12-per-number
+  // combinatorial space does.
+  it("degrades an unrepresentable Non-standard grade to its closest real French-standard step", () => {
+    expect(FRENCH_STANDARD.toLabel(gradeOrdinal("3a+", "french-non-standard"))).toBe("3a");
+    expect(FRENCH_STANDARD.toLabel(gradeOrdinal("3b-", "french-non-standard"))).toBe("3b");
   });
 });
 

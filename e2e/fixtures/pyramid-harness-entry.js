@@ -13,9 +13,12 @@
 import { pyramidSplitRows } from "../../shared/pyramid-stats.js";
 
 const today = new Date().toISOString().slice(0, 10);
-// Spans wider than the pyramid's default top-4-grades window (5C through
-// 8A) -- e2e/component-harnesses.spec.js's show/hide-lower-grades test
-// needs #show-lower-link to definitely exist, not conditionally.
+// #737 -- used to span wider than the pyramid's default top-4-grades
+// window (5C through 8A) so e2e/component-harnesses.spec.js's own show/
+// hide-lower-grades test had a real lower section to toggle -- that
+// section (and its test) are gone now (the pyramid is a pure 8-4-2-1
+// report), but this wider range is still harmless, realistic data for
+// the citations-overlay test that remains.
 const entries = [
   { id: "e0", type: "boulder", status: "send", grade: "5C", date: today },
   { id: "e1", type: "boulder", status: "send", grade: "6A", date: today },

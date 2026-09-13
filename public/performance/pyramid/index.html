@@ -63,6 +63,16 @@
        component already explains. -->
   <p class="text-[.78rem] text-muted mb-3" id="view-explainer">Built from every send's grade.</p>
 
+  <!-- #737 -- which of this discipline's scales the pyramid below
+       renders row grades in; client/report-grade-scale-picker.js, same
+       shared per-discipline preference the trends/gap/rpe reports
+       already use. No time-window control on this page (the pyramid's
+       own "last 12 months" window is fixed, not a report control), so
+       this sits alone rather than paired with one. -->
+  <div class="flex justify-end mb-4" id="report-grade-scale-row">
+    <div id="report-grade-scale-root"></div>
+  </div>
+
   <!-- #111 -- Performance insights are online-only, deliberately, not a
        client-side fallback computed from possibly-stale cached entries
        (Raven's own call: at the crag with poor/no connection, the
