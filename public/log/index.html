@@ -223,8 +223,12 @@
                  markup+behavior instead of a second hand-rolled copy.
                  Same ids as before (idPrefix "date-picker"), so nothing
                  downstream (e2e/log-page.spec.js's own #date-picker-*
-                 assertions) needed to change. -->
-            <div class="relative flex-[0_0_2.75rem]" id="date-picker-wrap"></div>
+                 assertions) needed to change. This is a plain, unstyled
+                 mount point, not itself "the wrap" -- calendarDatePickerHtml
+                 already generates its own id="date-picker-wrap" element
+                 with its own layout classes; giving this anchor the same
+                 id/classes would nest two elements sharing one id. -->
+            <div id="date-picker-mount"></div>
           </div>
           <div class="text-[.75rem] text-muted mt-[.3rem]">YYYY-MM or YYYY-MM-DD</div>
         </div>

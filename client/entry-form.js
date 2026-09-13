@@ -52,7 +52,7 @@ export function createEntryForm({
   const gradeNext   = document.getElementById("grade-next");
   const gradeNsFields   = document.getElementById("grade-ns-fields");
   const dateInput  = document.getElementById("entry-date");
-  const datePickerWrap = document.getElementById("date-picker-wrap");
+  const datePickerMount = document.getElementById("date-picker-mount");
   const entrySubmitBtn = document.getElementById("entry-submit-btn");
   const entryDeleteBtn = document.getElementById("entry-delete-btn");
   const entryMsg      = document.getElementById("entry-msg");
@@ -427,13 +427,15 @@ export function createEntryForm({
   // had to go. Only ever writes a full YYYY-MM-DD (a day grid can't
   // represent "just a month") -- the free-text field is still how a
   // YYYY-MM-only date gets entered, unchanged. calendar-date-picker.js
-  // renders its own markup into datePickerWrap (public/log/index.html
-  // keeps only the empty container) -- same ids as before (idPrefix
+  // renders its own markup (its own id="date-picker-wrap" element, with
+  // its own layout classes) into datePickerMount, a plain unstyled
+  // anchor with no id/classes of its own to collide with it -- same ids
+  // as before for everything the picker itself renders (idPrefix
   // "date-picker"), so e2e/log-page.spec.js's existing #date-picker-*
   // assertions need no change.
-  datePickerWrap.innerHTML = calendarDatePickerHtml("date-picker");
+  datePickerMount.innerHTML = calendarDatePickerHtml("date-picker");
   createCalendarDatePicker({
-    containerEl: datePickerWrap,
+    containerEl: datePickerMount,
     idPrefix: "date-picker",
     getValue: () => dateInput.value,
     onSelect: dateStr => { dateInput.value = dateStr; },
