@@ -324,13 +324,19 @@ future control in this family looks subtly off.
 
 ## Date picker (calendar popover)
 
-**Definition:** `client/entry-form.js`'s date-picker section — a real
-month-grid popover (Prev/Next month header, a 7-column weekday grid),
-same button+popover shape as the list-picker above, built for #703's
-review pass to replace a native `<input type="date">` + `.showPicker()`
-call. That native picker's own open panel is OS/browser chrome for the
-identical reason a native `<select>`'s dropdown is — unstylable, so it
-never matched this app's own popover convention.
+**Definition:** `client/calendar-date-picker.js`'s `calendarDatePickerHtml`/
+`createCalendarDatePicker` — a real month-grid popover (Prev/Next month
+header, a 7-column weekday grid), same button+popover shape as the
+list-picker above. Built for #703's review pass, originally inline in
+`client/entry-form.js`, to replace a native `<input type="date">` +
+`.showPicker()` call — that native picker's own open panel is OS/browser
+chrome for the identical reason a native `<select>`'s dropdown is —
+unstylable, so it never matched this app's own popover convention.
+Extracted into this shared component in #736 once `client/time-window.js`'s
+Custom range turned out to need the exact same fix, not a second
+hand-rolled copy — `entry-form.js`'s own date field and `time-window.js`'s
+Custom range start/end are its three real instances today, each with its
+own `idPrefix` so their ids don't collide.
 
 **When to use:** any full-date (`YYYY-MM-DD`) selection. It can't
 represent a partial date (`YYYY-MM`, no day) — `client/entry-form.js`'s
@@ -352,7 +358,7 @@ exactly that case; the picker only ever writes a complete date.
     </svg>
   </button>
   <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 bg-background border border-border rounded-app p-[.6rem] w-[16rem] max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="date-picker-popover" role="dialog" aria-label="Pick a date" hidden>
-    <!-- Prev/Next month header + weekday row -- see client/entry-form.js's own renderDatePicker() -->
+    <!-- Prev/Next month header + weekday row -- see calendar-date-picker.js's own render() -->
     <div class="grid grid-cols-7 gap-[.15rem]" id="date-picker-grid"></div>
   </div>
 </div>

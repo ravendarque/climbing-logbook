@@ -11,14 +11,14 @@
 // store.applyPendingQueue() are all Store mutations, so main.js's
 // render() (the Store's sole subscriber) picks up every change here on
 // its own; nothing in this module needs to trigger it manually.
-import { escapeHtml } from "./escape-html.js";
 import { SCALES, SCALES_BY_DISCIPLINE, gradeOrdinal, gradeColorForScale, nonStandardLabel, parseNonStandardLabel } from "../shared/grade-data.js";
 import { gradeDisplayLabelForScale } from "../shared/volume-stats.js";
 import { flashLabel, sendLabel, nameLabel, hydrateStatusIcons } from "./status.js";
 import { createPlacePicker } from "./place-picker.js";
 import { createMoveRowList } from "./move-tagging.js";
 import { validateEntryShape } from "../shared/entry-schema.js";
-import { createDisclosure, createListPicker, renderOptionList } from "./modal-utils.js";
+import { createListPicker, renderOptionList } from "./modal-utils.js";
+import { calendarDatePickerHtml, createCalendarDatePicker } from "./calendar-date-picker.js";
 
 const ERROR_MSG_CLASS = "mt-[.85rem] px-4 py-3 rounded-app text-[.9rem] bg-[color-mix(in_srgb,#f87171_12%,var(--color-surface))] border border-[color-mix(in_srgb,#f87171_40%,transparent)] text-red-400";
 
@@ -52,13 +52,7 @@ export function createEntryForm({
   const gradeNext   = document.getElementById("grade-next");
   const gradeNsFields   = document.getElementById("grade-ns-fields");
   const dateInput  = document.getElementById("entry-date");
-  const datePickerBtn = document.getElementById("date-picker-btn");
-  const datePickerPopover = document.getElementById("date-picker-popover");
-  const datePickerMonthLabel = document.getElementById("date-picker-month-label");
-  const datePickerWeekdays = document.getElementById("date-picker-weekdays");
-  const datePickerGrid = document.getElementById("date-picker-grid");
-  const datePickerPrevMonth = document.getElementById("date-picker-prev-month");
-  const datePickerNextMonth = document.getElementById("date-picker-next-month");
+  const datePickerMount = document.getElementById("date-picker-mount");
   const entrySubmitBtn = document.getElementById("entry-submit-btn");
   const entryDeleteBtn = document.getElementById("entry-delete-btn");
   const entryMsg      = document.getElementById("entry-msg");
@@ -426,75 +420,25 @@ export function createEntryForm({
     selectedSportStyle = e.target.value;
   });
 
-  // ── Date picker (#703-review) ────────────────────────────────────────
+  // ── Date picker (#703-review, extracted to a shared component in #736)
   // A real month-grid popover, same button+popover convention as every
   // other picker in this form -- see public/log/index.html's own comment
-  // on this markup for why the native <input type="date"> it replaces
+  // on this markup for why the native <input type="date"> it replaced
   // had to go. Only ever writes a full YYYY-MM-DD (a day grid can't
   // represent "just a month") -- the free-text field is still how a
-  // YYYY-MM-only date gets entered, unchanged.
-  const DATE_PICKER_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  const DATE_PICKER_WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
-  const DAY_CELL_CLASSES = "h-7 flex items-center justify-center rounded-[calc(var(--radius-app)-2px)] text-[.78rem] text-foreground border-0 bg-transparent cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] aria-selected:bg-accent aria-selected:text-accent-foreground aria-selected:hover:bg-accent aria-[current=date]:font-bold aria-[current=date]:text-accent";
-
-  // The view can navigate away from whatever the field's own value is
-  // (Prev/Next month) without that being a real selection -- kept as its
-  // own state, only re-seeded from the field's current value each time
-  // the popover opens (onOpen below), not on every render.
-  let calendarViewYear, calendarViewMonth; // month is 0-indexed, Date's own convention
-
-  // Accepts the same two shapes the free-text field itself does
-  // (YYYY-MM-DD, YYYY-MM) -- an unparseable or empty value falls back to
-  // today's own month, same fallback the old native-picker code path had.
-  function parseDateFieldValue() {
-    const m = /^(\d{4})-(\d{2})(?:-(\d{2}))?$/.exec(dateInput.value.trim());
-    if (m) return { year: +m[1], month: +m[2] - 1, day: m[3] ? +m[3] : null };
-    const today = new Date();
-    return { year: today.getFullYear(), month: today.getMonth(), day: null };
-  }
-
-  function renderDatePicker() {
-    const selected = parseDateFieldValue();
-    datePickerMonthLabel.textContent = `${DATE_PICKER_MONTHS[calendarViewMonth]} ${calendarViewYear}`;
-    datePickerWeekdays.innerHTML = DATE_PICKER_WEEKDAYS.map(w => `<span>${escapeHtml(w)}</span>`).join("");
-
-    const startWeekday = new Date(calendarViewYear, calendarViewMonth, 1).getDay(); // 0 = Sunday
-    const daysInMonth = new Date(calendarViewYear, calendarViewMonth + 1, 0).getDate();
-    const todayStr = new Date().toISOString().slice(0, 10);
-
-    const cells = Array.from({ length: startWeekday }, () => "<span></span>");
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dateStr = `${calendarViewYear}-${String(calendarViewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-      const isSelected = selected.year === calendarViewYear && selected.month === calendarViewMonth && selected.day === day;
-      cells.push(`<button type="button" class="${DAY_CELL_CLASSES}" data-date="${dateStr}" aria-selected="${isSelected}" aria-current="${dateStr === todayStr ? "date" : "false"}">${day}</button>`);
-    }
-    datePickerGrid.innerHTML = cells.join("");
-  }
-
-  const { close: closeDatePicker } = createDisclosure(datePickerBtn, datePickerPopover, "#date-picker-wrap", {
-    onOpen: () => {
-      const { year, month } = parseDateFieldValue();
-      calendarViewYear = year;
-      calendarViewMonth = month;
-      renderDatePicker();
-    },
-  });
-  datePickerPrevMonth.addEventListener("click", () => {
-    calendarViewMonth--;
-    if (calendarViewMonth < 0) { calendarViewMonth = 11; calendarViewYear--; }
-    renderDatePicker();
-  });
-  datePickerNextMonth.addEventListener("click", () => {
-    calendarViewMonth++;
-    if (calendarViewMonth > 11) { calendarViewMonth = 0; calendarViewYear++; }
-    renderDatePicker();
-  });
-  datePickerGrid.addEventListener("click", e => {
-    const cell = e.target.closest("button[data-date]");
-    if (!cell) return;
-    dateInput.value = cell.dataset.date;
-    closeDatePicker();
-    datePickerBtn.focus();
+  // YYYY-MM-only date gets entered, unchanged. calendar-date-picker.js
+  // renders its own markup (its own id="date-picker-wrap" element, with
+  // its own layout classes) into datePickerMount, a plain unstyled
+  // anchor with no id/classes of its own to collide with it -- same ids
+  // as before for everything the picker itself renders (idPrefix
+  // "date-picker"), so e2e/log-page.spec.js's existing #date-picker-*
+  // assertions need no change.
+  datePickerMount.innerHTML = calendarDatePickerHtml("date-picker");
+  createCalendarDatePicker({
+    containerEl: datePickerMount,
+    idPrefix: "date-picker",
+    getValue: () => dateInput.value,
+    onSelect: dateStr => { dateInput.value = dateStr; },
   });
 
   // ── Modal open/close ─────────────────────────────────────────────────

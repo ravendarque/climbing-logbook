@@ -27,6 +27,20 @@ import { escapeHtml } from "./escape-html.js";
 // onOpen is an optional extra callback for popovers that do more than just
 // reveal the panel on open (the two search-based pickers reset their
 // query, re-render options, and refocus the search input).
+// `destroy()` (#736) removes every listener this call attached --
+// needed by any caller whose own trigger/panel get discarded and
+// recreated repeatedly (client/calendar-date-picker.js, when used from
+// client/time-window.js's Custom range: that control's render() fully
+// rebuilds its own containerEl.innerHTML on every state change, so a
+// fresh createDisclosure() call on every rebuild would otherwise pile up
+// document-level click/keydown listeners forever, each one keeping its
+// own now-detached trigger/panel alive too -- a real, growing leak, not
+// a hypothetical one, since a report page's Custom-range picker can be
+// opened and re-picked many times in one page visit). Every other
+// existing caller (discipline picker, header menu, place picker, filter
+// panel, grade/scale pickers) constructs its trigger/panel once per page
+// load and never calls destroy() at all -- purely additive, no existing
+// behavior changes.
 export function createDisclosure(trigger, panel, containerSelector, { escapeTarget = document, onOpen } = {}) {
   function open() {
     panel.hidden = false;
@@ -37,17 +51,25 @@ export function createDisclosure(trigger, panel, containerSelector, { escapeTarg
     panel.hidden = true;
     trigger.setAttribute("aria-expanded", "false");
   }
-  trigger.addEventListener("click", () => { if (panel.hidden) open(); else close(); });
-  document.addEventListener("click", e => {
+  const onTriggerClick = () => { if (panel.hidden) open(); else close(); };
+  const onDocumentClick = e => {
     if (!panel.hidden && !e.target.closest(containerSelector)) close();
-  });
-  escapeTarget.addEventListener("keydown", e => {
+  };
+  const onEscapeKeydown = e => {
     if (e.key !== "Escape" || panel.hidden) return;
     if (escapeTarget !== document) { e.preventDefault(); e.stopPropagation(); }
     close();
     trigger.focus();
-  });
-  return { open, close };
+  };
+  trigger.addEventListener("click", onTriggerClick);
+  document.addEventListener("click", onDocumentClick);
+  escapeTarget.addEventListener("keydown", onEscapeKeydown);
+  function destroy() {
+    trigger.removeEventListener("click", onTriggerClick);
+    document.removeEventListener("click", onDocumentClick);
+    escapeTarget.removeEventListener("keydown", onEscapeKeydown);
+  }
+  return { open, close, destroy };
 }
 
 // Searchable single-select combobox popover (#403): filter a list, render
