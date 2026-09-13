@@ -3,22 +3,21 @@
 // seventh piece of #233's modularization epic). Reads/writes active
 // discipline through the Store (#234).
 //
-// `resetPyramidExpansion` is the one narrow callback into pyramid-view.js's
-// own module (not the whole module -- this only ever needs "reset the
-// lower-grades toggle on discipline switch," nothing else about the
-// Pyramid view), and `adminFetch`/`isAuthRedirect`/`adminSettingsUrl` are
-// the same not-yet-extracted auth/admin-bar surface place-picker.js and
+// `adminFetch`/`isAuthRedirect`/`adminSettingsUrl` are the same
+// not-yet-extracted auth/admin-bar surface place-picker.js and
 // entry-form.js already depend on. `render`/`updateAdminBar` are no
 // longer injected (#264) -- every state change here goes through a Store
 // setter, which notifies main.js's render() (the Store's sole subscriber)
-// automatically.
+// automatically. This used to also take a `resetPyramidExpansion`
+// callback into <climbing-grade-pyramid>'s own "Show lower grades" toggle
+// state -- removed in #742 once #737 deleted that feature entirely, the
+// callback's only reason to exist.
 import { createDisclosure } from "./modal-utils.js";
 import { createThemeToggle } from "./theme-toggle.js";
 import { disciplineLabel } from "./status.js";
 
 export function createHeaderChrome({
   store,
-  resetPyramidExpansion,
   adminFetch,
   isAuthRedirect,
   adminSettingsUrl,
@@ -55,17 +54,7 @@ export function createHeaderChrome({
     // store.setActiveType() resets gradeRange itself (boulder and lead
     // grades aren't the same scale -- carrying a range like "6A-7B+" over
     // as some translated lead range would silently filter to something
-    // the user didn't ask for, #161); the Pyramid's lower-grades
-    // expansion is reset via its own module's callback.
-    //
-    // resetPyramidExpansion() deliberately runs BEFORE store.setActiveType()
-    // (#264) -- setActiveType() is a Store mutation, so it synchronously
-    // triggers the subscribed render() the moment it's called; if
-    // lowerGradesExpanded (pyramid-view.js's own private state, not Store
-    // state) hadn't already been reset by then, that auto-triggered render
-    // would still be showing the previous discipline's expanded lower-grades
-    // section, since nothing re-renders again afterward.
-    resetPyramidExpansion();
+    // the user didn't ask for, #161).
     store.setActiveType(opt.dataset.discipline);
     closeDisciplinePopover();
     disciplineBtn.focus();

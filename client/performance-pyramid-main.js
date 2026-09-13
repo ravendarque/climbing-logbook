@@ -150,11 +150,6 @@ const adminAuth = createAdminAuth({
 const headerChrome = createHeaderChrome({
   store, adminFetch, isAuthRedirect,
   adminSettingsUrl: ADMIN_SETTINGS_URL,
-  // #737 -- <climbing-grade-pyramid>'s own resetExpansion() (the "Show
-  // lower grades" toggle it reset on discipline switch) no longer
-  // exists -- that whole section is gone -- so this page now passes the
-  // same no-op every other composition root already does.
-  resetPyramidExpansion: () => {},
 });
 
 if ("serviceWorker" in navigator) {

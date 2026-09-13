@@ -1,9 +1,9 @@
 // Shared by client/header-chrome.js (still the sole owner of this button
 // for /logbook and the three owner-only #348 pages, via
 // createHeaderChrome()) and client/profile-main.js (which doesn't use the
-// full createHeaderChrome() factory at all -- no store.js/adminFetch/
-// resetPyramidExpansion, see that file's own header comment -- but still
-// needs this one self-contained piece of it). Previously duplicated
+// full createHeaderChrome() factory at all -- no store.js/adminFetch, see
+// that file's own header comment -- but still needs this one
+// self-contained piece of it). Previously duplicated
 // byte-for-byte, including the setTimeout-not-queueMicrotask workaround
 // below -- a real, empirically-discovered bug fix that only living in one
 // place now means it can't quietly drift out of sync between copies
