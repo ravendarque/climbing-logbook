@@ -78,6 +78,29 @@ describe("loadEntriesFromCache", () => {
     expect(store.loadEntriesFromCache()).toBe(true);
     expect(store.getEntries()).toEqual([]);
   });
+
+  it("notifies subscribers so cached entries reach the DOM immediately, not on some later unrelated mutation (#762)", () => {
+    storage.setItem("logbook_entries_cache", JSON.stringify(ENTRIES));
+    let calls = 0;
+    store.subscribe(() => { calls++; });
+    store.loadEntriesFromCache();
+    expect(calls).toBe(1);
+  });
+
+  it("still notifies even when the cached JSON is corrupt", () => {
+    storage.setItem("logbook_entries_cache", "{not valid json");
+    let calls = 0;
+    store.subscribe(() => { calls++; });
+    store.loadEntriesFromCache();
+    expect(calls).toBe(1);
+  });
+
+  it("does not notify when nothing was ever cached", () => {
+    let calls = 0;
+    store.subscribe(() => { calls++; });
+    store.loadEntriesFromCache();
+    expect(calls).toBe(0);
+  });
 });
 
 describe("loadPlacesFromCache/loadLocationsFromCache", () => {

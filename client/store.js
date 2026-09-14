@@ -130,6 +130,7 @@ export function createStore({ storage = typeof localStorage !== "undefined" ? lo
     const cached = storage.getItem(ENTRIES_CACHE_KEY);
     if (cached === null) return false;
     try { entries = JSON.parse(cached); } catch { entries = []; }
+    notify();
     return true;
   }
   function loadPlacesFromCache() {
