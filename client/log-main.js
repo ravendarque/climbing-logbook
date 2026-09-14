@@ -185,8 +185,17 @@ async function boot() {
 
   store.setActiveView("logbook");
 
-  const sessionPromise = adminAuth.checkSession();
-  const settingsPromise = adminAuth.fetchSettings();
+  // #762 -- synchronous, cache-preferring discipline default, called
+  // before any network request starts (setInitialActiveType() itself
+  // calls store.setActiveType(), which notifies -- the store.subscribe
+  // (render) at the top of this file means this alone already triggers
+  // this page's first real render, which in turn calls syncAdminBar()
+  // -> tabBar.markReady() (see admin-bar.js). Called before
+  // loadEntriesFromCache() below: on a genuinely fresh device (no
+  // settings cache, no entries cache either) this still falls back to
+  // today's has-entries heuristic correctly, since neither exists yet
+  // either way.
+  adminAuth.setInitialActiveType();
 
   // #501 -- reads the local cache directly, no network fetch at all:
   // isSynced() passing above already guarantees this device has the
@@ -202,6 +211,15 @@ async function boot() {
   // needing a full re-sync, narrower than the interim gap this comment
   // used to describe (Raven, 2026-08-21).
   //
+  // #762 -- now that loadEntriesFromCache() itself notifies (store.js),
+  // this line alone is what puts real cached entries in front of the
+  // user immediately, rather than waiting for the network-gated
+  // reconcile below to happen to trigger a render.
+  if (!IS_DEMO) store.loadEntriesFromCache();
+
+  const sessionPromise = adminAuth.checkSession();
+  const settingsPromise = adminAuth.fetchSettings();
+
   // #251 -- a demo visitor has no local cache at all (never really
   // synced), so this reads over the network from ENTRIES_URL instead --
   // already the public, target-user-scoped endpoint for a demo account
@@ -212,20 +230,19 @@ async function boot() {
     } catch {
       // Left empty -- no local cache to fall back to for a demo page.
     }
-  } else {
-    store.loadEntriesFromCache();
   }
 
-  try {
-    store.setPlaces(await loadResource(PLACES_URL, "places"));
-  } catch {
-    store.loadPlacesFromCache();
-  }
-  try {
-    store.setLocations(await loadResource(LOCATIONS_URL, "locations"));
-  } catch {
-    store.loadLocationsFromCache();
-  }
+  // #762 -- was two sequential awaits (places, then locations) --
+  // needlessly summed their latency instead of taking the max. Each
+  // still falls back to its own cache on failure, unchanged.
+  const [placesResult, locationsResult] = await Promise.allSettled([
+    loadResource(PLACES_URL, "places"),
+    loadResource(LOCATIONS_URL, "locations"),
+  ]);
+  if (placesResult.status === "fulfilled") store.setPlaces(placesResult.value);
+  else store.loadPlacesFromCache();
+  if (locationsResult.status === "fulfilled") store.setLocations(locationsResult.value);
+  else store.loadLocationsFromCache();
 
   // Applied once, after all three arrays are loaded -- same ordering
   // reasoning as client/main.js's own boot().
@@ -239,7 +256,7 @@ async function boot() {
   // first place (readOnly returns before adminFetch is ever called).
   if (!IS_DEMO) store.applyPendingQueue(offlineSync.getQueue());
 
-  await adminAuth.resolveActiveType(sessionPromise, settingsPromise);
+  await adminAuth.reconcileActiveType(sessionPromise, settingsPromise);
 
   // #470 -- clears the loading state set in public/log/index.html's own
   // markup, now that entries/places/locations have all resolved (cache,
@@ -249,7 +266,6 @@ async function boot() {
   // honest rather than a premature "you have nothing logged" flash.
   entriesTable.loading = false;
   render();
-  tabBar.markReady(); // #605
 }
 
 boot();
