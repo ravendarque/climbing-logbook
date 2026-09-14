@@ -29,6 +29,7 @@ export function createOfflineSync({
   store,
   adminFetch,
   isAuthRedirect,
+  syncStatusIcon,
   adminDataUrl,
   adminLocationsUrl,
   adminPlacesUrl,
@@ -182,7 +183,11 @@ export function createOfflineSync({
     syncBtnIcon.classList.add("animate-spin");
 
     try {
-      await pullDeltas();
+      // #762 -- reported on the shell's own sync/offline status icon,
+      // same as checkSession()/fetchSettings() (see the composition
+      // root that constructs this factory) -- pullDeltas() is a
+      // background reconcile too, not page content.
+      await syncStatusIcon.track(pullDeltas());
 
       const queue = getQueue();
       if (!queue.length) return;

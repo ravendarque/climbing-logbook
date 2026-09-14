@@ -22,6 +22,7 @@ import { createStore } from "./store.js";
 import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
 import { syncAdminBar } from "./admin-bar.js";
+import { createSyncStatusIcon } from "./sync-status-icon.js";
 import { escapeHtml } from "./escape-html.js";
 import { humanize } from "../shared/tag-stats-helpers.js";
 import { demoDataUrl, isDemoUsername } from "./demo-mode.js";
@@ -46,6 +47,7 @@ const IS_DEMO = isDemoUsername(USERNAME);
 const STRENGTHS_URL = demoDataUrl(USERNAME, "/logbook/api/performance/strengths", "performance/strengths");
 
 const store = createStore();
+const syncStatusIcon = createSyncStatusIcon();
 store.subscribe(render);
 // Deliberately NOT store.setActiveView(...) here -- same temporal-dead-zone
 // hazard map-main.js's own comment documents (a real crash caught during
@@ -200,8 +202,8 @@ async function boot() {
   // deviations" note for why).
   adminAuth.setInitialActiveType();
 
-  const sessionPromise = adminAuth.checkSession();
-  const settingsPromise = adminAuth.fetchSettings();
+  const sessionPromise = syncStatusIcon.track(adminAuth.checkSession());
+  const settingsPromise = syncStatusIcon.track(adminAuth.fetchSettings());
 
   await adminAuth.reconcileActiveType(sessionPromise, settingsPromise);
 

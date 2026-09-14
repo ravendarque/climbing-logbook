@@ -31,6 +31,7 @@ import { createModalHelpers } from "./modal-utils.js";
 import { createOfflineSync } from "./offline-sync.js";
 import { loadResource } from "./fetch-json.js";
 import { syncAdminBar } from "./admin-bar.js";
+import { createSyncStatusIcon } from "./sync-status-icon.js";
 import { isSynced } from "./sync-status.js";
 import { demoDataUrl, isDemoUsername } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
@@ -77,6 +78,7 @@ function isAuthRedirect(res) {
 // real owner in the same browser -- caching a demo's data under those
 // same keys would silently pollute their own /log on the next visit.
 const store = createStore(IS_DEMO ? { storage: { getItem: () => null, setItem: () => {} } } : undefined);
+const syncStatusIcon = createSyncStatusIcon();
 store.subscribe(render);
 // Deliberately NOT store.setActiveView(...) here -- same temporal-dead-zone
 // hazard map-main.js's own comment documents (a real crash caught during
@@ -87,7 +89,7 @@ store.subscribe(render);
 const { openModal, closeModal } = createModalHelpers(["add-place-overlay", "entry-overlay"]);
 
 const offlineSync = createOfflineSync({
-  store, adminFetch, isAuthRedirect,
+  store, adminFetch, isAuthRedirect, syncStatusIcon,
   adminDataUrl: ADMIN_DATA_URL, adminLocationsUrl: ADMIN_LOCATIONS_URL, adminPlacesUrl: ADMIN_PLACES_URL,
   entriesUrl: ENTRIES_URL, placesUrl: PLACES_URL, locationsUrl: LOCATIONS_URL,
   queueKey: QUEUE_KEY,
@@ -217,8 +219,8 @@ async function boot() {
   // reconcile below to happen to trigger a render.
   if (!IS_DEMO) store.loadEntriesFromCache();
 
-  const sessionPromise = adminAuth.checkSession();
-  const settingsPromise = adminAuth.fetchSettings();
+  const sessionPromise = syncStatusIcon.track(adminAuth.checkSession());
+  const settingsPromise = syncStatusIcon.track(adminAuth.fetchSettings());
 
   // #251 -- a demo visitor has no local cache at all (never really
   // synced), so this reads over the network from ENTRIES_URL instead --

@@ -25,6 +25,7 @@ import { createMapView } from "./map-view.js";
 import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
 import { syncAdminBar } from "./admin-bar.js";
+import { createSyncStatusIcon } from "./sync-status-icon.js";
 import { demoDataUrl, isDemoUsername } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
 
@@ -56,6 +57,7 @@ function isAuthRedirect(res) {
 }
 
 const store = createStore();
+const syncStatusIcon = createSyncStatusIcon();
 store.subscribe(render);
 // Deliberately NOT store.setActiveView("map") here -- store.js's setters
 // call notify() synchronously, which would invoke render() (subscribed
@@ -113,8 +115,8 @@ async function boot() {
   // network call starts.
   adminAuth.setInitialActiveType();
 
-  const sessionPromise = adminAuth.checkSession();
-  const settingsPromise = adminAuth.fetchSettings();
+  const sessionPromise = syncStatusIcon.track(adminAuth.checkSession());
+  const settingsPromise = syncStatusIcon.track(adminAuth.fetchSettings());
 
   // #762 -- loadMapCounts() itself now renders from its own cache
   // immediately (if one exists) and updates again in the background --
