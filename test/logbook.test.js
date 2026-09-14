@@ -438,10 +438,11 @@ describe("handlePost", () => {
     expect(entries[0].gradeScale).toBe("font-non-standard");
   });
 
-  // ...and the server defaults it sensibly when the client omits it
-  // entirely -- client/entry-form.js doesn't send this field yet
-  // (sub-issue #703 adds the picker that will), so every current create
-  // must keep working and still get a real, usable gradeScale back.
+  // ...and the server defaults it sensibly when the client omits it --
+  // client/entry-form.js sends this on every submit today (#703's picker
+  // shipped), but any other/older write path that omits it (an import,
+  // a direct API call) must keep working and still get a real, usable
+  // gradeScale back.
   it("defaults gradeScale to font-non-standard for a Boulder entry when the client omits it", async () => {
     const res = await post(validEntry());
     const { entries } = await res.json();
@@ -453,6 +454,19 @@ describe("handlePost", () => {
     const { entries } = await res.json();
     expect(entries[0].gradeScale).toBe("french");
   });
+
+  // #754 -- LEGACY_SPORT_NON_STANDARD_GRADES's own comment says it
+  // "MUST stay in sync" with migrations/0016_add_grade_scale.sql's WHERE
+  // clause, but had no test of its own -- only the "current low end"
+  // (french) branch above was covered.
+  it.each(["1", "1+", "2", "2+", "3", "3+"])(
+    "defaults gradeScale to french-non-standard for a Sport entry at the legacy pre-correction low end (grade %s)",
+    async grade => {
+      const res = await post({ ...validEntry(), type: "sport", grade, sportStyle: "lead" });
+      const { entries } = await res.json();
+      expect(entries[0].gradeScale).toBe("french-non-standard");
+    }
+  );
 
   it("rejects a gradeScale that doesn't belong to the entry's discipline", async () => {
     const res = await post({ ...validEntry(), gradeScale: "french" });

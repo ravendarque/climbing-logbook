@@ -77,6 +77,16 @@ export function createReportGradeScalePicker({ containerEl, getType, onChange })
   function currentScaleId() {
     return scaleByType[getType()];
   }
+  // #754 -- what refresh() (below) last saw, tracked across calls --
+  // see that method's own comment for why this can't just be two
+  // currentScaleId() reads inside one refresh() call (found in review:
+  // it used to be exactly that, comparing the same live value against
+  // itself with nothing mutating scaleByType in between, so the
+  // comparison was always false and onChange never fired from refresh()
+  // at all, in any real caller, ever). Also kept in sync by
+  // setOnSelect() below, a different code path that changes
+  // scaleByType directly.
+  let lastKnownScaleId = currentScaleId();
   function scaleName(scaleId) {
     return SCALES_BY_DISCIPLINE[getType()].find(s => s.id === scaleId)?.name ?? scaleId;
   }
@@ -96,6 +106,13 @@ export function createReportGradeScalePicker({ containerEl, getType, onChange })
     scaleByType[type] = scaleId;
     savePref(type, scaleId);
     updateLabel();
+    // #754 -- keeps refresh()'s own "what did I last see" tracking in
+    // sync with a direct user selection (a different code path from
+    // refresh()'s own discipline-switch detection) -- without this, the
+    // NEXT refresh() call would still be comparing against the value
+    // from before this selection, firing a spurious duplicate onChange
+    // even though nothing has changed since this real one.
+    lastKnownScaleId = scaleId;
     onChange(scaleId);
   });
 
@@ -114,12 +131,16 @@ export function createReportGradeScalePicker({ containerEl, getType, onChange })
     // exactly the same "type can change under us" case #703's own
     // gradeScaleByType handles) -- refreshes the trigger label to the
     // new discipline's own preference and fires onChange if that's a
-    // different scale than whatever was showing before.
+    // different scale than whatever this method last saw. Compares
+    // against `lastKnownScaleId` (state carried across calls), not two
+    // reads within the same call -- currentScaleId() is a pure read of
+    // already-settled state, so two reads with only a DOM-writing
+    // updateLabel() in between can never differ.
     refresh() {
-      const before = currentScaleId();
       updateLabel();
       const after = currentScaleId();
-      if (before !== after) onChange(after);
+      if (lastKnownScaleId !== after) onChange(after);
+      lastKnownScaleId = after;
     },
   };
 }
