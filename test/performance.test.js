@@ -272,6 +272,24 @@ describe("handleGetVolume", () => {
     expect((await getVolume({ start: WINDOW.start, end: "not-a-date" })).status).toBe(400);
   });
 
+  // Found in review, 2026-09-14: DATE_SHAPE only checks digit shape, not
+  // real calendar validity -- "2026-99-99" passed it, and the naive
+  // daysBetween() on an Invalid Date silently produced NaN, which is
+  // never `> MAX_WINDOW_DAYS`, so this used to fall through to a 200
+  // with weekBuckets() computing over garbage instead of a 400.
+  it("returns 400 for a same-shape but calendar-invalid date", async () => {
+    expect((await getVolume({ start: "2026-99-99", end: WINDOW.end })).status).toBe(400);
+    expect((await getVolume({ start: WINDOW.start, end: "2026-13-40" })).status).toBe(400);
+  });
+
+  // Found in review, 2026-09-14: a reversed range gives daysBetween() a
+  // negative number, also never `> MAX_WINDOW_DAYS` -- same silent-200
+  // gap as the invalid-date case above.
+  it("returns 400 when start is after end", async () => {
+    const res = await getVolume({ start: WINDOW.end, end: WINDOW.start });
+    expect(res.status).toBe(400);
+  });
+
   it("returns 400 when the requested span exceeds the max window", async () => {
     const res = await getVolume({ start: "0001-01-01", end: "9999-12-31" });
     expect(res.status).toBe(400);
@@ -328,6 +346,15 @@ describe("handleGetGap", () => {
 
   it("returns 400 for a malformed date", async () => {
     expect((await getGap({ start: "not-a-date", end: WINDOW.end })).status).toBe(400);
+  });
+
+  // Same shared validateDateRange() as handleGetVolume -- see that
+  // describe block's own comment for why these two cases matter.
+  it("returns 400 for a same-shape but calendar-invalid date", async () => {
+    expect((await getGap({ start: "2026-99-99", end: WINDOW.end })).status).toBe(400);
+  });
+  it("returns 400 when start is after end", async () => {
+    expect((await getGap({ start: WINDOW.end, end: WINDOW.start })).status).toBe(400);
   });
 
   it("returns 400 for a span exceeding the max window", async () => {
@@ -391,6 +418,15 @@ describe("handleGetEffort", () => {
 
   it("returns 400 for a malformed date", async () => {
     expect((await getEffort({ start: "not-a-date", end: WINDOW.end })).status).toBe(400);
+  });
+
+  // Same shared validateDateRange() as handleGetVolume -- see that
+  // describe block's own comment for why these two cases matter.
+  it("returns 400 for a same-shape but calendar-invalid date", async () => {
+    expect((await getEffort({ start: "2026-99-99", end: WINDOW.end })).status).toBe(400);
+  });
+  it("returns 400 when start is after end", async () => {
+    expect((await getEffort({ start: WINDOW.end, end: WINDOW.start })).status).toBe(400);
   });
 
   it("returns 400 for a span exceeding the max window", async () => {

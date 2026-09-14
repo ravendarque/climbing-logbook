@@ -129,21 +129,19 @@ export function volumeByBucket(entries, buckets, type) {
 // correctly still needs the real internal code (see client/combo-
 // chart.js's own positionKey/displayLabel split, this plan's own Global
 // Constraints ruling).
-export function gradeDisplayLabel(grade, type) {
-  if (type !== "boulder") return grade;
-  const hit = BOULDER_GRADES.find(x => x.g.toUpperCase() === String(grade).toUpperCase());
-  return hit ? hit.v : grade;
-}
-
-// #702 -- scale-aware sibling of gradeDisplayLabel() above, added
-// alongside it (Global Constraints: the 2-arg form above keeps its exact
-// current behavior unchanged). Same V-scale display quirk (Boulder's
-// V-grade text isn't 1:1 with Font internally), generalized: for
-// Boulder, always render the V-scale label regardless of which scale
-// `grade` was logged in, by converting through the shared canonical
-// ordinal (gradeOrdinal) rather than a direct BOULDER_GRADES string
-// match, which only worked because every grade used to be in one
-// implicit scale.
+//
+// The original 2-arg gradeDisplayLabel(grade, type) this was built
+// alongside is gone (#702's own Global Constraints kept it around
+// unchanged at the time, but it never gained a real caller once every
+// site migrated straight to this scale-aware form -- removed as dead
+// code, found in review 2026-09-14, confirmed zero callers outside its
+// own now-deleted test).
+// Same V-scale display quirk (Boulder's V-grade text isn't 1:1 with Font
+// internally), generalized: for Boulder, always render the V-scale label
+// regardless of which scale `grade` was logged in, by converting through
+// the shared canonical ordinal (gradeOrdinal) rather than a direct
+// BOULDER_GRADES string match, which only worked because every grade
+// used to be in one implicit scale.
 export function gradeDisplayLabelForScale(grade, scaleId, type) {
   if (type !== "boulder") return grade;
   const ordinal = gradeOrdinal(grade, scaleId);

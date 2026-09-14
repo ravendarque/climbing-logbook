@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bucketIndexForDate, gradeDisplayLabel, gradeDisplayLabelForScale, reportGradeLabel, reportGradeOrdinal, reportGradePoint, reportPositionOrder, volumeByBucket, volumeHeadline, weekBucketLabel, weekBuckets } from "../../shared/volume-stats.js";
+import { bucketIndexForDate, gradeDisplayLabelForScale, reportGradeLabel, reportGradeOrdinal, reportGradePoint, reportPositionOrder, volumeByBucket, volumeHeadline, weekBucketLabel, weekBuckets } from "../../shared/volume-stats.js";
 
 // #702 -- scale-aware sibling of gradeDisplayLabel, added alongside it
 // (see docs/superpowers/plans/2026-09-11-grade-canonical-model.md Task 4).
@@ -235,16 +235,6 @@ describe("volumeByBucket", () => {
       { grade: "6B", gradeScale: "font-non-standard" },
       { grade: "7A", gradeScale: "font-non-standard" },
     ]);
-  });
-});
-
-describe("gradeDisplayLabel", () => {
-  it("shows the V-grade for a boulder grade", () => {
-    expect(gradeDisplayLabel("6B", "boulder")).toBe("V4");
-  });
-
-  it("shows the raw grade text for a lead grade (no V-grade concept)", () => {
-    expect(gradeDisplayLabel("6a", "lead")).toBe("6a");
   });
 });
 

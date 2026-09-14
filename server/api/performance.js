@@ -116,8 +116,40 @@ const DATE_SHAPE = /^\d{4}-\d{2}-\d{2}$/;
 // D1 work, same "before any D1 work" ordering the old check had.
 const MAX_WINDOW_DAYS = 3653;
 
+// DATE_SHAPE only checks digit shape, not real calendar validity --
+// `2026-99-99` passes it. `new Date(...)` on that string is genuinely
+// Invalid Date, so a naive `daysBetween` on it silently produces NaN, and
+// `NaN > MAX_WINDOW_DAYS` is false -- the cap check this file's own
+// comment says exists ("before doing any D1 work") doesn't actually
+// reject it, and neither does a reversed-but-otherwise-valid range
+// (daysBetween negative, also not `> MAX_WINDOW_DAYS`). Both silently
+// fell through to weekBuckets()/a full D1 read instead of a 400 (found
+// in review, 2026-09-14). The ISO round-trip below also catches a
+// same-shape-but-rolled-over date (`2026-02-30` -> `2026-03-02`), not
+// just outright unparseable ones.
+function isValidCalendarDate(s) {
+  const d = new Date(`${s}T00:00:00Z`);
+  return !isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+}
+
 function daysBetween(start, end) {
   return Math.round((new Date(`${end}T00:00:00Z`) - new Date(`${start}T00:00:00Z`)) / 86400000) + 1;
+}
+
+// Single shared validator for the three PUBLIC_GET_ROUTES handlers below
+// (handleGetVolume/handleGetGap/handleGetEffort) -- was hand-duplicated
+// three times as a plain DATE_SHAPE-then-daysBetween-cap check, which is
+// exactly how the invalid-date/reversed-range gap above went unnoticed
+// in two of the three copies as long as it did. Returns an error message
+// string, or null when the range is genuinely valid.
+function validateDateRange(start, end) {
+  if (!start || !end) return "Missing required field: start and end";
+  if (!DATE_SHAPE.test(start) || !DATE_SHAPE.test(end) || !isValidCalendarDate(start) || !isValidCalendarDate(end)) {
+    return "start and end must be YYYY-MM-DD dates";
+  }
+  if (daysBetween(start, end) < 1) return "start must not be after end";
+  if (daysBetween(start, end) > MAX_WINDOW_DAYS) return `start and end must span at most ${MAX_WINDOW_DAYS} days`;
+  return null;
 }
 
 // #15 -- same online-only, server-computed convention as the three
@@ -136,13 +168,8 @@ export async function handleGetVolume(request, env, userId) {
   const url = new URL(request.url);
   const start = url.searchParams.get("start");
   const end = url.searchParams.get("end");
-  if (!start || !end) return json({ error: "Missing required field: start and end" }, 400);
-  if (!DATE_SHAPE.test(start) || !DATE_SHAPE.test(end)) {
-    return json({ error: "start and end must be YYYY-MM-DD dates" }, 400);
-  }
-  if (daysBetween(start, end) > MAX_WINDOW_DAYS) {
-    return json({ error: `start and end must span at most ${MAX_WINDOW_DAYS} days` }, 400);
-  }
+  const dateError = validateDateRange(start, end);
+  if (dateError) return json({ error: dateError }, 400);
 
   const buckets = weekBuckets(start, end);
   const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
@@ -164,13 +191,8 @@ export async function handleGetGap(request, env, userId) {
   const url = new URL(request.url);
   const start = url.searchParams.get("start");
   const end = url.searchParams.get("end");
-  if (!start || !end) return json({ error: "Missing required field: start and end" }, 400);
-  if (!DATE_SHAPE.test(start) || !DATE_SHAPE.test(end)) {
-    return json({ error: "start and end must be YYYY-MM-DD dates" }, 400);
-  }
-  if (daysBetween(start, end) > MAX_WINDOW_DAYS) {
-    return json({ error: `start and end must span at most ${MAX_WINDOW_DAYS} days` }, 400);
-  }
+  const dateError = validateDateRange(start, end);
+  if (dateError) return json({ error: dateError }, 400);
 
   const buckets = weekBuckets(start, end);
   const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
@@ -197,13 +219,8 @@ export async function handleGetEffort(request, env, userId) {
   const url = new URL(request.url);
   const start = url.searchParams.get("start");
   const end = url.searchParams.get("end");
-  if (!start || !end) return json({ error: "Missing required field: start and end" }, 400);
-  if (!DATE_SHAPE.test(start) || !DATE_SHAPE.test(end)) {
-    return json({ error: "start and end must be YYYY-MM-DD dates" }, 400);
-  }
-  if (daysBetween(start, end) > MAX_WINDOW_DAYS) {
-    return json({ error: `start and end must span at most ${MAX_WINDOW_DAYS} days` }, 400);
-  }
+  const dateError = validateDateRange(start, end);
+  if (dateError) return json({ error: dateError }, 400);
 
   const buckets = weekBuckets(start, end);
   const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });

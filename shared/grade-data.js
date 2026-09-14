@@ -641,36 +641,35 @@ const FIERY_RED_SUNSET = [
   "#03071e", "#370617", "#6a040f", "#9d0208", "#d00000",
   "#dc2f02", "#e85d04", "#f48c06", "#faa307", "#ffba08",
 ];
-export function gradePyramidColor(g, type) {
-  const resolvedType = type ?? "boulder";
-  // Normalised against the discipline's real picker range (BOULDER_GRADES/
-  // LEAD_GRADES), not BOULDER_ORDER/LEAD_ORDER's defensive superset -- the
-  // pyramid only ever shows grades from within the picker, so its top
-  // grade should map to the palette's brightest end exactly.
-  const list = resolvedType === "boulder" ? BOULDER_GRADES : LEAD_GRADES;
-  const maxRank = gradeRank(list[list.length - 1].g, resolvedType);
-  const frac = Math.min(1, Math.max(0, gradeRank(g, resolvedType) / maxRank));
-  const pos = frac * (FIERY_RED_SUNSET.length - 1);
-  const lo = Math.floor(pos);
-  if (pos === lo) return FIERY_RED_SUNSET[lo]; // lands exactly on a palette stop
-  const hi = lo + 1;
-  const loPct = Math.round((hi - pos) * 100);
-  return `color-mix(in srgb, ${FIERY_RED_SUNSET[lo]} ${loPct}%, ${FIERY_RED_SUNSET[hi]})`;
-}
 
-// #702 -- scale-aware siblings of gradeRank/gradeTier/gradeColor/
-// gradePyramidColor above, added alongside them (Global Constraints:
-// the 2-arg forms above keep their exact current behavior unchanged --
-// these new 3-arg forms are what B/C/E/F build on once entries can
-// genuinely carry a scale other than each discipline's implicit
-// default).
+// #702 -- scale-aware siblings of gradeRank/gradeTier/gradeColor above,
+// added alongside them (Global Constraints: the 2-arg forms keep their
+// exact current behavior unchanged) -- these new 3-arg forms are what
+// B/C/E/F build on once entries can genuinely carry a scale other than
+// each discipline's implicit default. The 2-arg gradePyramidColor() this
+// section originally sat alongside is gone -- every real caller had
+// already migrated to gradePyramidColorForScale below by the time of
+// this review; removed as dead code, found in review 2026-09-14,
+// confirmed zero callers outside its own now-deleted test. gradeRank/
+// gradeTier/gradeColor's own 2-arg forms are still real and still used
+// (client/entries.js, climbing-entries-table.js) -- only the pyramid-
+// color one had no caller left.
 
-// Same `?? 99` "rank unknown as harder than everything" fallback as
-// today's gradeRank() -- deliberate continuity, not an oversight (#461's
-// own comment already explains why this beats crashing or silently
-// sorting an out-of-model grade first).
+// "Rank unknown as harder than everything" fallback -- same INTENT as
+// today's gradeRank()'s own `?? 99`, but NOT the same literal sentinel:
+// gradeRank()'s 99 is only ever safe because BOULDER_ORDER/LEAD_ORDER
+// are small, bounded arrays (~45 entries) that can never reach it. The
+// canonical ordinal gradeOrdinal() resolves through has no such bound --
+// French/Sport's own real max grade ("9c+") is ordinal 106, already past
+// 99 -- so a hardcoded 99 here would sort an unrecognized grade as
+// EASIER than several real, valid Sport grades, the opposite of the
+// documented intent (confirmed via a real code-review finding,
+// 2026-09-14). `Infinity` is the actual "harder than everything, no
+// matter how the canonical range grows" value; nothing downstream
+// treats this as a real ordinal to do arithmetic on (only ever compared
+// via `>=`), so there's no representability concern.
 export function gradeRankForScale(grade, scaleId, type) {
-  return gradeOrdinal(grade, scaleId) ?? 99;
+  return gradeOrdinal(grade, scaleId) ?? Infinity;
 }
 
 export function gradeTierForScale(grade, scaleId, type) {
@@ -682,10 +681,15 @@ export function gradeTierForScale(grade, scaleId, type) {
   // via the shared canonical ordinal both sides now share (Task 1's
   // whole point) regardless of which scale the grade itself is in.
   const primaryScaleId = resolvedType === "boulder" ? "font" : "french";
-  const r = gradeOrdinal(grade, scaleId) ?? 99;
+  const r = gradeOrdinal(grade, scaleId) ?? Infinity;
   let tier = thresholds[0][0];
   for (const [name, fromGrade] of thresholds) {
-    if (fromGrade !== null && r >= (gradeOrdinal(fromGrade, primaryScaleId) ?? 99)) tier = name;
+    // A threshold's own `fromGrade` is always a real hardcoded label
+    // (never expected to fail to resolve) -- Infinity here means a
+    // broken threshold definition fails closed (unreachable) rather
+    // than failing open (trivially satisfied by everything), same
+    // "unknown sorts as harder/never-satisfied" direction as above.
+    if (fromGrade !== null && r >= (gradeOrdinal(fromGrade, primaryScaleId) ?? Infinity)) tier = name;
   }
   return tier;
 }
@@ -699,7 +703,12 @@ export function gradePyramidColorForScale(grade, scaleId, type) {
   const primaryScaleId = resolvedType === "boulder" ? "font" : "french";
   const list = resolvedType === "boulder" ? FONT_STANDARD_LABELS : FRENCH_STANDARD_LABELS;
   const maxRank = gradeOrdinal(list[list.length - 1], primaryScaleId);
-  const r = gradeOrdinal(grade, scaleId) ?? 0;
+  // Infinity, not 0 -- same "unknown sorts as harder than everything"
+  // direction gradeRankForScale/gradeTierForScale use (an unparseable
+  // grade previously fell through to the palette's DARKEST/easiest-
+  // looking end here, the opposite convention from its own sibling
+  // functions, an unexplained inconsistency found in review 2026-09-14).
+  const r = gradeOrdinal(grade, scaleId) ?? Infinity;
   const frac = Math.min(1, Math.max(0, r / maxRank));
   const pos = frac * (FIERY_RED_SUNSET.length - 1);
   const lo = Math.floor(pos);

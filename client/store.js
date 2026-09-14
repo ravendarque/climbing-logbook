@@ -11,11 +11,15 @@
 // instance instead of needing to reset shared module state between tests.
 //
 // Deliberately NOT everything main.js used to call "state" lives here.
-// athleteMode, editingId, and lowerGradesExpanded are each read/written by
-// exactly one section of main.js today (admin bar, entry form, Grade
-// Pyramid respectively) -- absorbing them into the shared Store now would
-// just mean re-extracting them into their own view module once #235-#242
-// build it.
+// athleteMode and editingId are each read/written by exactly one module
+// today (admin-auth.js, entry-form.js) -- absorbing them into the shared
+// Store would just mean re-extracting them into their own module later,
+// same reasoning #235-#242's own module split already established.
+// (lowerGradesExpanded, the Grade Pyramid's own former "Show lower
+// grades" toggle state, was a third example here -- #737 deleted that
+// feature entirely, main.js itself no longer exists either, replaced by
+// per-page composition roots; noting this rather than leaving the stale
+// reference, found in review 2026-09-14.)
 //
 // Reactivity/subscriptions (#219's original concern, deliberately deferred
 // at #234 -- "a plain store first") are implemented now, #264: every
