@@ -56,13 +56,13 @@ per-user authorization code ever ran.
   API token distinction that only mattered for Access/Zero Trust calls
   (a real, confirmed upstream Cloudflare quirk that cost debugging time
   during the original Access rollout).
-- `server/api/admin-session.js` and `server/api/admin-login.js` are now dead —
-  they existed purely to serve Access's edge-authentication flow (reading
-  `Cf-Access-Authenticated-User-Email`, kicking off Access's hosted login).
-  Nothing calls them since `client/admin-auth.js` was rewired onto Better
-  Auth's own session endpoints (#320). Left in place for a rollback-safety
-  window, same treatment as the dead KV code (#299) — actual removal is a
-  separate, not-yet-filed follow-up.
+- `server/api/admin-session.js` and `server/api/admin-login.js`, dead code
+  serving Access's edge-authentication flow (reading
+  `Cf-Access-Authenticated-User-Email`, kicking off Access's hosted
+  login) once `client/admin-auth.js` was rewired onto Better Auth's own
+  session endpoints (#320), were kept for a rollback-safety window and
+  have since been removed -- neither file exists in the repo any more
+  (confirmed 2026-09-14).
 - Registration needed a bot/abuse gate it didn't need before (Access's
   manual allow-listing was itself a de facto invite gate) — addressed
   separately via Turnstile (#311) and a closed-beta invite-code gate

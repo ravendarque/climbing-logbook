@@ -115,12 +115,11 @@ client/
 │                         Workers-pool Vitest runs client/ tests under has
 │                         no localStorage global (confirmed empirically),
 │                         so a hardwired reference would make it
-│                         untestable. athleteMode/editingId/
-│                         lowerGradesExpanded deliberately stay local to
-│                         whichever module actually owns them (admin-auth.js,
-│                         entry-form.js, climbing-grade-pyramid.js) rather
-│                         than joining the shared Store — see each file's
-│                         own top comment for why. Reactivity/subscriptions
+│                         untestable. athleteMode/editingId deliberately
+│                         stay local to whichever module actually owns
+│                         them (admin-auth.js, entry-form.js) rather than
+│                         joining the shared Store — see each file's own
+│                         top comment for why. Reactivity/subscriptions
 │                         (#219's original concern, deliberately deferred
 │                         at #234 -- "a plain store first") implemented at
 │                         #264: subscribe(fn)/notify() is a plain array of
@@ -130,9 +129,10 @@ client/
 │                         re-rendering, every render() everywhere is
 │                         already a full innerHTML rebuild. Synchronous,
 │                         not batched -- the app already assumes renders
-│                         happen synchronously (e.g. pyramid-view.js
-│                         re-renders then immediately re-queries/focuses
-│                         the freshly-rebuilt DOM node), and a handful of
+│                         happen synchronously (e.g. entry-form.js's date
+│                         picker re-renders then immediately re-queries/
+│                         focuses the freshly-rebuilt DOM node), and a
+│                         handful of
 │                         redundant same-frame re-renders (e.g. during
 │                         boot(), while #app is still hidden) cost nothing
 │                         visible at this app's scale. Also now owns
@@ -238,38 +238,40 @@ client/
 │                         render() in main.js, same "physically adjacent
 │                         but not actually part of the composition root"
 │                         pattern #235's updateSubtitle() discovery
-│                         followed. resetPyramidExpansion is one narrow
-│                         callback into whichever module owns the
+│                         followed. Used to also take a `resetPyramidExpansion`
+│                         callback into whichever module owned the
 │                         lower-grades-expanded toggle (originally
-│                         pyramid-view.js; now <climbing-grade-pyramid>'s
-│                         own resetExpansion() for performance-main.js,
-│                         #374) -- this only ever needs "reset the
-│                         lower-grades toggle on discipline switch," not
-│                         the whole module.
+│                         pyramid-view.js, later <climbing-grade-pyramid>'s
+│                         own resetExpansion()) -- removed entirely in #742
+│                         once #737 deleted the "Show lower grades" feature
+│                         itself (the pyramid is a pure 8-4-2-1 report now,
+│                         built per selected view scale -- see "Canonical
+│                         grade model" below), the callback's only reason
+│                         to exist.
 │                         `createDisclosure` (client/modal-utils.js) is a
 │                         plain import, not injected -- same #242
 │                         pass-through-removal reasoning as place-picker.js.
 │                         `render`/`updateAdminBar`
 │                         used to be injected too, but aren't anymore
 │                         (#264) -- store.setActiveType()/setLoggedIn()
-│                         notify render() on their own. The one handler
-│                         that mutates both Store and non-Store state
-│                         (discipline switch, which also resets pyramid-
-│                         view.js's private lowerGradesExpanded) calls
-│                         resetPyramidExpansion() *before*
-│                         store.setActiveType(), not after -- setActiveType
-│                         synchronously triggers the subscribed render()
-│                         the moment it's called, so the non-Store reset
-│                         has to already be done by then or the
-│                         auto-triggered render would still show the
-│                         previous discipline's expanded lower-grades
-│                         section
+│                         notify render() on their own.
 ├── modal-utils.js       Shared popover/modal utilities (#241, eighth and
 │                         final view-module piece of #233): createDisclosure
 │                         (trigger + panel, open/close/outside-click/
 │                         Escape -- every dropdown-style popover in the
 │                         app) and createModalHelpers() (focus trap +
 │                         Escape-to-close for every full-page overlay).
+│                         createDisclosure() also returns destroy() (#736)
+│                         -- every original caller (discipline picker,
+│                         header menu, place picker, filter panel, the
+│                         grade/scale pickers) constructs its trigger/panel
+│                         once per page load and never needs it, but
+│                         client/calendar-date-picker.js's own instances,
+│                         when used from client/time-window.js's Custom
+│                         range, get discarded and recreated on every
+│                         state change -- without destroy() torn down
+│                         first, each rebuild would pile up another pair of
+│                         document-level listeners forever.
 │                         Pure DOM utilities, no state coupling beyond
 │                         what's passed in -- could have landed
 │                         independently of the Store or any other module
@@ -291,6 +293,18 @@ client/
 │                         the place picker). A generic query would have
 │                         silently closed the wrong modal; kept the
 │                         explicit, correctly-ordered list instead
+├── calendar-date-picker.js Shared calendar date-picker (#736): a button +
+│                         month-grid popover, extracted from entry-form.js's
+│                         own #703-review date picker once time-window.js's
+│                         Custom range turned out to need the identical
+│                         fix (native <input type="date">'s own unstylable
+│                         OS chrome). `calendarDatePickerHtml(idPrefix)`
+│                         (markup) + `createCalendarDatePicker({
+│                         containerEl, idPrefix, getValue, onSelect })`
+│                         (behavior), same split as createListPicker/
+│                         renderOptionList above. entry-form.js's date
+│                         field and time-window.js's Custom start/end are
+│                         its three real instances today
 ├── grade-data.js       Grade ordering/coloring, per-discipline grade lists
 ├── date-helpers.js     formatDate/dateRank
 ├── status.js           statusBadge, flash/send/name labels
@@ -576,8 +590,16 @@ one real copy of every externalized/vendored file)
 
 ### Composition roots, one per page
 
-Each of the six pages above has its own small composition root, reusing
-only what's actually shared from the module graph above:
+Each owned page has its own small composition root, reusing only what's
+actually shared from the module graph above. This started as six pages
+(#348) with one monolithic `/:username/performance` among them; epic #5
+Phase 2 split that single page into a hub tile page plus one page per
+Performance Insight (pyramid/trends/gap/rpe/injury/strengths/grades),
+and #224 added `/:username/account/import` -- there are 14 real owned
+page shells today, not six. The entries below for
+`performance-pyramid-main.js` onward and `account-import-main.js` were
+added 2026-09-13 to close that gap; every entry keeps the original
+document's own level of detail, not a full rewrite of the section:
 
 ```
 client/
@@ -596,14 +618,84 @@ client/
 │                           admin-auth.js/header-chrome.js/map-view.js
 │                           completely unchanged from /logbook's own.
 │                           Also registers sw.js
-├── performance-main.js   Composition root for /:username/performance
-│                           (#348) -- bundled into performance-app.js.
-│                           Uses <climbing-grade-pyramid> (below), not
+├── performance-hub-main.js Composition root for /:username/performance
+│                           itself (#575, epic #5 Phase 2) -- bundled into
+│                           performance-hub-app.js. The hub: a tile per
+│                           Performance Insight, linking to its own page
+│                           below. Replaced the original one-page
+│                           performance-main.js once the insights below
+│                           outgrew a single page
+├── performance-pyramid-main.js Composition root for
+│                           /:username/performance/pyramid (#348, moved
+│                           here from the original hub page by #575) --
+│                           bundled into performance-pyramid-app.js. Uses
+│                           <climbing-grade-pyramid> (below), not
 │                           pyramid-view.js -- the component reimplements
 │                           that module's rendering/overlay logic
 │                           self-contained, against the same pure
-│                           pyramid-stats.js functions. Also registers
-│                           sw.js
+│                           pyramid-stats.js functions. Also wires
+│                           report-grade-scale-picker.js (below) so the
+│                           pyramid's own rows/colors render in whichever
+│                           scale the viewer picked (#737)
+├── performance-trends-main.js Composition root for
+│                           /:username/performance/trends (#15, epic #5
+│                           Phase 2) -- bundled into
+│                           performance-trends-app.js. Volume/intensity
+│                           report: client/combo-chart.js (below) plus
+│                           client/time-window.js's 12w/52w/Custom control
+│                           and report-grade-scale-picker.js
+├── performance-gap-main.js Composition root for
+│                           /:username/performance/gap (#14, epic #5
+│                           Phase 2) -- bundled into
+│                           performance-gap-app.js. Onsight/redpoint gap
+│                           report, same combo-chart.js/time-window.js/
+│                           report-grade-scale-picker.js composition as
+│                           trends
+├── performance-rpe-main.js Composition root for
+│                           /:username/performance/rpe (#38, epic #5
+│                           Phase 2) -- bundled into
+│                           performance-rpe-app.js. Session RPE/effort
+│                           trend, same combo-chart.js/time-window.js/
+│                           report-grade-scale-picker.js composition
+├── performance-injury-main.js Composition root for
+│                           /:username/performance/injury (#39, epic #5
+│                           Phase 2) -- bundled into
+│                           performance-injury-app.js. Injury/pain-flag
+│                           log correlation view
+├── performance-strengths-main.js Composition root for
+│                           /:username/performance/strengths (#13, epic
+│                           #5 Phase 2) -- bundled into
+│                           performance-strengths-app.js. Move-difficulty
+│                           strengths/weaknesses breakdown
+├── performance-grades-main.js Composition root for
+│                           /:username/performance/grades (#705, sub-issue
+│                           E of #183) -- bundled into
+│                           performance-grades-app.js. See "Canonical
+│                           grade model" below for its own scope and the
+│                           #190 relocation this page is tracked for
+├── report-grade-scale-picker.js Shared per-discipline "which scale do my
+│                           reports render in" picker (#704), used by
+│                           every report page above (pyramid/trends/gap/
+│                           rpe) -- persists to the same
+│                           `logbook_grade_scale_reports_<type>`
+│                           localStorage key entry-form.js's own picker
+│                           preference uses, so a choice made on one page
+│                           carries to the others
+├── combo-chart.js       Shared N-bar-series + M-line-series SVG chart
+│                           (#15, epic #5 Phase 2), used by trends/gap/rpe.
+│                           A pure string generator, no DOM dependency --
+│                           see that file's own header comment. Frames its
+│                           own plot area with a subtle border (#735) so a
+│                           chart whose values are all low doesn't read as
+│                           not having rendered at all
+├── time-window.js       Shared 12-week/52-week/Custom time-window pill
+│                           control (#15, epic #5 Phase 2), used by
+│                           trends/gap/rpe. Custom reveals two
+│                           calendar-date-picker.js instances (#736) --
+│                           originally two native <input type="date">s,
+│                           replaced once entry-form.js's own #703-review
+│                           date picker had already fixed the identical
+│                           OS/browser-chrome problem elsewhere
 ├── profile-main.js       Composition root for the public, read-only
 │                           /:username page (#351) -- bundled into
 │                           profile-app.js. No admin-auth.js/store.js
@@ -655,6 +747,20 @@ client/
 │                           error display); what actually happens on
 │                           submit is each row's own callback. Registers
 │                           sw.js
+├── account-import-main.js Composition root for /:username/account/import
+│                           (#224 phases 2-4) -- bundled into
+│                           account-import-app.js. Same "no
+│                           header-chrome.js, reimplement narrowly"
+│                           reasoning as account-main.js/
+│                           account-edit-main.js, genuinely separate
+│                           bundle sharing no other code with them.
+│                           Deliberately not part of the offline-sync
+│                           architecture entry-form.js's own add/edit
+│                           flow uses -- a bulk import needs a live
+│                           round-trip to resolve locations/places
+│                           server-side and validate every row before
+│                           anything is written, so there's no meaningful
+│                           way to queue one offline
 ├── admin-bar.js          syncAdminBar({ store, adminAuth, headerChrome,
 │                           tabBar, addBtn?, offlineSync? }) (#399) --
 │                           the admin-bar-visibility/#151 Grade-Pyramid-
@@ -796,7 +902,8 @@ client/
                                   list this component's real consumers
                                   never need alongside it)
 
-public/ (the six split pages -- one static shell per page type,
+public/ (one static shell per owned page type, 14 today (see "Composition
+roots, one per page" above for how that grew from the original six) --
 genuinely identical content for every user; the client bundle reads
 :username off location.pathname itself, not server-templated markup;
 server/api/owned-routes.js/public-profile.js fetch these via the ASSETS
@@ -804,15 +911,25 @@ binding after their own session/visibility check, see "Request routing"
 below)
 ├── log/index.html          Shell for /:username/log (#348)
 ├── map/index.html          Shell for /:username/map (#348)
-├── performance/index.html  Shell for /:username/performance (#348)
+├── performance/index.html  Shell for /:username/performance, the hub
+│                              (#575, epic #5 Phase 2)
+├── performance/pyramid/index.html    Shell for .../performance/pyramid (#348)
+├── performance/trends/index.html     Shell for .../performance/trends (#15)
+├── performance/gap/index.html        Shell for .../performance/gap (#14)
+├── performance/rpe/index.html        Shell for .../performance/rpe (#38)
+├── performance/injury/index.html     Shell for .../performance/injury (#39)
+├── performance/strengths/index.html  Shell for .../performance/strengths (#13)
+├── performance/grades/index.html     Shell for .../performance/grades
+│                              (#705) -- tracked for relocation to a public
+│                              /help page, see "Canonical grade model" below
 ├── profile/index.html      Shell for the public /:username page (#351)
 ├── account/index.html      Shell for /:username/account (#302) -- a plain
 │                              landing page listing the account section's
 │                              own sub-pages (just "Edit account details"
-│                              for now; Display/Import/Export listed as
-│                              "Coming soon," not built yet). No shared nav
-│                              component between sub-pages until a second
-│                              one actually exists
+│                              for now; Display listed as "Coming soon,"
+│                              not built yet). No shared nav component
+│                              between sub-pages until a second one
+│                              actually exists
 ├── account/edit/index.html Shell for /:username/account/edit (#302) --
 │                              username/email/password, each independently
 │                              editable/submittable against Better Auth's
@@ -822,6 +939,9 @@ below)
 │                              you didn't touch reads as risky even when
 │                              harmless, and these three endpoints don't
 │                              depend on each other server-side either)
+├── account/import/index.html Shell for /:username/account/import (#224
+│                              phases 2-4) -- bulk CSV/JSON import, see
+│                              account-import-main.js above
 └── e2e-fixtures/           Test-only component-harness bundles (#407
                                Tier 1) -- gitignored, generated by `pnpm
                                run e2e:build-fixtures`, never part of
@@ -1065,8 +1185,10 @@ shows it, sees it in the logbook exactly as logged, and exports it
 exactly as logged — none of that is possible if the stored value is
 already converted to some canonical notation. `gradeScale` is optional
 on write (`server/api/logbook.js`'s `defaultGradeScale()` infers a
-sensible value when a client omits it — `client/entry-form.js` doesn't
-send it yet; sub-issue #703 adds the picker that will).
+sensible value when a client omits it — needed for older/imported rows
+and any other write path that predates the picker) — `client/entry-form.js`
+sends it on every submit since sub-issue #703's scale/preference picker
+shipped.
 
 **The two Non-standard scales** (`font-non-standard`,
 `french-non-standard`) aren't lookup tables — real guidebooks use
@@ -1121,6 +1243,20 @@ only #702's already-committed conversion data. Linked from both scale
 pickers' own popovers (#703's `client/entry-form.js`, #704's
 `client/report-grade-scale-picker.js`) via a "What's this?" footer link,
 and from the Performance Insights hub page as its own tile.
+
+**Misrouted, tracked for correction in #190:** the gated-route/Athlete-
+Mode placement above was the wrong call — Raven's actual requirement was
+for this content to live as a *public*, logged-out-reachable `/help`
+page, not a Performance Insights view (2026-09-13). #713 ("Public grade
+scales & conversion page on apex") was filed on the separate, also-wrong
+assumption that the gated and public versions should coexist as two
+builds. #190 now scopes the real fix: move this page's content onto
+`/help` (drop the owned-route/Athlete-Mode gate from
+`performance-grades-main.js`'s `boot()` entirely) and expand it —
+Raven's own review called the current content (a matrix, a short
+caveats paragraph, a sources list) too thin to stand alone as public
+documentation. Not yet done as of this writing; the page still lives
+exactly as described above until #190 ships.
 
 **Sub-issue F (#708) — logbook grade filter (tiers) + grade search**
 replaces `client/entries.js`'s old min/max `gradeRange` facet
