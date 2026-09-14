@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BOULDER_GRADES, LEAD_GRADES, gradeColor, gradePyramidColor, gradeRank, gradeTier } from "../../shared/grade-data.js";
+import { BOULDER_GRADES, LEAD_GRADES, gradeColor, gradeRank, gradeTier } from "../../shared/grade-data.js";
 import {
   nonStandardOrdinal, nonStandardLabel, parseNonStandardLabel,
   FONT_NON_STANDARD, FRENCH_NON_STANDARD,
@@ -325,6 +325,24 @@ describe("gradeOrdinal / gradeRankForScale / gradeTierForScale / gradeColorForSc
       expect(typeof gradePyramidColorForScale(anyLabel, scale.id, type)).toBe("string");
     }
   });
+
+  // Found in review, 2026-09-14: French/Sport's own real max grade ("9c+")
+  // resolves to canonical ordinal 106 -- past the `?? 99` sentinel these
+  // functions used to fall back to for an unrecognized grade, meaning an
+  // unparseable Sport grade used to rank/tier as EASIER than several real,
+  // valid Sport grades (9a+/9b/9b+/9c/9c+), the opposite of the documented
+  // "unknown sorts as harder than everything" intent. Fixed to `?? Infinity`.
+  it("an unparseable grade ranks harder than every real grade, even Sport's own top grade", () => {
+    expect(gradeRankForScale("not-a-real-grade", "french", "sport")).toBeGreaterThan(gradeRankForScale("9c+", "french", "sport"));
+  });
+  it("an unparseable Sport grade classifies as hyper-elite, not a lower tier it accidentally undercuts", () => {
+    expect(gradeTierForScale("not-a-real-grade", "french", "sport")).toBe("hyper-elite");
+  });
+  it("an unparseable grade's pyramid color clamps to the brightest (hardest) end of the palette, not the darkest", () => {
+    const unknown = gradePyramidColorForScale("not-a-real-grade", "french", "sport");
+    const hardest = gradePyramidColorForScale("9c+", "french", "sport");
+    expect(unknown).toBe(hardest);
+  });
 });
 
 describe("gradeRank", () => {
@@ -433,18 +451,33 @@ describe("gradeColor", () => {
 
 // #698 -- the Grade Pyramid's own per-grade shade across the full
 // 10-colour palette, distinct from gradeColor()'s flat per-tier colour.
-describe("gradePyramidColor", () => {
-  it("returns the exact palette endpoints for the lowest and highest grades", () => {
-    expect(gradePyramidColor(BOULDER_GRADES[0].g, "boulder")).toBe("#03071e");
-    expect(gradePyramidColor(BOULDER_GRADES.at(-1).g, "boulder")).toBe("#ffba08");
-    expect(gradePyramidColor(LEAD_GRADES[0].g, "sport")).toBe("#03071e");
-    expect(gradePyramidColor(LEAD_GRADES.at(-1).g, "sport")).toBe("#ffba08");
+// gradePyramidColorForScale is the live, scale-aware form -- the 2-arg
+// gradePyramidColor() this suite originally tested was removed as dead
+// code (zero real callers, found in review 2026-09-14); ported to the
+// live function rather than deleted outright, since this is the only
+// coverage anywhere of the palette-interpolation algorithm's own real
+// properties (monotonicity, distinct-shade guarantee, clamping,
+// color-mix format) -- the function's own existing test only checked it
+// "doesn't throw."
+describe("gradePyramidColorForScale", () => {
+  it("returns the exact palette endpoint for the discipline's own hardest grade", () => {
+    // gradePyramidColorForScale's own maxRank is defined as this exact
+    // grade's ordinal (the last FONT_STANDARD_LABELS/FRENCH_STANDARD_LABELS
+    // entry), so frac lands on exactly 1 for it by construction -- unlike
+    // the OLD BOULDER_GRADES-array-index-based gradePyramidColor this
+    // test originally covered, there's no equivalent guaranteed-exact
+    // LOWEST endpoint here: the canonical ordinal space starts well below
+    // FONT_STANDARD's/FRENCH_STANDARD's own first real label ("3"/"1"
+    // isn't ordinal 0), so frac for the easiest real grade is small but
+    // not exactly 0.
+    expect(gradePyramidColorForScale(FONT_STANDARD.labels.at(-1), "font", "boulder")).toBe("#ffba08");
+    expect(gradePyramidColorForScale(FRENCH_STANDARD.labels.at(-1), "french", "sport")).toBe("#ffba08");
   });
 
   it("gives adjacent grades distinct shades -- the whole point, since a pyramid window can sit entirely in one tier", () => {
     // A 4-grade window entirely within Advanced (all one tier, so
-    // gradeColor() would return one flat colour for all four).
-    const window = ["7A", "7A+", "7B", "7B+"].map(g => gradePyramidColor(g, "boulder"));
+    // gradeColorForScale() would return one flat colour for all four).
+    const window = ["7A", "7A+", "7B", "7B+"].map(g => gradePyramidColorForScale(g, "font", "boulder"));
     expect(new Set(window).size).toBe(4);
   });
 
@@ -457,8 +490,11 @@ describe("gradePyramidColor", () => {
       const [, loHex, pct] = c.match(/#([0-9a-f]{6})\s+(\d+)%/);
       return PALETTE.indexOf(`#${loHex}`) + (1 - Number(pct) / 100);
     }
-    const grades = ["1", "3A", "5C", "6B", "7A", "7C+", "8B", "9A"];
-    const positions = grades.map(g => palettePos(gradePyramidColor(g, "boulder")));
+    // Real FONT_STANDARD labels (that scale starts at "3", not "1" --
+    // unlike the old BOULDER_GRADES-based picker range this test
+    // originally used).
+    const grades = ["3", "4", "5", "6B", "7A", "7C+", "8B", "9A"];
+    const positions = grades.map(g => palettePos(gradePyramidColorForScale(g, "font", "boulder")));
     for (let i = 1; i < positions.length; i++) {
       expect(positions[i]).toBeGreaterThan(positions[i - 1]);
     }
@@ -466,11 +502,7 @@ describe("gradePyramidColor", () => {
 
   it("returns a color-mix() for grades that land between palette stops", () => {
     // Some mid-range grade that won't land exactly on a 1/9 boundary.
-    expect(gradePyramidColor("6B", "boulder")).toMatch(/^color-mix\(in srgb, #[0-9a-f]{6} \d+%, #[0-9a-f]{6}\)$/);
-  });
-
-  it("clamps an out-of-range grade to the brightest end instead of overflowing the palette", () => {
-    expect(gradePyramidColor("Z99", "boulder")).toBe("#ffba08");
+    expect(gradePyramidColorForScale("6B+", "font", "boulder")).toMatch(/^color-mix\(in srgb, #[0-9a-f]{6} \d+%, #[0-9a-f]{6}\)$/);
   });
 });
 
