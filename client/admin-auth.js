@@ -36,15 +36,33 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
     : "/login/";
   const SETTINGS_URL = "/logbook/api/settings";
   const LOGIN_HINT_KEY = "logbook_logged_in_hint";
+  // #762 -- mirrors store.js's ENTRIES_CACHE_KEY/PLACES_CACHE_KEY/
+  // LOCATIONS_CACHE_KEY convention. Written on every successful
+  // fetchSettings() response; read once, synchronously, right below, so
+  // athleteMode/logbookPublic/betaOptIn/persistedDiscipline start from
+  // the last-known-good value instead of a hardcoded default, letting
+  // every consumer's first paint (tab bar's show-performance attribute,
+  // the discipline filter) be right immediately instead of after a
+  // network round trip.
+  const SETTINGS_CACHE_KEY = "logbook_settings_cache";
+
+  function loadSettingsFromCache() {
+    try {
+      return JSON.parse(localStorage.getItem(SETTINGS_CACHE_KEY));
+    } catch {
+      return null;
+    }
+  }
 
   const loginToggleBtn = document.getElementById("login-toggle-btn");
 
-  let athleteMode = false;
-  let logbookPublic = true;
+  const cachedSettings = loadSettingsFromCache();
+  let athleteMode = !!cachedSettings?.athleteMode;
+  let logbookPublic = cachedSettings ? !!cachedSettings.logbookPublic : true;
   // Tri-state (#443/#546, ADR-0020) -- null = never decided, unlike
   // athleteMode/logbookPublic's plain booleans. Stays null until
   // fetchSettings() below reads a real value or setBetaOptIn() writes one.
-  let betaOptIn = null;
+  let betaOptIn = cachedSettings?.betaOptIn ?? null;
   // #302 -- the "My account" link needs the caller's own username to build
   // its href (/:username/account); the menu-username label needs it to
   // display; client/account-edit-main.js's own username/email rows need
@@ -64,7 +82,9 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
   // guaranteed. Calling store.setActiveType() straight from here would
   // race the has-entries heuristic in boot() and could get silently
   // clobbered if the heuristic happened to run second (#137).
-  let persistedDiscipline = null;
+  let persistedDiscipline = cachedSettings && VALID_TYPES.includes(cachedSettings.activeDiscipline)
+    ? cachedSettings.activeDiscipline
+    : null;
 
   // Public visitors always see the effective settings (Athlete Mode off
   // by default, discipline from boot()'s has-entries heuristic by
@@ -92,6 +112,9 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
       // null/true/false on the wire (server/api/settings.js's own
       // rowToJson), so no coercion is needed either way.
       betaOptIn = data.betaOptIn;
+      localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({
+        athleteMode, logbookPublic, betaOptIn, activeDiscipline: persistedDiscipline,
+      }));
     } catch {
       // Offline — keep the last-known in-memory defaults rather than
       // guessing; the Athlete Mode toggle is only interactive when logged
@@ -162,14 +185,20 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
   // (offline) is distinguished from "not authenticated" so the
   // offline-queue hint doesn't get mistaken for a real session.
   async function checkSession() {
+    // #762 -- read optimistically, before the fetch even starts, not
+    // only in the offline catch branch below: a slow-but-eventually-
+    // successful request used to leave store.isLoggedIn() at its
+    // hardcoded `false` default for the entire round trip, blocking
+    // anything gated on it (the tab bar's show-performance attribute,
+    // the account menu) from a correct first paint. Corrected below,
+    // for real, once the fetch actually resolves either way.
+    store.setLoggedIn(localStorage.getItem(LOGIN_HINT_KEY) === "1");
     let res;
     try {
       res = await adminFetch(AUTH_SESSION_URL);
     } catch {
-      // Offline — fall back to the last known login state so the UI
-      // still shows edit affordances; writes still get verified for
-      // real once synced.
-      store.setLoggedIn(localStorage.getItem(LOGIN_HINT_KEY) === "1");
+      // Offline — the optimistic hint above is already the best answer
+      // available; nothing further to do.
       return;
     }
     try {
@@ -186,24 +215,39 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
     localStorage.setItem(LOGIN_HINT_KEY, store.isLoggedIn() ? "1" : "0");
   }
 
-  // Shared by #348's newer composition roots' boot() sequences
-  // (map-main.js, performance-pyramid-main.js, performance-hub-main.js,
-  // log-main.js) -- default to
-  // whichever discipline actually has entries (boulder wins if both/
-  // neither do), then let a persisted choice override that default once
-  // both concurrent requests (checkSession()/fetchSettings(), kicked off
-  // by the caller before its own resource loads) are known complete.
-  // Order matters: applying the persisted override before the has-entries
-  // default would let the default silently clobber it. This exact
-  // sequence was hand-copied identically across all four composition
-  // roots (found via code review, 2026-08-09) -- exposed as a method here
-  // rather than a standalone function since store/persistedDiscipline are
-  // already in this factory's own closure, nothing extra to inject.
-  async function resolveActiveType(sessionPromise, settingsPromise) {
+  // Shared by every one of #348's owner-only composition roots
+  // (map-main.js, log-main.js, and all 7 performance-*-main.js files) --
+  // default to whichever discipline actually has entries (boulder wins if
+  // both/neither do), then let a persisted choice override that default.
+  // This exact sequence was hand-copied identically across every
+  // composition root (found via code review, 2026-08-09) -- exposed as
+  // methods here rather than standalone functions since store/
+  // persistedDiscipline are already in this factory's own closure,
+  // nothing extra to inject.
+  //
+  // #762 -- split from the former resolveActiveType(): this half is
+  // synchronous and safe to call before any network request starts, so
+  // every composition root's boot() can call it first thing, letting the
+  // very first render (triggered by store.setActiveType()'s own notify())
+  // show the right discipline immediately instead of always starting
+  // from the has-entries heuristic and flipping once settings resolve.
+  function setInitialActiveType() {
+    if (persistedDiscipline) {
+      store.setActiveType(persistedDiscipline);
+      return;
+    }
     const hasBoulder = store.getEntries().some(e => e.type === "boulder");
     const hasSport = store.getEntries().some(e => e.type === "sport");
     store.setActiveType(hasBoulder || !hasSport ? "boulder" : "sport");
+  }
 
+  // #762 -- the network-gated half of the former resolveActiveType():
+  // once both concurrent requests are known complete, override the
+  // synchronous default above if the real persisted value disagrees with
+  // it (a genuinely rare case now that setInitialActiveType() already
+  // preferred the cache) -- unchanged behavior, just no longer also
+  // doing the synchronous half's work.
+  async function reconcileActiveType(sessionPromise, settingsPromise) {
     await Promise.all([sessionPromise, settingsPromise]);
     if (persistedDiscipline) store.setActiveType(persistedDiscipline);
   }
@@ -248,6 +292,7 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
     getUsername: () => username,
     getEmail: () => email,
     getPersistedDiscipline: () => persistedDiscipline,
-    resolveActiveType,
+    setInitialActiveType,
+    reconcileActiveType,
   };
 }

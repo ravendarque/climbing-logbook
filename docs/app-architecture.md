@@ -124,7 +124,15 @@ client/
 │                         at #234 -- "a plain store first") implemented at
 │                         #264: subscribe(fn)/notify() is a plain array of
 │                         callbacks, no library, called from the end of
-│                         every mutating method. Whole-store notify, not
+│                         every mutating method -- including
+│                         loadEntriesFromCache() since #762 (previously
+│                         silent, so cached entries sat unused until some
+│                         later, unrelated mutation happened to notify;
+│                         loadPlacesFromCache()/loadLocationsFromCache()
+│                         deliberately still don't, since nothing calls
+│                         them independently of a setPlaces/setLocations
+│                         call that already notifies right after).
+│                         Whole-store notify, not
 │                         per-field -- nothing in this app does partial
 │                         re-rendering, every render() everywhere is
 │                         already a full innerHTML rebuild. Synchronous,
@@ -229,7 +237,26 @@ client/
 │                         changes, not owned logic), which is what each
 │                         composition root (#242) is for. Exposes
 │                         isAthleteMode() so updateAdminBar() can still
-│                         read the one piece of state that moved
+│                         read the one piece of state that moved.
+│                         #762 -- athleteMode/logbookPublic/betaOptIn/
+│                         persistedDiscipline are now seeded synchronously
+│                         from a new `logbook_settings_cache` localStorage
+│                         entry (written on every successful
+│                         fetchSettings()) at construction time, before
+│                         any fetch runs, so every consumer's first paint
+│                         reflects the last-known-good value instead of a
+│                         hardcoded default. checkSession() reads
+│                         `logbook_logged_in_hint` optimistically at the
+│                         top of the function now too, not only in its
+│                         offline catch branch. The former
+│                         resolveActiveType() is split into
+│                         setInitialActiveType() (synchronous, cache-
+│                         preferring, safe to call before any network
+│                         request starts) and reconcileActiveType()
+│                         (the network-gated override, unchanged
+│                         behavior) -- every composition root calls the
+│                         former immediately, the latter once its own
+│                         session/settings promises are kicked off
 ├── header-chrome.js    The header's discipline picker popover, header
 │                         menu (Athlete Mode/theme toggle/login live
 │                         inside it), and theme persistence/toggling
@@ -773,7 +800,15 @@ client/
 │                           hand-duplicated the logic themselves, just
 │                           adopted it from the start. Not used by
 │                           profile-main.js -- no admin bar on the public
-│                           page at all
+│                           page at all. #762 -- also calls
+│                           `tabBar.markReady()` now (moved here from each
+│                           composition root's own boot(), previously its
+│                           last line, gated behind every network call
+│                           resolving) so the tab bar becomes visible the
+│                           first time ANY render happens, whatever fed
+│                           it -- safe to call unconditionally since
+│                           `<climbing-tab-bar>`'s own markReady() no-ops
+│                           after the first real call
 ├── fetch-json.js         loadResource(url, key) (#399) -- the fetch-with-
 │                           cache-fallback helper duplicated across four
 │                           of the six composition roots (log/map/
@@ -1382,7 +1417,13 @@ Server-side, `server/index.js` independently resolves a Better Auth session
   there is — a genuine network exception (`fetch` itself throwing) is
   handled separately as "offline," falling back to the last-known state
   in `localStorage`. These have to stay distinct: conflating them would
-  let a stale "logged in" hint survive an actual logout.
+  let a stale "logged in" hint survive an actual logout. #762: the same
+  `localStorage` hint is now also read *optimistically*, at the top of
+  `checkSession()`, before the fetch even starts — not only in the
+  offline catch branch — so a slow-but-eventually-successful request no
+  longer blocks anything gated on login state (the tab bar, the account
+  menu) from a correct first paint; the real fetch still corrects it
+  either way once it resolves.
 - **Logging in:** clicking "Log in" is a full-page navigation to the
   login page (`public/login/`, outside the main app's module graph, its
   own `login.js`) with a plain email/password form posting to Better

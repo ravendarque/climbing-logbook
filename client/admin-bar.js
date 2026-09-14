@@ -52,5 +52,14 @@ export function syncAdminBar({ store, adminAuth, headerChrome, tabBar, addBtn, o
   if (username) myAccountLink.href = `/${encodeURIComponent(username)}/account`;
   headerChrome.updateMenuDivider();
   if (offlineSync) offlineSync.updateSyncButton();
-  if (tabBar) tabBar.toggleAttribute("show-performance", isDemo || (store.isLoggedIn() && adminAuth.isAthleteMode()));
+  // #762 -- markReady() moved here from each composition root's own
+  // boot() (was its last line, gated behind every network call
+  // resolving) so the tab bar becomes visible the first time ANY render
+  // happens, whatever fed it -- idempotent on the component's own side
+  // (<climbing-tab-bar>'s markReady() no-ops after the first real call),
+  // so calling it unconditionally on every render here is safe.
+  if (tabBar) {
+    tabBar.toggleAttribute("show-performance", isDemo || (store.isLoggedIn() && adminAuth.isAthleteMode()));
+    tabBar.markReady();
+  }
 }

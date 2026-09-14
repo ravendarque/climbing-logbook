@@ -84,10 +84,19 @@ if ("serviceWorker" in navigator) {
 async function boot() {
   store.setActiveView("performance-grades");
 
+  // #762 -- triggers this page's first render (-> tabBar
+  // markReady()) from cached/heuristic state, before any network call
+  // starts. Deliberately does NOT change the Athlete-Mode redirect
+  // check below -- that still waits for the real network settings
+  // fetch (see docs/superpowers/plans/
+  // 2026-09-14-perceived-performance-boot-architecture.md's "Two real
+  // deviations" note for why).
+  adminAuth.setInitialActiveType();
+
   const sessionPromise = adminAuth.checkSession();
   const settingsPromise = adminAuth.fetchSettings();
 
-  await adminAuth.resolveActiveType(sessionPromise, settingsPromise);
+  await adminAuth.reconcileActiveType(sessionPromise, settingsPromise);
 
   // Same Athlete-Mode-gated treatment as every other Performance Insights
   // page (#151) -- see performance-pyramid-main.js's own equivalent
@@ -100,7 +109,6 @@ async function boot() {
   }
 
   render();
-  tabBar.markReady(); // #605
 }
 
 boot();
