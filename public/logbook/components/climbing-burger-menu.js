@@ -9,17 +9,22 @@
 // + ml-auto trick the way climbing-menu-bar's combined markup needed --
 // see climbing-header.js's own token-CSS comment on that rule's history).
 // With only one child now, this component doesn't need to fill its
-// container to push anything -- callers place and align it with ordinary
-// flex classes on the row that contains it (justify-between, paired with
-// <climbing-header> in one #brand-row), same as any other block-level
-// component here. Every real consumer (/log, /map, /performance+subpages,
+// container to push anything -- it's placed and aligned by whichever flex
+// row contains it (justify-between), same as any other block-level
+// component here.
+//
+// #759 -- every real consumer (/log, /map, /performance+subpages,
 // /account+edit/import, /sync, /beta-gate, and the public profile page)
-// pairs it this way today -- /account(+edit/import)/sync/beta-gate were
-// the last holdouts still on a separate #header-row above a standalone
-// <climbing-header>, migrated onto the same #brand-row pattern in #754
-// once that inconsistency (the burger menu visibly jumping position
-// between page families) was noticed, the same fix #211/#465 already
-// made for /log/map/performance and the public profile page.
+// now reaches this component through <climbing-page-header>
+// (climbing-page-header.js), not a hand-copied per-page wrapper div. That
+// component's own header comment has the full history: #211/#465 first
+// paired this with <climbing-header> in a shared #brand-row markup
+// pattern, #754 migrated the last holdouts (/account+edit/import, /sync,
+// /beta-gate) onto the same pattern once their divergence (the burger
+// menu visibly jumping position between page families) was noticed, and
+// #759 finally folded the by-then-identical-everywhere pattern into one
+// owned component instead of leaving it as markup every page could still
+// independently drift out of sync on.
 //
 // admin-hidden (#351): unchanged from climbing-menu-bar -- see that
 // component's own former header comment (git history) for the fuller
