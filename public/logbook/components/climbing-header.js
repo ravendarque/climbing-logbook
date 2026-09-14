@@ -138,6 +138,12 @@
     // component (see climbing-burger-menu.js's own comment).
     "climbing-discipline-picker { display: block; }",
     "climbing-burger-menu { display: block; }",
+    // #759 -- replaces the per-page "flex items-start justify-between
+    // gap-2" div that used to wrap <climbing-header>+<climbing-burger-menu>
+    // on all 16 real consumers; this component's own host element IS the
+    // flex row now, not an inner wrapper div (see climbing-page-header.js's
+    // own comment for the full history).
+    "climbing-page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; }",
     // .tab-nav/.tab-nav-item (#211/#465) -- shared visual language for
     // "a horizontal row of view switchers with an active-item indicator",
     // used by two components that are deliberately NOT the same element:

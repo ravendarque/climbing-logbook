@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="/logbook/tailwind.css">
   <script src="/logbook/components/climbing-header.js"></script>
   <script src="/logbook/components/climbing-burger-menu.js"></script>
+  <script src="/logbook/components/climbing-page-header.js"></script>
   <script>
     (function () {
       var stored = localStorage.getItem("logbook_theme");
@@ -41,10 +42,7 @@
        to the account-family pages. mb-6 kept on the combined row,
        preserving the same total gap to the content below as the old
        two-row layout had. -->
-  <div class="flex items-start justify-between gap-2 mb-6" id="brand-row">
-    <climbing-header variant="brand" align-left></climbing-header>
-    <climbing-burger-menu></climbing-burger-menu>
-  </div>
+  <climbing-page-header class="mb-6"></climbing-page-header>
 
   <!-- #457 -- a real button (btn btn-primary, the app's
        actual red filled-button look -- Raven's own call, plain muted
