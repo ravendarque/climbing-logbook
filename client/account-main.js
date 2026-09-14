@@ -195,9 +195,10 @@ if ("serviceWorker" in navigator) {
 async function boot() {
   // No entries/places/locations fetch here -- unlike every other owned
   // page, nothing on this one is discipline- or data-scoped, so there's
-  // nothing for adminAuth.resolveActiveType()'s has-entries heuristic to
-  // apply to. checkSession()/fetchSettings() alone cover everything this
-  // page's own admin bar (Athlete Mode/Public Logbook/login state) needs.
+  // nothing for adminAuth.setInitialActiveType()'s has-entries heuristic
+  // (#762) to apply to. checkSession()/fetchSettings() alone cover
+  // everything this page's own admin bar (Athlete Mode/Public Logbook/
+  // login state) needs.
   await Promise.all([adminAuth.checkSession(), adminAuth.fetchSettings()]);
   updateAdminBar();
 }

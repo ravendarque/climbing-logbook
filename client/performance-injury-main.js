@@ -129,10 +129,19 @@ function renderInjuryLog({ log, cluster }) {
 async function boot() {
   store.setActiveView("performance-injury");
 
+  // #762 -- triggers this page's first render (-> tabBar
+  // markReady()) from cached/heuristic state, before any network call
+  // starts. Deliberately does NOT change the Athlete-Mode redirect
+  // check below -- that still waits for the real network settings
+  // fetch (see docs/superpowers/plans/
+  // 2026-09-14-perceived-performance-boot-architecture.md's "Two real
+  // deviations" note for why).
+  adminAuth.setInitialActiveType();
+
   const sessionPromise = adminAuth.checkSession();
   const settingsPromise = adminAuth.fetchSettings();
 
-  await adminAuth.resolveActiveType(sessionPromise, settingsPromise);
+  await adminAuth.reconcileActiveType(sessionPromise, settingsPromise);
 
   // Performance Insights require BOTH being logged in AND Athlete Mode on
   // (#151, carried forward from /logbook's own updateAdminBar() rule, and
@@ -154,7 +163,6 @@ async function boot() {
   }
 
   render();
-  tabBar.markReady(); // #605
 
   // #111 -- online-only, deliberately no offline fallback (see this
   // file's own header comment). A failed fetch (offline, or any other
