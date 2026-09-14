@@ -2,7 +2,7 @@ import { json } from "../lib/json.js";
 import { listForUser } from "../lib/d1-resource.js";
 import { attachChildRows, rowToJson } from "./logbook.js";
 import { pyramidSplitRows, ROW_SCALE_BY_TYPE } from "../../shared/pyramid-stats.js";
-import { SCALES_BY_DISCIPLINE } from "../../shared/grade-data.js";
+import { resolveScaleId } from "../../shared/grade-data.js";
 import { painLogEntries, topPainCluster } from "../../shared/injury-stats.js";
 import { availableAnchors, describeWeakness, rankedForAnchor, topWeakness } from "../../shared/strengths-stats.js";
 import { volumeByBucket, weekBuckets, weekBucketLabel } from "../../shared/volume-stats.js";
@@ -48,9 +48,12 @@ import { effortByBucket, effortHeadline } from "../../shared/effort-stats.js";
 // that discipline's own real picker list before use, same "never trust a
 // query param as a safe object key" discipline server/api/logbook.js's
 // own writes already apply.
+// #754 -- the actual validation logic moved to shared/grade-data.js's
+// resolveScaleId() (this exact check was hand-duplicated 3x across the
+// codebase) -- this thin wrapper just supplies this route's own fallback
+// policy (ROW_SCALE_BY_TYPE, the discipline's native row scale).
 function resolveViewScale(type, requested) {
-  const validIds = SCALES_BY_DISCIPLINE[type].map(s => s.id);
-  return validIds.includes(requested) ? requested : ROW_SCALE_BY_TYPE[type];
+  return resolveScaleId(type, requested, ROW_SCALE_BY_TYPE[type]);
 }
 
 export async function handleGetPyramid(request, env, userId) {

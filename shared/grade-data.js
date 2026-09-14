@@ -402,6 +402,32 @@ export const SCALES_BY_DISCIPLINE = {
   sport: Object.values(SCALES).filter(s => s.discipline === "sport"),
 };
 
+// #754 -- the "is `requested` a real scale id for this discipline, else
+// fall back" check was hand-duplicated 3x (server/api/performance.js's
+// own resolveViewScale, client/entry-form.js's loadGradeScalePref,
+// client/report-grade-scale-picker.js's loadPref) with identical logic
+// but different fallback values -- exactly the drift class this file's
+// own #698/#702 comments elsewhere warn about (a rule needing to be
+// remembered in more than one place). `fallback` stays a parameter
+// rather than baked in here: performance.js's own pyramid route falls
+// back to each discipline's NATIVE row scale (ROW_SCALE_BY_TYPE, a
+// pyramid-stats.js concept this module doesn't know about), while
+// entry-form.js/report-grade-scale-picker.js fall back to
+// DEFAULT_SCALE_BY_TYPE below -- two genuinely different policies, not
+// one value duplicated three ways.
+export function resolveScaleId(type, requested, fallback) {
+  const validIds = SCALES_BY_DISCIPLINE[type].map(s => s.id);
+  return validIds.includes(requested) ? requested : fallback;
+}
+
+// A Non-standard scale is never the default for either discipline -- it
+// exists for when a guidebook's own notation doesn't match the real
+// published scale, not as the ordinary starting point (Raven,
+// 2026-09-11). Was independently hand-copied in client/entry-form.js,
+// client/report-grade-scale-picker.js, and shared/gap-stats.js -- two of
+// which already commented that they "mirror" each other.
+export const DEFAULT_SCALE_BY_TYPE = { boulder: "font", sport: "french" };
+
 export function gradeOrdinal(grade, scaleId) {
   const scale = SCALES[scaleId];
   return scale ? scale.toOrdinal(grade) : null;

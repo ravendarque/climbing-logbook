@@ -2,6 +2,13 @@ import { createD1ResourceHandlers } from "../lib/d1-resource.js";
 
 async function validateFields(location) {
   if (!location.name) return "Missing required field: name";
+  // #754 -- shared/entry-schema.js's own convention for this exact class
+  // of field (a required, freeform string) already checks typeof, not
+  // just truthiness -- this handler didn't, so a non-string name (e.g.
+  // `{"name": {"x": 1}}`) flowed unmodified into buildRow() and then a
+  // D1 .bind() call, which only accepts null/number/string/boolean/
+  // ArrayBuffer, throwing an unhandled error instead of a clean 400.
+  if (typeof location.name !== "string") return "name must be a string";
   return null;
 }
 

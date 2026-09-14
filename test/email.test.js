@@ -8,6 +8,7 @@
 import { env } from "cloudflare:workers";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchJson, jsonRequest, resetAuthTables } from "./support.js";
+import { createEmailSender } from "../server/lib/email.js";
 
 beforeEach(resetAuthTables);
 
@@ -136,3 +137,29 @@ function extractToken(html, marker) {
   if (!match) throw new Error(`Couldn't find a token in the emailed HTML: ${html}`);
   return decodeURIComponent(match[1]);
 }
+
+// #754 -- unit-level, calling createEmailSender() directly rather than
+// through the full sign-up/change-email HTTP flow: Better Auth's own Zod
+// validation rejects HTML metacharacters in a real newEmail before this
+// module ever sees them, so a malicious value can't reach here through
+// the app's real request path today. This is defense in depth, tested
+// as such -- confirming the escaping mechanism itself works, independent
+// of whether the current call path can trigger it.
+describe("createEmailSender HTML escaping (defense in depth, #754)", () => {
+  const sender = createEmailSender(env);
+
+  it("escapes HTML metacharacters in newEmail before interpolating into the change-email confirmation", async () => {
+    await sender.sendChangeEmailConfirmation("owner@example.com", '<img src=x onerror=alert(1)>', "https://example.com/confirm?token=abc");
+    const html = resendCalls[0].body.html;
+    expect(html).not.toContain("<img src=x onerror=alert(1)>");
+    expect(html).toContain("&lt;img src=x onerror=alert(1)&gt;");
+  });
+
+  it("escapes HTML metacharacters in a malicious url before interpolating into href/link text", async () => {
+    const maliciousUrl = 'https://example.com/"><script>alert(1)</script>';
+    await sender.sendVerificationEmail("owner@example.com", maliciousUrl);
+    const html = resendCalls[0].body.html;
+    expect(html).not.toContain("<script>alert(1)</script>");
+    expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
+  });
+});

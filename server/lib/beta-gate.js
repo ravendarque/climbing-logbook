@@ -12,16 +12,19 @@ import { json } from "./json.js";
 // `hooks.before` middleware, unlike server/lib/turnstile.js's own hook) --
 // #379 found that a `hooks.before` implementation can't reliably release
 // a claimed code when a *later* validation step fails (bad username
-// format, duplicate username, weak password): Better Auth runs every
-// `hooks.before` entry (this project's own single `options.hooks.before`,
-// then every plugin-registered before-hook, e.g. the username plugin's
-// own uniqueness/format checks) in one plain sequential loop with no
-// per-hook try/catch -- when a LATER hook throws, it propagates straight
-// out of the whole dispatch, skipping `hooks.after` entirely (confirmed
-// against the installed better-auth@1.6.25 source,
-// node_modules/better-auth/dist/api/dispatch.mjs's runBeforeHooks/
-// dispatchAuthEndpoint -- not assumed). Since this project's own
-// `hooks.before` always runs *before* any plugin's, an
+// format, duplicate username, weak password): a LATER hook's own failure
+// still propagates straight out of the whole dispatch, skipping
+// `hooks.after` entirely, regardless of which stage it came from
+// (confirmed against the installed better-auth@1.7.4 source,
+// node_modules/better-auth/dist/api/dispatch.mjs's runBeforeHooks --
+// re-verified 2026-09-14, #754, after the 1.6.25->1.7.4 bump: the loop
+// now wraps each hook's own matcher/handler call in a try/catch, unlike
+// 1.6.25's bare sequential loop, but every catch still re-throws --
+// matcher failures become an APIError and are re-thrown, handler
+// failures are re-thrown as-is after annotating the stack on an
+// APIError -- so the end-to-end behavior this design depends on is
+// unchanged, only the literal internal mechanism is). Since this
+// project's own `hooks.before` always runs *before* any plugin's, an
 // after-hook-based "release on failure" design would only ever catch a
 // failure inside the endpoint's own core logic, never a plugin
 // before-hook's -- which is exactly the failure mode #379 reported (an

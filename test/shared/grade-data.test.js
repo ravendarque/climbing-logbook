@@ -7,6 +7,7 @@ import {
   UIAA_SCALE, YDS_SCALE, NORWEGIAN_SCALE, EWBANK_SCALE, GRADE_CONVERSION_MATRIX,
   SCALES, SCALES_BY_DISCIPLINE, gradeOrdinal, gradeRankForScale,
   gradeTierForScale, gradeColorForScale, gradePyramidColorForScale,
+  resolveScaleId, DEFAULT_SCALE_BY_TYPE,
 } from "../../shared/grade-data.js";
 
 // #702 -- canonical grade model, sub-issue A of #183. See
@@ -299,6 +300,35 @@ describe("SCALES / SCALES_BY_DISCIPLINE", () => {
   it("splits by discipline correctly", () => {
     expect(SCALES_BY_DISCIPLINE.boulder.map(s => s.id).sort()).toEqual(["font","font-non-standard","v-scale"]);
     expect(SCALES_BY_DISCIPLINE.sport.map(s => s.id).sort()).toEqual(["ewbank","french","french-non-standard","norwegian","uiaa","yds"]);
+  });
+});
+
+// #754 -- extracted from 3 independent hand-copies (server/api/
+// performance.js's resolveViewScale, client/entry-form.js's
+// loadGradeScalePref, client/report-grade-scale-picker.js's loadPref) --
+// tested directly here rather than only indirectly through each caller.
+describe("resolveScaleId", () => {
+  it("returns the requested id when it's a real scale for that discipline", () => {
+    expect(resolveScaleId("boulder", "v-scale", "font")).toBe("v-scale");
+    expect(resolveScaleId("sport", "uiaa", "french")).toBe("uiaa");
+  });
+  it("falls back when the requested id doesn't exist at all", () => {
+    expect(resolveScaleId("boulder", "not-a-real-scale", "font")).toBe("font");
+  });
+  it("falls back when the requested id is a real scale, but for the WRONG discipline", () => {
+    expect(resolveScaleId("boulder", "french", "font")).toBe("font");
+    expect(resolveScaleId("sport", "v-scale", "french")).toBe("french");
+  });
+  it("falls back when the requested id is missing/null", () => {
+    expect(resolveScaleId("boulder", null, "font")).toBe("font");
+    expect(resolveScaleId("boulder", undefined, "font")).toBe("font");
+  });
+});
+
+describe("DEFAULT_SCALE_BY_TYPE", () => {
+  it("is a real, valid scale for each discipline, never a Non-standard one", () => {
+    expect(DEFAULT_SCALE_BY_TYPE.boulder).toBe("font");
+    expect(DEFAULT_SCALE_BY_TYPE.sport).toBe("french");
   });
 });
 
