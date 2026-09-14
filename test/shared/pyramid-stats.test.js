@@ -168,6 +168,26 @@ describe("pyramidCounts", () => {
       expect(Object.values(counts).reduce((a, b) => a + b, 0)).toBe(0);
     });
 
+    // #754 -- the test above covers a NON-native view scale (Font-
+    // standard); this covers the native view's own, structurally
+    // separate exclusion path (buildRows()'s own exact-ordinal
+    // rowByOrdinal.get(), not a scale's toLabel() closest-match) --
+    // shared/pyramid-stats.js's own comment describes this exact
+    // behavior ("an entry at an uncurated sub-position isn't silently
+    // reassigned to a neighboring row") but had no test exercising it.
+    it("excludes a send at an uncurated native sub-position (e.g. 6A-), rather than reassigning it to a neighboring row", () => {
+      // "6A-" is a real, parseable font-non-standard grade (number=6,
+      // letter=a, modifier=-) with no entry in BOULDER_GRADES' own
+      // curated list -- unlike the non-native case above, this can't be
+      // "below the scale's floor" (it sits between two real BOULDER_
+      // GRADES rows, "5C" and "6A"), it's simply not one of the curated
+      // steps at all.
+      const entries = [{ type: "boulder", status: "send", grade: "6A-", gradeScale: "font-non-standard", date: isoDaysAgo(10) }];
+      const { order, counts } = pyramidCounts("boulder", entries); // default viewScaleId is the native row scale
+      expect(order).not.toContain("6A-");
+      expect(Object.values(counts).reduce((a, b) => a + b, 0)).toBe(0);
+    });
+
     // #737 -- pyramidSplitRows is a pure 8-4-2-1 report now (no more
     // "lower" section, see its own comment) -- confirms top4 itself is
     // still built from the chosen scale, not the native scale relabeled.

@@ -165,4 +165,22 @@ describe("createTimeWindowControl", () => {
     expect(removeSpy.mock.calls.length).toBe(4);
     removeSpy.mockRestore();
   });
+
+  // #754 -- the test above only ever exercised a Custom->Custom
+  // re-render (picking a date while staying in Custom mode). Leaving
+  // Custom mode entirely (back to a preset) is the transition most
+  // likely to actually happen in real use, and is a structurally
+  // different code path: render()'s own `else { startPicker = null;
+  // endPicker = null; }` branch, not the `if (mode === "custom")` one
+  // the test above covers. A refactor that only destroy()s "when
+  // staying in Custom" would pass the test above yet leak here.
+  it("also destroys the previous Custom pickers' listeners when leaving Custom mode for a preset", () => {
+    const removeSpy = vi.spyOn(document, "removeEventListener");
+    createTimeWindowControl({ containerEl, onChange: () => {} });
+    containerEl.querySelector('[data-window="custom"]').click();
+    removeSpy.mockClear();
+    containerEl.querySelector('[data-window="12w"]').click(); // leaves Custom entirely
+    expect(removeSpy.mock.calls.length).toBe(4);
+    removeSpy.mockRestore();
+  });
 });
