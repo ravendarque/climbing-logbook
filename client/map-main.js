@@ -107,15 +107,23 @@ async function boot() {
   // `const store = createStore()` above for why.
   store.setActiveView("map");
 
+  // #762 -- see log-main.js's own comment on this same line for the
+  // full reasoning (identical here): triggers this page's first render
+  // (-> tabBar.markReady()) from cached/heuristic state, before any
+  // network call starts.
+  adminAuth.setInitialActiveType();
+
   const sessionPromise = adminAuth.checkSession();
   const settingsPromise = adminAuth.fetchSettings();
 
-  mapView.setCounts(await loadMapCounts());
+  // #762 -- loadMapCounts() itself now renders from its own cache
+  // immediately (if one exists) and updates again in the background --
+  // no longer awaited here for the page's own reveal.
+  loadMapCounts();
 
-  await adminAuth.resolveActiveType(sessionPromise, settingsPromise);
+  await adminAuth.reconcileActiveType(sessionPromise, settingsPromise);
 
   render();
-  tabBar.markReady(); // #605
 }
 
 // #497 -- caches the aggregate itself (not raw entries) after a
@@ -132,27 +140,43 @@ async function boot() {
 // Fetched fresh every time instead, no cache read or write at all, same
 // "no cache" treatment client/profile-main.js's own map aggregate uses
 // for the identical reason.
+// #762 -- was `await`ed by boot() for the page's own reveal, meaning a
+// slow network held up first paint even when a perfectly good cached
+// count already existed. Now applies the cache immediately (if any) and
+// still refreshes in the background, silently correcting mapView's
+// counts a second time if the real fetch disagrees -- true
+// stale-while-revalidate, not "cache is only a failure fallback."
+function readMapCountsCache() {
+  try {
+    return JSON.parse(localStorage.getItem(MAP_COUNTS_CACHE_KEY));
+  } catch {
+    return null;
+  }
+}
+
 async function loadMapCounts() {
   if (IS_DEMO) {
     try {
       const res = await fetch(MAP_COUNTS_URL);
-      return res.ok ? await res.json() : {};
+      mapView.setCounts(res.ok ? await res.json() : {});
     } catch {
-      return {};
+      mapView.setCounts({});
     }
+    return;
   }
+
+  const cached = readMapCountsCache();
+  if (cached) mapView.setCounts(cached);
+
   try {
     const res = await fetch(MAP_COUNTS_URL);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const counts = await res.json();
     localStorage.setItem(MAP_COUNTS_CACHE_KEY, JSON.stringify(counts));
-    return counts;
+    mapView.setCounts(counts);
   } catch {
-    try {
-      return JSON.parse(localStorage.getItem(MAP_COUNTS_CACHE_KEY) || "{}");
-    } catch {
-      return {};
-    }
+    // Already showing the cached value above (or nothing, on a
+    // genuinely first load with no cache) -- no further action.
   }
 }
 
