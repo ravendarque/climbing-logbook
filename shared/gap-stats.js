@@ -5,17 +5,18 @@
 // rather than duplicating them -- both modules bucket over the same
 // entries shape, no reason to reimplement that here.
 import { bucketIndexForDate, reportGradeLabel, reportPositionOrder } from "./volume-stats.js";
-import { gradeOrdinal } from "./grade-data.js";
+import { gradeOrdinal, DEFAULT_SCALE_BY_TYPE as DEFAULT_VIEW_SCALE_BY_TYPE } from "./grade-data.js";
 
-// Mirrors client/report-grade-scale-picker.js's own DEFAULT_SCALE_BY_TYPE
-// exactly -- gapHeadline is computed server-side (server/api/
-// performance.js) before the client's own picker preference is known, so
-// its first render needs the same "non-standard scales are never the
-// default" fallback the picker itself opens on. The client's own
+// gapHeadline is computed server-side (server/api/performance.js) before
+// the client's own picker preference is known, so its first render needs
+// the same "non-standard scales are never the default" fallback
+// client/report-grade-scale-picker.js's own picker opens on --
+// grade-data.js's DEFAULT_SCALE_BY_TYPE is that single shared source now
+// (#754 -- this file, entry-form.js, and report-grade-scale-picker.js
+// each independently hand-copied the identical map). The client's own
 // renderGap() always re-calls this with the real, current viewScaleId
 // once it mounts (see performance-gap-main.js), so this default only
 // ever shows in the brief window before that first client-side render.
-const DEFAULT_VIEW_SCALE_BY_TYPE = { boulder: "font", sport: "french" };
 
 // #717 -- flash/send "best so far" used to be tracked as a bare grade
 // string, compared via the 2-arg gradeRank(entry.grade, type) -- the

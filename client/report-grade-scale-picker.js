@@ -16,13 +16,7 @@
 // *contents* and the trigger's label are ever regenerated (on open, and
 // on refresh()).
 import { createListPicker, renderOptionList } from "./modal-utils.js";
-import { SCALES_BY_DISCIPLINE } from "../shared/grade-data.js";
-
-// A Non-standard scale is never the default here either -- same reasoning
-// as #703's own DEFAULT_SCALE_BY_TYPE (Raven, 2026-09-11): it exists for
-// when a guidebook's notation doesn't match the real published scale, not
-// as the ordinary starting point for viewing already-logged data.
-const DEFAULT_SCALE_BY_TYPE = { boulder: "font", sport: "french" };
+import { SCALES_BY_DISCIPLINE, resolveScaleId, DEFAULT_SCALE_BY_TYPE } from "../shared/grade-data.js";
 
 function prefKey(type) {
   return `logbook_grade_scale_reports_${type}`;
@@ -34,8 +28,7 @@ function prefKey(type) {
 function loadPref(type) {
   let stored = null;
   try { stored = localStorage.getItem(prefKey(type)); } catch { /* ignore */ }
-  const validIds = SCALES_BY_DISCIPLINE[type].map(s => s.id);
-  return validIds.includes(stored) ? stored : DEFAULT_SCALE_BY_TYPE[type];
+  return resolveScaleId(type, stored, DEFAULT_SCALE_BY_TYPE[type]);
 }
 function savePref(type, scaleId) {
   try { localStorage.setItem(prefKey(type), scaleId); } catch { /* ignore */ }

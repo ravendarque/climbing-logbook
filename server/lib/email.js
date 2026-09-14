@@ -1,8 +1,16 @@
 import { Resend } from "resend";
+import { escapeHtml } from "./html-escape.js";
 
 // Transactional email (#308) -- signup verification + password reset,
 // plus (#302) the change-email confirmation link.
 //
+// #754 -- url/newEmail are escapeHtml()'d before interpolation into the
+// HTML body/href, even though neither is exploitable today (Better
+// Auth's own Zod validation rejects HTML metacharacters in `newEmail`,
+// and `url` is server-generated, never user-supplied) -- defense in
+// depth against a future relaxed validation rule or template change
+// silently reopening HTML/link injection into a transactional email
+// sent to the account's real owner, found in review 2026-09-14.
 const FROM_ADDRESS = "Climbing Logbook <myaccount@climbinglogbook.com>";
 
 // Every send is wrapped in its own try/catch, deliberately never throwing
@@ -29,19 +37,21 @@ async function send(apiKey, payload) {
 export function createEmailSender(env) {
   return {
     sendVerificationEmail(to, url) {
+      const safeUrl = escapeHtml(url);
       return send(env.RESEND_API_KEY, {
         from: FROM_ADDRESS,
         to,
         subject: "Verify your email",
-        html: `<p>Click the link below to verify your email address.</p><p><a href="${url}">${url}</a></p>`,
+        html: `<p>Click the link below to verify your email address.</p><p><a href="${safeUrl}">${safeUrl}</a></p>`,
       });
     },
     sendPasswordResetEmail(to, url) {
+      const safeUrl = escapeHtml(url);
       return send(env.RESEND_API_KEY, {
         from: FROM_ADDRESS,
         to,
         subject: "Reset your password",
-        html: `<p>Click the link below to reset your password. If you didn't request this, you can ignore this email.</p><p><a href="${url}">${url}</a></p>`,
+        html: `<p>Click the link below to reset your password. If you didn't request this, you can ignore this email.</p><p><a href="${safeUrl}">${safeUrl}</a></p>`,
       });
     },
     // #302 -- sent to the CURRENT (already-verified) email address, not
@@ -55,11 +65,13 @@ export function createEmailSender(env) {
     // verification email is a separate Better Auth send once this link
     // is clicked, not this one.
     sendChangeEmailConfirmation(to, newEmail, url) {
+      const safeUrl = escapeHtml(url);
+      const safeNewEmail = escapeHtml(newEmail);
       return send(env.RESEND_API_KEY, {
         from: FROM_ADDRESS,
         to,
         subject: "Confirm your email change",
-        html: `<p>Someone requested changing this account's email to <strong>${newEmail}</strong>. Click the link below to confirm. If you didn't request this, you can ignore this email -- your email won't change.</p><p><a href="${url}">${url}</a></p>`,
+        html: `<p>Someone requested changing this account's email to <strong>${safeNewEmail}</strong>. Click the link below to confirm. If you didn't request this, you can ignore this email -- your email won't change.</p><p><a href="${safeUrl}">${safeUrl}</a></p>`,
       });
     },
   };

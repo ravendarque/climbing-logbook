@@ -11,7 +11,7 @@
 // store.applyPendingQueue() are all Store mutations, so main.js's
 // render() (the Store's sole subscriber) picks up every change here on
 // its own; nothing in this module needs to trigger it manually.
-import { SCALES, SCALES_BY_DISCIPLINE, gradeOrdinal, gradeColorForScale, nonStandardLabel, parseNonStandardLabel } from "../shared/grade-data.js";
+import { SCALES, SCALES_BY_DISCIPLINE, gradeOrdinal, gradeColorForScale, nonStandardLabel, parseNonStandardLabel, resolveScaleId, DEFAULT_SCALE_BY_TYPE } from "../shared/grade-data.js";
 import { gradeDisplayLabelForScale } from "../shared/volume-stats.js";
 import { flashLabel, sendLabel, nameLabel, hydrateStatusIcons } from "./status.js";
 import { createPlacePicker } from "./place-picker.js";
@@ -106,10 +106,6 @@ export function createEntryForm({
   // gradeScale regardless of the preference (spec's own acceptance
   // criterion), so this is reset explicitly in open(), not derived from
   // the preference every time.
-  // A Non-standard scale is never the default for either discipline --
-  // it exists for when a guidebook's own notation doesn't match the real
-  // published scale, not as the ordinary starting point (Raven, 2026-09-11).
-  const DEFAULT_SCALE_BY_TYPE = { boulder: "font", sport: "french" };
   function isNonStandardScaleId(id) {
     return id === "font-non-standard" || id === "french-non-standard";
   }
@@ -125,8 +121,7 @@ export function createEntryForm({
   function loadGradeScalePref(type) {
     let stored = null;
     try { stored = localStorage.getItem(gradeScalePrefKey(type)); } catch { /* ignore */ }
-    const validIds = SCALES_BY_DISCIPLINE[type].map(s => s.id);
-    return validIds.includes(stored) ? stored : DEFAULT_SCALE_BY_TYPE[type];
+    return resolveScaleId(type, stored, DEFAULT_SCALE_BY_TYPE[type]);
   }
   function saveGradeScalePref(type, scaleId) {
     try { localStorage.setItem(gradeScalePrefKey(type), scaleId); } catch { /* ignore */ }

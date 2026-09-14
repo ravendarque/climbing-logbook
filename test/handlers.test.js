@@ -258,6 +258,21 @@ describe.each([
   });
 });
 
+// #754 -- locations-only: `name` is a required free string, unlike
+// places'/locations' other required field (`locationId`, an FK
+// reference id whose own "does it exist and is it yours" check already
+// covers the non-string case via a plain lookup miss). Found in review,
+// 2026-09-14: a non-string name used to flow unmodified into a D1
+// .bind() call (only null/number/string/boolean/ArrayBuffer allowed),
+// throwing an unhandled error instead of a clean 400.
+describe("locations name validation", () => {
+  it("rejects a non-string name with a 400, not an unhandled error", async () => {
+    const res = await jsonRequest("POST", "/logbook/api/admin/locations", { name: { x: 1 } }, { Cookie: cookie });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("name must be a string");
+  });
+});
+
 describe("settings", () => {
   it("returns default settings for an anonymous caller", async () => {
     const res = await fetchJson("/logbook/api/settings");
