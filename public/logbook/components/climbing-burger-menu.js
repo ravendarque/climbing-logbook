@@ -1,23 +1,25 @@
 // <climbing-burger-menu> (#211/#465): split out of the former
 // <climbing-menu-bar> (#346, classic-scripted in #626) -- see this
 // directory's climbing-discipline-picker.js for the full split rationale.
-// This half keeps every consumer that used to render climbing-menu-bar's
-// burger-menu markup, unchanged: /account(+edit/import), /sync,
-// /beta-gate, and the public profile page all just swap the tag name
-// (their old no-discipline attribute is gone -- meaningless now that this
-// component never had a discipline picker to opt out of). /log, /map,
-// /performance(+subpages) are the only consumers whose *position* changes,
-// moving out of the old #header-row and into a new row alongside
-// <climbing-header> so the button aligns with the top of the brand logo.
+// Every consumer just swaps the tag name (the old no-discipline attribute
+// is gone -- meaningless now that this component never had a discipline
+// picker to opt out of).
 //
 // Positioning is deliberately NOT baked into this component (no width:100%
 // + ml-auto trick the way climbing-menu-bar's combined markup needed --
 // see climbing-header.js's own token-CSS comment on that rule's history).
 // With only one child now, this component doesn't need to fill its
 // container to push anything -- callers place and align it with ordinary
-// flex classes on the row that contains it (justify-end for the pages that
-// keep #header-row as-is, justify-between for the pages pairing it with
-// <climbing-header>), same as any other block-level component here.
+// flex classes on the row that contains it (justify-between, paired with
+// <climbing-header> in one #brand-row), same as any other block-level
+// component here. Every real consumer (/log, /map, /performance+subpages,
+// /account+edit/import, /sync, /beta-gate, and the public profile page)
+// pairs it this way today -- /account(+edit/import)/sync/beta-gate were
+// the last holdouts still on a separate #header-row above a standalone
+// <climbing-header>, migrated onto the same #brand-row pattern in #754
+// once that inconsistency (the burger menu visibly jumping position
+// between page families) was noticed, the same fix #211/#465 already
+// made for /log/map/performance and the public profile page.
 //
 // admin-hidden (#351): unchanged from climbing-menu-bar -- see that
 // component's own former header comment (git history) for the fuller

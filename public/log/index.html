@@ -86,7 +86,7 @@
     <form id="entry-form" autocomplete="off">
       <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 first:mt-0 mt-[1.1rem]" id="form-name-label">Problem name</div>
       <div class="mb-3">
-        <input type="text" class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full" id="entry-name" required>
+        <input type="text" class="text-input w-full" id="entry-name" required>
       </div>
 
       <div class="mb-3">
@@ -203,7 +203,7 @@
         <div class="flex-[0_1_10.5rem] min-w-[9rem]">
           <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Date</div>
           <div class="flex items-stretch gap-2">
-            <input type="text" class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent flex-1 min-w-0" id="entry-date">
+            <input type="text" class="text-input flex-1 min-w-0" id="entry-date">
             <!-- #703-review -- a real month-grid popover, same button+
                  popover convention as every other picker in this app
                  (createDisclosure, rounded-app border, the
@@ -330,7 +330,7 @@
 
       <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]">Video URL</div>
       <div class="mb-3">
-        <input type="url" class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full" id="entry-video">
+        <input type="url" class="text-input w-full" id="entry-video">
       </div>
 
       <button type="submit" class="w-full mt-4 bg-accent text-accent-foreground border-none rounded-app py-[.9rem] text-[1rem] font-bold cursor-pointer disabled:opacity-[.45] disabled:cursor-not-allowed" id="entry-submit-btn">Add to logbook</button>
@@ -353,13 +353,13 @@
     <form id="add-place-form" autocomplete="off">
       <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Location</div>
       <div class="mb-3">
-        <input type="text" class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full" id="add-place-location" list="add-place-location-list" required>
+        <input type="text" class="text-input w-full" id="add-place-location" list="add-place-location-list" required>
         <datalist id="add-place-location-list"></datalist>
       </div>
 
       <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Area</div>
       <div class="mb-3">
-        <input type="text" class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full" id="add-place-area">
+        <input type="text" class="text-input w-full" id="add-place-area">
       </div>
 
       <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Country</div>

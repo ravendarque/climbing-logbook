@@ -31,11 +31,20 @@
 </head>
 <body class="bg-background text-foreground font-sans px-4 pt-6 pb-16 min-w-[300px]">
 <div class="max-w-[960px] mx-auto">
-  <div class="flex items-center justify-end gap-2 mb-6" id="header-row">
+  <!-- #754 -- combined into one row (was a separate #header-row above a
+       standalone <climbing-header>), matching /log//map//performance's
+       own #brand-row layout -- the burger menu used to visibly jump to
+       its own row above the logo when navigating here from any of those
+       pages, the exact inconsistency #211/#465 already fixed for every
+       other owner-only page (and profile/index.html's own comment
+       documents being found and fixed there too) but never propagated
+       to the account-family pages. mb-6 kept on the combined row,
+       preserving the same total gap to the content below as the old
+       two-row layout had. -->
+  <div class="flex items-start justify-between gap-2 mb-6" id="brand-row">
+    <climbing-header variant="brand" align-left></climbing-header>
     <climbing-burger-menu></climbing-burger-menu>
   </div>
-
-  <climbing-header variant="brand" align-left></climbing-header>
 
   <!-- #457 -- a real button (btn btn-primary, the app's
        actual red filled-button look -- Raven's own call, plain muted
@@ -51,7 +60,7 @@
        margin/padding, tried and reverted earlier) is what actually
        widens the header-to-content gap Raven asked for -- btn is
        inline-flex, so unlike a block-level element its margin doesn't
-       collapse with #brand-header-row's own mb-4 above it (confirmed
+       collapse with #brand-row's own mb-6 above it (confirmed
        empirically: measured gap grew from 16px to 32px). href set in
        client/account-main.js (needs USERNAME, not available at
        static-shell time). -->
