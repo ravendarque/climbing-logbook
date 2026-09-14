@@ -51,17 +51,17 @@
          one config value. -->
     <label class="block text-sm text-muted mb-1" for="code">Invite code</label>
     <input
-      class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full mb-4"
+      class="text-input w-full mb-4"
       type="text" id="code" name="code" autocomplete="off">
 
     <label class="block text-sm text-muted mb-1" for="email">Email</label>
     <input
-      class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full mb-4"
+      class="text-input w-full mb-4"
       type="email" id="email" name="email" required autocomplete="email">
 
     <label class="block text-sm text-muted mb-1" for="username">Username</label>
     <input
-      class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full mb-1"
+      class="text-input w-full mb-1"
       type="text" id="username" name="username" required autocomplete="username"
       pattern="[a-z0-9._]+" minlength="1" maxlength="30"
       title="Lowercase letters, numbers, periods, and underscores only">
@@ -75,7 +75,7 @@
 
     <label class="block text-sm text-muted mb-1" for="password">Password</label>
     <input
-      class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full mb-4"
+      class="text-input w-full mb-4"
       type="password" id="password" name="password" required autocomplete="new-password">
 
     <!-- Turnstile bot check (#311) -- rendered explicitly by register.js
@@ -86,7 +86,10 @@
 
     <p class="text-sm text-accent mb-4" id="register-error" hidden></p>
 
-    <button type="submit" class="w-full bg-accent text-accent-foreground border-none rounded-app py-[.9rem] text-[1rem] font-bold cursor-pointer disabled:opacity-[.45] disabled:cursor-not-allowed" id="register-submit-btn">Sign up</button>
+    <!-- #754 -- btn btn-primary, the same shared CTA class public/
+         index.html's own "Sign up"/"Log in" buttons already use --
+         see public/login/index.html's own identical comment. -->
+    <button type="submit" class="btn btn-primary w-full disabled:opacity-[.45] disabled:cursor-not-allowed" id="register-submit-btn">Sign up</button>
 
     <p class="text-sm text-muted mt-4 text-center">
       Already have an account? <a class="text-accent" href="../login/">Log in</a>

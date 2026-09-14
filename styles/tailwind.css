@@ -154,6 +154,29 @@
   appearance: none;
 }
 
+/* #754 -- the "app-wide form-control fix" grade-select's own comment
+   above already references (bg-surface/border/rounded-app/px-[.85rem]/
+   py-[.65rem]/text-foreground/text-[1rem]/outline-none/focus:border-
+   accent) was itself never given a name -- 11 hand-copied occurrences
+   across public/log/index.html and public/login//register//
+   reset-password/index.html, found in review. Named text-input rather
+   than input (Tailwind reserves bare element-name utilities) or
+   text-field (already reads as a different, more form-library-ish
+   concept than this app uses anywhere). */
+@utility text-input {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-app);
+  padding: .65rem .85rem;
+  color: var(--color-foreground);
+  font-size: 1rem;
+  outline: none;
+
+  &:focus {
+    border-color: var(--color-accent);
+  }
+}
+
 @utility switch-track {
   position: relative;
   flex: 0 0 auto;

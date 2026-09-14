@@ -68,8 +68,15 @@
        shared per-discipline preference the trends/gap/rpe reports
        already use. No time-window control on this page (the pyramid's
        own "last 12 months" window is fixed, not a report control), so
-       this sits alone rather than paired with one. -->
-  <div class="flex justify-end mb-4" id="report-grade-scale-row">
+       this sits alone rather than paired with one -- justify-end (not
+       trends/gap/rpe's own justify-between) is this page's own correct
+       call for that single-child case, not a copy-paste miss. #754 --
+       dropped the one-off id (report-grade-scale-row): it was never
+       queried by anything, and trends/gap/rpe's own equivalent wrapper
+       has no id either -- keeping this div's own shape as close to
+       theirs as its real, different content allows, rather than an easy
+       trap for a future dev to copy from this page instead of them. -->
+  <div class="flex justify-end mb-4">
     <div id="report-grade-scale-root"></div>
   </div>
 

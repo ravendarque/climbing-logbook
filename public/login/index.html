@@ -55,12 +55,12 @@
     <form class="w-full max-w-[360px] bg-surface border border-border rounded-app p-6" id="login-form" novalidate>
       <label class="block text-sm text-muted mb-1" for="email">Email</label>
       <input
-        class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full mb-4"
+        class="text-input w-full mb-4"
         type="email" id="email" name="email" required autocomplete="email">
 
       <label class="block text-sm text-muted mb-1" for="password">Password</label>
       <input
-        class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] outline-none focus:border-accent w-full mb-2"
+        class="text-input w-full mb-2"
         type="password" id="password" name="password" required autocomplete="current-password">
 
       <p class="text-sm text-right mb-4">
@@ -74,7 +74,12 @@
            shown at the same time, see login.js. -->
       <p class="text-sm text-muted mb-4" id="login-info" hidden></p>
 
-      <button type="submit" class="w-full bg-accent text-accent-foreground border-none rounded-app py-[.9rem] text-[1rem] font-bold cursor-pointer disabled:opacity-[.45] disabled:cursor-not-allowed" id="login-submit-btn">Log in</button>
+      <!-- #754 -- btn btn-primary, the same shared CTA class public/
+           index.html's own "Sign up"/"Log in" buttons already use,
+           instead of a hand-rolled style duplicating (and diverging
+           from) it -- w-full is the one addition every other btn-primary
+           consumer doesn't need, this form's own full-width layout. -->
+      <button type="submit" class="btn btn-primary w-full disabled:opacity-[.45] disabled:cursor-not-allowed" id="login-submit-btn">Log in</button>
 
       <p class="text-sm text-muted mt-4 text-center">
         Don't have an account? <a class="text-accent" href="../register/">Sign up</a>
