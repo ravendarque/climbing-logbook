@@ -40,6 +40,24 @@ allowBuilds:
 # unrelated 5.x/6.x lines nanoid has since released, same "don't silently
 # force a major bump this project doesn't control the compatibility
 # contract for" reasoning as the undici override below.
+#
+# sharp (transitive, via miniflare -- both the stable 4.x line, via
+# @cloudflare/vitest-pool-workers, and the alpha 5.x line, via
+# @cloudflare/vite-plugin/#442 -- dev/test tooling only, never shipped to
+# the deployed app) has GHSA-rgj7-g3m4-5g8c below 0.35.4: a heap-based
+# buffer overflow in the bundled libheif decoder, potential RCE on
+# glibc-based Linux when decoding untrusted AVIF/HEIF input (Dependabot
+# alert #21). Both miniflare release lines hard-pin the exact version
+# "0.35.2" in their own package.json (confirmed by reading
+# node_modules/.pnpm/miniflare@*/node_modules/miniflare/package.json) --
+# unlike nanoid above, there's no already-permitted range to just
+# re-resolve within, so this needs a real override, not merely a nudge.
+# Pinned to the exact patched version (0.35.4, currently also latest)
+# rather than a range, matching how miniflare itself pins it -- nothing
+# in this repo's own code exercises sharp directly, so there's no
+# compatibility contract of this project's own to preserve across a
+# range the way undici's/nanoid's overrides above do.
 overrides:
   undici: '>=7.29.0 <8.0.0'
   nanoid: '^3.3.17'
+  sharp: '0.35.4'
