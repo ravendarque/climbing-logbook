@@ -48,13 +48,12 @@ jobs:
       # page's own build step got added to this file and preview.yml but
       # not playwright.config.js's own separate hardcoded list (or vice
       # versa) -- three independent copies of "every page bundle" is what
-      # let that keep happening. pages:build (package.json) is now the
-      # one place that list is written down; this workflow, preview.yml,
-      # and playwright.config.js's webServer all call it instead of
-      # hand-listing pages themselves, so a new page is a one-line change
-      # to pages:build's own script rather than three separate ones to
-      # remember and get right.
-      - run: pnpm run pages:build
+      # let that keep happening. client:build (package.json, #761) is a
+      # single `vite build` call across every client/*-main.js entry --
+      # there's no longer a per-page list to keep in sync at all; this
+      # workflow, preview.yml, and playwright.config.js's webServer all
+      # call the same one script.
+      - run: pnpm run client:build
       # D1 migrations are never auto-applied by `wrangler deploy` (same
       # gap `wrangler dev` has locally, and `versions upload` had for
       # preview.yml until #323) -- found the hard way: production's D1

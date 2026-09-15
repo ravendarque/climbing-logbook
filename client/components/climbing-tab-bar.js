@@ -24,11 +24,7 @@
 // coupling" reasoning as #346: this component doesn't know the current
 // user or whether Athlete Mode is on, so those are properties/attributes
 // set from outside by whichever page's composition root uses it.
-// "./escape-html.js", not "../escape-html.js" -- see
-// climbing-entries-table.js's own comment for why (esbuild's --external
-// bundling convention needs the literal specifier to match the flat
-// output layout, not this file's own real nesting).
-import { escapeHtml } from "./escape-html.js";
+import { escapeHtml } from "../escape-html.js";
 
 // encodeURIComponent alone makes the URL correct (and, incidentally,
 // already can't break out of the href="..." attribute either -- its

@@ -1,4 +1,3 @@
-import path from "node:path";
 import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-pool-workers";
 import { defineConfig } from "vitest/config";
 
@@ -12,21 +11,6 @@ import { defineConfig } from "vitest/config";
 // setupFile, runs inside the pool once per test file) can call
 // applyD1Migrations() against the real env.LOGBOOK_DB from inside there.
 const migrations = await readD1Migrations("./migrations");
-
-// client/row-card.js (and other client/*.js modules, including #575's
-// client/move-tagging.js) imports escapeHtml via the literal specifier
-// "./escape-html.js", same convention every other client/*.js module uses
-// -- esbuild resolves it at bundle time via --external:./escape-html.js
-// (the bundled output always lands flat in public/logbook/, where that
-// relative path is correct at runtime), but Vitest does real filesystem
-// resolution, and no ./escape-html.js file exists relative to client/.
-// This alias points that same specifier at the real implementation
-// (public/logbook/escape-html.js) for tests only. Both projects below
-// need it (any of them may load a client/*.js module that imports it),
-// so it's shared rather than duplicated.
-const escapeHtmlAlias = {
-  "./escape-html.js": path.resolve(import.meta.dirname, "public/logbook/escape-html.js"),
-};
 
 export default defineConfig({
   test: {
@@ -62,9 +46,6 @@ export default defineConfig({
           // empirically to comfortably clear the previous 5000ms default on the
           // first test that touches the fetch handler in a fresh isolate.
           testTimeout: 20000,
-        },
-        resolve: {
-          alias: escapeHtmlAlias,
         },
         plugins: [
           cloudflareTest({
@@ -105,9 +86,6 @@ export default defineConfig({
           // second, non-Workers pool when nothing needs a DOM).
           include: ["test/client/move-tagging.test.js", "test/client/time-window.test.js", "test/client/climbing-tab-bar.test.js", "test/client/climbing-entries-table.test.js", "test/client/climbing-grade-pyramid.test.js", "test/client/calendar-date-picker.test.js", "test/client/modal-utils.test.js", "test/client/report-grade-scale-picker.test.js", "test/client/admin-auth.test.js", "test/client/admin-bar.test.js", "test/client/sync-status-icon.test.js"],
           environment: "happy-dom",
-        },
-        resolve: {
-          alias: escapeHtmlAlias,
         },
       },
     ],

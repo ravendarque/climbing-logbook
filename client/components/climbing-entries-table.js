@@ -32,11 +32,7 @@
 // the notes modal stays the consuming page's own document-level click
 // delegation, exactly like client/main.js does today -- this component
 // has no reason to know either of those modules exist.
-// "./escape-html.js", not "../escape-html.js" -- see the identical fix
-// (and full explanation) in client/components/climbing-grade-pyramid.js's
-// own import of this same module, found while building #348's
-// /performance page.
-import { escapeHtml } from "./escape-html.js";
+import { escapeHtml } from "../escape-html.js";
 import { formatDate } from "../../shared/date-helpers.js";
 import { filteredEntries, groupByPlace, placeOf, sortEntries } from "../entries.js";
 import { gradeColor } from "../../shared/grade-data.js";

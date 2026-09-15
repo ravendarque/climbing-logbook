@@ -17,7 +17,7 @@
 import { escapeHtml } from "./escape-html.js";
 import { combinedFlashLabel, combinedSendLabel, disciplineLabel, flashLabel, sendLabel } from "./status.js";
 import { STATUS_ICONS } from "./status-icons.js";
-import { computePosition, autoUpdate, offset, flip, shift } from "./floating-ui-dom.js";
+import { computePosition, autoUpdate, offset, flip, shift } from "@floating-ui/dom";
 import {
   MAP_WIDTH,
   MAP_MIN_W,

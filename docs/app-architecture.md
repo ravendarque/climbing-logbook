@@ -13,9 +13,9 @@ framework-free Web Components (`client/components/*.js`,
 `public/logbook/components/climbing-header.js`) shared across pages.
 `public/logbook/` itself is no longer a page -- just the shared asset
 directory every page's absolute paths still resolve against (fonts,
-favicons, the PWA manifest/service worker, the externalized
-escape-html.js/floating-ui-dom.js, and every page's own gitignored build
-output).
+favicons, the PWA manifest/service worker, and every page's own
+gitignored build output). escape-html.js and @floating-ui/dom are
+normal bundled imports now (#761) -- see "Client JS" below.
 
 **One route-split architecture** (see
 [ADR-0003](adr/0003-web-components-for-shared-ui-and-route-split.md) for
@@ -61,35 +61,23 @@ deploy (`.github/workflows/deploy.yml`):
   see `styles/tailwind.css`), compiled to `public/logbook/tailwind.css` via
   `pnpm run tailwind:build` (one-shot) or `tailwind:watch` (used by `pnpm
   dev` alongside vite, #468) — shared by every page.
-- **Client JS, one bundle per page**: `map:build`
-  (`client/map-main.js` → `map-app.js`), `performance:build`
-  (`client/performance-main.js` → `performance-app.js`), `log:build`
-  (`client/log-main.js` → `log-app.js`), `profile:build`
-  (`client/profile-main.js` → `profile-app.js`), `account:build`
-  (`client/account-main.js` → `account-app.js`), `account-edit:build`
-  (`client/account-edit-main.js` → `account-edit-app.js`). All six take
-  the same `--external:./escape-html.js --external:./floating-ui-dom.js`
-  flags —
-  every bundle lands flatly in `public/logbook/`, right alongside the one
-  real copy of each externalized file, so the import specifier
-  (`"./escape-html.js"`, not `"../escape-html.js"`, regardless of a given
-  source file's own real nesting under `client/` or `client/components/`)
-  has to match that eventual flat output location, not the source tree —
-  a real, previously-hit bug (#388) when a new component's import didn't
-  follow this. `pnpm run deploy` builds all six before `wrangler deploy`
-  (#405/#406 fixed a real gap where production deploys only ever built
-  two of the five that existed at the time, leaving the other three pages
-  served with no JS bundle at all; #302 later added the two account
-  builds to this same chain from the start, so that gap never recurred
-  for them; #375's retirement removed the seventh, `client:build`/
-  `client/main.js` → `app.js`, entirely). `status-icons.js` moved into
-  `client/` and into the bundle, rather than staying external, once an
-  extracted module (`status.js`) needed to import it — Vitest resolves
-  `client/`'s own imports directly against disk, so an import that only
-  worked when passed through unbundled to the browser (correct relative to
-  the *bundle's* eventual location, not the source file's) broke under
-  test. Pulling the dependency into the bundle fixed it at the root rather
-  than special-casing the test setup.
+- **Client JS, real code-splitting** (#761): one `pnpm run client:build`
+  (`vite build`, `vite.config.js`) replaces what used to be 16 separate
+  hand-rolled esbuild invocations, one per page, each independently
+  duplicating every shared module it touched. Vite/Rollup builds all of
+  `client/*-main.js` in one pass, deduplicating genuinely shared modules
+  (`climbing-tab-bar.js`, `admin-bar.js`, `calendar-date-picker.js`,
+  `escape-html.js`, `@floating-ui/dom`, etc.) into their own cache-
+  friendly chunks under `public/logbook/chunks/`, instead of copying each
+  one into every bundle that imports it. Entry filenames stay stable and
+  unhashed (`public/logbook/<page>-app.js`) — #760's `views/*.njk`
+  templates reference them literally, and this migration made zero
+  template changes. `escape-html.js` and `@floating-ui/dom` are ordinary
+  imports now, resolved and bundled like any other module — the old
+  `--external:./escape-html.js` convention (and the real bug it caused,
+  #388, when a new component's relative import didn't match the flat
+  esbuild output layout it assumed) no longer exists to get wrong.
+  `pnpm run deploy` runs `client:build` once before `wrangler deploy`.
 
 Styling itself is Tailwind utility classes directly in each page's own
 markup — not a utilities layer sitting alongside a separate hand-rolled
@@ -367,7 +355,7 @@ client/
 │                         modularized dependency this epic worked through.
 │                         Kept inline as a bundled array rather than fetched
 │                         at runtime -- same Connectivity Resilience
-│                         reasoning as vendoring floating-ui-dom.js (below)
+│                         reasoning as bundling @floating-ui/dom (#761)
 ├── entries.js          Entry/place/location joins (placeOf/locationOf/
 │                         entryLocation) plus filter/sort/group logic for
 │                         the entries table. Takes entries/places/state as
@@ -577,11 +565,6 @@ one real copy of every externalized/vendored file)
 │                         account-main.js/account-edit-main.js each
 │                         register it (see each file's own comment) --
 │                         profile-main.js is the one page that doesn't
-├── escape-html.js       Shared HTML-escaping helper — externalized into
-│                         every one of the six bundles above
-├── floating-ui-core.js  Vendored @floating-ui/dom dependency (prebuilt
-├── floating-ui-dom.js    browser ESM bundles, see scripts/vendor-floating-ui.mjs) —
-│                         positions the pin popover on the Map tab/page (#18)
 ├── world-map-greenwich.json  Static Equal Earth map data (landmass/border/
 ├── world-map-americas.json    graticule SVG paths + per-country pin x/y),
 ├── world-map-oceania.json     one file per central-meridian projection variant
@@ -1638,21 +1621,15 @@ main.js` and its two exclusive view modules, `logbook-view.js`/
 that isn't one of those three is still live, reused by one or more of the
 six real pages. No frontend framework is in use anywhere in this app.
 
-`escape-html.js` stays a separate file outside every bundle (marked
-`external` in each esbuild command) because it's also referenced by
-`sw.js`'s caching list independently of any one bundle. `status-icons.js`
-used to be handled the same way, but moved into `client/` and got bundled
-once `status.js` needed to import it. `floating-ui-core.js` and
-`floating-ui-dom.js` (#18) are external for a different reason: they're
-`@floating-ui/dom`'s own prebuilt browser ESM output, vendored verbatim
-via `scripts/vendor-floating-ui.mjs` rather than bundled or imported from
-a CDN — a CDN fetch at runtime would be an uncached network dependency the
-Connectivity Resilience standard rules out, same reasoning as bundling
-`COUNTRIES` inline, just as a separate file instead of inline since it's
-third-party code, not app data. (They *could* now be pulled into any one
-esbuild bundle like any other local file -- kept external deliberately,
-to leave this vendoring/caching setup unchanged rather than as a hard
-constraint.)
+`escape-html.js` and `@floating-ui/dom` are ordinary bundled imports now
+(#761) — Vite/Rollup's real code-splitting deduplicates each into its own
+shared chunk wherever more than one entry imports it, the same treatment
+`status-icons.js` already got when it moved into `client/` and got
+bundled once `status.js` needed to import it. `@floating-ui/dom` is
+imported directly from `node_modules` rather than hand-vendored — no
+CDN fetch at runtime either way, so the Connectivity Resilience standard
+(bundle small, static, rarely-changing dependencies) is satisfied the
+same way, just via the bundler instead of a standalone vendoring script.
 
 All user-controlled text (name, place, area, notes, video href) is passed
 through `escapeHtml()` before being interpolated into `innerHTML` template
