@@ -581,38 +581,95 @@ one real copy of every externalized/vendored file)
 │                           /:username/log generically now (#375; there's
 │                           no longer a single fixed page to name the way
 │                           /logbook/ once was)
-└── components/
-    └── climbing-header.js  Shared design tokens (:root CSS custom
-                               properties, see the --field-h/--grade-*/
-                               --tier-* note above) + the <climbing-header>
-                               brand-row Web Component (#345). Loaded as a
-                               classic, non-module <script> (not an ES
-                               module) in every consuming page's <head> --
-                               deliberately, so the token <style> block
-                               exists synchronously mid-parse, before the
-                               browser's first paint and before the parser
-                               even reaches a <climbing-header> element
-                               anywhere in the body (an ES module would
-                               defer until after parsing, causing a flash
-                               of unstyled content). Consumed by every page
-                               below (originally the six "newer" ones plus
-                               /logbook, which had its own separate inline
-                               copy instead until #375 removed the
-                               consumer along with it). Also owns
-                               a `climbing-menu-bar { display: flex }` CSS
-                               rule (#409) -- not otherwise related to
-                               climbing-header itself, but every consumer
-                               of <climbing-menu-bar> below already loads
-                               this file first for exactly this class of
-                               fix, so a second <script> tag per page
-                               wasn't needed. `align-left` (attribute on
-                               <climbing-header>, #409): the brand row
-                               defaults to centered (correct for the
-                               narrow single-column auth/marketing pages
-                               this component originally served); the app
-                               pages below opt into left-aligned instead,
-                               matching /logbook's own layout while it
-                               still existed
+└── components/             Classic, non-module <script> Web Components
+                              (not the ES-module client/components/ family
+                              below) -- loaded directly via <script src>
+                              in each consuming page's <head>, so none of
+                              these can import from client/*.js or each
+                              other; any interaction between this family
+                              and the app's real ES-module code is a plain
+                              DOM method/attribute call, never an import
+                              (see sync-status-icon.js's own comment,
+                              "Composition roots" section below, for a
+                              concrete example of that boundary).
+    ├── climbing-header.js  Shared design tokens (:root CSS custom
+    │                          properties, see the --field-h/--grade-*/
+    │                          --tier-* note above) + the <climbing-header>
+    │                          brand-row Web Component (#345). Loaded as a
+    │                          classic, non-module <script> deliberately,
+    │                          so the token <style> block exists
+    │                          synchronously mid-parse, before the
+    │                          browser's first paint and before the parser
+    │                          even reaches a <climbing-header> element
+    │                          anywhere in the body (an ES module would
+    │                          defer until after parsing, causing a flash
+    │                          of unstyled content). Also owns every
+    │                          sibling component's own display rule below
+    │                          (climbing-discipline-picker/climbing-
+    │                          burger-menu/climbing-page-header/
+    │                          #sync-status-wrap) in this same
+    │                          synchronously-injected stylesheet, one
+    │                          shared place rather than a style tag per
+    │                          file. `align-left` (attribute on
+    │                          <climbing-header>, #409): the brand row
+    │                          defaults to centered (correct for the
+    │                          narrow single-column auth/marketing pages
+    │                          this component originally served, still
+    │                          the only consumers that render it
+    │                          standalone -- login/register/reset-
+    │                          password/apex); every owned app page below
+    │                          reaches it through climbing-page-header.js
+    │                          instead, which always sets align-left
+    ├── climbing-discipline-picker.js  <climbing-discipline-picker> --
+    │                          the discipline (Boulder/Sport) toggle
+    │                          popover, split from the former
+    │                          <climbing-menu-bar> (#346, then #211/#465)
+    │                          once the layout redesign needed it to sit
+    │                          beside <climbing-tab-bar> while the burger
+    │                          menu moved elsewhere -- one combined
+    │                          component couldn't render into two
+    │                          non-adjacent locations. Markup-only, no
+    │                          behavior of its own -- client/header-
+    │                          chrome.js wires the actual switching logic
+    │                          from outside via plain element ids.
+    │                          Consumed only by /log, /map, and
+    │                          /performance(+subpages) -- every other
+    │                          page opted out of this half back when it
+    │                          was still combined with the burger menu
+    ├── climbing-burger-menu.js  <climbing-burger-menu admin-hidden?> --
+    │                          the header's account/theme/login menu
+    │                          popover, the other half of the former
+    │                          <climbing-menu-bar> split (#211/#465).
+    │                          admin-hidden (#351) omits the login/
+    │                          account rows entirely for the public
+    │                          profile page's own composition root
+    │                          (client/profile-main.js), its one real
+    │                          consumer -- "security by absence," not a
+    │                          hidden-but-present control. #759: every
+    │                          real consumer now reaches this through
+    │                          climbing-page-header.js below, not a
+    │                          hand-copied per-page wrapper
+    └── climbing-page-header.js  <climbing-page-header admin-hidden?
+                               class="mb-6"?> (#759) -- folds the
+                               <climbing-header>+<climbing-burger-menu>
+                               pairing into one owned component; its own
+                               host element IS the flex row (display rule
+                               lives in climbing-header.js's shared
+                               stylesheet, see above), not an inner
+                               wrapper div. #762 adds a small sync/
+                               offline status icon here too (idle/
+                               working/offline, driven from ES-module
+                               code via client/sync-status-icon.js's
+                               plain `document.querySelector(
+                               "climbing-page-header").setSyncState(...)`
+                               calls -- this file has no import
+                               capability to receive that any other way).
+                               Every owned app page (log/map/performance
+                               +subpages/account+edit+import/sync/
+                               beta-gate) and the public profile page
+                               reach <climbing-header>/<climbing-burger-
+                               menu> through this component now, not
+                               directly
 ```
 
 ### Composition roots, one per page
@@ -809,6 +866,26 @@ client/
 │                           it -- safe to call unconditionally since
 │                           `<climbing-tab-bar>`'s own markReady() no-ops
 │                           after the first real call
+├── sync-status-icon.js   createSyncStatusIcon() -> { track(promise) }
+│                           (#762) -- the shell's own background-activity
+│                           signal, separate from offline-sync.js's
+│                           sync-btn (queued local writes not yet pushed).
+│                           Wraps checkSession()/fetchSettings() (every
+│                           owned page) and pullDeltas() (offline-sync.js)
+│                           to drive the small icon
+│                           public/logbook/components/
+│                           climbing-page-header.js (#759) renders --
+│                           idle/working/offline. Deliberately excludes
+│                           each page's own primary-content fetch (map
+│                           counts, Performance Insights reports) -- those
+│                           already have their own loading/offline
+│                           treatment, this icon is about the shell's own
+│                           reconcile. Talks to climbing-page-header.js
+│                           via a plain `document.querySelector(
+│                           "climbing-page-header").setSyncState(...)`
+│                           call, not an import -- that file is a classic,
+│                           non-module <script> with no import capability
+│                           at all (see its own file-tree entry above)
 ├── fetch-json.js         loadResource(url, key) (#399) -- the fetch-with-
 │                           cache-fallback helper duplicated across four
 │                           of the six composition roots (log/map/
