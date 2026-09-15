@@ -44,7 +44,7 @@ jobs:
       # shells are 11ty-generated, gitignored output now, not committed.
       - run: pnpm run html:build
       - run: pnpm run tailwind:build
-      - run: pnpm run pages:build
+      - run: pnpm run client:build
       # Idempotent -- safe to run even if this tag's migrations (if any)
       # already applied via deploy.yml's own direct-path deploy. Beta and
       # production share the same D1 database (ADR-0020), so there's

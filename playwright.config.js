@@ -42,13 +42,14 @@ export default defineConfig({
     // reasoning for e2e:build-fixtures (#407 Tier 1) -- public/
     // e2e-fixtures/ is gitignored too, deliberately never part of `pnpm
     // run deploy`'s own build list (see .gitignore's own comment).
-    // pages:build (package.json) is the one shared list of page bundles
-    // -- see deploy.yml's own comment on this exact bug (#224) for why
-    // this used to hand-list every page itself. html:build (#760) is new
-    // here too -- public/*/index.html are now 11ty-generated output,
-    // gitignored same as the rest, and e2e:build-fixtures' own copy step
-    // needs them to exist as real files before it runs.
-    command: "pnpm run html:build && pnpm run tailwind:build && pnpm run pages:build && pnpm run e2e:build-fixtures && wrangler dev",
+    // client:build (package.json, #761) is a single `vite build` call
+    // across every client/*-main.js entry -- see deploy.yml's own
+    // comment on this exact bug (#224) for why this used to hand-list
+    // every page itself. html:build (#760) is new here too --
+    // public/*/index.html are now 11ty-generated output, gitignored
+    // same as the rest, and e2e:build-fixtures' own copy step needs
+    // them to exist as real files before it runs.
+    command: "pnpm run html:build && pnpm run tailwind:build && pnpm run client:build && pnpm run e2e:build-fixtures && wrangler dev",
     // /login/, not /logbook/ (retired, #375) -- just needs a real, always-
     // reachable static page to poll for readiness, unrelated to what any
     // individual spec actually tests.
