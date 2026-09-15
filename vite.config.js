@@ -55,12 +55,14 @@ export default defineConfig(({ command }) => ({
   plugins: command === "serve" ? [cloudflare()] : [],
   // Vite's own "copy publicDir verbatim into outDir" feature defaults
   // publicDir to <root>/public -- the same directory outDir points at
-  // below, which Vite itself warns is unsupported ("outDir and
-  // publicDir are not separate folders"). Nothing here needs that
-  // feature: every non-templated static file already lives in public/
-  // as real committed source or another build step's own output (11ty,
-  // #760), not a separate publicDir Vite should copy from.
-  publicDir: false,
+  // below during a build, which Vite itself warns is unsupported
+  // ("outDir and publicDir are not separate folders"). Scoped to
+  // build only: `vite dev`'s cloudflare() plugin (#442) serves public/
+  // itself as part of simulating the ASSETS binding, and disabling
+  // publicDir unconditionally broke that (found while manually
+  // verifying this migration -- /login/ 404'd under `vite dev` with
+  // publicDir:false set globally).
+  publicDir: command === "build" ? false : undefined,
   build: command === "build" ? {
     outDir: "public",
     emptyOutDir: false, // public/logbook/{components,fonts,...} and the rest of public/ (11ty output, #760) must survive this build untouched
