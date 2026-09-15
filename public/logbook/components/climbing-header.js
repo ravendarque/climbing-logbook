@@ -144,6 +144,17 @@
     // flex row now, not an inner wrapper div (see climbing-page-header.js's
     // own comment for the full history).
     "climbing-page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; }",
+    // #762 -- the sync/offline status icon climbing-page-header.js
+    // renders between the brand header and the burger menu.
+    "#sync-status-wrap { display: block; }",
+    "@keyframes sync-status-spin { to { transform: rotate(360deg); } }",
+    ".sync-status-spin { animation: sync-status-spin 1s linear infinite; }",
+    // Folds offline-sync.js's own pre-existing sync-btn-icon spin
+    // (.animate-spin, Tailwind's utility class) into this same guard
+    // rather than a second separate one -- neither had a
+    // prefers-reduced-motion guard before this, found while adding this
+    // icon's own spin.
+    "@media (prefers-reduced-motion: reduce) { .sync-status-spin, .animate-spin { animation: none; } }",
     // .tab-nav/.tab-nav-item (#211/#465) -- shared visual language for
     // "a horizontal row of view switchers with an active-item indicator",
     // used by two components that are deliberately NOT the same element:

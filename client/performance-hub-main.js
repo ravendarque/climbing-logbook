@@ -13,6 +13,7 @@ import { createStore } from "./store.js";
 import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
 import { syncAdminBar } from "./admin-bar.js";
+import { createSyncStatusIcon } from "./sync-status-icon.js";
 import { rowCardHtml } from "./row-card.js";
 import { flashLabel, sendLabel } from "./status.js";
 import { isDemoUsername } from "./demo-mode.js";
@@ -92,6 +93,7 @@ const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 const IS_DEMO = isDemoUsername(USERNAME);
 
 const store = createStore();
+const syncStatusIcon = createSyncStatusIcon();
 store.subscribe(render);
 
 const tabBar = document.querySelector("climbing-tab-bar");
@@ -149,8 +151,8 @@ async function boot() {
   // deviations" note for why).
   adminAuth.setInitialActiveType();
 
-  const sessionPromise = adminAuth.checkSession();
-  const settingsPromise = adminAuth.fetchSettings();
+  const sessionPromise = syncStatusIcon.track(adminAuth.checkSession());
+  const settingsPromise = syncStatusIcon.track(adminAuth.fetchSettings());
 
   await adminAuth.reconcileActiveType(sessionPromise, settingsPromise);
 
