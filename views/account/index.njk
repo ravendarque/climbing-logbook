@@ -1,0 +1,173 @@
+---
+layout: app-layout.njk
+title: My account – Climbing Logbook
+bundle: account
+staticShellNote: |-
+  Genuinely static shell (#348), same pattern as public/log/index.html
+         -- see that file's own comment for why every path below is absolute
+         and client/account-main.js reads the username from
+         location.pathname itself rather than this file being templated.
+---
+<div class="max-w-[960px] mx-auto">
+  <!-- #754 -- combined into one row (was a separate #header-row above a
+       standalone <climbing-header>), matching /log//map//performance's
+       own #brand-row layout -- the burger menu used to visibly jump to
+       its own row above the logo when navigating here from any of those
+       pages, the exact inconsistency #211/#465 already fixed for every
+       other owner-only page (and profile/index.html's own comment
+       documents being found and fixed there too) but never propagated
+       to the account-family pages. mb-6 kept on the combined row,
+       preserving the same total gap to the content below as the old
+       two-row layout had. -->
+  <climbing-page-header class="mb-6"></climbing-page-header>
+
+  <!-- #457 -- a real button (btn btn-primary, the app's
+       actual red filled-button look -- Raven's own call, plain muted
+       link text "isn't visibly a button"), not the same treatment as
+       public/account/edit/index.html's back-to-account-link. Flush left
+       against the cards' own outer edge (no pl-4 -- Raven's explicit
+       correction: aligns with the cards themselves, not with the
+       pl-4-indented section headings below it). That offset between this
+       button's flush-left edge and the headings' own indent is the
+       visual break that makes the indent read as intentional, rather
+       than the headings looking arbitrarily offset from the flush-left
+       brand header above. mt-4 (not the account-sections grid's own
+       margin/padding, tried and reverted earlier) is what actually
+       widens the header-to-content gap Raven asked for -- btn is
+       inline-flex, so unlike a block-level element its margin doesn't
+       collapse with #brand-row's own mb-6 above it (confirmed
+       empirically: measured gap grew from 16px to 32px). href set in
+       client/account-main.js (needs USERNAME, not available at
+       static-shell time). -->
+  <a class="btn btn-primary mt-4 mb-5" id="back-to-logbook-link" href="#">
+    <svg class="w-[.9rem] h-[.9rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+    My Climbing Logbook
+  </a>
+
+  <!-- #457 -- two-column layout above the app's existing 600px narrow/wide
+       breakpoint (see client/map-view.js's mapNarrowQuery/client/
+       components/climbing-entries-table.js's own max-[600px]: usage --
+       same breakpoint value, reused rather than inventing a new one).
+       Below 600px this collapses back to the original single stacked
+       column exactly as before. Purely CSS (grid-template-columns), no
+       JS needed -- unlike map-view.js this page has no geometry to
+       recompute on a resize/orientation change, just layout. -->
+  <div class="grid grid-cols-2 gap-x-8 max-[600px]:grid-cols-1" id="account-sections">
+    <div>
+      <!-- section-heading/row-card/row-card-title (styles/tailwind.css)
+           -- extracted #457, see that file's own comments for why. -->
+      <h2 class="section-heading">My account</h2>
+      <div class="flex flex-col gap-2 max-w-[420px]" id="account-options">
+        <a class="row-card flex items-center justify-between row-card-title hover:border-accent" id="edit-account-link" href="#">
+          Edit account details
+          <svg class="w-4 h-4 stroke-muted fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+        </a>
+        <!-- Coming soon (#302's own scope notes) -- not built yet, listed
+             here as a preview of where they'll land. Not a real link (no
+             href), so nothing to wire up yet either. -->
+        <div class="row-card flex items-center justify-between row-card-title opacity-50">
+          Display preferences
+          <span class="text-[.72rem] text-muted font-semibold">Coming soon</span>
+        </div>
+        <!-- #224 -- import and export are two very different flows
+             (Raven's own correction), not one combined row: import is a
+             real link (its own sub-page, phases 2-4, a multi-step
+             wizard); export (#27) is deliberately NOT a link to another
+             page -- Raven's own call, "a simple one-click process" --
+             just two small buttons right here, triggering a client-side
+             download with no navigation and no server round-trip beyond
+             the same GET /logbook/api/{logbook,places,locations} every
+             other owned page already reads. href set in
+             client/account-import-main.js, same as edit-account-link. -->
+        <a class="row-card flex items-center justify-between row-card-title hover:border-accent" id="import-link" href="#">
+          Import entries
+          <svg class="w-4 h-4 stroke-muted fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+        </a>
+        <div class="row-card flex items-center justify-between row-card-title">
+          Export entries
+          <div class="flex gap-2">
+            <button type="button" class="btn" id="export-csv-btn">CSV</button>
+            <button type="button" class="btn" id="export-json-btn">JSON</button>
+          </div>
+        </div>
+        <p class="text-[.85rem] text-accent" id="export-error" hidden></p>
+      </div>
+    </div>
+
+    <!-- Athlete Mode/Public Logbook (#445) -- moved here from the shared
+         burger menu (previously two more adminRows entries in
+         climbing-menu-bar.js) since each is a real setting worth a
+         sentence of explanation, not a quick menu row. Both rows start
+         `hidden` in markup, same as menu-username/my-account-link above
+         -- this page is already session-gated server-side
+         (owned-routes.js), but the composition root itself still has to
+         degrade gracefully if a session lapses mid-visit, same reasoning
+         as every other adminAuth-derived element on this page. -->
+    <div class="max-[600px]:mt-8">
+      <h2 class="section-heading">Settings</h2>
+      <!-- Row shape below is the same one client/row-card.js builds programmatically for the Performance hub -- keep the two in sync if either changes. -->
+      <div class="flex flex-col gap-2 max-w-[420px]" id="account-settings">
+        <div class="row-card flex items-center gap-3" id="athlete-mode-row" hidden>
+          <div class="flex-1 min-w-0">
+            <span class="row-card-title">Athlete Mode</span>
+            <!-- #457 -- "performance insights" is the umbrella term for this
+                 feature area; Grade Pyramid is one view under it, not the
+                 thing itself, per Raven's explicit correction elsewhere this
+                 epic -- don't name it here. -->
+            <p class="text-[.82rem] text-muted mt-2">Unlocks performance insights on your Performance page, visible only to you.</p>
+          </div>
+          <!-- #457 -- bg-transparent/border-transparent restore the same
+               native-<button>-chrome override /logbook's own pre-#445
+               athlete-mode-btn markup always had; missing here since
+               #445 (a real bug -- without them the browser's own default
+               button background/border show through as a plain white,
+               bordered box). -->
+          <button type="button" class="group inline-flex items-center bg-transparent border border-transparent cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shrink-0" id="athlete-mode-toggle" role="switch" aria-checked="false">
+            <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
+          </button>
+        </div>
+        <div class="row-card flex items-center gap-3" id="public-logbook-row" hidden>
+          <div class="flex-1 min-w-0">
+            <span class="row-card-title">Public Logbook</span>
+            <p class="text-[.82rem] text-muted mt-2">When on, anyone can view your logbook and map at your public profile page. Turn off to keep them private -- only you can see them.</p>
+          </div>
+          <button type="button" class="group inline-flex items-center bg-transparent border border-transparent cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shrink-0" id="public-logbook-toggle" role="switch" aria-checked="true">
+            <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
+          </button>
+        </div>
+        <!-- #443/#546, ADR-0020 -- a button-triggered modal (client/beta-
+             opt-in.js), not a switch like the two rows above: this is a
+             real consent decision (explanatory copy + two full-sentence
+             choices), not a quick instant-toggle preference.
+
+             Row itself is the flex container -- an invisible two-column
+             layout: the text block on the left takes whatever's left
+             after the button, the button on the right sizes to its own
+             content and never shrinks. All three rows in this section
+             share this same shape now (#575 migrated the two switch rows
+             above onto it too -- this row used to be the one exception,
+             with the switch rows stacking title/text above the control
+             instead, which caused a real layout bug: "Manage" being
+             taller than a switch pushed the whole text block down,
+             showing as dead space between the title and the description
+             that the switch rows never had). -->
+        <div class="row-card flex items-center gap-3" id="beta-opt-in-row" hidden>
+          <div class="flex-1 min-w-0">
+            <span class="row-card-title">Check our beta</span>
+            <p class="text-[.82rem] text-muted mt-2">Opt in to get early access to new features before they're released.</p>
+            <!-- text-accent (not text-muted, like the description above)
+                 -- matches the switch rows' own "on" color (switch-track-
+                 on) and btn-primary, both var(--color-accent) --
+                 this status line is state, not a caption. -->
+            <p class="text-[.78rem] text-accent mt-1" id="beta-opt-in-status" hidden></p>
+          </div>
+          <button type="button" class="btn shrink-0" id="beta-opt-in-manage-btn">Manage</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <beta-opt-in-modal></beta-opt-in-modal>
+
+  <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>
+</div>
