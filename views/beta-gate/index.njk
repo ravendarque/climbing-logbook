@@ -1,0 +1,28 @@
+---
+layout: app-layout.njk
+title: Check our beta – Climbing Logbook
+bundle: beta-gate
+staticShellNote: |-
+  Genuinely static shell (#443/#548, ADR-0020), same pattern as
+         public/sync/index.html -- fetched internally via the ASSETS
+         binding (server/api/owned-routes.js's handleBetaGatedRoute), never
+         reached by its own literal path. No <climbing-tab-bar> here, same
+         reasoning as /sync's own shell -- this is a transient gate, not one
+         of the three real destinations, nothing to highlight as "current".
+---
+<div class="max-w-[960px] mx-auto">
+  <!-- #754 -- combined into one row (was a separate #header-row above a
+       standalone <climbing-header>), matching /log//map//performance's
+       own #brand-row layout -- see public/account/index.html's own
+       identical comment for the full reasoning. -->
+  <climbing-page-header class="mb-6"></climbing-page-header>
+
+  <!-- The only real content on this page -- client/beta-gate-main.js's
+       boot() opens the modal unconditionally as soon as it's ready, not
+       on any user interaction; there's nothing else to show underneath
+       it (unlike the account page's own "Check our beta" row, which is
+       one card among several). -->
+  <beta-opt-in-modal></beta-opt-in-modal>
+
+  <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>
+</div>
