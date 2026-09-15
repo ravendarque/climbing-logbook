@@ -10,12 +10,15 @@
 // JS bundle the first time it's visited online, same as always -- this
 // list is only a *pre*-cache optimization for the very first offline
 // visit before any online one, not what makes offline work at all.
-const CACHE_NAME = "logbook-shell-v2";
+const CACHE_NAME = "logbook-shell-v3";
 
+// #761 -- escape-html.js and floating-ui are bundled inline into every
+// entry bundle now (Vite/Rollup code-splitting), not served as their own
+// standalone URLs -- precaching them here would 404 and fail the whole
+// cache.addAll() call (it rejects entirely if any one entry fails),
+// silently breaking the first-offline-visit precache below for every
+// page. manifest.json is still a real, independently-served static file.
 const APP_SHELL = [
-  "/logbook/escape-html.js",
-  "/logbook/floating-ui-core.js",
-  "/logbook/floating-ui-dom.js",
   "/logbook/manifest.json",
 ];
 
