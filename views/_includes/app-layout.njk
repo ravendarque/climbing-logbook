@@ -1,0 +1,37 @@
+{% if lowercaseDoctype %}<!doctype html>{% else %}<!DOCTYPE html>{% endif %}
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title }}</title>
+  <link rel="manifest" href="/logbook/manifest.json">
+  <link rel="icon" type="image/png" sizes="32x32" href="/logbook/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/logbook/favicon-16.png">
+  <link rel="apple-touch-icon" href="/logbook/apple-touch-icon.png">
+  <meta name="theme-color" content="#ff2727">
+  <!-- #470 -- starts the brand font fetch during initial parsing rather
+       than waiting for layout to discover climbing-header.js's own
+       @font-face rule -- see public/index.html's own comment for the
+       fuller reasoning. -->
+  <link rel="preload" as="font" type="font/woff2" href="/logbook/fonts/BebasNeue-Regular.woff2" crossorigin>
+  <!-- {{ staticShellNote | safe }} -->
+  <link rel="stylesheet" href="/logbook/tailwind.css">
+  <script src="/logbook/components/climbing-header.js"></script>
+{%- if discipline %}
+  <script src="/logbook/components/climbing-discipline-picker.js"></script>
+{%- endif %}
+  <script src="/logbook/components/climbing-burger-menu.js"></script>
+  <script src="/logbook/components/climbing-page-header.js"></script>
+  <script>
+    (function () {
+      var stored = localStorage.getItem("logbook_theme");
+      var theme = stored || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+</head>
+<body class="bg-background text-foreground font-sans px-4 pt-6 pb-16 min-w-[300px]">
+{{ content | safe }}
+<script type="module" src="/logbook/{{ bundle }}-app.js"></script>
+</body>
+</html>

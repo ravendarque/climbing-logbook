@@ -1,0 +1,67 @@
+---
+layout: app-layout.njk
+title: Import entries – Climbing Logbook
+bundle: account-import
+staticShellNote: |-
+  Genuinely static shell (#348), same pattern as public/account/index.html
+         -- see that file's own comment for why every path below is absolute
+         and client/account-import-main.js reads the username from
+         location.pathname itself rather than this file being templated.
+---
+<div class="max-w-[960px] mx-auto">
+  <!-- #754 -- combined into one row (was a separate #header-row above a
+       standalone <climbing-header>), matching /log//map//performance's
+       own #brand-row layout -- see public/account/index.html's own
+       identical comment for the full reasoning. -->
+  <climbing-page-header class="mb-6"></climbing-page-header>
+
+  <!-- #224 -- same treatment as public/account/edit/index.html's
+       back-to-account-link: a real button (btn btn-primary),
+       not plain muted link text, with the same mt-4/mb-5 spacing. -->
+  <a class="btn btn-primary mt-4 mb-5" id="back-to-account-link" href="#">
+    <svg class="w-[.9rem] h-[.9rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+    My Account
+  </a>
+
+  <h2 class="section-heading">Import entries</h2>
+
+  <!-- #224 -- a one-off workflow (Raven's own framing, most likely used
+       once when a new user brings existing data in), so it's a linear
+       three-step page rather than a form buried among other settings:
+       download the template, fill it in, upload it back. All-or-nothing
+       server-side (server/api/logbook-import.js) -- nothing is written until
+       every row validates, so #import-errors below always lists every
+       problem row at once, not one at a time across repeated uploads. -->
+  <div class="max-w-[520px] flex flex-col gap-4" id="import-steps">
+
+    <div class="row-card">
+      <div class="row-card-title mb-1">1. Download the template, or use an existing JSON export</div>
+      <p class="text-[.85rem] text-muted mb-3">A CSV file with the columns this page expects -- fill in one row per entry, keeping the header row as-is. Already have a JSON file from this app's own "Export as JSON"? That's importable as-is, no template needed.</p>
+      <button type="button" class="btn" id="download-template-btn">Download CSV template</button>
+    </div>
+
+    <div class="row-card">
+      <div class="row-card-title mb-1">2. Upload your filled-in file</div>
+      <p class="text-[.85rem] text-muted mb-3">CSV (from the template above) or JSON (from this app's own export) -- nothing is imported until every row/entry in the file is valid, so you'll see every problem at once and can fix the whole file in one pass.</p>
+      <form class="flex flex-wrap items-center gap-2" id="import-form">
+        <input class="flex-1 min-w-0 text-[.85rem]" id="import-file-input" name="file" type="file" accept=".csv,.json,text/csv,application/json" required>
+        <button type="submit" class="btn btn-primary shrink-0" id="import-submit-btn">Import</button>
+      </form>
+    </div>
+
+    <p class="text-[.85rem] text-muted" id="import-status" hidden></p>
+
+    <div class="row-card" id="import-errors" hidden>
+      <div class="row-card-title mb-2 text-accent">Some rows couldn't be imported</div>
+      <ul class="text-[.85rem] flex flex-col gap-1 list-disc pl-5" id="import-errors-list"></ul>
+    </div>
+
+    <div class="row-card" id="import-success" hidden>
+      <div class="row-card-title mb-1">Import complete</div>
+      <p class="text-[.85rem] text-muted" id="import-success-message"></p>
+    </div>
+
+  </div>
+
+  <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>
+</div>

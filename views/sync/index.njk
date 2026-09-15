@@ -1,0 +1,47 @@
+---
+layout: app-layout.njk
+title: Syncing – Climbing Logbook
+bundle: sync
+staticShellNote: |-
+  Genuinely static shell (#498/ADR-0019), same pattern as public/
+         log/index.html -- see that file's own comment for why every path
+         below is absolute and client/sync-main.js reads the username from
+         location.pathname itself rather than this file being templated.
+         No <climbing-tab-bar> here -- unlike /log, /map, /performance,
+         this page isn't one of the three real destinations; it's a
+         transient stop nothing should navigate into deliberately, so
+         there's nothing to highlight as "current" and no other page is
+         usable yet anyway.
+---
+<div class="max-w-[960px] mx-auto">
+  <!-- #754 -- combined into one row (was a separate #header-row above a
+       standalone <climbing-header>), matching /log//map//performance's
+       own #brand-row layout -- see public/account/index.html's own
+       identical comment for the full reasoning. -->
+  <climbing-page-header class="mb-6"></climbing-page-header>
+
+  <!-- #498 -- the only real content on this page: a one-off progress
+       card, shown while client/sync-main.js's boot() runs. No "Nothing
+       to show here" empty state to worry about (unlike
+       <climbing-entries-table>) -- this page has exactly one state,
+       shown from the moment the shell paints. -->
+  <div class="row-card text-center max-w-[420px] mx-auto mt-8" id="sync-card">
+    <p class="text-[.95rem] text-foreground" id="sync-message">Syncing your logbook&hellip;</p>
+    <p class="text-[.82rem] text-muted mt-1" id="sync-detail">Setting things up</p>
+    <div class="mt-4 h-2 rounded-full bg-[color-mix(in_srgb,var(--color-text)_12%,transparent)] overflow-hidden" role="progressbar" aria-labelledby="sync-message" aria-valuemin="0" aria-valuemax="100" id="sync-progress-track">
+      <div class="h-full rounded-full bg-accent transition-[width] duration-300" id="sync-progress-fill" style="width: 0%"></div>
+    </div>
+  </div>
+
+  <!-- Same "needs a connection" treatment as /performance's own offline
+       gate (public/performance/index.html) -- a failed sync shows a
+       retry prompt here instead of silently hanging on the progress
+       card above. -->
+  <div class="row-card text-center max-w-[420px] mx-auto mt-8" id="sync-error" hidden>
+    <p class="text-[.9rem] text-foreground">Couldn't sync your logbook.</p>
+    <p class="text-[.82rem] text-muted mt-2">Check your connection and try again.</p>
+    <button type="button" class="btn btn-primary mt-4" id="sync-retry-btn">Retry</button>
+  </div>
+
+  <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>
+</div>

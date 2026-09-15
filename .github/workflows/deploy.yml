@@ -29,6 +29,15 @@ jobs:
           # the single commit the tag points at.
           fetch-depth: 0
       - uses: ./.github/actions/setup-node-pnpm
+      # #760 -- public/**/index.html is now 11ty-generated, gitignored
+      # output (not committed) -- without this, every page 404s outright
+      # (env.ASSETS.fetch() has nothing to serve), the same class of gap
+      # the #391/#405 comment below documents for the JS bundles, just
+      # for the page shells this time. html:build covers all 20 pages in
+      # one call (11ty's own directory-mirroring), so there's no
+      # per-page list here to independently drift the way pages:build's
+      # own history warns about.
+      - run: pnpm run html:build
       - run: pnpm run tailwind:build
       # #391 fixed this exact gap for PR previews (preview.yml) but never
       # got ported here -- production never built these bundles at all,
