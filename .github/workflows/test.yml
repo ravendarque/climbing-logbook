@@ -38,6 +38,13 @@ jobs:
               - 'pnpm-lock.yaml'
               - '.github/workflows/test.yml'
               - '.github/actions/setup-node-pnpm/**'
+              # #760 -- test/owned-routes.test.js and test/public-profile.test.js
+              # exercise the real ASSETS binding, which needs the page shells
+              # to actually exist on disk (11ty-generated, gitignored, no
+              # longer committed) -- a views/-only change needs a real
+              # test run, not just a skip.
+              - 'views/**'
+              - '.eleventy.js'
 
   test:
     needs: changes
@@ -46,4 +53,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node-pnpm
+      # #760 -- test/owned-routes.test.js/test/public-profile.test.js hit
+      # the real ASSETS binding, which serves public/**/index.html --
+      # 11ty-generated, gitignored, no longer part of the checkout itself.
+      - run: pnpm run html:build
       - run: pnpm test

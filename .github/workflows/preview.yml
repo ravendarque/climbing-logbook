@@ -38,6 +38,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node-pnpm
+      # #760 -- see deploy.yml's own comment on this same line: page
+      # shells are 11ty-generated, gitignored output now, not committed.
+      - run: pnpm run html:build
       - run: pnpm run tailwind:build
       # #391 -- these were missing entirely, so /map and /performance 404'd
       # on their JS bundle on every preview deployment (public/logbook/
