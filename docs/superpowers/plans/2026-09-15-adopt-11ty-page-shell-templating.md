@@ -121,15 +121,22 @@ git commit -m "Add @11ty/eleventy for page-shell templating (#760)"
 
 ---
 
-### Task 2: The two shared Nunjucks layouts
+### Ruling (recorded during execution, 2026-09-15)
+
+Reading all 4 auth-shell pages in full (Task 2's own grounding step) found real, non-whitespace differences a shared `auth-layout.njk` would have to paper over: `register/index.html` has an extra Turnstile `<script>` tag in its `<head>` that the other 3 don't; the `#470` font-preload comment's wording genuinely differs between the apex page and the other 3 (not a copy-paste — a deliberately different explanation); each of the 4 has a distinct body wrapper and is a genuinely one-off page (login form / register form / reset-password form / marketing landing) with essentially no shared body content. A shared layout here would either force awkward per-page Nunjucks-block overrides for nearly every line, or risk exactly the byte-fidelity this plan exists to protect, for a group that was never actually flagged as duplicated the way the 16 app-shell pages were (see #759/#760's own original scoping — these 4 were noted as `<climbing-header>` consumers, never as having the `#brand-row`-style duplication problem).
+
+**Ruling: no shared `auth-layout.njk`.** The 4 auth-shell pages (`login`, `register`, `reset-password`, `index`/apex) migrate into `views/` as standalone `.njk` files with **no front-matter, no `layout:` key** — each file's exact current content, copied verbatim. They still go through 11ty (one consistent build system, one place every page shell's source lives), but gain no shared-layout indirection where none naturally exists. This changes Task 2 (now app-shell layout only) and Task 3's auth-shell migration instructions below.
+
+**Second ruling, found migrating the app-shell layout itself:** the `<climbing-page-header ...>` element's immediately-preceding HTML comment is ALSO page-specific prose, not shared boilerplate — checked profile/account/map/pyramid/sync/beta-gate, found 4 distinct variants (a log/map/performance+8-subpages version about the align-left history, a profile-specific one about being scoped out then back in, an account-specific one about the #754 migration, and a sync/beta-gate one that cross-references account's). **`app-layout.njk` does NOT render `<climbing-page-header>` at all** — that element and its own preceding comment move into each page's own template content (the natural `{{ content }}` body 11ty already provides per page), copied verbatim from the current file, same as every other real body content. This removes `pageHeaderClass`/`pageHeaderAdminHidden` as layout front-matter variables entirely — simpler than parameterizing them, since the comment they'd sit next to couldn't be parameterized cleanly anyway. The one remaining page-specific *within-`<head>`* prose block (the `#470`/"genuinely static shell" comment, which similarly varies in wording per page or per small page-group) is handled differently, since it sits inside `<head>` where there is no natural per-page content injection point: it's passed as a `staticShellNote` front-matter string (YAML literal block scalar, preserving exact original line-wrapping), rendered via `{{ staticShellNote | safe }}` at the one spot in the layout it belongs.
+
+### Task 2: The shared app-shell Nunjucks layout
 
 **Files:**
 - Create: `views/_includes/app-layout.njk`
-- Create: `views/_includes/auth-layout.njk`
 
 **Interfaces:**
 - Consumes: nothing.
-- Produces: `layout: app-layout.njk` / `layout: auth-layout.njk` front-matter values Task 3's 20 page templates reference. `app-layout.njk` accepts front-matter variables: `title` (string, required), `discipline` (boolean, default falsy — whether to load `climbing-discipline-picker.js`), `pageHeaderClass` (string, optional — `"mb-6"` or omitted), `pageHeaderAdminHidden` (boolean, default falsy), `bundle` (string, required — the `/logbook/<bundle>-app.js` filename stem), `content` (11ty's own built-in — the page template's own body between front-matter and end-of-file). `auth-layout.njk` accepts: `title`, `assetPrefix` (string, required — `"../logbook"` or `"./logbook"`, preserving each page's real existing relative depth), `content`.
+- Produces: `layout: app-layout.njk` front-matter value Task 3's 16 app-shell page templates reference. Accepts front-matter variables: `title` (string, required), `discipline` (boolean, default falsy — whether to load `climbing-discipline-picker.js`), `bundle` (string, required — the `/logbook/<bundle>-app.js` filename stem), `staticShellNote` (string, required — the page's own "genuinely static shell" head comment text, verbatim, see the second Ruling above), `content` (11ty's own built-in — the page template's own body, including that page's own `<climbing-page-header>` line and its own preceding comment, verbatim). The 4 auth-shell pages use no layout at all — see the first Ruling above.
 
 - [ ] **Step 1: Create `views/_includes/app-layout.njk`**
 
@@ -188,58 +195,11 @@ Built from `public/log/index.html`'s real head/body-wrapper (the fullest example
 
 Note: the blank line after `<climbing-page-header ...></climbing-page-header>` and before `{{ content }}` matches `public/log/index.html`'s own real blank line in that position (confirmed by reading the file) — this is exactly the kind of whitespace detail Task 4's diff exists to catch if it's wrong; don't assume, verify against Task 4's own output once Task 3 populates real pages.
 
-- [ ] **Step 2: Create `views/_includes/auth-layout.njk`**
-
-Built from `public/login/index.html`'s real head/body-wrapper:
-
-```njk
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ title }} – Climbing Logbook</title>
-  <link rel="icon" type="image/png" sizes="32x32" href="{{ assetPrefix }}/favicon-32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="{{ assetPrefix }}/favicon-16.png">
-  <meta name="theme-color" content="#ff2727">
-  <!-- #470 -- starts the brand font fetch during initial parsing rather
-       than waiting for layout to discover climbing-header.js's own
-       @font-face rule -- see public/index.html's own comment for the
-       fuller reasoning. Absolute /logbook/... here too, not a relative
-       path like the rest of this page's own asset paths -- the preload
-       only helps if its URL matches climbing-header.js's own hardcoded
-       @font-face url() byte-for-byte. -->
-  <link rel="preload" as="font" type="font/woff2" href="/logbook/fonts/BebasNeue-Regular.woff2" crossorigin>
-  <!-- Generated by `pnpm run tailwind:build` (see styles/tailwind.css) --
-       not committed, see .gitignore. -->
-  <link rel="stylesheet" href="{{ assetPrefix }}/tailwind.css">
-  <!-- Shared design tokens + <climbing-header> Custom Element (#345).
-       Classic script, not a module -- must run synchronously here, before
-       the [hidden]-dependent markup below and before first paint. See the
-       file's own comment for why. -->
-  <script src="{{ assetPrefix }}/components/climbing-header.js"></script>
-  <script>
-    // Same pre-paint theme bootstrap as every other page -- must run
-    // synchronously here, not deferred/module, or the browser paints the
-    // wrong theme first and flashes.
-    (function () {
-      var stored = localStorage.getItem("logbook_theme");
-      var theme = stored || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
-      document.documentElement.dataset.theme = theme;
-    })();
-  </script>
-</head>
-{{ content | safe }}
-</html>
-```
-
-**This layout is deliberately thinner than app-layout.njk** — `public/index.html`/`login`/`register`/`reset-password` each have real, non-uniform body content immediately after `</head>` (different wrapper classes, different centered-card markup, `apple-touch-icon`/`manifest.json` genuinely absent per the ground-truth section above) — verified by reading all 4 files in Task 3 before finalizing this layout's exact shape. If a real second shared line turns up when Task 3 migrates all 4 (e.g. an identical `<body>` opening tag across all 4), fold it into this layout the same way; do not guess it here before Task 3 confirms it against real content.
-
-- [ ] **Step 3: Commit**
+- [ ] **Step 2: Commit**
 
 ```bash
 git add views/_includes/
-git commit -m "Add the two shared 11ty layouts (app-shell, auth-shell) (#760)"
+git commit -m "Add the shared 11ty app-shell layout (#760)"
 ```
 
 ---
@@ -256,7 +216,7 @@ git commit -m "Add the two shared 11ty layouts (app-shell, auth-shell) (#760)"
 
 **The mechanical rule, identical for all 16 app-shell pages:** open the current committed `public/<path>/index.html`, delete every line from `<!DOCTYPE html>` through the blank line + `<climbing-page-header ...></climbing-page-header>` line (now in the layout), delete the trailing `<script type="module" src="/logbook/<bundle>-app.js"></script>`, `</body>`, `</html>` lines (also now in the layout), write front-matter with this page's own `title`/`discipline`/`pageHeaderClass`/`pageHeaderAdminHidden`/`bundle` values (per the Ground Truth section's tables above), and copy everything remaining **byte-for-byte, unchanged** as the template body.
 
-**The mechanical rule for the 4 auth-shell pages:** same idea against `auth-layout.njk` — delete the now-shared head lines, keep everything from wherever the real per-page content starts (verify the exact split point per file — these 4 are NOT identical to each other the way the 16 app-shell pages are, per Task 2 Step 2's own note) through `</body>` (kept, since `auth-layout.njk`'s own template ends at `{{ content }}\n</html>`, deliberately not closing `</body>` itself — confirm this matches each file's real closing tags when writing Task 2 Step 2, adjust the layout to close `</body>` itself instead if all 4 files' bodies are simple enough for that to be cleaner; ground the final layout shape in the real 4 files, not this plan's guess).
+**The mechanical rule for the 4 auth-shell pages (per the Ruling above — no shared layout):** copy each of `public/login/index.html`, `public/register/index.html`, `public/reset-password/index.html`, `public/index.html` into the corresponding `views/` path **entirely unchanged, byte-for-byte, no front-matter block at all**. 11ty processes a `.njk` file with no Nunjucks tags and no front-matter as plain pass-through content, mapped to the same output path its directory position implies (11ty's default directory-mirroring behavior, same as every other page in this migration).
 
 - [ ] **Step 1: Migrate the 2 simplest app-shell pages first (as the smallest possible diff-verification cycle)**
 
@@ -274,9 +234,9 @@ This is the first real signal on whether the layout (Task 2) and the mechanical 
 
 `views/log/index.njk` (`discipline: true`, `bundle: "log"`), `views/map/index.njk` (`discipline: true`, `bundle: "map"`), `views/performance/index.njk` (`discipline: true`, `bundle: "performance-hub"` — confirm the real bundle filename stem by checking `public/performance/index.html`'s own closing script tag, not assumed from the URL path), and the 8 `views/performance/<sub>/index.njk` files (`pyramid`/`trends`/`gap`/`rpe`/`injury`/`strengths`/`grades`, each `discipline: true`, `bundle: "performance-<sub>"`).
 
-- [ ] **Step 5: Migrate the 4 auth-shell pages**
+- [ ] **Step 5: Migrate the 4 auth-shell pages (verbatim copies, no front-matter)**
 
-`views/login/index.njk` (`assetPrefix: "../logbook"`), `views/register/index.njk` (`assetPrefix: "../logbook"`), `views/reset-password/index.njk` (`assetPrefix: "../logbook"`), `views/index.njk` (`assetPrefix: "./logbook"` — the apex page, different relative depth per the Ground Truth section).
+`views/login/index.njk`, `views/register/index.njk`, `views/reset-password/index.njk`, `views/index.njk` — each is an exact byte-for-byte copy of the corresponding current `public/` file, per the Ruling above.
 
 - [ ] **Step 6: Run Task 4's diff script against all 20**
 
