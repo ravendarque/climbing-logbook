@@ -99,18 +99,25 @@ export async function listChangedForUser(env, table, userId, rowToJson, since) {
   return { rows: results.map(rowToJson), cursor };
 }
 
-// Exported standalone -- server/api/logbook-import.js's bulk write (#224
-// phase 3) needs the exact same "insert this already-built row" step for
-// locations/places/entries in a loop, not just handlePost's single-record
-// case below (found while building that handler -- this was inlined here
-// only, the same duplication findOwnedRow/listForUser's own header
-// comments already describe for the rest of this file).
-export async function insertRow(env, table, row) {
+// #800 -- split out from insertRow below so server/api/logbook-import.js
+// can collect statements for a real env.LOGBOOK_DB.batch() call (D1's own
+// transaction primitive -- see replaceChildRows in server/api/logbook.js
+// for the existing precedent) instead of one INSERT per await, per row.
+// Building the statement is the part import needs to share; running it
+// immediately is insertRow's own single-record concern.
+export function buildInsertStatement(env, table, row) {
   const columns = Object.keys(row);
-  await env.LOGBOOK_DB
+  return env.LOGBOOK_DB
     .prepare(`INSERT INTO ${table} (${columns.join(", ")}) VALUES (${columns.map(() => "?").join(", ")})`)
-    .bind(...columns.map(c => row[c]))
-    .run();
+    .bind(...columns.map(c => row[c]));
+}
+
+// Exported standalone -- handlePost below's single-record case, and every
+// other single-row insert in this app outside the bulk-import path (#224
+// phase 3, server/api/logbook-import.js), which builds its own statements
+// via buildInsertStatement above for a real batch() transaction instead.
+export async function insertRow(env, table, row) {
+  await buildInsertStatement(env, table, row).run();
 }
 
 // #499 -- `excludeDeleted` (default false, every existing caller
