@@ -64,6 +64,35 @@ it("allows sign-up through when siteverify reports success", async () => {
   expect(res.status).toBe(200);
 });
 
+// #802 -- verifySiteverify's fetch()/.json() call had no try/catch, so a
+// Turnstile-side timeout or outage threw an uncaught exception straight
+// out of the auth hook instead of failing closed with a clean error.
+describe("siteverify itself is unreachable (#802)", () => {
+  it("fails closed (403, not an unhandled 500) when the fetch to siteverify throws", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (input) => {
+      const url = typeof input === "string" ? input : input.url;
+      if (url.startsWith("https://challenges.cloudflare.com/turnstile/")) throw new Error("network error");
+      if (url.startsWith("https://api.resend.com/")) return new Response(JSON.stringify({ id: "fake-resend-id" }), { status: 200, headers: { "Content-Type": "application/json" } });
+      throw new Error(`Unexpected fetch to ${url}`);
+    }));
+    const res = await signUp({ turnstileToken: "some-token" });
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe("TURNSTILE_VERIFICATION_UNAVAILABLE");
+  });
+
+  it("fails closed when siteverify returns a non-JSON body", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (input) => {
+      const url = typeof input === "string" ? input : input.url;
+      if (url.startsWith("https://challenges.cloudflare.com/turnstile/")) return new Response("<html>Bad Gateway</html>", { status: 502, headers: { "Content-Type": "text/html" } });
+      if (url.startsWith("https://api.resend.com/")) return new Response(JSON.stringify({ id: "fake-resend-id" }), { status: 200, headers: { "Content-Type": "application/json" } });
+      throw new Error(`Unexpected fetch to ${url}`);
+    }));
+    const res = await signUp({ turnstileToken: "some-token" });
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe("TURNSTILE_VERIFICATION_UNAVAILABLE");
+  });
+});
+
 describe("composed with the beta gate (#296)", () => {
   it("runs before the beta gate -- a missing Turnstile token 403s even with a valid invite code", async () => {
     env.BETA_GATE_ENABLED = "true";
