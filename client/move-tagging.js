@@ -89,12 +89,33 @@ export function createMoveRowList({ listEl, addBtnEl, hasDifficulty, defaultDiff
     return Array.from(listEl.children).indexOf(el.closest("[data-move-row]"));
   }
 
+  // #805 -- render() above always rewrites the *whole* list's innerHTML,
+  // destroying every row's DOM node on every call, including whichever
+  // one the user just interacted with -- a keyboard user loses focus to
+  // <body> on every edit. Restored here by index (rows have no stable id
+  // of their own, but the array itself doesn't reorder except by
+  // deletion, so "the row at this position" is a good enough identity
+  // for a re-render triggered by that same row's own change) -- look up
+  // the equivalent new element after render() and focus it.
+  function focusRowField(index, field) {
+    const rowEl = listEl.children[index];
+    const el = field === "remove" ? rowEl?.querySelector("[data-remove-row]") : rowEl?.querySelector(`[data-field="${field}"]`);
+    el?.focus();
+  }
+
   listEl.addEventListener("click", e => {
     const removeBtn = e.target.closest("[data-remove-row]");
     if (!removeBtn) return;
     const index = rowIndexOf(removeBtn);
     rows.splice(index, 1);
     render();
+    // The removed row's own control is gone -- focus the row that
+    // shifted into its position (lets a user remove several rows in a
+    // row without re-tabbing), the previous row if this was the last
+    // one, or the Add button if the list is now empty.
+    const focusIndex = Math.min(index, rows.length - 1);
+    if (focusIndex >= 0) focusRowField(focusIndex, "remove");
+    else addBtnEl.focus();
   });
 
   listEl.addEventListener("change", e => {
@@ -111,6 +132,7 @@ export function createMoveRowList({ listEl, addBtnEl, hasDifficulty, defaultDiff
       row.holdType = HOLD_TYPES_BY_LIMB[limb][0];
       row.movementStyle = MOVEMENT_STYLES_BY_LIMB[limb][0];
       render(); // re-render this row so its holdType/movementStyle <select>s reflect the new limb's filtered options
+      focusRowField(index, field);
     } else {
       row[field] = select.value;
     }
