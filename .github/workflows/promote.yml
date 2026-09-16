@@ -44,7 +44,6 @@ jobs:
       # shells are 11ty-generated, gitignored output now, not committed.
       - run: pnpm run html:build
       - run: pnpm run tailwind:build
-      - run: pnpm run client:build
       # Idempotent -- safe to run even if this tag's migrations (if any)
       # already applied via deploy.yml's own direct-path deploy. Beta and
       # production share the same D1 database (ADR-0020), so there's
@@ -53,7 +52,15 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: pnpm exec wrangler d1 migrations apply climbing-logbook --remote
+      # #774 -- CLOUDFLARE_ENV=production (env.production, wrangler.jsonc)
+      # at build time, not `wrangler deploy --env=""` alone -- see
+      # deploy.yml's own comment for the full reasoning.
+      # scripts/require-cloudflare-env.mjs refuses to build at all without
+      # a recognized CLOUDFLARE_ENV, so a missing value here fails loudly
+      # rather than deploying silently-wrong bindings. `--env=""` is kept
+      # on the deploy command too as real (confirmed) defense in depth.
       - name: Deploy to production
-        run: pnpm exec wrangler deploy --env=""
+        run: pnpm run deploy:build && pnpm exec wrangler deploy --env=""
         env:
+          CLOUDFLARE_ENV: production
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

@@ -19,20 +19,22 @@
  * leaving only the one, unavoidable line from the outer `pnpm dev`
  * invocation itself. `dev:vite` stays in package.json for standalone use.
  *
- * vite, not `wrangler dev` (#468, was `dev:raw`'s command until this
- * changed) -- confirmed empirically that `wrangler dev`'s local
- * simulation of a `routes`-configured Worker silently rewrites the
- * request's own hostname/origin to the first configured production route
- * (climbinglogbook.com), regardless of what you actually connect to on
- * localhost. That's harmless for most of this app, but it breaks Better
- * Auth's origin/CSRF check outright (a real https-only trusted origin
- * doesn't match the rewritten http://climbinglogbook.com), on top of
- * `wrangler dev` already being unable to honor a `my.`-prefixed hostname
- * at all (#407/#442). `@cloudflare/vite-plugin`'s dev server doesn't have
- * either problem -- see vite.config.js's own #442 comment. `dev:raw`
- * (plain `wrangler dev`) still exists in package.json for anyone who
- * specifically needs it, but expect both quirks above if you reach for it
- * instead of this script.
+ * vite, not `wrangler dev` (#468) -- confirmed empirically that
+ * `wrangler dev`'s local simulation of a `routes`-configured Worker
+ * silently rewrites the request's own hostname/origin to the first
+ * configured production route (climbinglogbook.com), regardless of what
+ * you actually connect to on localhost. That's harmless for most of this
+ * app, but it breaks Better Auth's origin/CSRF check outright (a real
+ * https-only trusted origin doesn't match the rewritten
+ * http://climbinglogbook.com), on top of `wrangler dev` already being
+ * unable to honor a `my.`-prefixed hostname at all (#407/#442).
+ * `@cloudflare/vite-plugin`'s dev server doesn't have either problem --
+ * see vite.config.js's own #442 comment. `dev:raw` (plain `wrangler
+ * dev`) used to exist in package.json as a fallback for anyone who
+ * specifically needed it; deleted (#774) once both quirks above were
+ * confirmed to make it strictly worse than this file's own dev server,
+ * not just a slower alternative -- see git history if it's ever needed
+ * again as a reference.
  *
  * Usage:
  *   pnpm dev [--no-seed] [--no-open]

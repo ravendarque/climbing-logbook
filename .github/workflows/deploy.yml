@@ -48,12 +48,19 @@ jobs:
       # page's own build step got added to this file and preview.yml but
       # not playwright.config.js's own separate hardcoded list (or vice
       # versa) -- three independent copies of "every page bundle" is what
-      # let that keep happening. client:build (package.json, #761) is a
-      # single `vite build` call across every client/*-main.js entry --
-      # there's no longer a per-page list to keep in sync at all; this
-      # workflow, preview.yml, and playwright.config.js's webServer all
-      # call the same one script.
-      - run: pnpm run client:build
+      # let that keep happening.
+      #
+      # #774 -- the actual client+Worker build moved below, next to each
+      # deploy step: @cloudflare/vite-plugin (deploy:build, package.json)
+      # selects which wrangler.jsonc environment a build targets via the
+      # CLOUDFLARE_ENV variable at BUILD time, not `wrangler deploy
+      # --env=X` at deploy time (that flag has no effect on binding
+      # resolution for a Vite-built deploy, confirmed against Cloudflare's
+      # own docs) -- so beta and production each need their own separate
+      # build, immediately before their own deploy, with CLOUDFLARE_ENV
+      # set to match. A single shared build step (like the old
+      # client:build call this replaced) can only ever target one
+      # environment at a time now.
       # D1 migrations are never auto-applied by `wrangler deploy` (same
       # gap `wrangler dev` has locally, and `versions upload` had for
       # preview.yml until #323) -- found the hard way: production's D1
@@ -95,18 +102,32 @@ jobs:
           fi
       # Every tag deploys to beta -- production either gets it too (direct
       # path, above) or waits for a deliberate promote.yml run.
+      #
+      # #774 -- CLOUDFLARE_ENV=beta on the build, not `wrangler deploy
+      # --env=beta` (no effect on a Vite-built deploy) -- see this file's
+      # own comment further up. `deploy:build` (package.json) itself
+      # refuses to run at all without a recognized CLOUDFLARE_ENV
+      # (scripts/require-cloudflare-env.mjs), so a missing or misspelled
+      # value here fails this step loudly rather than silently deploying
+      # with the wrong environment's bindings. `--env=beta` is kept on
+      # the deploy command too, as real (confirmed, not just documented)
+      # defense in depth: wrangler still validates it against whichever
+      # environment the build actually targeted and throws on a mismatch,
+      # even though the docs describe the flag as a no-op post-Vite.
       - name: Deploy to beta
         if: github.event_name == 'push'
-        run: pnpm exec wrangler deploy --env=beta
+        run: pnpm run deploy:build && pnpm exec wrangler deploy --env=beta
         env:
+          CLOUDFLARE_ENV: beta
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      # --env="" is explicit, not decorative: wrangler.jsonc defines more
-      # than one named environment (env.preview, env.beta), and wrangler
-      # warns/refuses to guess which one you meant once more than one
-      # exists. This pins production deploys to the top-level config
-      # regardless of what other environments get added later.
+      # CLOUDFLARE_ENV=production (env.production, wrangler.jsonc) is now
+      # a real, explicit target -- not an implicit fallback from omitting
+      # the variable. `--env=""` pins the deploy-time validation to the
+      # same, matching env.production's own explicitness rather than
+      # trusting an unnamed default.
       - name: Deploy to production
         if: github.event_name == 'workflow_dispatch' || steps.classify.outputs.direct == 'true'
-        run: pnpm exec wrangler deploy --env=""
+        run: pnpm run deploy:build && pnpm exec wrangler deploy --env=""
         env:
+          CLOUDFLARE_ENV: production
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

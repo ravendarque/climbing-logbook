@@ -46,10 +46,19 @@ jobs:
       # on their JS bundle on every preview deployment (public/logbook/
       # map-app.js and the performance-pyramid-app.js/performance-hub-
       # app.js pair are gitignored build output -- nothing else ever
-      # produces them). See deploy.yml's own comment on this exact line --
-      # client:build (package.json, #761) is the one shared build command
-      # now, not a per-page list hand-maintained in this file.
-      - run: pnpm run client:build
+      # produces them).
+      #
+      # #774 -- CLOUDFLARE_ENV=preview (env.preview, wrangler.jsonc) at
+      # build time is what actually selects the preview database/vars
+      # now, not `wrangler versions upload --env preview` alone -- see
+      # deploy.yml's own comment for the full reasoning.
+      # scripts/require-cloudflare-env.mjs refuses to build at all
+      # without a recognized CLOUDFLARE_ENV, so a missing value here
+      # fails this step loudly rather than uploading a preview version
+      # silently bound to production's own database.
+      - run: pnpm run deploy:build
+        env:
+          CLOUDFLARE_ENV: preview
       # D1 migrations aren't auto-applied by `versions upload` any more
       # than `wrangler dev` auto-applies them locally -- the preview D1
       # database (own bootstrap, not Terraform-managed) needs this run
