@@ -2,7 +2,7 @@ import * as v from "valibot";
 import { json } from "../lib/json.js";
 import { entrySchema } from "../../shared/entry-schema.js";
 import { parseCsvText, parseJsonText } from "../../shared/csv-import.js";
-import { insertRow, listForUser } from "../lib/d1-resource.js";
+import { buildInsertStatement, listForUser } from "../lib/d1-resource.js";
 import { attachChildRows, buildRow as buildEntryRow, rowToJson as entryRowToJson } from "./logbook.js";
 import { buildRow as buildLocationRow } from "./locations.js";
 import { buildRow as buildPlaceRow } from "./places.js";
@@ -14,6 +14,18 @@ import { buildRow as buildPlaceRow } from "./places.js";
 // builds a plan (in-memory row objects with fresh ids, not yet written)
 // -- the actual INSERTs only happen once every row has passed
 // entrySchema too, further down in handleImport().
+//
+// #800 -- validation alone isn't "all-or-nothing" on its own: the writes
+// themselves used to be three separate loops of sequential, individually
+// -awaited INSERTs, so a D1 transient error, CPU-time limit, or Workers
+// subrequest-limit hit partway through could leave a half-imported
+// logbook with no rollback, contradicting this exact comment. Every
+// location/place/entry insert is now one real env.LOGBOOK_DB.batch()
+// transaction (D1's own atomic-batch primitive -- see
+// server/api/logbook.js's replaceChildRows for the existing precedent),
+// so a mid-import failure now rolls back everything, matching what this
+// header always claimed.
+const MAX_IMPORT_ROWS = 500;
 
 // entrySchema's own messages name internal field/entry keys (placeId,
 // type) that don't exist in the CSV a user actually typed into --
@@ -120,6 +132,13 @@ export async function handleImport(request, env, userId) {
   const isJson = (request.headers.get("Content-Type") ?? "").includes("json");
   const parsed = parserFor(request.headers.get("Content-Type"))(text);
   if (!parsed.ok) return json({ error: parsed.error }, 400);
+  // #800 -- bounds both the batch() call below (D1/Workers have their own
+  // limits on statement count and CPU time per request) and the
+  // resolveLocationsAndPlaces() read just below, before either does any
+  // real work on an oversized file.
+  if (parsed.rows.length > MAX_IMPORT_ROWS) {
+    return json({ error: `Import is limited to ${MAX_IMPORT_ROWS} rows per file (this file has ${parsed.rows.length}).` }, 400);
+  }
 
   const { newLocations, newPlaces, placeIds } = await resolveLocationsAndPlaces(env, userId, parsed.rows);
   const drafts = parsed.rows.map((row, i) => draftEntry(row, placeIds[i]));
@@ -146,15 +165,17 @@ export async function handleImport(request, env, userId) {
   });
   if (rowErrors.length > 0) return json({ errors: rowErrors }, 400);
 
-  for (const location of newLocations) {
-    await insertRow(env, "locations", buildLocationRow(location, location.id, userId));
-  }
-  for (const place of newPlaces) {
-    await insertRow(env, "places", buildPlaceRow({ locationId: place.location_id, area: place.area }, place.id, userId));
-  }
-  for (const draft of drafts) {
-    await insertRow(env, "entries", buildEntryRow(draft, crypto.randomUUID(), userId));
-  }
+  // #800 -- one real transaction, not three loops of individually-awaited
+  // INSERTs. All three tables' rows go into the same batch() call (not
+  // one batch per table) so the whole import -- locations, places, and
+  // entries together -- rolls back as a unit on any failure, not just
+  // each table on its own.
+  const statements = [
+    ...newLocations.map(location => buildInsertStatement(env, "locations", buildLocationRow(location, location.id, userId))),
+    ...newPlaces.map(place => buildInsertStatement(env, "places", buildPlaceRow({ locationId: place.location_id, area: place.area }, place.id, userId))),
+    ...drafts.map(draft => buildInsertStatement(env, "entries", buildEntryRow(draft, crypto.randomUUID(), userId))),
+  ];
+  if (statements.length > 0) await env.LOGBOOK_DB.batch(statements);
 
   const rows = await listForUser(env, "entries", userId, entryRowToJson, { excludeDeleted: true });
   const decorated = await attachChildRows(rows, env);
