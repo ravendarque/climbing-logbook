@@ -71,9 +71,9 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(200);
   });
 
-  it("accepts all page shapes: log, map, performance, account, account/edit, account/import", async () => {
+  it("accepts all page shapes: log, map, performance, sync, account, account/edit, account/import", async () => {
     const { cookie } = await createAuthedSession({ username: "allpagesuser", hostname: "climbinglogbook.com" });
-    for (const page of ["log", "map", "performance", "account", "account/edit", "account/import"]) {
+    for (const page of ["log", "map", "performance", "sync", "account", "account/edit", "account/import"]) {
       const res = await fetchOwnedRoute("allpagesuser", page, { cookie });
       expect(res.status).toBe(200);
     }
