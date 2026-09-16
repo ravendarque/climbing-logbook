@@ -100,6 +100,11 @@ test("shows an inline error for the wrong password, without navigating away", as
 
   await expect(page.locator("#login-error")).toBeVisible();
   await expect(page).toHaveURL(/\/login\/?$/);
+  // #806 -- focus moves to the error itself (role="alert"/aria-live, so a
+  // screen reader announces it either way) so a sighted keyboard user
+  // also notices it, not just whoever's looking at the right part of
+  // the page.
+  await expect(page.locator("#login-error")).toBeFocused();
 });
 
 test("forgot password requires an email first", async ({ page }) => {
@@ -114,4 +119,8 @@ test("forgot password requires an email first", async ({ page }) => {
 
   await expect(page.locator("#login-error")).toBeVisible();
   await expect(page.locator("#login-info")).toBeHidden();
+  // #806 -- this specific case focuses the actual field needing input
+  // rather than the error text itself (still announced via aria-live
+  // either way).
+  await expect(page.locator("#email")).toBeFocused();
 });

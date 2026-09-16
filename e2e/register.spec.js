@@ -85,4 +85,7 @@ test("rejects sign-up with no invite code", async ({ page }) => {
 
   await expect(page.locator("#register-error")).toBeVisible();
   await expect(page.locator("#register-success")).toBeHidden();
+  // #806 -- role="alert"/aria-live gets a screen reader to announce it;
+  // focus moving there too means a sighted keyboard user notices it.
+  await expect(page.locator("#register-error")).toBeFocused();
 });
