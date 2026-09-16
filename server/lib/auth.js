@@ -6,10 +6,15 @@ import { createTurnstileHook } from "./turnstile.js";
 import { DEMO_USERNAMES } from "../../shared/demo-personas.js";
 
 // Better Auth (#20) -- replaces Cloudflare Access as the auth mechanism for
-// the multi-user rollout. A factory, not a module-scope singleton: `env`
-// (and therefore the D1 binding) only exists inside a request's fetch()
-// call, not at module-eval time -- same reasoning client/store.js's
-// createStore() is a factory rather than a singleton.
+// the multi-user rollout. `createAuth` still has to be a function, not a
+// bare module-scope call: `env` (and therefore the D1 binding) only
+// exists inside a request's fetch() call, not at module-eval time -- same
+// reasoning client/store.js's createStore() is a factory rather than a
+// singleton. But its own *result* is cached per hostname below (#782) --
+// a Workers isolate serves many requests over its lifetime with a stable
+// `env`, so there's no reason to rebuild the whole betterAuth() plugin
+// pipeline/Kysely adapter/email sender on every single request the way
+// this used to.
 //
 // `database: env.LOGBOOK_DB` is a real D1Database binding, not a Kysely
 // dialect -- better-auth's own @better-auth/kysely-adapter dependency
@@ -120,9 +125,29 @@ function crossSubDomainCookies(hostname) {
   return { enabled: true, domain: "climbinglogbook.com" };
 }
 
+// #782 -- keyed on hostname, not just a single cached instance: a single
+// deployed Worker can genuinely see more than one real hostname across
+// its own isolate's lifetime (production's own routes match BOTH
+// climbinglogbook.com and my.climbinglogbook.com against this same
+// Worker), and crossSubDomainCookies(hostname) above is the one thing
+// createAuth's own output actually varies by. In practice every
+// hostname a given deployment ever sees resolves to the same
+// crossSubDomainCookies() bucket (production's own two real hostnames
+// both count as "the real domain family"; every local/preview hostname
+// doesn't) -- but caching by hostname directly, rather than relying on
+// that bucket-stability as an unenforced invariant, means this stays
+// correct even if that ever stops being true, for the cost of at most a
+// handful of extra map entries per isolate lifetime. `env` itself isn't
+// part of the key -- its bindings don't change across requests to the
+// same isolate, unlike hostname.
+const authCache = new Map();
+
 export function createAuth(env, hostname) {
+  const cached = authCache.get(hostname);
+  if (cached) return cached;
+
   const emailSender = createEmailSender(env);
-  return betterAuth({
+  const auth = betterAuth({
     database: env.LOGBOOK_DB,
     basePath: "/logbook/api/auth",
     secret: env.BETTER_AUTH_SECRET,
@@ -230,4 +255,6 @@ export function createAuth(env, hostname) {
     },
     databaseHooks: { user: { create: { after: createBetaGateAfterHook(env) } } },
   });
+  authCache.set(hostname, auth);
+  return auth;
 }
