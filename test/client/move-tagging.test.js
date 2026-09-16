@@ -51,6 +51,49 @@ describe("createMoveRowList", () => {
     expect(widget.getRows()).toHaveLength(1);
   });
 
+  // #805 -- render() rewrites the whole list's innerHTML on every change,
+  // destroying the exact control a keyboard user just activated (both
+  // the remove button and, on a limb change, the limb <select> itself).
+  describe("focus restoration after a re-render (#805)", () => {
+    it("focuses the row that shifted into a removed row's position", () => {
+      const widget = createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
+      addBtnEl.click();
+      addBtnEl.click();
+      addBtnEl.click();
+      listEl.querySelectorAll("[data-remove-row]")[0].click();
+      expect(widget.getRows()).toHaveLength(2);
+      expect(document.activeElement).toBe(listEl.children[0].querySelector("[data-remove-row]"));
+    });
+
+    it("focuses the previous row's remove button when removing the last row", () => {
+      const widget = createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
+      addBtnEl.click();
+      addBtnEl.click();
+      listEl.querySelectorAll("[data-remove-row]")[1].click();
+      expect(widget.getRows()).toHaveLength(1);
+      expect(document.activeElement).toBe(listEl.children[0].querySelector("[data-remove-row]"));
+    });
+
+    it("focuses the Add button when removing the only remaining row", () => {
+      createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
+      addBtnEl.click();
+      listEl.querySelector("[data-remove-row]").click();
+      expect(document.activeElement).toBe(addBtnEl);
+    });
+
+    it("re-focuses the limb select in its own row after a limb change re-renders the whole list", () => {
+      const widget = createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
+      addBtnEl.click();
+      addBtnEl.click();
+      const secondRowLimbSelect = listEl.children[1].querySelector('[data-field="limbSide"]');
+      secondRowLimbSelect.value = "foot-right";
+      secondRowLimbSelect.dispatchEvent(new Event("change", { bubbles: true }));
+
+      expect(widget.getRows()[1].limb).toBe("foot");
+      expect(document.activeElement).toBe(listEl.children[1].querySelector('[data-field="limbSide"]'));
+    });
+  });
+
   it("re-filters hold type and movement style options when limb changes, defaulting to the new limb's first option", () => {
     const widget = createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
     addBtnEl.click();

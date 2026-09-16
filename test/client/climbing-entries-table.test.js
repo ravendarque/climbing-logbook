@@ -59,3 +59,90 @@ describe("ClimbingEntriesTable render batching", () => {
     expect(header.textContent).toBe("Fontainebleau");
   });
 });
+
+// #805 -- #renderSections() rewrites #sections' entire innerHTML on every
+// #update(), destroying whichever control (place header, sortable column
+// header, Show more/Show all button) a keyboard user just activated.
+// Focus reverted to <body> every time -- these confirm it now lands back
+// on the equivalent control (or a sensible fallback) after the re-render.
+describe("focus restoration after a re-render (#805)", () => {
+  async function seedOneEntry() {
+    el.editable = true;
+    el.places = [{ id: "p1", locationId: "loc1", area: "" }];
+    el.entries = [entry()];
+    el.locations = [{ id: "loc1", name: "Fontainebleau", country: "France" }];
+    await Promise.resolve();
+  }
+
+  it("keeps focus on the place header after a collapse/expand click", async () => {
+    await seedOneEntry();
+    const header = el.querySelector(".place-header");
+    header.focus();
+    header.click();
+    await Promise.resolve();
+    const newHeader = el.querySelector('.place-header[data-location-id="loc1"]');
+    expect(document.activeElement).toBe(newHeader);
+    expect(newHeader).not.toBe(header); // genuinely a new DOM node, not the old one surviving
+  });
+
+  it("keeps focus on the sortable column header after a sort-toggle click", async () => {
+    await seedOneEntry();
+    const sortTh = el.querySelector('th[data-sort="grade"]');
+    sortTh.focus();
+    sortTh.click();
+    await Promise.resolve();
+    const newSortTh = el.querySelector('th[data-sort="grade"][data-location-id="loc1"]');
+    expect(document.activeElement).toBe(newSortTh);
+    expect(newSortTh).not.toBe(sortTh);
+  });
+
+  it("keeps focus on the Show more button after revealing another page", async () => {
+    el.editable = true;
+    el.places = [{ id: "p1", locationId: "loc1", area: "" }];
+    el.entries = Array.from({ length: 101 }, (_, i) => entry({ id: `e${i}`, date: `2026-01-${String((i % 28) + 1).padStart(2, "0")}` }));
+    el.locations = [{ id: "loc1", name: "Fontainebleau", country: "France" }];
+    await Promise.resolve();
+
+    const showMoreBtn = el.querySelector(".show-more-btn");
+    expect(showMoreBtn).not.toBeNull();
+    showMoreBtn.focus();
+    showMoreBtn.click();
+    await Promise.resolve();
+
+    // 101 entries, PAGE_SIZE 100 -- one more click reveals the last row,
+    // removing the Show more/Show all buttons entirely (nothing left to
+    // reveal). Falls back to the section's own place header instead of
+    // silently landing on <body>.
+    expect(el.querySelector(".show-more-btn")).toBeNull();
+    expect(document.activeElement).toBe(el.querySelector('.place-header[data-location-id="loc1"]'));
+  });
+
+  it("falls back to the place header when Show all removes its own button", async () => {
+    el.editable = true;
+    el.places = [{ id: "p1", locationId: "loc1", area: "" }];
+    el.entries = Array.from({ length: 150 }, (_, i) => entry({ id: `e${i}`, date: `2026-01-${String((i % 28) + 1).padStart(2, "0")}` }));
+    el.locations = [{ id: "loc1", name: "Fontainebleau", country: "France" }];
+    await Promise.resolve();
+
+    const showAllBtn = el.querySelector(".show-all-btn");
+    showAllBtn.focus();
+    showAllBtn.click();
+    await Promise.resolve();
+
+    expect(el.querySelector(".show-all-btn")).toBeNull();
+    expect(document.activeElement).toBe(el.querySelector('.place-header[data-location-id="loc1"]'));
+  });
+
+  it("doesn't steal focus onto the component when nothing inside it was focused beforehand", async () => {
+    await seedOneEntry();
+    const outsideBtn = document.createElement("button");
+    document.body.append(outsideBtn);
+    outsideBtn.focus();
+
+    el.entries = [entry({ grade: "6B" })]; // any change that triggers #update()
+    await Promise.resolve();
+
+    expect(document.activeElement).toBe(outsideBtn);
+    outsideBtn.remove();
+  });
+});

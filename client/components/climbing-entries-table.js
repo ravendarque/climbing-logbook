@@ -664,16 +664,59 @@ export class ClimbingEntriesTable extends HTMLElement {
   // into exactly one real render, using the FINAL state of everything by
   // the time it actually runs -- no visible intermediate state, and no
   // caller-side change needed (every setter still "just works").
+  // #805 -- #renderSections() below rewrites #sections' entire innerHTML
+  // on every #update() call, destroying whichever row/section control
+  // (place header, sortable column header, Show more/Show all button) a
+  // keyboard user just activated -- including via the Enter/Space
+  // keydown handlers further down, which are otherwise correctly
+  // implemented. Focus reverted to <body>, so a keyboard-only or
+  // screen-reader user lost their place after every single interaction
+  // with this component and had to re-tab from the top of the page each
+  // time. Captured as a CSS selector, not a DOM reference (the element
+  // itself is about to be destroyed) built from each control's own
+  // stable data-attributes -- generic across every control type
+  // #renderSections() can destroy, not one bespoke case per control --
+  // and restored by re-querying #sections after the new DOM lands.
+  // Returns { selector, sectionKey } rather than a bare selector string --
+  // sectionKey (the raw, un-escaped value) is carried separately so
+  // #restoreFocus's fallback can build its own fresh selector rather than
+  // round-tripping an already-CSS.escape()'d value back out of the first
+  // selector string.
+  #focusedControlSelector() {
+    const el = document.activeElement;
+    if (!el || !this.contains(el)) return null;
+    if (el.matches(".place-header[data-location-id]")) return { selector: `.place-header[data-location-id="${CSS.escape(el.dataset.locationId)}"]` };
+    if (el.matches("th[data-sort][data-location-id]")) return { selector: `th[data-sort="${CSS.escape(el.dataset.sort)}"][data-location-id="${CSS.escape(el.dataset.locationId)}"]` };
+    if (el.matches(".show-more-btn[data-section-key]")) return { selector: `.show-more-btn[data-section-key="${CSS.escape(el.dataset.sectionKey)}"]`, sectionKey: el.dataset.sectionKey };
+    if (el.matches(".show-all-btn[data-section-key]")) return { selector: `.show-all-btn[data-section-key="${CSS.escape(el.dataset.sectionKey)}"]`, sectionKey: el.dataset.sectionKey };
+    return null;
+  }
+
+  // Restores focus after #renderSections() -- the exact same control
+  // when it still exists (collapse/expand, sort), or that section's own
+  // place-header as a reasonable fallback when the control itself is
+  // gone (Show more/Show all can reveal every row and remove both
+  // buttons entirely) -- either way, focus lands back inside the section
+  // the user was just working in, not <body>.
+  #restoreFocus(captured) {
+    if (!captured) return;
+    const el = this.querySelector(captured.selector);
+    if (el) { el.focus(); return; }
+    if (captured.sectionKey !== undefined) this.querySelector(`.place-header[data-location-id="${CSS.escape(captured.sectionKey)}"]`)?.focus();
+  }
+
   #updateScheduled = false;
   #update() {
     if (this.#updateScheduled) return;
     this.#updateScheduled = true;
     queueMicrotask(() => {
       this.#updateScheduled = false;
+      const focusedControl = this.#focusedControlSelector();
       this.#maybeInitCollapse();
       this.#updateFilterUI();
       this.#renderSections();
       this.#updateCollapseAllBtn();
+      this.#restoreFocus(focusedControl);
     });
   }
 
