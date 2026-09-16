@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-pool-workers";
 import { defineConfig } from "vitest/config";
 
@@ -11,6 +12,19 @@ import { defineConfig } from "vitest/config";
 // setupFile, runs inside the pool once per test file) can call
 // applyD1Migrations() against the real env.LOGBOOK_DB from inside there.
 const migrations = await readD1Migrations("./migrations");
+
+// #799 -- same "Workers pool can't read the filesystem" constraint as the
+// migrations read above. wrangler-run-worker-first.test.js needs the real
+// wrangler.jsonc run_worker_first array as a regression guard (every
+// owned-page family SHELL_PATHS knows about must also appear there), so
+// it's read here, in real Node, and handed through as a binding rather
+// than read from inside the pool. wrangler.jsonc is JSONC (comments), so
+// this is a scoped regex extraction, not a full JSON.parse.
+const wranglerJsonc = readFileSync(new URL("./wrangler.jsonc", import.meta.url), "utf8");
+const runWorkerFirstMatch = wranglerJsonc.match(/"run_worker_first"\s*:\s*\[([\s\S]*?)\]/);
+const RUN_WORKER_FIRST_PATHS = runWorkerFirstMatch
+  ? [...runWorkerFirstMatch[1].matchAll(/"([^"]+)"/g)].map(m => m[1])
+  : [];
 
 export default defineConfig({
   test: {
@@ -55,6 +69,7 @@ export default defineConfig({
             miniflare: {
               bindings: {
                 TEST_D1_MIGRATIONS: migrations,
+                RUN_WORKER_FIRST_PATHS: RUN_WORKER_FIRST_PATHS,
                 // Never a real credential -- every test that sends email stubs
                 // the outbound fetch() to Resend's API (see test/email.test.js's
                 // own header comment), so the actual value here is never used

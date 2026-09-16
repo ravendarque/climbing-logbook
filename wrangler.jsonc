@@ -23,17 +23,22 @@
   // internally via the ASSETS binding, from inside the session-checked
   // routes above. #302 adds /account, /account/edit to this same list --
   // same bare-path-reachability gap, since owned-routes.js's SHELL_PATHS
-  // now serves those too. Scoped to just these paths (an array, not the
-  // global `true`) so every other static file keeps today's free
-  // asset-first perf/cost -- confirmed the array form is supported at
-  // the pinned wrangler version (4.115.0) via
+  // now serves those too. #799 adds /sync, /sync/* -- #498 added `sync` to
+  // SHELL_PATHS and the owned-route regex without extending this array,
+  // so public/sync/index.html was reachable directly with no session
+  // check at all (a signed-out visitor, stale tab, or bookmarked /sync
+  // URL got the raw app shell instead of a redirect to /login). Scoped to
+  // just these paths (an array, not the global `true`) so every other
+  // static file keeps today's free asset-first perf/cost -- confirmed the
+  // array form is supported at the pinned wrangler version (4.115.0) via
   // node_modules/wrangler/config-schema.json, not assumed. Forcing these
   // through the Worker is enough on its own: server/index.js has no route
-  // matching a bare "/log"/"/map"/"/performance"/"/profile"/"/account"
-  // pathname (the dynamic my.<domain>/:username/{log,map,performance,
-  // account(/edit)?} regex always requires a username segment first), so
-  // these now simply fall through to the same final "Not found" 404 every
-  // other unmatched path gets -- no new route-matching code needed.
+  // matching a bare "/log"/"/map"/"/performance"/"/profile"/"/account"/
+  // "/sync" pathname (the dynamic my.<domain>/:username/{log,map,
+  // performance,account(/edit)?,sync} regex always requires a username
+  // segment first), so these now simply fall through to the same final
+  // "Not found" 404 every other unmatched path gets -- no new
+  // route-matching code needed.
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
@@ -42,7 +47,8 @@
       "/map", "/map/*",
       "/performance", "/performance/*",
       "/profile", "/profile/*",
-      "/account", "/account/*"
+      "/account", "/account/*",
+      "/sync", "/sync/*"
     ]
   },
   // Better Auth (#20) + the eventual multi-tenant app data (#21) -- id is a

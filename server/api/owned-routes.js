@@ -34,7 +34,14 @@ function loginUrl(hostname) {
 // itself via the ASSETS binding and returns it, rather than letting Static
 // Assets try to match /:username/log directly (it can't -- static assets
 // only match literal paths).
-const SHELL_PATHS = {
+//
+// Exported (#799) so test/wrangler-run-worker-first.test.js can assert
+// every top-level page family here also has a run_worker_first entry in
+// wrangler.jsonc -- the #799 gap (sync added here without a matching
+// run_worker_first entry, leaving public/sync/index.html directly
+// asset-servable with no session check) shouldn't be able to silently
+// recur for the next new shell page either.
+export const SHELL_PATHS = {
   log: "/log/index.html",
   map: "/map/index.html",
   performance: "/performance/index.html",
