@@ -376,7 +376,9 @@ default has worked in practice, but worth knowing if a fresh setup doesn't
 (opened/synchronize/reopened — the default set; there's no `closed`
 handler, so preview versions for closed/merged PRs are never cleaned up
 and just accumulate — a known, accepted gap, not a bug), it builds the app
-the same way `deploy.yml` does (`tailwind:build` + `client:build`), runs
+the same way `deploy.yml` does (`html:build`/`tailwind:build`/
+`deploy:build`, the last with `CLOUDFLARE_ENV=preview` so the build
+targets `env.preview`'s own bindings, #774), runs
 `wrangler versions upload --env preview --preview-alias "pr-$PR_NUMBER"`,
 then posts the resulting URL as a PR comment. The alias is stable per PR
 number (not per-commit), so `gh pr comment --edit-last` updates the same

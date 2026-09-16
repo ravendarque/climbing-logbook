@@ -99,6 +99,48 @@
   // there's no reason to leave the production route pattern sitting in
   // the preview env's config at all.
   "env": {
+    // #774 -- exists so "production" is a real, validated environment
+    // name once the Worker is Vite-built, not an implicit fallback.
+    // @cloudflare/vite-plugin selects environments at BUILD time via
+    // CLOUDFLARE_ENV, not `wrangler deploy --env=X` (that flag has no
+    // effect on a Vite-built deploy, confirmed against Cloudflare's own
+    // docs) -- and confirmed empirically (2026-09-16) that omitting
+    // CLOUDFLARE_ENV entirely silently falls back to the top-level
+    // config with no error, while setting it to an unrecognized name
+    // (one with no matching `env.X` section here) throws immediately.
+    // Adding this block turns "someone forgot to set CLOUDFLARE_ENV"
+    // from a silent wrong-environment build into a loud one -- paired
+    // with the explicit CLOUDFLARE_ENV requirement enforced in
+    // deploy.yml/promote.yml's own build steps (that's the piece that
+    // actually catches a plain omission; this block only catches a
+    // typo'd or unrecognized name). `vars`/`d1_databases` are
+    // duplicated from the top level rather than left to inherit,
+    // matching env.preview/env.beta's own established convention below
+    // (`vars` is confirmed NOT inherited by named environments; explicit
+    // `d1_databases` was added to both after a real incident where an
+    // inherited-and-left-alone d1_databases silently pointed env.preview
+    // at production's database). `routes` is deliberately left to
+    // inherit -- unlike `vars`/`d1_databases`, routes ARE documented and
+    // confirmed to inherit correctly, and production's own routes here
+    // are already identical to the top level's real ones, so
+    // duplicating them would just be a second copy to keep in sync for
+    // no safety benefit. This does mean wrangler.jsonc now has THREE
+    // copies of the production D1 database id (top level, here, and
+    // env.beta below) instead of two -- infra.yml's own D1-id sync step
+    // only auto-updates the first (the top-level block, unaffected by
+    // this addition since it comes first in the file regardless of
+    // where inside `env` this block sits); both `env` copies already
+    // needed manual updates on a database recreation before this change
+    // (see env.beta's own comment), this just adds a second manual spot
+    // rather than introducing the pattern.
+    "production": {
+      "vars": {
+        "BETA_GATE_ENABLED": "true"
+      },
+      "d1_databases": [
+        { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook", "database_id": "8f094438-520c-4a67-a685-aee3db6198ad", "migrations_dir": "migrations" }
+      ]
+    },
     "preview": {
       "workers_dev": true,
       "routes": [],

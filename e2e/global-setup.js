@@ -50,19 +50,29 @@ async function waitForServer(url, timeoutMs = 60_000) {
 // Written to storageState (playwright.config.js's `use.storageState`)
 // rather than an in-memory value, since globalSetup and the actual test
 // browser contexts are separate processes/contexts entirely.
+// #774 -- the e2e webServer's own Worker is now built with
+// CLOUDFLARE_ENV=preview (playwright.config.js), so it reads
+// env.preview's own D1 database (climbing-logbook-preview) -- this file's
+// own D1 CLI calls (migrations/reset/seed, all via scripts/lib/
+// dev-session.mjs) have to target that exact same database, or they
+// silently touch a different (unmigrated) one while the Worker itself
+// 500s with "no such table" trying to read/write the real target.
+// { remote: true } stays unset -- both sides are Miniflare's own local
+// simulation, matching every call in this file before #774; only
+// scripts/seed-preview-data.mjs (#391), which seeds the real remote
+// preview D1 for actual PR previews, passes { remote: true } too.
+const D1_OPTIONS = { database: "climbing-logbook-preview", env: "preview" };
+
 export default async function globalSetup() {
   await waitForServer(`${BASE_URL}/logbook/api/logbook`);
 
   // Schema must exist before resetDatabase() can DELETE FROM its tables --
   // a fresh checkout/CI runner has none yet at this point (see
   // applyMigrations()'s own comment in scripts/lib/dev-session.mjs).
-  applyMigrations();
-  resetDatabase();
-  // (both local -- no { remote, env } options -- same as every call in
-  // this file always has been; #391's preview counterpart passes
-  // { remote: true, env: "preview" } instead.)
+  applyMigrations(D1_OPTIONS);
+  resetDatabase(D1_OPTIONS);
 
-  const setCookieHeader = await bootstrapDevSession(BASE_URL);
+  const setCookieHeader = await bootstrapDevSession(BASE_URL, D1_OPTIONS);
   // e2e/.auth/ is gitignored (holds a bootstrapped, non-production
   // session, not source) -- a fresh checkout (CI, or a first local
   // clone) has no reason to already have it.

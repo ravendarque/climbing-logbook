@@ -13,8 +13,8 @@ const BASE_URL = `http://localhost:${PORT}`;
 
 export default defineConfig({
   testDir: "./e2e",
-  // Every spec shares one `wrangler dev` instance and one bootstrapped
-  // dev user's D1-backed state (#297, see globalSetup) -- discipline/
+  // Every spec shares one `vite preview` instance (#774) and one
+  // bootstrapped dev user's D1-backed state (#297, see globalSetup) -- discipline/
   // athleteMode live in that user's shared settings row, not per-browser-
   // context storage, so two spec files touching them concurrently would
   // race regardless of per-test cleanup. Fully serial, not just
@@ -38,18 +38,28 @@ export default defineConfig({
   webServer: {
     // Rebuilds assets before serving, since public/logbook/{tailwind.css,
     // map-app.js,...} are gitignored build output (see .gitignore) --
-    // wrangler dev would otherwise serve a stale or missing bundle. Same
-    // reasoning for e2e:build-fixtures (#407 Tier 1) -- public/
-    // e2e-fixtures/ is gitignored too, deliberately never part of `pnpm
-    // run deploy`'s own build list (see .gitignore's own comment).
-    // client:build (package.json, #761) is a single `vite build` call
-    // across every client/*-main.js entry -- see deploy.yml's own
-    // comment on this exact bug (#224) for why this used to hand-list
-    // every page itself. html:build (#760) is new here too --
-    // public/*/index.html are now 11ty-generated output, gitignored
-    // same as the rest, and e2e:build-fixtures' own copy step needs
-    // them to exist as real files before it runs.
-    command: "pnpm run html:build && pnpm run tailwind:build && pnpm run client:build && pnpm run e2e:build-fixtures && wrangler dev",
+    // stale or missing bundles otherwise. Same reasoning for
+    // e2e:build-fixtures (#407 Tier 1) -- public/e2e-fixtures/ is
+    // gitignored too, deliberately never part of `pnpm run deploy`'s own
+    // build list (see .gitignore's own comment). Must run before
+    // deploy:build, not after -- that step's own publicDir-copy carries
+    // whatever's already in public/ (including e2e-fixtures/) into
+    // dist/client/.
+    //
+    // #774 -- `vite preview` (vite.deploy.config.js), not `wrangler dev`
+    // -- this project has no `wrangler dev`-based local serving left at
+    // all (see vite.config.js's own comment for why); `vite preview` is
+    // Cloudflare's own documented mechanism for "serve a real build in
+    // the Workers runtime before deploying," which is exactly what e2e
+    // needs. CLOUDFLARE_ENV=preview (env.preview, wrangler.jsonc) is
+    // required at build time by deploy:build's own guard
+    // (scripts/require-cloudflare-env.mjs) -- e2e gets its own bound D1
+    // database this way, same isolation env.preview's PR-preview
+    // deploys (preview.yml) already rely on, not production's.
+    command: "pnpm run html:build && pnpm run tailwind:build && pnpm run e2e:build-fixtures && pnpm run deploy:build && vite preview --config vite.deploy.config.js",
+    env: {
+      CLOUDFLARE_ENV: "preview",
+    },
     // /login/, not /logbook/ (retired, #375) -- just needs a real, always-
     // reachable static page to poll for readiness, unrelated to what any
     // individual spec actually tests.

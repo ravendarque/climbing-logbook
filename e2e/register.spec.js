@@ -5,9 +5,9 @@
 // test/auth.test.js/test/handlers.test.js against the real API -- this
 // is UI-layer coverage only, same split login.spec.js already
 // established for /login.
-import { execFileSync } from "node:child_process";
 import { expect, test } from "@playwright/test";
 import { mockTurnstile } from "./mock-turnstile.js";
+import { d1Execute } from "../scripts/lib/dev-session.mjs";
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
@@ -31,12 +31,19 @@ test.use({ storageState: { cookies: [], origins: [] } });
 // itself -- with both the client widget and the server siteverify call
 // mocked out, this suite no longer depends on real network access at all.
 
+// #774 -- climbing-logbook-preview/env:"preview", matching
+// e2e/global-setup.js's own D1_OPTIONS: the e2e webServer's Worker is
+// built with CLOUDFLARE_ENV=preview (playwright.config.js) and reads
+// env.preview's own D1 database, not the top-level "climbing-logbook"
+// this used to hand-roll a direct call against. Reuses
+// scripts/lib/dev-session.mjs's shared d1Execute() (same helper
+// global-setup.js/seed-preview-data.mjs already use) rather than a
+// third hand-rolled wrangler invocation.
 function seedInviteCode(code) {
-  execFileSync(
-    "pnpm",
-    ["exec", "wrangler", "d1", "execute", "climbing-logbook", "--local", "--command", `INSERT OR IGNORE INTO beta_invites (code) VALUES ('${code}')`],
-    { stdio: "inherit" }
-  );
+  d1Execute(`INSERT OR IGNORE INTO beta_invites (code) VALUES ('${code}')`, {
+    database: "climbing-logbook-preview",
+    env: "preview",
+  });
 }
 
 // Turnstile's widget (#311) loads from Cloudflare's own CDN and renders
