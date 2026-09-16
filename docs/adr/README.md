@@ -49,7 +49,7 @@ GitHub, the same treatment every other doc in this repo already gets.
 | [0009](0009-normalized-d1-schema-with-lookup-tables.md) | Normalized D1 schema with real lookup tables | Accepted |
 | [0010](0010-public-url-structure-my-domain-username.md) | Public URL structure: my.&lt;domain&gt;/username | Accepted |
 | [0011](0011-three-layer-test-pyramid.md) | Three-layer test pyramid: real Workers runtime, extracted-logic unit tests, Playwright E2E | Accepted |
-| [0012](0012-client-modularization-factories-no-framework.md) | Client-side modularization: esbuild + ES modules + factories, no framework | Accepted |
+| [0012](0012-client-modularization-factories-no-framework.md) | Client-side modularization: esbuild + ES modules + factories, no framework | Accepted, bundler choice superseded by 0021 |
 | [0013](0013-pr-previews-via-wrangler-versions-upload.md) | PR preview deployments via wrangler versions upload | Accepted |
 | [0014](0014-closed-beta-invite-gate-togglable-not-removable.md) | Closed-beta invite gate, togglable off rather than removed | Accepted, partially superseded by 0016 |
 | [0015](0015-web-analytics-eu-exclusion-not-consent-banner.md) | Cloudflare Web Analytics with EU exclusion, not a cookie consent banner | Accepted |
@@ -58,3 +58,6 @@ GitHub, the same treatment every other doc in this repo already gets.
 | [0018](0018-server-side-aggregation-for-derived-views.md) | Server-side aggregation for derived views, no client-side fallback | Accepted |
 | [0019](0019-local-first-sync-chunked-initial-load-and-delta.md) | Local-first sync for /log: chunked initial load + delta sync, not click-driven pagination | Accepted |
 | [0020](0020-beta-environment-shared-data-tag-promotion.md) | Beta environment: shared production data, tag-cumulative promotion, opt-in gate | Accepted |
+| [0021](0021-vite-for-production-build-client-and-worker.md) | Vite as the production build tool: client bundling, Worker build, and explicit environment selection | Accepted |
+| [0022](0022-eleventy-for-page-shell-templating.md) | 11ty (Eleventy) for page-shell templating | Accepted |
+| [0023](0023-instant-shell-decoupled-content-loading.md) | Instant shell, decoupled content loading, and a shell-level sync/offline indicator | Accepted |
