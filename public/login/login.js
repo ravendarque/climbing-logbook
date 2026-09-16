@@ -17,6 +17,17 @@ const submitBtn = document.getElementById("login-submit-btn");
 const emailInput = document.getElementById("email");
 const forgotPasswordBtn = document.getElementById("forgot-password-btn");
 
+// #806 -- errorEl carries role="alert"/aria-live="assertive" in the
+// template (views/login/index.njk), so a screen reader announces it
+// once its text/visibility change; tabindex="-1" (template) makes it
+// programmatically focusable so a sighted keyboard user also notices
+// it, not just whoever's already looking at the right part of the page.
+function showError(message) {
+  errorEl.textContent = message;
+  errorEl.hidden = false;
+  errorEl.focus();
+}
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   errorEl.hidden = true;
@@ -67,11 +78,9 @@ form.addEventListener("submit", async (event) => {
       return;
     }
 
-    errorEl.textContent = data?.message || `Login failed (${res.status}).`;
-    errorEl.hidden = false;
+    showError(data?.message || `Login failed (${res.status}).`);
   } catch {
-    errorEl.textContent = "Network error -- check your connection and try again.";
-    errorEl.hidden = false;
+    showError("Network error -- check your connection and try again.");
   } finally {
     submitBtn.disabled = false;
   }
@@ -87,8 +96,11 @@ forgotPasswordBtn.addEventListener("click", async () => {
   infoEl.hidden = true;
 
   if (!emailInput.value) {
-    errorEl.textContent = "Enter your email above first, then click \"Forgot password?\" again.";
-    errorEl.hidden = false;
+    // Focuses the actual field needing input rather than the error text
+    // itself (showError()'s own default) -- still announced via
+    // aria-live either way, just a more useful landing spot for a
+    // keyboard user here specifically.
+    showError("Enter your email above first, then click \"Forgot password?\" again.");
     emailInput.focus();
     return;
   }
@@ -115,12 +127,10 @@ forgotPasswordBtn.addEventListener("click", async () => {
       infoEl.textContent = data?.message || "If that email is registered, a reset link has been sent.";
       infoEl.hidden = false;
     } else {
-      errorEl.textContent = data?.message || `Request failed (${res.status}).`;
-      errorEl.hidden = false;
+      showError(data?.message || `Request failed (${res.status}).`);
     }
   } catch {
-    errorEl.textContent = "Network error -- check your connection and try again.";
-    errorEl.hidden = false;
+    showError("Network error -- check your connection and try again.");
   } finally {
     forgotPasswordBtn.disabled = false;
   }

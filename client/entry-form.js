@@ -61,6 +61,21 @@ export function createEntryForm({
   const entrySubmitBtn = document.getElementById("entry-submit-btn");
   const entryDeleteBtn = document.getElementById("entry-delete-btn");
   const entryMsg      = document.getElementById("entry-msg");
+
+  // #806 -- entryMsg carries role="alert"/aria-live="assertive" in the
+  // template (views/log/index.njk), which gets a screen reader to
+  // announce it once its text/visibility change -- but a sighted
+  // keyboard user submitting an invalid form has no reason to notice a
+  // message that appeared below the fold without moving focus there
+  // too. tabindex="-1" (template) makes it programmatically focusable
+  // without adding it to the normal tab order. All 3 real call sites
+  // (shape-validation failure, create/edit failure, delete failure)
+  // previously hand-copied the same textContent+className pair.
+  function showEntryError(message) {
+    entryMsg.textContent = message;
+    entryMsg.className = ERROR_MSG_CLASS;
+    entryMsg.focus();
+  }
   const statusGroup = document.getElementById("status-group");
   const sportStyleField = document.getElementById("sport-style-field");
   const sportStyleGroup = document.getElementById("sport-style-group");
@@ -551,8 +566,7 @@ export function createEntryForm({
     // reported immediately rather than queued to fail again later.
     const shapeErr = validateEntryShape(entry);
     if (shapeErr) {
-      entryMsg.textContent = shapeErr;
-      entryMsg.className = ERROR_MSG_CLASS;
+      showEntryError(shapeErr);
       entrySubmitBtn.disabled = false;
       return;
     }
@@ -568,8 +582,7 @@ export function createEntryForm({
       if (isAuthRedirect(res)) throw new Error("not-authenticated");
       const data = await res.json();
       if (!res.ok) {
-        entryMsg.textContent = data.error ?? `Error ${res.status}`;
-        entryMsg.className = ERROR_MSG_CLASS;
+        showEntryError(data.error ?? `Error ${res.status}`);
         entrySubmitBtn.disabled = false;
         return;
       }
@@ -622,8 +635,7 @@ export function createEntryForm({
       if (isAuthRedirect(res)) throw new Error("not-authenticated");
       const data = await res.json();
       if (!res.ok) {
-        entryMsg.textContent = data.error ?? `Error ${res.status}`;
-        entryMsg.className = ERROR_MSG_CLASS;
+        showEntryError(data.error ?? `Error ${res.status}`);
         entryDeleteBtn.disabled = false;
         return;
       }

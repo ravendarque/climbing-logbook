@@ -7,6 +7,16 @@ const submitBtn = document.getElementById("register-submit-btn");
 const codeInput = document.getElementById("code");
 const successEl = document.getElementById("register-success");
 
+// #806 -- errorEl carries role="alert"/aria-live="assertive" in the
+// template (views/register/index.njk), so a screen reader announces it
+// once its text/visibility change; tabindex="-1" (template) makes it
+// programmatically focusable so a sighted keyboard user also notices it.
+function showError(message) {
+  errorEl.textContent = message;
+  errorEl.hidden = false;
+  errorEl.focus();
+}
+
 // Pre-fills the invite code from an invite link's `?code=` query param,
 // e.g. climbinglogbook.com/register?code=abc123 -- still editable by
 // hand if someone was just given a bare code instead of a full link.
@@ -48,8 +58,7 @@ form.addEventListener("submit", async (event) => {
   // here just gives a clearer message than a generic sign-up failure.
   const turnstileToken = window.turnstile?.getResponse(turnstileWidgetId);
   if (!turnstileToken) {
-    errorEl.textContent = "Please complete the verification check.";
-    errorEl.hidden = false;
+    showError("Please complete the verification check.");
     submitBtn.disabled = false;
     return;
   }
@@ -85,11 +94,9 @@ form.addEventListener("submit", async (event) => {
     }
 
     const data = await res.json().catch(() => null);
-    errorEl.textContent = data?.message || `Sign-up failed (${res.status}).`;
-    errorEl.hidden = false;
+    showError(data?.message || `Sign-up failed (${res.status}).`);
   } catch {
-    errorEl.textContent = "Network error -- check your connection and try again.";
-    errorEl.hidden = false;
+    showError("Network error -- check your connection and try again.");
   } finally {
     submitBtn.disabled = false;
     // Turnstile tokens are single-use -- a failed submit (wrong invite

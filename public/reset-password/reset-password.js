@@ -12,6 +12,17 @@ const submitBtn = document.getElementById("reset-submit-btn");
 const invalidEl = document.getElementById("reset-invalid");
 const successEl = document.getElementById("reset-success");
 
+// #806 -- errorEl carries role="alert"/aria-live="assertive" in the
+// template (views/reset-password/index.njk), so a screen reader
+// announces it once its text/visibility change; tabindex="-1" (template)
+// makes it programmatically focusable so a sighted keyboard user also
+// notices it.
+function showError(message) {
+  errorEl.textContent = message;
+  errorEl.hidden = false;
+  errorEl.focus();
+}
+
 const params = new URLSearchParams(window.location.search);
 const token = params.get("token");
 
@@ -41,11 +52,9 @@ if (!token) {
       }
 
       const data = await res.json().catch(() => null);
-      errorEl.textContent = data?.message || `Reset failed (${res.status}).`;
-      errorEl.hidden = false;
+      showError(data?.message || `Reset failed (${res.status}).`);
     } catch {
-      errorEl.textContent = "Network error -- check your connection and try again.";
-      errorEl.hidden = false;
+      showError("Network error -- check your connection and try again.");
     } finally {
       submitBtn.disabled = false;
     }
