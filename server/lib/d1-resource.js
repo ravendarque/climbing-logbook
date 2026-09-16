@@ -233,7 +233,29 @@ export function createD1ResourceHandlers({ table, resourceKey, validateFields, b
       return json({ [resourceKey]: decorated }, 200);
     }
 
-    await insertRow(env, table, buildRow(record, id, userId));
+    // #801 -- the findOwnedRow check above and this insert aren't atomic:
+    // two concurrent POSTs for the same client-minted id (a realistic
+    // offline-queue-retry scenario -- see client-generated UUIDs above)
+    // can both pass the "not found" check, and the loser's INSERT then
+    // throws a real UNIQUE-constraint error instead of the idempotent
+    // 200/201 this whole id scheme exists to guarantee. Caught here and
+    // treated exactly like the "row already exists" branch above (200,
+    // same list re-fetch) -- this genuinely is that case, just detected
+    // at INSERT time (the only place a real race can still be caught)
+    // instead of the earlier, non-atomic SELECT. Confirmed against a
+    // real D1 error (not assumed): a colliding PRIMARY KEY throws
+    // `D1_ERROR: UNIQUE constraint failed: <table>.id: SQLITE_CONSTRAINT`
+    // -- re-thrown untouched if the message doesn't match, so a genuinely
+    // different D1 failure still surfaces as the 500 it should be, not
+    // silently swallowed as a false idempotent success.
+    try {
+      await insertRow(env, table, buildRow(record, id, userId));
+    } catch (e) {
+      if (!e.message?.includes("UNIQUE constraint failed")) throw e;
+      const list = await listForUser(env, table, userId, rowToJson, { excludeDeleted });
+      const decorated = decorateRows ? await decorateRows(env, userId, list) : list;
+      return json({ [resourceKey]: decorated }, 200);
+    }
     if (afterWrite) await afterWrite(env, id, record);
 
     const list = await listForUser(env, table, userId, rowToJson, { excludeDeleted });

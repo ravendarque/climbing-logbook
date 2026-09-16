@@ -129,6 +129,40 @@ describe.each([
     expect(body[listKey]).toHaveLength(1);
   });
 
+  // #801 -- findOwnedRow (scoped to the caller's own user_id) and the
+  // subsequent insertRow used to race: two concurrent creates for the
+  // same client-minted id (a real offline-queue-retry scenario) could
+  // both pass the "not found" check before either's INSERT landed, and
+  // the loser threw an unhandled UNIQUE-constraint 500 instead of the
+  // idempotent 200 this id scheme exists to guarantee.
+  //
+  // A genuinely concurrent Promise.all against this test environment's
+  // D1 simulation doesn't reliably reproduce the interleaving (confirmed
+  // by hand: the same test, fired that way, passed even with the #801
+  // fix reverted -- a false-confidence test, not a real regression
+  // guard). This reproduces the exact same failure mode deterministically
+  // instead: findOwnedRow correctly scopes by user_id (never sees another
+  // user's row), but `id` is a single global PRIMARY KEY across every
+  // user's rows -- so a second user creating with an id that already
+  // belongs to someone else hits the identical "not found, then INSERT
+  // collides" path, without needing real request-timing luck. It's the
+  // same catch branch either way.
+  it("resolves an id collision with another user's existing row instead of a 500", async () => {
+    const { cookie: otherCookie } = await createAuthedSession();
+    const otherBody = { ...(await validBody(otherCookie)), id: "fixed-id-cross-user" };
+    const first = await postJson(createPath, otherBody, otherCookie);
+    expect(first.status).toBe(201);
+
+    const ownBody = { ...(await validBody()), id: "fixed-id-cross-user" };
+    const second = await postJson(createPath, ownBody, cookie);
+    expect(second.status).toBe(200);
+    const body = await second.json();
+    // Nothing was actually created for this user -- the colliding id
+    // belongs to someone else, and ownership isolation means it's simply
+    // absent from this user's own list, not duplicated or overwritten.
+    expect(body[listKey]).toHaveLength(0);
+  });
+
   if (needsLocation) {
     it("rejects a locationId that doesn't exist", async () => {
       const res = await postJson(createPath, { locationId: "does-not-exist", area: "Sector 1" });
