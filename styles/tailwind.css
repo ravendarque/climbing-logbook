@@ -84,6 +84,11 @@
   --color-accent:            var(--color-accent);
   --color-accent-foreground: var(--color-accent-text);
   --color-border:            var(--color-border);
+  /* #807 -- form-error text, a distinct theme-adapted red (see
+     public/logbook/components/climbing-header.js's own token comment)
+     from --color-accent, which is a fixed brand red rather than
+     something that adapts per theme for contrast. */
+  --color-error:             var(--color-error-text);
 
   --color-tier-peer:         var(--tier-peer);
   --color-tier-heuristic:    var(--tier-heuristic);

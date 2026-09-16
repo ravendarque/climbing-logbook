@@ -192,9 +192,12 @@ export function createPlacePicker({
   document.getElementById("add-place-close").addEventListener("click", () => closeModal(addPlaceOverlay));
   addPlaceOverlay.addEventListener("click", e => { if (e.target === addPlaceOverlay) closeModal(addPlaceOverlay); });
 
+  // #807 -- text-error, not text-red-400 -- see entry-form.js's own
+  // ERROR_MSG_CLASS comment (this is the exact same styling, hand-
+  // copied here rather than shared).
   function showAddPlaceError(text) {
     addPlaceMsg.textContent = text;
-    addPlaceMsg.className = "mt-[.85rem] px-4 py-3 rounded-app text-[.9rem] bg-[color-mix(in_srgb,#f87171_12%,var(--color-surface))] border border-[color-mix(in_srgb,#f87171_40%,transparent)] text-red-400";
+    addPlaceMsg.className = "mt-[.85rem] px-4 py-3 rounded-app text-[.9rem] bg-[color-mix(in_srgb,#f87171_12%,var(--color-surface))] border border-[color-mix(in_srgb,#f87171_40%,transparent)] text-error";
   }
 
   addPlaceForm.addEventListener("submit", async e => {
