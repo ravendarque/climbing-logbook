@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted, bundler choice superseded by [ADR-0021](0021-vite-for-production-build-client-and-worker.md) (esbuild → Vite). The deeper decision this ADR actually made — no frontend framework, factories over classes, a single Store, a thin composition root — is untouched and still Accepted.
 
 ## Context
 
