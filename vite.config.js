@@ -32,6 +32,31 @@
 import { defineConfig } from "vite";
 import { cloudflare } from "@cloudflare/vite-plugin";
 
+// #775 (#761 Part 3) -- keeps views/*.njk (#760) completely unaware of
+// dev vs. prod: the script src is always "/logbook/<name>-app.js"
+// either way. In dev, this middleware transparently hands that request
+// to Vite's own module graph as the real client/<name>-main.js source
+// instead, with HMR; in prod there's no dev server at all, so the
+// literal built file at that path is what's served, unchanged. This is
+// deliberately NOT "let Vite own the HTML entry points" (the obvious
+// alternative) -- that's exactly the tradeoff #758 already evaluated
+// and rejected for templating (Vite's HTML handling has no partial/
+// include support, hence 11ty); reopening it just for dev-mode HMR
+// would regress a decision that's already shipped and working (#760).
+function devEntryRewrite(entries) {
+  return {
+    name: "logbook-dev-entry-rewrite",
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const match = req.url?.match(/^\/logbook\/([\w-]+)-app\.js$/);
+        const source = match && entries[match[1]];
+        if (source) req.url = `/${source}`;
+        next();
+      });
+    },
+  };
+}
+
 const CLIENT_ENTRIES = {
   log: "client/log-main.js",
   map: "client/map-main.js",
@@ -52,7 +77,7 @@ const CLIENT_ENTRIES = {
 };
 
 export default defineConfig(({ command }) => ({
-  plugins: command === "serve" ? [cloudflare()] : [],
+  plugins: command === "serve" ? [cloudflare(), devEntryRewrite(CLIENT_ENTRIES)] : [],
   // Vite's own "copy publicDir verbatim into outDir" feature defaults
   // publicDir to <root>/public -- the same directory outDir points at
   // below during a build, which Vite itself warns is unsupported

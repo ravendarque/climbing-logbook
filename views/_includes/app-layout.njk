@@ -29,6 +29,16 @@
       document.documentElement.dataset.theme = theme;
     })();
   </script>
+  <!-- #775 (#761 Part 3) -- Vite's own dev-mode HMR client. This is
+       Vite's documented pattern for HTML a backend serves itself
+       (not Vite's own index.html handling, which this app deliberately
+       doesn't use -- #760's own templating/#758's rejection of letting
+       Vite own HTML entries): the page includes the tag unconditionally,
+       environment-agnostic same as the bundle script tag below.
+       /@vite/client only exists while `vite dev` is running -- in
+       production this 404s harmlessly (one extra failed request, no
+       functional effect) since nothing ever serves that path. -->
+  <script type="module" src="/@vite/client"></script>
 </head>
 <body class="bg-background text-foreground font-sans px-4 pt-6 pb-16 min-w-[300px]">
 {{ content | safe }}
