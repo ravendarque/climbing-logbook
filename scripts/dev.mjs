@@ -74,27 +74,20 @@ console.log("==> Starting dev server");
 // on SIGINT independent of its child's actual exit code, so going through
 // `pnpm run dev:vite` here doubled that noise. `dev:vite` stays in
 // package.json for anyone who wants to run it standalone.
+//
+// #775 (#761 Part 3) -- this used to also list 16 individual `esbuild
+// --watch` processes, one per client/*-main.js entry (the exact list
+// vite.config.js's own CLIENT_ENTRIES has, kept in sync here by hand --
+// it had already drifted, silently missing beta-gate). vite.config.js's
+// devEntryRewrite plugin makes that whole list unnecessary: `vite dev`
+// serves every entry on demand from its own module graph, with real
+// HMR, no separate watch step at all.
 const dev = spawn("concurrently", [
-  "-n", "vite,tailwind,html,map,performance-pyramid,performance-hub,performance-injury,performance-strengths,performance-trends,performance-gap,performance-rpe,performance-grades,log,profile,account,account-edit,account-import,sync",
-  "-c", "blue,magenta,green,yellow,cyan,white,gray,blue,magenta,yellow,cyan,white,gray,blue,magenta,yellow,cyan,white",
+  "-n", "vite,tailwind,html",
+  "-c", "blue,magenta,green",
   "vite dev",
   "tailwindcss -i ./styles/tailwind.css -o ./public/logbook/tailwind.css --watch",
   "pnpm run html:watch",
-  "pnpm run map:watch",
-  "pnpm run performance-pyramid:watch",
-  "pnpm run performance-hub:watch",
-  "pnpm run performance-injury:watch",
-  "pnpm run performance-strengths:watch",
-  "pnpm run performance-trends:watch",
-  "pnpm run performance-gap:watch",
-  "pnpm run performance-rpe:watch",
-  "pnpm run performance-grades:watch",
-  "pnpm run log:watch",
-  "pnpm run profile:watch",
-  "pnpm run account:watch",
-  "pnpm run account-edit:watch",
-  "pnpm run account-import:watch",
-  "pnpm run sync:watch",
 ], {
   stdio: ["inherit", "pipe", "inherit"],
   shell: WIN,
