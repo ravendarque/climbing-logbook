@@ -192,9 +192,15 @@ export function createPlacePicker({
   document.getElementById("add-place-close").addEventListener("click", () => closeModal(addPlaceOverlay));
   addPlaceOverlay.addEventListener("click", e => { if (e.target === addPlaceOverlay) closeModal(addPlaceOverlay); });
 
+  // #806 -- addPlaceMsg carries role="alert"/aria-live="assertive" in the
+  // template (views/log/index.njk), so a screen reader announces it once
+  // its text/visibility change; tabindex="-1" (template) makes it
+  // programmatically focusable so a sighted keyboard user also notices
+  // it, same reasoning as entry-form.js's own showEntryError.
   function showAddPlaceError(text) {
     addPlaceMsg.textContent = text;
     addPlaceMsg.className = "mt-[.85rem] px-4 py-3 rounded-app text-[.9rem] bg-[color-mix(in_srgb,#f87171_12%,var(--color-surface))] border border-[color-mix(in_srgb,#f87171_40%,transparent)] text-red-400";
+    addPlaceMsg.focus();
   }
 
   addPlaceForm.addEventListener("submit", async e => {

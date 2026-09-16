@@ -310,7 +310,7 @@ staticShellNote: |-
 
       <button type="submit" class="w-full mt-4 bg-accent text-accent-foreground border-none rounded-app py-[.9rem] text-[1rem] font-bold cursor-pointer disabled:opacity-[.45] disabled:cursor-not-allowed" id="entry-submit-btn">Add to logbook</button>
       <button type="button" class="w-full mt-[.6rem] bg-transparent text-red-400 border border-red-400/40 rounded-app py-[.7rem] text-[.9rem] font-semibold cursor-pointer hover:bg-red-400/10 disabled:opacity-[.45] disabled:cursor-not-allowed" id="entry-delete-btn" hidden>Delete entry</button>
-      <div class="hidden" id="entry-msg"></div>
+      <div class="hidden" id="entry-msg" role="alert" aria-live="assertive" tabindex="-1"></div>
     </form>
   </div>
 </div>
@@ -351,7 +351,7 @@ staticShellNote: |-
       <p class="text-[.78rem] text-muted mt-1 mb-3" id="add-place-country-hint" hidden>Inherited from the existing location — edit the location itself to change it.</p>
 
       <button type="submit" class="w-full mt-4 bg-accent text-accent-foreground border-none rounded-app py-[.9rem] text-[1rem] font-bold cursor-pointer disabled:opacity-[.45] disabled:cursor-not-allowed" id="add-place-submit-btn">Add place</button>
-      <div class="hidden" id="add-place-msg"></div>
+      <div class="hidden" id="add-place-msg" role="alert" aria-live="assertive" tabindex="-1"></div>
     </form>
   </div>
 </div>

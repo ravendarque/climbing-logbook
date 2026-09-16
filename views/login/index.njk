@@ -67,7 +67,7 @@
         <button type="button" class="text-accent bg-transparent border-0 p-0 cursor-pointer" id="forgot-password-btn">Forgot password?</button>
       </p>
 
-      <p class="text-sm text-accent mb-4" id="login-error" hidden></p>
+      <p class="text-sm text-accent mb-4" id="login-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>
       <!-- Reused for both the "check your email" confirmation after
            forgot-password and any error from that same request -- they're
            mutually exclusive with #login-error/the form fields, never
