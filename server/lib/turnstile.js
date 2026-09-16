@@ -37,7 +37,25 @@ export function createTurnstileHook(env) {
       });
     }
 
-    const data = DUMMY_SECRET_RESPONSES[env.TURNSTILE_SECRET_KEY] ?? await verifySiteverify(env.TURNSTILE_SECRET_KEY, token);
+    // #802 -- verifySiteverify's own fetch()/`.json()` call had no
+    // try/catch: a Turnstile-side timeout or outage threw an uncaught
+    // exception straight out of this hook, 500ing every sign-up attempt
+    // with no graceful fallback. Failing closed (reject the sign-up)
+    // rather than open (let it through unverified) -- an unreachable
+    // siteverify endpoint is exactly the situation bot defense can't
+    // afford to relax for. Distinct code from TURNSTILE_VERIFICATION_FAILED
+    // below (a real "this token didn't check out" result) so this
+    // specific failure mode -- Cloudflare's own endpoint being
+    // unreachable, not a bad token -- stays distinguishable in logs.
+    let data;
+    try {
+      data = DUMMY_SECRET_RESPONSES[env.TURNSTILE_SECRET_KEY] ?? await verifySiteverify(env.TURNSTILE_SECRET_KEY, token);
+    } catch {
+      throw new APIError("FORBIDDEN", {
+        message: "Bot verification failed. Please try again.",
+        code: "TURNSTILE_VERIFICATION_UNAVAILABLE",
+      });
+    }
 
     if (!data.success) {
       throw new APIError("FORBIDDEN", {
