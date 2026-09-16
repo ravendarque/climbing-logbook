@@ -61,6 +61,23 @@ describe("handleImport", () => {
     expect((await res.json()).error).toMatch(/^CSV header doesn't match the template/);
   });
 
+  // #800 -- bounds env.LOGBOOK_DB.batch()'s own statement count and this
+  // request's CPU time, checked before resolveLocationsAndPlaces() does
+  // any DB reads on an oversized file.
+  it("rejects a file with more than 500 rows", async () => {
+    const rows = Array.from({ length: 501 }, () => csvRow());
+    const res = await importCsv(rows);
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("Import is limited to 500 rows per file (this file has 501).");
+  });
+
+  it("accepts exactly 500 rows", async () => {
+    const rows = Array.from({ length: 500 }, () => csvRow());
+    const res = await importCsv(rows);
+    expect(res.status).toBe(201);
+    expect((await res.json()).imported).toBe(500);
+  });
+
   it("imports valid rows, minting a new location and place", async () => {
     const res = await importCsv([csvRow()]);
     expect(res.status).toBe(201);
