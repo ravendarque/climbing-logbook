@@ -330,6 +330,23 @@ test("Style control is hidden for Boulder, shown+required for Sport, and pre-fil
   await expect(page.locator('#sport-style-group input[value="top_rope"]')).toBeChecked();
 });
 
+// #738 -- was hardcoded to sport's own "onsight/redpoint" wording
+// regardless of which discipline is actually active. Same
+// #discipline-btn/.discipline-option switch pattern as the Style-control
+// test above.
+test("Attempts field's gap-view hint matches the active discipline's own status wording", async ({ page }) => {
+  await gotoLogHarness(page);
+
+  await page.locator("#add-btn").click();
+  await expect(page.locator("#attempts-gap-hint")).toHaveText("Feeds your flash/send gap view.");
+  await page.locator("#entry-close").click();
+
+  await page.locator("#discipline-btn").click();
+  await page.locator('.discipline-option[data-discipline="sport"]').click();
+  await page.locator("#add-btn").click();
+  await expect(page.locator("#attempts-gap-hint")).toHaveText("Feeds your onsight/redpoint gap view.");
+});
+
 // #430/#644 -- Lead/Top-Rope filter, owner /log view only, active only for
 // Sport. Same #filter-btn/#filter-*-group harness pattern the archived-
 // status filter test above already uses.
