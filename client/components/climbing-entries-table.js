@@ -35,7 +35,7 @@
 import { escapeHtml } from "../escape-html.js";
 import { formatDate } from "../../shared/date-helpers.js";
 import { filteredEntries, groupByPlace, placeOf, sortEntries } from "../entries.js";
-import { gradeColor } from "../../shared/grade-data.js";
+import { gradeColor, gradeTierColor } from "../../shared/grade-data.js";
 import { VALID_SPORT_STYLES } from "../../shared/entry-schema.js";
 import { combinedFlashLabel, combinedSendLabel, disciplineLabel, flashLabel, hydrateStatusIcons, sendLabel, statusBadge } from "../status.js";
 import { COUNTRY_BY_NAME } from "../countries.js";
@@ -128,6 +128,15 @@ function shellHtml(allDisciplines) {
           ${DISCIPLINE_ORDER.map(d => toggleBtn("discipline", d, "", { text: disciplineLabel(d) })).join("")}
         </fieldset>` : "";
 
+  // #830 -- a small colour legend next to each tier row, same rounded-
+  // square shape/radius as the real grade-badge pills (styles/
+  // tailwind.css), no text -- a flat filled square at the Status
+  // section's own 24px (w-6 h-6) icon size read visually heavier/bigger
+  // than those line icons at the same box size, so this runs smaller
+  // (w-3.5 h-3.5, 14px) to balance against them rather than match their
+  // box size literally.
+  const tierSwatch = tierId => `<span class="inline-block w-3.5 h-3.5 rounded-[calc(var(--radius-app)*.5)] shrink-0" style="background:${gradeTierColor(tierId)}"></span>`;
+
   // #708 -- replaces the old min/max grade-range slider with a tier
   // multi-select, same fieldset-of-toggleBtn shape as the Status/Style
   // groups above/below rather than a bespoke drag-slider widget. Still
@@ -140,7 +149,7 @@ function shellHtml(allDisciplines) {
         <div class="mt-[.9rem]" id="filter-grade-tier-wrap">
           <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mb-[.4rem]" id="filter-grade-tier-label">Grade</div>
           <fieldset class="border border-border rounded-app flex flex-col w-full min-w-0" id="filter-grade-tier-group" aria-labelledby="filter-grade-tier-label">
-            ${GRADE_TIERS.map(tier => toggleBtn("grade-tier", tier.id, "", { text: tier.label })).join("")}
+            ${GRADE_TIERS.map(tier => toggleBtn("grade-tier", tier.id, tierSwatch(tier.id), { text: tier.label })).join("")}
           </fieldset>
         </div>`;
 
