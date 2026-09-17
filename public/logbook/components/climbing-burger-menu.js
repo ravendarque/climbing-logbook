@@ -52,9 +52,18 @@
     // component's own markup references either any more; the divider
     // condition below and admin-auth.js/admin-bar.js's own comments explain
     // the mechanical fallout.
+    // #723 -- username red (text-accent) and left-aligned, "My account"
+    // white (text-foreground) and left-aligned, slightly less heavy
+    // (font-semibold, not font-bold) than the username -- previously
+    // the reverse (username plain text-foreground, "My account" the
+    // accent color) and right-aligned like the popover's own default
+    // items-end cross-axis alignment. self-start overrides that
+    // alignment for just these two rows -- the bottom row (theme
+    // toggle/login) keeps the popover's own default right alignment,
+    // unaffected.
     var adminRows = adminHidden ? "" : `
-      <div class="max-w-[11rem] truncate text-[.9rem] font-bold text-foreground text-right" id="menu-username" hidden></div>
-      <a class="text-[.9rem] font-bold text-accent" id="my-account-link" href="#" hidden>My account</a>`;
+      <div class="self-start max-w-[11rem] truncate text-[.9rem] font-bold text-accent text-left" id="menu-username" hidden></div>
+      <a class="self-start text-[.9rem] font-semibold text-foreground text-left" id="my-account-link" href="#" hidden>My account</a>`;
     var loginBtn = adminHidden ? "" : `<button type="button" class="btn" id="login-toggle-btn">Log in</button>`;
     // The divider (border-t/pt-2/mt-1) only makes sense when something is
     // actually visible above it -- menu-username/my-account-link are the
