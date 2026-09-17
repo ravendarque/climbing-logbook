@@ -5,7 +5,7 @@ import {
   FONT_NON_STANDARD, FRENCH_NON_STANDARD,
   FONT_STANDARD, FRENCH_STANDARD, V_SCALE,
   UIAA_SCALE, YDS_SCALE, NORWEGIAN_SCALE, EWBANK_SCALE, GRADE_CONVERSION_MATRIX,
-  SCALES, SCALES_BY_DISCIPLINE, gradeOrdinal, gradeRankForScale,
+  SCALES, SCALES_BY_DISCIPLINE, STANDARD_SCALES_BY_DISCIPLINE, gradeOrdinal, gradeRankForScale,
   gradeTierForScale, gradeColorForScale, gradePyramidColorForScale,
   resolveScaleId, DEFAULT_SCALE_BY_TYPE,
 } from "../../shared/grade-data.js";
@@ -322,6 +322,24 @@ describe("resolveScaleId", () => {
   it("falls back when the requested id is missing/null", () => {
     expect(resolveScaleId("boulder", null, "font")).toBe("font");
     expect(resolveScaleId("boulder", undefined, "font")).toBe("font");
+  });
+  // #796 -- the optional 4th param lets a caller validate against a
+  // narrower list than every real scale for the discipline (Performance
+  // Insights reports: standard scales only) without duplicating this
+  // function's own logic.
+  it("validates against an explicit `scales` list when given one, ignoring every other real scale for that discipline", () => {
+    expect(resolveScaleId("boulder", "v-scale", "font", STANDARD_SCALES_BY_DISCIPLINE.boulder)).toBe("v-scale");
+    expect(resolveScaleId("boulder", "font-non-standard", "font", STANDARD_SCALES_BY_DISCIPLINE.boulder)).toBe("font");
+    expect(resolveScaleId("sport", "french-non-standard", "french", STANDARD_SCALES_BY_DISCIPLINE.sport)).toBe("french");
+  });
+});
+
+describe("STANDARD_SCALES_BY_DISCIPLINE", () => {
+  it("excludes exactly the Non-standard scale for each discipline, keeping every other real one", () => {
+    expect(STANDARD_SCALES_BY_DISCIPLINE.boulder.map(s => s.id)).toEqual(
+      SCALES_BY_DISCIPLINE.boulder.map(s => s.id).filter(id => id !== "font-non-standard"));
+    expect(STANDARD_SCALES_BY_DISCIPLINE.sport.map(s => s.id)).toEqual(
+      SCALES_BY_DISCIPLINE.sport.map(s => s.id).filter(id => id !== "french-non-standard"));
   });
 });
 

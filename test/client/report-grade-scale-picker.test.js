@@ -31,12 +31,16 @@ describe("createReportGradeScalePicker", () => {
     expect(containerEl.querySelector("#report-grade-scale-reference-link").getAttribute("href")).toBe("/nix/performance/grades");
   });
 
-  it("opens the popover on click and lists every scale for the active discipline", () => {
+  // #796 -- font-non-standard excluded: Performance Insights reports
+  // only ever offer the standard scale per discipline, never the
+  // as-logged-only Non-standard ones the entry-form's own picker still
+  // supports.
+  it("opens the popover on click and lists only the standard scales for the active discipline", () => {
     mount();
     containerEl.querySelector("#report-grade-scale-btn").click();
     expect(containerEl.querySelector("#report-grade-scale-popover").hidden).toBe(false);
-    const options = containerEl.querySelectorAll('#report-grade-scale-listbox [role="option"]');
-    expect(options).toHaveLength(3); // font, font-non-standard, v-scale
+    const options = [...containerEl.querySelectorAll('#report-grade-scale-listbox [role="option"]')];
+    expect(options.map(o => o.dataset.key)).toEqual(["font", "v-scale"]);
   });
 
   it("selecting a scale updates getScaleId(), persists to localStorage, and fires onChange", () => {
@@ -71,6 +75,18 @@ describe("createReportGradeScalePicker", () => {
   it("falls back to the discipline default for a garbage/cross-discipline stored value", () => {
     localStorage.setItem("logbook_grade_scale_reports_boulder", "not-a-real-scale");
     localStorage.setItem("logbook_grade_scale_reports_sport", "v-scale"); // real scale, but Boulder's, not Sport's
+    const picker = mount();
+    expect(picker.getScaleId()).toBe("font");
+    expect(picker.getScaleIdFor("sport")).toBe("french");
+  });
+
+  // #796 -- a preference saved before this restriction existed (or a
+  // tampered value) is a real, valid scale id, just not one reports may
+  // display any more -- must fall back exactly like any other
+  // unrecognized id, not silently keep honoring it.
+  it("falls back to the discipline default for a stored Non-standard preference", () => {
+    localStorage.setItem("logbook_grade_scale_reports_boulder", "font-non-standard");
+    localStorage.setItem("logbook_grade_scale_reports_sport", "french-non-standard");
     const picker = mount();
     expect(picker.getScaleId()).toBe("font");
     expect(picker.getScaleIdFor("sport")).toBe("french");

@@ -16,7 +16,7 @@
 // *contents* and the trigger's label are ever regenerated (on open, and
 // on refresh()).
 import { createListPicker, renderOptionList } from "./modal-utils.js";
-import { SCALES_BY_DISCIPLINE, resolveScaleId, DEFAULT_SCALE_BY_TYPE } from "../shared/grade-data.js";
+import { STANDARD_SCALES_BY_DISCIPLINE, resolveScaleId, DEFAULT_SCALE_BY_TYPE } from "../shared/grade-data.js";
 
 function prefKey(type) {
   return `logbook_grade_scale_reports_${type}`;
@@ -28,7 +28,12 @@ function prefKey(type) {
 function loadPref(type) {
   let stored = null;
   try { stored = localStorage.getItem(prefKey(type)); } catch { /* ignore */ }
-  return resolveScaleId(type, stored, DEFAULT_SCALE_BY_TYPE[type]);
+  // #796 -- validated against the standard-only list, not every real
+  // scale id: a preference saved before this restriction existed (or a
+  // tampered localStorage value) falls back to DEFAULT_SCALE_BY_TYPE
+  // exactly like any other unrecognized id, rather than silently still
+  // honoring a non-standard choice reports should never display again.
+  return resolveScaleId(type, stored, DEFAULT_SCALE_BY_TYPE[type], STANDARD_SCALES_BY_DISCIPLINE[type]);
 }
 function savePref(type, scaleId) {
   try { localStorage.setItem(prefKey(type), scaleId); } catch { /* ignore */ }
@@ -88,7 +93,7 @@ export function createReportGradeScalePicker({ containerEl, getType, onChange })
   // scaleByType directly.
   let lastKnownScaleId = currentScaleId();
   function scaleName(scaleId) {
-    return SCALES_BY_DISCIPLINE[getType()].find(s => s.id === scaleId)?.name ?? scaleId;
+    return STANDARD_SCALES_BY_DISCIPLINE[getType()].find(s => s.id === scaleId)?.name ?? scaleId;
   }
   function updateLabel() {
     btnLabel.textContent = scaleName(currentScaleId());
@@ -97,7 +102,7 @@ export function createReportGradeScalePicker({ containerEl, getType, onChange })
   picker.setRender(() => {
     const type = getType();
     const currentId = currentScaleId();
-    renderOptionList(containerEl.querySelector("#report-grade-scale-listbox"), SCALES_BY_DISCIPLINE[type], {
+    renderOptionList(containerEl.querySelector("#report-grade-scale-listbox"), STANDARD_SCALES_BY_DISCIPLINE[type], {
       getKey: s => s.id, getLabel: s => s.name, isSelected: s => s.id === currentId,
     });
   });
