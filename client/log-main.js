@@ -156,6 +156,11 @@ const entryForm = createEntryForm({
   getQueue: offlineSync.getQueue, setQueue: offlineSync.setQueue,
   adminDataUrl: ADMIN_DATA_URL, adminLocationsUrl: ADMIN_LOCATIONS_URL, adminPlacesUrl: ADMIN_PLACES_URL,
   readOnly: IS_DEMO,
+  // #791 -- gates the Performance data page (and the only way to reach
+  // it, #entry-nav-forward) -- adminAuth is already constructed above,
+  // so its own isAthleteMode is passed directly, not wrapped in an
+  // extra closure.
+  isAthleteMode: adminAuth.isAthleteMode,
 });
 
 // #705 -- links the grade-scale popover's "What's this?" footer to the

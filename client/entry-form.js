@@ -38,6 +38,14 @@ export function createEntryForm({
   adminDataUrl,
   adminLocationsUrl,
   adminPlacesUrl,
+  // #791 -- a function, not a plain value: Athlete Mode is fetched async
+  // (client/admin-auth.js's own fetchSettings()) and can already have
+  // resolved by the time this factory runs at module load, or still be
+  // in flight -- open() calls this fresh on every real open, the same
+  // "getter, not a snapshot" pattern client/report-grade-scale-picker.js's
+  // own getType already uses for the identical "value isn't known yet at
+  // construction time" reason.
+  isAthleteMode,
   // #251 -- the /log page's own affordance when viewed as one of the three
   // seeded demo accounts: every field stays genuinely fillable (so a
   // visitor can see the real form, not a static screenshot of one), but
@@ -58,9 +66,20 @@ export function createEntryForm({
   const gradeNsFields   = document.getElementById("grade-ns-fields");
   const dateInput  = document.getElementById("entry-date");
   const datePickerMount = document.getElementById("date-picker-mount");
-  const entrySubmitBtn = document.getElementById("entry-submit-btn");
+  // #791 -- two-page split: entrySubmitBtns is both pages' own "Save &
+  // close" button (a real array, iterated everywhere the old single
+  // entrySubmitBtn's disabled/title state changed) -- either one submits
+  // the same <form>, so they always need to stay in sync with each
+  // other, never independently controlled.
+  const entrySubmitBtns = [document.getElementById("entry-submit-btn"), document.getElementById("entry-submit-btn-2")];
   const entryDeleteBtn = document.getElementById("entry-delete-btn");
   const entryMsg      = document.getElementById("entry-msg");
+  const entryNavForward = document.getElementById("entry-nav-forward");
+  const entryNavBack = document.getElementById("entry-nav-back");
+  const entryPagesViewport = document.getElementById("entry-pages-viewport");
+  const entryPagesTrack = document.getElementById("entry-pages-track");
+  const entryPage1 = document.getElementById("entry-page-1");
+  const entryPage2 = document.getElementById("entry-page-2");
 
   // #806 -- entryMsg carries role="alert"/aria-live="assertive" in the
   // template (views/log/index.njk), which gets a screen reader to
@@ -462,20 +481,62 @@ export function createEntryForm({
     onSelect: dateStr => { dateInput.value = dateStr; },
   });
 
+  // #791 -- both pages stay inside one sliding track; pageNum 1/2 is the
+  // only state this needs to track (no "currently open" flag of its own
+  // -- entry-page-1/-2's own .inert already IS that state, readable back
+  // from the DOM whenever something needs it). No height/transform
+  // measurement on the OPEN path (see open() below) -- only a real
+  // forward/back navigation, while the modal is already visible, has a
+  // "from" state worth animating; open() just snaps straight to page 1.
+  function showPage(pageNum) {
+    const fromHeight = entryPagesViewport.getBoundingClientRect().height;
+    entryPagesViewport.style.height = `${fromHeight}px`;
+    entryPage1.inert = pageNum !== 1;
+    entryPage2.inert = pageNum !== 2;
+    // Next frame: the height set above needs to actually paint at the
+    // OLD value first, or the browser has nothing to transition FROM --
+    // setting both the old and new height in the same frame collapses
+    // to just the new one, same reasoning any FLIP-style measure/mutate
+    // animation needs the two steps kept apart.
+    requestAnimationFrame(() => {
+      const target = pageNum === 2 ? entryPage2 : entryPage1;
+      entryPagesTrack.style.transform = pageNum === 2 ? "translateX(-100%)" : "translateX(0)";
+      entryPagesViewport.style.height = `${target.scrollHeight}px`;
+      target.focus();
+    });
+  }
+  entryNavForward.addEventListener("click", () => showPage(2));
+  entryNavBack.addEventListener("click", () => showPage(1));
+
   // ── Modal open/close ─────────────────────────────────────────────────
   function open(entry) {
     editingId = entry?.id ?? null;
     entryModalTitle.textContent = editingId ? "Edit entry" : "Add entry";
-    entrySubmitBtn.textContent = editingId ? "Save changes" : "Add to logbook";
     entryDeleteBtn.hidden = readOnly || !editingId;
     entryMsg.className = "hidden";
+    // #791 -- Athlete Mode only: a logbook-only user never sees a way to
+    // reach page 2 at all (the fields there still exist in the DOM and
+    // still submit with the rest of the entry, always at their default/
+    // empty values for a user who can never open this page -- see the
+    // template's own comment on why removing them outright isn't needed).
+    entryNavForward.hidden = !isAthleteMode();
+    // Always reset to page 1 on open -- editing an entry that has real
+    // Performance data shouldn't reopen mid-way through the page most
+    // people care about least; entering that data is deliberately a
+    // second, explicit step every time, not a state the modal remembers.
+    entryPagesTrack.style.transform = "translateX(0)";
+    entryPagesViewport.style.height = "";
+    entryPage1.inert = false;
+    entryPage2.inert = true;
 
     // #251 -- disabled from the moment the form opens, not just on submit:
     // a demo visitor should never wonder whether clicking Save will do
     // something, then find out it doesn't.
     if (readOnly) {
-      entrySubmitBtn.disabled = true;
-      entrySubmitBtn.title = "This is a demo account -- changes aren't saved.";
+      entrySubmitBtns.forEach(btn => {
+        btn.disabled = true;
+        btn.title = "This is a demo account -- changes aren't saved.";
+      });
     }
 
     nameInput.value  = entry?.name  ?? "";
@@ -539,7 +600,7 @@ export function createEntryForm({
     // form's implicit submission -- guarded here too so readOnly mode
     // never reaches adminFetch regardless of how submit was triggered.
     if (readOnly) return;
-    entrySubmitBtn.disabled = true;
+    entrySubmitBtns.forEach(btn => { btn.disabled = true; });
     entryMsg.className = "hidden";
 
     const name  = nameInput.value.trim();
@@ -573,7 +634,7 @@ export function createEntryForm({
     const shapeErr = validateEntryShape(entry);
     if (shapeErr) {
       showEntryError(shapeErr);
-      entrySubmitBtn.disabled = false;
+      entrySubmitBtns.forEach(btn => { btn.disabled = false; });
       return;
     }
 
@@ -589,7 +650,7 @@ export function createEntryForm({
       const data = await res.json();
       if (!res.ok) {
         showEntryError(data.error ?? `Error ${res.status}`);
-        entrySubmitBtn.disabled = false;
+        entrySubmitBtns.forEach(btn => { btn.disabled = false; });
         return;
       }
       store.setEntries(data.entries);
@@ -617,7 +678,7 @@ export function createEntryForm({
       closeModal(entryOverlay);
     }
 
-    entrySubmitBtn.disabled = false;
+    entrySubmitBtns.forEach(btn => { btn.disabled = false; });
   });
 
   // ── Delete (online -> API, offline -> queue) ───────────────────────────
