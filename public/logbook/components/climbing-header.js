@@ -165,7 +165,20 @@
     "climbing-page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; }",
     // #762 -- the sync/offline status icon climbing-page-header.js
     // renders between the brand header and the burger menu.
-    "#sync-status-wrap { display: block; }",
+    // #787 -- :not([hidden]), not a bare display:block: an ID selector
+    // (1,0,0) beats the browser's own `[hidden] { display: none }` UA
+    // rule (0,1,0) regardless of source order, so a bare `display: block`
+    // here silently defeated every `wrap.hidden = true`/`false` toggle
+    // client/sync-status-icon.js's setSyncState() ever did -- the icon
+    // rendered unconditionally from the moment it first got real content
+    // (setSyncState("working") sets its button's innerHTML), and nothing
+    // ever visually removed it again, confirmed live: `wrap.hidden` read
+    // `true` at the exact moment the icon was still visibly spinning on
+    // screen. :not([hidden]) keeps this rule's specificity at the same
+    // 1,0,0 (an ID selector plus a pseudo-class still counts as one ID
+    // selector under the CSS spec) while only applying when the browser's
+    // own [hidden] rule isn't already the one that should win.
+    "#sync-status-wrap:not([hidden]) { display: block; }",
     "@keyframes sync-status-spin { to { transform: rotate(360deg); } }",
     ".sync-status-spin { animation: sync-status-spin 1s linear infinite; }",
     // Folds offline-sync.js's own pre-existing sync-btn-icon spin
