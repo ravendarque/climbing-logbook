@@ -207,12 +207,31 @@ staticShellNote: |-
                  markup+behavior instead of a second hand-rolled copy.
                  Same ids as before (idPrefix "date-picker"), so nothing
                  downstream (e2e/log-page.spec.js's own #date-picker-*
-                 assertions) needed to change. This is a plain, unstyled
-                 mount point, not itself "the wrap" -- calendarDatePickerHtml
+                 assertions) needed to change. This is a plain mount
+                 point, not itself "the wrap" -- calendarDatePickerHtml
                  already generates its own id="date-picker-wrap" element
                  with its own layout classes; giving this anchor the same
-                 id/classes would nest two elements sharing one id. -->
-            <div id="date-picker-mount"></div>
+                 id would nest two elements sharing one id.
+                 #790 -- flex-[0_0_2.75rem] IS needed here, though,
+                 despite the injected #date-picker-wrap carrying the
+                 identical class itself: THIS mount div, not the wrap it
+                 injects one level deeper, is the real direct child of
+                 the Date field's own "flex items-stretch gap-2" row
+                 (the free-text input's sibling) -- a flex-basis/
+                 flex-shrink class on a non-flex-item child is simply
+                 inert. Without it, this mount had no sizing of its own
+                 at all and collapsed to shrink-wrap its button's own
+                 icon content (measured ~19px, barely bigger than the
+                 icon itself -- exactly the "tiny calendar icon" report,
+                 which was really an undersized button, not an
+                 undersized icon) instead of matching the Grade row's
+                 own #grade-scale-wrap sibling's real 2.6rem square.
+                 Also flex (align-items defaults to stretch) so the
+                 injected #date-picker-wrap -- itself just a plain block
+                 with no height of its own -- fills this mount's now-
+                 correct height too, rather than shrinking to its
+                 button's own intrinsic content height. -->
+            <div class="flex-[0_0_2.75rem] flex" id="date-picker-mount"></div>
           </div>
           <div class="text-[.75rem] text-muted mt-[.3rem]">YYYY-MM or YYYY-MM-DD</div>
         </div>
