@@ -67,7 +67,14 @@
         <button type="button" class="text-accent bg-transparent border-0 p-0 cursor-pointer" id="forgot-password-btn">Forgot password?</button>
       </p>
 
-      <p class="text-sm text-accent mb-4" id="login-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>
+      <!-- #807 -- text-error, not text-accent: the fixed brand red
+           measured ~3.8:1 (light theme) against this page's background,
+           under WCAG AA's 4.5:1 minimum for normal text; text-error is
+           a theme-adapted red that clears AA in both themes (see
+           public/logbook/components/climbing-header.js's own token
+           comment). role="alert"/aria-live/tabindex="-1" (#806) get it
+           announced and focused when shown. -->
+      <p class="text-sm text-error mb-4" id="login-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>
       <!-- Reused for both the "check your email" confirmation after
            forgot-password and any error from that same request -- they're
            mutually exclusive with #login-error/the form fields, never

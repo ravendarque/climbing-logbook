@@ -80,6 +80,17 @@
     "  --pyramid-status-good:     #22c55e;",
     "  --pyramid-status-missing:  #ef4444;",
     "  --pyramid-status-promoted: #eab308;",
+    // #807 -- form-error text (entry-form.js/place-picker.js's shared
+    // error-message styling, and the login/register/reset-password
+    // pages' own #*-error elements) measured under 4.5:1 (WCAG AA) in
+    // light theme specifically -- #f87171 (Tailwind red-400) already
+    // clears AA against every dark-theme background these elements
+    // render on (confirmed empirically, ~5.3:1 minimum), so it stays
+    // the dark-theme value; only light theme needs its own darker
+    // shade, same antisymmetric-per-theme pattern as
+    // --pyramid-status-missing just above (red-500 dark / red-700
+    // light).
+    "  --color-error-text: #f87171;",
     "}",
     // Bebas Neue, SIL OFL 1.1, (c) Dharma Type -- sourced directly from
     // https://github.com/dharmatype/Bebas-Neue, not Google Fonts. Absolute
@@ -116,6 +127,14 @@
     "  --pyramid-status-good:     #16a34a;",
     "  --pyramid-status-missing:  #b91c1c;",
     "  --pyramid-status-promoted: #a16207;",
+    // #807 -- #f87171 (the dark-theme value above) measured ~2.5:1
+    // against entry-form.js's tinted error background and ~3.8:1 for
+    // the auth pages' plain-background error text in light theme, both
+    // under WCAG AA's 4.5:1 minimum for normal text (measured directly,
+    // not assumed from the original report). #b91c1c (Tailwind red-700)
+    // clears AA against both: ~5.75:1 against the tinted background,
+    // ~5.9:1 against the light-theme page background.
+    "  --color-error-text: #b91c1c;",
     "}",
     "[hidden] { display: none; }",
     // Custom elements are `display: inline` by default with no UA
