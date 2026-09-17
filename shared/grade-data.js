@@ -402,6 +402,28 @@ export const SCALES_BY_DISCIPLINE = {
   sport: Object.values(SCALES).filter(s => s.discipline === "sport"),
 };
 
+// #796 -- Performance Insights reports offer only the STANDARD scale per
+// discipline, never Font/French (Non-standard) -- Raven's explicit call:
+// "we should be opinionated about how we represent the data" for reports
+// specifically. Storage stays "as logged" (an entry can still be logged
+// in a non-standard scale via the entry-form's own #703 picker, which is
+// unaffected) -- reportGradeLabel()/reportGradeOrdinal() (shared/
+// volume-stats.js) already convert ANY entry's own real gradeScale into
+// whichever viewScaleId a report is showing via the shared ordinal path,
+// so restricting which scales a report can be SET to display needs no
+// conversion-logic changes, just a narrower option list at both places
+// that resolve a requested scale id into one reports actually use: the
+// client picker (client/report-grade-scale-picker.js) and the pyramid
+// endpoint's own server-side query-param resolution (server/api/
+// performance.js's resolveViewScale) -- the latter matters too, since
+// that scale id reaches the server as a plain, client-suppliable query
+// param the client-side picker restriction alone can't stop from being
+// requested directly.
+export const STANDARD_SCALES_BY_DISCIPLINE = {
+  boulder: SCALES_BY_DISCIPLINE.boulder.filter(s => s.id !== FONT_NON_STANDARD.id),
+  sport: SCALES_BY_DISCIPLINE.sport.filter(s => s.id !== FRENCH_NON_STANDARD.id),
+};
+
 // #754 -- the "is `requested` a real scale id for this discipline, else
 // fall back" check was hand-duplicated 3x (server/api/performance.js's
 // own resolveViewScale, client/entry-form.js's loadGradeScalePref,
@@ -415,8 +437,15 @@ export const SCALES_BY_DISCIPLINE = {
 // entry-form.js/report-grade-scale-picker.js fall back to
 // DEFAULT_SCALE_BY_TYPE below -- two genuinely different policies, not
 // one value duplicated three ways.
-export function resolveScaleId(type, requested, fallback) {
-  const validIds = SCALES_BY_DISCIPLINE[type].map(s => s.id);
+// #796 -- `scales` defaults to the full per-discipline list (entry-form.js's
+// own call site is unaffected, still resolving against every real scale
+// id) but is a real parameter now, not a hardcoded SCALES_BY_DISCIPLINE[type]
+// read, so a caller enforcing a narrower option set (the two report-scale
+// call sites above, against STANDARD_SCALES_BY_DISCIPLINE) rejects a
+// stale/tampered non-standard id the same way it rejects any other
+// unrecognized one -- falling back to `fallback`, not silently honoring it.
+export function resolveScaleId(type, requested, fallback, scales = SCALES_BY_DISCIPLINE[type]) {
+  const validIds = scales.map(s => s.id);
   return validIds.includes(requested) ? requested : fallback;
 }
 

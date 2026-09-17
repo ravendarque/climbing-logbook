@@ -2,7 +2,7 @@ import { json } from "../lib/json.js";
 import { listForUser } from "../lib/d1-resource.js";
 import { attachChildRows, rowToJson } from "./logbook.js";
 import { pyramidSplitRows, ROW_SCALE_BY_TYPE } from "../../shared/pyramid-stats.js";
-import { resolveScaleId } from "../../shared/grade-data.js";
+import { resolveScaleId, STANDARD_SCALES_BY_DISCIPLINE } from "../../shared/grade-data.js";
 import { painLogEntries, topPainCluster } from "../../shared/injury-stats.js";
 import { availableAnchors, describeWeakness, rankedForAnchor, topWeakness } from "../../shared/strengths-stats.js";
 import { volumeByBucket, weekBuckets, weekBucketLabel } from "../../shared/volume-stats.js";
@@ -52,8 +52,15 @@ import { effortByBucket, effortHeadline } from "../../shared/effort-stats.js";
 // resolveScaleId() (this exact check was hand-duplicated 3x across the
 // codebase) -- this thin wrapper just supplies this route's own fallback
 // policy (ROW_SCALE_BY_TYPE, the discipline's native row scale).
+// #796 -- validated against STANDARD_SCALES_BY_DISCIPLINE, not every
+// real scale id: this query param reaches the server directly from the
+// client (unauthenticated route), so the client picker's own #796
+// restriction to standard-only scales isn't enough on its own -- a
+// crafted ?boulderScale=font-non-standard request would otherwise still
+// be honored server-side. Falls back to ROW_SCALE_BY_TYPE exactly like
+// any other unrecognized id.
 function resolveViewScale(type, requested) {
-  return resolveScaleId(type, requested, ROW_SCALE_BY_TYPE[type]);
+  return resolveScaleId(type, requested, ROW_SCALE_BY_TYPE[type], STANDARD_SCALES_BY_DISCIPLINE[type]);
 }
 
 export async function handleGetPyramid(request, env, userId) {

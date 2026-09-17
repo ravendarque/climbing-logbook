@@ -127,6 +127,26 @@ describe("handleGetPyramid", () => {
     const { boulder: crossBoulder } = await crossDiscipline.json();
     expect(crossBoulder.top4.some(r => r.grade === "6B" && r.count === 1)).toBe(true);
   });
+
+  // #796 -- font-non-standard/french-non-standard are real, valid scale
+  // ids (an entry can still be LOGGED in one via the entry-form's own
+  // #703 picker), just never a valid REPORT view scale -- a
+  // ?boulderScale=font-non-standard request must fall back the same way
+  // an unrecognized id does, not be honored just because the id itself
+  // is real. Regression guard for the gap #796 closed: before this fix,
+  // resolveViewScale validated against every real scale id, so this
+  // request would have been accepted.
+  it("rejects a non-standard scale id as a report view scale, falling back to the native default", async () => {
+    await postEntry({ type: "boulder", grade: "6A", gradeScale: "font-non-standard" });
+    const noScale = await fetchJson(PYRAMID_URL, { headers: { Cookie: cookie } });
+    const nonStandard = await fetchJson(`${PYRAMID_URL}?boulderScale=font-non-standard`, { headers: { Cookie: cookie } });
+    expect(nonStandard.status).toBe(200);
+    // Same fallback (ROW_SCALE_BY_TYPE.boulder) either way -- a real,
+    // valid scale id being rejected specifically because it's a
+    // non-standard one looks identical to no scale id being supplied at
+    // all, not to some third, distinct outcome.
+    expect(await nonStandard.json()).toEqual(await noScale.json());
+  });
 });
 
 describe("handleGetInjuryLog", () => {
