@@ -138,6 +138,41 @@
     // ~5.9:1 against the light-theme page background.
     "  --color-error-text: #b91c1c;",
     "}",
+    // #849 -- single source of truth for the brand lockup's (logo+title+
+    // tagline) size at any viewport width. Replaces the old approach of
+    // giving the logo/h1/tagline each their own independent max-[600px]/
+    // max-[400px] breakpoints (see brandHtml()'s own former comment,
+    // removed with this fix) -- those could never guarantee the three
+    // parts stayed in proportion (they didn't even reduce by the same
+    // ratio as each other), and none of them accounted for the sync
+    // status icon (#762) eating into the shared flex row's space at a
+    // FIXED viewport width, which is what actually caused Raven's
+    // reported wrap (the icon appearing shrinks available space
+    // independently of viewport width -- a signal a width-only media
+    // query structurally cannot see). brandHtml() now multiplies every
+    // one of the lockup's sizes (logo width/height, its own bottom
+    // margin, the row gap, h1/tagline font-size, h1's own negative
+    // margin) by this ONE value via calc(), so they are mathematically
+    // locked to the same ratio and cannot drift independently -- "resizes
+    // as a whole", per Raven's explicit ask. Driven by viewport width
+    // (not a container query against the row's own rendered width):
+    // deliberately side-steps a real circular-dependency risk where a
+    // flex item's measured width would depend on a scale that itself
+    // depends on the flex item's measured width. This trades perfect
+    // sibling-aware sizing for a value that's simple and always
+    // resolves -- the actual fix for "no room once the icon shows up" is
+    // giving the icon its own place off this row entirely (see the
+    // alternatives raised alongside this change, not implemented here).
+    // 320px floor chosen to match the #789 comment's own stated "this
+    // app's own practical minimum" viewport; 640px is comfortably past
+    // where the row has ever been reported cramped. The (100vw - Xpx) /
+    // Ypx form is the standard length-divided-by-length calc() trick for
+    // producing a unitless number from a vw-based value -- needed
+    // because every consumer below multiplies this into plain px/rem
+    // sizes, which calc() refuses to mix with a raw vw length.
+    ":root {",
+    "  --brand-scale: clamp(0.58, calc(0.58 + ((100vw - 320px) / 320px) * 0.42), 1);",
+    "}",
     "[hidden] { display: none; }",
     // Custom elements are `display: inline` by default with no UA
     // stylesheet override -- this component's content is always
@@ -279,32 +314,39 @@
   // Raven's production report. alignLeft is opt-in (default false) so
   // the four original, unaffected consumers don't change at all.
   function brandHtml(alignLeft) {
+    // #849 -- every size below is `calc(<original desktop value> *
+    // var(--brand-scale))`, so the whole lockup shrinks/grows as one
+    // rigid unit (see --brand-scale's own comment, in TOKENS_CSS, for
+    // why). No property here has its own independent breakpoint any
+    // more -- that was the actual bug (see #849/#791 history: the logo,
+    // h1 and tagline each had their own max-[600px]/max-[400px] rules
+    // that didn't even reduce by the same ratio as each other, so
+    // "unwrappable" and "in proportion" kept failing together).
     var rowClass = alignLeft
-      ? "flex items-end gap-[.26rem] mb-4"
-      : "flex items-end justify-center gap-[.26rem] mb-4";
-    var taglineClass = "font-display font-normal uppercase tracking-wide leading-none text-[0.8512rem] max-[600px]:text-[0.6384rem] text-muted mb-0" + (alignLeft ? "" : " text-center");
+      ? "flex items-end gap-[calc(.26rem*var(--brand-scale))] mb-4"
+      : "flex items-end justify-center gap-[calc(.26rem*var(--brand-scale))] mb-4";
+    var taglineClass = "font-display font-normal uppercase tracking-wide leading-none text-[calc(.8512rem*var(--brand-scale))] text-muted mb-0" + (alignLeft ? "" : " text-center");
     return (
       '<div class="' + rowClass + '" id="brand-header-row">' +
-      '  <div class="shrink-0 flex mb-[4.48px] max-[600px]:mb-[3.2px]">' +
-      '    <svg class="w-[54.272px] h-[42.4px] max-[600px]:w-[39.32px] max-[600px]:h-[30.72px]" viewBox="0 14.4 122.88 96" aria-hidden="true">' +
+      '  <div class="shrink-0 flex mb-[calc(4.48px*var(--brand-scale))]">' +
+      '    <svg class="w-[calc(54.272px*var(--brand-scale))] h-[calc(42.4px*var(--brand-scale))]" viewBox="0 14.4 122.88 96" aria-hidden="true">' +
       '      <path d="M45.6,14.4l23.718,48l-2.99,6l-21.689,0l10.843,21.6l-10.142,20.4l-45.342,0l45.6,-96Z" fill="currentColor"/>' +
       '      <path d="M85.203,37.2l16.333,31.2l-10.787,21.6l21.63,0l10.501,20.4l-74.042,0l36.364,-73.2Z" fill="currentColor"/>' +
       '    </svg>' +
       '  </div>' +
       '  <div>' +
-      // #789 -- whitespace-nowrap: the title has no wrap opportunity of
-      // its own (it's meant to read as one wordmark), but with no
-      // white-space override, a narrow flex row (this brand block is a
-      // sibling of the icon+burger-menu group in climbing-page-header's
-      // own space-between row) could squeeze this element's box below
-      // its natural text width, and the browser filled that by wrapping
-      // "Climbing"/"Logbook" onto two lines -- exactly the bug report.
-      // A new max-[400px] breakpoint (on top of the existing 600px one)
-      // shrinks the text enough that it still fits in one line at the
-      // narrowest realistic phone widths once nowrap forbids wrapping
-      // as an escape valve -- confirmed empirically against a real
-      // 320px-wide viewport, this app's own practical minimum.
-      '    <h1 class="font-display font-normal uppercase tracking-wide text-[2.4rem] leading-none mb-[-.3rem] whitespace-nowrap max-[600px]:text-[1.8rem] max-[400px]:text-[1.3rem]"><span class="text-accent">Climbing</span> <span class="text-foreground">Logbook</span></h1>' +
+      // #789/#849 -- whitespace-nowrap: the title has no wrap
+      // opportunity of its own (it's meant to read as one wordmark).
+      // Without it, a narrow flex row (this brand block is a sibling of
+      // the sync icon+burger-menu group in climbing-page-header's own
+      // space-between row) could squeeze this element's box below its
+      // natural text width, and the browser filled that by wrapping
+      // "Climbing"/"Logbook" onto two lines -- the original bug report.
+      // nowrap forbids that escape valve entirely (so it can never
+      // wrap, regardless of available space); --brand-scale is what
+      // keeps the now-unshrinkable text a sensible size at narrow
+      // viewports instead of just overflowing.
+      '    <h1 class="font-display font-normal uppercase tracking-wide text-[calc(2.4rem*var(--brand-scale))] leading-none mb-[calc(-.3rem*var(--brand-scale))] whitespace-nowrap"><span class="text-accent">Climbing</span> <span class="text-foreground">Logbook</span></h1>' +
       '    <p class="' + taglineClass + '">Log your climbs, visualise your progress (<button type="button" class="inline [font-size:inherit] bg-transparent border-0 p-0 cursor-pointer text-accent" id="footnote-trigger">or not</button>)</p>' +
       '  </div>' +
       '</div>' +
