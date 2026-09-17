@@ -259,6 +259,29 @@
   border-color: var(--color-accent);
 }
 
+/* #722 -- the discipline picker's own collapse/expand indicator glyph,
+   plain CSS rather than two competing rotate-* Tailwind utilities on
+   the same element: confirmed empirically that toggling the `rotate`
+   property between an unconditional utility class and an
+   aria-expanded:[&_...] arbitrary-variant utility class didn't reliably
+   override the base value regardless of selector specificity (both
+   land in the same @layer utilities, and CSS's own specificity rules
+   say the aria-expanded rule -- one extra attribute selector -- should
+   win, but it didn't in practice; a real Tailwind v4 utility-
+   composition quirk with this specific combination, not something
+   worth spending more time root-causing when a plain, ID-scoped rule
+   sidesteps it entirely and is easy to reason about). Closed = pointing
+   right (-90deg from the glyph's own down-pointing default); open =
+   pointing down (0deg) -- same "▾" character and orientation scheme as
+   climbing-entries-table.js's own place-header collapse indicator. */
+#discipline-btn .chevron-icon {
+  rotate: -90deg;
+  transition: rotate .15s;
+}
+#discipline-btn[aria-expanded="true"] .chevron-icon {
+  rotate: 0deg;
+}
+
 /* #457 -- the same box (bg-surface/border/rounded-app/px-4/py-3) was
    getting hand-repeated verbatim on every row of both account pages
    (edit-account-link, the two "Coming soon" placeholders, athlete-mode-
