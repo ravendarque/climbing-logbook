@@ -20,7 +20,12 @@ import { validateEntryShape } from "../shared/entry-schema.js";
 import { createListPicker, renderOptionList } from "./modal-utils.js";
 import { calendarDatePickerHtml, createCalendarDatePicker } from "./calendar-date-picker.js";
 
-const ERROR_MSG_CLASS = "mt-[.85rem] px-4 py-3 rounded-app text-[.9rem] bg-[color-mix(in_srgb,#f87171_12%,var(--color-surface))] border border-[color-mix(in_srgb,#f87171_40%,transparent)] text-red-400";
+// #807 -- text-error (var(--color-error-text)), not text-red-400 -- the
+// fixed Tailwind shade measured under WCAG AA's 4.5:1 in light theme
+// against this same tinted background (~2.5:1); text-error is a
+// theme-adapted red that clears AA in both themes (see
+// public/logbook/components/climbing-header.js's own token comment).
+const ERROR_MSG_CLASS = "mt-[.85rem] px-4 py-3 rounded-app text-[.9rem] bg-[color-mix(in_srgb,#f87171_12%,var(--color-surface))] border border-[color-mix(in_srgb,#f87171_40%,transparent)] text-error";
 
 export function createEntryForm({
   store,
