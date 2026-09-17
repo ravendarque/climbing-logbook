@@ -651,6 +651,15 @@ export function gradeColor(g, type) {
   return GRADE_TIER_COLORS[gradeTier(g, type)];
 }
 
+// #830 -- the filter menu's own tier-legend swatches need a tier's colour
+// directly (by id), not resolved from an actual grade -- the same lookup
+// gradeColor()/gradeColorForScale() already use internally, exported
+// rather than duplicated so there's exactly one place that knows which
+// hex each tier resolves to.
+export function gradeTierColor(tierId) {
+  return GRADE_TIER_COLORS[tierId];
+}
+
 // #698 -- the Grade Pyramid's 8-4-2-1 window is only ~4 grades wide and
 // spans at most two tiers, often just one, so gradeColor()'s flat
 // per-tier colour would leave every bar the same. This walks the full
