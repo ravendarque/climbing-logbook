@@ -42,8 +42,19 @@
  * Used by logbook/index.html (list badges, stats bar, and the entry form).
  */
 
+// #794 -- flash/send/project's own artwork bounding box nearly fills (or,
+// for send/project, actually exceeds -- silently clipped by the default
+// SVG viewport overflow:hidden) their originally-declared viewBox, while
+// checkout/archived's artwork sits well inside theirs (~2/3 of its
+// height). Rendered at the same fixed CSS box size everywhere these are
+// used (24px status-group buttons, 1.4rem statusBadge() icons), that
+// mismatch reads as flash/send/project looking taller than checkout/
+// archived. The three viewBoxes below are widened (padding only -- no
+// path data touched) so each icon's own ink occupies the same ~2/3-height
+// fraction of its box as checkout/archived already do, measured via
+// getBBox() against the live rendered form on 2026-09-17.
 export const STATUS_ICONS = {
-  flash: `<svg width="14" height="14" viewBox="0 0 65 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  flash: `<svg width="14" height="14" viewBox="-42.6 -25 150 150" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
     <g transform="matrix(1,0,0,1,-17.61265,-0)">
         <g transform="matrix(1,0,0,1,19.997168,4.002098)">
             <g transform="matrix(1.195005,0,0,1.158261,-5.850764,-7.279803)">
@@ -54,7 +65,7 @@ export const STATUS_ICONS = {
     </g>
   </svg>`,
 
-  send: `<svg width="14" height="14" viewBox="0 0 191 191" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  send: `<svg width="14" height="14" viewBox="-56.2 -53.7 303.3 303.3" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
     <g transform="matrix(1,0,0,1,-2.078254,0.226197)">
         <g transform="matrix(2.6,0,0,2.6,-30,-30)">
             <g transform="matrix(1.275565,-0.141258,0.145283,1.311915,-7.95315,4.582837)">
@@ -65,7 +76,7 @@ export const STATUS_ICONS = {
     </g>
   </svg>`,
 
-  project: `<svg width="14" height="14" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  project: `<svg width="14" height="14" viewBox="-30.1 -38.3 160.5 160.5" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
     <g id="Background" transform="matrix(0.707616,0.706597,-0.706597,0.707616,49.959271,-14.535333)">
         <path d="M52.557,20.38C52.557,20.38 76.098,74.44 76.159,74.5C76.868,75.201 77.114,74.817 77.819,75.515C77.726,75.862 77.845,76.244 77.752,76.591C77.718,76.718 77.51,77.495 76.541,77.687C76.197,77.754 75.834,77.615 75.491,77.683C75.036,77.276 75.05,76.467 74.595,76.06C74.339,75.831 20.74,52.056 20.74,52.056L52.557,20.38Z" style="fill:rgb(215,27,37);"/>
         <path d="M70.59,2.278C71.012,2.73 71.633,2.417 71.815,4.467C72.084,7.495 77.757,74.635 77.819,75.515C77.114,74.817 76.868,75.201 76.159,74.5C76.098,74.44 53.182,22.371 52.557,20.38C55.401,18.384 55.197,18.167 57.682,15.682C66.781,6.584 67.364,6.055 68.244,5.257C68.96,4.607 68.893,4.56 70.59,2.278Z" style="fill:rgb(254,63,83);"/>
