@@ -333,17 +333,21 @@ test("Style control is hidden for Boulder, shown+required for Sport, and pre-fil
 // #738 -- was hardcoded to sport's own "onsight/redpoint" wording
 // regardless of which discipline is actually active. Same
 // #discipline-btn/.discipline-option switch pattern as the Style-control
-// test above.
+// test above. #791 -- athleteMode: true + a page-2 nav on each open --
+// the Attempts field (and every other Performance-data field) now lives
+// on the form's second, Athlete-Mode-only page.
 test("Attempts field's gap-view hint matches the active discipline's own status wording", async ({ page }) => {
-  await gotoLogHarness(page);
+  await gotoLogHarness(page, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
 
   await page.locator("#add-btn").click();
+  await page.locator("#entry-nav-forward").click();
   await expect(page.locator("#attempts-gap-hint")).toHaveText("Feeds your flash/send gap view.");
   await page.locator("#entry-close").click();
 
   await page.locator("#discipline-btn").click();
   await page.locator('.discipline-option[data-discipline="sport"]').click();
   await page.locator("#add-btn").click();
+  await page.locator("#entry-nav-forward").click();
   await expect(page.locator("#attempts-gap-hint")).toHaveText("Feeds your onsight/redpoint gap view.");
 });
 
@@ -396,38 +400,61 @@ test("Style filter is hidden for Boulder, shown for Sport, and narrows the table
 // wiring added on top of client/move-tagging.js (Tasks 4/5 of the same
 // plan). Same gotoLogHarness/mockApi harness and #add-btn/#entry-overlay
 // open pattern as every other entry-modal test above.
+// #791 -- Status (page 1) and Exertion (page 2, Athlete Mode only) are on
+// different pages of the split form now -- #entry-page-1 is inert (real
+// browser-level non-interactive, not just visually hidden) while page 2
+// is active, so a status radio can't be changed without navigating back
+// to page 1 first. Each status change is its own page-1 -> page-2 round
+// trip rather than one continuous page-2 session.
 test("Exertion is visible for Send/Flash and hidden for Project/Check out/Archived", async ({ page }) => {
-  await gotoLogHarness(page);
+  await gotoLogHarness(page, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
   await page.locator("#add-btn").click();
   await expect(page.locator("#entry-overlay")).toBeVisible();
 
   // Send is the status radio checked by default (entry-form.js's own
   // open()) -- Exertion starts visible with no interaction at all.
+  await page.locator("#entry-nav-forward").click();
   await expect(page.locator("#exertion-field")).toBeVisible();
 
-  // The status radios are visually hidden (sr-only, styled buttons via
-  // their labels) -- `force: true` checks the input directly rather than
-  // requiring Playwright's actionability check to see it as clickable,
-  // same reasoning label clicks are used elsewhere in this file for other
-  // sr-only-backed controls.
-  await page.locator('#status-group input[value="project"]').check({ force: true });
+  // #791 -- clicking the visible LABEL (same pattern the filter-status
+  // group already uses above), not force-checking the sr-only radio
+  // directly: a real, un-forced click waits for Playwright's normal
+  // actionability/stability check, which a force:true click explicitly
+  // skips -- skipping it here raced the page-1 slide-back transition on
+  // a loaded CI runner (confirmed live: a force click landed and
+  // reported "done", but the radio's own checked state never actually
+  // flipped, meaning it hit stale coordinates mid-animation). The label
+  // is real, on-screen, and not sr-only, so it needs no force at all.
+  await page.locator("#entry-nav-back").click();
+  await page.locator('#status-group label:has(input[value="project"])').click();
+  await page.locator("#entry-nav-forward").click();
   await expect(page.locator("#exertion-field")).toBeHidden();
-  await page.locator('#status-group input[value="checkout"]').check({ force: true });
+
+  await page.locator("#entry-nav-back").click();
+  await page.locator('#status-group label:has(input[value="checkout"])').click();
+  await page.locator("#entry-nav-forward").click();
   await expect(page.locator("#exertion-field")).toBeHidden();
-  await page.locator('#status-group input[value="archived"]').check({ force: true });
+
+  await page.locator("#entry-nav-back").click();
+  await page.locator('#status-group label:has(input[value="archived"])').click();
+  await page.locator("#entry-nav-forward").click();
   await expect(page.locator("#exertion-field")).toBeHidden();
 
   // Flash isn't its own status value (isFlash flag on top of status
   // "send") -- checking it still resolves to selectedStatus === "send",
   // so Exertion reappears.
-  await page.locator('#status-group input[value="flash"]').check({ force: true });
+  await page.locator("#entry-nav-back").click();
+  await page.locator('#status-group label:has(input[value="flash"])').click();
+  await page.locator("#entry-nav-forward").click();
   await expect(page.locator("#exertion-field")).toBeVisible();
 });
 
 test("Attempts stepper increments/decrements and cannot go below 0", async ({ page }) => {
-  await gotoLogHarness(page);
+  await gotoLogHarness(page, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
   await page.locator("#add-btn").click();
   await expect(page.locator("#entry-overlay")).toBeVisible();
+  // #791 -- Attempts lives on the form's second, Athlete-Mode-only page.
+  await page.locator("#entry-nav-forward").click();
 
   // #597 -- attempts-count is a typable <input>, and 0 renders as a dash
   // rather than the literal digit (see client/entry-form.js's own
@@ -457,7 +484,7 @@ test("Attempts stepper increments/decrements and cannot go below 0", async ({ pa
 });
 
 test("adding a move and saving submits it in the entry payload", async ({ page }) => {
-  await gotoLogHarness(page);
+  await gotoLogHarness(page, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
 
   // Registered after gotoLogHarness (same layering the offline-queue
   // describe block above uses for its own page.route() overrides) --
@@ -476,15 +503,21 @@ test("adding a move and saving submits it in the entry payload", async ({ page }
   await page.locator("#place-btn").click();
   await page.locator('#place-listbox li[data-key="p1"]').click();
 
+  // #791 -- Move difficulty lives on page 2; submitting from page 2's own
+  // "Save & close" (not page 1's, now inert/off-screen) proves either
+  // page's button saves the whole entry, both pages' field values
+  // included -- exactly the acceptance criterion the issue itself states.
+  await page.locator("#entry-nav-forward").click();
   await page.locator("#hardest-moves-add").click();
   await page.locator('#hardest-moves-list [data-field="limbSide"]').selectOption("foot-right");
 
   await Promise.all([
     page.waitForResponse(res => res.url().includes("/logbook/api/admin/logbook") && res.request().method() === "POST"),
-    page.locator("#entry-submit-btn").click(),
+    page.locator("#entry-submit-btn-2").click(),
   ]);
   await expect(page.locator("#entry-overlay")).toBeHidden();
 
+  expect(submittedBody.name).toBe(entryName);
   expect(submittedBody.moves).toHaveLength(1);
   expect(submittedBody.moves[0]).toMatchObject({ difficulty: "hardest", limb: "foot", side: "right" });
 });
@@ -492,6 +525,7 @@ test("adding a move and saving submits it in the entry payload", async ({ page }
 test("editing an entry pre-populates its existing moves into the right list", async ({ page }) => {
   await gotoLogHarness(page, {
     ...SEED,
+    settings: { athleteMode: true, activeDiscipline: "boulder" },
     entries: [
       ...SEED.entries,
       {
@@ -506,10 +540,78 @@ test("editing an entry pre-populates its existing moves into the right list", as
   const row = page.locator("tr", { has: page.getByText("Move Seed", { exact: true }) });
   await row.locator(".edit-btn").click();
   await expect(page.locator("#entry-overlay")).toBeVisible();
+  // #791 -- Move difficulty/pain-move lists live on page 2 now.
+  await page.locator("#entry-nav-forward").click();
 
   await expect(page.locator("#hardest-moves-list [data-move-row]")).toHaveCount(1);
   await expect(page.locator("#easiest-moves-list [data-move-row]")).toHaveCount(0);
   await expect(page.locator("#pain-moves-list [data-move-row]")).toHaveCount(1);
+});
+
+// #791 -- the Performance data page (Exertion/Attempts/Move difficulty/
+// Pain-injury) was previously visible to every user regardless of
+// Athlete Mode -- a real, pre-existing bug (entry-form.js/log-main.js
+// never checked isAthleteMode() at all) found while scoping this issue.
+//
+// .inert (toHaveJSProperty), not toBeVisible()/toBeHidden(), for the
+// page-1/page-2 checks in this and the next two tests: the inactive
+// page is a real, laid-out element clipped out of view by its
+// translateX'd ancestor + the viewport's overflow-hidden, not
+// display:none'd or visibility:hidden -- Playwright's toBeVisible()
+// only checks the element's own CSS visibility/display/size, not
+// whether an ancestor's transform+overflow clips it out of the visible
+// area, so it reports a real but off-screen element as "visible"
+// regardless (confirmed empirically: this exact assertion failed
+// against a page verified, by direct screenshot, to not be on screen).
+// .inert is the real, Playwright-checkable state that actually answers
+// "can a user reach this" -- entry-form.js's own showPage()/open() set
+// it as the authoritative reachability flag for exactly this reason,
+// not just for its real browser-level non-interactivity.
+test("the Performance data page is only reachable in Athlete Mode", async ({ page }) => {
+  await gotoLogHarness(page, { ...SEED, settings: { athleteMode: false, activeDiscipline: "boulder" } });
+  await page.locator("#add-btn").click();
+  await expect(page.locator("#entry-overlay")).toBeVisible();
+
+  await expect(page.locator("#entry-nav-forward")).toBeHidden();
+  // The fields still exist (still part of every submitted entry, always
+  // at their default/empty state for a user who can never reach them --
+  // see the template's own comment on why they aren't removed outright)
+  // but stay unreachable -- #entry-page-2 is inert with no way in.
+  await expect(page.locator("#entry-page-2")).toHaveJSProperty("inert", true);
+});
+
+test("Performance -> and <- Log entry slide between the form's two pages", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" }); // no animation to wait out between steps
+  await gotoLogHarness(page, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
+  await page.locator("#add-btn").click();
+
+  await expect(page.locator("#entry-page-1")).toHaveJSProperty("inert", false);
+  await expect(page.locator("#entry-page-2")).toHaveJSProperty("inert", true);
+
+  await page.locator("#entry-nav-forward").click();
+  await expect(page.locator("#entry-page-2")).toHaveJSProperty("inert", false);
+  await expect(page.locator("#entry-page-1")).toHaveJSProperty("inert", true);
+
+  await page.locator("#entry-nav-back").click();
+  await expect(page.locator("#entry-page-1")).toHaveJSProperty("inert", false);
+  await expect(page.locator("#entry-page-2")).toHaveJSProperty("inert", true);
+});
+
+// A real regression guard, not a speculative one -- open() originally
+// only reset editingId/field values, not which page was showing, so
+// reopening the modal right after a page-2 visit would have silently
+// stayed on page 2.
+test("reopening the form after navigating to page 2 starts back on page 1", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await gotoLogHarness(page, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
+  await page.locator("#add-btn").click();
+  await page.locator("#entry-nav-forward").click();
+  await expect(page.locator("#entry-page-2")).toHaveJSProperty("inert", false);
+  await page.locator("#entry-close").click();
+
+  await page.locator("#add-btn").click();
+  await expect(page.locator("#entry-page-1")).toHaveJSProperty("inert", false);
+  await expect(page.locator("#entry-page-2")).toHaveJSProperty("inert", true);
 });
 
 // #703 -- entry-form grade scale picker (sub-issue B of #183). Same

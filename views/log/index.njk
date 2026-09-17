@@ -68,6 +68,19 @@ staticShellNote: |-
     </div>
 
     <form id="entry-form" autocomplete="off">
+    <!-- #791 -- two swipeable pages (Athlete Mode only -- entry-form.js's
+         own open() hides #entry-nav-forward and pins the form on page 1
+         for a logbook-only user, so the page-2 content, while present in
+         the DOM, is never reachable there). #entry-pages-viewport clips
+         to whichever page is active; #entry-pages-track is the sliding
+         flex row both pages are laid out in, translateX'd by
+         entry-form.js's own showPage(). Both pages stay inside this ONE
+         form (not two separate forms) -- either page's own "Save &
+         close" submits the whole entry, both pages' field values
+         included, exactly like today's single-page submit. -->
+    <div class="overflow-hidden" id="entry-pages-viewport">
+      <div class="flex transition-[transform,height] duration-300 ease-out motion-reduce:transition-none" id="entry-pages-track">
+      <div class="w-full shrink-0" id="entry-page-1" tabindex="-1">
       <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 first:mt-0 mt-[1.1rem]" id="form-name-label">Problem name</div>
       <div class="mb-3">
         <input type="text" class="text-input w-full" id="entry-name" required>
@@ -279,18 +292,46 @@ staticShellNote: |-
         </label>
       </fieldset>
 
-      <details class="mt-[1.1rem]" id="performance-insights-section" open>
-        <summary class="cursor-pointer text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 select-none">Performance insights data</summary>
+      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]">Notes</div>
+      <div class="mb-3">
+        <textarea class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground font-sans text-[1rem] outline-none focus:border-accent w-full resize-y min-h-[72px]" id="entry-notes"></textarea>
+      </div>
 
+      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]">Video URL</div>
+      <div class="mb-3">
+        <input type="url" class="text-input w-full" id="entry-video">
+      </div>
+
+      <!-- #791 -- hidden entirely (not just inert) for a logbook-only
+           user -- entry-form.js's own open(). -->
+      <div class="flex items-center justify-between gap-3 mt-4">
+        <button type="submit" class="flex-1 bg-accent text-accent-foreground border-none rounded-app py-[.9rem] text-[1rem] font-bold cursor-pointer disabled:opacity-[.45] disabled:cursor-not-allowed" id="entry-submit-btn">Save &amp; close</button>
+        <button type="button" class="flex-1 bg-surface text-foreground border border-border rounded-app py-[.9rem] text-[1rem] font-bold cursor-pointer hover:border-accent" id="entry-nav-forward">Performance →</button>
+      </div>
+      </div>
+
+      <!-- #791 -- was a collapsible <details id="performance-insights-
+           section">; the page split itself now supersedes needing a
+           second, in-page collapse -- see #792 (parked) for whether
+           these sub-sections should become individually collapsible
+           again, with that state persisted, a separate decision from
+           this one. Athlete Mode only -- entry-form.js's own open()
+           hides #entry-nav-forward (the only way to reach this page) for
+           a logbook-only user, so this content is never shown, but it
+           stays in the DOM (not removed) since the same underlying
+           fields/values are still part of every submitted entry either
+           way (always their default/empty state for a user who never
+           reaches this page). -->
+      <div class="w-full shrink-0" id="entry-page-2" tabindex="-1">
         <div class="mt-2" id="exertion-field" hidden>
-          <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2" id="exertion-field-label">Exertion</div>
+          <h3 class="text-[.95rem] font-bold text-foreground mb-1" id="exertion-field-label">Exertion</h3>
           <p class="text-[.75rem] text-muted mb-2">Feeds your Effort / RPE Trend view.</p>
           <input type="range" class="w-full accent-accent" id="exertion-slider" min="0" max="100" step="10" value="0" aria-labelledby="exertion-field-label" aria-describedby="exertion-value">
           <div class="text-center text-[.85rem] text-foreground mt-1" id="exertion-value">Not set</div>
         </div>
 
-        <div class="mt-2">
-          <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Attempts</div>
+        <div class="mt-6">
+          <h3 class="text-[.95rem] font-bold text-foreground mb-1">Attempts</h3>
           <!-- #738 -- was hardcoded to sport's own onsight/redpoint
                wording regardless of which discipline is actually
                active; text set dynamically by entry-form.js's
@@ -313,8 +354,8 @@ staticShellNote: |-
           </div>
         </div>
 
-        <div class="mt-2">
-          <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Move difficulty</div>
+        <div class="mt-6">
+          <h3 class="text-[.95rem] font-bold text-foreground mb-1">Move difficulty</h3>
           <p class="text-[.75rem] text-muted mb-2">Feeds your Strengths / Weaknesses view.</p>
           <div class="text-[.8rem] font-semibold text-foreground mb-1">Hardest moves for you</div>
           <div id="hardest-moves-list"></div>
@@ -325,25 +366,21 @@ staticShellNote: |-
           <button type="button" class="text-[.85rem] font-semibold text-accent bg-transparent border-0 cursor-pointer p-0" id="easiest-moves-add" aria-label="Add an easiest move">+ Add a move</button>
         </div>
 
-        <div class="mt-2">
-          <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Pain/injury during this climb</div>
+        <div class="mt-6">
+          <h3 class="text-[.95rem] font-bold text-foreground mb-1">Pain/injury during this climb</h3>
           <p class="text-[.75rem] text-muted mb-2">Feeds your Injury / Pain Log.</p>
           <div id="pain-moves-list"></div>
           <button type="button" class="text-[.85rem] font-semibold text-accent bg-transparent border-0 cursor-pointer p-0" id="pain-moves-add" aria-label="Add a pain/injury move">+ Add a move</button>
         </div>
-      </details>
 
-      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]">Notes</div>
-      <div class="mb-3">
-        <textarea class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground font-sans text-[1rem] outline-none focus:border-accent w-full resize-y min-h-[72px]" id="entry-notes"></textarea>
+        <div class="flex items-center justify-between gap-3 mt-6">
+          <button type="button" class="flex-1 bg-surface text-foreground border border-border rounded-app py-[.9rem] text-[1rem] font-bold cursor-pointer hover:border-accent" id="entry-nav-back">← Log entry</button>
+          <button type="submit" class="flex-1 bg-accent text-accent-foreground border-none rounded-app py-[.9rem] text-[1rem] font-bold cursor-pointer disabled:opacity-[.45] disabled:cursor-not-allowed" id="entry-submit-btn-2">Save &amp; close</button>
+        </div>
       </div>
-
-      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]">Video URL</div>
-      <div class="mb-3">
-        <input type="url" class="text-input w-full" id="entry-video">
       </div>
+    </div>
 
-      <button type="submit" class="w-full mt-4 bg-accent text-accent-foreground border-none rounded-app py-[.9rem] text-[1rem] font-bold cursor-pointer disabled:opacity-[.45] disabled:cursor-not-allowed" id="entry-submit-btn">Add to logbook</button>
       <button type="button" class="w-full mt-[.6rem] bg-transparent text-red-400 border border-red-400/40 rounded-app py-[.7rem] text-[.9rem] font-semibold cursor-pointer hover:bg-red-400/10 disabled:opacity-[.45] disabled:cursor-not-allowed" id="entry-delete-btn" hidden>Delete entry</button>
       <div class="hidden" id="entry-msg" role="alert" aria-live="assertive" tabindex="-1"></div>
     </form>
