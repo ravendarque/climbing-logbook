@@ -407,15 +407,6 @@ test("Style filter is hidden for Boulder, shown for Sport, and narrows the table
 // to page 1 first. Each status change is its own page-1 -> page-2 round
 // trip rather than one continuous page-2 session.
 test("Exertion is visible for Send/Flash and hidden for Project/Check out/Archived", async ({ page }) => {
-  // #791 -- reduced motion, not just a real-browser nicety: this test's
-  // own status-radio checks use force:true (sr-only-backed, so a plain
-  // click can't see them as actionable), which -- unlike a normal click
-  // -- does NOT wait for the 300ms page-slide transition to settle
-  // first, and can land on stale coordinates mid-animation. Emulating
-  // reduced motion collapses that transition to 0ms (this app's own
-  // motion-reduce:transition-none guard), removing the race entirely
-  // rather than papering over it with a fixed wait.
-  await page.emulateMedia({ reducedMotion: "reduce" });
   await gotoLogHarness(page, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
   await page.locator("#add-btn").click();
   await expect(page.locator("#entry-overlay")).toBeVisible();
@@ -425,23 +416,27 @@ test("Exertion is visible for Send/Flash and hidden for Project/Check out/Archiv
   await page.locator("#entry-nav-forward").click();
   await expect(page.locator("#exertion-field")).toBeVisible();
 
-  // The status radios are visually hidden (sr-only, styled buttons via
-  // their labels) -- `force: true` checks the input directly rather than
-  // requiring Playwright's actionability check to see it as clickable,
-  // same reasoning label clicks are used elsewhere in this file for other
-  // sr-only-backed controls.
+  // #791 -- clicking the visible LABEL (same pattern the filter-status
+  // group already uses above), not force-checking the sr-only radio
+  // directly: a real, un-forced click waits for Playwright's normal
+  // actionability/stability check, which a force:true click explicitly
+  // skips -- skipping it here raced the page-1 slide-back transition on
+  // a loaded CI runner (confirmed live: a force click landed and
+  // reported "done", but the radio's own checked state never actually
+  // flipped, meaning it hit stale coordinates mid-animation). The label
+  // is real, on-screen, and not sr-only, so it needs no force at all.
   await page.locator("#entry-nav-back").click();
-  await page.locator('#status-group input[value="project"]').check({ force: true });
+  await page.locator('#status-group label:has(input[value="project"])').click();
   await page.locator("#entry-nav-forward").click();
   await expect(page.locator("#exertion-field")).toBeHidden();
 
   await page.locator("#entry-nav-back").click();
-  await page.locator('#status-group input[value="checkout"]').check({ force: true });
+  await page.locator('#status-group label:has(input[value="checkout"])').click();
   await page.locator("#entry-nav-forward").click();
   await expect(page.locator("#exertion-field")).toBeHidden();
 
   await page.locator("#entry-nav-back").click();
-  await page.locator('#status-group input[value="archived"]').check({ force: true });
+  await page.locator('#status-group label:has(input[value="archived"])').click();
   await page.locator("#entry-nav-forward").click();
   await expect(page.locator("#exertion-field")).toBeHidden();
 
@@ -449,7 +444,7 @@ test("Exertion is visible for Send/Flash and hidden for Project/Check out/Archiv
   // "send") -- checking it still resolves to selectedStatus === "send",
   // so Exertion reappears.
   await page.locator("#entry-nav-back").click();
-  await page.locator('#status-group input[value="flash"]').check({ force: true });
+  await page.locator('#status-group label:has(input[value="flash"])').click();
   await page.locator("#entry-nav-forward").click();
   await expect(page.locator("#exertion-field")).toBeVisible();
 });
