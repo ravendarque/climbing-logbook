@@ -277,7 +277,19 @@
       '    </svg>' +
       '  </div>' +
       '  <div>' +
-      '    <h1 class="font-display font-normal uppercase tracking-wide text-[2.4rem] leading-none mb-[-.3rem] max-[600px]:text-[1.8rem]"><span class="text-accent">Climbing</span> <span class="text-foreground">Logbook</span></h1>' +
+      // #789 -- whitespace-nowrap: the title has no wrap opportunity of
+      // its own (it's meant to read as one wordmark), but with no
+      // white-space override, a narrow flex row (this brand block is a
+      // sibling of the icon+burger-menu group in climbing-page-header's
+      // own space-between row) could squeeze this element's box below
+      // its natural text width, and the browser filled that by wrapping
+      // "Climbing"/"Logbook" onto two lines -- exactly the bug report.
+      // A new max-[400px] breakpoint (on top of the existing 600px one)
+      // shrinks the text enough that it still fits in one line at the
+      // narrowest realistic phone widths once nowrap forbids wrapping
+      // as an escape valve -- confirmed empirically against a real
+      // 320px-wide viewport, this app's own practical minimum.
+      '    <h1 class="font-display font-normal uppercase tracking-wide text-[2.4rem] leading-none mb-[-.3rem] whitespace-nowrap max-[600px]:text-[1.8rem] max-[400px]:text-[1.3rem]"><span class="text-accent">Climbing</span> <span class="text-foreground">Logbook</span></h1>' +
       '    <p class="' + taglineClass + '">Log your climbs, visualise your progress (<button type="button" class="inline [font-size:inherit] bg-transparent border-0 p-0 cursor-pointer text-accent" id="footnote-trigger">or not</button>)</p>' +
       '  </div>' +
       '</div>' +
