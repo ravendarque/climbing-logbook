@@ -78,4 +78,47 @@ describe("createSyncStatusIcon", () => {
     document.body.innerHTML = "";
     expect(() => createSyncStatusIcon()).not.toThrow();
   });
+
+  // #787 -- no fetch in this app sets its own timeout anywhere, so a
+  // genuinely dead connection (this app's own real-world "slow,
+  // unreliable crag connection" context) could leave a tracked promise
+  // neither resolved nor rejected indefinitely, leaving the icon
+  // spinning forever. Confirms both halves of the fix: the stale
+  // timeout actually fires, and the promise's own eventual late
+  // resolution doesn't double-decrement the in-flight counter (which
+  // would otherwise go negative and make a later, genuinely-pending
+  // promise incorrectly report idle).
+  it("stops counting a promise toward working after it goes stale, without over-decrementing when it eventually settles for real", async () => {
+    vi.useFakeTimers();
+    try {
+      const icon = createSyncStatusIcon();
+      let resolveStale;
+      const stale = new Promise(r => { resolveStale = r; });
+      icon.track(stale);
+      expect(setSyncState).toHaveBeenLastCalledWith("working");
+
+      await vi.advanceTimersByTimeAsync(15000);
+      expect(setSyncState).toHaveBeenLastCalledWith("idle");
+
+      // A second, real promise tracked after the stale one went stale --
+      // if the stale promise's own late resolution below had already
+      // double-decremented inFlight, this would incorrectly read "idle".
+      let resolveReal;
+      const real = new Promise(r => { resolveReal = r; });
+      icon.track(real);
+      expect(setSyncState).toHaveBeenLastCalledWith("working");
+
+      // The stale promise finally resolves for real, late -- must be a
+      // no-op (the `settled` guard), not a second decrement.
+      resolveStale();
+      await stale;
+      expect(setSyncState).toHaveBeenLastCalledWith("working"); // `real` still pending
+
+      resolveReal();
+      await real;
+      expect(setSyncState).toHaveBeenLastCalledWith("idle");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
