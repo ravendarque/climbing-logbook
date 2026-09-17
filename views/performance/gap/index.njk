@@ -58,7 +58,19 @@ staticShellNote: |-
          renders grades in; client/report-grade-scale-picker.js. -->
     <div id="report-grade-scale-root"></div>
   </div>
-  <div id="gap-root"></div><div id="evidence-overlay-root"></div>
+  <div id="gap-root"></div>
+
+  <!-- #797 -- replaces the old "Community data" evidence-tier chip +
+       popup (client/evidence-tier.js): this metric's own actual basis is
+       a single data-analysis layer, not a controlled study, and an
+       inline section states that plainly rather than gesturing at a
+       tier category behind a tap-to-reveal chip. -->
+  <h2 class="section-heading mt-7 mb-3">Sources</h2>
+  <p class="text-[.82rem] text-muted leading-[1.7] mb-3">The onsight/redpoint gap widening as climbers get stronger is a pattern observed in self-reported community logging data, not a peer-reviewed study -- a useful sanity-check metric, not a settled scientific claim.</p>
+  <ol class="m-0 pl-[1.2rem] text-[.84rem] leading-[1.6] text-foreground [&>li+li]:mt-[10px]">
+    <li>"Onsights up to four grades harder than redpoint." 8a.nu News. <a class="text-accent" href="https://www.8a.nu/news/onsight-49849" target="_blank" rel="noopener">8a.nu ↗</a></li>
+    <li>"How much harder is onsighting vs redpointing?" Climbstat (data-analysis blog built on 8a.nu data). <a class="text-accent" href="http://climbstat.blogspot.com/2020/02/how-much-harder-is-onsighting-vs.html" target="_blank" rel="noopener">climbstat.blogspot.com ↗</a></li>
+  </ol>
 
   <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>
 </div>

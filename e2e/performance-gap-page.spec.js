@@ -6,7 +6,7 @@
 import { expect, test } from "@playwright/test";
 import { mockApi } from "./mock-api.js";
 
-test("shows the zero-sends headline, time-window control, and community-data chip with no data", async ({ page }) => {
+test("shows the zero-sends headline, time-window control, and Sources section with no data", async ({ page }) => {
   await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
   await page.goto("/e2e-fixtures/pages/performance-gap.html");
 
@@ -17,7 +17,9 @@ test("shows the zero-sends headline, time-window control, and community-data chi
   await expect(page.locator("#view-explainer")).toContainText("Attempts count and Flash selection");
   await expect(page.locator('[data-window="12w"]')).toBeVisible();
   await expect(page.locator("#gap-root")).toContainText("No sends logged in this window yet.");
-  await expect(page.locator("#gap-root [data-evidence-tier]")).toContainText("Community data");
+  // #797 -- replaces the old "Community data" evidence-tier chip + popup
+  // with an inline, always-visible citation.
+  await expect(page.locator("body")).toContainText("Climbstat");
 });
 
 test("renders both grade-labeled line series and the attempts bar", async ({ page }) => {
@@ -82,17 +84,6 @@ test("switching the report grade scale relabels both grade line series", async (
   await page.locator('#report-grade-scale-listbox [role="option"]', { hasText: "V-scale" }).click();
   await expect(page.locator("#gap-root")).toContainText("V4"); // reportGradeLabel("6B", "boulder", "v-scale")
   await expect(page.locator("#gap-root")).toContainText("V5"); // reportGradeLabel("6C", "boulder", "v-scale")
-});
-
-test("opens and closes the evidence-tier overlay", async ({ page }) => {
-  await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
-  await page.goto("/e2e-fixtures/pages/performance-gap.html");
-
-  await page.locator("[data-evidence-tier]").click();
-  await expect(page.locator("#evidence-overlay")).toBeVisible();
-  await expect(page.locator("#evidence-overlay")).toContainText("Community data");
-  await page.locator("#evidence-close").click();
-  await expect(page.locator("#evidence-overlay")).toBeHidden();
 });
 
 test("switching the time window to 52w re-fetches with a wider range", async ({ page }) => {

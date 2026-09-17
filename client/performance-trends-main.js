@@ -14,10 +14,9 @@
 // public/performance/trends/index.html for the reasoning).
 //
 // No modal-utils.js/content-overlays.js here either, same reasoning as
-// map-main.js -- this page has no notes/footnote overlay of its own; the
-// volume/intensity view's chart is plain data, not sourced claims needing
-// a citations/evidence-tier overlay the way the pyramid page's own
-// component does.
+// map-main.js -- this page has no notes/footnote overlay of its own; its
+// own Sources section (#797, views/performance/trends/index.njk) is plain
+// inline content, not a popup needing wiring from here.
 import { createStore } from "./store.js";
 import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";

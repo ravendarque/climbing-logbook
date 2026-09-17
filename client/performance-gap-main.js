@@ -13,12 +13,11 @@
 // (Raven's own call, see the #performance-offline message in
 // public/performance/gap/index.html for the reasoning).
 //
-// Task 5 -- unlike map-main.js, this page DOES need modal-utils.js: the
-// onsight/redpoint gap chart's headline is sourced from community (8a.nu/
-// Climbstat-derived) reference data, not the user's own raw entries, so it
-// carries an evidence-tier chip + overlay (client/evidence-tier.js) the
-// same way climbing-grade-pyramid.js's peer/heuristic claims do. No notes/
-// footnote overlay though -- this page still has none of those.
+// #797 -- the onsight/redpoint gap chart's headline is sourced from
+// community (8a.nu/Climbstat-derived) reference data, not the user's own
+// raw entries; this page's own inline Sources section (views/performance/
+// gap/index.njk) is the citation now, not the evidence-tier chip + overlay
+// (client/evidence-tier.js) this page carried before.
 import { createStore } from "./store.js";
 import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
@@ -27,8 +26,6 @@ import { createSyncStatusIcon } from "./sync-status-icon.js";
 import { createTimeWindowControl } from "./time-window.js";
 import { createReportGradeScalePicker } from "./report-grade-scale-picker.js";
 import { renderComboChartHtml } from "./combo-chart.js";
-import { evidenceOverlayHtml, evidenceTierButtonHtml } from "./evidence-tier.js";
-import { createModalHelpers } from "./modal-utils.js";
 import { flashLabel, sendLabel } from "./status.js";
 import { reportGradePoint, reportPositionOrder } from "../shared/volume-stats.js";
 import { gapHeadline } from "../shared/gap-stats.js";
@@ -71,11 +68,6 @@ const reportGradeScaleRootEl = document.getElementById("report-grade-scale-root"
 const offlineEl = document.getElementById("performance-offline");
 
 let latestGapData = null;
-// Assigned in boot(), after evidence-overlay-root's markup is injected --
-// renderGap() (called from render(), which boot() also calls after that
-// injection) references it to wire the "Community data" chip's click
-// handler.
-let modalHelpers;
 
 // A rapid preset switch, or the two Custom date inputs firing `change`
 // back-to-back, can let an earlier, now-stale fetchGap() resolve after
@@ -126,18 +118,7 @@ function renderGap() {
     headline,
   });
 
-  // renderComboChartHtml's own headline slot runs the string through
-  // escapeHtml() internally (see client/combo-chart.js's real current
-  // implementation) -- the "Community data" evidence-tier chip (real
-  // HTML, a real <button>) can't be smuggled inside that string, it
-  // would come out as escaped literal text. Rendered as a sibling
-  // element directly after the chart's own markup instead -- no change
-  // to the already-shipped, already-reviewed combo-chart component.
-  gapRootEl.innerHTML = chartHtml + `<p class="text-[.82rem] text-muted mt-2">Reference: ${evidenceTierButtonHtml("Community data", "community")}</p>`;
-
-  gapRootEl.querySelectorAll("[data-evidence-tier]").forEach(btn =>
-    btn.addEventListener("click", () => modalHelpers.openModal(document.getElementById("evidence-overlay")))
-  );
+  gapRootEl.innerHTML = chartHtml;
 }
 
 function render() {
@@ -210,16 +191,6 @@ async function boot() {
     location.href = `/${encodeURIComponent(USERNAME)}/log`;
     return;
   }
-
-  document.getElementById("evidence-overlay-root").outerHTML = evidenceOverlayHtml(["community"]);
-  // Assignment, not a `const` redeclaration -- a block-scoped `const
-  // modalHelpers` here would shadow the module-level `let modalHelpers`
-  // above instead of populating it, leaving renderGap()'s own reference
-  // permanently undefined.
-  modalHelpers = createModalHelpers(["evidence-overlay"]);
-  document.getElementById("evidence-close").addEventListener("click", () =>
-    modalHelpers.closeModal(document.getElementById("evidence-overlay"))
-  );
 
   render();
 

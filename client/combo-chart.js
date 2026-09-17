@@ -105,12 +105,14 @@ function lineScale(positionOrder) {
 // ever had one series (RPE, Trends), so a single hardcoded foreground
 // color went unnoticed until Gap's own two series (Flash/Onsight max
 // grade, Send/Redpoint max grade) rendered identically and were
-// impossible to tell apart. tier-heuristic (an amber, already
-// theme-aware -- see client/evidence-tier.js's own text-tier-heuristic
-// usage) is distinct from both foreground (series 0, unchanged) and
-// accent (already used by this same chart's own bar series). NOT
-// tier-peer (blue) -- blue is not in this app's palette anywhere and is
-// off-limits app-wide (Raven, 2026-09-02).
+// impossible to tell apart. tier-heuristic (an amber, already theme-aware
+// -- public/logbook/components/climbing-header.js's own --tier-heuristic
+// token) is distinct from both foreground (series 0, unchanged) and
+// accent (already used by this same chart's own bar series). Blue is not
+// in this app's palette anywhere and is off-limits app-wide (Raven,
+// 2026-09-02) -- the tier-peer token that color used to live on was
+// retired along with the evidence-tier chip UI it only ever colored
+// (#797), reinforcing the same rule, not just precedent for it now.
 //
 // #624 -- COMPLETE literal class strings per entry, not
 // `class="fill-${color}"`/`class="stroke-${color}"` string interpolation

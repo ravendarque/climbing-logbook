@@ -1,26 +1,21 @@
 // <climbing-grade-pyramid> (#374): wraps client/pyramid-view.js's existing
-// rendering (send-counting, 8-4-2-1 promotion tiers, citations/evidence-
-// tier overlays) as a shared Web Component. Owner-only, full stop -- never
-// used on the public `/:username` page (#351 excludes it entirely) or any
-// bundle reachable by a logged-out or different-user session. Its two real
-// consumers (#348's `/:username/performance`, and eventually the
-// Shareable Infographic epic, #7/#19) are both owner-authenticated
-// contexts, which is exactly the "second real consumer" case that earns a
-// shared component its keep (see #344's decision recorded on this issue).
+// rendering (send-counting, 8-4-2-1 promotion tiers) as a shared Web
+// Component. Owner-only, full stop -- never used on the public
+// `/:username` page (#351 excludes it entirely) or any bundle reachable by
+// a logged-out or different-user session. Its two real consumers (#348's
+// `/:username/performance`, and eventually the Shareable Infographic epic,
+// #7/#19) are both owner-authenticated contexts, which is exactly the
+// "second real consumer" case that earns a shared component its keep (see
+// #344's decision recorded on this issue).
 //
 // shared/pyramid-stats.js's send-counting/promotion logic (#111 -- moved
 // out of client/ into shared/, now runs server-side; this component no
 // longer imports or calls it at all, see pyramidData below).
 //
-// Citations/evidence-tier overlay open/close (#516) uses
-// client/modal-utils.js's own createModalHelpers(), scoped to just
-// ["citations-overlay", "evidence-overlay"] -- that factory's default
-// overlayIds list is /log's own full-page set, but overlayIds was
-// always a real parameter, not something this component needed to
-// avoid entirely: an earlier version of this comment assumed otherwise
-// and hand-rolled the exact same open/close/focus-trap mechanics
-// climbing-entries-table.js's own notes overlay also hand-rolled,
-// independently (found via code review, 2026-08-22).
+// #797 -- the citations/evidence-tier overlays (#516) this component used
+// to hand-rolled-modal are gone: an inline Sources section (SHELL, below)
+// replaces both, same reasoning applied to every other Performance
+// Insights report page.
 //
 // pyramidData (property, #111) and active-discipline (attribute) come in
 // from whichever page's composition root owns that state -- this
@@ -33,7 +28,6 @@
 import { escapeHtml } from "../escape-html.js";
 import { gradePyramidColorForScale } from "../../shared/grade-data.js";
 import { PYRAMID_IDEAL_BY_POSITION, pyramidHealth } from "../../shared/pyramid-stats.js";
-import { createModalHelpers } from "../modal-utils.js";
 import { disciplineLabel } from "../status.js";
 
 const PYRAMID_ICON_GOOD     = `<circle cx="12" cy="12" r="9"></circle><path d="m8.5 12.5 2.5 2.5 5-5"></path>`;
@@ -48,55 +42,28 @@ const PYRAMID_ICON_PROMOTED = `<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.
 // to one hardcoded shade regardless of theme.
 const PYRAMID_GOLD = "var(--pyramid-status-promoted)";
 
+// #797 -- replaces the old citations-overlay + evidence-overlay popups
+// (tap a superscript marker or a "coaching heuristic" chip to reveal
+// sources in a modal) with an inline, always-visible Sources section --
+// direct citation, not a tap-to-reveal category chip. Draper et al.
+// (2016)'s IRCRA position statement added alongside the pre-existing
+// Hörst/Hampton pair: a more rigorous, research-community-endorsed
+// adjacent reference point for grade-tier bucketing (it doesn't validate
+// the 8-4-2-1 ratio itself, which stays a coaching heuristic, not a
+// proven ratio -- see docs/climbing-analytics-research.md §1).
 const SHELL = `
   <p class="text-[.82rem] text-muted leading-[1.7] mb-4" id="window-note"></p>
   <div class="pyramid-card bg-surface border border-border rounded-app pt-[22px] px-5 max-[480px]:px-2 pb-4 mb-5" id="pyramid" role="group" aria-label="Grade pyramid"></div>
   <div class="flex gap-3 px-4 py-[14px] rounded-app mb-7 [&_svg]:w-[1.2rem] [&_svg]:h-[1.2rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:mt-[2px] [&_svg]:shrink-0" id="health-card" role="status"></div>
 
-  <div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-center justify-center px-4 py-6 overflow-y-auto" id="citations-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="citations-title" tabindex="-1">
-    <div class="bg-background border border-border rounded-app p-5 w-full max-w-[380px]">
-      <div class="flex items-center justify-between mb-[14px]">
-        <span class="text-[1.05rem] font-bold text-accent" id="citations-title">Sources</span>
-        <button type="button" class="inline-flex items-center justify-center w-8 h-8 border-none bg-transparent text-muted text-[1.1rem] leading-none cursor-pointer hover:text-foreground" id="citations-close" aria-label="Close sources dialog">✕</button>
-      </div>
-      <ol class="m-0 pl-[1.2rem] text-[.84rem] leading-[1.6] text-foreground [&>li+li]:mt-[10px]">
-        <li>Hörst, E. J. <em class="text-muted italic">How to Climb 5.12</em> — originating source for the route-pyramid training concept (print only, no stable link available).</li>
-        <li>Hampton, K. "Great Pyramids." Power Company Climbing (2010). <a class="text-accent" href="https://www.powercompanyclimbing.com/blog/2010/08/great-pyramids.html" target="_blank" rel="noopener">powercompanyclimbing.com ↗</a></li>
-      </ol>
-    </div>
-  </div>
-
-  <div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-center justify-center px-4 py-6 overflow-y-auto" id="evidence-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="evidence-title" tabindex="-1">
-    <div class="bg-background border border-border rounded-app p-5 w-full max-w-[380px]">
-      <div class="flex items-center justify-between mb-[14px]">
-        <span class="text-[1.05rem] font-bold text-accent" id="evidence-title">Evidence tiers</span>
-        <button type="button" class="inline-flex items-center justify-center w-8 h-8 border-none bg-transparent text-muted text-[1.1rem] leading-none cursor-pointer hover:text-foreground" id="evidence-close" aria-label="Close evidence tiers dialog">✕</button>
-      </div>
-      <p class="text-[.82rem] text-muted leading-[1.5] mb-4">Claims in the app are tagged by how well-supported they are, so nothing reads as more authoritative than it actually is.</p>
-      <ul class="m-0 p-0 list-none [&>li+li]:mt-4">
-        <li>
-          <span class="tier-chip inline-flex items-center gap-[.35rem] py-[.3rem] pr-[.7rem] pl-[.55rem] rounded-full text-[.74rem] font-semibold border border-[color-mix(in_srgb,var(--color-tier-peer)_35%,transparent)] text-tier-peer bg-[color-mix(in_srgb,var(--color-tier-peer)_14%,var(--color-surface))] [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:shrink-0 mb-2">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z"></path><path d="M9.5 12l1.8 1.8L15 10"></path></svg>
-            Peer-reviewed
-          </span>
-          <p class="text-[.82rem] leading-[1.5] text-foreground m-0">Backed by published, peer-reviewed research.</p>
-        </li>
-        <li>
-          <span class="tier-chip inline-flex items-center gap-[.35rem] py-[.3rem] pr-[.7rem] pl-[.55rem] rounded-full text-[.74rem] font-semibold border border-[color-mix(in_srgb,var(--color-tier-heuristic)_35%,transparent)] text-tier-heuristic bg-[color-mix(in_srgb,var(--color-tier-heuristic)_14%,var(--color-surface))] [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:shrink-0 mb-2">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z"></path><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20"></path></svg>
-            Coaching heuristic
-          </span>
-          <p class="text-[.82rem] leading-[1.5] text-foreground m-0">A widely used rule of thumb from coaching practice, not (yet) validated by peer-reviewed research.</p>
-        </li>
-      </ul>
-    </div>
-  </div>
+  <h2 class="section-heading mt-7 mb-3">Sources</h2>
+  <p class="text-[.82rem] text-muted leading-[1.7] mb-3">The 8-4-2-1 ratio is a coaching heuristic corroborated across independent sources, not a peer-reviewed or data-validated ratio.</p>
+  <ol class="m-0 pl-[1.2rem] text-[.84rem] leading-[1.6] text-foreground [&>li+li]:mt-[10px]">
+    <li>Hörst, E. J. <em class="text-muted italic">How to Climb 5.12</em> — originating source for the route-pyramid training concept (print only, no stable link available).</li>
+    <li>Hampton, K. "Great Pyramids." Power Company Climbing (2010). <a class="text-accent" href="https://www.powercompanyclimbing.com/blog/2010/08/great-pyramids.html" target="_blank" rel="noopener">powercompanyclimbing.com ↗</a></li>
+    <li>Draper, N., Giles, D., Schöffl, V., Fuss, F. K., Watts, P., Wolf, P., et al. (2016). "Comparative grading scales, statistical analyses, climber descriptors and ability grouping: IRCRA position statement." <em class="text-muted italic">Sports Technology</em>, 8, 88–94. IRCRA-endorsed adjacent reference for grade-tier bucketing -- doesn't validate the 8-4-2-1 ratio itself.</li>
+  </ol>
 `;
-
-function evidenceTierText(text) {
-  return `<button type="button" class="text-[.82rem] font-bold text-tier-heuristic bg-transparent border-0 p-0 m-0 cursor-pointer hover:brightness-90" data-evidence-tier aria-label="${text} -- evidence tier: coaching heuristic, tap to learn more">${text}</button>`;
-}
-const CITATION_MARKER = `<button type="button" class="align-super ml-[.3em] inline-flex items-center justify-center px-[.35em] py-[.1em] rounded-[.3em] border border-[color-mix(in_srgb,var(--color-accent)_35%,transparent)] text-accent bg-[color-mix(in_srgb,var(--color-accent)_14%,var(--color-surface))] text-[.65rem] font-bold leading-none cursor-pointer hover:brightness-95" data-citation aria-label="View sources">1</button>`;
 
 function pyramidStatusIcon(actual, ideal, promoted) {
   if (promoted) return { cls: "promoted", color: PYRAMID_GOLD, svg: PYRAMID_ICON_PROMOTED, label: "Ready to push -- you've logged enough at the tier below to attempt this grade" };
@@ -163,10 +130,6 @@ export class ClimbingGradePyramid extends HTMLElement {
   // component -- or the client -- at all.
   #pyramidData = { boulder: EMPTY_PYRAMID, sport: EMPTY_PYRAMID };
   #wired = false;
-  // #516 -- createModalHelpers()'s own openModal, captured once when
-  // #wireOverlays() runs -- #render() below (the citation/evidence-tier
-  // marker click handlers) needs it too, not just #wireOverlays() itself.
-  #openModal = null;
   // #737 -- which scale `pyramidData`'s own rows are ALREADY expressed
   // in (shared/pyramid-stats.js builds the row list itself from this
   // scale server-side -- this component does no grade conversion of its
@@ -197,7 +160,6 @@ export class ClimbingGradePyramid extends HTMLElement {
   connectedCallback() {
     if (!this.#wired) {
       this.innerHTML = SHELL;
-      this.#wireOverlays();
       this.#wired = true;
     }
     this.#render();
@@ -205,22 +167,6 @@ export class ClimbingGradePyramid extends HTMLElement {
 
   attributeChangedCallback() {
     if (this.#wired) this.#render();
-  }
-
-  // #516 -- createModalHelpers(["citations-overlay", "evidence-overlay"])
-  // instead of a hand-rolled open/close/focus-trap (see this file's own
-  // header comment on why the earlier self-contained version wasn't
-  // actually necessary).
-  #wireOverlays() {
-    const citationsOverlay = this.querySelector("#citations-overlay");
-    const evidenceOverlay = this.querySelector("#evidence-overlay");
-    const { openModal, closeModal } = createModalHelpers(["citations-overlay", "evidence-overlay"]);
-    this.#openModal = openModal;
-
-    this.querySelector("#citations-close").addEventListener("click", () => closeModal(citationsOverlay));
-    citationsOverlay.addEventListener("click", e => { if (e.target === citationsOverlay) closeModal(citationsOverlay); });
-    this.querySelector("#evidence-close").addEventListener("click", () => closeModal(evidenceOverlay));
-    evidenceOverlay.addEventListener("click", e => { if (e.target === evidenceOverlay) closeModal(evidenceOverlay); });
   }
 
   #render() {
@@ -248,15 +194,9 @@ export class ClimbingGradePyramid extends HTMLElement {
     pyramidEl.innerHTML = top4.map((r, i) => pyramidBarRow(r, { ideal: PYRAMID_IDEAL_BY_POSITION[i], scaleMax: top4Scale, type, viewScaleId, promoted: r.grade === promotedGrade })).join("");
 
     windowNoteEl.innerHTML =
-      `Sends from the <strong class="text-foreground font-semibold">last 12 months only</strong>${CITATION_MARKER}, showing your
+      `Sends from the <strong class="text-foreground font-semibold">last 12 months only</strong>, showing your
        <strong class="text-foreground font-semibold">8-4-2-1 window</strong> — four grade tiers anchored to your progress so far, including any with zero sends, projecting one tier higher once you've logged enough to be ready to push for it. Dashed outlines mark the
-       ideal count for each tier. The ratio itself is a ${evidenceTierText("widely used coaching heuristic")}${CITATION_MARKER}, not a proven ratio.`;
-    this.querySelectorAll("[data-citation]").forEach(btn =>
-      btn.addEventListener("click", () => this.#openModal(this.querySelector("#citations-overlay")))
-    );
-    this.querySelectorAll("[data-evidence-tier]").forEach(btn =>
-      btn.addEventListener("click", () => this.#openModal(this.querySelector("#evidence-overlay")))
-    );
+       ideal count for each tier. The ratio itself is a widely used coaching heuristic, not a proven ratio -- see Sources below.`;
 
     // #687 -- branch selection itself now lives in shared/pyramid-stats.js's
     // pyramidHealth() (docs/coaching-messaging-rules.md has the full rule

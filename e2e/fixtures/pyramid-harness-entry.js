@@ -18,7 +18,7 @@ const today = new Date().toISOString().slice(0, 10);
 // hide-lower-grades test had a real lower section to toggle -- that
 // section (and its test) are gone now (the pyramid is a pure 8-4-2-1
 // report), but this wider range is still harmless, realistic data for
-// the citations-overlay test that remains.
+// the Sources-section test that remains (#797).
 const entries = [
   { id: "e0", type: "boulder", status: "send", grade: "5C", date: today },
   { id: "e1", type: "boulder", status: "send", grade: "6A", date: today },
