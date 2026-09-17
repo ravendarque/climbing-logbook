@@ -43,7 +43,14 @@ const PILL_LABELS = { "12w": "12 weeks", "52w": "52 weeks", custom: "Custom" };
 // has-checked: variant doesn't apply -- aria-[pressed=true]: does the
 // same job, same pattern client/components/climbing-tab-bar.js's own
 // LINK_CLASSES already uses for aria-[current=page]:.
-const PILL_CLASSES = "border border-border rounded-app bg-surface text-muted text-[.82rem] font-semibold cursor-pointer transition-colors duration-150 hover:text-foreground px-3 py-1 aria-[pressed=true]:bg-accent aria-[pressed=true]:text-accent-foreground aria-[pressed=true]:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2";
+// #798 -- min-w-[5.5rem]/text-center: the three pills' own labels ("12
+// weeks"/"52 weeks"/"Custom") are genuinely different lengths, and with
+// no width control each button sized to its own content -- a real
+// segmented control (this file's own header comment already calls it
+// that) reads as broken when its segments aren't a uniform width. Sized
+// to comfortably fit "12 weeks"/"52 weeks" (the two longest labels, tied)
+// with "Custom" simply centering within the same width.
+const PILL_CLASSES = "border border-border rounded-app bg-surface text-muted text-[.82rem] font-semibold cursor-pointer transition-colors duration-150 hover:text-foreground px-3 py-1 min-w-[5.5rem] text-center aria-[pressed=true]:bg-accent aria-[pressed=true]:text-accent-foreground aria-[pressed=true]:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2";
 
 const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -87,16 +94,23 @@ export function createTimeWindowControl({ containerEl, onChange, initial = "12w"
       <button type="button" class="${PILL_CLASSES}" data-window="${m}" aria-pressed="${m === mode}">${PILL_LABELS[m]}</button>
     `).join("");
 
+    // #798 -- shrink-0 whitespace-nowrap on each date label: as a flex
+    // sibling of the picker's own fixed-width flex-[0_0_2.75rem] button
+    // (calendar-date-picker.js), a label with no shrink protection could
+    // be squeezed by its own row's available width and wrap "Jun 25,
+    // 2026" onto two lines -- the row itself is already allowed to wrap
+    // as a whole (this container's own flex-wrap), so the label never
+    // needs to break internally.
     const customHtml = mode === "custom"
       ? `<div class="flex items-center gap-2 mt-2 flex-wrap">
           <div class="flex items-center gap-2">
             ${calendarDatePickerHtml("time-window-start", { label: "Pick a start date" })}
-            <span class="text-[.85rem] text-foreground">${escapeHtml(formatDateLabel(customRange.start))}</span>
+            <span class="text-[.85rem] text-foreground shrink-0 whitespace-nowrap">${escapeHtml(formatDateLabel(customRange.start))}</span>
           </div>
           <span class="text-muted text-[.82rem]">–</span>
           <div class="flex items-center gap-2">
             ${calendarDatePickerHtml("time-window-end", { label: "Pick an end date" })}
-            <span class="text-[.85rem] text-foreground">${escapeHtml(formatDateLabel(customRange.end))}</span>
+            <span class="text-[.85rem] text-foreground shrink-0 whitespace-nowrap">${escapeHtml(formatDateLabel(customRange.end))}</span>
           </div>
         </div>`
       : "";
