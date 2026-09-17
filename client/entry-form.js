@@ -502,7 +502,16 @@ export function createEntryForm({
       const target = pageNum === 2 ? entryPage2 : entryPage1;
       entryPagesTrack.style.transform = pageNum === 2 ? "translateX(-100%)" : "translateX(0)";
       entryPagesViewport.style.height = `${target.scrollHeight}px`;
-      target.focus();
+      // preventScroll -- a plain .focus() can trigger the browser's own
+      // scroll-into-view for the newly-focused page, fighting visually
+      // with this same translateX/height transition (a real, reported
+      // "jump too far then snap back" jank on the forward direction
+      // specifically, where the taller page-1 -> shorter page-2 move is
+      // more likely to have already-scrolled state for the browser to
+      // "correct"). The slide itself is already the user-visible
+      // indication of what changed; an additional native scroll has
+      // nothing left to contribute.
+      target.focus({ preventScroll: true });
     });
   }
   entryNavForward.addEventListener("click", () => showPage(2));

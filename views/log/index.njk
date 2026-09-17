@@ -77,9 +77,21 @@ staticShellNote: |-
          entry-form.js's own showPage(). Both pages stay inside this ONE
          form (not two separate forms) -- either page's own "Save &
          close" submits the whole entry, both pages' field values
-         included, exactly like today's single-page submit. -->
+         included, exactly like today's single-page submit.
+         items-start (not flex's own default align-items:stretch) -- a
+         real bug found live, not a guess: without it, BOTH pages were
+         being stretched to match whichever one's content was taller
+         (confirmed via getBoundingClientRect(): both reported the exact
+         same height regardless of their genuinely different content),
+         which made entry-form.js's own scrollHeight-based height
+         measurement in showPage() meaningless (both "old" and "new"
+         heights read identical), and left real dead space below
+         whichever page's own actual content was shorter than its
+         stretched box (the "Delete entry button is way down after a lot
+         of dead space" report). items-start lets each page size to its
+         own real content instead. -->
     <div class="overflow-hidden" id="entry-pages-viewport">
-      <div class="flex transition-[transform,height] duration-300 ease-out motion-reduce:transition-none" id="entry-pages-track">
+      <div class="flex items-start transition-[transform,height] duration-300 ease-out motion-reduce:transition-none" id="entry-pages-track">
       <div class="w-full shrink-0" id="entry-page-1" tabindex="-1">
       <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 first:mt-0 mt-[1.1rem]" id="form-name-label">Problem name</div>
       <div class="mb-3">
@@ -303,10 +315,17 @@ staticShellNote: |-
       </div>
 
       <!-- #791 -- hidden entirely (not just inert) for a logbook-only
-           user -- entry-form.js's own open(). -->
+           user -- entry-form.js's own open().
+           whitespace-nowrap + max-[400px]:text-[.85rem] -- these two
+           buttons split the modal's own content width (max-w-[460px]
+           minus p-5 padding) in half, and at 1rem/bold, "Performance →"
+           wrapped onto two lines at narrow phone widths (a real report,
+           not a guess) -- same max-[400px] breakpoint convention
+           climbing-header.js's own brand title uses for the identical
+           "shrink the text at the narrowest realistic widths" reason. -->
       <div class="flex items-center justify-between gap-3 mt-4">
-        <button type="submit" class="flex-1 bg-accent text-accent-foreground border-none rounded-app py-[.9rem] text-[1rem] font-bold cursor-pointer disabled:opacity-[.45] disabled:cursor-not-allowed" id="entry-submit-btn">Save &amp; close</button>
-        <button type="button" class="flex-1 bg-surface text-foreground border border-border rounded-app py-[.9rem] text-[1rem] font-bold cursor-pointer hover:border-accent" id="entry-nav-forward">Performance →</button>
+        <button type="submit" class="flex-1 bg-accent text-accent-foreground border-none rounded-app py-[.9rem] text-[1rem] max-[400px]:text-[.85rem] font-bold cursor-pointer whitespace-nowrap disabled:opacity-[.45] disabled:cursor-not-allowed" id="entry-submit-btn">Save &amp; close</button>
+        <button type="button" class="flex-1 bg-surface text-foreground border border-border rounded-app py-[.9rem] text-[1rem] max-[400px]:text-[.85rem] font-bold cursor-pointer whitespace-nowrap hover:border-accent" id="entry-nav-forward">Performance →</button>
       </div>
       </div>
 
@@ -373,9 +392,11 @@ staticShellNote: |-
           <button type="button" class="text-[.85rem] font-semibold text-accent bg-transparent border-0 cursor-pointer p-0" id="pain-moves-add" aria-label="Add a pain/injury move">+ Add a move</button>
         </div>
 
+        <!-- #791 -- same whitespace-nowrap + max-[400px]:text-[.85rem]
+             as page 1's own button row, for the identical reason. -->
         <div class="flex items-center justify-between gap-3 mt-6">
-          <button type="button" class="flex-1 bg-surface text-foreground border border-border rounded-app py-[.9rem] text-[1rem] font-bold cursor-pointer hover:border-accent" id="entry-nav-back">← Log entry</button>
-          <button type="submit" class="flex-1 bg-accent text-accent-foreground border-none rounded-app py-[.9rem] text-[1rem] font-bold cursor-pointer disabled:opacity-[.45] disabled:cursor-not-allowed" id="entry-submit-btn-2">Save &amp; close</button>
+          <button type="button" class="flex-1 bg-surface text-foreground border border-border rounded-app py-[.9rem] text-[1rem] max-[400px]:text-[.85rem] font-bold cursor-pointer whitespace-nowrap hover:border-accent" id="entry-nav-back">← Log entry</button>
+          <button type="submit" class="flex-1 bg-accent text-accent-foreground border-none rounded-app py-[.9rem] text-[1rem] max-[400px]:text-[.85rem] font-bold cursor-pointer whitespace-nowrap disabled:opacity-[.45] disabled:cursor-not-allowed" id="entry-submit-btn-2">Save &amp; close</button>
         </div>
       </div>
       </div>
