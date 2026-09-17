@@ -6,7 +6,7 @@
 import { expect, test } from "@playwright/test";
 import { mockApi } from "./mock-api.js";
 
-test("shows the confidence-gate message, time-window control, and peer-reviewed chip below the sample threshold", async ({ page }) => {
+test("shows the confidence-gate message, time-window control, and Sources section below the sample threshold", async ({ page }) => {
   await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
   await page.goto("/e2e-fixtures/pages/performance-rpe.html");
 
@@ -20,7 +20,9 @@ test("shows the confidence-gate message, time-window control, and peer-reviewed 
   await expect(page.locator("#view-explainer")).toContainText("less reliable");
   await expect(page.locator('[data-window="12w"]')).toBeVisible();
   await expect(page.locator("#rpe-root")).toContainText("Not enough data yet for a reliable read");
-  await expect(page.locator("#rpe-root [data-evidence-tier]")).toContainText("Peer-reviewed");
+  // #797 -- replaces the old evidence-tier chip + popup with an inline,
+  // always-visible citation.
+  await expect(page.locator("body")).toContainText("Gajdošík");
 });
 
 test("renders the exertion bars and grade-labeled line once the confidence gate clears", async ({ page }) => {
@@ -73,17 +75,6 @@ test("switching the report grade scale relabels the chart's grade point", async 
   await page.locator('#report-grade-scale-listbox [role="option"]', { hasText: "V-scale" }).click();
   await expect(page.locator("#rpe-root")).toContainText("V4"); // reportGradeLabel("6B", "boulder", "v-scale")
   await expect(page.locator("#rpe-root")).toContainText("V5"); // reportGradeLabel("6C", "boulder", "v-scale")
-});
-
-test("opens and closes the evidence-tier overlay", async ({ page }) => {
-  await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
-  await page.goto("/e2e-fixtures/pages/performance-rpe.html");
-
-  await page.locator("[data-evidence-tier]").click();
-  await expect(page.locator("#evidence-overlay")).toBeVisible();
-  await expect(page.locator("#evidence-overlay")).toContainText("Peer-reviewed");
-  await page.locator("#evidence-close").click();
-  await expect(page.locator("#evidence-overlay")).toBeHidden();
 });
 
 test("switching the time window to 52w re-fetches with a wider range", async ({ page }) => {

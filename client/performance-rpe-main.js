@@ -13,13 +13,12 @@
 // (Raven's own call, see the #performance-offline message in
 // public/performance/rpe/index.html for the reasoning).
 //
-// Unlike map-main.js, this page DOES need modal-utils.js: the RPE/effort
-// trend chart's headline cites peer-reviewed research (Gajdošík, Baláš &
-// Draper, 2020), not the user's own raw entries, so it carries an
-// evidence-tier chip + overlay (client/evidence-tier.js) the same way
-// climbing-grade-pyramid.js's own peer/heuristic claims do, and #14's gap
-// page already established for its own "community" tier. No notes/
-// footnote overlay though -- this page still has none of those.
+// #797 -- the RPE/effort trend chart's headline cites peer-reviewed
+// research (Gajdošík, Baláš & Draper, 2020); this page's own inline
+// Sources section (views/performance/rpe/index.njk) is the citation now,
+// not the evidence-tier chip + overlay (client/evidence-tier.js) this
+// page carried before -- retired along with every other report's own
+// evidence-tier popup once each had a real Sources section to replace it.
 import { createStore } from "./store.js";
 import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
@@ -28,8 +27,6 @@ import { createSyncStatusIcon } from "./sync-status-icon.js";
 import { createTimeWindowControl } from "./time-window.js";
 import { createReportGradeScalePicker } from "./report-grade-scale-picker.js";
 import { renderComboChartHtml } from "./combo-chart.js";
-import { evidenceOverlayHtml, evidenceTierButtonHtml } from "./evidence-tier.js";
-import { createModalHelpers } from "./modal-utils.js";
 import { reportGradePoint, reportPositionOrder } from "../shared/volume-stats.js";
 import { demoDataUrl, isDemoUsername } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
@@ -70,11 +67,6 @@ const reportGradeScaleRootEl = document.getElementById("report-grade-scale-root"
 const offlineEl = document.getElementById("performance-offline");
 
 let latestEffortData = null;
-// Assigned in boot(), after evidence-overlay-root's markup is injected --
-// renderEffort() (called from render(), which boot() also calls after that
-// injection) references it to wire the "Peer-reviewed" chip's click
-// handler.
-let modalHelpers;
 
 // A rapid preset switch, or the two Custom date inputs firing `change`
 // back-to-back, can let an earlier, now-stale fetchEffort() resolve after
@@ -115,16 +107,7 @@ function renderEffort() {
     headline: headlineText,
   });
 
-  // Same reasoning as client/performance-gap-main.js's own renderGap():
-  // renderComboChartHtml's headline slot escapeHtml()s its input
-  // internally, so the "Peer-reviewed" evidence-tier chip (real HTML) is
-  // rendered as a sibling element after the chart's own markup, not
-  // smuggled inside the headline string.
-  rpeRootEl.innerHTML = chartHtml + `<p class="text-[.82rem] text-muted mt-2">Reference: ${evidenceTierButtonHtml("Peer-reviewed", "peer")}</p>`;
-
-  rpeRootEl.querySelectorAll("[data-evidence-tier]").forEach(btn =>
-    btn.addEventListener("click", () => modalHelpers.openModal(document.getElementById("evidence-overlay")))
-  );
+  rpeRootEl.innerHTML = chartHtml;
 }
 
 function render() {
@@ -197,16 +180,6 @@ async function boot() {
     location.href = `/${encodeURIComponent(USERNAME)}/log`;
     return;
   }
-
-  document.getElementById("evidence-overlay-root").outerHTML = evidenceOverlayHtml(["peer"]);
-  // Assignment, not a `const` redeclaration -- a block-scoped `const
-  // modalHelpers` here would shadow the module-level `let modalHelpers`
-  // above instead of populating it, leaving renderEffort()'s own reference
-  // permanently undefined.
-  modalHelpers = createModalHelpers(["evidence-overlay"]);
-  document.getElementById("evidence-close").addEventListener("click", () =>
-    modalHelpers.closeModal(document.getElementById("evidence-overlay"))
-  );
 
   render();
 

@@ -15,8 +15,8 @@
 //
 // No modal-utils.js/content-overlays.js here either, same reasoning as
 // map-main.js -- this page has no notes/footnote overlay of its own, and
-// the pyramid component's citations/evidence-tier overlays are already
-// fully self-contained.
+// the pyramid component's own Sources section (#797) is plain inline
+// content, not a popup needing wiring from here.
 import { createStore } from "./store.js";
 import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";

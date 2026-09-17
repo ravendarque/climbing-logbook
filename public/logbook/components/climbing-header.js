@@ -69,9 +69,13 @@
     // themes, so a literal light/dark text flip would leave the gold
     // tiers unreadable in dark mode.
     "  --grade-badge-ink: #1c1917;",
-    "  --tier-peer:      #5b8def;",
+    // #797 -- --tier-peer/--tier-community (the evidence-tier chip's own
+    // "Peer-reviewed"/"Community data" colors) removed along with that
+    // retired popup UI -- --tier-heuristic stays, still genuinely used by
+    // combo-chart.js's own chart-line coloring and climbing-grade-
+    // pyramid.js's own health-card "low" status, unrelated purposes that
+    // just happen to reuse the same amber token.
     "  --tier-heuristic: #dba43a;",
-    "  --tier-community: #cd7cae;",
     // #516 -- <climbing-grade-pyramid>'s own status-icon colors (good/
     // missing/promoted), previously hardcoded raw hex directly in that
     // component and never in this token set at all, so they never
@@ -121,9 +125,7 @@
     "  --grade-tier-elite:        #faa307;",
     "  --grade-tier-hyper-elite:  #ffba08;",
     "  --grade-badge-ink: #1c1917;",
-    "  --tier-peer:      #2e5fb8;",
     "  --tier-heuristic: #a6740a;",
-    "  --tier-community: #a34a7a;",
     "  --pyramid-status-good:     #16a34a;",
     "  --pyramid-status-missing:  #b91c1c;",
     "  --pyramid-status-promoted: #a16207;",

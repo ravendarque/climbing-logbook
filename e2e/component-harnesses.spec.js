@@ -28,16 +28,17 @@
 // covered by test/owned-routes.test.js).
 import { expect, test } from "@playwright/test";
 
-test("climbing-grade-pyramid: citations overlay opens and closes on Escape", async ({ page }) => {
+// #797 -- replaces the old citations-overlay popup (tap a superscript
+// marker, open a modal, close on Escape) with an inline, always-visible
+// Sources section -- nothing to open/close any more, just real content
+// rendered directly into the component.
+test("climbing-grade-pyramid: renders an inline Sources section, not a popup", async ({ page }) => {
   await page.goto("/e2e-fixtures/pyramid-harness.html");
 
   await expect(page.locator("climbing-grade-pyramid #pyramid")).toBeVisible();
-
-  await page.locator("[data-citation]").first().click();
-  await expect(page.locator("#citations-overlay")).toBeVisible();
-
-  await page.keyboard.press("Escape");
-  await expect(page.locator("#citations-overlay")).toBeHidden();
+  await expect(page.locator("climbing-grade-pyramid")).toContainText("Sources");
+  await expect(page.locator("climbing-grade-pyramid")).toContainText("Hörst");
+  await expect(page.locator("#citations-overlay")).toHaveCount(0);
 });
 
 // #737 -- "show/hide lower grades toggles visibility and its own label"

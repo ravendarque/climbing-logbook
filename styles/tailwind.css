@@ -90,9 +90,11 @@
      something that adapts per theme for contrast. */
   --color-error:             var(--color-error-text);
 
-  --color-tier-peer:         var(--tier-peer);
+  /* #797 -- --color-tier-peer/--color-tier-community removed along with
+     the retired evidence-tier chip UI they only ever colored;
+     --color-tier-heuristic stays for combo-chart.js/climbing-grade-
+     pyramid.js's own unrelated uses of that same amber token. */
   --color-tier-heuristic:    var(--tier-heuristic);
-  --color-tier-community:    var(--tier-community);
 
   /* #516 -- <climbing-grade-pyramid>'s own status-icon colors, moved
      off raw hex onto the same aliasing pattern as every other themeable
