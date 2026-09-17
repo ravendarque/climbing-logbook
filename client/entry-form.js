@@ -107,6 +107,12 @@ export function createEntryForm({
     document.getElementById("form-flash-label").textContent = flashLabel(store.getActiveType());
     document.getElementById("form-send-label").textContent = sendLabel(store.getActiveType());
     document.getElementById("form-name-label").textContent = nameLabel(store.getActiveType());
+    // #738 -- was hardcoded to "onsight/redpoint" in the static markup
+    // regardless of which discipline is active; now matches whichever
+    // discipline the Flash/Send buttons above are already showing.
+    const type = store.getActiveType();
+    document.getElementById("attempts-gap-hint").textContent =
+      `Feeds your ${flashLabel(type).toLowerCase()}/${sendLabel(type).toLowerCase()} gap view.`;
   }
 
   // ── Grade pickers (#703) ────────────────────────────────────────────────

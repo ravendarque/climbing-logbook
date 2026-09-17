@@ -291,7 +291,14 @@ staticShellNote: |-
 
         <div class="mt-2">
           <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Attempts</div>
-          <p class="text-[.75rem] text-muted mb-2">Feeds your onsight/redpoint gap view.</p>
+          <!-- #738 -- was hardcoded to sport's own onsight/redpoint
+               wording regardless of which discipline is actually
+               active; text set dynamically by entry-form.js's
+               updateFormStatusLabels() (same discipline-aware
+               flashLabel()/sendLabel() helpers the Flash/Send status
+               buttons above already use), matching boulder's own
+               flash/send wording here as the static fallback. -->
+          <p class="text-[.75rem] text-muted mb-2" id="attempts-gap-hint">Feeds your flash/send gap view.</p>
           <div class="flex items-center justify-start gap-3">
             <button type="button" class="flex-[0_0_var(--field-h)] h-[var(--field-h)] flex items-center justify-center border border-border rounded-app bg-surface text-foreground text-[1.2rem] cursor-pointer hover:border-accent active:scale-[.94] disabled:opacity-[.45] disabled:cursor-not-allowed" id="attempts-minus" aria-label="Decrease attempts">−</button>
             <!-- #597 -- no `pattern` attribute: the displayed value is "–"
