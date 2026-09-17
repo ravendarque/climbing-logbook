@@ -1175,3 +1175,35 @@ test("notes overlay shows the entry's real notes text, closes via Escape or its 
   await page.locator("#notes-close").click();
   await expect(page.locator("#notes-overlay")).toBeHidden();
 });
+
+// #787 -- regression test for a real bug that shipped with zero e2e
+// coverage: public/logbook/components/climbing-header.js's own injected
+// CSS had `#sync-status-wrap { display: block; }` -- an ID selector,
+// which beats the browser's own `[hidden] { display: none }` UA rule
+// regardless of the `hidden` attribute's actual value. client/sync-
+// status-icon.js's own inFlight tracking was toggling `wrap.hidden`
+// correctly the whole time; the CSS silently ignored it, so the icon
+// rendered permanently from the moment it first got real content and
+// never actually disappeared again. A jsdom-based unit test can't catch
+// this class of bug (jsdom doesn't apply real CSS cascade/specificity to
+// injected <style> tags) -- only a real browser's computed style does,
+// which is what toBeHidden()/toBeVisible() check here, not just the
+// `hidden` attribute's presence.
+test("#787 -- the sync status icon actually disappears (not just the hidden attribute) once background reconcile settles", async ({ page }) => {
+  await mockApi(page, SEED);
+  // Delay get-session specifically, after mockApi's own route registration
+  // -- Playwright resolves a re-registered route pattern against the
+  // most-recently-added handler, so this overrides the plain instant
+  // fulfillment above for this test only, creating a real, observable
+  // "still working" window without needing to fake timers or reach into
+  // the page's own internals.
+  await page.route("**/logbook/api/auth/get-session", async route => {
+    await new Promise(r => setTimeout(r, 400));
+    await route.fulfill({ json: { session: { id: "s1" }, user: { id: "u1", username: "e2euser", email: "e2e@example.com" } } });
+  });
+  await page.goto("/e2e-fixtures/pages/log.html");
+
+  const syncWrap = page.locator("#sync-status-wrap");
+  await expect(syncWrap).toBeVisible();
+  await expect(syncWrap).toBeHidden({ timeout: 5000 });
+});
