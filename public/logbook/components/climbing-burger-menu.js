@@ -76,26 +76,86 @@
     // so they're simply never added here in the first place, same effect
     // updateMenuDivider() achieves for the non-admin-hidden case whenever
     // menu-username is hidden.
+    // #847 -- the divider itself stays on this wrapper (same id, same
+    // three classes client/header-chrome.js's updateMenuDivider() and
+    // its three duplicate copies in account-main.js/account-edit-
+    // main.js/account-import-main.js/beta-gate-main.js already toggle
+    // at runtime based on whether menu-username has real content) --
+    // only its own internal layout changes, from a single left-right
+    // row to a flex-col stack so the new status row can sit above the
+    // theme-toggle/login row without needing a second, separately-
+    // conditioned divider of its own.
     var bottomRowClasses = adminHidden
-      ? "flex items-center justify-between self-stretch"
-      : "flex items-center justify-between self-stretch pt-2 mt-1 border-t border-border";
+      ? "flex flex-col gap-2 self-stretch"
+      : "flex flex-col gap-2 self-stretch pt-2 mt-1 border-t border-border";
+    // #847 -- status row is skipped entirely on admin-hidden pages
+    // (the public profile page, this component's only such consumer):
+    // that page never constructs a client/sync-status-icon.js tracker
+    // (no local writes there to sync, no admin session to track), so
+    // setSyncState() is simply never called on it -- same reasoning
+    // adminRows above already applies to menu-username/my-account-link.
+    var statusRow = adminHidden ? "" : `
+      <div class="flex items-center justify-between gap-3 text-[.85rem]" id="menu-status-row" hidden>
+        <span class="text-foreground font-semibold" id="menu-status-text"></span>
+        <a class="text-accent" href="/help/working-offline" id="menu-help-link">Help</a>
+      </div>`;
 
     return `
   <div class="relative" id="header-menu-wrap">
     <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="header-menu-btn" aria-haspopup="true" aria-expanded="false" aria-label="Menu">
+      <span class="menu-sync-ring" aria-hidden="true"></span>
       <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="17" x2="20" y2="17"></line></svg>
     </button>
     <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 flex flex-col items-end gap-2 bg-background border border-border rounded-app p-3 min-w-[13rem] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="header-menu-popover" role="menu" aria-label="Menu" hidden>${adminRows}
-      <div class="${bottomRowClasses}" id="header-menu-bottom-row">
-        <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="theme-toggle-btn" aria-label="Switch to light theme"></button>${loginBtn}
+      <div class="${bottomRowClasses}" id="header-menu-bottom-row">${statusRow}
+        <div class="flex items-center justify-between" id="header-menu-actions-row">
+          <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="theme-toggle-btn" aria-label="Switch to light theme"></button>${loginBtn}
+        </div>
       </div>
     </div>
   </div>`;
   }
 
+  // #847 -- state labels for the status row -- "working" is
+  // client/sync-status-icon.js's own name for "a background reconcile
+  // is in flight" (see that file's own report()), kept as-is rather
+  // than renamed to "syncing" here so the two files share one
+  // vocabulary; the row's own copy still reads "Syncing…" for a human.
+  var STATUS_LABELS = {
+    working: "Status: Syncing…",
+    offline: "Status: Offline",
+  };
+
   class ClimbingBurgerMenu extends HTMLElement {
     connectedCallback() {
       this.innerHTML = menuPopover(this.hasAttribute("admin-hidden"));
+      this._syncButton = this.querySelector("#header-menu-btn");
+      this._syncStatusRow = this.querySelector("#menu-status-row");
+      this._syncStatusText = this.querySelector("#menu-status-text");
+    }
+
+    // #847 -- called from climbing-page-header.js's own setSyncState(),
+    // which stays the public entry point client/sync-status-icon.js's
+    // report() actually calls (document.querySelector("climbing-page-
+    // header")?.setSyncState(...)) -- unchanged there, so moving the
+    // visible indicator from a standalone icon to this component's own
+    // ring+status row needed no changes in sync-status-icon.js or its
+    // tests. Ring lives on #header-menu-btn regardless of admin-hidden
+    // (harmless if never triggered there); the status row is skipped
+    // by menuPopover() entirely on admin-hidden pages, hence the null
+    // check.
+    setSyncState(state) {
+      if (!this._syncButton) return; // connectedCallback() hasn't run yet
+      if (state === "idle") {
+        this._syncButton.removeAttribute("data-sync-state");
+        if (this._syncStatusRow) this._syncStatusRow.hidden = true;
+        return;
+      }
+      this._syncButton.setAttribute("data-sync-state", state);
+      if (this._syncStatusRow) {
+        this._syncStatusRow.hidden = false;
+        this._syncStatusText.textContent = STATUS_LABELS[state];
+      }
     }
   }
 

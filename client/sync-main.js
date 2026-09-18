@@ -59,15 +59,6 @@ const trackEl = document.getElementById("sync-progress-track");
 const cardEl = document.getElementById("sync-card");
 const errorEl = document.getElementById("sync-error");
 
-// #762 -- this page already has its own full, explicit sync-progress UI
-// (the elements above, ADR-0019) -- a second, different-looking
-// "syncing" signal from climbing-page-header.js's sync-status icon
-// right next to it would confuse rather than help. This page never
-// constructs a client/sync-status-icon.js tracker, so the icon would
-// never show anyway, but hiding it here too is a one-line, permanent
-// belt-and-braces guard regardless.
-document.querySelector("#sync-status-wrap")?.setAttribute("hidden", "");
-
 function setProgress(loaded, total) {
   const pct = total > 0 ? Math.round((loaded / total) * 100) : 0;
   fillEl.style.width = `${pct}%`;
