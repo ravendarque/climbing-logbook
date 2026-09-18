@@ -147,6 +147,10 @@ const adminAuth = createAdminAuth({
   store, adminFetch, isAuthRedirect,
   adminSettingsUrl: ADMIN_SETTINGS_URL,
   updateAdminBar,
+  // #847 follow-up -- lets checkSession()/fetchSettings() report a
+  // genuine fetch timeout through to the shell sync/offline indicator
+  // (see admin-auth.js/sync-status-icon.js own comments).
+  onFetchTimeout: syncStatusIcon.reportTimeout,
 });
 
 const headerChrome = createHeaderChrome({

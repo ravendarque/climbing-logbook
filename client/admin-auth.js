@@ -18,8 +18,16 @@
 // themselves. This module exposes isAthleteMode() so main.js's
 // updateAdminBar() can still read the one piece of state that moved.
 import { VALID_TYPES } from "../shared/entry-schema.js";
+import { BACKGROUND_FETCH_TIMEOUT_MS } from "./sync-status-icon.js";
 
-export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettingsUrl, updateAdminBar }) {
+// #847 follow-up -- onFetchTimeout defaults to a no-op so the four
+// admin-hidden-style pages that construct this factory without a
+// client/sync-status-icon.js instance at all (account/account-edit/
+// account-import/beta-gate -- confirmed via grep, none of them wrap
+// checkSession()/fetchSettings() in syncStatusIcon.track()) don't need
+// to pass anything; the 10 real consumers that do pass their own
+// syncStatusIcon.reportTimeout directly.
+export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettingsUrl, updateAdminBar, onFetchTimeout = () => {} }) {
   const AUTH_SESSION_URL = "/logbook/api/auth/get-session";
   const AUTH_SIGN_OUT_URL = "/logbook/api/auth/sign-out";
   // Cross-origin in production (#295 -- /login moved to the apex,
@@ -93,7 +101,7 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
   // field (#137 folded discipline persistence into the same endpoint).
   async function fetchSettings() {
     try {
-      const res = await fetch(SETTINGS_URL);
+      const res = await fetch(SETTINGS_URL, { signal: AbortSignal.timeout(BACKGROUND_FETCH_TIMEOUT_MS) });
       const data = await res.json();
       if (!res.ok) return;
       athleteMode = !!data.athleteMode;
@@ -115,12 +123,22 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
       localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({
         athleteMode, logbookPublic, betaOptIn, activeDiscipline: persistedDiscipline,
       }));
-    } catch {
-      // Offline — keep the last-known in-memory defaults rather than
-      // guessing; the Athlete Mode toggle is only interactive when logged
-      // in, so a stale value there can't be acted on incorrectly, and the
+    } catch (err) {
+      // Offline (or a genuine timeout -- see err.name check below) — keep
+      // the last-known in-memory defaults rather than guessing; the
+      // Athlete Mode toggle is only interactive when logged in, so a
+      // stale value there can't be acted on incorrectly, and the
       // discipline heuristic default already applied is a reasonable
       // fallback for the picker (which is usable while offline).
+      //
+      // #847 follow-up -- AbortSignal.timeout() rejects with a
+      // DOMException named "TimeoutError" specifically (distinct from
+      // "AbortError", which is what a user- or code-triggered abort()
+      // produces) -- checked here, not assumed, so this only fires the
+      // sync/offline indicator's "offline" state for an actual timeout,
+      // not any other network failure this catch already handled
+      // silently before this fix.
+      if (err.name === "TimeoutError") onFetchTimeout();
     }
   }
 
@@ -195,10 +213,12 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
     store.setLoggedIn(localStorage.getItem(LOGIN_HINT_KEY) === "1");
     let res;
     try {
-      res = await adminFetch(AUTH_SESSION_URL);
-    } catch {
-      // Offline — the optimistic hint above is already the best answer
-      // available; nothing further to do.
+      res = await adminFetch(AUTH_SESSION_URL, { signal: AbortSignal.timeout(BACKGROUND_FETCH_TIMEOUT_MS) });
+    } catch (err) {
+      // Offline (or a genuine timeout) — the optimistic hint above is
+      // already the best answer available; nothing further to do. See
+      // fetchSettings()'s own comment on the err.name check below.
+      if (err.name === "TimeoutError") onFetchTimeout();
       return;
     }
     try {

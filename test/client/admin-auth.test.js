@@ -62,6 +62,50 @@ describe("settings cache", () => {
   });
 });
 
+// #847 follow-up -- checkSession()/fetchSettings() each put a real
+// AbortSignal.timeout() on their own fetch and call the injected
+// onFetchTimeout() specifically when THAT is what rejected the promise
+// (err.name === "TimeoutError"), not for any other network failure --
+// these tests construct that exact rejection shape (a DOMException
+// named "TimeoutError", matching what AbortSignal.timeout() itself
+// produces) rather than assuming any thrown error should count.
+describe("onFetchTimeout", () => {
+  it("fetchSettings() calls onFetchTimeout() on a genuine timeout, not on a generic network error", async () => {
+    const onFetchTimeout = vi.fn();
+    global.fetch = vi.fn().mockRejectedValue(new DOMException("The operation timed out.", "TimeoutError"));
+    const adminAuth = createAdminAuth({ store: makeStore(), adminFetch: fetch, isAuthRedirect: () => false, adminSettingsUrl: "/x", updateAdminBar: () => {}, onFetchTimeout });
+    await adminAuth.fetchSettings();
+    expect(onFetchTimeout).toHaveBeenCalledOnce();
+
+    onFetchTimeout.mockClear();
+    global.fetch = vi.fn().mockRejectedValue(new Error("offline"));
+    const adminAuth2 = createAdminAuth({ store: makeStore(), adminFetch: fetch, isAuthRedirect: () => false, adminSettingsUrl: "/x", updateAdminBar: () => {}, onFetchTimeout });
+    await adminAuth2.fetchSettings();
+    expect(onFetchTimeout).not.toHaveBeenCalled();
+  });
+
+  it("checkSession() calls onFetchTimeout() on a genuine timeout, not on a generic network error", async () => {
+    const onFetchTimeout = vi.fn();
+    global.fetch = vi.fn().mockRejectedValue(new DOMException("The operation timed out.", "TimeoutError"));
+    const adminAuth = createAdminAuth({ store: makeStore(), adminFetch: fetch, isAuthRedirect: () => false, adminSettingsUrl: "/x", updateAdminBar: () => {}, onFetchTimeout });
+    await adminAuth.checkSession();
+    expect(onFetchTimeout).toHaveBeenCalledOnce();
+
+    onFetchTimeout.mockClear();
+    global.fetch = vi.fn().mockRejectedValue(new Error("offline"));
+    const adminAuth2 = createAdminAuth({ store: makeStore(), adminFetch: fetch, isAuthRedirect: () => false, adminSettingsUrl: "/x", updateAdminBar: () => {}, onFetchTimeout });
+    await adminAuth2.checkSession();
+    expect(onFetchTimeout).not.toHaveBeenCalled();
+  });
+
+  it("defaults to a no-op when onFetchTimeout isn't provided at all", async () => {
+    global.fetch = vi.fn().mockRejectedValue(new DOMException("The operation timed out.", "TimeoutError"));
+    const adminAuth = createAdminAuth({ store: makeStore(), adminFetch: fetch, isAuthRedirect: () => false, adminSettingsUrl: "/x", updateAdminBar: () => {} });
+    await expect(adminAuth.fetchSettings()).resolves.not.toThrow();
+    await expect(adminAuth.checkSession()).resolves.not.toThrow();
+  });
+});
+
 describe("checkSession() optimistic login hint", () => {
   it("sets store.isLoggedIn() from the cached hint immediately, before the fetch resolves", async () => {
     localStorage.setItem("logbook_logged_in_hint", "1");
