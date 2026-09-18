@@ -298,14 +298,26 @@
     "  opacity: 0;",
     "  pointer-events: none;",
     "}",
+    // box-shadow, not just background -- found live (Raven's report,
+    // 2026-09-19): without it this read as a plain thin line, not the
+    // soft glow shown in the mockups this design was approved from. The
+    // shadow bleeds outward from the ring's own outer edge (a normal,
+    // non-inset box-shadow), which the mask-composite rule above never
+    // clips -- masking only ever cuts out the *interior* of the
+    // element's own box, never what a shadow paints beyond it. opacity
+    // still drives the pulse animation for the whole element, so the
+    // glow pulses in step with the ring itself, no separate keyframe
+    // needed for it.
     '#header-menu-btn[data-sync-state="working"] .menu-sync-ring {',
     "  opacity: 1;",
     "  background: var(--tier-heuristic);",
+    "  box-shadow: 0 0 6px 1px var(--tier-heuristic);",
     "  animation: menu-sync-pulse 2.2s ease-in-out infinite;",
     "}",
     '#header-menu-btn[data-sync-state="offline"] .menu-sync-ring {',
     "  opacity: 1;",
     "  background: var(--color-accent);",
+    "  box-shadow: 0 0 6px 1px var(--color-accent);",
     "}",
     "@keyframes menu-sync-pulse { 0%, 100% { opacity: .4; } 50% { opacity: 1; } }",
     // Folds offline-sync.js's own pre-existing sync-btn-icon spin
