@@ -138,7 +138,7 @@
     // ~5.9:1 against the light-theme page background.
     "  --color-error-text: #b91c1c;",
     "}",
-    // #849 -- single source of truth for the brand lockup's (logo+title+
+    // #789 -- single source of truth for the brand lockup's (logo+title+
     // tagline) size at any viewport width. Replaces the old approach of
     // giving the logo/h1/tagline each their own independent max-[600px]/
     // max-[400px] breakpoints (see brandHtml()'s own former comment,
@@ -271,7 +271,7 @@
     // #847 -- the sync/offline status ring climbing-burger-menu.js draws
     // around its own #header-menu-btn, replacing the standalone icon
     // between the brand header and the burger menu that #762/#786/#787/
-    // #788 built and #849 found was crowding the brand lockup in narrow
+    // #788 built and #789 found was crowding the brand lockup in narrow
     // mode. One thin ring, positioned via the "mask-composite: exclude"
     // trick (an element sized slightly larger than the button, punched
     // through in the middle by its own content-box, leaving only a
@@ -404,13 +404,13 @@
   // Raven's production report. alignLeft is opt-in (default false) so
   // the four original, unaffected consumers don't change at all.
   function brandHtml(alignLeft) {
-    // #849 -- every size below is `calc(var(--brand-scale) * <ratio to
+    // #789 -- every size below is `calc(var(--brand-scale) * <ratio to
     // the h1's own font-size>)`, so the whole lockup shrinks/grows as
     // one rigid unit (see --brand-scale's own comment, in TOKENS_CSS,
     // for why -- including why this is a length-times-number, not the
     // reverse, after a Firefox-only bug in the first version of this).
     // No property here has its own independent breakpoint any more --
-    // that was the actual bug (see #849/#791 history: the logo, h1 and
+    // that was the actual bug (see #789/#791 history: the logo, h1 and
     // tagline each had their own max-[600px]/max-[400px] rules that
     // didn't even reduce by the same ratio as each other, so
     // "unwrappable" and "in proportion" kept failing together). Ratios
@@ -437,7 +437,7 @@
       '    </svg>' +
       '  </div>' +
       '  <div>' +
-      // #789/#849 -- whitespace-nowrap: the title has no wrap
+      // #789 -- whitespace-nowrap: the title has no wrap
       // opportunity of its own (it's meant to read as one wordmark).
       // Without it, a narrow flex row (this brand block is a sibling of
       // the sync icon+burger-menu group in climbing-page-header's own
