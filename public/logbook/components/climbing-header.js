@@ -168,18 +168,30 @@
     // Raven's own follow-up (2026-09-18): restore full size across as
     // much of that range as the row genuinely still fits in, rather
     // than keep shrinking as if the (now gone) icon still needed room.
-    // Floor/ceiling below are measured, not guessed -- with
-    // --brand-scale forced to 38.4px (full size) and real burger-menu-
-    // only markup, getBoundingClientRect() on #brand-header-row and
-    // <climbing-burger-menu> showed them exactly touching (zero slack
-    // beyond the row's own intended .5rem/8px flex gap) at a 358px
-    // viewport, and 34.5px of real spare room at 400px -- so 400px is
-    // comfortably the last width that still needs any shrinking at all.
-    // 320px stays the floor (the #789 comment's own stated "this app's
-    // own practical minimum" viewport); 0.8 (not all the way to 1) at
-    // that floor keeps a real safety margin below the ~0.82 the same
-    // measurement model implies is the actual minimum needed there,
-    // since font metrics can vary slightly by platform.
+    //
+    // 312px, not 320px, is the floor -- Raven's own real test width
+    // ("I always use a 312px wide viewport... the real size of Firefox
+    // on my OnePlus 13", 2026-09-19), narrower than the #789 comment's
+    // stated "practical minimum" this used to be anchored to. 20.8px
+    // (=1.3rem) is that same real device's OWN prior known-good h1 size
+    // -- the exact max-[400px]:text-[1.3rem] value the old, pre-#849
+    // breakpoint version used there (confirmed via Raven's own
+    // diagnostic against the still-undeployed beta site earlier this
+    // session, before any of today's changes: h1 rendered at exactly
+    // 20.8125px at a 312px viewport) -- not a fresh measurement, since
+    // a first attempt at measuring a floor empirically (0.8x at 320px,
+    // chosen with what seemed like real spare room in this tool's own
+    // Chromium-based browser) turned out to have zero actual margin in
+    // Raven's real Firefox: the tagline wrapped there (see this rule's
+    // sibling fix below, whitespace-nowrap on the tagline itself, plus
+    // brandHtml()'s own comment on it) even though it measured as
+    // fitting here. Real font metrics (this app's Bebas Neue webfont
+    // included) can differ enough between browsers/platforms that a
+    // razor-thin, exactly-computed fit isn't safe -- anchoring to a
+    // width AND size Raven has already confirmed works in their actual
+    // environment, rather than to this tool's own measurements, is.
+    // 400px ceiling (full 2.4rem/38.4px from there up) is unchanged --
+    // not something Raven's 2026-09-19 report flagged, only the floor.
     //
     // clamp(MIN_LEN, MIN_LEN + (100vw - MIN_VW) * SLOPE, MAX_LEN) --
     // the standard fluid-typography pattern (every term a <length>,
@@ -199,11 +211,11 @@
     // terms then applied it as a bare number against a px quantity
     // (same unit in, same unit out -- not rem), making the growth 16x
     // too shallow; keeping everything in one unit throughout avoids
-    // that mistake recurring. 0.096 = (38.4 - 30.72) / (400 - 320), i.e.
+    // that mistake recurring. 0.2 = (38.4 - 20.8) / (400 - 312), i.e.
     // px of --brand-scale gained per px of viewport growth between the
-    // measured floor and ceiling above.
+    // floor and ceiling above.
     ":root {",
-    "  --brand-scale: clamp(30.72px, calc(30.72px + (100vw - 320px) * 0.096), 38.4px);",
+    "  --brand-scale: clamp(20.8px, calc(20.8px + (100vw - 312px) * 0.2), 38.4px);",
     "}",
     "[hidden] { display: none; }",
     // Custom elements are `display: inline` by default with no UA
@@ -385,7 +397,13 @@
     var rowClass = alignLeft
       ? "flex items-end gap-[calc(var(--brand-scale)*0.1083)] mb-4"
       : "flex items-end justify-center gap-[calc(var(--brand-scale)*0.1083)] mb-4";
-    var taglineClass = "font-display font-normal uppercase tracking-wide leading-none text-[calc(var(--brand-scale)*0.3547)] text-muted mb-0" + (alignLeft ? "" : " text-center");
+    // whitespace-nowrap -- found live (Raven's report, 2026-09-19, a
+    // real 312px-wide device): the h1 already had this (#789), but the
+    // tagline never did, so IT was the one that wrapped once the
+    // tagline's own text (longer than the h1's, just rendered smaller)
+    // ran out of room -- the exact same class of bug #789 fixed for
+    // the h1, just on the other element.
+    var taglineClass = "font-display font-normal uppercase tracking-wide leading-none whitespace-nowrap text-[calc(var(--brand-scale)*0.3547)] text-muted mb-0" + (alignLeft ? "" : " text-center");
     return (
       '<div class="' + rowClass + '" id="brand-header-row">' +
       '  <div class="shrink-0 flex mb-[calc(var(--brand-scale)*0.1167)]">' +
