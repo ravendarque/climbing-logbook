@@ -145,27 +145,41 @@
     // removed with this fix) -- those could never guarantee the three
     // parts stayed in proportion (they didn't even reduce by the same
     // ratio as each other), and none of them accounted for the sync
-    // status icon (#762, since moved off this row entirely by #847)
-    // eating into the shared flex row's space at a FIXED viewport width,
-    // which is what actually caused Raven's reported wrap (the icon
-    // appearing shrinks available space independently of viewport
-    // width -- a signal a width-only media query structurally cannot
-    // see). This value IS the h1's own font-size (not an abstract
-    // multiplier) -- every consumer below derives its own size as
-    // `calc(var(--brand-scale) * <ratio to the h1>)`, a plain
-    // length-times-number, so every part is mathematically locked to
-    // the same proportion and none can drift independently -- "resizes
-    // as a whole", per Raven's explicit ask. Driven by viewport width
-    // (not a container query against the row's own rendered width):
-    // deliberately side-steps a real circular-dependency risk where a
-    // flex item's measured width would depend on a scale that itself
-    // depends on the flex item's measured width. This trades perfect
-    // sibling-aware sizing for a value that's simple and always
-    // resolves -- the actual fix for "no room once the icon shows up"
-    // was giving the icon its own place off this row entirely (#847).
-    // 320px/640px floor+ceiling match the #789 comment's own stated
-    // "this app's own practical minimum" viewport through comfortably
-    // past where the row has ever been reported cramped.
+    // status icon (#762) eating into the shared flex row's space at a
+    // FIXED viewport width, which is what actually caused Raven's
+    // originally reported wrap (the icon appearing shrinks available
+    // space independently of viewport width -- a signal a width-only
+    // media query structurally cannot see). This value IS the h1's own
+    // font-size (not an abstract multiplier) -- every consumer below
+    // derives its own size as `calc(var(--brand-scale) * <ratio to the
+    // h1>)`, a plain length-times-number, so every part is
+    // mathematically locked to the same proportion and none can drift
+    // independently -- "resizes as a whole", per Raven's explicit ask.
+    // Driven by viewport width (not a container query against the
+    // row's own rendered width): deliberately side-steps a real
+    // circular-dependency risk where a flex item's measured width would
+    // depend on a scale that itself depends on the flex item's measured
+    // width.
+    //
+    // #847 later moved the icon off this row entirely (onto the burger
+    // menu's own border) -- once that landed, this row only ever has
+    // the brand block and the burger menu, the same two elements the
+    // ORIGINAL, pre-icon, never-shrinks brand header only ever had.
+    // Raven's own follow-up (2026-09-18): restore full size across as
+    // much of that range as the row genuinely still fits in, rather
+    // than keep shrinking as if the (now gone) icon still needed room.
+    // Floor/ceiling below are measured, not guessed -- with
+    // --brand-scale forced to 38.4px (full size) and real burger-menu-
+    // only markup, getBoundingClientRect() on #brand-header-row and
+    // <climbing-burger-menu> showed them exactly touching (zero slack
+    // beyond the row's own intended .5rem/8px flex gap) at a 358px
+    // viewport, and 34.5px of real spare room at 400px -- so 400px is
+    // comfortably the last width that still needs any shrinking at all.
+    // 320px stays the floor (the #789 comment's own stated "this app's
+    // own practical minimum" viewport); 0.8 (not all the way to 1) at
+    // that floor keeps a real safety margin below the ~0.82 the same
+    // measurement model implies is the actual minimum needed there,
+    // since font metrics can vary slightly by platform.
     //
     // clamp(MIN_LEN, MIN_LEN + (100vw - MIN_VW) * SLOPE, MAX_LEN) --
     // the standard fluid-typography pattern (every term a <length>,
@@ -179,21 +193,17 @@
     // since an invalid custom property makes every declaration
     // referencing it via var() fall back silently, cascading to the
     // logo/h1/tagline/margins/gap at once). This form never divides two
-    // lengths at all, so there's no such edge case to hit.
-    //
-    // Entirely in px, not rem, for the two endpoints AND the slope --
-    // found live, same session: multiplying `(100vw - 320px)` (a px
-    // quantity) by a coefficient DERIVED in rem-per-px terms (1.008rem
-    // over 320px = 0.00315) but then applied as a bare number produces
-    // a result in the SAME unit as the length operand (px), not rem --
-    // so the growth was 16x too shallow (rem-per-px needs multiplying
-    // by 16 to become the equivalent px-per-px figure, since 1rem =
-    // 16px at this app's root font-size). 22.272px/38.4px are 1.392rem/
-    // 2.4rem's own px equivalents; 0.0504 = (38.4-22.272)/(640-320),
-    // i.e. px gained per px of viewport growth, confirmed against real
-    // computed values at vw=320 (22.272px) and vw=640 (38.4px exactly).
+    // lengths at all, so there's no such edge case to hit. Entirely in
+    // px, not rem, for the two endpoints AND the slope -- an earlier
+    // version of this same rewrite derived its slope in rem-per-px
+    // terms then applied it as a bare number against a px quantity
+    // (same unit in, same unit out -- not rem), making the growth 16x
+    // too shallow; keeping everything in one unit throughout avoids
+    // that mistake recurring. 0.096 = (38.4 - 30.72) / (400 - 320), i.e.
+    // px of --brand-scale gained per px of viewport growth between the
+    // measured floor and ceiling above.
     ":root {",
-    "  --brand-scale: clamp(22.272px, calc(22.272px + (100vw - 320px) * 0.0504), 38.4px);",
+    "  --brand-scale: clamp(30.72px, calc(30.72px + (100vw - 320px) * 0.096), 38.4px);",
     "}",
     "[hidden] { display: none; }",
     // Custom elements are `display: inline` by default with no UA
