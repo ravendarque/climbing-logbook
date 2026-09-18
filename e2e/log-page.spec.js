@@ -1279,19 +1279,31 @@ test("notes overlay shows the entry's real notes text, closes via Escape or its 
 });
 
 // #787 -- regression test for a real bug that shipped with zero e2e
-// coverage: public/logbook/components/climbing-header.js's own injected
-// CSS had `#sync-status-wrap { display: block; }` -- an ID selector,
-// which beats the browser's own `[hidden] { display: none }` UA rule
-// regardless of the `hidden` attribute's actual value. client/sync-
-// status-icon.js's own inFlight tracking was toggling `wrap.hidden`
-// correctly the whole time; the CSS silently ignored it, so the icon
-// rendered permanently from the moment it first got real content and
-// never actually disappeared again. A jsdom-based unit test can't catch
-// this class of bug (jsdom doesn't apply real CSS cascade/specificity to
+// coverage: an injected CSS ID selector beat the browser's own
+// `[hidden] { display: none }` UA rule regardless of the `hidden`
+// attribute's actual value, so client/sync-status-icon.js's own
+// inFlight tracking kept toggling state correctly while the icon it
+// drove stayed visibly stuck. A jsdom-based unit test can't catch this
+// class of bug (jsdom doesn't apply real CSS cascade/specificity to
 // injected <style> tags) -- only a real browser's computed style does,
-// which is what toBeHidden()/toBeVisible() check here, not just the
-// `hidden` attribute's presence.
-test("#787 -- the sync status icon actually disappears (not just the hidden attribute) once background reconcile settles", async ({ page }) => {
+// which is what this test checks (toHaveCSS("opacity", ...)), not just
+// an attribute's presence. #847 moved the indicator itself from a
+// standalone icon to a ring drawn around the burger menu button
+// (climbing-burger-menu.js's own #header-menu-btn[data-sync-state]),
+// but the same regression risk applies to its opacity toggle, so this
+// test moved with it rather than being retired.
+//
+// not.toHaveCSS("opacity", "0"), not toHaveCSS("opacity", "1") --
+// found failing on this test's own first full-suite run (confirmed via
+// an isolated rerun with the full error trace): the "working" ring
+// pulses continuously (climbing-header.js's own menu-sync-pulse
+// keyframes, opacity .4 to 1 and back), so it is only ever AT exactly
+// 1 for an instant -- asserting that exact value races the animation
+// and fails most of the time. "not 0" is what actually matters here
+// (the same class of bug #787 caught would leave it stuck at 0
+// forever) and holds regardless of where in the pulse cycle the
+// assertion lands.
+test("#847 -- the sync status ring actually disappears (not just the data attribute) once background reconcile settles", async ({ page }) => {
   await mockApi(page, SEED);
   // Delay get-session specifically, after mockApi's own route registration
   // -- Playwright resolves a re-registered route pattern against the
@@ -1305,7 +1317,44 @@ test("#787 -- the sync status icon actually disappears (not just the hidden attr
   });
   await page.goto("/e2e-fixtures/pages/log.html");
 
-  const syncWrap = page.locator("#sync-status-wrap");
-  await expect(syncWrap).toBeVisible();
-  await expect(syncWrap).toBeHidden({ timeout: 5000 });
+  const ring = page.locator("#header-menu-btn .menu-sync-ring");
+  await expect(ring).not.toHaveCSS("opacity", "0");
+  await expect(ring).toHaveCSS("opacity", "0", { timeout: 5000 });
+});
+
+// #847 -- the burger menu's own status row (below the divider, next to
+// the new Help link) needs to actually open the popover to be visible
+// at all -- the ring alone (previous test) only proves the background-
+// activity signal reaches the button, not that a user opening the menu
+// during that window sees a real explanation of what's happening.
+test("#847 -- the burger menu shows a status row with a Help link while syncing", async ({ page }) => {
+  await mockApi(page, SEED);
+  await page.route("**/logbook/api/auth/get-session", async route => {
+    await new Promise(r => setTimeout(r, 400));
+    await route.fulfill({ json: { session: { id: "s1" }, user: { id: "u1", username: "e2euser", email: "e2e@example.com" } } });
+  });
+  await page.goto("/e2e-fixtures/pages/log.html");
+
+  await page.locator("#header-menu-btn").click();
+  await expect(page.locator("#menu-status-row")).toBeVisible();
+  await expect(page.locator("#menu-status-text")).toHaveText("Status: Syncing…");
+  await expect(page.locator("#menu-help-link")).toHaveAttribute("href", "/help/working-offline");
+
+  await expect(page.locator("#menu-status-row")).toBeHidden({ timeout: 5000 });
+});
+
+test("#847 -- going offline turns the burger menu ring solid red and updates the status row", async ({ page }) => {
+  await gotoLogHarness(page);
+
+  await page.context().setOffline(true);
+  try {
+    await expect(page.locator("#header-menu-btn")).toHaveAttribute("data-sync-state", "offline");
+    await page.locator("#header-menu-btn").click();
+    await expect(page.locator("#menu-status-text")).toHaveText("Status: Offline");
+  } finally {
+    // Real browser-level connectivity, not a route mock -- must be
+    // restored regardless of assertion outcome, or every later test in
+    // this worker's context inherits a simulated offline network.
+    await page.context().setOffline(false);
+  }
 });

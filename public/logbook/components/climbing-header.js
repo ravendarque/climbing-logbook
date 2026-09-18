@@ -165,30 +165,52 @@
     // flex row now, not an inner wrapper div (see climbing-page-header.js's
     // own comment for the full history).
     "climbing-page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; }",
-    // #762 -- the sync/offline status icon climbing-page-header.js
-    // renders between the brand header and the burger menu.
-    // #787 -- :not([hidden]), not a bare display:block: an ID selector
-    // (1,0,0) beats the browser's own `[hidden] { display: none }` UA
-    // rule (0,1,0) regardless of source order, so a bare `display: block`
-    // here silently defeated every `wrap.hidden = true`/`false` toggle
-    // client/sync-status-icon.js's setSyncState() ever did -- the icon
-    // rendered unconditionally from the moment it first got real content
-    // (setSyncState("working") sets its button's innerHTML), and nothing
-    // ever visually removed it again, confirmed live: `wrap.hidden` read
-    // `true` at the exact moment the icon was still visibly spinning on
-    // screen. :not([hidden]) keeps this rule's specificity at the same
-    // 1,0,0 (an ID selector plus a pseudo-class still counts as one ID
-    // selector under the CSS spec) while only applying when the browser's
-    // own [hidden] rule isn't already the one that should win.
-    "#sync-status-wrap:not([hidden]) { display: block; }",
-    "@keyframes sync-status-spin { to { transform: rotate(360deg); } }",
-    ".sync-status-spin { animation: sync-status-spin 1s linear infinite; }",
+    // #847 -- the sync/offline status ring climbing-burger-menu.js draws
+    // around its own #header-menu-btn, replacing the standalone icon
+    // between the brand header and the burger menu that #762/#786/#787/
+    // #788 built and #849 found was crowding the brand lockup in narrow
+    // mode. One thin ring, positioned via the "mask-composite: exclude"
+    // trick (an element sized slightly larger than the button, punched
+    // through in the middle by its own content-box, leaving only a
+    // border-thickness band) so it traces the button's own rounded-rect
+    // shape rather than a plain circle. data-sync-state (set by
+    // ClimbingBurgerMenu.setSyncState(), climbing-burger-menu.js's own
+    // method) drives which state applies -- "working" pulses amber
+    // (--tier-heuristic, this app's existing amber token, reused rather
+    // than inventing a new color), "offline" sits static solid red
+    // (--color-accent) with no animation: a deliberate escalation from
+    // "something's happening, transient" to "this needs attention,
+    // settled" (Raven, 2026-09-18). Absent state (data-sync-state unset)
+    // leaves opacity at 0 -- no ring at all, matching the old icon's own
+    // "idle" (hidden) state.
+    "#header-menu-btn { position: relative; }",
+    ".menu-sync-ring {",
+    "  position: absolute;",
+    "  inset: -3px;",
+    "  border-radius: calc(var(--r) + 3px);",
+    "  padding: 2px;",
+    "  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);",
+    "  -webkit-mask-composite: xor;",
+    "  mask-composite: exclude;",
+    "  opacity: 0;",
+    "  pointer-events: none;",
+    "}",
+    '#header-menu-btn[data-sync-state="working"] .menu-sync-ring {',
+    "  opacity: 1;",
+    "  background: var(--tier-heuristic);",
+    "  animation: menu-sync-pulse 2.2s ease-in-out infinite;",
+    "}",
+    '#header-menu-btn[data-sync-state="offline"] .menu-sync-ring {',
+    "  opacity: 1;",
+    "  background: var(--color-accent);",
+    "}",
+    "@keyframes menu-sync-pulse { 0%, 100% { opacity: .4; } 50% { opacity: 1; } }",
     // Folds offline-sync.js's own pre-existing sync-btn-icon spin
     // (.animate-spin, Tailwind's utility class) into this same guard
-    // rather than a second separate one -- neither had a
-    // prefers-reduced-motion guard before this, found while adding this
-    // icon's own spin.
-    "@media (prefers-reduced-motion: reduce) { .sync-status-spin, .animate-spin { animation: none; } }",
+    // rather than a second separate one, matching this rule's own
+    // pre-#847 history of doing the same for the now-removed sync-
+    // status-spin class.
+    '@media (prefers-reduced-motion: reduce) { .animate-spin { animation: none; } #header-menu-btn[data-sync-state="working"] .menu-sync-ring { animation: none; opacity: .8; } }',
     // .tab-nav/.tab-nav-item (#211/#465) -- shared visual language for
     // "a horizontal row of view switchers with an active-item indicator",
     // used by two components that are deliberately NOT the same element:
