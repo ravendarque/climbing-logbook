@@ -79,46 +79,53 @@ describe("createSyncStatusIcon", () => {
     expect(() => createSyncStatusIcon()).not.toThrow();
   });
 
-  // #787 -- no fetch in this app sets its own timeout anywhere, so a
-  // genuinely dead connection (this app's own real-world "slow,
-  // unreliable crag connection" context) could leave a tracked promise
-  // neither resolved nor rejected indefinitely, leaving the icon
-  // spinning forever. Confirms both halves of the fix: the stale
-  // timeout actually fires, and the promise's own eventual late
-  // resolution doesn't double-decrement the in-flight counter (which
-  // would otherwise go negative and make a later, genuinely-pending
-  // promise incorrectly report idle).
-  it("stops counting a promise toward working after it goes stale, without over-decrementing when it eventually settles for real", async () => {
-    vi.useFakeTimers();
-    try {
-      const icon = createSyncStatusIcon();
-      let resolveStale;
-      const stale = new Promise(r => { resolveStale = r; });
-      icon.track(stale);
-      expect(setSyncState).toHaveBeenLastCalledWith("working");
+  // #847 follow-up -- replaces the old fixed-15s stale-timeout test
+  // (removed along with the mechanism itself, 2026-09-19): nothing about
+  // this shell reconcile blocks the user, so cutting "working" off after
+  // a fixed duration regardless of whether the underlying fetch was
+  // still genuinely in flight misrepresented real, if slow, connections
+  // (confirmed live under devtools GPRS throttling). The real timeout
+  // moved to the actual fetches (admin-auth.js/offline-sync.js, each via
+  // AbortSignal.timeout(BACKGROUND_FETCH_TIMEOUT_MS)) -- reportTimeout()
+  // is what they call when that specific signal fires, tested here in
+  // isolation from that plumbing.
+  it("reports offline once every tracked call settles if any of them called reportTimeout()", async () => {
+    const icon = createSyncStatusIcon();
+    let resolveA, resolveB;
+    const a = new Promise(r => { resolveA = r; });
+    const b = new Promise(r => { resolveB = r; });
+    icon.track(a);
+    icon.track(b);
 
-      await vi.advanceTimersByTimeAsync(15000);
-      expect(setSyncState).toHaveBeenLastCalledWith("idle");
+    // b's own caller (e.g. admin-auth.js's fetchSettings()) caught a
+    // genuine AbortSignal.timeout() and reported it, then resolved
+    // normally anyway (every real call site swallows its own fetch
+    // errors and resolves) -- reportTimeout() alone must not change the
+    // reported state while a is still genuinely pending.
+    icon.reportTimeout();
+    resolveB();
+    await b;
+    await Promise.resolve();
+    expect(setSyncState).toHaveBeenLastCalledWith("working"); // a still pending
 
-      // A second, real promise tracked after the stale one went stale --
-      // if the stale promise's own late resolution below had already
-      // double-decremented inFlight, this would incorrectly read "idle".
-      let resolveReal;
-      const real = new Promise(r => { resolveReal = r; });
-      icon.track(real);
-      expect(setSyncState).toHaveBeenLastCalledWith("working");
+    resolveA();
+    await a;
+    await Promise.resolve();
+    expect(setSyncState).toHaveBeenLastCalledWith("offline");
+  });
 
-      // The stale promise finally resolves for real, late -- must be a
-      // no-op (the `settled` guard), not a second decrement.
-      resolveStale();
-      await stale;
-      expect(setSyncState).toHaveBeenLastCalledWith("working"); // `real` still pending
+  it("clears back to idle on the next fully-successful tracked call after a reported timeout", async () => {
+    const icon = createSyncStatusIcon();
+    icon.reportTimeout();
+    icon.track(Promise.resolve());
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(setSyncState).toHaveBeenLastCalledWith("offline");
 
-      resolveReal();
-      await real;
-      expect(setSyncState).toHaveBeenLastCalledWith("idle");
-    } finally {
-      vi.useRealTimers();
-    }
+    setSyncState.mockClear();
+    icon.track(Promise.resolve());
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(setSyncState).toHaveBeenLastCalledWith("idle");
   });
 });

@@ -1,5 +1,6 @@
 import { getCursor, setCursor } from "./sync-cursors.js";
 import { mergeDelta } from "./delta-merge.js";
+import { BACKGROUND_FETCH_TIMEOUT_MS } from "./sync-status-icon.js";
 
 // The offline-queue *orchestration* half (#262, first piece of #261's
 // "complete the gold-standard modularization" follow-up to #233):
@@ -118,15 +119,21 @@ export function createOfflineSync({
   // momentarily.
   async function pullDelta(url, table, getCurrent, setCurrent, loadFromCache) {
     try {
-      const res = await fetch(`${url}?since=${getCursor(table)}`);
+      const res = await fetch(`${url}?since=${getCursor(table)}`, { signal: AbortSignal.timeout(BACKGROUND_FETCH_TIMEOUT_MS) });
       if (!res.ok) return;
       const { [table]: rows, cursor } = await res.json();
       loadFromCache();
       setCurrent(mergeDelta(getCurrent(), rows));
       setCursor(table, cursor);
-    } catch {
+    } catch (err) {
       // offline/network error -- silently skip, see this function's own
-      // header comment.
+      // header comment. #847 follow-up -- a genuine timeout (checked via
+      // err.name, same as admin-auth.js's own two call sites) also
+      // reports through to the shell's sync/offline indicator, since
+      // navigator.onLine can legitimately still read true on a
+      // connection that's technically up but functionally dead or just
+      // extremely slow.
+      if (err.name === "TimeoutError") syncStatusIcon.reportTimeout();
     }
   }
 
