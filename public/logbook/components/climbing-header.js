@@ -172,26 +172,49 @@
     // 312px, not 320px, is the floor -- Raven's own real test width
     // ("I always use a 312px wide viewport... the real size of Firefox
     // on my OnePlus 13", 2026-09-19), narrower than the #789 comment's
-    // stated "practical minimum" this used to be anchored to. 20.8px
-    // (=1.3rem) is that same real device's OWN prior known-good h1 size
-    // -- the exact max-[400px]:text-[1.3rem] value the old, pre-#849
-    // breakpoint version used there (confirmed via Raven's own
-    // diagnostic against the still-undeployed beta site earlier this
-    // session, before any of today's changes: h1 rendered at exactly
-    // 20.8125px at a 312px viewport) -- not a fresh measurement, since
-    // a first attempt at measuring a floor empirically (0.8x at 320px,
-    // chosen with what seemed like real spare room in this tool's own
-    // Chromium-based browser) turned out to have zero actual margin in
-    // Raven's real Firefox: the tagline wrapped there (see this rule's
-    // sibling fix below, whitespace-nowrap on the tagline itself, plus
-    // brandHtml()'s own comment on it) even though it measured as
-    // fitting here. Real font metrics (this app's Bebas Neue webfont
-    // included) can differ enough between browsers/platforms that a
-    // razor-thin, exactly-computed fit isn't safe -- anchoring to a
-    // width AND size Raven has already confirmed works in their actual
-    // environment, rather than to this tool's own measurements, is.
-    // 400px ceiling (full 2.4rem/38.4px from there up) is unchanged --
-    // not something Raven's 2026-09-19 report flagged, only the floor.
+    // stated "practical minimum" this used to be anchored to.
+    //
+    // 28.8px (=1.8rem) is real PRODUCTION's own current h1 size at that
+    // width -- pulled directly from getComputedStyle() via Raven's own
+    // devtools against https://my.climbinglogbook.com (their actual
+    // daily account, not a demo/beta environment), 2026-09-19: h1
+    // 28.8125px, tagline 10.2188px, both exactly production's existing
+    // max-[600px] breakpoint tier (1.8rem/0.6384rem) -- production has
+    // no narrower tier than that at all (no max-[400px] step ever
+    // shipped there), so this is what "always looked perfect" actually
+    // means on Raven's own device, not a guess. Confirms these two
+    // particular values were ALREADY proportionally locked by
+    // coincidence (0.6384/1.8 = 0.8512/2.4 = 0.3547, this file's own
+    // tagline ratio, below) -- only the logo's own old max-[600] value
+    // (39.32px) drifted slightly off that same ratio (1.365x vs this
+    // file's locked 1.4133x, a ~1.4px difference at this size), which
+    // is the kind of small independent drift the whole --brand-scale
+    // rewrite exists to stop happening, not something to preserve.
+    //
+    // Two earlier attempts at this floor were both wrong the same
+    // way -- computed/measured rather than copied from something
+    // already proven to work in Raven's real environment: first 0.58x
+    // at a 320px viewport (measured against the OLD, since-replaced
+    // per-element breakpoints, never re-validated after the rewrite);
+    // then 0.8x at 320px, chosen from real spare room measured in this
+    // tool's own Chromium-based browser, which turned out to have zero
+    // actual margin in Raven's real Firefox (the tagline wrapped there
+    // -- see this rule's sibling fix below, whitespace-nowrap on the
+    // tagline itself); then 20.8px/1.3rem, taken from a diagnostic that
+    // (unnoticed at the time) had actually run against a DIFFERENT,
+    // ahead-of-production beta deploy, not production -- reads smaller
+    // than what Raven's real, everyday account actually shows. This
+    // value is the first one sourced directly from the same production
+    // environment and account Raven judged it against.
+    //
+    // Ceiling (600px, not 400px) -- also brought back in line with
+    // production's own existing max-[600px] breakpoint threshold,
+    // rather than the 400px this file previously derived from measuring
+    // where the row happens to stop needing to shrink now that #847
+    // moved the icon off it. That measurement wasn't wrong, but 600px
+    // is the width Raven has actually been looking at full-size text
+    // above for as long as this app has existed -- matching it avoids
+    // yet another guess about where "big enough" should start.
     //
     // clamp(MIN_LEN, MIN_LEN + (100vw - MIN_VW) * SLOPE, MAX_LEN) --
     // the standard fluid-typography pattern (every term a <length>,
@@ -211,11 +234,12 @@
     // terms then applied it as a bare number against a px quantity
     // (same unit in, same unit out -- not rem), making the growth 16x
     // too shallow; keeping everything in one unit throughout avoids
-    // that mistake recurring. 0.2 = (38.4 - 20.8) / (400 - 312), i.e.
-    // px of --brand-scale gained per px of viewport growth between the
-    // floor and ceiling above.
+    // that mistake recurring. 0.0333 = (38.4 - 28.8) / (600 - 312),
+    // i.e. px of --brand-scale gained per px of viewport growth between
+    // the floor and ceiling above -- rounded to 4 places, off the exact
+    // 1/30 by well under a hundredth of a pixel at either end.
     ":root {",
-    "  --brand-scale: clamp(20.8px, calc(20.8px + (100vw - 312px) * 0.2), 38.4px);",
+    "  --brand-scale: clamp(28.8px, calc(28.8px + (100vw - 312px) * 0.0333), 38.4px);",
     "}",
     "[hidden] { display: none; }",
     // Custom elements are `display: inline` by default with no UA
