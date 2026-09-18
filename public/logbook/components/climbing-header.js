@@ -138,6 +138,109 @@
     // ~5.9:1 against the light-theme page background.
     "  --color-error-text: #b91c1c;",
     "}",
+    // #789 -- single source of truth for the brand lockup's (logo+title+
+    // tagline) size at any viewport width. Replaces the old approach of
+    // giving the logo/h1/tagline each their own independent max-[600px]/
+    // max-[400px] breakpoints (see brandHtml()'s own former comment,
+    // removed with this fix) -- those could never guarantee the three
+    // parts stayed in proportion (they didn't even reduce by the same
+    // ratio as each other), and none of them accounted for the sync
+    // status icon (#762) eating into the shared flex row's space at a
+    // FIXED viewport width, which is what actually caused Raven's
+    // originally reported wrap (the icon appearing shrinks available
+    // space independently of viewport width -- a signal a width-only
+    // media query structurally cannot see). This value IS the h1's own
+    // font-size (not an abstract multiplier) -- every consumer below
+    // derives its own size as `calc(var(--brand-scale) * <ratio to the
+    // h1>)`, a plain length-times-number, so every part is
+    // mathematically locked to the same proportion and none can drift
+    // independently -- "resizes as a whole", per Raven's explicit ask.
+    // Driven by viewport width (not a container query against the
+    // row's own rendered width): deliberately side-steps a real
+    // circular-dependency risk where a flex item's measured width would
+    // depend on a scale that itself depends on the flex item's measured
+    // width.
+    //
+    // #847 later moved the icon off this row entirely (onto the burger
+    // menu's own border) -- once that landed, this row only ever has
+    // the brand block and the burger menu, the same two elements the
+    // ORIGINAL, pre-icon, never-shrinks brand header only ever had.
+    // Raven's own follow-up (2026-09-18): restore full size across as
+    // much of that range as the row genuinely still fits in, rather
+    // than keep shrinking as if the (now gone) icon still needed room.
+    //
+    // 312px, not 320px, is the floor -- Raven's own real test width
+    // ("I always use a 312px wide viewport... the real size of Firefox
+    // on my OnePlus 13", 2026-09-19), narrower than the #789 comment's
+    // stated "practical minimum" this used to be anchored to.
+    //
+    // 28.8px (=1.8rem) is real PRODUCTION's own current h1 size at that
+    // width -- pulled directly from getComputedStyle() via Raven's own
+    // devtools against https://my.climbinglogbook.com (their actual
+    // daily account, not a demo/beta environment), 2026-09-19: h1
+    // 28.8125px, tagline 10.2188px, both exactly production's existing
+    // max-[600px] breakpoint tier (1.8rem/0.6384rem) -- production has
+    // no narrower tier than that at all (no max-[400px] step ever
+    // shipped there), so this is what "always looked perfect" actually
+    // means on Raven's own device, not a guess. Confirms these two
+    // particular values were ALREADY proportionally locked by
+    // coincidence (0.6384/1.8 = 0.8512/2.4 = 0.3547, this file's own
+    // tagline ratio, below) -- only the logo's own old max-[600] value
+    // (39.32px) drifted slightly off that same ratio (1.365x vs this
+    // file's locked 1.4133x, a ~1.4px difference at this size), which
+    // is the kind of small independent drift the whole --brand-scale
+    // rewrite exists to stop happening, not something to preserve.
+    //
+    // Two earlier attempts at this floor were both wrong the same
+    // way -- computed/measured rather than copied from something
+    // already proven to work in Raven's real environment: first 0.58x
+    // at a 320px viewport (measured against the OLD, since-replaced
+    // per-element breakpoints, never re-validated after the rewrite);
+    // then 0.8x at 320px, chosen from real spare room measured in this
+    // tool's own Chromium-based browser, which turned out to have zero
+    // actual margin in Raven's real Firefox (the tagline wrapped there
+    // -- see this rule's sibling fix below, whitespace-nowrap on the
+    // tagline itself); then 20.8px/1.3rem, taken from a diagnostic that
+    // (unnoticed at the time) had actually run against a DIFFERENT,
+    // ahead-of-production beta deploy, not production -- reads smaller
+    // than what Raven's real, everyday account actually shows. This
+    // value is the first one sourced directly from the same production
+    // environment and account Raven judged it against.
+    //
+    // Ceiling (600px, not 400px) -- also brought back in line with
+    // production's own existing max-[600px] breakpoint threshold,
+    // rather than the 400px this file previously derived from measuring
+    // where the row happens to stop needing to shrink now that #847
+    // moved the icon off it. That measurement wasn't wrong, but 600px
+    // is the width Raven has actually been looking at full-size text
+    // above for as long as this app has existed -- matching it avoids
+    // yet another guess about where "big enough" should start.
+    //
+    // clamp(MIN_LEN, MIN_LEN + (100vw - MIN_VW) * SLOPE, MAX_LEN) --
+    // the standard fluid-typography pattern (every term a <length>,
+    // combined only via +/-/* against a plain number, never a <length>
+    // divided by a <length>). A first version of this used the
+    // `(100vw - 320px) / 320px` trick to produce a unitless multiplier
+    // instead -- valid per spec, but confirmed broken in a real Firefox
+    // 155 (Raven's report, 2026-09-18: the whole lockup wrong at EVERY
+    // width, not just narrow ones, with zero console errors -- exactly
+    // what "--brand-scale invalid at computed-value time" looks like,
+    // since an invalid custom property makes every declaration
+    // referencing it via var() fall back silently, cascading to the
+    // logo/h1/tagline/margins/gap at once). This form never divides two
+    // lengths at all, so there's no such edge case to hit. Entirely in
+    // px, not rem, for the two endpoints AND the slope -- an earlier
+    // version of this same rewrite derived its slope in rem-per-px
+    // terms then applied it as a bare number against a px quantity
+    // (same unit in, same unit out -- not rem), making the growth 16x
+    // too shallow; keeping everything in one unit throughout avoids
+    // that mistake recurring. 0.0333 = (38.4 - 28.8) / (600 - 312),
+    // i.e. px of --brand-scale gained per px of viewport growth between
+    // the floor and ceiling above -- rounded to 4 places, off the exact
+    // 1/30 by well under a hundredth of a pixel at either end.
+    ":root {",
+    "  --brand-scale: clamp(28.8px, calc(28.8px + (100vw - 312px) * 0.0333), 38.4px);",
+    "}",
     "[hidden] { display: none; }",
     // Custom elements are `display: inline` by default with no UA
     // stylesheet override -- this component's content is always
@@ -168,7 +271,7 @@
     // #847 -- the sync/offline status ring climbing-burger-menu.js draws
     // around its own #header-menu-btn, replacing the standalone icon
     // between the brand header and the burger menu that #762/#786/#787/
-    // #788 built and #849 found was crowding the brand lockup in narrow
+    // #788 built and #789 found was crowding the brand lockup in narrow
     // mode. One thin ring, positioned via the "mask-composite: exclude"
     // trick (an element sized slightly larger than the button, punched
     // through in the middle by its own content-box, leaving only a
@@ -301,32 +404,62 @@
   // Raven's production report. alignLeft is opt-in (default false) so
   // the four original, unaffected consumers don't change at all.
   function brandHtml(alignLeft) {
+    // #789 -- every size below is `calc(var(--brand-scale) * <ratio to
+    // the h1's own font-size>)`, so the whole lockup shrinks/grows as
+    // one rigid unit (see --brand-scale's own comment, in TOKENS_CSS,
+    // for why -- including why this is a length-times-number, not the
+    // reverse, after a Firefox-only bug in the first version of this).
+    // No property here has its own independent breakpoint any more --
+    // that was the actual bug (see #789/#791 history: the logo, h1 and
+    // tagline each had their own max-[600px]/max-[400px] rules that
+    // didn't even reduce by the same ratio as each other, so
+    // "unwrappable" and "in proportion" kept failing together). Ratios
+    // are each original value's own size relative to the h1's original
+    // 2.4rem: tagline .8512/2.4, logo width 54.272px/38.4px, logo
+    // height 42.4px/38.4px, logo margin 4.48px/38.4px, row gap
+    // .26rem/2.4rem, h1's own margin -.3rem/2.4rem.
     var rowClass = alignLeft
-      ? "flex items-end gap-[.26rem] mb-4"
-      : "flex items-end justify-center gap-[.26rem] mb-4";
-    var taglineClass = "font-display font-normal uppercase tracking-wide leading-none text-[0.8512rem] max-[600px]:text-[0.6384rem] text-muted mb-0" + (alignLeft ? "" : " text-center");
+      ? "flex items-end gap-[calc(var(--brand-scale)*0.1083)] mb-4"
+      : "flex items-end justify-center gap-[calc(var(--brand-scale)*0.1083)] mb-4";
+    // whitespace-nowrap -- found live (Raven's report, 2026-09-19, a
+    // real 312px-wide device): the h1 already had this (#789), but the
+    // tagline never did, so IT was the one that wrapped once the
+    // tagline's own text (longer than the h1's, just rendered smaller)
+    // ran out of room -- the exact same class of bug #789 fixed for
+    // the h1, just on the other element.
+    var taglineClass = "font-display font-normal uppercase tracking-wide leading-none whitespace-nowrap text-[calc(var(--brand-scale)*0.3547)] text-muted mb-0" + (alignLeft ? "" : " text-center");
     return (
       '<div class="' + rowClass + '" id="brand-header-row">' +
-      '  <div class="shrink-0 flex mb-[4.48px] max-[600px]:mb-[3.2px]">' +
-      '    <svg class="w-[54.272px] h-[42.4px] max-[600px]:w-[39.32px] max-[600px]:h-[30.72px]" viewBox="0 14.4 122.88 96" aria-hidden="true">' +
+      '  <div class="shrink-0 flex mb-[calc(var(--brand-scale)*0.1167)]">' +
+      '    <svg class="w-[calc(var(--brand-scale)*1.4133)] h-[calc(var(--brand-scale)*1.1042)]" viewBox="0 14.4 122.88 96" aria-hidden="true">' +
       '      <path d="M45.6,14.4l23.718,48l-2.99,6l-21.689,0l10.843,21.6l-10.142,20.4l-45.342,0l45.6,-96Z" fill="currentColor"/>' +
       '      <path d="M85.203,37.2l16.333,31.2l-10.787,21.6l21.63,0l10.501,20.4l-74.042,0l36.364,-73.2Z" fill="currentColor"/>' +
       '    </svg>' +
       '  </div>' +
       '  <div>' +
-      // #789 -- whitespace-nowrap: the title has no wrap opportunity of
-      // its own (it's meant to read as one wordmark), but with no
-      // white-space override, a narrow flex row (this brand block is a
-      // sibling of the icon+burger-menu group in climbing-page-header's
-      // own space-between row) could squeeze this element's box below
-      // its natural text width, and the browser filled that by wrapping
-      // "Climbing"/"Logbook" onto two lines -- exactly the bug report.
-      // A new max-[400px] breakpoint (on top of the existing 600px one)
-      // shrinks the text enough that it still fits in one line at the
-      // narrowest realistic phone widths once nowrap forbids wrapping
-      // as an escape valve -- confirmed empirically against a real
-      // 320px-wide viewport, this app's own practical minimum.
-      '    <h1 class="font-display font-normal uppercase tracking-wide text-[2.4rem] leading-none mb-[-.3rem] whitespace-nowrap max-[600px]:text-[1.8rem] max-[400px]:text-[1.3rem]"><span class="text-accent">Climbing</span> <span class="text-foreground">Logbook</span></h1>' +
+      // #789 -- whitespace-nowrap: the title has no wrap
+      // opportunity of its own (it's meant to read as one wordmark).
+      // Without it, a narrow flex row (this brand block is a sibling of
+      // the sync icon+burger-menu group in climbing-page-header's own
+      // space-between row) could squeeze this element's box below its
+      // natural text width, and the browser filled that by wrapping
+      // "Climbing"/"Logbook" onto two lines -- the original bug report.
+      // nowrap forbids that escape valve entirely (so it can never
+      // wrap, regardless of available space); --brand-scale is what
+      // keeps the now-unshrinkable text a sensible size at narrow
+      // viewports instead of just overflowing.
+      // [font-size:var(--brand-scale)], not text-[var(--brand-scale)] --
+      // found live (Raven's report, 2026-09-18): the `text-` prefix is
+      // ambiguous between Tailwind's font-size and text-color utilities,
+      // and a bare var() with no calc()/unit hint resolves that
+      // ambiguity as a COLOR arbitrary value (compiles to `color:
+      // var(--brand-scale)`, not `font-size: ...`) -- silently a no-op
+      // here since --brand-scale is a length, invalid as a color, so
+      // the h1 fell back to the browser's own default h1 sizing
+      // regardless of viewport. The explicit property syntax (already
+      // used by this file's own footnote-trigger button, below) has no
+      // such ambiguity to resolve.
+      '    <h1 class="font-display font-normal uppercase tracking-wide [font-size:var(--brand-scale)] leading-none mb-[calc(var(--brand-scale)*-0.125)] whitespace-nowrap"><span class="text-accent">Climbing</span> <span class="text-foreground">Logbook</span></h1>' +
       '    <p class="' + taglineClass + '">Log your climbs, visualise your progress (<button type="button" class="inline [font-size:inherit] bg-transparent border-0 p-0 cursor-pointer text-accent" id="footnote-trigger">or not</button>)</p>' +
       '  </div>' +
       '</div>' +
