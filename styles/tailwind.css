@@ -229,6 +229,42 @@
   transform: translate(.75rem, -50%);
 }
 
+/* #715 -- popover listbox scrollbars (place-listbox, grade-value/scale
+   pickers, add-place-country-listbox), previously the browser's own
+   unstyled default. Deliberately flat, not the switch-track/switch-
+   thumb gradient+shadow treatment above -- Raven's call (2026-09-19):
+   Chromium's ::-webkit-scrollbar-* supports arbitrary gradients/shadows,
+   but Firefox's scrollbar-color only ever takes two flat colors, so a
+   literal skeuomorphic thumb would only exist in one engine. One flat
+   --color-border thumb on a transparent track, fed to both APIs, reads
+   identically everywhere rather than looking "finished" in one browser
+   and "unstyled" in the other. Static -- no hover/drag color change --
+   since switch-track/switch-thumb alone (without their own -on
+   variants) don't change color on interaction either; this only
+   changes what the listbox itself already reflects (scroll position),
+   nothing state the app tracks. */
+@utility listbox-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 999px;
+  }
+
+  &::-webkit-scrollbar-button {
+    display: none;
+  }
+}
+
 /* ── Reusable component utilities ──────────────────────────────────
    Unlike the composite utilities above, nothing here is beyond plain
    Tailwind utilities individually — these exist purely to avoid

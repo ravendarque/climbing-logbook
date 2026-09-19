@@ -54,7 +54,7 @@ export function createReportGradeScalePicker({ containerEl, getType, onChange })
         ${CHEVRON_SVG}
       </button>
       <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 bg-background border border-border rounded-app p-[.35rem] min-w-full w-max max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="report-grade-scale-popover" role="listbox" aria-label="Grade scale" hidden>
-        <ul class="max-h-[13rem] overflow-y-auto m-0 p-0 list-none" id="report-grade-scale-listbox"></ul>
+        <ul class="max-h-[13rem] overflow-y-auto listbox-scrollbar m-0 p-0 list-none" id="report-grade-scale-listbox"></ul>
         <!-- #705 -- same "What's this?" link as #703's own entry-form
              picker (public/log/index.html), pointing at the reference
              page. location.pathname's own leading segment is USERNAME on

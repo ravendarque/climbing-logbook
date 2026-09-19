@@ -111,7 +111,7 @@ staticShellNote: |-
               <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
               Add new place
             </button>
-            <ul class="max-h-[13rem] overflow-y-auto m-0 mt-[.4rem] p-0 list-none" id="place-listbox" role="listbox" aria-label="Place"></ul>
+            <ul class="max-h-[13rem] overflow-y-auto listbox-scrollbar m-0 mt-[.4rem] p-0 list-none" id="place-listbox" role="listbox" aria-label="Place"></ul>
           </div>
         </div>
       </div>
@@ -141,7 +141,7 @@ staticShellNote: |-
             <div class="relative flex-1 min-w-0" id="grade-value-wrap">
               <button type="button" class="grade-select w-full py-[.65rem]" id="grade-value-btn" aria-haspopup="listbox" aria-expanded="false"></button>
               <div class="absolute top-[calc(100%+.4rem)] left-0 z-20 bg-background border border-border rounded-app p-[.35rem] min-w-full w-max max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="grade-value-popover" role="listbox" aria-label="Grade" hidden>
-                <ul class="max-h-[13rem] overflow-y-auto m-0 p-0 list-none" id="grade-value-listbox"></ul>
+                <ul class="max-h-[13rem] overflow-y-auto listbox-scrollbar m-0 p-0 list-none" id="grade-value-listbox"></ul>
               </div>
             </div>
             <button type="button" class="flex-[0_0_2.6rem] flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent active:scale-[.94]" id="grade-next" aria-label="Next grade">
@@ -167,7 +167,7 @@ staticShellNote: |-
                      5rem floor as the letter/modifier popovers below,
                      for the same reason (Raven, 2026-09-12). -->
                 <div class="absolute top-[calc(100%+.4rem)] left-0 z-20 bg-background border border-border rounded-app p-[.35rem] w-full min-w-[5rem] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="grade-ns-number-popover" role="listbox" aria-label="Grade number" hidden>
-                  <ul class="max-h-[10rem] overflow-y-auto m-0 p-0 list-none" id="grade-ns-number-listbox"></ul>
+                  <ul class="max-h-[10rem] overflow-y-auto listbox-scrollbar m-0 p-0 list-none" id="grade-ns-number-listbox"></ul>
                 </div>
               </div>
               <div class="relative flex-[0_0_3.2rem]" id="grade-ns-letter-wrap">
@@ -438,7 +438,7 @@ staticShellNote: |-
         </button>
         <div class="absolute top-[calc(100%+.4rem)] left-0 z-20 bg-background border border-border rounded-app p-[.5rem] w-full max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="add-place-country-popover" hidden>
           <input type="text" class="bg-surface border border-border rounded-app px-[.7rem] py-[.5rem] text-foreground text-[.9rem] outline-none focus:border-accent w-full" id="add-place-country-search" placeholder="Search countries…" autocomplete="off" aria-label="Search countries" aria-controls="add-place-country-listbox">
-          <ul class="max-h-[13rem] overflow-y-auto m-0 mt-[.4rem] p-0 list-none" id="add-place-country-listbox" role="listbox" aria-label="Country"></ul>
+          <ul class="max-h-[13rem] overflow-y-auto listbox-scrollbar m-0 mt-[.4rem] p-0 list-none" id="add-place-country-listbox" role="listbox" aria-label="Country"></ul>
         </div>
       </div>
       <p class="text-[.78rem] text-muted mt-1 mb-3" id="add-place-country-hint" hidden>Inherited from the existing location — edit the location itself to change it.</p>
