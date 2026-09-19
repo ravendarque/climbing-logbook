@@ -11,7 +11,27 @@
 // public/e2e-fixtures/, or the two standalone scripts at public/'s own
 // root (demo-picker.js, session-redirect.js), none of which live under
 // views/ and so are never in 11ty's own output graph at all.
+// #857 -- a single, stable-per-build cache-busting value appended (?v=)
+// to every stable-named asset the templates below reference
+// (tailwind.css, the classic-script components, {{ bundle }}-app.js) --
+// computed once, at module-evaluation time, so every page rendered in
+// the same `eleventy` invocation (html:build/html:watch) gets the
+// identical value and public/_headers' own matching immutable-cache
+// rules for these exact paths stay correct: a real rebuild (a real
+// deploy, or a local edit under html:watch) gets a fresh value,
+// invalidating every previously-cached copy of these files at once,
+// while nothing changes within a single build/dev-server lifetime. Not
+// a content hash -- these files' own content doesn't feed this build
+// step, and a build-identity value is enough for cache-busting (unlike
+// the Vite-built chunks under /logbook/chunks/, which DO get real
+// content hashes, #774/#855) -- occasionally busting a cache that
+// didn't strictly need it (an unrelated rebuild) is a minor,
+// acceptable inefficiency, not a correctness bug.
+const ASSET_VERSION = String(Date.now());
+
 export default function (eleventyConfig) {
+  eleventyConfig.addGlobalData("assetVersion", ASSET_VERSION);
+
   // #794 follow-up -- ELEVENTY_RUN_MODE is 11ty's own built-in env var,
   // set to "watch" for `eleventy --watch` (scripts/dev.mjs's local dev
   // path, package.json's html:watch) and "build" for a plain `eleventy`

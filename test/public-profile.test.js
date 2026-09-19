@@ -59,7 +59,13 @@ describe("public profile visibility", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("<climbing-entries-table");
-    expect(html).toContain('src="/logbook/profile-app.js"');
+    // #857 -- (\?v=\d+)? tolerates the real, non-deterministic
+    // cache-busting query .eleventy.js's own assetVersion appends to
+    // this exact URL in every build except dev (ELEVENTY_RUN_MODE=watch,
+    // not the case for whatever built the file this test's own
+    // env.ASSETS.fetch() reads) -- an exact string match broke the
+    // instant that query started existing.
+    expect(html).toMatch(/src="\/logbook\/profile-app\.js(\?v=\d+)?"/);
   });
 
   it("looks up the username case-insensitively", async () => {
