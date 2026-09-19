@@ -139,7 +139,23 @@
     // needed manual updates on a database recreation before this change
     // (see env.beta's own comment), this just adds a second manual spot
     // rather than introducing the pattern.
+    //
+    // #864 -- `name` is NOT left to inherit, unlike `routes` above:
+    // inheriting `routes` only carries over the same route *patterns*,
+    // it says nothing about which Worker *script* they attach to, and
+    // Wrangler auto-derives a named environment's script name as
+    // "<top-level name>-<env name>" when none is given -- silently
+    // "climbing-logbook-production" here, a different script from the
+    // top-level "climbing-logbook" Worker that already holds these exact
+    // routes live. Found the hard way (2026-09-19): a real promote.yml
+    // run uploaded that second script successfully, then failed outright
+    // on the route-attach step ("routes are assigned to another
+    // worker"), because Cloudflare won't let two different Worker
+    // scripts claim the same route. Explicit `name` here makes
+    // env.production deploy to the SAME script the top-level config
+    // already targets, not a parallel one.
     "production": {
+      "name": "climbing-logbook",
       "vars": {
         "BETA_GATE_ENABLED": "true"
       },
