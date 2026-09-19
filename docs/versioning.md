@@ -40,29 +40,45 @@ app rather than a published library with a versioned API contract:
     nearly every template and is zero *intended* user-facing change — but
     it's a big enough rewrite of what's actually running in production to
     be worth a minor bump, once, at the point the migration is complete.
-- **PATCH** — strictly a bug fix: an internal change that fixes incorrect
-  behavior. Nothing else qualifies as PATCH, no matter how much shipped
-  code it touches — per the spec, "a bug fix is defined as an internal
-  change that fixes incorrect behavior," full stop.
-- **No bump** — everything that's neither a bug fix, a user-facing
-  addition, nor judged "substantial" enough to register: docs-only
-  changes, CI/tooling changes, dev-only scripts and local tooling (seed
-  scripts, review helpers, one-off migration/ops scripts run outside the
-  app's own runtime), dependency/chore bumps that don't change shipped
-  code, infrastructure/provisioning changes that don't alter the deployed
-  app's behavior (e.g. moving KV provisioning from a one-off script to
-  Terraform), and refactors too small to be worth flagging. These are real
-  work, just not release-worthy on their own — they ride along into
-  whichever version comes next.
+- **PATCH** — a bug fix (an internal change that fixes incorrect
+  behavior, per the spec), **or** any other user-visible change that
+  doesn't clear MINOR's bar: visual/UX polish, copy tweaks, restyling an
+  existing control, small refinements a user could actually see or feel
+  in the running app but that add no new capability and aren't
+  significant enough to be their own headline feature. The common
+  thread isn't "was something broken" — it's "does the diff change what
+  a user of the deployed app sees or experiences at all." If it does,
+  it's at minimum a PATCH; `release: none` is not a smaller version of
+  "user-facing," it's the absence of it (see below).
+- **No bump** — reserved for changes with **zero user-visible surface**:
+  docs-only changes, CI/tooling changes, dev-only scripts and local
+  tooling (seed scripts, review helpers, one-off migration/ops scripts
+  run outside the app's own runtime), dependency/chore bumps that don't
+  change shipped code, infrastructure/provisioning changes that don't
+  alter the deployed app's behavior (e.g. moving KV provisioning from a
+  one-off script to Terraform), and refactors too small to be worth
+  flagging (internal-only restructuring with no observable difference in
+  the running app at all). These are real work, just not release-worthy
+  on their own — they ride along into whichever version comes next.
+  Critically, this bucket is not a place for "the app looks or works
+  slightly different but it felt too small to call a release" — a
+  version-labelling decision is not the same question as "was this a lot
+  of work," and an unbounded backlog of small-but-real UI changes with no
+  automatic path to production (see the deploy-pipeline note above:
+  `release: none` never cuts a tag on its own) would silently defeat the
+  whole point of shipping continuously.
 
-The test isn't "which files changed" or "how much work was it" — for
-MINOR-as-new-capability vs. no-bump it's **"would a user of the app notice
-or need to know about this."** For MINOR-as-substantial-rewrite vs. no-bump
-it's a judgment call the team makes deliberately, not something that falls
-out of a mechanical rule — most refactors stay no-bump; only the rare ones
-big enough to be worth a line in the release notes get flagged, and only
-once, at the point the rewrite is actually complete (not on every
-incremental PR that contributes to it).
+The test isn't "which files changed" or "how much work was it" — it's
+**"would a user of the app notice or need to know about this."** Any yes
+is at least a PATCH (new capability bumps it to MINOR instead). Only a
+genuine "no" — nothing a user looking at or using the app could ever
+observe — belongs in `release: none`. The one exception is
+MINOR-as-substantial-rewrite (an internal-only change with literally zero
+intended user-facing difference, but big enough to be worth a line in the
+version history): that's a separate, deliberate judgment call the team
+makes once, at the point the rewrite is actually complete — not something
+that falls out of the same "would a user notice" test, precisely because
+by definition a user *wouldn't*.
 
 ## Where the version lives
 
