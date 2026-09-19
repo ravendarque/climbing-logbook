@@ -103,6 +103,7 @@
     return `
   <div class="relative" id="header-menu-wrap">
     <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="header-menu-btn" aria-haspopup="true" aria-expanded="false" aria-label="Menu">
+      <span class="menu-sync-glow" aria-hidden="true"></span>
       <span class="menu-sync-ring" aria-hidden="true"></span>
       <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="17" x2="20" y2="17"></line></svg>
     </button>

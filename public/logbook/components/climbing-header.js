@@ -76,6 +76,19 @@
     // pyramid.js's own health-card "low" status, unrelated purposes that
     // just happen to reuse the same amber token.
     "  --tier-heuristic: #dba43a;",
+    // #861 -- the burger menu's own sync-status ring/glow, deliberately
+    // its own token rather than reusing --tier-heuristic above: that one
+    // read as a "dirty yellow" for this specific purpose (Raven, live,
+    // 2026-09-19), and is also chart-line/pyramid-health-card coloring
+    // (client/combo-chart.js, climbing-grade-pyramid.js) -- brightening
+    // it for the ring would have silently changed those too. Named for
+    // the STATE it represents, not its own color -- already changed
+    // once (yellow to orange, 2026-09-19), and a state-based name means
+    // a third retune doesn't need a third rename. Same fixed value in
+    // both themes, matching this file's own grade-tier/pyramid-status
+    // convention for a deliberately un-adapted brand-style color, not
+    // something themed.
+    "  --sync-working: #ff6d00;",
     // #516 -- <climbing-grade-pyramid>'s own status-icon colors (good/
     // missing/promoted), previously hardcoded raw hex directly in that
     // component and never in this token set at all, so they never
@@ -126,6 +139,7 @@
     "  --grade-tier-hyper-elite:  #ffba08;",
     "  --grade-badge-ink: #1c1917;",
     "  --tier-heuristic: #a6740a;",
+    "  --sync-working: #ff6d00;",
     "  --pyramid-status-good:     #16a34a;",
     "  --pyramid-status-missing:  #b91c1c;",
     "  --pyramid-status-promoted: #a16207;",
@@ -268,64 +282,91 @@
     // flex row now, not an inner wrapper div (see climbing-page-header.js's
     // own comment for the full history).
     "climbing-page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; }",
-    // #847 -- the sync/offline status ring climbing-burger-menu.js draws
-    // around its own #header-menu-btn, replacing the standalone icon
-    // between the brand header and the burger menu that #762/#786/#787/
-    // #788 built and #789 found was crowding the brand lockup in narrow
-    // mode. One thin ring, positioned via the "mask-composite: exclude"
-    // trick (an element sized slightly larger than the button, punched
-    // through in the middle by its own content-box, leaving only a
-    // border-thickness band) so it traces the button's own rounded-rect
-    // shape rather than a plain circle. data-sync-state (set by
-    // ClimbingBurgerMenu.setSyncState(), climbing-burger-menu.js's own
-    // method) drives which state applies -- "working" pulses amber
-    // (--tier-heuristic, this app's existing amber token, reused rather
-    // than inventing a new color), "offline" sits static solid red
-    // (--color-accent) with no animation: a deliberate escalation from
-    // "something's happening, transient" to "this needs attention,
-    // settled" (Raven, 2026-09-18). Absent state (data-sync-state unset)
-    // leaves opacity at 0 -- no ring at all, matching the old icon's own
-    // "idle" (hidden) state.
+    // #847/#861 -- the sync/offline status ring+glow climbing-burger-
+    // menu.js draws around its own #header-menu-btn, replacing the
+    // standalone icon between the brand header and the burger menu that
+    // #762/#786/#787/#788 built and #789 found was crowding the brand
+    // lockup in narrow mode. Two layered elements, not one:
+    //
+    // - .menu-sync-ring: a thin ring positioned via the "mask-composite:
+    //   exclude" trick (an element sized slightly larger than the
+    //   button, punched through in the middle by its own content-box,
+    //   leaving only a border-thickness band) so it traces the button's
+    //   own rounded-rect shape rather than a plain circle -- a crisp
+    //   line, nothing more.
+    // - .menu-sync-glow: a second, UNMASKED element behind it, same
+    //   footprint, doing nothing but casting a soft box-shadow bloom.
+    //   Found live (Raven's report, 2026-09-19) that putting the glow's
+    //   box-shadow directly on .menu-sync-ring produced no visible glow
+    //   at all: CSS masking composites the ENTIRE rendered output of
+    //   the element it's applied to, box-shadow included, not just its
+    //   background/fill -- so a shadow trying to bloom past the ring's
+    //   own `inset: -3px` mask boundary was being clipped at that exact
+    //   3px edge before it could ever spread. A shadow on a sibling
+    //   element with no mask at all has nothing clipping it.
+    //
+    // data-sync-state (set by ClimbingBurgerMenu.setSyncState(),
+    // climbing-burger-menu.js's own method) drives which state applies
+    // on both layers together -- "working" pulses --sync-working
+    // (below), "offline" sits static solid red (--color-accent) with no
+    // animation: a deliberate escalation from "something's happening,
+    // transient" to "this needs attention, settled" (Raven, 2026-09-18).
+    // Absent state (data-sync-state unset) leaves both at opacity 0 --
+    // no ring or glow at all, matching the old icon's own "idle"
+    // (hidden) state.
     "#header-menu-btn { position: relative; }",
-    ".menu-sync-ring {",
+    ".menu-sync-ring, .menu-sync-glow {",
     "  position: absolute;",
     "  inset: -3px;",
     "  border-radius: calc(var(--r) + 3px);",
+    "  opacity: 0;",
+    "  pointer-events: none;",
+    "}",
+    ".menu-sync-ring {",
     "  padding: 2px;",
     "  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);",
     "  -webkit-mask-composite: xor;",
     "  mask-composite: exclude;",
-    "  opacity: 0;",
-    "  pointer-events: none;",
     "}",
-    // box-shadow, not just background -- found live (Raven's report,
-    // 2026-09-19): without it this read as a plain thin line, not the
-    // soft glow shown in the mockups this design was approved from. The
-    // shadow bleeds outward from the ring's own outer edge (a normal,
-    // non-inset box-shadow), which the mask-composite rule above never
-    // clips -- masking only ever cuts out the *interior* of the
-    // element's own box, never what a shadow paints beyond it. opacity
-    // still drives the pulse animation for the whole element, so the
-    // glow pulses in step with the ring itself, no separate keyframe
-    // needed for it.
+    // #861 -- three layered shadows on .menu-sync-glow (tight bright
+    // core, mid halo, wide soft bloom via color-mix -- the same "mix a
+    // color with transparent" pattern this file's own footnote-overlay
+    // backdrop already uses), not one -- a single small blur read as a
+    // subtle glow, not the pronounced, recognisable "status LED on a
+    // physical device" look Raven asked for. Both elements share the
+    // same opacity animation/value per state, so the ring and its glow
+    // stay in lockstep -- one keyframe rule drives both.
     '#header-menu-btn[data-sync-state="working"] .menu-sync-ring {',
-    "  opacity: 1;",
-    "  background: var(--tier-heuristic);",
-    "  box-shadow: 0 0 6px 1px var(--tier-heuristic);",
-    "  animation: menu-sync-pulse 2.2s ease-in-out infinite;",
+    "  background: var(--sync-working);",
+    "  animation: menu-sync-pulse 3.6s ease-in-out infinite;",
+    "}",
+    '#header-menu-btn[data-sync-state="working"] .menu-sync-glow {',
+    "  box-shadow: 0 0 1px 0px color-mix(in srgb, var(--sync-working) 80%, transparent), 0 0 4px 1px color-mix(in srgb, var(--sync-working) 55%, transparent), 0 0 7px 2px color-mix(in srgb, var(--sync-working) 25%, transparent);",
+    // 3.6s, not 2.2s, and 0 (not .4) as the pulse's own low point --
+    // found live, same report: the old, faster cycle with a non-zero
+    // floor meant a sync that finished quickly could start and stop
+    // mid-pulse, reading as an abrupt flash rather than a real status
+    // light. Starting and ending each cycle at fully invisible gives a
+    // genuine fade-in the first time the ring appears (a very short
+    // sync only shows a soft rise, never a hard cut), then a slow
+    // breathe for as long as it's genuinely still working.
+    "  animation: menu-sync-pulse 3.6s ease-in-out infinite;",
     "}",
     '#header-menu-btn[data-sync-state="offline"] .menu-sync-ring {',
     "  opacity: 1;",
     "  background: var(--color-accent);",
-    "  box-shadow: 0 0 6px 1px var(--color-accent);",
     "}",
-    "@keyframes menu-sync-pulse { 0%, 100% { opacity: .4; } 50% { opacity: 1; } }",
+    '#header-menu-btn[data-sync-state="offline"] .menu-sync-glow {',
+    "  opacity: 1;",
+    "  box-shadow: 0 0 1px 0px color-mix(in srgb, var(--color-accent) 80%, transparent), 0 0 4px 1px color-mix(in srgb, var(--color-accent) 55%, transparent), 0 0 7px 2px color-mix(in srgb, var(--color-accent) 25%, transparent);",
+    "}",
+    "@keyframes menu-sync-pulse { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }",
     // Folds offline-sync.js's own pre-existing sync-btn-icon spin
     // (.animate-spin, Tailwind's utility class) into this same guard
     // rather than a second separate one, matching this rule's own
     // pre-#847 history of doing the same for the now-removed sync-
     // status-spin class.
-    '@media (prefers-reduced-motion: reduce) { .animate-spin { animation: none; } #header-menu-btn[data-sync-state="working"] .menu-sync-ring { animation: none; opacity: .8; } }',
+    '@media (prefers-reduced-motion: reduce) { .animate-spin { animation: none; } #header-menu-btn[data-sync-state="working"] .menu-sync-ring, #header-menu-btn[data-sync-state="working"] .menu-sync-glow { animation: none; opacity: .8; } }',
     // .tab-nav/.tab-nav-item (#211/#465) -- shared visual language for
     // "a horizontal row of view switchers with an active-item indicator",
     // used by two components that are deliberately NOT the same element:
