@@ -242,13 +242,25 @@
    since switch-track/switch-thumb alone (without their own -on
    variants) don't change color on interaction either; this only
    changes what the listbox itself already reflects (scroll position),
-   nothing state the app tracks. */
+   nothing state the app tracks.
+   12px, not the first pass's 8px (Raven, same day): the thumb still
+   needs to be *grabbable* by a mouse/trackpad drag, not just visible --
+   8px read as too fine a target. Not widened further toward WCAG 2.5.8's
+   24px pointer-target minimum: that guideline targets primary
+   interactive controls, and this thumb is a supplementary affordance,
+   not the only way to scroll or select an option here --
+   modal-utils.js's own ArrowUp/ArrowDown/Enter listbox navigation (its
+   createSearchableListbox()) already calls scrollIntoView() on the
+   active option regardless of thumb width, so keyboard users (including
+   anyone who'd struggle most with a thin drag target) never depend on
+   this thumb at all; mouse-wheel and touch scrolling don't either. 12px
+   is a deliberate middle ground given that real risk is narrow. */
 @utility listbox-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: var(--color-border) transparent;
 
   &::-webkit-scrollbar {
-    width: 8px;
+    width: 12px;
   }
 
   &::-webkit-scrollbar-track {
