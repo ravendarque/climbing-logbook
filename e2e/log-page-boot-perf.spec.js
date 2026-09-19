@@ -31,12 +31,19 @@ test("log page renders real content within a generous local budget, no artificia
 
   const start = Date.now();
   await page.goto(ownedRouteUrl("devuser", "/log"));
-  // A real rendered location section, not just DOM-attached markup --
-  // <climbing-entries-table>'s own loading-vs-empty-vs-populated branch
-  // (see that file's own #470 comment) only reaches this state once
-  // boot()'s entries (from cache) and, in the current architecture, its
-  // places/locations network fetches have all resolved -- the exact
-  // "is the page actually done" signal Raven asked this test to watch.
+  // A real rendered location section, not just DOM-attached markup.
+  // Confirmed empirically (2026-09-19, an isolated Playwright run that
+  // artificially delayed /logbook/api/places and /logbook/api/locations
+  // by 4s each): this renders in ~440ms regardless, well before either
+  // resolves -- client/log-main.js's own boot() calls
+  // store.loadEntriesFromCache() (synchronous, no network) before
+  // starting those two fetches, and render() (the store's sole
+  // subscriber) runs on that first notify alone, grouping entries by
+  // their own already-present locationId even before the friendly
+  // place/location names arrive. So this selector genuinely measures
+  // "UI rendered from cache," not "background sync also finished" --
+  // exactly the milestone Raven asked this test to watch, not the
+  // fuller one an earlier version of this comment assumed.
   await expect(page.locator(".place-header[data-location-id]").first()).toBeVisible();
   const elapsedMs = Date.now() - start;
 

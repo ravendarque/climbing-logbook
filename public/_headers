@@ -15,11 +15,71 @@
 # chunk under /logbook/chunks/ a content hash in its filename -- any
 # code change produces a new URL, so a cached copy of the OLD URL can
 # never go stale; safe to cache "forever" (no revalidation at all, not
-# even a fast one). The top-level *-app.js/tailwind.css/sw.js files
-# deliberately keep the platform default: they have stable, un-hashed
-# names (the HTML references them by a fixed URL), so an edit to one
-# needs the browser to actually notice via revalidation -- immutable
-# caching there would mean a real deploy silently never reaching an
-# already-visited browser.
+# even a fast one).
 /logbook/chunks/*
+  Cache-Control: public, max-age=31556952, immutable
+
+# #857 -- the top-level *-app.js/tailwind.css/components/*.js files have
+# stable, un-hashed names (views/*.njk reference them by a fixed path),
+# so a bare immutable rule on the path alone would mean a real deploy
+# silently never reaching an already-visited browser. .eleventy.js's own
+# assetVersion global (a single value per real `eleventy` invocation)
+# is appended as ?v=... to every reference to these files instead
+# (views/_includes/app-layout.njk and the five standalone pages that
+# don't go through it -- login/register/reset-password/index/help) --
+# the query string becomes part of the browser's own cache key, so a
+# real rebuild's new value is a guaranteed cache MISS (fetched fresh),
+# while every future request to that exact versioned URL is a hit,
+# forever. Skipped entirely for dev builds (isDevBuild) -- see that
+# template's own comment on why an unversioned request still needs to
+# reach vite.config.js's own devEntryRewrite middleware unchanged.
+#
+# sw.js is NOT listed here, deliberately: it's the service worker
+# script itself, which browsers already special-case for update
+# checking (a new registration is compared byte-for-byte against the
+# previous one on its own schedule, independent of HTTP caching) --
+# immutable caching on its URL would fight that mechanism, not help it.
+#
+# Explicit filenames, not a single /logbook/*-app.js pattern -- the
+# _headers glob syntax's one documented example only shows a trailing
+# `/*`, so a mid-segment wildcard's support is unconfirmed; listing
+# vite.entries.mjs's own CLIENT_ENTRIES keys (as "<key>-app.js") is
+# unambiguous. Add a line here whenever a new entry is added there --
+# the same "one list, not two copies that silently drift" lesson that
+# file's own comment already states, extended to this file too.
+/logbook/tailwind.css
+  Cache-Control: public, max-age=31556952, immutable
+/logbook/components/*
+  Cache-Control: public, max-age=31556952, immutable
+/logbook/log-app.js
+  Cache-Control: public, max-age=31556952, immutable
+/logbook/map-app.js
+  Cache-Control: public, max-age=31556952, immutable
+/logbook/performance-hub-app.js
+  Cache-Control: public, max-age=31556952, immutable
+/logbook/performance-pyramid-app.js
+  Cache-Control: public, max-age=31556952, immutable
+/logbook/performance-trends-app.js
+  Cache-Control: public, max-age=31556952, immutable
+/logbook/performance-gap-app.js
+  Cache-Control: public, max-age=31556952, immutable
+/logbook/performance-rpe-app.js
+  Cache-Control: public, max-age=31556952, immutable
+/logbook/performance-injury-app.js
+  Cache-Control: public, max-age=31556952, immutable
+/logbook/performance-strengths-app.js
+  Cache-Control: public, max-age=31556952, immutable
+/logbook/performance-grades-app.js
+  Cache-Control: public, max-age=31556952, immutable
+/logbook/profile-app.js
+  Cache-Control: public, max-age=31556952, immutable
+/logbook/account-app.js
+  Cache-Control: public, max-age=31556952, immutable
+/logbook/account-edit-app.js
+  Cache-Control: public, max-age=31556952, immutable
+/logbook/account-import-app.js
+  Cache-Control: public, max-age=31556952, immutable
+/logbook/sync-app.js
+  Cache-Control: public, max-age=31556952, immutable
+/logbook/beta-gate-app.js
   Cache-Control: public, max-age=31556952, immutable
