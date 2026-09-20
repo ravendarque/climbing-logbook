@@ -37,7 +37,7 @@
     "vitest": "^4.1.11",
     "world-atlas": "^2.0.2",
     "world-countries": "^5.1.0",
-    "wrangler": "^4.121.0"
+    "wrangler": "^4.135.0"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.8.0",
