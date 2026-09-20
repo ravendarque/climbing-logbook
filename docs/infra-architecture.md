@@ -389,7 +389,7 @@ the preview is bound to a preview D1 database, not production data, so
 nobody mistakes a preview for a live look at real logbook entries.
 
 **No additional `CLOUDFLARE_API_TOKEN` scopes needed** — the same token
-covering production deploys already has Workers Scripts: Edit and D1: Edit
+covering production deploys already has `Workers Editor` and `D1 Write`
 account-wide (see permission table below), which covers the `-preview`
 script and its own database too.
 
@@ -426,37 +426,61 @@ new migration would otherwise 500 the preview with "no such table."
 
 ### `CLOUDFLARE_API_TOKEN` permissions
 
-This one token also covers my-limn's Pages project, since both live on the
-same account/zone.
+**#868/#869, 2026-09-20 — token rebuilt from scratch, this section rewritten
+against its real, verified permission groups (via `GET
+/accounts/{id}/tokens/{id}`), not dashboard labels or guesses.** The
+previous token silently ended up with an empty `policies: []` after a `PUT`
+containing a per-Worker granular `Individual Workers Editor` policy
+returned a `500`; two separate multi-day investigations (#868's route-write
+failures, a related D1-query 7403) both stalled on the wrong assumption
+that permission-group *names* being present meant the token was healthy.
+See `project_cloudflare_token_granular_policy_breaks` in project memory
+for the full incident.
 
-Account-scoped (the Cloudflare account above):
-- Workers Scripts: Edit
-- Workers R2 Storage: Edit
-- D1: Edit (#20 — provisioning `infra/d1.tf` and applying migrations)
-- Turnstile: Edit (#311 — provisioning `infra/turnstile.tf`; same
-  "confirm before assuming it's already granted" flag as D1 was — this
-  token's scope was last confirmed for D1, not Turnstile, verify before
-  relying on it)
-- Cloudflare Pages: Edit
+**Do not attach a per-Worker granular policy (`Individual Workers
+Editor`/`Admin`/etc., scoped via `com.cloudflare.edge.worker.script.*`) to
+this token.** Every observed write to this token that included one either
+failed outright or silently didn't persist. Use the classic, account-wide
+`Workers Editor` grant below instead — it covers reading, updating, and
+deploying every Worker on the account, which is all CI has ever actually
+needed.
 
-Zone-scoped (ravendarque.com): none -- narrowed back to climbinglogbook.com
-only (#316, resolved 2026-08-13). Confirmed the hard way: `wrangler
-deploy`'s routine per-deploy route reconciliation started failing outright
-right after, since `wrangler.jsonc` still declared a
-`ravendarque.com`-zoned Workers Route at the time (#453 removed it). The
-zone previously carried:
-- Workers Routes: Edit
-- Rules & Configuration: Dynamic URL Redirects (added #295 --
-  `infra/redirects.tf`'s redirect ruleset; the token permission's actual
-  name in Cloudflare's dashboard, confirmed by trial -- "Zone Rulesets:
-  Edit" doesn't exist as a distinct permission the way this doc first
-  guessed)
+Account-scoped (the Cloudflare account above), 12 permission groups:
+- Workers Editor
+- Workers Scripts Write
+- Workers KV Storage Write
+- Workers R2 Storage Write
+- D1 Write (#20 — provisioning `infra/d1.tf` and applying migrations)
+- Turnstile Sites Write (#311 — provisioning `infra/turnstile.tf`)
+- Access: Policies Write
+- Access: Apps Write
+- Account WAF Write
+- Account Rulesets Write
+- Account Rule Lists Write
+- Zero Trust Write
 
-Zone-scoped (climbinglogbook.com, added #295):
-- DNS: Edit (`infra/dns.tf`'s placeholder records)
-- Workers Routes: Edit (the two new routes in `wrangler.jsonc` -- takes
-  effect on the next tagged `deploy.yml` run, not on merge to `main`, see
-  "Three-workflow structure" above)
+Zone-scoped (`climbinglogbook.com`), 5 permission groups:
+- Workers Routes Write (the two routes in `wrangler.jsonc` -- takes effect
+  on the next tagged `deploy.yml`/`promote.yml` run, not on merge to
+  `main`, see "Three-workflow structure" above)
+- DNS Write (`infra/dns.tf`'s placeholder records)
+- Zone WAF Write
+- Cache Settings Write
+- Dynamic URL Redirects Write (`infra/redirects.tf`'s redirect ruleset)
+
+Zone-scoped (`ravendarque.com`): none — narrowed back to
+`climbinglogbook.com` only (#316, resolved 2026-08-13). Confirmed the hard
+way: `wrangler deploy`'s routine per-deploy route reconciliation started
+failing outright right after, since `wrangler.jsonc` still declared a
+`ravendarque.com`-zoned Workers Route at the time (#453 removed it).
+
+**`Cloudflare Pages: Edit` is no longer part of this token's rebuilt
+permission set** — the old token's own header note claimed it "also covers
+my-limn's Pages project, since both live on the same account/zone." Not
+carried forward in the rebuild since nothing in this repo's own CI needs
+it; if my-limn's Pages deploys actually depend on this specific token,
+that's a separate, currently-unverified gap worth checking rather than an
+intentional removal.
 
 ## Disaster recovery
 
