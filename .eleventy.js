@@ -27,10 +27,45 @@
 // content hashes, #774/#855) -- occasionally busting a cache that
 // didn't strictly need it (an unrelated rebuild) is a minor,
 // acceptable inefficiency, not a correctness bug.
+import eleventyNavigationPlugin from "@11ty/eleventy-navigation";
+import { execFileSync } from "node:child_process";
+
 const ASSET_VERSION = String(Date.now());
 
 export default function (eleventyConfig) {
   eleventyConfig.addGlobalData("assetVersion", ASSET_VERSION);
+
+  // #876 -- sidebar nav tree for the /help section (views/help/**), built
+  // from each page's own `eleventyNavigation: { key, parent, order }`
+  // front matter rather than a hand-rolled data structure. Not used
+  // anywhere outside /help -- every other page in this app already has
+  // its own real navigation (climbing-tab-bar, climbing-discipline-
+  // picker) that this plugin has no reason to touch.
+  eleventyConfig.addPlugin(eleventyNavigationPlugin);
+
+  // #876 -- indexes the built /help pages for Pagefind's static,
+  // build-time search (no backend, no hosted service -- it crawls the
+  // rendered HTML and writes a small search index + its own UI assets
+  // into public/help/pagefind/). Scoped to --site public/help specifically,
+  // not the whole public/ output -- nothing outside /help has search, and
+  // indexing the whole app would just be slower for no benefit. Runs via
+  // execFileSync (blocking) because eleventy.after itself is awaited by
+  // 11ty before the build is considered done -- html:build (deploy.yml,
+  // preview.yml, scripts/dev.mjs's initial build) expects a finished
+  // build, including its search index, once this resolves.
+  //
+  // Skipped under `eleventy --watch` (isDevBuild): eleventy.after fires
+  // on every rebuild the watcher triggers, for ANY template change
+  // anywhere in the app, not just under views/help/ -- indexing on every
+  // unrelated save would add real latency to the whole dev loop for no
+  // benefit locally. A developer who wants to check search results
+  // during help-content work runs `pnpm run html:build` once separately.
+  eleventyConfig.on("eleventy.after", () => {
+    if (process.env.ELEVENTY_RUN_MODE === "watch") return;
+    execFileSync("npx", ["pagefind", "--site", "public/help", "--output-path", "public/help/pagefind"], {
+      stdio: "inherit",
+    });
+  });
 
   // #794 follow-up -- ELEVENTY_RUN_MODE is 11ty's own built-in env var,
   // set to "watch" for `eleventy --watch` (scripts/dev.mjs's local dev
@@ -57,10 +92,18 @@ export default function (eleventyConfig) {
       // someone reading this file can see.
       includes: "_includes",
     },
-    // Every page in this migration is a plain .njk template with
-    // front-matter -- no markdown content anywhere in this app's page
-    // shells, so there's no reason to keep .md in the default template
-    // formats list.
-    templateFormats: ["njk"],
+    // #876 -- "md" re-added (removed by #760's own comment above, since
+    // this app previously had no markdown content anywhere) specifically
+    // for views/help/**: long-form help prose is a much better fit for
+    // Markdown than hand-written Tailwind-class HTML, and every other
+    // page shell in this app stays exactly as it was -- .md is additive
+    // to the existing .njk format, not a replacement.
+    templateFormats: ["njk", "md"],
+    // 11ty's own default markdownTemplateEngine is "liquid" -- explicit
+    // "njk" here so a .md file's front matter/layout still goes through
+    // the same Nunjucks engine every .njk page in this app already uses
+    // (help-layout.njk's own {{ }}/{% %} tags), not a second template
+    // language nothing else here needs.
+    markdownTemplateEngine: "njk",
   };
 };

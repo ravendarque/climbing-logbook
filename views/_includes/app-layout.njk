@@ -60,6 +60,20 @@
 </head>
 <body class="bg-background text-foreground font-sans px-4 pt-6 pb-16 min-w-[300px]">
 {{ content | safe }}
+<!-- #876/#878 -- conditional rather than assumed-always-present: a first
+     pass here had views/help/** genuinely bundle-less (content-only, no
+     client-main.js), on the theory that the header menu's interactivity
+     could just import modal-utils.js/theme-toggle.js directly as plain
+     <script type="module"> src files -- that happened to work in dev
+     (Vite's dev server serves the raw client/ source tree unbundled, as
+     a convenience) but 404s for real in production, where those files
+     only exist as Vite-bundled hashed chunks. help-layout.njk sets its
+     own `bundle: help` (client/help-main.js) now, same as every other
+     page -- but the conditional stays: it costs nothing for pages that
+     always set bundle, and keeps the door open for a genuinely
+     bundle-less page later without a second change here. -->
+{%- if bundle %}
 <script type="module" src="/logbook/{{ bundle }}-app.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
+{%- endif %}
 </body>
 </html>
