@@ -1,6 +1,20 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "climbing-logbook",
+  // #869 -- explicit, not left to wrangler's own account auto-resolution
+  // (getOrSelectAccountId, which calls the /memberships API and needs a
+  // User-scoped "Memberships: Read" permission neither of this project's
+  // API tokens has ever been granted). Found live (2026-09-20): bumping
+  // wrangler from 4.121.0 to 4.135.0 broke `wrangler d1 migrations apply`
+  // in CI with "The given account is not valid or is not authorized to
+  // access this service" -- every prior CI run on 4.121.0 had succeeded,
+  // and nothing about this repo's token permissions changed at the same
+  // time, so this points at a behavior change in account resolution
+  // somewhere in that version range. Setting the (single, already-known --
+  // it's been in every error message this investigation produced)
+  // account id directly skips that resolution step entirely, which fixes
+  // it regardless of which exact wrangler-side change caused it.
+  "account_id": "4f63d74beb21402b8622361525ab4868",
   "main": "server/index.js",
   "compatibility_date": "2026-07-01",
   // Better Auth (#20) depends on Node.js built-ins (e.g. node:crypto) not
