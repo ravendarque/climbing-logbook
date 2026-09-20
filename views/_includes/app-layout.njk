@@ -60,6 +60,14 @@
 </head>
 <body class="bg-background text-foreground font-sans px-4 pt-6 pb-16 min-w-[300px]">
 {{ content | safe }}
+<!-- #876 -- conditional, not unconditional like every other page here:
+     views/help/** chains through this layout (help-layout.njk's own
+     front matter sets `layout: app-layout.njk`) but is genuinely static
+     content with no client-main.js of its own to load -- `bundle` is
+     simply never set on those pages. Every existing page keeps setting
+     `bundle` in its own front matter, so this changes nothing for them. -->
+{%- if bundle %}
 <script type="module" src="/logbook/{{ bundle }}-app.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
+{%- endif %}
 </body>
 </html>

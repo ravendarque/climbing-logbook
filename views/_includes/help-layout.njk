@@ -1,0 +1,101 @@
+---
+layout: app-layout.njk
+title: Help – Climbing Logbook
+---
+<!-- #876 -- chained layout (this file's own front matter sets `layout:
+     app-layout.njk` above), not a standalone <html>/<head>/<body> shell
+     like the very first pass here -- Raven's call, 2026-09-20: /help
+     should use the exact same header row every other app page does
+     (full-width, brand left-aligned, <climbing-page-header> + burger
+     menu for navigating back out), not a bespoke narrower shell of its
+     own. app-layout.njk's own trailing bundle-script tag is now
+     conditional specifically so this chain works -- see that file's
+     own comment. -->
+
+<!-- #876 -- Pagefind's Component UI assets + theme-variable overrides,
+     placed here (inside <body>, at the top of this page's own content)
+     rather than in app-layout.njk's <head> -- a chained layout's content
+     only ever lands inside {{ content }}, past the point <head> is
+     already closed. A stylesheet/script tag works identically wherever
+     it sits in the document; nothing here needs to block first paint.
+     See the file's own git history (first pass, before this restructure)
+     for why the bundle-path config below is explicit rather than relying
+     on the Component UI's documented (but not, in practice, working in
+     this setup) auto-detection from the script's own src. -->
+<link rel="stylesheet" href="/help/pagefind/pagefind-component-ui.css">
+<script src="/help/pagefind/pagefind-component-ui.js" type="module"></script>
+<style>
+  :root {
+    --pf-text: var(--color-text);
+    --pf-text-secondary: var(--color-text-muted);
+    --pf-text-muted: var(--color-text-muted);
+    --pf-background: var(--color-surface);
+    --pf-border: var(--color-border);
+    --pf-border-focus: var(--color-accent);
+    --pf-outline-focus: var(--color-accent);
+    --pf-mark: var(--color-accent);
+    --pf-hover: color-mix(in srgb, var(--color-accent) 8%, transparent);
+    --pf-skeleton: var(--color-border);
+    --pf-skeleton-shine: color-mix(in srgb, var(--color-border) 60%, transparent);
+    --pf-font: var(--font-sans);
+  }
+</style>
+
+<div class="max-w-[960px] mx-auto">
+  <!-- admin-hidden: help is reachable logged-out same as the public
+       profile page (views/profile/index.njk's own admin-hidden
+       precedent) -- no session-gated content exists here to show a
+       logged-in owner either, so there's nothing the burger menu's
+       normal admin rows would ever have to display. The burger menu's
+       own real job here is simply "a way back out of /help" -- no
+       discipline picker (help has no discipline concept at all). -->
+  <climbing-page-header admin-hidden></climbing-page-header>
+
+  <!-- #876 -- two-column help view starts below the header row, per
+       Raven's own instruction (2026-09-20) -- not part of the header
+       row itself the way climbing-tab-bar sits on other pages.
+       max-[600px]:flex-col: same breakpoint climbing-grade-pyramid.js/
+       the Performance Insights hub's own tile grid already collapse at
+       for narrow viewports -- the sidebar stacks above the article
+       full-width on mobile rather than being squeezed beside it. -->
+  <div class="flex gap-8 mt-6 max-[600px]:flex-col" id="help-layout">
+    <!-- #876 -- built from eleventyNavigation's own collection API, not
+         a hand-rolled tree: every views/help/** page contributes itself
+         via its own front matter (`eleventyNavigation: { key, parent,
+         order }`), so adding a new help page never means editing this
+         file. flex-[0_0_14rem] (not a fraction) on wide viewports -- a
+         fixed sidebar width reads better than one that stretches with
+         viewport width the way the 2-column report grids elsewhere in
+         this app deliberately do (those grids hold peer content of
+         equal weight; a nav rail and its article are not peers). Full
+         width once stacked (max-[600px]:flex-[0_0_auto]). -->
+    <nav class="flex-[0_0_14rem] max-[600px]:flex-[0_0_auto] min-w-0" aria-label="Help topics">
+      <!-- pagefind-config: see this file's own top-of-content comment. -->
+      <pagefind-config bundle-path="/help/pagefind/"></pagefind-config>
+      <!-- pagefind-searchbox is a self-registering custom element (the
+           module script above defines it) -- no init call needed,
+           unlike the older Default UI's `new PagefindUI(...)`. -->
+      <pagefind-searchbox class="block mb-5"></pagefind-searchbox>
+      <ul class="m-0 p-0 list-none flex flex-col gap-1">
+        {%- for entry in collections.all | eleventyNavigation %}
+        <li>
+          <a
+            class="block px-3 py-[.4rem] rounded-app text-[.85rem] {% if entry.url == page.url %}bg-surface text-accent font-semibold{% else %}text-muted hover:text-foreground{% endif %}"
+            href="{{ entry.url }}"
+            {% if entry.url == page.url %}aria-current="page"{% endif %}
+          >{{ entry.title }}</a>
+        </li>
+        {%- endfor %}
+      </ul>
+    </nav>
+
+    <!-- data-pagefind-body: without it, Pagefind indexes every <body>
+         element on the page (confirmed live -- its own build output
+         warns "Did not find a data-pagefind-body element... Indexing
+         all <body> elements"), which would surface sidebar link text
+         and the header row in search results, not just real content. -->
+    <article class="flex-1 min-w-0 max-w-[640px]" data-pagefind-body>
+      {{ content | safe }}
+    </article>
+  </div>
+</div>
