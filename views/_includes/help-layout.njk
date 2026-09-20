@@ -1,6 +1,7 @@
 ---
 layout: app-layout.njk
 title: Help – Climbing Logbook
+bundle: help
 ---
 <!-- #876 -- chained layout (this file's own front matter sets `layout:
      app-layout.njk` above), not a standalone <html>/<head>/<body> shell
@@ -74,8 +75,17 @@ title: Help – Climbing Logbook
       <pagefind-config bundle-path="/help/pagefind/"></pagefind-config>
       <!-- pagefind-searchbox is a self-registering custom element (the
            module script above defines it) -- no init call needed,
-           unlike the older Default UI's `new PagefindUI(...)`. -->
-      <pagefind-searchbox class="block mb-5"></pagefind-searchbox>
+           unlike the older Default UI's `new PagefindUI(...)`.
+           hide-shortcut + an unreachable shortcut combo: Raven's call
+           (2026-09-20) to drop the Ctrl+K/Cmd+K affordance entirely, not
+           just its visual hint -- confirmed via Pagefind's own docs that
+           hide-shortcut only hides the hint pill, it doesn't stop the
+           listener itself; there's no documented "disable the binding"
+           attribute, so an effectively-unreachable combo is the
+           pragmatic equivalent of off. mb-8, not mb-5 -- confirmed live
+           that 5 read as touching the list below it once the component's
+           own internal padding is accounted for. -->
+      <pagefind-searchbox class="block mb-8" hide-shortcut shortcut="ctrl+alt+shift+meta+f24"></pagefind-searchbox>
       <ul class="m-0 p-0 list-none flex flex-col gap-1">
         {%- for entry in collections.all | eleventyNavigation %}
         <li>
@@ -94,7 +104,7 @@ title: Help – Climbing Logbook
          warns "Did not find a data-pagefind-body element... Indexing
          all <body> elements"), which would surface sidebar link text
          and the header row in search results, not just real content. -->
-    <article class="flex-1 min-w-0 max-w-[640px]" data-pagefind-body>
+    <article class="flex-1 min-w-0 max-w-[640px] help-article" data-pagefind-body>
       {{ content | safe }}
     </article>
   </div>

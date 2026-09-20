@@ -34,6 +34,7 @@ const ENTRIES = [
   ["s-tiers", "evidence-tiers"],
   ["s-list-picker", "list-picker"],
   ["s-date-picker", "date-picker"],
+  ["s-help-article", "help-article"],
 ];
 
 const browser = await chromium.launch();

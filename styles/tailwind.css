@@ -374,3 +374,47 @@
   font-size: .9rem;
   font-weight: 600;
 }
+
+/* #876/#878 -- long-form prose typography for /help article content
+   (views/help/**, rendered from plain Markdown, which carries no classes
+   of its own on its h1/h2/p tags -- this is the first genuinely
+   long-form-prose surface in the app, everywhere else is UI chrome/
+   short labels). Deliberately plain font-sans, not font-display --
+   section-heading's own uppercase/tracking-wide brand treatment
+   (matching <climbing-header>'s h1) reads right for a short section
+   LABEL ("Settings", "My account"), not a real page heading followed by
+   several paragraphs of explanation; Ente's own help site (studied as a
+   tone/layout reference for this section, see docs/help-content-voice-
+   and-tone.md) uses plain sans headings for exactly this reason. Sizes
+   confirmed live (Raven's report, 2026-09-20): the raw, unstyled
+   Markdown output was reading as noticeably too large and too tight
+   against its own title, both fixed here rather than left to default
+   browser UA styles. */
+@utility help-article {
+  & h1 {
+    font-family: var(--font-sans);
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: var(--color-foreground);
+    margin: 0 0 1rem;
+  }
+
+  & h2 {
+    font-family: var(--font-sans);
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: var(--color-foreground);
+    margin: 1.5rem 0 .75rem;
+  }
+
+  & p {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: var(--color-foreground);
+    margin: 0 0 1rem;
+  }
+
+  & p:last-child {
+    margin-bottom: 0;
+  }
+}

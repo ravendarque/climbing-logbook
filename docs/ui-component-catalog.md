@@ -375,6 +375,38 @@ value — Prev/Next is browsing, not selecting. It only re-syncs to
 whatever the field currently holds each time the popover opens, same
 "render on open" convention `createListPicker` above already uses.
 
+## `help-article` (typography)
+
+**Definition:** `styles/tailwind.css` — heading/paragraph sizing and
+spacing for long-form prose (h1/h2/p), applied to the wrapping element
+around real body content. Plain `font-sans`, not `section-heading`'s
+`font-display`/uppercase/tracking-wide treatment — that's a short
+section *label* style matching `<climbing-header>`'s own brand `<h1>`
+(see `section-heading` above), not a fit for a real page heading
+followed by several paragraphs of explanation.
+
+**When to use:** any page rendering genuine long-form prose content —
+currently the `/help` section (#876/#878), the first place in this app
+that needed one at all; everywhere else is UI chrome or short labels
+with their own existing treatment.
+
+| Dark | Light |
+|---|---|
+| ![help-article typography](ui-component-catalog/help-article-dark.png) | ![help-article typography](ui-component-catalog/help-article-light.png) |
+
+```html
+<article class="help-article">
+  <h1>Working offline</h1>
+  <p>This page is coming soon. It'll explain how Climbing Logbook works without a connection.</p>
+</article>
+```
+
+(`views/_includes/help-layout.njk` — content itself is authored in plain
+Markdown, per that section's own `.eleventy.js` config; the raw
+`<h1>`/`<p>` tags Markdown produces carry no classes of their own, so
+this utility styles them by element selector within its own scope,
+not via per-tag classes on content authors would otherwise need to add.)
+
 ## Not yet in this catalog
 
 Deliberately deferred rather than guessed at, since neither was part of
