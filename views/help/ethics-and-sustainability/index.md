@@ -3,7 +3,7 @@ layout: help-layout.njk
 title: Ethics and sustainability – Climbing Logbook
 eleventyNavigation:
   key: Ethics and sustainability
-  order: 5
+  order: 11
 ---
 
 # Ethics and sustainability

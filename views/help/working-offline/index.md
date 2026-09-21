@@ -3,7 +3,7 @@ layout: help-layout.njk
 title: Working offline – Climbing Logbook
 eleventyNavigation:
   key: Working offline
-  order: 2
+  order: 5
 ---
 
 # Working offline
@@ -27,7 +27,7 @@ Open Climbing Logbook once while you still have a connection. That's when it loa
 - **Getting your logbook onto a new device.** The first time you sign in on a device, it has to download your logbook, so do that online.
 - **Seeing changes from another device.** Something you logged on your phone won't appear on your laptop until both have synced.
 - **The map.** The world map is downloaded when you first open it. If you haven't opened the Map tab online before, you'll see a message asking you to connect.
-- **Importing entries, changing account details and resetting your password.** These need a connection.
+- **Importing and exporting entries, changing account details and resetting your password.** These need a connection.
 - **Other people's public logbooks.** You'll need a connection to view them.
 
 ## If you clear your browser data

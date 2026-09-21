@@ -3,7 +3,7 @@ layout: help-layout.njk
 title: Privacy – Climbing Logbook
 eleventyNavigation:
   key: Privacy
-  order: 4
+  order: 10
 ---
 
 # Privacy
