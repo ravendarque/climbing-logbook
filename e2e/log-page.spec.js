@@ -1327,7 +1327,7 @@ test("#847 -- the sync status ring actually disappears (not just the data attrib
 // at all -- the ring alone (previous test) only proves the background-
 // activity signal reaches the button, not that a user opening the menu
 // during that window sees a real explanation of what's happening.
-test("#847 -- the burger menu shows a status row with a Help link while syncing", async ({ page }) => {
+test("#847 -- the burger menu shows a status row while syncing; #878 -- Help is always present regardless", async ({ page }) => {
   await mockApi(page, SEED);
   await page.route("**/logbook/api/auth/get-session", async route => {
     await new Promise(r => setTimeout(r, 400));
@@ -1338,9 +1338,12 @@ test("#847 -- the burger menu shows a status row with a Help link while syncing"
   await page.locator("#header-menu-btn").click();
   await expect(page.locator("#menu-status-row")).toBeVisible();
   await expect(page.locator("#menu-status-text")).toHaveText("Status: Syncing…");
-  await expect(page.locator("#menu-help-link")).toHaveAttribute("href", "/help/working-offline");
+  await expect(page.locator("#menu-help-link")).toHaveAttribute("href", "/help/");
 
   await expect(page.locator("#menu-status-row")).toBeHidden({ timeout: 5000 });
+  // #878 -- unlike menu-status-row above, Help never depended on sync
+  // state -- still there and still pointing at /help once syncing ends.
+  await expect(page.locator("#menu-help-link")).toBeVisible();
 });
 
 test("#847 -- going offline turns the burger menu ring solid red and updates the status row", async ({ page }) => {

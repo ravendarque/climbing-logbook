@@ -29,6 +29,7 @@
 // acceptable inefficiency, not a correctness bug.
 import eleventyNavigationPlugin from "@11ty/eleventy-navigation";
 import { execFileSync } from "node:child_process";
+import { gradeScaleMatrixHtml } from "./client/grade-scale-matrix.js";
 
 const ASSET_VERSION = String(Date.now());
 
@@ -42,6 +43,16 @@ export default function (eleventyConfig) {
   // its own real navigation (climbing-tab-bar, climbing-discipline-
   // picker) that this plugin has no reason to touch.
   eleventyConfig.addPlugin(eleventyNavigationPlugin);
+
+  // #705/#190/#876 -- reuses the exact same pure, tested content
+  // generator the old gated /:username/performance/grades page called
+  // client-side (client/grade-scale-matrix.js's gradeScaleMatrixHtml),
+  // but at BUILD time instead -- this page's table is real content with
+  // no per-user state at all, so there's no reason it needs client JS or
+  // a bundle to exist; a build-time shortcode gets a genuinely static
+  // page while still reading from the one real, shared, tested source
+  // of the conversion data (never a second hand-copied table).
+  eleventyConfig.addShortcode("gradeScaleMatrix", gradeScaleMatrixHtml);
 
   // #876 -- indexes the built /help pages for Pagefind's static,
   // build-time search (no backend, no hosted service -- it crawls the

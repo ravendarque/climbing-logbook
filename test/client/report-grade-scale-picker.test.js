@@ -25,10 +25,10 @@ describe("createReportGradeScalePicker", () => {
     expect(picker.getScaleIdFor("sport")).toBe("french");
   });
 
-  it("renders a trigger button and the 'What's this?' link pointing at the current user's grades reference page", () => {
+  it("renders a trigger button and the 'What's this?' link pointing at the public grades reference page", () => {
     mount();
     expect(containerEl.querySelector("#report-grade-scale-btn")).toBeTruthy();
-    expect(containerEl.querySelector("#report-grade-scale-reference-link").getAttribute("href")).toBe("/nix/performance/grades");
+    expect(containerEl.querySelector("#report-grade-scale-reference-link").getAttribute("href")).toBe("/help/grade-scales/");
   });
 
   // #796 -- font-non-standard excluded: Performance Insights reports
