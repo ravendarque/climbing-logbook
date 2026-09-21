@@ -3,12 +3,12 @@
 // plain Vitest without a DOM -- login.js itself can't be imported
 // directly into a test (workerd, this project's only Vitest pool, has no
 // DOM at all; see ADR-0011/#414's own documented gap for the general
-// case). Lives alongside login.js in public/login/, not client/shared/,
-// since only public/ is servable as a static asset and login.js is
-// intentionally outside the bundled client/*.js module graph (see
-// login.js's own header comment) -- a relative import within public/
-// works natively in the browser with no bundler involved, same as any
-// other native ES module import.
+// case). Lives alongside login.js in static/login/ (#877 -- passed
+// through unchanged into public/login/, the servable path), not
+// client/shared/, since login.js is intentionally outside the bundled
+// client/*.js module graph (see login.js's own header comment) -- a
+// relative import within public/ works natively in the browser with no
+// bundler involved, same as any other native ES module import.
 //
 // hostname: window.location.hostname, passed in rather than read
 // directly so this stays a pure function, trivially testable.

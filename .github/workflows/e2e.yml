@@ -26,7 +26,7 @@ jobs:
               - 'server/**'
               - 'client/**'
               - 'shared/**'
-              - 'public/**'
+              - 'static/**'
               - 'e2e/**'
               - 'scripts/lib/dev-session.mjs'
               - 'migrations/**'

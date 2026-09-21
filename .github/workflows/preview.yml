@@ -16,7 +16,7 @@ on:
     paths:
       - 'server/**'
       - 'client/**'
-      - 'public/**'
+      - 'static/**'
       - 'styles/**'
       - 'migrations/**'
       - 'wrangler.jsonc'

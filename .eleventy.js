@@ -6,11 +6,12 @@
 //
 // input: views/ (Nunjucks source templates, committed).
 // output: public/ (the same directory wrangler.jsonc's assets.directory
-// already serves) -- 11ty only ever writes files corresponding to a
-// template under views/; it never touches public/logbook/,
-// public/e2e-fixtures/, or the two standalone scripts at public/'s own
-// root (demo-picker.js, session-redirect.js), none of which live under
-// views/ and so are never in 11ty's own output graph at all.
+// already serves) -- every file 11ty writes there either renders from a
+// template under views/, or is passed through unchanged from static/
+// (#877) -- public/ itself is never committed and is safe to delete and
+// regenerate from nothing. public/e2e-fixtures/ is the one exception:
+// it's written by a separate build step (package.json's
+// e2e:build-fixtures), not by 11ty.
 // #857 -- a single, stable-per-build cache-busting value appended (?v=)
 // to every stable-named asset the templates below reference
 // (tailwind.css, the classic-script components, {{ bundle }}-app.js) --
@@ -35,6 +36,15 @@ const ASSET_VERSION = String(Date.now());
 
 export default function (eleventyConfig) {
   eleventyConfig.addGlobalData("assetVersion", ASSET_VERSION);
+
+  // #877 -- copies every hand-authored static asset (icons, manifest,
+  // service worker, the classic-script custom-element components, the
+  // world-map JSON, _headers, and the auth-shell pages' standalone
+  // scripts) from static/ straight into the output root, alongside
+  // 11ty's own rendered HTML. Runs on both html:build and html:watch, so
+  // public/ never needs its own separate copy step and stays fully
+  // generated -- safe to `rm -rf` and rebuild from nothing.
+  eleventyConfig.addPassthroughCopy({ static: "." });
 
   // #876 -- sidebar nav tree for the /help section (views/help/**), built
   // from each page's own `eleventyNavigation: { key, parent, order }`

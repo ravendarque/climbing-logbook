@@ -1,9 +1,9 @@
-// Pure logic extracted from public/login/login.js (#443/#547, ADR-0020)
+// Pure logic extracted from static/login/login.js (#443/#547, ADR-0020)
 // specifically so it's unit-testable -- login.js itself can't be
 // imported into a test (this project's only Vitest pool is workerd, no
 // DOM at all).
 import { describe, expect, it } from "vitest";
-import { resolveAppOrigin } from "../../public/login/resolve-app-origin.js";
+import { resolveAppOrigin } from "../../static/login/resolve-app-origin.js";
 
 describe("resolveAppOrigin", () => {
   it("returns beta.climbinglogbook.com for an opted-in user on the real apex", () => {
