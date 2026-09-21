@@ -33,13 +33,10 @@ We made a trade-off. We accepted that impact so we could build something useful 
 
 ## Who we buy from
 
-We support the [Boycott, Divestment and Sanctions (BDS) movement](https://bdsmovement.net). Before we adopt anything of real weight, like a library, a hosting provider or a sign-in service, we check it against BDS's consumer boycott targets and its No Tech for Oppression, Apartheid or Genocide campaign, and we record the result.
+We support the [Boycott, Divestment and Sanctions (BDS) movement](https://bdsmovement.net). We've checked every package, tool, framework and provider we use against BDS's consumer boycott targets and its No Tech for Oppression, Apartheid or Genocide campaign, and we check anything new before we adopt it.
 
-- **Hosting and the libraries we've evaluated** (including Cloudflare, Tailwind CSS and Floating UI) came back clear when we checked in July 2026.
 - **We deliberately don't offer "Sign in with Google" or "Sign in with GitHub".** Your account uses an email address and password instead.
 - **GitHub is owned by Microsoft, which is on both lists.** We use it to store our code, and we'd rather tell you than leave it out.
-
-A clear result is a snapshot, not a guarantee. Companies change, so we re-check when we change something significant.
 
 ## How we build
 

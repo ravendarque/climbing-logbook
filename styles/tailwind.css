@@ -57,7 +57,10 @@
      which had no override at all). Fixing it here once, the same
      "generalize instead of N one-offs" reasoning as the button resets
      above, rather than auditing every <a> in the app by hand. */
-  a { text-decoration: none; }
+  /* color: inherit -- no link is ever the browser's default blue/visited
+     purple; blue is off-limits site-wide until a deliberate decision to
+     use it (Raven, 2026-09-22). Any link that wants a colour sets one. */
+  a { color: inherit; text-decoration: none; }
 }
 
 /* ── Theme tokens ──────────────────────────────────────────────────
@@ -422,6 +425,16 @@
 
   & a {
     color: var(--color-accent);
+  }
+
+  & ul, & ol {
+    margin: 0 0 1rem;
+    padding-left: 1.25rem;
+    line-height: 1.7;
+  }
+
+  & li + li {
+    margin-top: .4rem;
   }
 
   & h2 {
