@@ -33,7 +33,7 @@ const REFERENCE_SCALE = { boulder: FONT_STANDARD, sport: FRENCH_STANDARD };
 // own ordinal range and groups them by whichever standard label they're
 // CLOSEST to (the standard scale's own toLabel(), shared/grade-data.js's
 // closestParsedLabel -- scoped to same-number candidates only, so e.g.
-// "6-"/"6" bucket under "6A", the lowest labeled step IN NUMBER 6, never
+// "6-"/"6" bucket under "6A", the lowest labelled step IN NUMBER 6, never
 // under the previous number's "5+") -- what a row's Non-standard column
 // actually shows is "every non-standard grade that would round to this
 // standard grade", not a single, always-identical value.
@@ -75,7 +75,7 @@ function nonStandardLabelsByStandardRow(referenceScale, nonStandardScale) {
 // Non-standard shape rather than an exhaustive list (24 sub-positions is
 // too granular to be useful). Boulder-only -- French-standard's own
 // labels already start at "1" with no letter, so there's no equivalent
-// unlabeled range for Sport.
+// unlabelled range for Sport.
 const BELOW_RANGE_ROW = {
   ordinal: null,
   cells: {
