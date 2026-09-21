@@ -13,11 +13,13 @@ API (`server/`), backed by D1 (#21/#297 -- the earlier Workers KV data model
 is fully gone, code and infra both, #299). No frontend
 framework — plain ES modules, direct DOM manipulation, and a handful of
 framework-free Web Components (`client/components/*.js`,
-`public/logbook/components/climbing-header.js`) shared across pages.
-`public/logbook/` itself is no longer a page -- just the shared asset
-directory every page's absolute paths still resolve against (fonts,
-favicons, the PWA manifest/service worker, and every page's own
-gitignored build output). escape-html.js and @floating-ui/dom are
+`static/logbook/components/climbing-header.js`) shared across pages.
+`public/` is 100% generated build output and gitignored (#877) -- safe to
+delete and rebuild from nothing. Hand-authored static assets (fonts,
+icons, the PWA manifest/service worker, the classic-script components,
+the world-map JSON, `_headers`, the auth pages' standalone scripts) live
+under `static/` at the same relative paths and are copied into `public/`
+by 11ty's passthrough copy (`.eleventy.js`), on both build and watch. escape-html.js and @floating-ui/dom are
 normal bundled imports now (#761) -- see "Client JS" below.
 
 **One route-split architecture** (see
@@ -106,7 +108,7 @@ tokens (colors, radius, font stack) that
 documented exception (`[hidden] { display: none }`, needed because a
 normal-origin author `display` utility always beats the browser's own
 `[hidden]` rule regardless of layers or specificity), are injected once by
-`public/logbook/components/climbing-header.js` (#345) -- every page loads
+`static/logbook/components/climbing-header.js` (#345) -- every page loads
 it as a classic `<script>` in `<head>`, so the tokens exist before the
 parser reaches any content that depends on them, regardless of where
 `<climbing-header>` itself appears in the body (see that file's own
@@ -652,41 +654,77 @@ client/*-main.js's own compiled output lives in dist/, not here -- see
     │                          /performance(+subpages) -- every other
     │                          page opted out of this half back when it
     │                          was still combined with the burger menu
-    ├── climbing-burger-menu.js  <climbing-burger-menu admin-hidden?> --
-    │                          the header's account/theme/login menu
-    │                          popover, the other half of the former
-    │                          <climbing-menu-bar> split (#211/#465).
-    │                          admin-hidden (#351) omits the login/
-    │                          account rows entirely for the public
-    │                          profile page's own composition root
-    │                          (client/profile-main.js), its one real
-    │                          consumer -- "security by absence," not a
-    │                          hidden-but-present control. #759: every
-    │                          real consumer now reaches this through
-    │                          climbing-page-header.js below, not a
-    │                          hand-copied per-page wrapper
-    └── climbing-page-header.js  <climbing-page-header admin-hidden?
-                               class="mb-6"?> (#759) -- folds the
-                               <climbing-header>+<climbing-burger-menu>
-                               pairing into one owned component; its own
-                               host element IS the flex row (display rule
-                               lives in climbing-header.js's shared
-                               stylesheet, see above), not an inner
-                               wrapper div. #762 adds a small sync/
-                               offline status icon here too (idle/
-                               working/offline, driven from ES-module
-                               code via client/sync-status-icon.js's
-                               plain `document.querySelector(
+    ├── climbing-burger-menu.js  <climbing-burger-menu> (#882) -- behaviour
+    │                          only: drives the sync/offline ring on
+    │                          #header-menu-btn and the status row
+    │                          (setSyncState). The menu's markup is NOT
+    │                          built here any more -- 11ty renders it at
+    │                          build time (see "Header menu, rendered at
+    │                          build time" below). Elements are looked up
+    │                          per call, not cached in connectedCallback:
+    │                          this classic script runs in <head>, so the
+    │                          element upgrades before its children parse
+    └── climbing-page-header.js  <climbing-page-header> (#759, reworked
+                               #882) -- the layout host for every page's
+                               header row (its own display rule lives in
+                               climbing-header.js's shared stylesheet);
+                               its children (<climbing-header> + the
+                               menu) come from views/_includes/page-
+                               header.njk at build time. Its only script
+                               behaviour is setSyncState(), forwarded to
+                               the burger menu; client/sync-status-icon.js
+                               calls it via a plain `document.querySelector(
                                "climbing-page-header").setSyncState(...)`
-                               calls -- this file has no import
-                               capability to receive that any other way).
-                               Every owned app page (log/map/performance
-                               +subpages/account+edit+import/sync/
-                               beta-gate) and the public profile page
-                               reach <climbing-header>/<climbing-burger-
-                               menu> through this component now, not
-                               directly
+                               (this file has no import capability)
 ```
+
+### Header menu, rendered at build time (#882)
+
+The burger menu is 11ty templating, not a runtime-built component, so it
+is in the HTML on first byte (ADR-0023's instant-shell goal) and never
+waits on a script to appear. Three pieces in `views/_includes/`:
+
+- `burger-menu.njk` -- the shared shell (Nunjucks macros): trigger button,
+  sync ring, popover chrome, and the theme-toggle button every variant
+  has.
+- `menu-owned.njk`, `menu-profile.njk`, `menu-help.njk` -- one file per
+  page family, holding only that family's rows. *Owned* (log, map,
+  performance, account, sync, beta-gate): username and My account (start
+  hidden, revealed by `admin-auth.js`), Help, the sync status row, theme
+  toggle and log in/out. *Profile* (public `/:username`): Help and the
+  theme toggle only -- no session-dependent row exists (security by
+  absence, #351). *Help*: Report an issue, Tell us what you think, Climbing
+  Logbook, then the theme toggle and social links.
+- `page-header.njk` -- the header row every app page includes (brand left,
+  menu right). Set `menu` ("owned" default, "profile", "help") and
+  optionally `headerClass` before including it.
+
+A new page family is a new `menu-<name>.njk`; neither shared component
+changes. The classic scripts keep only behaviour (`setSyncState`), and
+the disclosure/theme wiring stays in each page's composition root
+(`createDisclosure`/`createThemeToggle`).
+
+### Help section (#190, #876-#882)
+
+`/help` is static content built by 11ty from `views/help/**`
+(Markdown, or `.njk` where a page needs shortcodes), wrapped by
+`views/_includes/help-layout.njk` (which chains into `app-layout.njk`):
+a two-column layout below the standard header row, sidebar left, article
+right. The sidebar is built from each page's own `eleventyNavigation`
+front matter (`@11ty/eleventy-navigation`), so adding a page never edits
+the layout. Search is Pagefind's Component UI; the index is built from the
+rendered HTML by an `eleventy.after` hook (skipped under `--watch`, so dev
+shows a blank search box until a real `html:build`). `data-pagefind-body`
+on the article scopes indexing to real content. Pagefind's own stylesheet
+sets `all: initial` on its search box in an unlayered stylesheet, which
+beats every Tailwind utility, so spacing there comes from flex `gap` on
+the parent nav, not a margin on the element.
+
+Article typography is the `help-article` utility (`styles/tailwind.css`):
+`h1` is `page-title`, `h2` is `section-heading` (`sources-heading` for a
+Sources section), and links use the accent colour. Voice and tone are in
+`docs/help-content-voice-and-tone.md`. `help-main.js` (above) is the
+only client bundle.
 
 ### Composition roots, one per page
 
@@ -767,12 +805,12 @@ client/
 │                           #5 Phase 2) -- bundled into
 │                           performance-strengths-app.js. Move-difficulty
 │                           strengths/weaknesses breakdown
-├── performance-grades-main.js Composition root for
-│                           /:username/performance/grades (#705, sub-issue
-│                           E of #183) -- bundled into
-│                           performance-grades-app.js. See "Canonical
-│                           grade model" below for its own scope and the
-│                           #190 relocation this page is tracked for
+├── help-main.js            Composition root for the /help section (#876)
+│                           -- bundled into help-app.js. Just
+│                           createDisclosure() + createThemeToggle() for the
+│                           header menu (same no-session shape as
+│                           profile-main.js); the page content is static
+│                           HTML/Markdown, no Store or admin-auth
 ├── report-grade-scale-picker.js Shared per-discipline "which scale do my
 │                           reports render in" picker (#704), used by
 │                           every report page above (pyramid/trends/gap/
@@ -889,7 +927,7 @@ client/
 │                           Wraps checkSession()/fetchSettings() (every
 │                           owned page) and pullDeltas() (offline-sync.js)
 │                           to drive the small icon
-│                           public/logbook/components/
+│                           static/logbook/components/
 │                           climbing-page-header.js (#759) renders --
 │                           idle/working/offline. Deliberately excludes
 │                           each page's own primary-content fetch (map
@@ -1047,9 +1085,6 @@ below)
 ├── performance/rpe/index.html        Shell for .../performance/rpe (#38)
 ├── performance/injury/index.html     Shell for .../performance/injury (#39)
 ├── performance/strengths/index.html  Shell for .../performance/strengths (#13)
-├── performance/grades/index.html     Shell for .../performance/grades
-│                              (#705) -- tracked for relocation to a public
-│                              /help page, see "Canonical grade model" below
 ├── profile/index.html      Shell for the public /:username page (#351)
 ├── account/index.html      Shell for /:username/account (#302) -- a plain
 │                              landing page listing the account section's
@@ -1332,7 +1367,7 @@ list to fall out of sync.
 Font-standard, French-standard, and V-scale from real, verified tables
 (Font/French decompose through the same number+letter+modifier shape;
 V-scale is an explicit anchor table against Font-standard, corrected
-2026-09-11 against hakaru.io's V-scale converter — earlier internal
+2026-09-11 (anchor cited to Rockfax's Bouldering Grade Table) — earlier internal
 drafts of this had `6A≈V0`, which no real chart shows). UIAA, YDS,
 Norwegian, and Ewbank have no natural decomposition and no single
 authoritative source, so each is anchor-interpolated:
@@ -1345,46 +1380,35 @@ Design spec: `docs/superpowers/specs/2026-09-10-configurable-grade-systems-desig
 Implementation plan: `docs/superpowers/plans/2026-09-11-grade-canonical-model.md`.
 
 **Sub-issue E (#705) — the "Grade scales & conversion" reference page**
-(`/:username/performance/grades`, `client/performance-grades-main.js` +
-`client/grade-scale-matrix.js`) renders the full cross-scale matrix for
-whichever discipline is active: one row per the discipline's own
-reference scale (`FONT_STANDARD` for Boulder, `FRENCH_STANDARD` for
-Sport — the same choice #704's `REPORT_PRIMARY_SCALE` made, for the same
-reason: the one scale per discipline with an exhaustive, non-interpolated
-label list), one column per that discipline's own scales, each cell
-resolved through `scale.toLabel(ordinal)`. A coarser scale's label
-naturally repeats across more than one row (V-scale's 2-wide steps,
-Sport's high-end scales flattening past their own real range) — the
-real, documented lossiness the spec's own "conversions are lossy and
-known to be" section describes, not a bug. The page's own "Sources" list
-is built directly from `GRADE_CONVERSION_MATRIX`, deduped by citation, so
-it can't drift out of sync with the conversions it's citing — the same
-class of drift #698 found in a hand-kept list. `GRADE_CONVERSION_MATRIX`'s
-anchor objects are all named `frenchAnchor` regardless of discipline
-(every Sport anchor really is against French-standard, but Boulder's one
-entry — V-scale — is anchored against Font-standard instead), so the
-citation renderer looks up the correct reference-scale name per
-discipline rather than hardcoding "French". Reads no live API — like
-every other Performance Insights page it's gated by owned route +
-Athlete Mode, but unlike its siblings it renders no per-user data at all,
-only #702's already-committed conversion data. Linked from both scale
-pickers' own popovers (#703's `client/entry-form.js`, #704's
-`client/report-grade-scale-picker.js`) via a "What's this?" footer link,
-and from the Performance Insights hub page as its own tile.
+lives at `/help/grade-scales/` (`views/help/grade-scales/index.njk`,
+#190/#879) -- public and logged-out-reachable, since it renders no
+per-user data at all. It originally shipped as a gated
+`/:username/performance/grades` Performance Insights view; that route,
+its client bundle and its hub tile are gone. The tables are generated at
+**build time** by two 11ty shortcodes (`gradeScaleMatrix`,
+`gradeScaleSources`, registered in `.eleventy.js`) calling the pure,
+tested string generators in `client/grade-scale-matrix.js` -- one source
+of the conversion data, never a second hand-copied table.
 
-**Misrouted, tracked for correction in #190:** the gated-route/Athlete-
-Mode placement above was the wrong call — Raven's actual requirement was
-for this content to live as a *public*, logged-out-reachable `/help`
-page, not a Performance Insights view (2026-09-13). #713 ("Public grade
-scales & conversion page on apex") was filed on the separate, also-wrong
-assumption that the gated and public versions should coexist as two
-builds. #190 now scopes the real fix: move this page's content onto
-`/help` (drop the owned-route/Athlete-Mode gate from
-`performance-grades-main.js`'s `boot()` entirely) and expand it —
-Raven's own review called the current content (a matrix, a short
-caveats paragraph, a sources list) too thin to stand alone as public
-documentation. Not yet done as of this writing; the page still lives
-exactly as described above until #190 ships.
+`buildMatrixRows(discipline)` produces one row per the discipline's own
+reference scale (`FONT_STANDARD` for Boulder, `FRENCH_STANDARD` for
+Sport -- the same choice #704's `REPORT_PRIMARY_SCALE` made: the one
+scale per discipline with an exhaustive, non-interpolated label list),
+one column per that discipline's scales, each cell resolved through
+`scale.toLabel(ordinal)`. A coarser scale's label naturally repeats across
+rows (V-scale's 2-wide steps) -- real, documented lossiness, not a bug.
+The Non-standard column is different: the standard scale only labels a
+subset of the number+letter+modifier space, so each row lists every
+Non-standard sub-position that rounds to it (same-number matching, via the
+standard scale's own `toLabel`), across the *whole* number range at each
+end. Boulder alone gets one extra leading row for numbers 1-2, which Font
+has no label for: no Font or V-scale value, and a description of the
+Non-standard shape instead of a list. Sources are one shared list at the
+bottom of the page (`sources-heading`), deduped from
+`GRADE_CONVERSION_MATRIX` so it can't drift from the conversions it
+cites; each entry is just the source name and a short description, not
+the conversion pairs. Linked from both scale pickers' "What's this?" link
+(#703's `client/entry-form.js`, #704's `client/report-grade-scale-picker.js`).
 
 **Sub-issue F (#708) — logbook grade filter (tiers) + grade search**
 replaces `client/entries.js`'s old min/max `gradeRange` facet

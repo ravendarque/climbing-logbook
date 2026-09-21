@@ -15,7 +15,7 @@ staticShellNote: |-
        brand row below the header row, not centered above it). Found via
        Raven's production report, 2026-08-10 -- see climbing-header.js's
        own comment on the align-left attribute. -->
-  <climbing-page-header></climbing-page-header>
+  {% include "page-header.njk" %}
 
   <div class="flex items-end gap-3 mb-5" id="picker-tabs-row">
     <climbing-discipline-picker></climbing-discipline-picker>
@@ -29,6 +29,8 @@ staticShellNote: |-
     <svg class="w-[.9rem] h-[.9rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
     Performance Insights
   </a>
+
+  <h1 class="page-title">Onsight / Redpoint Gap</h1>
 
   <!-- #620 -- report-style prose, not a bordered/background card --
        same <climbing-grade-pyramid>'s own #window-note pattern (flowing
@@ -65,7 +67,7 @@ staticShellNote: |-
        a single data-analysis layer, not a controlled study, and an
        inline section states that plainly rather than gesturing at a
        tier category behind a tap-to-reveal chip. -->
-  <h2 class="section-heading mt-7 mb-3">Sources</h2>
+  <h2 class="sources-heading">Sources</h2>
   <p class="text-[.82rem] text-muted leading-[1.7] mb-3">The onsight/redpoint gap widening as climbers get stronger is a pattern observed in self-reported community logging data, not a peer-reviewed study -- a useful sanity-check metric, not a settled scientific claim.</p>
   <ol class="m-0 pl-[1.2rem] text-[.84rem] leading-[1.6] text-foreground [&>li+li]:mt-[10px]">
     <li>"Onsights up to four grades harder than redpoint." 8a.nu News. <a class="text-accent" href="https://www.8a.nu/news/onsight-49849" target="_blank" rel="noopener">8a.nu ↗</a></li>

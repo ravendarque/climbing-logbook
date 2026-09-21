@@ -167,22 +167,62 @@ on click, no separate save step (Athlete Mode, Public Logbook).
 Not for a setting that needs an explanatory modal/consent step first — use
 the button-triggered `row-card` variant above instead (see `beta-opt-in-row`).
 
-## `section-heading`
+## `page-title` / `section-heading` / `card-section-heading` / `sources-heading`
 
-**Definition:** `styles/tailwind.css`. Brand-style heading matching
-`<climbing-header>`'s own `<h1>` treatment (`font-display`, uppercase,
-letter-spacing), with a baked-in `padding-left: 1rem` that aligns the
-heading text with `row-card`'s own inner text below it.
+**Definition:** `styles/tailwind.css`. `section-heading` is the base:
+brand-style heading matching `<climbing-header>`'s own `<h1>` treatment
+(`font-display`, uppercase, letter-spacing), no indent. `card-section-
+heading`, `sources-heading` and `page-title` all derive from it via `@apply`.
 
-**When to use:** the top-level heading for a grouped section of `row-card`s
-("My account", "Settings").
+**When to use `page-title`:** the title of a whole page -- Performance
+Insights report pages, /help pages (via `help-article`'s own `h1` rule).
+Same as `section-heading`, bigger (`1.8rem`).
+
+| Dark | Light |
+|---|---|
+| ![page-title](ui-component-catalog/page-title-dark.png) | ![page-title](ui-component-catalog/page-title-light.png) |
+
+```html
+<h1 class="page-title">Send / Flash Gap</h1>
+```
+
+**When to use `section-heading`:** a section within a page, sitting
+directly above its own content, not aligned against a `row-card` list --
+sections inside a /help page (via `help-article`'s own `h2` rule).
 
 | Dark | Light |
 |---|---|
 | ![section-heading](ui-component-catalog/section-heading-dark.png) | ![section-heading](ui-component-catalog/section-heading-light.png) |
 
 ```html
-<h2 class="section-heading">Settings</h2>
+<h2 class="section-heading">How to read the tables</h2>
+```
+
+**When to use `card-section-heading`:** the top-level heading for a
+grouped section of `row-card`s ("My account", "Settings") -- adds the
+`padding-left: 1rem` that aligns the heading text with `row-card`'s own
+inner text below it.
+
+| Dark | Light |
+|---|---|
+| ![card-section-heading](ui-component-catalog/card-section-heading-dark.png) | ![card-section-heading](ui-component-catalog/card-section-heading-light.png) |
+
+```html
+<h2 class="card-section-heading">Settings</h2>
+```
+
+**When to use `sources-heading`:** a page's "Sources" heading -- adds a
+thin hairline border above the heading, so a references/citations
+section reads as visually distinct from the content sections above it.
+Used by every Performance Insights report page and the Grade scales
+help page.
+
+| Dark | Light |
+|---|---|
+| ![sources-heading](ui-component-catalog/sources-heading-dark.png) | ![sources-heading](ui-component-catalog/sources-heading-light.png) |
+
+```html
+<h2 class="sources-heading">Sources</h2>
 ```
 
 ## Modal / overlay shape

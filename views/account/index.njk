@@ -19,7 +19,7 @@ staticShellNote: |-
        to the account-family pages. mb-6 kept on the combined row,
        preserving the same total gap to the content below as the old
        two-row layout had. -->
-  <climbing-page-header class="mb-6"></climbing-page-header>
+  {% set headerClass = "mb-6" %}{% include "page-header.njk" %}
 
   <!-- #457 -- a real button (btn btn-primary, the app's
        actual red filled-button look -- Raven's own call, plain muted
@@ -54,9 +54,9 @@ staticShellNote: |-
        recompute on a resize/orientation change, just layout. -->
   <div class="grid grid-cols-2 gap-x-8 max-[600px]:grid-cols-1" id="account-sections">
     <div>
-      <!-- section-heading/row-card/row-card-title (styles/tailwind.css)
+      <!-- card-section-heading/row-card/row-card-title (styles/tailwind.css)
            -- extracted #457, see that file's own comments for why. -->
-      <h2 class="section-heading">My account</h2>
+      <h2 class="card-section-heading">My account</h2>
       <div class="flex flex-col gap-2 max-w-[420px]" id="account-options">
         <a class="row-card flex items-center justify-between row-card-title hover:border-accent" id="edit-account-link" href="#">
           Edit account details
@@ -104,7 +104,7 @@ staticShellNote: |-
          degrade gracefully if a session lapses mid-visit, same reasoning
          as every other adminAuth-derived element on this page. -->
     <div class="max-[600px]:mt-8">
-      <h2 class="section-heading">Settings</h2>
+      <h2 class="card-section-heading">Settings</h2>
       <!-- Row shape below is the same one client/row-card.js builds programmatically for the Performance hub -- keep the two in sync if either changes. -->
       <div class="flex flex-col gap-2 max-w-[420px]" id="account-settings">
         <div class="row-card flex items-center gap-3" id="athlete-mode-row" hidden>

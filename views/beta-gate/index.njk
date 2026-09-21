@@ -15,7 +15,7 @@ staticShellNote: |-
        standalone <climbing-header>), matching /log//map//performance's
        own #brand-row layout -- see public/account/index.html's own
        identical comment for the full reasoning. -->
-  <climbing-page-header class="mb-6"></climbing-page-header>
+  {% set headerClass = "mb-6" %}{% include "page-header.njk" %}
 
   <!-- The only real content on this page -- client/beta-gate-main.js's
        boot() opens the modal unconditionally as soon as it's ready, not
