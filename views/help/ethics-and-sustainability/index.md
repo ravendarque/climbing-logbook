@@ -36,4 +36,12 @@ We support the [Boycott, Divestment and Sanctions (BDS) movement](https://bdsmov
 - **We deliberately don't offer "Sign in with Google" or "Sign in with GitHub".** Your account uses an email address and password instead.
 - **GitHub is owned by Microsoft, which is on both lists.** It's the industry-standard source control platform, so we use it to store our code. We'll stay on its free tier for as long as we can, so we aren't contributing financially to an organisation on the BDS list.
 
+## Why are some countries not listed when adding a new place?
+
+World climbing has suspended the Russian and Belarusian federations and we strongly support [the campaign by Jimena Villar de Onis and Luisa Gierich to exclude the Israeli federation](https://www.banisraelfromworldclimbing.com/). These states are therefore excluded from this application.
+
+## We believe in the democratisation of tech
+
+Climbing Logbook is free for individual users. We don't put features behind paywalls, offer paid add-ons, or monitise through advertising or data harvesting. Everybody gets the same app. Why? Climbing is already a privileged sport and climbing outdoors needs shoes, chalk, pads, and transport just to get started. People - especially children and young adults - should be able to access sports like climbing without financial barriers and we believe the same is true for platforms like this one.
+
 Thanks for reading, and thanks for using Climbing Logbook.
