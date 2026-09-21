@@ -115,8 +115,15 @@ export function gradeScaleMatrixHtml(discipline) {
 
   const baseNote = BASE_TABLE_NOTE[discipline] ? `<p class="text-[.82rem] text-muted leading-[1.7] mb-4">${BASE_TABLE_NOTE[discipline]}</p>` : "";
   const citations = citationListHtml(discipline);
+  // #876 -- plain <h2>, not the section-heading utility's brand/uppercase
+  // treatment: this now renders inside /help's own help-article prose
+  // styling (styles/tailwind.css), which already styles a bare h2
+  // appropriately for real body content -- section-heading is a short
+  // section-LABEL style (matching <climbing-header>'s own brand h1),
+  // wrong fit once this sits inside several paragraphs of explanation
+  // rather than above a settings-style row-card list.
   const sourcesSection = citations
-    ? `<h2 class="section-heading mt-7 mb-3">Sources</h2><p class="text-[.82rem] text-muted leading-[1.7] mb-3">Every cross-scale equivalence below comes from one of these, tracked alongside the conversion data itself.</p>${citations}`
+    ? `<h2>Sources</h2><p class="text-[.82rem] text-muted leading-[1.7] mb-3">Every cross-scale equivalence below comes from one of these, tracked alongside the conversion data itself.</p>${citations}`
     : "";
 
   return `

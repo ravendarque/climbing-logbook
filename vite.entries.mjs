@@ -16,7 +16,6 @@ export const CLIENT_ENTRIES = {
   "performance-rpe": "client/performance-rpe-main.js",
   "performance-injury": "client/performance-injury-main.js",
   "performance-strengths": "client/performance-strengths-main.js",
-  "performance-grades": "client/performance-grades-main.js",
   profile: "client/profile-main.js",
   account: "client/account-main.js",
   "account-edit": "client/account-edit-main.js",

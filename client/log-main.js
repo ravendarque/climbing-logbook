@@ -171,7 +171,11 @@ const entryForm = createEntryForm({
 // reference page; set here rather than threaded through createEntryForm's
 // own params, same "compute once, assign the href" pattern every other
 // page's #back-to-performance-link already uses.
-document.getElementById("grade-scale-reference-link").href = `/${encodeURIComponent(USERNAME)}/performance/grades`;
+// #190/#876 -- static, not owned-route: the grade-scales reference page
+// moved off /:username/performance/grades (gated behind Athlete Mode for
+// no real reason -- its own content has no per-user state at all) onto
+// a genuinely public /help page. No username to interpolate any more.
+document.getElementById("grade-scale-reference-link").href = "/help/grade-scales/";
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/logbook/sw.js").catch(() => {});

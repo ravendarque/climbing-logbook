@@ -88,17 +88,30 @@
     var bottomRowClasses = adminHidden
       ? "flex flex-col gap-2 self-stretch"
       : "flex flex-col gap-2 self-stretch pt-2 mt-1 border-t border-border";
-    // #847 -- status row is skipped entirely on admin-hidden pages
-    // (the public profile page, this component's only such consumer):
-    // that page never constructs a client/sync-status-icon.js tracker
-    // (no local writes there to sync, no admin session to track), so
-    // setSyncState() is simply never called on it -- same reasoning
-    // adminRows above already applies to menu-username/my-account-link.
+    // #847 -- status row (sync/offline text only, no link of its own any
+    // more -- see #878's own menuHelpRow below) is skipped entirely on
+    // admin-hidden pages (the public profile page, this component's
+    // other such consumer): that page never constructs a
+    // client/sync-status-icon.js tracker (no local writes there to
+    // sync, no admin session to track), so setSyncState() is simply
+    // never called on it -- same reasoning adminRows above already
+    // applies to menu-username/my-account-link.
     var statusRow = adminHidden ? "" : `
-      <div class="flex items-center justify-between gap-3 text-[.85rem]" id="menu-status-row" hidden>
+      <div class="flex items-center gap-3 text-[.85rem]" id="menu-status-row" hidden>
         <span class="text-foreground font-semibold" id="menu-status-text"></span>
-        <a class="text-accent" href="/help/working-offline" id="menu-help-link">Help</a>
       </div>`;
+    // #878 -- unconditional, unlike statusRow above: a way to reach
+    // /help genuinely never depended on adminHidden or on a sync ever
+    // having happened, but this link used to live *inside* statusRow,
+    // which is both adminHidden-gated (so admin-hidden pages, /help
+    // itself included since it now uses admin-hidden too, had no way
+    // back to /help from the menu at all) and `hidden` by default until
+    // a real sync state fires (so even where it did exist, it was
+    // invisible most of the time). Points at /help's own landing page,
+    // not /help/working-offline specifically -- that was the only real
+    // help page that existed when this link was first added; a real
+    // section root exists now.
+    var menuHelpRow = `<a class="text-[.85rem] text-accent" href="/help/" id="menu-help-link">Help</a>`;
 
     return `
   <div class="relative" id="header-menu-wrap">
@@ -108,7 +121,7 @@
       <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="17" x2="20" y2="17"></line></svg>
     </button>
     <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 flex flex-col items-end gap-2 bg-background border border-border rounded-app p-3 min-w-[13rem] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="header-menu-popover" role="menu" aria-label="Menu" hidden>${adminRows}
-      <div class="${bottomRowClasses}" id="header-menu-bottom-row">${statusRow}
+      <div class="${bottomRowClasses}" id="header-menu-bottom-row">${menuHelpRow}${statusRow}
         <div class="flex items-center justify-between" id="header-menu-actions-row">
           <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="theme-toggle-btn" aria-label="Switch to light theme"></button>${loginBtn}
         </div>

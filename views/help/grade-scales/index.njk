@@ -1,0 +1,34 @@
+---
+layout: help-layout.njk
+title: Grade scales & conversion – Climbing Logbook
+eleventyNavigation:
+  key: Grade scales & conversion
+  order: 2
+---
+<h1>Grade scales & conversion</h1>
+
+<p>Climbing has no single global grading system — Boulder and Sport
+climbing each have several scales in real use, and which one you'll see
+depends on where a route or problem was set. This page shows how every
+scale this app supports lines up against the others, and where each
+equivalence actually comes from.</p>
+
+<h2>How to read the tables</h2>
+
+<p>Each row is one real difficulty step. Read across a row to see how
+that step is expressed in every other scale this app supports. A blank
+cell (—) means that scale doesn't have a distinct step at that
+difficulty — it's coarser than the reference scale the row is built
+from, not missing data.</p>
+
+<p>Grades you enter or see anywhere else in this app always resolve
+through this same conversion data — there's no separate, hand-kept
+table anywhere that could drift out of sync with what's shown here.</p>
+
+<h2>Boulder</h2>
+
+{% gradeScaleMatrix "boulder" %}
+
+<h2>Sport</h2>
+
+{% gradeScaleMatrix "sport" %}

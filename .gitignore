@@ -37,7 +37,6 @@ public/performance/gap/index.html
 public/performance/rpe/index.html
 public/performance/injury/index.html
 public/performance/strengths/index.html
-public/performance/grades/index.html
 public/account/index.html
 public/account/edit/index.html
 public/account/import/index.html
@@ -45,6 +44,7 @@ public/sync/index.html
 public/beta-gate/index.html
 public/help/index.html
 public/help/working-offline/index.html
+public/help/grade-scales/index.html
 
 # #876 -- Pagefind's own generated search index + UI assets for /help,
 # written by .eleventy.js's own eleventy.after hook -- build output,
