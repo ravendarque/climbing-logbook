@@ -38,7 +38,7 @@ We support the [Boycott, Divestment and Sanctions (BDS) movement](https://bdsmov
 
 ## Why are some countries not listed when adding a new place?
 
-World climbing has suspended the Russian and Belarusian federations and we strongly support [the campaign by Jimena Villar de Onis and Luisa Gierich to exclude the Israeli federation](https://www.banisraelfromworldclimbing.com/). These states are therefore excluded from this application.
+World climbing has suspended the Russian and Belarusian federations and we strongly support [the campaign by Jimena Villar de Onis and Luisa Gierich to suspend the Israeli federation](https://www.banisraelfromworldclimbing.com/). These states are therefore excluded from this application.
 
 ## We believe in the democratisation of tech
 
