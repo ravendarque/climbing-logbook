@@ -1,5 +1,5 @@
 // #876/#878 -- /help pages are genuinely static content (no Store, no
-// admin-auth flow, no discipline concept), same "admin-hidden" shape
+// admin-auth flow, no discipline concept), same no-session shape
 // the public profile page already established -- but the header menu
 // popover (theme toggle + a way back out) still needs real, live click
 // wiring, and that logic (createDisclosure/createThemeToggle) only

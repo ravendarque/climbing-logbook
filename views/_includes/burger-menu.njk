@@ -1,0 +1,19 @@
+{#- #882 -- the burger menu's shared shell (trigger button + popover chrome + theme toggle), rendered at BUILD time by 11ty instead of by climbing-burger-menu.js at runtime. The menu is in the HTML on first byte, so it never waits on a script to appear (ADR-0023's instant-shell goal), and what each page family shows lives in its own menu-*.njk include -- adding a family means adding a file, not another conditional in a shared component. climbing-burger-menu.js is now behaviour only (setSyncState). -#}
+{% macro burgerMenu() %}
+<climbing-burger-menu>
+  <div class="relative" id="header-menu-wrap">
+    <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="header-menu-btn" aria-haspopup="true" aria-expanded="false" aria-label="Menu">
+      <span class="menu-sync-glow" aria-hidden="true"></span>
+      <span class="menu-sync-ring" aria-hidden="true"></span>
+      <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="17" x2="20" y2="17"></line></svg>
+    </button>
+    <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 flex flex-col items-end gap-2 bg-background border border-border rounded-app p-3 min-w-[13rem] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="header-menu-popover" role="menu" aria-label="Menu" hidden>
+      {{ caller() }}
+    </div>
+  </div>
+</climbing-burger-menu>
+{% endmacro %}
+
+{% macro themeToggle() -%}
+<button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="theme-toggle-btn" aria-label="Switch to light theme"></button>
+{%- endmacro %}

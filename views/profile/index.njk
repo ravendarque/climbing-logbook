@@ -35,7 +35,7 @@ staticShellNote: |-
        then brought back in once the resulting inconsistency (burger menu
        at a different vertical position than every other page) was
        noticed. -->
-  <climbing-page-header admin-hidden></climbing-page-header>
+  {% set menu = "profile" %}{% include "page-header.njk" %}
 
   <!-- Real WAI-ARIA Tabs (role=tablist/tab/tabpanel), not
        <climbing-tab-bar>'s nav-landmark links -- this switches between two

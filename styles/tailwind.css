@@ -420,6 +420,10 @@
     @apply section-heading;
   }
 
+  & a {
+    color: var(--color-accent);
+  }
+
   & h2 {
     font-family: var(--font-sans);
     font-weight: 700;

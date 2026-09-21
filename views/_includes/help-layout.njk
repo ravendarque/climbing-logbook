@@ -43,14 +43,11 @@ bundle: help
 </style>
 
 <div class="max-w-[960px] mx-auto">
-  <!-- admin-hidden: help is reachable logged-out same as the public
-       profile page (views/profile/index.njk's own admin-hidden
-       precedent) -- no session-gated content exists here to show a
-       logged-in owner either, so there's nothing the burger menu's
-       normal admin rows would ever have to display. The burger menu's
-       own real job here is simply "a way back out of /help" -- no
-       discipline picker (help has no discipline concept at all). -->
-  <climbing-page-header admin-hidden></climbing-page-header>
+  <!-- menu = "help" (#882): the help family's own burger menu rows
+       (Report an issue / Tell us what you think / Climbing Logbook /
+       theme + socials) live in views/_includes/menu-help.njk. Help is
+       reachable logged out, so no session-dependent rows exist here. -->
+  {% set menu = "help" %}{% include "page-header.njk" %}
 
   <!-- #876 -- two-column help view starts below the header row, per
        Raven's own instruction (2026-09-20) -- not part of the header

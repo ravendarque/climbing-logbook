@@ -15,7 +15,7 @@ staticShellNote: |-
        brand row below the header row, not centered above it). Found via
        Raven's production report, 2026-08-10 -- see climbing-header.js's
        own comment on the align-left attribute. -->
-  <climbing-page-header></climbing-page-header>
+  {% include "page-header.njk" %}
 
   <div class="flex items-end gap-3 mb-5" id="picker-tabs-row">
     <climbing-discipline-picker></climbing-discipline-picker>
@@ -56,7 +56,7 @@ staticShellNote: |-
 
   <div id="strengths-root"></div>
 
-  <h2 class="sources-heading">Sources/h2>
+  <h2 class="sources-heading">Sources</h2>
   <p class="text-[.82rem] text-muted leading-[1.7] mb-3">Breaking performance down by hold type, wall angle, and movement style rather than grade alone follows two converging lines of evidence: finger/grip strength is the strongest measurable performance determinant in the climbing-science literature, and unaddressed technique gaps -- not just physical capacity -- are a well-documented cause of plateaus.</p>
   <ol class="m-0 pl-[1.2rem] text-[.84rem] leading-[1.6] text-foreground [&>li+li]:mt-[10px]">
     <li>MacLeod, D. (2010). <em class="text-muted italic">9 Out of 10 Climbers Make the Same Mistakes: Navigation Through the Maze of Advice for the Self-coached Climber</em>. The book's central thesis -- that most climbers plateau from unaddressed technical/tactical errors, not lack of physical training -- is the reason this view segments by terrain and movement, not just raw send counts.</li>
