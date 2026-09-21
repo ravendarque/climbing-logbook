@@ -40,6 +40,18 @@ bundle: help
     --pf-skeleton-shine: color-mix(in srgb, var(--color-border) 60%, transparent);
     --pf-font: var(--font-sans);
   }
+  /* #885 -- plain, unlayered CSS on purpose: these must beat the `btn`
+     and `flex` utilities' display (Tailwind utilities are layered, and
+     unlayered CSS always wins over layered). Same 600px breakpoint as the
+     layout's own flex-col collapse. Above it the toggle doesn't exist and
+     the list is always visible. */
+  #help-nav-btn { display: none; }
+  @media (max-width: 600px) {
+    #help-nav { gap: 1rem; }
+    #help-nav-btn { display: flex; }
+    #help-nav:not([data-open]) #help-nav-list { display: none; }
+    #help-nav[data-open] #help-nav-btn svg { transform: rotate(180deg); }
+  }
 </style>
 
 <div class="max-w-[960px] mx-auto">
@@ -80,7 +92,7 @@ bundle: help
          entirely: it's not a property Pagefind's per-element reset can
          touch. pagefind-config contributes nothing to the gap since
          Pagefind's own CSS sets it display:none. -->
-    <nav class="flex flex-col gap-8 flex-[0_0_14rem] max-[600px]:flex-[0_0_auto] min-w-0" aria-label="Help topics">
+    <nav class="flex flex-col gap-8 flex-[0_0_14rem] max-[600px]:flex-[0_0_auto] min-w-0" id="help-nav" aria-label="Help topics">
       <!-- pagefind-config: see this file's own top-of-content comment. -->
       <pagefind-config bundle-path="/help/pagefind/"></pagefind-config>
       <!-- pagefind-searchbox is a self-registering custom element (the
@@ -94,7 +106,14 @@ bundle: help
            attribute, so an effectively-unreachable combo is the
            pragmatic equivalent of off. -->
       <pagefind-searchbox hide-shortcut shortcut="ctrl+alt+shift+meta+f24"></pagefind-searchbox>
-      <ul class="m-0 p-0 list-none flex flex-col gap-1">
+      <!-- #885 -- narrow mode only (see the <style> block above): the topic
+           list collapses behind this toggle instead of stacking above the
+           article. Wired in client/help-main.js. Search stays visible. -->
+      <button type="button" class="btn w-full justify-between" id="help-nav-btn" aria-expanded="false" aria-controls="help-nav-list">
+        <span>Help topics</span>
+        <svg class="w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+      </button>
+      <ul class="m-0 p-0 list-none flex flex-col gap-1" id="help-nav-list">
         {%- for entry in collections.all | eleventyNavigation %}
         <li>
           <a

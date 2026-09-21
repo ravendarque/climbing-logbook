@@ -22,3 +22,14 @@ import { createThemeToggle } from "./theme-toggle.js";
 
 createDisclosure(document.getElementById("header-menu-btn"), document.getElementById("header-menu-popover"), "#header-menu-wrap");
 createThemeToggle();
+
+// #885 -- narrow mode: the topic list collapses behind a toggle (markup and
+// the breakpoint CSS live in views/_includes/help-layout.njk). Above 600px
+// the toggle is display:none and the list is always shown, so this does
+// nothing there.
+const helpNav = document.getElementById("help-nav");
+const helpNavBtn = document.getElementById("help-nav-btn");
+helpNavBtn?.addEventListener("click", () => {
+  const open = helpNav.toggleAttribute("data-open");
+  helpNavBtn.setAttribute("aria-expanded", String(open));
+});
