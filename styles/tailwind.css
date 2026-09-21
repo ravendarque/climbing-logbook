@@ -346,13 +346,14 @@
   padding: .75rem 1rem;
 }
 
-/* #457 -- brand-style section heading (matching <climbing-header>'s own
-   h1 treatment: font-display, uppercase, tracking-wide), used by every
-   "My account"/"Settings"/"Edit account details" heading across the
-   account pages. pl-4 (baked in, not a separate utility on each h2)
-   aligns the heading text with row-card's own inner text -- see
-   public/account/index.html's own comment on why that indent, and its
-   flush-left back-button, exist together. */
+/* brand-style section heading (matching <climbing-header>'s own h1
+   treatment: font-display, uppercase, tracking-wide) -- the base style
+   for a real page/report section title: Sources headings (via
+   sources-heading below), Performance Insights report page titles, and
+   /help page titles (via help-article's own h1 rule). No indent -- these
+   sit directly above their own section's content, not aligned against a
+   row-card list. card-section-heading (below) derives from this and adds
+   the indent that DOES need one. */
 @utility section-heading {
   font-family: var(--font-display);
   font-weight: 400;
@@ -360,8 +361,35 @@
   letter-spacing: .025em;
   font-size: 1.3rem;
   color: var(--color-foreground);
-  padding-left: 1rem;
   margin-bottom: 1rem;
+}
+
+/* #457 -- same treatment as section-heading, plus the indent that
+   aligns the heading text with row-card's own inner text -- used by
+   every "My account"/"Settings"/"Edit account details"/"Import entries"
+   heading across the account pages, each one sitting directly above a
+   row-card list. See public/account/index.html's own comment (git
+   history) on why that indent, and its flush-left back-button, exist
+   together. */
+@utility card-section-heading {
+  @apply section-heading;
+  padding-left: 1rem;
+}
+
+/* Sources heading -- a thin hairline above the heading (Raven's call,
+   2026-09-21) makes a page's Sources section read as a references list,
+   visually distinct from the content sections above it, same idea as a
+   citations block at the bottom of an article. Reusable utility rather
+   than each page hand-copying `section-heading mt-7 mb-3` (the pattern
+   every Performance Insights report page and client/grade-scale-
+   matrix.js used before this existed) -- one style to update if the
+   treatment ever changes, not six-plus call sites. */
+@utility sources-heading {
+  @apply section-heading;
+  margin-top: 1.75rem;
+  margin-bottom: .75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--color-border);
 }
 
 /* #457 -- the settings-card title text style (Athlete Mode/Public
@@ -379,24 +407,17 @@
    (views/help/**, rendered from plain Markdown, which carries no classes
    of its own on its h1/h2/p tags -- this is the first genuinely
    long-form-prose surface in the app, everywhere else is UI chrome/
-   short labels). Deliberately plain font-sans, not font-display --
-   section-heading's own uppercase/tracking-wide brand treatment
-   (matching <climbing-header>'s h1) reads right for a short section
-   LABEL ("Settings", "My account"), not a real page heading followed by
-   several paragraphs of explanation; Ente's own help site (studied as a
-   tone/layout reference for this section, see docs/help-content-voice-
-   and-tone.md) uses plain sans headings for exactly this reason. Sizes
-   confirmed live (Raven's report, 2026-09-20): the raw, unstyled
-   Markdown output was reading as noticeably too large and too tight
-   against its own title, both fixed here rather than left to default
-   browser UA styles. */
+   short labels). h1 is the page title -- section-heading (Raven's call,
+   2026-09-21: the same style as Sources/Performance Insights report
+   titles, not a bespoke one just for /help). h2 stays plain font-sans --
+   these are real in-page subheadings inside several paragraphs of
+   explanation, not section LABELs. Sizes confirmed live (Raven's report,
+   2026-09-20): the raw, unstyled Markdown output was reading as
+   noticeably too large and too tight against its own title, both fixed
+   here rather than left to default browser UA styles. */
 @utility help-article {
   & h1 {
-    font-family: var(--font-sans);
-    font-weight: 700;
-    font-size: 1.5rem;
-    color: var(--color-foreground);
-    margin: 0 0 1rem;
+    @apply section-heading;
   }
 
   & h2 {

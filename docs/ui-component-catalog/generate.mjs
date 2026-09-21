@@ -29,6 +29,8 @@ const ENTRIES = [
   ["s-switch", "switch-control"],
   ["s-btn", "btn"],
   ["s-section-heading", "section-heading"],
+  ["s-card-section-heading", "card-section-heading"],
+  ["s-sources-heading", "sources-heading"],
   ["s-modal", "modal-shape"],
   ["s-grades", "grade-colors"],
   ["s-tiers", "evidence-tiers"],

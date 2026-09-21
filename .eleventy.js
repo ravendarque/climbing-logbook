@@ -30,7 +30,7 @@
 // acceptable inefficiency, not a correctness bug.
 import eleventyNavigationPlugin from "@11ty/eleventy-navigation";
 import { execFileSync } from "node:child_process";
-import { gradeScaleMatrixHtml } from "./client/grade-scale-matrix.js";
+import { gradeScaleMatrixHtml, gradeScaleSourcesHtml } from "./client/grade-scale-matrix.js";
 
 const ASSET_VERSION = String(Date.now());
 
@@ -63,6 +63,10 @@ export default function (eleventyConfig) {
   // page while still reading from the one real, shared, tested source
   // of the conversion data (never a second hand-copied table).
   eleventyConfig.addShortcode("gradeScaleMatrix", gradeScaleMatrixHtml);
+  // #877/#190 -- split from gradeScaleMatrix so the page can put every
+  // discipline's Sources together at the bottom (see grade-scale-
+  // matrix.js's own comment on gradeScaleSourcesHtml).
+  eleventyConfig.addShortcode("gradeScaleSources", gradeScaleSourcesHtml);
 
   // #876 -- indexes the built /help pages for Pagefind's static,
   // build-time search (no backend, no hosted service -- it crawls the

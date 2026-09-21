@@ -70,7 +70,20 @@ bundle: help
          this app deliberately do (those grids hold peer content of
          equal weight; a nav rail and its article are not peers). Full
          width once stacked (max-[600px]:flex-[0_0_auto]). -->
-    <nav class="flex-[0_0_14rem] max-[600px]:flex-[0_0_auto] min-w-0" aria-label="Help topics">
+    <!-- flex flex-col gap-8 (not a margin on pagefind-searchbox itself)
+         -- Pagefind's own pagefind-component-ui.css sets `all: initial`
+         directly on the pagefind-searchbox element, in an unlayered
+         stylesheet; per the CSS Cascade Layers spec, unlayered CSS
+         always beats layered CSS regardless of selector specificity, so
+         ANY margin utility here (Tailwind's utilities all live in
+         `@layer utilities`) gets silently zeroed out no matter how
+         specific the class -- confirmed live, 2026-09-21 (computed
+         margin came back 0px despite `mb-8` being present in the DOM).
+         `gap` on this element's own PARENT sidesteps the problem
+         entirely: it's not a property Pagefind's per-element reset can
+         touch. pagefind-config contributes nothing to the gap since
+         Pagefind's own CSS sets it display:none. -->
+    <nav class="flex flex-col gap-8 flex-[0_0_14rem] max-[600px]:flex-[0_0_auto] min-w-0" aria-label="Help topics">
       <!-- pagefind-config: see this file's own top-of-content comment. -->
       <pagefind-config bundle-path="/help/pagefind/"></pagefind-config>
       <!-- pagefind-searchbox is a self-registering custom element (the
@@ -82,10 +95,8 @@ bundle: help
            hide-shortcut only hides the hint pill, it doesn't stop the
            listener itself; there's no documented "disable the binding"
            attribute, so an effectively-unreachable combo is the
-           pragmatic equivalent of off. mb-8, not mb-5 -- confirmed live
-           that 5 read as touching the list below it once the component's
-           own internal padding is accounted for. -->
-      <pagefind-searchbox class="block mb-8" hide-shortcut shortcut="ctrl+alt+shift+meta+f24"></pagefind-searchbox>
+           pragmatic equivalent of off. -->
+      <pagefind-searchbox hide-shortcut shortcut="ctrl+alt+shift+meta+f24"></pagefind-searchbox>
       <ul class="m-0 p-0 list-none flex flex-col gap-1">
         {%- for entry in collections.all | eleventyNavigation %}
         <li>

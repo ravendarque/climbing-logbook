@@ -1,17 +1,17 @@
 ---
 layout: help-layout.njk
-title: Help – Climbing Logbook
+title: Introduction – Climbing Logbook
 eleventyNavigation:
-  key: Overview
+  key: Introduction
   order: 0
 ---
 
-# Climbing Logbook help
+# Introduction
 
-Everything here explains how to use Climbing Logbook — what a feature
-does, how it behaves, and why. Pick a topic from the list to the left,
-or search for what you're after.
+Climbing Logbook is a place to log your climbs and see your progress. Everything
+you log is saved on your device first, so it works at the crag without a signal.
 
-This section is still growing: expect more topics to appear here as
-new features ship, rather than a single, complete guide written all at
-once.
+Pick a topic from the list on the left, or search for what you're after. New to the
+app? Start with the [Quick start](/help/quick-start/).
+
+This section is still growing. Expect more topics to appear as new features ship.

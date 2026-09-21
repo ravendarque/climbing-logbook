@@ -3,7 +3,7 @@ layout: help-layout.njk
 title: Working offline – Climbing Logbook
 eleventyNavigation:
   key: Working offline
-  order: 1
+  order: 2
 ---
 
 # Working offline
