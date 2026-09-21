@@ -14,7 +14,7 @@
  * variants -- Greenwich (0deg), Americas (90degW), and Oceania (150degE)
  * -- each recentring the map on a different part of the world instead of
  * splitting it across the left/right edges. This script generates all
- * three, writing one JSON file per variant (public/logbook/world-map-
+ * three, writing one JSON file per variant (static/logbook/world-map-
  * <variant>.json) that the client fetches on demand when the user picks
  * that variant, rather than printing to stdout for manual splicing --
  * three variants is too much to hand-paste, and JSON fits the app's
@@ -95,7 +95,7 @@
  * attention at this element's small rendered size.
  *
  * Usage: node scripts/generate-world-map.mjs
- * (writes public/logbook/world-map-{greenwich,americas,oceania}.json)
+ * (writes static/logbook/world-map-{greenwich,americas,oceania}.json)
  */
 
 import { writeFileSync } from "node:fs";
@@ -107,7 +107,7 @@ import { feature, mesh } from "topojson-client";
 import countriesTopo from "world-atlas/countries-110m.json" with { type: "json" };
 import { EXCLUDED_CCA2 } from "./lib/country-exclusions.mjs";
 
-const OUT_DIR = fileURLToPath(new URL("../public/logbook/", import.meta.url));
+const OUT_DIR = fileURLToPath(new URL("../static/logbook/", import.meta.url));
 
 const MAP_WIDTH = 960;
 const GRATICULE_STEP = 20; // degrees
