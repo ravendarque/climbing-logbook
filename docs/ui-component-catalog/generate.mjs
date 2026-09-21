@@ -28,6 +28,7 @@ const ENTRIES = [
   ["s-row-card-btn", "row-card-settings-button"],
   ["s-switch", "switch-control"],
   ["s-btn", "btn"],
+  ["s-page-title", "page-title"],
   ["s-section-heading", "section-heading"],
   ["s-card-section-heading", "card-section-heading"],
   ["s-sources-heading", "sources-heading"],

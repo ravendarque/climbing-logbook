@@ -167,24 +167,35 @@ on click, no separate save step (Athlete Mode, Public Logbook).
 Not for a setting that needs an explanatory modal/consent step first — use
 the button-triggered `row-card` variant above instead (see `beta-opt-in-row`).
 
-## `section-heading` / `card-section-heading` / `sources-heading`
+## `page-title` / `section-heading` / `card-section-heading` / `sources-heading`
 
 **Definition:** `styles/tailwind.css`. `section-heading` is the base:
 brand-style heading matching `<climbing-header>`'s own `<h1>` treatment
 (`font-display`, uppercase, letter-spacing), no indent. `card-section-
-heading` and `sources-heading` both derive from it via `@apply`.
+heading`, `sources-heading` and `page-title` all derive from it via `@apply`.
 
-**When to use `section-heading`:** a real page/report section title that
-sits directly above its own content, not aligned against a `row-card`
-list -- Performance Insights report page titles, /help page titles (via
-`help-article`'s own `h1` rule).
+**When to use `page-title`:** the title of a whole page -- Performance
+Insights report pages, /help pages (via `help-article`'s own `h1` rule).
+Same as `section-heading`, bigger (`1.8rem`).
+
+| Dark | Light |
+|---|---|
+| ![page-title](ui-component-catalog/page-title-dark.png) | ![page-title](ui-component-catalog/page-title-light.png) |
+
+```html
+<h1 class="page-title">Send / Flash Gap</h1>
+```
+
+**When to use `section-heading`:** a section within a page, sitting
+directly above its own content, not aligned against a `row-card` list --
+sections inside a /help page (via `help-article`'s own `h2` rule).
 
 | Dark | Light |
 |---|---|
 | ![section-heading](ui-component-catalog/section-heading-dark.png) | ![section-heading](ui-component-catalog/section-heading-light.png) |
 
 ```html
-<h1 class="section-heading">Send / Flash Gap</h1>
+<h2 class="section-heading">How to read the tables</h2>
 ```
 
 **When to use `card-section-heading`:** the top-level heading for a

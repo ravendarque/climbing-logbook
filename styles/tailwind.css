@@ -367,6 +367,14 @@
   margin-bottom: 1rem;
 }
 
+/* page-title -- section-heading, bigger: the title of a whole page (a
+   /help page, a Performance Insights report), as opposed to a section
+   within one. */
+@utility page-title {
+  @apply section-heading;
+  font-size: 1.8rem;
+}
+
 /* #457 -- same treatment as section-heading, plus the indent that
    aligns the heading text with row-card's own inner text -- used by
    every "My account"/"Settings"/"Edit account details"/"Import entries"
@@ -410,17 +418,24 @@
    (views/help/**, rendered from plain Markdown, which carries no classes
    of its own on its h1/h2/p tags -- this is the first genuinely
    long-form-prose surface in the app, everywhere else is UI chrome/
-   short labels). h1 is the page title -- section-heading (Raven's call,
-   2026-09-21: the same style as Sources/Performance Insights report
-   titles, not a bespoke one just for /help). h2 stays plain font-sans --
-   these are real in-page subheadings inside several paragraphs of
-   explanation, not section LABELs. Sizes confirmed live (Raven's report,
+   short labels). h1 is the page title (page-title) and h2 a section heading
+   (section-heading) -- the same styles the rest of the app uses, not
+   bespoke ones just for /help (Raven, 2026-09-22). Sizes confirmed live (Raven's report,
    2026-09-20): the raw, unstyled Markdown output was reading as
    noticeably too large and too tight against its own title, both fixed
    here rather than left to default browser UA styles. */
 @utility help-article {
   & h1 {
+    @apply page-title;
+  }
+
+  & h2 {
     @apply section-heading;
+    margin-top: 1.75rem;
+  }
+
+  & h2.sources-heading {
+    @apply sources-heading;
   }
 
   & a {
@@ -435,14 +450,6 @@
 
   & li + li {
     margin-top: .4rem;
-  }
-
-  & h2 {
-    font-family: var(--font-sans);
-    font-weight: 700;
-    font-size: 1.15rem;
-    color: var(--color-foreground);
-    margin: 1.5rem 0 .75rem;
   }
 
   & p {

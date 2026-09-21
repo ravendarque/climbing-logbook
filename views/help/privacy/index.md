@@ -12,7 +12,7 @@ We don't sell your data and we don't share it for advertising. Here's what we ke
 
 ## What we keep
 
-- **Your account.** Your username, your email address and your password. We can't read your password.
+- **Your account.** Your username, your email address and your password. We can't read your password, because it's hashed (scrambled in a way that can't be reversed).
 - **Your logbook.** The climbs, places and settings you add.
 
 We use this to run the app for you, and for nothing else.
@@ -36,7 +36,3 @@ We may look at anonymised, combined figures across all users, like how many clim
 ## Sharing
 
 We only share what's needed to run the app, with the services that deliver it and send its emails, and only for that.
-
-## Questions
-
-Something unclear or worrying? [Tell us what you think](/help/feedback/).
