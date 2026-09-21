@@ -131,7 +131,7 @@ function allConversionSources() {
 const SOURCE_DESCRIPTIONS = {
   "Wikipedia: Grade (climbing)": "Cross-scale grade comparison tables.",
   "theCrag: Norwegian grade conversion": "Norwegian-scale conversion reference.",
-  "hakaru.io V-scale converter; cross-checked Wikipedia: Grade (climbing) ('exactly aligns after V9/7C')": "V-scale/Font conversion reference.",
+  "Rockfax: Bouldering Grade Table (2020)": "Free poster comparing Font, V and UK tech grades.",
 };
 
 const CAVEATS_BY_DISCIPLINE = {

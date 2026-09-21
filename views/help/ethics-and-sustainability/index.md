@@ -25,13 +25,21 @@ We made a trade-off. We accepted that impact so we could build something useful 
 
 ## The tools we use
 
-- **GitHub** (owned by Microsoft) for our code.
+- **GitHub** for our code.
 - **Cloudflare** to host the app.
 - **Resend** to send emails.
 - **Claude** (from Anthropic) to help write code.
 - **Bebas Neue**, a font we host ourselves, so your visit doesn't send a request to Google Fonts.
 
-We support the [Boycott, Divestment and Sanctions (BDS) movement](https://bdsmovement.net) and try to avoid companies on its boycott list. Some of the tools we build with, like GitHub, are owned by companies on it.
+## Who we buy from
+
+We support the [Boycott, Divestment and Sanctions (BDS) movement](https://bdsmovement.net). Before we adopt anything of real weight, like a library, a hosting provider or a sign-in service, we check it against BDS's consumer boycott targets and its No Tech for Oppression, Apartheid or Genocide campaign, and we record the result.
+
+- **Hosting and the libraries we've evaluated** (including Cloudflare, Tailwind CSS and Floating UI) came back clear when we checked in July 2026.
+- **We deliberately don't offer "Sign in with Google" or "Sign in with GitHub".** Your account uses an email address and password instead.
+- **GitHub is owned by Microsoft, which is on both lists.** We use it to store our code, and we'd rather tell you than leave it out.
+
+A clear result is a snapshot, not a guarantee. Companies change, so we re-check when we change something significant.
 
 ## How we build
 

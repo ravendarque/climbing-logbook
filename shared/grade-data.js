@@ -207,7 +207,7 @@ export const FRENCH_STANDARD = makeParsedScale("french", "sport", "French", FREN
 // #702 -- V-scale doesn't decompose through the number/letter/modifier
 // shape at all (VB/V0-/V0/V0+/V1... isn't that pattern) -- an explicit
 // anchor table against FONT_STANDARD's own ordinals instead, using the
-// corrected hakaru.io-sourced correspondence (the spec's first draft had
+// corrected Rockfax-charted correspondence (previously hakaru.io) (the spec's first draft had
 // this wrong: 6A=V0, which no real chart shows). V3/V4/V5/V8 are
 // genuinely 2-wide (map to two Font ordinals) -- everything else is 1:1.
 const V_SCALE_TO_FONT = {
@@ -380,7 +380,7 @@ export const GRADE_CONVERSION_MATRIX = [
   ...YDS_ANCHORS.map(a => ({ scaleId: "yds", ...a })),
   ...NORWEGIAN_ANCHORS.map(a => ({ scaleId: "norwegian", ...a })),
   ...EWBANK_ANCHORS.map(a => ({ scaleId: "ewbank", ...a })),
-  { scaleId: "v-scale", label: "V9", frenchAnchor: "7c", source: "hakaru.io V-scale converter; cross-checked Wikipedia: Grade (climbing) ('exactly aligns after V9/7C')" },
+  { scaleId: "v-scale", label: "V9", frenchAnchor: "7c", source: "Rockfax: Bouldering Grade Table (2020)" },
 ];
 
 // #702 -- every scale keyed by id, and split by discipline -- what

@@ -123,15 +123,14 @@ describe("gradeScaleSourcesHtml", () => {
     // Exactly one Sources heading -- not "Sources — Boulder"/"Sources —
     // Sport" as two separate sections.
     expect(html.match(/sources-heading/g)).toHaveLength(1);
-    expect(html).not.toContain("Boulder");
-    expect(html).not.toContain("Sport");
+    expect(html).not.toContain("Sources —");
   });
 
   it("cites every distinct source used anywhere in GRADE_CONVERSION_MATRIX", () => {
     const html = gradeScaleSourcesHtml();
     expect(html).toContain("Wikipedia: Grade (climbing)");
     expect(html).toContain("theCrag: Norwegian grade conversion");
-    expect(html).toContain("hakaru.io");
+    expect(html).toContain("Rockfax");
   });
 
   it("does not repeat the underlying grade-conversion pairs -- the source name and a short description only", () => {

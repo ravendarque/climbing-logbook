@@ -19,24 +19,23 @@ We use this to run the app for you, and for nothing else.
 
 ## Who can see your logbook
 
-**Your logbook is public by default.** Anyone with your public profile link can see your logbook and map. Your Grade Pyramid and other Performance Insights stay private to you.
-
-To keep everything to yourself, go to My account and turn off **Public Logbook**.
+You decide. In My account, the **Public Logbook** setting controls whether anyone can view your logbook and map. Your Grade Pyramid and other Performance Insights are always private to you.
 
 ## Cookies
 
 We use one cookie, and it keeps you logged in. The app needs it to work, so there's no cookie banner. We don't use tracking or advertising cookies.
 
-## Who helps us run the app
+## Visit statistics
 
-- **Cloudflare** hosts the app.
-- **Resend** sends our emails, like password resets.
-
-They only handle what's needed to do those jobs.
+We count visits to see which pages get used and what devices people use. It doesn't use cookies, and it doesn't follow you around or build a profile of you.
 
 ## Trends and reporting
 
 We may look at anonymised, combined figures across all users, like how many climbs are logged in total. They never point back to you.
+
+## Sharing
+
+We only share what's needed to run the app, with the services that deliver it and send its emails, and only for that.
 
 ## Questions
 
