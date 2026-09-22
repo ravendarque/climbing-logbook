@@ -6,7 +6,7 @@
 import { expect, test } from "@playwright/test";
 import { mockApi } from "./mock-api.js";
 
-test("shows the zero-sends headline and the time-window control with no data", async ({ page }) => {
+test("shows the zero-sends headline, time-window control, and Sources section with no data", async ({ page }) => {
   await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
   await page.goto("/e2e-fixtures/pages/performance-trends.html");
 
@@ -20,6 +20,10 @@ test("shows the zero-sends headline and the time-window control with no data", a
   await expect(page.locator("#view-explainer")).toContainText("send-log proxy");
   await expect(page.locator('[data-window="12w"]')).toBeVisible();
   await expect(page.locator("#trends-root")).toContainText("No sends logged in this window yet.");
+  // #797 -- the inline, always-visible citation this page ends on. Asserted
+  // on an empty window deliberately: the section is part of the page's own
+  // shell, not something a populated chart renders.
+  await expect(page.locator("body")).toContainText("Bechtel");
 });
 
 test("renders real bars and a grade-labeled line point", async ({ page }) => {

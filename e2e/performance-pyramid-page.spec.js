@@ -6,10 +6,10 @@
 // fabricated /logbook/api/* responses. athleteMode: true is required in
 // the mocked settings response -- client/performance-pyramid-main.js
 // redirects to /log otherwise (#151's rule: Grade Pyramid needs both
-// login AND Athlete Mode). Citations-overlay Escape-close
-// (climbing-grade-pyramid.js's own behavior, not this composition root's)
-// is covered separately by e2e/component-harnesses.spec.js (#407 Tier 1)
-// -- not duplicated here.
+// login AND Athlete Mode). The component's own inline Sources section
+// (climbing-grade-pyramid.js's own rendering, not this composition
+// root's) is covered separately by e2e/component-harnesses.spec.js
+// (#407 Tier 1) -- not duplicated here.
 //
 // #111 -- this page fetches an already-computed pyramid, not raw entries
 // (see mock-api.js's own pyramidData option). Expected shapes are built
@@ -78,4 +78,13 @@ test("shows the offline message instead of a pyramid when the fetch fails", asyn
 
   await expect(page.locator("#performance-offline")).toBeVisible();
   await expect(page.locator("climbing-grade-pyramid")).toBeHidden();
+});
+
+// #151's rule applies here like every other Performance Insights page --
+// this spec was the only one of the seven missing its own coverage of it.
+test("redirects to /log when Athlete Mode is off", async ({ page }) => {
+  await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder" } });
+  await page.goto("/e2e-fixtures/pages/performance-pyramid.html");
+
+  await page.waitForURL(/\/log$/);
 });

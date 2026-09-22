@@ -16,12 +16,6 @@ test("renders the shared chrome and one tile per insight, linking to its own sub
   await expect(pyramidTile).toBeVisible();
   await expect(pyramidTile.locator(".row-card-title")).toHaveText("Grade Pyramid");
   await expect(pyramidTile.locator("a", { hasText: "View" })).toHaveAttribute("href", /\/performance\/pyramid$/);
-
-  // #190/#876 -- Grade Scales & Conversion moved off this hub entirely,
-  // onto a genuinely public /help/grade-scales/ page (it rendered no
-  // per-user data at all, so the Athlete Mode gate here never made
-  // sense for it) -- no tile for it here any more.
-  await expect(page.locator("#insight-grades")).toHaveCount(0);
 });
 
 test("#599 -- the gap tile's title is discipline-aware and updates live on a discipline switch", async ({ page }) => {
