@@ -335,6 +335,27 @@
   rotate: 0deg;
 }
 
+/* #894 -- a form failure's visible treatment, one definition instead of
+   three copies of the same literal class string (client/entry-form.js's
+   own ERROR_MSG_CLASS, hand-copied into client/place-picker.js's
+   showAddPlaceError per that file's own comment) plus a third, visibly
+   different bare-paragraph treatment the auth pages used for the same
+   semantic. The bordered box, not the bare paragraph, is the one that
+   survives: it's more prominent and pairs better with #806's
+   role="alert" focus target than plain colored text does. No margin
+   baked in -- call sites keep their own spacing (entry-form.js/place-
+   picker.js use a leading mt-[.85rem] inside a modal; the auth pages
+   use a trailing mb-4 between stacked fields), same as row-card below
+   leaves its own margin to each consumer. */
+@utility error-message {
+  padding: .75rem 1rem;
+  border-radius: var(--radius-app);
+  font-size: .9rem;
+  background: color-mix(in srgb, #f87171 12%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, #f87171 40%, transparent);
+  color: var(--color-error);
+}
+
 /* #457 -- the same box (bg-surface/border/rounded-app/px-4/py-3) was
    getting hand-repeated verbatim on every row of both account pages
    (edit-account-link, the two "Coming soon" placeholders, athlete-mode-

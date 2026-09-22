@@ -23,6 +23,7 @@ const SWATCH_URL = `file://${join(HERE, "swatch.html")}`;
 // to capture, and the file basename (both dark/light variants share it).
 // Keep this list and swatch.html's own #id-per-swatch markup in sync.
 const ENTRIES = [
+  ["s-error-message", "error-message"],
   ["s-row-card-nav", "row-card-nav"],
   ["s-row-card-settings", "row-card-settings-switch"],
   ["s-row-card-btn", "row-card-settings-button"],
