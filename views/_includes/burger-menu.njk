@@ -1,6 +1,18 @@
 {#- #882 -- the burger menu's shared shell (trigger button + popover chrome + theme toggle), rendered at BUILD time by 11ty instead of by climbing-burger-menu.js at runtime. The menu is in the HTML on first byte, so it never waits on a script to appear (ADR-0023's instant-shell goal), and what each page family shows lives in its own menu-*.njk include -- adding a family means adding a file, not another conditional in a shared component. climbing-burger-menu.js is now behaviour only (setSyncState). -#}
 {% macro burgerMenu() %}
 <climbing-burger-menu>
+  <!-- #893 -- a screen-reader announcement for sync starting/finishing,
+       separate from the visible #menu-status-row: that row lives inside
+       #header-menu-popover, which is `hidden` while the menu is closed --
+       exactly when a background sync actually happens -- so an aria-live
+       region there would announce nothing until the user opened the
+       menu. sr-only (not `hidden`), and outside the popover, so it stays
+       in the accessibility tree regardless of open/closed state.
+       climbing-burger-menu.js only writes to this on a real state
+       transition (idle->working, working/offline->idle, any->offline),
+       not on every setSyncState() call, so a sync that's merely still in
+       progress doesn't re-announce. -->
+  <div class="sr-only" id="menu-sync-announce" aria-live="polite"></div>
   <div class="relative" id="header-menu-wrap">
     <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none" id="header-menu-btn" aria-haspopup="true" aria-expanded="false" aria-label="Menu">
       <span class="menu-sync-glow" aria-hidden="true"></span>
