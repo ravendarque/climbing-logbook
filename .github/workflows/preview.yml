@@ -31,6 +31,24 @@ permissions:
 
 jobs:
   preview:
+    # #895 -- GitHub withholds Actions secrets from Dependabot-triggered
+    # runs (they're treated like fork PRs: `secrets.*` resolves to empty
+    # and GITHUB_TOKEN is read-only), so CLOUDFLARE_API_TOKEN arrives
+    # blank and every wrangler step below dies with "In a non-interactive
+    # environment, it's necessary to set a CLOUDFLARE_API_TOKEN" -- a
+    # permanently red check on every Dependabot PR, which trains you to
+    # ignore red checks on exactly the PRs (dependency bumps) where a
+    # real failure matters most. The alternative -- putting the token in
+    # the separate Dependabot secrets store -- was rejected: this job
+    # installs and builds the *newly bumped* dependency tree, so that
+    # means a live Cloudflare deploy credential in the environment while
+    # unreviewed third-party install scripts run.
+    #
+    # Keyed on github.actor, not the PR author, because the actor is
+    # precisely what decides whether secrets are withheld: a human push
+    # to a Dependabot branch runs with real secrets, and this condition
+    # lets that build its preview normally.
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
