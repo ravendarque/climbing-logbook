@@ -36,6 +36,29 @@ hand-edited). Regular Tailwind utility classes composed inline are not
 cataloged individually here; only the custom, named, reused-across-pages
 utilities are.
 
+## `error-message`
+
+**Definition:** `styles/tailwind.css`. A tinted, bordered box for a form's
+failure state: `.75rem 1rem` padding, `var(--radius-app)` corners, a 12%-red
+background mix, a 40%-red border, `.9rem` `var(--color-error)` text. No
+margin baked in — add your own (`mt-[.85rem]` inside a modal,
+`mb-4` between stacked auth-page fields).
+
+**When to use:** the one shared treatment for "this form failed" —
+`client/entry-form.js`'s entry errors, `client/place-picker.js`'s add-place
+errors, and the login/register/reset-password pages' own errors. Previously
+three copies of the same class string plus a visibly different bare-paragraph
+treatment on the auth pages (#894) — pick this over hand-copying the string
+again.
+
+| Dark | Light |
+|---|---|
+| ![error-message](ui-component-catalog/error-message-dark.png) | ![error-message](ui-component-catalog/error-message-light.png) |
+
+```html
+<p class="mb-4 error-message" role="alert" aria-live="assertive" tabindex="-1">Wrong email or password.</p>
+```
+
 ## `row-card`
 
 **Definition:** `styles/tailwind.css` (`@utility row-card`) — a plain
