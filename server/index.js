@@ -79,6 +79,13 @@ export default {
     const { hostname, pathname } = new URL(request.url);
     const method = request.method;
 
+    // THROWAWAY -- #889 header probe, never merged.
+    if (pathname === "/__header-probe") {
+      const h = {};
+      for (const [k, v] of request.headers) h[k] = v;
+      return new Response(JSON.stringify(h, null, 2), { headers: { "content-type": "application/json" } });
+    }
+
     // #113 -- my.<domain> hosts each user's public profile at /:username,
     // a single path segment with no further structure. Scoped narrowly on
     // purpose: no real DNS route binds a my.-prefixed hostname to this
