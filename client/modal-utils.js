@@ -233,7 +233,7 @@ export function focusableEls(overlay) {
 // stacking on top (z-[110] vs entry-overlay's z-[100]) -- so Escape needs
 // to close the topmost one first, not whichever happens to appear first
 // in the markup.
-const DEFAULT_OVERLAY_IDS = ["add-place-overlay", "entry-overlay", "notes-overlay", "footnote-overlay", "citations-overlay", "evidence-overlay"];
+const DEFAULT_OVERLAY_IDS = ["add-place-overlay", "entry-overlay", "notes-overlay", "footnote-overlay"];
 
 export function createModalHelpers(overlayIds = DEFAULT_OVERLAY_IDS) {
   let lastFocusedEl = null;
@@ -250,13 +250,13 @@ export function createModalHelpers(overlayIds = DEFAULT_OVERLAY_IDS) {
   }
 
   document.addEventListener("keydown", e => {
-    // filter(Boolean), not a bare map -- callers other than /logbook's
-    // own (#348) pass a narrower list scoped to overlays that actually
-    // exist on their page (e.g. no citations/evidence-overlay outside
-    // <climbing-grade-pyramid>, no footnote-overlay since
-    // <climbing-header> already owns that one itself), but getElementById
-    // returning null for an id that's never going to exist on any given
-    // page shouldn't throw on the next line's .hidden access.
+    // filter(Boolean), not a bare map -- every real call site passes its
+    // own narrower list scoped to overlays that actually exist on its
+    // page (e.g. no notes-overlay outside climbing-entries-table.js, no
+    // footnote-overlay since <climbing-header> already owns that one
+    // itself), but getElementById returning null for an id that's never
+    // going to exist on any given page shouldn't throw on the next
+    // line's .hidden access.
     const overlays = overlayIds.map(id => document.getElementById(id)).filter(Boolean);
     const openOverlay = overlays.find(o => !o.hidden);
     if (!openOverlay) return;
