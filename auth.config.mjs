@@ -31,5 +31,9 @@ export const auth = betterAuth({
   basePath: "/logbook/api/auth",
   secret: "cli-schema-generation-only",
   emailAndPassword: { enabled: true },
+  // #889 -- mirrors server/lib/auth.js's own rateLimit config, so this
+  // file's schema stays in sync with the real one for any future
+  // regeneration -- see that file's own comment for the full reasoning.
+  rateLimit: { enabled: true, storage: "database" },
   plugins: [username()],
 });

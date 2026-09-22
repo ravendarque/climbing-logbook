@@ -64,3 +64,4 @@ GitHub, the same treatment every other doc in this repo already gets.
 | [0024](0024-sync-status-timeout-on-the-fetch-not-the-animation.md) | Sync/offline status timeout belongs on the fetch, not on how long the animation runs | Accepted |
 | [0025](0025-static-asset-caching-hash-or-version-query.md) | Static asset caching: content hashes where the build provides them, versioned query strings where it doesn't | Accepted |
 | [0026](0026-local-preview-cant-validate-network-performance.md) | Local preview tooling can't validate real network performance — automated tests stop at cache correctness | Accepted |
+| [0027](0027-database-backed-rate-limiting-on-sign-in.md) | Database-backed rate limiting, not Better Auth's in-memory default | Accepted |

@@ -83,8 +83,23 @@
   // a prior version of this comment claimed the opposite, which appears
   // to have meant every PR preview silently ran with BETA_GATE_ENABLED
   // undefined -- falsy, so the gate was never actually enforced there).
+  // RATE_LIMITING_ENABLED (#889, ADR-0027): Better Auth's own rate
+  // limiting is only genuinely useful (a real client IP to key on,
+  // behind Cloudflare's real edge) on a real deployment. This top-level
+  // copy is what the vitest-pool-workers unit-test pool actually
+  // inherits by default (it targets no named environment) -- overridden
+  // back off there via vitest.config.js's own miniflare.bindings, same
+  // "synthetic test-only binding" pattern that file already uses for
+  // TURNSTILE_SECRET_KEY/RESEND_API_KEY. env.production/env.beta/
+  // env.preview each carry their OWN "true" copy below (not inherited
+  // from here, same as BETA_GATE_ENABLED) since that's what real deploys
+  // actually build against; env.e2e explicitly omits it. Not simply left
+  // to Better Auth's own isProduction default -- this Worker never sets
+  // NODE_ENV anywhere, so that default is always false regardless of
+  // which real environment is actually running.
   "vars": {
-    "BETA_GATE_ENABLED": "true"
+    "BETA_GATE_ENABLED": "true",
+    "RATE_LIMITING_ENABLED": "true"
   },
   // #295 -- climbinglogbook.com/my.climbinglogbook.com are the real
   // routes. The ravendarque.com/logbook* Workers Route that used to sit
@@ -170,8 +185,18 @@
     // already targets, not a parallel one.
     "production": {
       "name": "climbing-logbook",
+      // RATE_LIMITING_ENABLED (#889): same value/reasoning as the
+      // top-level `vars` above -- not inherited. Genuinely required here,
+      // not redundant with the top-level block: CLOUDFLARE_ENV=production
+      // (deploy.yml/promote.yml) makes @cloudflare/vite-plugin build
+      // against THIS block's own bindings, not the top-level ones --
+      // `wrangler deploy --env=""` afterward only decides which already-
+      // built script to upload to (this block's own explicit `name`
+      // above makes that resolve to the same script either way), it
+      // doesn't pull the top-level `vars` back in.
       "vars": {
-        "BETA_GATE_ENABLED": "true"
+        "BETA_GATE_ENABLED": "true",
+        "RATE_LIMITING_ENABLED": "true"
       },
       "d1_databases": [
         { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook", "database_id": "8f094438-520c-4a67-a685-aee3db6198ad", "migrations_dir": "migrations" }
@@ -193,9 +218,17 @@
       // this purpose (never do this with the real secret). Deliberately
       // has no equivalent at the top level -- production gets the real
       // value via `wrangler secret put` only, no `vars` default.
+      // RATE_LIMITING_ENABLED (#889): same value/reasoning as the
+      // top-level `vars` above -- not inherited. A real PR preview is a
+      // real Cloudflare deployment behind the real edge (cf-connecting-ip
+      // genuinely resolves there, confirmed empirically against #906's
+      // own preview), unlike env.e2e below, which shares this same
+      // env.preview D1 database but is never actually deployed to
+      // Cloudflare at all.
       "vars": {
         "BETA_GATE_ENABLED": "true",
-        "TURNSTILE_SECRET_KEY": "1x0000000000000000000000000000000AA"
+        "TURNSTILE_SECRET_KEY": "1x0000000000000000000000000000000AA",
+        "RATE_LIMITING_ENABLED": "true"
       },
       // Own D1 database, disposable preview data -- manually bootstrapped
       // (`wrangler d1 create climbing-logbook-preview`), not
@@ -208,6 +241,28 @@
       // shared-data risk after). Caught 2026-08-05 when Raven asked for
       // #320's PR preview login credentials -- there weren't any, and
       // signing up there would have written into production.
+      "d1_databases": [
+        { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook-preview", "database_id": "845753a5-abfc-4d74-995b-94d802b4964e", "migrations_dir": "migrations" }
+      ]
+    },
+    // #889 -- e2e's own environment, split off from env.preview: both
+    // used to share it, which meant no way to tell "a real PR preview,
+    // reachable via Cloudflare's real edge" apart from "e2e's local
+    // `vite preview` process, never actually deployed to Cloudflare at
+    // all" -- and Better Auth's rate limiter genuinely needs to behave
+    // differently between the two (see RATE_LIMITING_ENABLED's own
+    // comment above). Otherwise identical to env.preview, including its
+    // D1 database -- e2e only ever reaches it through Miniflare's local
+    // simulation (confirmed: nothing in this project's e2e tooling passes
+    // `--remote`), so sharing the id is harmless; env.e2e isn't a real,
+    // independently-deployable environment, just a config split.
+    "e2e": {
+      "workers_dev": true,
+      "routes": [],
+      "vars": {
+        "BETA_GATE_ENABLED": "true",
+        "TURNSTILE_SECRET_KEY": "1x0000000000000000000000000000000AA"
+      },
       "d1_databases": [
         { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook-preview", "database_id": "845753a5-abfc-4d74-995b-94d802b4964e", "migrations_dir": "migrations" }
       ]
@@ -235,8 +290,12 @@
       // NOT duplicated here (unlike env.preview) -- beta serves real
       // users with real data, so it needs the real production secret via
       // `wrangler secret put --env=beta`, not the public test key.
+      // RATE_LIMITING_ENABLED (#889): same value/reasoning as the
+      // top-level `vars` above -- not inherited, see that block's own
+      // comment.
       "vars": {
-        "BETA_GATE_ENABLED": "true"
+        "BETA_GATE_ENABLED": "true",
+        "RATE_LIMITING_ENABLED": "true"
       },
       "d1_databases": [
         { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook", "database_id": "8f094438-520c-4a67-a685-aee3db6198ad", "migrations_dir": "migrations" }
