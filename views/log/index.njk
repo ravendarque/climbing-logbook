@@ -63,7 +63,7 @@ staticShellNote: |-
 <div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-start justify-center px-4 py-6 overflow-y-auto" id="entry-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="entry-modal-title" tabindex="-1">
   <div class="bg-background border border-border rounded-app p-5 w-full max-w-[460px]">
     <div class="flex items-center justify-between mb-4">
-      <h2 class="text-[1.15rem] font-bold text-accent" id="entry-modal-title">Add entry</h2>
+      <h2 class="section-heading text-accent mb-0" id="entry-modal-title">Add entry</h2>
       <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-[1.1rem] leading-none p-[.2rem] hover:text-foreground" id="entry-close" aria-label="Close">✕</button>
     </div>
 
@@ -343,14 +343,14 @@ staticShellNote: |-
            reaches this page). -->
       <div class="w-full shrink-0" id="entry-page-2" tabindex="-1">
         <div class="mt-2" id="exertion-field" hidden>
-          <h3 class="text-[.95rem] font-bold text-foreground mb-1" id="exertion-field-label">Exertion</h3>
+          <h3 class="section-heading" id="exertion-field-label">Exertion</h3>
           <p class="text-[.75rem] text-muted mb-2">Feeds your Effort / RPE Trend view.</p>
           <input type="range" class="w-full accent-accent" id="exertion-slider" min="0" max="100" step="10" value="0" aria-labelledby="exertion-field-label" aria-describedby="exertion-value">
           <div class="text-center text-[.85rem] text-foreground mt-1" id="exertion-value">Not set</div>
         </div>
 
         <div class="mt-6">
-          <h3 class="text-[.95rem] font-bold text-foreground mb-1">Attempts</h3>
+          <h3 class="section-heading">Attempts</h3>
           <!-- #738 -- was hardcoded to sport's own onsight/redpoint
                wording regardless of which discipline is actually
                active; text set dynamically by entry-form.js's
@@ -374,7 +374,7 @@ staticShellNote: |-
         </div>
 
         <div class="mt-6">
-          <h3 class="text-[.95rem] font-bold text-foreground mb-1">Move difficulty</h3>
+          <h3 class="section-heading">Move difficulty</h3>
           <p class="text-[.75rem] text-muted mb-2">Feeds your Strengths / Weaknesses view.</p>
           <div class="text-[.8rem] font-semibold text-foreground mb-1">Hardest moves for you</div>
           <div id="hardest-moves-list"></div>
@@ -386,7 +386,7 @@ staticShellNote: |-
         </div>
 
         <div class="mt-6">
-          <h3 class="text-[.95rem] font-bold text-foreground mb-1">Pain/injury during this climb</h3>
+          <h3 class="section-heading">Pain/injury during this climb</h3>
           <p class="text-[.75rem] text-muted mb-2">Feeds your Injury / Pain Log.</p>
           <div id="pain-moves-list"></div>
           <button type="button" class="text-[.85rem] font-semibold text-accent bg-transparent border-0 cursor-pointer p-0" id="pain-moves-add" aria-label="Add a pain/injury move">+ Add a move</button>
