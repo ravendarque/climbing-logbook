@@ -32,13 +32,16 @@ staticShellNote: |-
 
   <h1 class="page-title">Grade Pyramid</h1>
 
-  <!-- #601 -- shorter than the other 5 views' explainer block on
-       purpose: <climbing-grade-pyramid> already renders its own rich
-       "what this shows"/"how to read it" copy internally (#window-note,
-       #health-card) -- this just adds the one thing that's missing,
-       which field it's built from, without duplicating what the
-       component already explains. -->
-  <p class="text-[.78rem] text-muted mb-3" id="view-explainer">Built from every send's grade.</p>
+  <!-- #911 -- same opener+explanation shape as the other 5 views'
+       #view-explainer (#620), previously a single vapid line here. Kept
+       genuinely short, not a copy of <climbing-grade-pyramid>'s own rich
+       "what this shows"/"how to read it" copy (#window-note,
+       #health-card) -- this just adds the hook and names the field it's
+       built from, without duplicating the component's own mechanics. -->
+  <div class="mb-5" id="view-explainer">
+    <p class="text-[.95rem] text-foreground leading-[1.7]">How your sends stack up by grade — a shape that shows whether your base can support the ceiling you're pushing toward.</p>
+    <p class="text-[.82rem] text-muted leading-[1.7] mt-2">Built from every send's <strong class="text-foreground font-semibold">grade</strong> — no attempts, exertion, or notes factored in, just how many climbs you closed out at each level.</p>
+  </div>
 
   <!-- #737 -- which of this discipline's scales the pyramid below
        renders row grades in; client/report-grade-scale-picker.js, same
