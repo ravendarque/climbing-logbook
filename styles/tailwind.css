@@ -312,6 +312,29 @@
   border-color: var(--color-accent);
 }
 
+/* #913 -- back navigation ("Performance Insights", "My Account", "My
+   Climbing Logbook") isn't a call to action, so it shouldn't carry a
+   CTA's visual weight -- deliberately NOT .btn: no fill, no border. A
+   bare-muted-text version of this was tried on the My Account page and
+   reverted (#457) for reading as "not visibly a button" at all; this
+   keeps enough weight to still register as interactive without a
+   button's box -- an icon, semibold text-foreground (not text-muted),
+   and a real hover/focus state, same as any other in-page link. */
+@utility back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .4rem 0;
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--color-foreground);
+  cursor: pointer;
+
+  &:hover, &:focus-visible {
+    color: var(--color-accent);
+  }
+}
+
 /* #722 -- the discipline picker's own collapse/expand indicator glyph,
    plain CSS rather than two competing rotate-* Tailwind utilities on
    the same element: confirmed empirically that toggling the `rotate`
