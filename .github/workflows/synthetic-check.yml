@@ -17,11 +17,24 @@ name: Synthetic production check
 #   gh secret set SYNTHETIC_USER_EMAIL
 #   gh secret set SYNTHETIC_USER_PASSWORD
 #
-# Deliberately does NOT auto-file a GitHub issue on failure -- a failing
-# scheduled run is already loud (visible in the Actions tab, and GitHub
-# emails the repo owner on a scheduled-workflow failure by default);
-# auto-filing on top of that would spam an issue per flaky/transient
-# failure instead of a real deploy regression.
+# Deliberately does NOT auto-file a GitHub issue on every failure -- a
+# failing scheduled run is already loud (visible in the Actions tab, and
+# GitHub emails the repo owner on a scheduled-workflow failure by
+# default); auto-filing on top of that would spam an issue per flaky/
+# transient failure instead of a real deploy regression.
+#
+# #891 -- the one narrow exception: notify-on-repeated-failure below
+# files a single issue when the check fails on TWO CONSECUTIVE real
+# deploys (workflow_run-triggered only -- the schedule-triggered runs
+# above never participate in this at all, same noise concern the no-
+# auto-file decision above was about). Notification only, deliberately
+# not automatic rollback -- promote.yml's own workflow_dispatch already
+# makes redeploying a known-good prior tag a one-input manual operation,
+# and an auto-revert risks rolling back to a tag that has the identical
+# problem if the break isn't actually in the code (a live Cloudflare
+# blip, an expired cert) -- a human looking is the safer default here,
+# same reasoning the no-auto-file decision above already established for
+# a single failure, just re-applied one confirmed-real-regression later.
 on:
   workflow_run:
     workflows: [Deploy]
@@ -51,3 +64,56 @@ jobs:
         env:
           SYNTHETIC_USER_EMAIL: ${{ secrets.SYNTHETIC_USER_EMAIL }}
           SYNTHETIC_USER_PASSWORD: ${{ secrets.SYNTHETIC_USER_PASSWORD }}
+
+  # #891 -- only for a real Deploy-triggered failure (the `if` below),
+  # never for a scheduled run -- see this file's own header comment for
+  # why the two are treated so differently. No persistent counter to
+  # maintain: GitHub already keeps this workflow's own run history, so
+  # "was the immediately-preceding workflow_run-triggered run ALSO a
+  # failure" is answered by reading that history directly rather than
+  # tracking state of our own that could itself drift out of sync.
+  notify-on-repeated-failure:
+    needs: check
+    if: github.event_name == 'workflow_run' && needs.check.result == 'failure'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Check whether the previous Deploy-triggered run also failed
+        id: history
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # --status completed, not --limit 2 off the raw list: THIS run
+          # (the one notify-on-repeated-failure is itself part of) hasn't
+          # completed yet at this point -- only its `check` job has -- so
+          # it wouldn't have a real conclusion to compare against anyway,
+          # and needs.check.result == 'failure' above already establishes
+          # it as failure #1. This finds failure #2's candidate: the most
+          # recent workflow_run-triggered run that HAS actually finished.
+          #
+          # --workflow takes this file's own filename, not
+          # ${{ github.workflow }} -- that resolves to the `name:` field
+          # above ("Synthetic production check"), which `gh run list`
+          # does NOT match against (confirmed empirically: the name form
+          # errors "could not find any workflows named ...", the filename
+          # form works) -- hardcoded rather than silently wrong.
+          PREVIOUS=$(gh run list --repo "${{ github.repository }}" --workflow synthetic-check.yml --event workflow_run --status completed --limit 1 --json conclusion --jq '.[0].conclusion // empty')
+          echo "previous=$PREVIOUS" >> "$GITHUB_OUTPUT"
+
+      - name: File a single issue -- two consecutive real-deploy failures, not one scheduled blip
+        if: steps.history.outputs.previous == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          printf '%s\n\n%s\n\n%s\n' \
+            "The post-deploy synthetic check has now failed on two consecutive real deploys, not a single scheduled blip -- see this run: $RUN_URL" \
+            "A previously-known-good tag can be redeployed via promote.yml's own \`workflow_dispatch\` (defaults to the latest tag; pass a specific earlier one instead if that's not the right target)." \
+            "Filed automatically by \`notify-on-repeated-failure\` in synthetic-check.yml -- see #891 for why this notifies rather than auto-promoting." \
+            > issue-body.md
+          gh issue create --repo "${{ github.repository }}" \
+            --title "Synthetic check failed on two consecutive deploys -- production may be broken" \
+            --label bug \
+            --body-file issue-body.md
