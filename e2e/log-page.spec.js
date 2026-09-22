@@ -1327,7 +1327,7 @@ test("#847 -- the sync status ring actually disappears (not just the data attrib
 // at all -- the ring alone (previous test) only proves the background-
 // activity signal reaches the button, not that a user opening the menu
 // during that window sees a real explanation of what's happening.
-test("#847 -- the burger menu shows a status row while syncing; #878 -- Help is always present regardless", async ({ page }) => {
+test("#847 -- the burger menu shows a status row while syncing; #878 -- Help is always present regardless; #893 -- the sync live region announces start and completion", async ({ page }) => {
   await mockApi(page, SEED);
   await page.route("**/logbook/api/auth/get-session", async route => {
     await new Promise(r => setTimeout(r, 400));
@@ -1335,23 +1335,32 @@ test("#847 -- the burger menu shows a status row while syncing; #878 -- Help is 
   });
   await page.goto("/e2e-fixtures/pages/log.html");
 
+  // #893 -- asserted with the menu still CLOSED (no click yet): the live
+  // region lives outside #header-menu-popover specifically so it
+  // announces while the menu is closed, which is when a background sync
+  // actually happens. Asserting this before the click below is the
+  // whole point of the test, not an oversight.
+  await expect(page.locator("#menu-sync-announce")).toHaveText("Syncing…");
+
   await page.locator("#header-menu-btn").click();
   await expect(page.locator("#menu-status-row")).toBeVisible();
   await expect(page.locator("#menu-status-text")).toHaveText("Status: Syncing…");
   await expect(page.locator("#menu-help-link")).toHaveAttribute("href", "/help/");
 
   await expect(page.locator("#menu-status-row")).toBeHidden({ timeout: 5000 });
+  await expect(page.locator("#menu-sync-announce")).toHaveText("Synced.");
   // #878 -- unlike menu-status-row above, Help never depended on sync
   // state -- still there and still pointing at /help once syncing ends.
   await expect(page.locator("#menu-help-link")).toBeVisible();
 });
 
-test("#847 -- going offline turns the burger menu ring solid red and updates the status row", async ({ page }) => {
+test("#847 -- going offline turns the burger menu ring solid red and updates the status row; #893 -- and announces it", async ({ page }) => {
   await gotoLogHarness(page);
 
   await page.context().setOffline(true);
   try {
     await expect(page.locator("#header-menu-btn")).toHaveAttribute("data-sync-state", "offline");
+    await expect(page.locator("#menu-sync-announce")).toHaveText("You're offline. Changes will sync when you're back online.");
     await page.locator("#header-menu-btn").click();
     await expect(page.locator("#menu-status-text")).toHaveText("Status: Offline");
   } finally {
@@ -1360,4 +1369,41 @@ test("#847 -- going offline turns the burger menu ring solid red and updates the
     // this worker's context inherits a simulated offline network.
     await page.context().setOffline(false);
   }
+});
+
+// #893 -- a same-state setSyncState("working") call (multiple in-flight
+// promises settling independently while at least one is still pending)
+// must NOT re-announce -- only a real transition should. Forces that by
+// racing two slow, independently-timed background fetches: the sync
+// status icon calls setSyncState("working") once when the first starts,
+// and would call it again when the second settles if it only tracked
+// in-flight count naively, but the burger menu's own transition check
+// (previous !== state) is what actually stops the re-announce -- this
+// test exercises that specific guard, not just the icon's own counter.
+test("#893 -- the live region doesn't re-announce while already syncing", async ({ page }) => {
+  await mockApi(page, SEED);
+  await page.route("**/logbook/api/auth/get-session", async route => {
+    await new Promise(r => setTimeout(r, 300));
+    await route.fulfill({ json: { session: { id: "s1" }, user: { id: "u1", username: "e2euser", email: "e2e@example.com" } } });
+  });
+  await page.route("**/logbook/api/settings", async route => {
+    await new Promise(r => setTimeout(r, 600));
+    await route.fulfill({ json: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true } });
+  });
+  await page.goto("/e2e-fixtures/pages/log.html");
+
+  await expect(page.locator("#menu-sync-announce")).toHaveText("Syncing…");
+  // Clear it so a spurious re-announce (the bug this test guards
+  // against) would be visible as the text coming back, not just staying
+  // put by coincidence.
+  await page.evaluate(() => { document.getElementById("menu-sync-announce").textContent = ""; });
+
+  // The session fetch (300ms) settles here, well before the slower
+  // settings fetch (600ms) -- if setSyncState("working") fired again on
+  // that first settle (inFlight still >0), the cleared text above would
+  // come back.
+  await page.waitForTimeout(400);
+  await expect(page.locator("#menu-sync-announce")).toHaveText("");
+
+  await expect(page.locator("#menu-sync-announce")).toHaveText("Synced.", { timeout: 5000 });
 });
