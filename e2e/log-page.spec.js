@@ -1374,20 +1374,36 @@ test("#847 -- going offline turns the burger menu ring solid red and updates the
 // #893 -- a same-state setSyncState("working") call (multiple in-flight
 // promises settling independently while at least one is still pending)
 // must NOT re-announce -- only a real transition should. Forces that by
-// racing two slow, independently-timed background fetches: the sync
-// status icon calls setSyncState("working") once when the first starts,
-// and would call it again when the second settles if it only tracked
-// in-flight count naively, but the burger menu's own transition check
-// (previous !== state) is what actually stops the re-announce -- this
-// test exercises that specific guard, not just the icon's own counter.
+// racing two background fetches: the sync status icon calls
+// setSyncState("working") once when the first starts, and would call it
+// again when the second settles if it only tracked in-flight count
+// naively, but the burger menu's own transition check (previous !==
+// state) is what actually stops the re-announce -- this test exercises
+// that specific guard, not just the icon's own counter.
+//
+// Event-driven, not time-driven (found genuinely flaky, 2026-09-22, not
+// a one-off: an earlier version gated the two mocked routes on fixed
+// setTimeout delays -- 300ms/600ms -- and asserted the announcement was
+// still empty at a fixed 400ms wait, betting that real wall-clock
+// scheduling would reliably land inside that 300ms gap. It didn't,
+// reproducibly, under real test-runner load. Each route below is held
+// open by its own Node-side deferred promise instead, resolved by the
+// test on demand -- "has the session fetch settled but not settings" is
+// then a guaranteed fact, not a timing bet, and page.waitForResponse()
+// (already this file's own established pattern elsewhere) confirms each
+// real settlement rather than sleeping past it.
 test("#893 -- the live region doesn't re-announce while already syncing", async ({ page }) => {
+  let releaseSession, releaseSettings;
+  const sessionGate = new Promise(r => { releaseSession = r; });
+  const settingsGate = new Promise(r => { releaseSettings = r; });
+
   await mockApi(page, SEED);
   await page.route("**/logbook/api/auth/get-session", async route => {
-    await new Promise(r => setTimeout(r, 300));
+    await sessionGate;
     await route.fulfill({ json: { session: { id: "s1" }, user: { id: "u1", username: "e2euser", email: "e2e@example.com" } } });
   });
   await page.route("**/logbook/api/settings", async route => {
-    await new Promise(r => setTimeout(r, 600));
+    await settingsGate;
     await route.fulfill({ json: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true } });
   });
   await page.goto("/e2e-fixtures/pages/log.html");
@@ -1398,12 +1414,18 @@ test("#893 -- the live region doesn't re-announce while already syncing", async 
   // put by coincidence.
   await page.evaluate(() => { document.getElementById("menu-sync-announce").textContent = ""; });
 
-  // The session fetch (300ms) settles here, well before the slower
-  // settings fetch (600ms) -- if setSyncState("working") fired again on
-  // that first settle (inFlight still >0), the cleared text above would
-  // come back.
-  await page.waitForTimeout(400);
+  const sessionSettled = page.waitForResponse(res => res.url().includes("/logbook/api/auth/get-session"));
+  releaseSession();
+  await sessionSettled;
+  // Settings is still held open (releaseSettings() hasn't been called) --
+  // if setSyncState("working") fired again on the session settling
+  // (inFlight still >0 from settings), the cleared text above would come
+  // back. Guaranteed by construction, not a wait long enough to probably
+  // catch it.
   await expect(page.locator("#menu-sync-announce")).toHaveText("");
 
-  await expect(page.locator("#menu-sync-announce")).toHaveText("Synced.", { timeout: 5000 });
+  const settingsSettled = page.waitForResponse(res => res.url().includes("/logbook/api/settings"));
+  releaseSettings();
+  await settingsSettled;
+  await expect(page.locator("#menu-sync-announce")).toHaveText("Synced.");
 });
