@@ -39,13 +39,14 @@
 // exists specifically so "production" is a real, validated name here
 // too, not an implicit fallback from omitting the variable.
 //
-// Also used, with CLOUDFLARE_ENV=preview, to serve the e2e suite's
-// webServer (playwright.config.js) via `vite preview` -- Cloudflare's
-// own documented purpose for that command ("previewing your build
-// output in the Workers runtime prior to deployment"), replacing the
-// `wrangler dev`-based serving this project used before #774. `preview
-// .port` below is pinned to match playwright.config.js's own hardcoded
-// PORT constant.
+// Also used, with CLOUDFLARE_ENV=e2e (env.e2e, wrangler.jsonc -- split
+// off from env.preview by #889, see that block's own comment), to serve
+// the e2e suite's webServer (playwright.config.js) via `vite preview` --
+// Cloudflare's own documented purpose for that command ("previewing your
+// build output in the Workers runtime prior to deployment"), replacing
+// the `wrangler dev`-based serving this project used before #774.
+// `preview.port` below is pinned to match playwright.config.js's own
+// hardcoded PORT constant.
 import { defineConfig } from "vite";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import { CLIENT_ENTRIES } from "./vite.entries.mjs";

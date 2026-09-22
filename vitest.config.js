@@ -87,6 +87,20 @@ export default defineConfig({
                 // whether a developer's local .dev.vars (gitignored, may
                 // or may not be present) sets the real dummy secret.
                 TURNSTILE_SECRET_KEY: "test-secret-fetch-is-always-stubbed",
+                // #889 -- this pool targets no named wrangler environment
+                // (no `environmentName` above), so it inherits the
+                // top-level config's own vars, including
+                // RATE_LIMITING_ENABLED: "true" (that var's own comment
+                // in wrangler.jsonc explains why it's there at all).
+                // Overridden back off here: this pool has no real client
+                // IP for Better Auth's rate limiter to key on, and many
+                // test files legitimately make several auth calls in
+                // quick succession (including against real-looking
+                // hostnames, e.g. test/owned-routes.test.js's own
+                // "climbinglogbook.com" -- deliberately for unrelated
+                // reasons, see that file), which would otherwise collide
+                // on one shared rate-limit bucket and fail on a real 429.
+                RATE_LIMITING_ENABLED: "false",
               },
             },
           }),

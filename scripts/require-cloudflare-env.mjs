@@ -16,7 +16,7 @@
  * than three copies of the same shell check across deploy.yml/promote.yml/
  * preview.yml.
  */
-const VALID_ENVIRONMENTS = ["production", "beta", "preview"];
+const VALID_ENVIRONMENTS = ["production", "beta", "preview", "e2e"];
 
 const value = process.env.CLOUDFLARE_ENV;
 

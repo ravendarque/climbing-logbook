@@ -34,6 +34,6 @@ export const auth = betterAuth({
   // #889 -- mirrors server/lib/auth.js's own rateLimit config, so this
   // file's schema stays in sync with the real one for any future
   // regeneration -- see that file's own comment for the full reasoning.
-  rateLimit: { storage: "database" },
+  rateLimit: { enabled: true, storage: "database" },
   plugins: [username()],
 });

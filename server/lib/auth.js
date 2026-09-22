@@ -153,18 +153,48 @@ export function createAuth(env, hostname) {
     secret: env.BETTER_AUTH_SECRET,
     trustedOrigins: TRUSTED_ORIGINS,
     baseURL: { allowedHosts: ALLOWED_HOSTS },
-    // #889 -- storage: "database" (a real D1 table, migrations/
-    // 0017_add_rate_limit.sql), not the default in-memory storage --
-    // confirmed empirically (against a real deployed beta Worker) that
-    // in-memory storage does nothing on Cloudflare Workers: each isolate
-    // keeps its own counter starting at zero, so 12 real sequential
-    // POST /sign-in/email requests over 6 seconds all sailed through with
-    // a normal 401, never the 429 the built-in 3-per-10s sign-in rule
-    // should have produced from request #4 onward. Leaves every other
-    // rate-limit default as-is (100req/60s globally, the stricter
-    // sign-in-specific rule) -- this only fixes WHERE counters live, not
-    // the rules themselves, which #529's own audit already covers.
-    rateLimit: { storage: "database" },
+    // #889 -- two independent bugs, both found by verifying empirically
+    // rather than trusting Better Auth's own defaults:
+    //
+    // 1. enabled defaults to `options.rateLimit?.enabled ?? isProduction`
+    //    (node_modules/better-auth/dist/context/create-context.mjs), and
+    //    isProduction is `process.env.NODE_ENV === "production"`
+    //    (@better-auth/core/env) -- a Node.js convention this Cloudflare
+    //    Worker has never set anywhere (confirmed: no NODE_ENV in
+    //    wrangler.jsonc). Rate limiting was disabled outright, in every
+    //    environment including real production traffic, not merely
+    //    broken by storage -- explicit `enabled: true` regardless of
+    //    NODE_ENV, since this Worker has no such concept to defer to.
+    // 2. storage: "database" (a real D1 table, migrations/
+    //    0017_add_rate_limit.sql), not the default in-memory storage --
+    //    confirmed empirically (against a real deployed beta Worker,
+    //    with enabled forced true for the test) that in-memory storage
+    //    also does nothing on Cloudflare Workers: each isolate keeps its
+    //    own counter starting at zero, so repeated sequential requests
+    //    within the window all sailed through rather than being rejected
+    //    from the 4th request onward.
+    //
+    // Leaves every other rate-limit default as-is (100req/60s globally,
+    // the stricter sign-in-specific rule) -- this only fixes whether
+    // limiting runs at all and where its counters live, not the rules
+    // themselves, which #529's own audit already covers.
+    //
+    // env.RATE_LIMITING_ENABLED (wrangler.jsonc, that var's own comment
+    // has the full reasoning): "true" only on a real deployment (real
+    // production/beta/PR-preview traffic, all genuinely behind
+    // Cloudflare's edge, where cf-connecting-ip actually resolves).
+    // Absent for local dev, vitest-pool-workers, and env.e2e -- none of
+    // those have a real client IP for Better Auth's rate limiter to key
+    // on, so without this it would fall back to one shared bucket per
+    // path, and this app's own test suites make plenty of legitimate
+    // back-to-back auth calls that would collide on it and fail on a
+    // real 429, not a bug in what they're actually testing. Hostname
+    // alone can't drive this decision -- test/owned-routes.test.js
+    // deliberately constructs requests against real-looking hostnames
+    // (climbinglogbook.com) to exercise crossSubDomainCookies above, so
+    // "does this look like a real hostname" and "is this actually a real
+    // deployment" are genuinely different questions here.
+    rateLimit: { enabled: env.RATE_LIMITING_ENABLED === "true", storage: "database" },
     advanced: {
       // Dynamic baseURL (allowedHosts) defaults trustedProxyHeaders to
       // true (confirmed against better-auth's own installed source,

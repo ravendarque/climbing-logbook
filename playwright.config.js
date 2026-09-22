@@ -51,14 +51,20 @@ export default defineConfig({
     // all (see vite.config.js's own comment for why); `vite preview` is
     // Cloudflare's own documented mechanism for "serve a real build in
     // the Workers runtime before deploying," which is exactly what e2e
-    // needs. CLOUDFLARE_ENV=preview (env.preview, wrangler.jsonc) is
-    // required at build time by deploy:build's own guard
-    // (scripts/require-cloudflare-env.mjs) -- e2e gets its own bound D1
-    // database this way, same isolation env.preview's PR-preview
-    // deploys (preview.yml) already rely on, not production's.
+    // needs. CLOUDFLARE_ENV=e2e (env.e2e, wrangler.jsonc) is required at
+    // build time by deploy:build's own guard (scripts/require-cloudflare-
+    // env.mjs) -- e2e gets its own bound D1 database this way, same
+    // isolation env.preview's PR-preview deploys (preview.yml) already
+    // rely on, not production's. #889 -- env.e2e split off from
+    // env.preview specifically (was "preview" until then): a local `vite
+    // preview` process is never actually deployed to Cloudflare, unlike
+    // real PR previews, and Better Auth's rate limiter needs to know the
+    // difference (env.e2e's own comment in wrangler.jsonc has the full
+    // reasoning) -- everything else about the two environments stays
+    // identical, including which D1 database they point at.
     command: "pnpm run html:build && pnpm run tailwind:build && pnpm run e2e:build-fixtures && pnpm run deploy:build && vite preview --config vite.deploy.config.js",
     env: {
-      CLOUDFLARE_ENV: "preview",
+      CLOUDFLARE_ENV: "e2e",
     },
     // /login/, not /logbook/ (retired, #375) -- just needs a real, always-
     // reachable static page to poll for readiness, unrelated to what any
