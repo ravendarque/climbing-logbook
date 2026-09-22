@@ -18,7 +18,7 @@
 import { expect, test } from "@playwright/test";
 import { mockApi } from "./mock-api.js";
 
-test("shows the not-enough-data message and empty log with no pain-tagged entries", async ({ page }) => {
+test("shows the not-enough-data message, empty log, and Sources section with no pain-tagged entries", async ({ page }) => {
   await mockApi(page, {
     settings: { athleteMode: true, activeDiscipline: "boulder" },
     injuryData: { log: [], cluster: null },
@@ -32,6 +32,8 @@ test("shows the not-enough-data message and empty log with no pain-tagged entrie
   await expect(page.locator("#view-explainer")).toContainText("Pain/injury tags");
   await expect(page.locator("#injury-headline")).toContainText("Not enough data yet");
   await expect(page.locator("#injury-log-empty")).toBeVisible();
+  // #797 -- the inline, always-visible citation this page ends on.
+  await expect(page.locator("body")).toContainText("Miro");
 });
 
 test("renders the ranked headline and log rows when a cluster clears the confidence gate", async ({ page }) => {

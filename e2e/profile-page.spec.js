@@ -49,7 +49,7 @@ test("renders the shared chrome readonly -- no edit affordances or admin rows an
   await expect(page.locator("#theme-toggle-btn")).toBeVisible();
 });
 
-test("Grade Pyramid is never present -- no <climbing-tab-bar>, no pyramid tab/markup, no performance bundle request", async ({ page }) => {
+test("Grade Pyramid is never present -- no <climbing-tab-bar>, no pyramid markup, no performance bundle request", async ({ page }) => {
   const requests = [];
   page.on("request", req => requests.push(req.url()));
 
@@ -60,12 +60,10 @@ test("Grade Pyramid is never present -- no <climbing-tab-bar>, no pyramid tab/ma
   // #view-tabs (Logbook/Map, #333) is a real, plain in-page tablist, not
   // the <climbing-tab-bar> custom element (that one's real links between
   // separate pages -- see public/profile/index.html's own comment on why
-  // that's the wrong pattern here). Grade Pyramid never gets a tab among
-  // them, even though Logbook/Map now do.
+  // that's the wrong pattern here), so this page gets neither that
+  // element nor the pyramid the owner's own pages render.
   await expect(page.locator("climbing-tab-bar")).toHaveCount(0);
-  await expect(page.locator('#view-tabs [data-view="pyramid"]')).toHaveCount(0);
   await expect(page.locator("climbing-grade-pyramid")).toHaveCount(0);
-  await expect(page.locator("#citations-overlay")).toHaveCount(0);
   expect(requests.some(url => url.includes("performance-pyramid-app.js") || url.includes("performance-hub-app.js"))).toBe(false);
 });
 

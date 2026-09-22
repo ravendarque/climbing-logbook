@@ -6,7 +6,7 @@
 import { expect, test } from "@playwright/test";
 import { mockApi } from "./mock-api.js";
 
-test("shows the not-enough-data message with no tagged moves", async ({ page }) => {
+test("shows the not-enough-data message and Sources section with no tagged moves", async ({ page }) => {
   await mockApi(page, {
     settings: { athleteMode: true, activeDiscipline: "boulder" },
     strengthsData: { headline: null, anchors: [] },
@@ -20,6 +20,8 @@ test("shows the not-enough-data message with no tagged moves", async ({ page }) 
   await expect(page.locator("#view-explainer")).toContainText("Move difficulty tags");
   await expect(page.locator("#strengths-headline")).toContainText("Not enough data yet");
   await expect(page.locator("#strengths-anchor-select")).toHaveCount(0);
+  // #797 -- the inline, always-visible citation this page ends on.
+  await expect(page.locator("body")).toContainText("MacLeod");
 });
 
 test("#604 -- hides the drill-down picker when anchors exist but no cell clears the confidence gate", async ({ page }) => {
