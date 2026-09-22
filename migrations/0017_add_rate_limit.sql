@@ -1,0 +1,20 @@
+-- Better Auth's own rateLimit table (#889) -- database-backed rate-limit
+-- counters, replacing the default in-memory storage. Confirmed empirically
+-- (against a real deployed beta Worker, not just Better Auth's own docs)
+-- that in-memory storage does nothing on this platform: 12 sequential
+-- POST /sign-in/email requests over 6 seconds all returned a normal 401,
+-- never the 429 the configured 3-per-10s rule should have produced from
+-- request #4 onward. Each Workers isolate keeps its own counter, starting
+-- at zero, so the limit was never actually enforced across real traffic.
+--
+-- Row shape generated via `pnpm exec better-auth generate` against
+-- auth.config.mjs (see that file's own header comment for the exact,
+-- deliberately-temporary-install command) -- not hand-written, so it
+-- matches exactly what Better Auth's own rate-limiter code
+-- (node_modules/better-auth/dist/api/rate-limiter/index.mjs) reads/writes:
+-- `key` (IP + path, see that file's createRateLimitKey), `count`, and
+-- `lastRequest` (epoch ms; that file's own code narrows a bigint read
+-- back to a Number, which is why this stays a plain integer/bigint
+-- column, not a date/text one like every other timestamp column in this
+-- schema).
+create table "rateLimit" ("id" text not null primary key, "key" text not null unique, "count" integer not null, "lastRequest" bigint not null);

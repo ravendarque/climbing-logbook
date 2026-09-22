@@ -153,6 +153,18 @@ export function createAuth(env, hostname) {
     secret: env.BETTER_AUTH_SECRET,
     trustedOrigins: TRUSTED_ORIGINS,
     baseURL: { allowedHosts: ALLOWED_HOSTS },
+    // #889 -- storage: "database" (a real D1 table, migrations/
+    // 0017_add_rate_limit.sql), not the default in-memory storage --
+    // confirmed empirically (against a real deployed beta Worker) that
+    // in-memory storage does nothing on Cloudflare Workers: each isolate
+    // keeps its own counter starting at zero, so 12 real sequential
+    // POST /sign-in/email requests over 6 seconds all sailed through with
+    // a normal 401, never the 429 the built-in 3-per-10s sign-in rule
+    // should have produced from request #4 onward. Leaves every other
+    // rate-limit default as-is (100req/60s globally, the stricter
+    // sign-in-specific rule) -- this only fixes WHERE counters live, not
+    // the rules themselves, which #529's own audit already covers.
+    rateLimit: { storage: "database" },
     advanced: {
       // Dynamic baseURL (allowedHosts) defaults trustedProxyHeaders to
       // true (confirmed against better-auth's own installed source,
@@ -168,6 +180,21 @@ export function createAuth(env, hostname) {
       // only ever uses that already-validated Host header/request URL.
       trustedProxyHeaders: false,
       crossSubDomainCookies: crossSubDomainCookies(hostname),
+      // #889 -- Better Auth's rate limiter resolves the client IP itself
+      // (node_modules/better-auth/dist/.../ip.mjs's own getIP), separate
+      // from trustedProxyHeaders above (that one only governs *host*
+      // derivation). Its own default only reads x-forwarded-for, which
+      // this Worker never receives -- confirmed empirically, 2026-09-22,
+      // via a throwaway route deployed to a real PR preview and hit with
+      // curl: Cloudflare sends cf-connecting-ip (and x-real-ip), no
+      // x-forwarded-for at all. Left on the default, this would have
+      // resolved no IP for every request and silently fallen back to one
+      // shared rate-limit bucket for every visitor on a given path --
+      // worse than today's non-functional limiter, not better. Not
+      // trustedProxies -- that option is for a chain *behind* a
+      // configured proxy; cf-connecting-ip is Cloudflare's own
+      // already-validated single-value header, nothing to strip.
+      ipAddress: { ipAddressHeaders: ["cf-connecting-ip"] },
       // #740 -- better-auth 1.7 added a schema-introspection check
       // (advanced.database.validateSchema) that runs on every
       // betterAuth() construction, catching its own errors internally

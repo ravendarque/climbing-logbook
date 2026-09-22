@@ -1591,6 +1591,16 @@ Server-side, `server/index.js` independently resolves a Better Auth session
   `sign-out` endpoint from `admin-auth.js` itself — no dedicated logout
   page/redirect needed (unlike Access's own logout ceremony), so this
   updates local state directly rather than navigating.
+- **Rate limiting (#889, ADR-0027):** Better Auth's built-in rate limiting
+  (100 req/60s globally, 3 req/10s on `/sign-in/email`) is backed by D1
+  (`rateLimit: { storage: "database" }`, `migrations/
+  0017_add_rate_limit.sql`), not its default in-memory storage — the
+  default does nothing on this runtime, confirmed empirically (each
+  Workers isolate keeps its own counter, starting at zero). The client IP
+  it keys on comes from `cf-connecting-ip` (`advanced.ipAddress.
+  ipAddressHeaders`), not Better Auth's own default `x-forwarded-for`,
+  which this Worker never receives — see the ADR for both findings' full
+  reasoning and how they were verified.
 
 **Why this page exists ahead of #22:** #297's authorization gate meant
 the live admin UI had no way to produce a valid session at all until
