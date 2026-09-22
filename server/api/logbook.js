@@ -251,12 +251,27 @@ export const { handlePost } = createD1ResourceHandlers({
 // different tradeoff (connectivity-first doesn't apply to that page).
 const PAGE_SIZE = 20;
 
+// #500 -- /sync's own cold-vs-warm decision, unrelated to which
+// pagination shape a caller wants -- mutually exclusive with every mode
+// below, and checked first in handleGet's dispatch for exactly that
+// reason. rowToJsonWithDeleted, not the plain rowToJson every other mode
+// uses -- unlike every other entries read path, a delta response's whole
+// point is surfacing tombstones so the client can remove them locally,
+// not hiding them (listChangedForUser itself never filters deleted_at at
+// all, see its own header comment). Always rowToJsonWithDeleted, not
+// shapeRow -- this mode is never reached publicly today (?since= is
+// stripped before dispatch by server/api/public-data.js), but it's this
+// file's own owner-only delta shape regardless of what shapeRow the
+// caller passed.
+async function handleDelta(since, env, userId, { includeChildRows }) {
+  if (!userId) return json({ entries: [], cursor: Number(since) }, 200, { "Cache-Control": "no-store" });
+  const { rows, cursor } = await listChangedForUser(env, "entries", userId, rowToJsonWithDeleted, Number(since));
+  const decorated = includeChildRows ? await attachChildRows(rows, env) : rows;
+  return json({ entries: decorated, cursor }, 200, { "Cache-Control": "no-store" });
+}
+
 // #111/#493's own per-location "Show more"/"Show all" follow-up for one
-// table (location) at a time. Also the unchanged "give me everything"
-// shape every other caller still wants (client/map-main.js, server/api/
-// performance.js's own listForUser call, CSV export) when locationId is
-// omitted -- additive, not a breaking change to this endpoint's existing
-// contract.
+// table (location) at a time.
 //
 // No separate ownership check needed for locationId (unlike a bare
 // placeId elsewhere in this codebase) -- `e.user_id = ?` already scopes
@@ -266,64 +281,7 @@ const PAGE_SIZE = 20;
 // outcome (empty list, not an error) as this app's other public
 // (session-optional) GET routes, achieved here by the query shape
 // itself rather than an extra check.
-export async function handleGet(request, env, userId, { shapeRow = rowToJson, includeChildRows = true } = {}) {
-  const url = new URL(request.url);
-
-  // #500 -- checked first, mutually exclusive with the locationId/flat-
-  // chunked modes below (a delta fetch is /sync's own cold-vs-warm
-  // decision, unrelated to which pagination shape a caller wants).
-  // rowToJsonWithDeleted, not the plain rowToJson every other branch
-  // below uses -- unlike every other entries read path, a delta
-  // response's whole point is surfacing tombstones so the client can
-  // remove them locally, not hiding them (listChangedForUser itself
-  // never filters deleted_at at all, see its own header comment). Always
-  // rowToJsonWithDeleted, not shapeRow -- this branch is never reached
-  // publicly today (?since= is stripped before dispatch by server/api/
-  // public-data.js), but it's this file's own owner-only delta shape
-  // regardless of what shapeRow the caller passed.
-  const since = url.searchParams.get("since");
-  if (since !== null) {
-    if (!userId) return json({ entries: [], cursor: Number(since) }, 200, { "Cache-Control": "no-store" });
-    const { rows, cursor } = await listChangedForUser(env, "entries", userId, rowToJsonWithDeleted, Number(since));
-    const decorated = includeChildRows ? await attachChildRows(rows, env) : rows;
-    return json({ entries: decorated, cursor }, 200, { "Cache-Control": "no-store" });
-  }
-
-  const locationId = url.searchParams.get("locationId");
-  if (!locationId) {
-    // #498 -- flat (not per-location) chunked pagination for /sync's own
-    // cold-start full-dataset fetch: opt-in via `limit`, absent for
-    // every existing caller (/map, CSV/JSON export, performance.js's own
-    // listForUser call), which keeps getting the unchanged "everything,
-    // one response" shape below. Ordered the same way listForUser()
-    // already does (created_at) -- chunk N simply continues where chunk
-    // N-1 left off.
-    const limit = url.searchParams.get("limit");
-    if (limit === null) {
-      const rows = await listForUser(env, "entries", userId, shapeRow, { excludeDeleted: true });
-      const decorated = includeChildRows ? await attachChildRows(rows, env) : rows;
-      return json({ entries: decorated }, 200, { "Cache-Control": "no-store" });
-    }
-    if (!userId) return json({ entries: [], total: 0, cursor: 0 }, 200, { "Cache-Control": "no-store" });
-
-    // `total`/`cursor` -- both window functions, independent of the
-    // LIMIT/OFFSET below (confirmed empirically against a real D1 query
-    // for `total`, same reasoning applies to MAX()) -- so /sync's cold
-    // path gets the true total (for progress) AND the current max
-    // sync_cursor (#500 -- the value it needs to record as this table's
-    // starting point for a future *warm* delta fetch) from the same
-    // query as every chunk it already requests, no separate call needed.
-    const offset = Number(url.searchParams.get("offset")) || 0;
-    const { results } = await env.LOGBOOK_DB
-      .prepare(`SELECT *, COUNT(*) OVER() AS total, MAX(sync_cursor) OVER() AS max_cursor FROM entries WHERE user_id = ? AND deleted_at IS NULL ORDER BY created_at LIMIT ? OFFSET ?`)
-      .bind(userId, Number(limit), offset)
-      .all();
-    const total = results[0]?.total ?? 0;
-    const cursor = results[0]?.max_cursor ?? 0;
-    const shaped = results.map(shapeRow);
-    const decorated = includeChildRows ? await attachChildRows(shaped, env) : shaped;
-    return json({ entries: decorated, total, cursor }, 200, { "Cache-Control": "no-store" });
-  }
+async function handleByLocation(locationId, url, env, userId, { shapeRow, includeChildRows }) {
   if (!userId) return json({ entries: [] }, 200, { "Cache-Control": "no-store" });
 
   const limit = Number(url.searchParams.get("limit")) || PAGE_SIZE;
@@ -340,6 +298,68 @@ export async function handleGet(request, env, userId, { shapeRow = rowToJson, in
   const shaped = results.map(shapeRow);
   const decorated = includeChildRows ? await attachChildRows(shaped, env) : shaped;
   return json({ entries: decorated }, 200, { "Cache-Control": "no-store" });
+}
+
+// #498 -- flat (not per-location) chunked pagination for /sync's own
+// cold-start full-dataset fetch: opt-in via `limit`, absent for every
+// existing caller (/map, CSV/JSON export, performance.js's own
+// listForUser call), which keeps getting handleAll's unchanged
+// "everything, one response" shape below. Ordered the same way
+// listForUser() already does (created_at) -- chunk N simply continues
+// where chunk N-1 left off. Mutually exclusive with locationId (handled
+// by handleGet's own dispatch order) -- a per-location caller doesn't
+// chunk, it "Show more"/"Show all"s.
+async function handleChunked(url, env, userId, { shapeRow, includeChildRows }) {
+  if (!userId) return json({ entries: [], total: 0, cursor: 0 }, 200, { "Cache-Control": "no-store" });
+
+  const limit = url.searchParams.get("limit");
+  const offset = Number(url.searchParams.get("offset")) || 0;
+  // `total`/`cursor` -- both window functions, independent of the
+  // LIMIT/OFFSET below (confirmed empirically against a real D1 query
+  // for `total`, same reasoning applies to MAX()) -- so /sync's cold
+  // path gets the true total (for progress) AND the current max
+  // sync_cursor (#500 -- the value it needs to record as this table's
+  // starting point for a future *warm* delta fetch) from the same
+  // query as every chunk it already requests, no separate call needed.
+  const { results } = await env.LOGBOOK_DB
+    .prepare(`SELECT *, COUNT(*) OVER() AS total, MAX(sync_cursor) OVER() AS max_cursor FROM entries WHERE user_id = ? AND deleted_at IS NULL ORDER BY created_at LIMIT ? OFFSET ?`)
+    .bind(userId, Number(limit), offset)
+    .all();
+  const total = results[0]?.total ?? 0;
+  const cursor = results[0]?.max_cursor ?? 0;
+  const shaped = results.map(shapeRow);
+  const decorated = includeChildRows ? await attachChildRows(shaped, env) : shaped;
+  return json({ entries: decorated, total, cursor }, 200, { "Cache-Control": "no-store" });
+}
+
+// The unchanged "give me everything" shape every other caller still
+// wants (client/map-main.js, server/api/performance.js's own
+// listForUser call, CSV export) -- no since, no locationId, no limit.
+async function handleAll(env, userId, { shapeRow, includeChildRows }) {
+  const rows = await listForUser(env, "entries", userId, shapeRow, { excludeDeleted: true });
+  const decorated = includeChildRows ? await attachChildRows(rows, env) : rows;
+  return json({ entries: decorated }, 200, { "Cache-Control": "no-store" });
+}
+
+// #892 -- a small dispatcher over four independent response shapes, each
+// its own named function above so its own params/response body/what it
+// excludes are legible in isolation rather than threaded through one
+// dense chain of ifs. Dispatch order encodes the mutual-exclusivity
+// rules: ?since= (delta) wins over everything else (checked first,
+// #500), then locationId (per-location paginated) vs. no locationId
+// (flat: chunked if ?limit= is given, else everything).
+export async function handleGet(request, env, userId, { shapeRow = rowToJson, includeChildRows = true } = {}) {
+  const url = new URL(request.url);
+  const opts = { shapeRow, includeChildRows };
+
+  const since = url.searchParams.get("since");
+  if (since !== null) return handleDelta(since, env, userId, opts);
+
+  const locationId = url.searchParams.get("locationId");
+  if (locationId) return handleByLocation(locationId, url, env, userId, opts);
+
+  if (url.searchParams.get("limit") !== null) return handleChunked(url, env, userId, opts);
+  return handleAll(env, userId, opts);
 }
 
 // The one place server/api/public-data.js's HANDLERS table should point
