@@ -8,6 +8,7 @@ import { handleGetMapCounts } from "./api/map.js";
 import { handlePublicProfile } from "./api/public-profile.js";
 import { handlePublicResource } from "./api/public-data.js";
 import { handleOwnedRoute, handleBetaGatedRoute } from "./api/owned-routes.js";
+import { handleReportIssue } from "./api/report-issue.js";
 import { createAuth } from "./lib/auth.js";
 import { handleBetaGatedSignUp } from "./lib/beta-gate.js";
 import { resolveUserId } from "./lib/session.js";
@@ -142,6 +143,14 @@ export default {
     }
     if (pathname.startsWith("/logbook/api/auth/")) {
       return createAuth(env, hostname).handler(request);
+    }
+
+    // #924 -- same bare-if shape as sign-up above, not the ADMIN_ROUTES
+    // lookup table below: this is a public, unauthenticated endpoint
+    // (reachable logged out, same as /help itself), not one that requires
+    // a real session.
+    if (pathname === "/logbook/api/report-issue" && method === "POST") {
+      return handleReportIssue(request, env);
     }
 
     // Every public (session-optional) GET resource follows the identical

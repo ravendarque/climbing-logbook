@@ -1,0 +1,68 @@
+---
+layout: help-layout.njk
+title: Report an issue – Climbing Logbook
+bundle: report-issue
+eleventyNavigation:
+  key: Report an issue
+  order: 12
+---
+
+<!-- #924 -- was a "coming soon" placeholder (views/help/report-an-issue/
+     index.md). Converted from .md to .njk, same precedent as
+     views/help/grade-scales/index.njk, since a real form needs more
+     structure than markdown prose -- bundle: report-issue (this page's own
+     front matter) overrides help-layout.njk's default `bundle: help`,
+     11ty's own data cascade (child front matter wins over the layout it
+     chains through), so this page loads its own dedicated client bundle
+     instead of the generic shared one every other /help page uses. -->
+
+<!-- #311's own precedent (views/register/index.njk) -- placed in this
+     page's own content, not app-layout.njk's <head>: a chained layout's
+     content only ever lands inside {{ content }}, past the point <head>
+     is already closed (help-layout.njk's own comment on its Pagefind
+     tags makes the same point). A script tag works identically wherever
+     it sits in the document. -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad&render=explicit" async defer></script>
+
+<h1>Report an issue</h1>
+
+<p class="text-muted mb-4">Found a bug, or something that isn't working right? Let us know below.</p>
+
+<form id="report-issue-form">
+  <label class="block text-sm text-muted mb-1" for="report-issue-message">What happened?</label>
+  <textarea
+    class="text-input w-full mb-4 min-h-[8rem]"
+    id="report-issue-message" name="message" required maxlength="2000"></textarea>
+
+  <label class="block text-sm text-muted mb-1" for="report-issue-email">Your email <span class="text-muted">(optional, if you'd like a reply)</span></label>
+  <input
+    class="text-input w-full mb-4"
+    type="email" id="report-issue-email" name="contactEmail" autocomplete="email">
+
+  <label class="block text-sm text-muted mb-1" for="report-issue-section">Which part of the app? <span class="text-muted">(optional)</span></label>
+  <select class="text-input w-full mb-4" id="report-issue-section" name="section">
+    <option value="">Not sure / other</option>
+    <option value="logbook">Logbook</option>
+    <option value="map">Map</option>
+    <option value="performance">Performance Insights</option>
+    <option value="account">My account</option>
+    <option value="import_export">Import &amp; export</option>
+    <option value="help">Help pages</option>
+    <option value="other">Something else</option>
+  </select>
+
+  <!-- Turnstile bot check (#311's own precedent, #924 reuses the same
+       explicit-render pattern) -- rendered by report-issue-main.js, not a
+       static attribute here, since the real sitekey is a runtime,
+       hostname-dependent decision (see that file's own comment). -->
+  <div id="turnstile-widget" class="mb-4"></div>
+
+  <p class="mb-4 error-message" id="report-issue-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>
+
+  <button type="submit" class="btn btn-primary w-full disabled:opacity-[.45] disabled:cursor-not-allowed" id="report-issue-submit-btn">Send report</button>
+</form>
+
+<div class="bg-surface border border-border rounded-app p-6 text-center" id="report-issue-success" hidden>
+  <h2 class="font-display text-2xl mb-2 tracking-wide">Thanks</h2>
+  <p class="text-muted">Your report's been sent. We'll take a look.</p>
+</div>

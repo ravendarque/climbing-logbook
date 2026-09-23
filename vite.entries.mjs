@@ -23,4 +23,11 @@ export const CLIENT_ENTRIES = {
   sync: "client/sync-main.js",
   "beta-gate": "client/beta-gate-main.js",
   help: "client/help-main.js",
+  // #924 -- its own dedicated bundle, not folded into help-main.js: that
+  // one is a generic bundle every /help/* page loads (nav/search/theme
+  // toggle), and this form's own DOM elements/Turnstile widget only exist
+  // on this one page -- same "one bundle per distinct-behavior page" split
+  // account-edit/account-import already use, not piling page-specific
+  // logic into a shared bundle other pages don't need.
+  "report-issue": "client/report-issue-main.js",
 };
