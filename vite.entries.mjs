@@ -30,4 +30,6 @@ export const CLIENT_ENTRIES = {
   // account-edit/account-import already use, not piling page-specific
   // logic into a shared bundle other pages don't need.
   "report-issue": "client/report-issue-main.js",
+  // #925 -- same "own dedicated bundle" reasoning as report-issue above.
+  feedback: "client/feedback-main.js",
 };

@@ -9,6 +9,7 @@ import { handlePublicProfile } from "./api/public-profile.js";
 import { handlePublicResource } from "./api/public-data.js";
 import { handleOwnedRoute, handleBetaGatedRoute } from "./api/owned-routes.js";
 import { handleReportIssue } from "./api/report-issue.js";
+import { handleFeedback } from "./api/feedback.js";
 import { createAuth } from "./lib/auth.js";
 import { handleBetaGatedSignUp } from "./lib/beta-gate.js";
 import { resolveUserId } from "./lib/session.js";
@@ -151,6 +152,9 @@ export default {
     // a real session.
     if (pathname === "/logbook/api/report-issue" && method === "POST") {
       return handleReportIssue(request, env);
+    }
+    if (pathname === "/logbook/api/feedback" && method === "POST") {
+      return handleFeedback(request, env);
     }
 
     // Every public (session-optional) GET resource follows the identical
