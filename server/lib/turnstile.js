@@ -74,3 +74,26 @@ async function verifySiteverify(secret, token) {
   });
   return res.json();
 }
+
+// #924 -- reuses this file's own DUMMY_SECRET_RESPONSES/verifySiteverify
+// (the actually-reusable pieces) for a plain, non-Better-Auth endpoint --
+// the "Report an issue"/"Tell us what you think" forms, neither of which
+// goes through Better Auth's own hook pipeline the way sign-up does.
+// Deliberately NOT a refactor of createTurnstileHook above to share this:
+// that hook distinguishes TURNSTILE_VERIFICATION_UNAVAILABLE (Cloudflare's
+// own endpoint unreachable) from TURNSTILE_VERIFICATION_FAILED (a real
+// bad token) as two different Better-Auth APIError codes (#802), a
+// distinction a plain boolean can't carry -- collapsing them here would
+// mean either losing that distinction for sign-up or growing a second,
+// more complex return shape neither caller actually needs. Fails closed
+// (returns false) on a missing/empty token or a network error, same
+// "can't verify == reject" posture #802 established.
+export async function verifyTurnstile(env, token) {
+  if (typeof token !== "string" || !token) return false;
+  try {
+    const data = DUMMY_SECRET_RESPONSES[env.TURNSTILE_SECRET_KEY] ?? await verifySiteverify(env.TURNSTILE_SECRET_KEY, token);
+    return !!data.success;
+  } catch {
+    return false;
+  }
+}
