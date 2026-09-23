@@ -2,6 +2,24 @@
 // on this one page" reasoning as report-issue-main.js (#924). Identical
 // Turnstile explicit-render + fetch/submit pattern, posting to
 // /logbook/api/feedback (server/api/feedback.js) instead.
+//
+// bundle: feedback REPLACES help-main.js entirely (11ty's data cascade),
+// so this page needs report-issue-main.js's own fix for the same gap
+// (burger menu/theme toggle/mobile topic-list collapse otherwise dead) --
+// see that file's own comment.
+import { createDisclosure } from "./modal-utils.js";
+import { createThemeToggle } from "./theme-toggle.js";
+
+createDisclosure(document.getElementById("header-menu-btn"), document.getElementById("header-menu-popover"), "#header-menu-wrap");
+createThemeToggle();
+
+const helpNav = document.getElementById("help-nav");
+const helpNavBtn = document.getElementById("help-nav-btn");
+helpNavBtn?.addEventListener("click", () => {
+  const open = helpNav.toggleAttribute("data-open");
+  helpNavBtn.setAttribute("aria-expanded", String(open));
+});
+
 const form = document.getElementById("feedback-form");
 const errorEl = document.getElementById("feedback-error");
 const submitBtn = document.getElementById("feedback-submit-btn");
