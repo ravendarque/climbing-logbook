@@ -10,8 +10,10 @@ import { resolveUserId } from "../lib/session.js";
 // same "resolve/validate once, format per output" split every other
 // enum in this app already uses (e.g. shared/entry-schema.js's own
 // discipline/status lists), just not worth sharing as its own module for
-// one seven-item list used in exactly two places.
-export const SECTIONS = ["logbook", "map", "performance", "account", "import_export", "help", "other"];
+// one six-item list used in exactly two places. #930 -- "other" dropped
+// (Raven's own call): redundant with "Not sure / other" (the blank/
+// unselected value), which already covers that case.
+export const SECTIONS = ["logbook", "map", "performance", "account", "import_export", "help"];
 
 const RATE_LIMIT_PER_HOUR = 5;
 

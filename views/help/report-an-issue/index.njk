@@ -28,13 +28,22 @@ eleventyNavigation:
 
 <p class="text-muted mb-4">Found a bug, or something that isn't working right? Let us know below.</p>
 
-<form id="report-issue-form">
-  <label class="block text-sm text-muted mb-1" for="report-issue-message">What happened?</label>
+<!-- #930 -- novalidate: the browser's own native "fill out this field"
+     tooltip is replaced by report-issue-main.js's own required-field
+     check, shown through this form's existing styled error-message
+     element instead (British English copy, "Please fill in this
+     field" -- the native message can't be reworded any other way). -->
+<form id="report-issue-form" novalidate>
+  <!-- #930 -- red asterisk beside every required field's label
+       (aria-hidden -- the real semantic is the required attribute
+       itself, already announced to a screen reader without this glyph
+       repeating it). Only "What happened?" is actually required here. -->
+  <label class="block text-sm text-muted mb-1" for="report-issue-message">What happened? <span class="text-accent" aria-hidden="true">*</span></label>
   <textarea
     class="text-input w-full mb-4 min-h-[8rem]"
     id="report-issue-message" name="message" required maxlength="2000"></textarea>
 
-  <label class="block text-sm text-muted mb-1" for="report-issue-email">Your email <span class="text-muted">(optional, if you'd like a reply)</span></label>
+  <label class="block text-sm text-muted mb-1" for="report-issue-email">Your email <span class="text-muted">(we can't guarantee a response but we might reach out if needed)</span></label>
   <input
     class="text-input w-full mb-4"
     type="email" id="report-issue-email" name="contactEmail" autocomplete="email">
@@ -48,7 +57,6 @@ eleventyNavigation:
     <option value="account">My account</option>
     <option value="import_export">Import &amp; export</option>
     <option value="help">Help pages</option>
-    <option value="other">Something else</option>
   </select>
 
   <!-- Turnstile bot check (#311's own precedent, #924 reuses the same
@@ -59,7 +67,10 @@ eleventyNavigation:
 
   <p class="mb-4 error-message" id="report-issue-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>
 
-  <button type="submit" class="btn btn-primary w-full disabled:opacity-[.45] disabled:cursor-not-allowed" id="report-issue-submit-btn">Send report</button>
+  <!-- #930 -- was w-full, filled the entire ~640px article column; a
+       single submit action doesn't need that much width, same "sensible
+       width, not full" call Raven made here. -->
+  <button type="submit" class="btn btn-primary px-8 disabled:opacity-[.45] disabled:cursor-not-allowed" id="report-issue-submit-btn">Send report</button>
 </form>
 
 <div class="bg-surface border border-border rounded-app p-6 text-center" id="report-issue-success" hidden>
