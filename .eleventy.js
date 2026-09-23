@@ -36,6 +36,12 @@ const ASSET_VERSION = String(Date.now());
 
 export default function (eleventyConfig) {
   eleventyConfig.addGlobalData("assetVersion", ASSET_VERSION);
+  // #188 -- the footer's copyright year, same "computed once at build
+  // time" shape as ASSET_VERSION above: always correct as of the last
+  // deploy, without a hardcoded value that goes stale, and without
+  // reaching for client-side JS (new Date().getFullYear()) for a value
+  // that's genuinely static per build, not per visit.
+  eleventyConfig.addGlobalData("copyrightYear", new Date().getFullYear());
 
   // #877 -- copies every hand-authored static asset (icons, manifest,
   // service worker, the classic-script custom-element components, the

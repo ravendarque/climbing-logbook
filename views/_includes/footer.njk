@@ -1,0 +1,32 @@
+<!-- #188 -- app-wide footer, centered/stacked treatment (Raven's pick from
+     3 mocked options, 2026-09-23): the mountain mark alone (no wordmark --
+     that's the brand header's job, not this), a link row, then the
+     copyright line beneath in smaller muted text. In normal document flow
+     -- no position: fixed/sticky -- so it sits at the end of whatever
+     content precedes it and scrolls away with the page, never pinned to
+     the viewport. Included once, in app-layout.njk after {{ content }},
+     rather than per-page: help-layout.njk itself chains through
+     app-layout.njk (its own front matter sets layout: app-layout.njk), so
+     this one include covers every owned app page AND every /help page
+     with no second copy needed.
+
+     Same mountain-mark SVG paths as climbing-header.js's own brand logo
+     (kept in sync by hand -- copied exactly, not re-derived, same
+     "pixel-identical to the real mark" precedent public/logbook/index.html's
+     own values got when climbing-header.js's shared tokens were first
+     extracted). max-w-[960px] mx-auto matches every page's own content
+     column width, so the footer's centered content lines up under it
+     rather than spanning the full viewport. -->
+<footer class="max-w-[960px] mx-auto mt-16 pt-8 pb-4 border-t border-border flex flex-col items-center gap-4 text-center">
+  <svg class="w-[1.4rem] h-[1.1rem] text-foreground" viewBox="0 14.4 122.88 96" aria-hidden="true">
+    <path d="M45.6,14.4l23.718,48l-2.99,6l-21.689,0l10.843,21.6l-10.142,20.4l-45.342,0l45.6,-96Z" fill="currentColor"></path>
+    <path d="M85.203,37.2l16.333,31.2l-10.787,21.6l21.63,0l10.501,20.4l-74.042,0l36.364,-73.2Z" fill="currentColor"></path>
+  </svg>
+  <nav class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[.85rem]" aria-label="Footer">
+    <a class="text-foreground hover:text-accent" href="/help/">Help</a>
+    <a class="text-foreground hover:text-accent" href="/help/ethics-and-sustainability/">Ethics &amp; sustainability</a>
+    <a class="text-foreground hover:text-accent" href="/help/report-an-issue/">Report an issue</a>
+    <a class="text-foreground hover:text-accent" href="/help/feedback/">Tell us what you think</a>
+  </nav>
+  <p class="text-[.78rem] text-muted">© {{ copyrightYear }} Nix Crabtree</p>
+</footer>

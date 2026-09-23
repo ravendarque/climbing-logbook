@@ -60,6 +60,7 @@
 </head>
 <body class="bg-background text-foreground font-sans px-4 pt-6 pb-16 min-w-[300px]">
 {{ content | safe }}
+{% include "footer.njk" %}
 <!-- #876/#878 -- conditional rather than assumed-always-present: a first
      pass here had views/help/** genuinely bundle-less (content-only, no
      client-main.js), on the theory that the header menu's interactivity
