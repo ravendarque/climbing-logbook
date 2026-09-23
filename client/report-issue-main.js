@@ -5,6 +5,29 @@
 // unauthenticated (reachable logged out, same as /help itself), just
 // posting to a different, non-Better-Auth endpoint
 // (/logbook/api/report-issue, server/api/report-issue.js).
+//
+// bundle: report-issue REPLACES help-main.js entirely (11ty's data
+// cascade -- it doesn't layer on top), so the header menu popover, theme
+// toggle, and mobile topic-list collapse that help-main.js wires up for
+// every other /help/* page never run here unless repeated below (found
+// 2026-09-23 -- the burger menu silently did nothing on this page).
+// Same createDisclosure()/createThemeToggle() calls, no injected
+// dependencies needed, as client/help-main.js's own identical section.
+import { createDisclosure } from "./modal-utils.js";
+import { createThemeToggle } from "./theme-toggle.js";
+
+createDisclosure(document.getElementById("header-menu-btn"), document.getElementById("header-menu-popover"), "#header-menu-wrap");
+createThemeToggle();
+
+// help-main.js's own identical narrow-mode topic-list toggle (markup and
+// breakpoint CSS live in views/_includes/help-layout.njk).
+const helpNav = document.getElementById("help-nav");
+const helpNavBtn = document.getElementById("help-nav-btn");
+helpNavBtn?.addEventListener("click", () => {
+  const open = helpNav.toggleAttribute("data-open");
+  helpNavBtn.setAttribute("aria-expanded", String(open));
+});
+
 const form = document.getElementById("report-issue-form");
 const errorEl = document.getElementById("report-issue-error");
 const submitBtn = document.getElementById("report-issue-submit-btn");
