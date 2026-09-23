@@ -82,6 +82,36 @@ jobs:
             }
           "
 
+      # #932 -- a second, independent REAL_SITEKEY constant
+      # (client/report-issue-main.js) went unnoticed by the sync step
+      # above, which only ever knew about register.js -- found while
+      # fixing beta's own Turnstile domain gap. Same regex/replace shape,
+      # a separate step (not a generalized loop over both paths) so each
+      # file's own sync result stays independently visible in this
+      # workflow's own log output, matching how the step above is
+      # already its own standalone block rather than something more
+      # generic.
+      - name: Sync report-issue-main.js Turnstile sitekey
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        working-directory: .
+        run: |
+          SITEKEY=$(cd infra && terraform output -raw turnstile_sitekey)
+          node -e "
+            const fs = require('node:fs');
+            const path = 'client/report-issue-main.js';
+            const current = fs.readFileSync(path, 'utf8');
+            const updated = current.replace(
+              /const REAL_SITEKEY = \"[^\"]*\";/,
+              'const REAL_SITEKEY = \"${SITEKEY}\";'
+            );
+            if (updated !== current) {
+              fs.writeFileSync(path, updated);
+              console.log('report-issue-main.js updated with Turnstile sitekey ' + '${SITEKEY}');
+            } else {
+              console.log('report-issue-main.js already up to date');
+            }
+          "
+
       - name: Open and merge PR if generated files changed
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         working-directory: .
@@ -90,7 +120,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add wrangler.jsonc infra/.terraform.lock.hcl static/register/register.js
+          git add wrangler.jsonc infra/.terraform.lock.hcl static/register/register.js client/report-issue-main.js
           if git diff --cached --quiet; then
             echo "Nothing to commit."
             exit 0

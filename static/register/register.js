@@ -25,18 +25,24 @@ if (params.has("code")) codeInput.value = params.get("code");
 
 // Turnstile (#311) -- explicit render, not implicit auto-scan, since the
 // sitekey is a runtime decision: the real widget (infra/turnstile.tf) is
-// domain-restricted to climbinglogbook.com (#295 -- was ravendarque.com
+// domain-restricted to a fixed allowlist (#295 -- was ravendarque.com
 // until this page moved to the apex here) and would never render/
-// validate anywhere else. Everywhere that isn't that real hostname (local
+// validate anywhere else. Everywhere that isn't on that allowlist (local
 // dev, E2E, CI, PR previews) uses Cloudflare's own public "always passes"
 // test sitekey instead -- there's no way, and no reason, for automated
 // tests to solve a real challenge. REAL_SITEKEY is synced by infra.yml
 // once infra/turnstile.tf provisions the widget, same placeholder
 // pattern as wrangler.jsonc's KV/D1 ids -- not secret, sitekeys are
-// meant to be embedded in client-side code.
+// meant to be embedded in client-side code. #932 -- beta.climbinglogbook.com
+// added alongside the bare apex: beta is meant to behave the same as
+// production, and infra/turnstile.tf's own `domains` list now includes
+// it too -- both sides have to agree, or the client would pick the real
+// sitekey while Cloudflare's own siteverify still rejects it as an
+// unrecognized domain.
 const REAL_SITEKEY = "0x4AAAAAAEH3RghUN6KSc-uy";
 const TEST_SITEKEY = "1x00000000000000000000AA";
-const sitekey = window.location.hostname === "climbinglogbook.com" ? REAL_SITEKEY : TEST_SITEKEY;
+const REAL_SITEKEY_HOSTNAMES = ["climbinglogbook.com", "beta.climbinglogbook.com"];
+const sitekey = REAL_SITEKEY_HOSTNAMES.includes(window.location.hostname) ? REAL_SITEKEY : TEST_SITEKEY;
 
 let turnstileWidgetId;
 window.onTurnstileLoad = () => {
