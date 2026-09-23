@@ -25,6 +25,7 @@ function csvRow(overrides = {}) {
     name: "La Marie-Rose", grade: "6B", discipline: "boulder", status: "send",
     firstAttempt: "true", date: "2026-07-30", location: "Fontainebleau",
     area: "Bas Cuvier", country: "France", video: "", notes: "", sportStyle: "",
+    attemptsToSend: "", rpe: "", gradeScale: "",
     ...overrides,
   };
   return CSV_COLUMNS.map(col => values[col]).join(",");
@@ -184,6 +185,34 @@ describe("handleImport", () => {
     expect(res.status).toBe(400);
     expect((await res.json()).errors).toEqual([{ row: 2, error: "Missing required field: sportStyle" }]);
   });
+
+  // #476/#884 -- same "column added, needs its own coverage" precedent as
+  // sportStyle above.
+  it("imports attemptsToSend/rpe/gradeScale when given", async () => {
+    const res = await importCsv([csvRow({ attemptsToSend: "3", rpe: "80", gradeScale: "font-non-standard" })]);
+    expect(res.status).toBe(201);
+    const { entries } = await res.json();
+    expect(entries[0]).toMatchObject({ attemptsToSend: 3, rpe: 80, gradeScale: "font-non-standard" });
+  });
+
+  it("falls back to defaultGradeScale() when the gradeScale column is blank, same as the single-entry form", async () => {
+    const res = await importCsv([csvRow({ discipline: "boulder", grade: "6B", gradeScale: "" })]);
+    expect(res.status).toBe(201);
+    const { entries } = await res.json();
+    expect(entries[0].gradeScale).toBe("font-non-standard");
+  });
+
+  it("rejects an rpe value that isn't a multiple of 10, same message as the single-entry form", async () => {
+    const res = await importCsv([csvRow({ rpe: "85" })]);
+    expect(res.status).toBe(400);
+    expect((await res.json()).errors).toEqual([{ row: 2, error: "rpe must be a multiple of 10 between 0 and 100" }]);
+  });
+
+  it("rejects a gradeScale that doesn't belong to the row's discipline", async () => {
+    const res = await importCsv([csvRow({ discipline: "boulder", grade: "6B", gradeScale: "french" })]);
+    expect(res.status).toBe(400);
+    expect((await res.json()).errors[0].error).toMatch(/^gradeScale must be one of/);
+  });
 });
 
 // #639 -- JSON import, parity with the "Export as JSON" button. Content-
@@ -285,5 +314,21 @@ describe("handleImport (JSON, #639)", () => {
     const res = await importJson([jsonEntry({ discipline: "sport", grade: "6a" })]);
     expect(res.status).toBe(400);
     expect((await res.json()).errors).toEqual([{ row: 1, error: "Missing required field: sportStyle" }]);
+  });
+
+  // #476/#884 -- JSON-path mirror of the CSV coverage above; same
+  // format-agnostic draftEntry()/entrySchema pipeline either way.
+  it("imports attemptsToSend/rpe/gradeScale when given", async () => {
+    const res = await importJson([jsonEntry({ attemptsToSend: 3, rpe: 80, gradeScale: "font-non-standard" })]);
+    expect(res.status).toBe(201);
+    const { entries } = await res.json();
+    expect(entries[0]).toMatchObject({ attemptsToSend: 3, rpe: 80, gradeScale: "font-non-standard" });
+  });
+
+  it("falls back to defaultGradeScale() when gradeScale is omitted, same as the single-entry form", async () => {
+    const res = await importJson([jsonEntry()]);
+    expect(res.status).toBe(201);
+    const { entries } = await res.json();
+    expect(entries[0].gradeScale).toBe("font-non-standard");
   });
 });

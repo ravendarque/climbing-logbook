@@ -34,6 +34,9 @@ These are optional:
 - **country**: the country.
 - **video**: a web link.
 - **notes**: anything you want to remember.
+- **attemptsToSend**: how many tries it took to send.
+- **rpe**: how hard the climb felt (Exertion), 0–100 in steps of 10.
+- **gradeScale**: which scale the grade's in. Leave it blank to fall back to the same default as before. See [Grade scales & conversion](/help/grade-scales/).
 
 Places are matched by location and area, or created if they're new.
 
@@ -45,7 +48,6 @@ An import is all or nothing. If any row has a problem, nothing is imported and y
 
 - **500 climbs at most** in one file. Split a larger logbook into more than one file.
 - **Importing the same file twice adds every climb twice.** There's no duplicate check.
-- **You can't choose a grade scale.** Imported Boulder grades are stored as Font (Non-standard), and Sport grades as French. See [Grade scales & conversion](/help/grade-scales/).
 
 ## Export your logbook
 
@@ -53,9 +55,10 @@ Go to **My account**, find **Export entries**, and press **CSV** or **JSON**. Yo
 
 Each climb includes:
 
-- Name, grade, discipline and status
+- Name, grade, grade scale, discipline and status
 - First attempt and date
 - Location, area and country
 - Video, notes and sport style
+- Attempts to send and exertion (RPE)
 
-It doesn't include your Athlete Mode details (exertion, attempts, moves and pain) or which grade scale you used.
+It doesn't include your move tagging -- the strengths/weaknesses (hardest/easiest moves) or pain/injury details.

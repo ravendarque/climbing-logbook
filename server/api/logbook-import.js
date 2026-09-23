@@ -113,6 +113,20 @@ function draftEntry(row, placeId) {
     // treated as missing" rule for every other required field, not just
     // a genuinely-absent key.
     sportStyle: row.sportStyle || undefined,
+    // #476 -- blank/omitted normalizes to undefined, same as every other
+    // optional field here; a non-blank value is coerced from the CSV/
+    // JSON row's string shape to a real number so entrySchema's own
+    // Number.isInteger checks apply (a non-numeric value like "abc"
+    // becomes NaN, which those checks already correctly reject rather
+    // than silently coercing to 0).
+    attemptsToSend: row.attemptsToSend ? Number(row.attemptsToSend) : undefined,
+    rpe: row.rpe ? Number(row.rpe) : undefined,
+    // #884 -- same blank-normalizes-to-undefined pattern as sportStyle
+    // above; entrySchema validates it against the discipline's scales
+    // when given, and buildEntryRow (server/api/logbook.js) already
+    // falls back to defaultGradeScale() when it's undefined -- the same
+    // fallback an entry created via the regular entry form gets.
+    gradeScale: row.gradeScale || undefined,
   };
 }
 
