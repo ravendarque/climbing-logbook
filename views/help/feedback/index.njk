@@ -1,0 +1,59 @@
+---
+layout: help-layout.njk
+title: Tell us what you think – Climbing Logbook
+bundle: feedback
+eleventyNavigation:
+  key: Tell us what you think
+  order: 13
+---
+
+<!-- #925 -- was a "coming soon" placeholder (views/help/feedback/index.md).
+     Converted from .md to .njk, same #924 precedent as views/help/
+     report-an-issue/index.njk -- bundle: feedback (this page's own front
+     matter) overrides help-layout.njk's default `bundle: help`. -->
+
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad&render=explicit" async defer></script>
+
+<h1>Tell us what you think</h1>
+
+<p class="text-muted mb-4">Like something? Wish something worked differently? We'd love to hear it.</p>
+
+<form id="feedback-form" novalidate>
+  <label class="block text-sm text-muted mb-1" for="feedback-message">What do you think? <span class="text-accent" aria-hidden="true">*</span></label>
+  <textarea
+    class="text-input w-full mb-4 min-h-[8rem]"
+    id="feedback-message" name="message" required maxlength="2000"></textarea>
+
+  <label class="block text-sm text-muted mb-1" for="feedback-email">Your email <span class="text-muted">(we can't guarantee a response but we might reach out if needed)</span></label>
+  <input
+    class="text-input w-full mb-4"
+    type="email" id="feedback-email" name="contactEmail" autocomplete="email">
+
+  <label class="block text-sm text-muted mb-1" for="feedback-section">Which part of the app? <span class="text-muted">(optional)</span></label>
+  <select class="text-input w-full mb-4" id="feedback-section" name="section">
+    <option value="">Not sure / other</option>
+    <option value="logbook">Logbook</option>
+    <option value="map">Map</option>
+    <option value="performance">Performance Insights</option>
+    <option value="account">My account</option>
+    <option value="import_export">Import &amp; export</option>
+    <option value="help">Help pages</option>
+  </select>
+
+  <div id="turnstile-widget" class="mb-4"></div>
+
+  <p class="mb-4 error-message" id="feedback-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>
+
+  <!-- #925 -- disclaimer copy, Raven's own wording (2026-09-23). Inline
+       notice text, not an opt-in checkbox: submitting under this text is
+       the consent (feedback_submissions.sharing_consent, migrations/0019,
+       is always 1). -->
+  <p class="text-[.85rem] text-muted mb-4">By submitting this, you understand we might share your feedback publicly but anonymously, on the site or our socials.</p>
+
+  <button type="submit" class="btn btn-primary px-8 disabled:opacity-[.45] disabled:cursor-not-allowed" id="feedback-submit-btn">Send feedback</button>
+</form>
+
+<div class="bg-surface border border-border rounded-app p-6 text-center" id="feedback-success" hidden>
+  <h2 class="font-display text-2xl mb-2 tracking-wide">Thanks</h2>
+  <p class="text-muted">We appreciate you taking the time.</p>
+</div>
