@@ -9,6 +9,7 @@ const form = document.getElementById("report-issue-form");
 const errorEl = document.getElementById("report-issue-error");
 const submitBtn = document.getElementById("report-issue-submit-btn");
 const successEl = document.getElementById("report-issue-success");
+const messageEl = document.getElementById("report-issue-message");
 
 // #806's own precedent (register.js) -- errorEl carries role="alert"/
 // aria-live="assertive" in the template, so a screen reader announces it
@@ -48,6 +49,17 @@ form.addEventListener("submit", async (event) => {
   errorEl.hidden = true;
   submitBtn.disabled = true;
 
+  // #930 -- form carries novalidate (template) specifically so this
+  // replaces the browser's own native "fill out this field" tooltip --
+  // Raven's own call, British English ("fill in," not "fill out") and
+  // this form's existing styled error-message element instead of a
+  // native, unstyled one.
+  if (!messageEl.value.trim()) {
+    showError("Please fill in this field");
+    submitBtn.disabled = false;
+    return;
+  }
+
   // #311's own precedent -- window.turnstile is only defined once
   // Cloudflare's api.js (loaded async in this page's own <head>) has
   // actually loaded; a slow connection could reach here first. Either
@@ -66,7 +78,7 @@ form.addEventListener("submit", async (event) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        message: document.getElementById("report-issue-message").value,
+        message: messageEl.value,
         contactEmail: document.getElementById("report-issue-email").value || undefined,
         section: document.getElementById("report-issue-section").value || undefined,
         sourcePage,
