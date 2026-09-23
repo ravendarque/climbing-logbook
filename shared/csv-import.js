@@ -25,9 +25,21 @@
 // type and need toCsvFieldNames' translation below) -- required, not
 // optional, for a discipline of "sport" (entrySchema's own #643 rule);
 // blank/omitted for "boulder", same as every other sport-only column.
+// #476/#884 -- attemptsToSend/rpe/gradeScale, same trailing-append
+// precedent as sportStyle above, all three optional/blank-falls-back
+// (entrySchema already validates each of them when given; gradeScale
+// falls back to defaultGradeScale() server-side, server/api/logbook.js,
+// when blank/omitted, same as it already does for an entry created via
+// the regular entry form). The compound Athlete Mode fields (moves/
+// painMoves -- strengths/weaknesses and pain/injury tagging) are
+// deliberately NOT here -- split out to #915, since their shared
+// hold_type/movement_style vocabulary is under active revisit (#598,
+// #576) and isn't settled enough to lock into an export column shape
+// yet.
 export const CSV_COLUMNS = [
   "name", "grade", "discipline", "status", "firstAttempt",
   "date", "location", "area", "country", "video", "notes", "sportStyle",
+  "attemptsToSend", "rpe", "gradeScale",
 ];
 
 export function buildTemplateCsv() {
@@ -193,6 +205,9 @@ export function resolveExportRows(entries, places, locations) {
       video: entry.video ?? "",
       notes: entry.notes ?? "",
       sportStyle: entry.sportStyle ?? "",
+      attemptsToSend: entry.attemptsToSend ?? "",
+      rpe: entry.rpe ?? "",
+      gradeScale: entry.gradeScale ?? "",
     };
   });
 }
