@@ -22,12 +22,24 @@ function showError(message) {
 }
 
 // #311's own precedent -- the real widget (infra/turnstile.tf) is
-// domain-restricted to climbinglogbook.com; everywhere else (local dev,
+// domain-restricted to a fixed allowlist; everywhere else (local dev,
 // e2e, CI, PR previews) uses Cloudflare's own public "always passes"
-// test sitekey instead.
+// test sitekey instead. #932 -- beta.climbinglogbook.com added
+// alongside the bare apex: beta is meant to behave the same as
+// production, and infra/turnstile.tf's own `domains` list now includes
+// it too -- both sides have to agree, or the client would pick the real
+// sitekey while Cloudflare's own siteverify still rejects it as an
+// unrecognized domain. Duplicated (not shared) with static/register/
+// register.js's own identical constants -- that file is copied as-is
+// into public/ (#877), never Vite-bundled, so it can't import from
+// shared/ in production the way this file can (that only appears to
+// work in dev, where Vite's dev server happens to serve the raw source
+// tree unbundled -- see vite.config.js's own comment on that exact
+// trap).
 const REAL_SITEKEY = "0x4AAAAAAEH3RghUN6KSc-uy";
 const TEST_SITEKEY = "1x00000000000000000000AA";
-const sitekey = window.location.hostname === "climbinglogbook.com" ? REAL_SITEKEY : TEST_SITEKEY;
+const REAL_SITEKEY_HOSTNAMES = ["climbinglogbook.com", "beta.climbinglogbook.com"];
+const sitekey = REAL_SITEKEY_HOSTNAMES.includes(window.location.hostname) ? REAL_SITEKEY : TEST_SITEKEY;
 
 let turnstileWidgetId;
 window.onTurnstileLoad = () => {
@@ -53,9 +65,11 @@ form.addEventListener("submit", async (event) => {
   // replaces the browser's own native "fill out this field" tooltip --
   // Raven's own call, British English ("fill in," not "fill out") and
   // this form's existing styled error-message element instead of a
-  // native, unstyled one.
+  // native, unstyled one. #932 -- names the field: the error banner sits
+  // well below the field itself, so a bare "Please fill in this field"
+  // gave no indication of which one without scrolling back up to look.
   if (!messageEl.value.trim()) {
-    showError("Please fill in this field");
+    showError('Please fill in the "What happened?" field.');
     submitBtn.disabled = false;
     return;
   }
