@@ -209,6 +209,21 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(404);
   });
 
+  // #190 -- a real, found regression: the grade-scales page moved off this
+  // owned/gated route to a public /help page, but this router's own regex
+  // kept matching "performance/grades" for a while after SHELL_PATHS'
+  // matching entry was removed, so a request here fell all the way through
+  // to `env.ASSETS.fetch(new URL(undefined, request.url))` instead of a
+  // clean 404 -- harmless in effect (ASSETS still 404s on a nonexistent
+  // "undefined" path) but not the intended, direct 404 this page's own
+  // absence should produce. Guards against `grades` (or anything else that
+  // no longer has a SHELL_PATHS entry) silently reappearing in the regex.
+  it("falls through (404) for the old grade-scales route, now that it's a public /help page instead", async () => {
+    const { cookie } = await createAuthedSession({ username: "oldgradesrouteuser", hostname: "climbinglogbook.com" });
+    const res = await fetchOwnedRoute("oldgradesrouteuser", "performance/grades", { cookie });
+    expect(res.status).toBe(404);
+  });
+
   it("redirects same-origin on hostnames without a real climbinglogbook.com apex (local dev)", async () => {
     const res = await exports.default.fetch("https://my.localhost/someone/log", { redirect: "manual" });
     expect(res.status).toBe(302);

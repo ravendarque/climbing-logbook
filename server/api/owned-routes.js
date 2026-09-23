@@ -115,9 +115,11 @@ export async function handleOwnedRoute(request, env, username, page) {
   }
 
   // SHELL_PATHS[page] is never undefined here -- server/index.js's own regex
-  // only ever passes "log"/"map"/"performance" through as `page`, and all
-  // three have real shells now (#348's #347 placeholder branch is gone,
-  // its job done).
+  // only ever passes a page shape this object has a real entry for (kept in
+  // sync by hand; the grade-scales page's own migration off this route,
+  // #190, is what the regex's own comment there now calls out explicitly,
+  // after a real gap here briefly let `page` be "performance/grades" with
+  // no matching SHELL_PATHS entry once that page moved to /help).
   return env.ASSETS.fetch(new Request(new URL(SHELL_PATHS[page], request.url)));
 }
 
