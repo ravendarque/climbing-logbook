@@ -96,8 +96,12 @@ export default {
       // one needs a session/authorization decision the bare route doesn't.
       // #302 adds account(/edit), #498 adds sync, alongside log/map/
       // performance -- same shape, one more SHELL_PATHS entry each (see
-      // owned-routes.js).
-      const ownedRouteMatch = pathname.match(/^\/([^/]+)\/(log|map|performance(?:\/(?:pyramid|injury|strengths|trends|gap|rpe|grades))?|sync|account(?:\/edit|\/import)?)\/?$/);
+      // owned-routes.js). #190 -- `grades` deliberately removed from this
+      // alternation: that page moved from here (gated, behind Athlete
+      // Mode) to a public /help page, and this regex matching it with no
+      // matching SHELL_PATHS entry was a real, found gap (handleOwnedRoute
+      // fetched a literal "undefined" asset path instead of a clean 404).
+      const ownedRouteMatch = pathname.match(/^\/([^/]+)\/(log|map|performance(?:\/(?:pyramid|injury|strengths|trends|gap|rpe))?|sync|account(?:\/edit|\/import)?)\/?$/);
       if (ownedRouteMatch) {
         const [, username, page] = ownedRouteMatch;
         return handleOwnedRoute(request, env, username, page);
@@ -115,7 +119,7 @@ export default {
     // opt-in status; a pre-release preview has no meaning for a page
     // that's just read-only data display, so nothing to gate there.
     if (hostname.startsWith("beta.") && method === "GET") {
-      const ownedRouteMatch = pathname.match(/^\/([^/]+)\/(log|map|performance(?:\/(?:pyramid|injury|strengths|trends|gap|rpe|grades))?|sync|account(?:\/edit|\/import)?)\/?$/);
+      const ownedRouteMatch = pathname.match(/^\/([^/]+)\/(log|map|performance(?:\/(?:pyramid|injury|strengths|trends|gap|rpe))?|sync|account(?:\/edit|\/import)?)\/?$/);
       if (ownedRouteMatch) {
         const [, username, page] = ownedRouteMatch;
         return handleBetaGatedRoute(request, env, username, page);
