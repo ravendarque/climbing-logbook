@@ -57,7 +57,7 @@ GitHub, the same treatment every other doc in this repo already gets.
 | [0017](0017-connectivity-first-scoped-to-owner-write-path.md) | Connectivity-first resilience is scoped to the owner's write-path, not every page | Accepted |
 | [0018](0018-server-side-aggregation-for-derived-views.md) | Server-side aggregation for derived views, no client-side fallback | Accepted |
 | [0019](0019-local-first-sync-chunked-initial-load-and-delta.md) | Local-first sync for /log: chunked initial load + delta sync, not click-driven pagination | Accepted |
-| [0020](0020-beta-environment-shared-data-tag-promotion.md) | Beta environment: shared production data, tag-cumulative promotion, opt-in gate | Accepted |
+| [0020](0020-beta-environment-shared-data-tag-promotion.md) | Beta environment: shared production data, tag-cumulative promotion, opt-in gate | Accepted, access control superseded by 0029 |
 | [0021](0021-vite-for-production-build-client-and-worker.md) | Vite as the production build tool: client bundling, Worker build, and explicit environment selection | Accepted |
 | [0022](0022-eleventy-for-page-shell-templating.md) | 11ty (Eleventy) for page-shell templating | Accepted |
 | [0023](0023-instant-shell-decoupled-content-loading.md) | Instant shell, decoupled content loading, and a shell-level sync/offline indicator | Accepted |
@@ -65,3 +65,4 @@ GitHub, the same treatment every other doc in this repo already gets.
 | [0025](0025-static-asset-caching-hash-or-version-query.md) | Static asset caching: content hashes where the build provides them, versioned query strings where it doesn't | Accepted |
 | [0026](0026-local-preview-cant-validate-network-performance.md) | Local preview tooling can't validate real network performance — automated tests stop at cache correctness | Accepted |
 | [0027](0027-database-backed-rate-limiting-on-sign-in.md) | Database-backed rate limiting, not Better Auth's in-memory default | Accepted |
+| [0029](0029-beta-channel-enrollment-model.md) | Beta channel: two-state enrollment, checked on the page, one channel per origin | Accepted |
