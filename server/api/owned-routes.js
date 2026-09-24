@@ -16,16 +16,17 @@ async function resolveUserIdByUsername(env, username) {
   return user?.id ?? null;
 }
 
-// Mirrors client/admin-auth.js's LOGIN_PAGE_URL exactly -- /login lives at
-// the apex (climbinglogbook.com) in production, cross-origin from
-// my.climbinglogbook.com and beta.climbinglogbook.com (#443/#548) alike
-// (and from ravendarque.com/logbook, still live), but local dev/PR
-// previews only ever have one origin and never served a real
-// climbinglogbook.com, so they fall back to a same-origin relative path.
-function loginUrl(hostname) {
-  return ["my.climbinglogbook.com", "beta.climbinglogbook.com", "ravendarque.com"].includes(hostname)
-    ? "https://climbinglogbook.com/login/"
-    : "/login/";
+// #955, ADR-0029 -- an unauthenticated owner-route request goes to this
+// same origin's /login/, never the apex: an installed app (my.x/beta.x)
+// keeps its own cookie jar on iOS, so a login outside its scope may never
+// reach it. returnTo brings the visitor back to this page afterwards
+// (static/login/login.js; mirrors client/login-url.js). Response.redirect()
+// needs an absolute URL, hence the request URL as the base.
+function loginRedirect(request) {
+  const { pathname, search } = new URL(request.url);
+  const target = new URL("/login/", request.url);
+  target.searchParams.set("returnTo", pathname + search);
+  return Response.redirect(target, 302);
 }
 
 // #958 -- the page list and its URL matcher live in shared/owner-routes.js
@@ -61,20 +62,12 @@ function isDemoOwnedPage(username, page) {
 }
 
 export async function handleOwnedRoute(request, env, username, page) {
-  const { hostname } = new URL(request.url);
-
   if (isDemoOwnedPage(username, page)) {
     return env.ASSETS.fetch(new Request(new URL(SHELL_PATHS[page], request.url)));
   }
 
   const userId = await resolveOwnedSession(request, env, username);
-  if (!userId) {
-    // Response.redirect() requires an absolute URL (throws otherwise) --
-    // loginUrl()'s local-dev fallback is deliberately relative, so it
-    // needs request.url as a resolution base. The apex branch is already
-    // absolute, so the base is simply ignored for it.
-    return Response.redirect(new URL(loginUrl(hostname), request.url), 302);
-  }
+  if (!userId) return loginRedirect(request);
 
   // SHELL_PATHS[page] is never undefined here -- server/index.js only
   // calls this with a page matchOwnerRoute() found in SHELL_PATHS itself
@@ -91,9 +84,7 @@ export async function handleBetaGatedRoute(request, env, username, page) {
   const { hostname } = new URL(request.url);
 
   const userId = await resolveOwnedSession(request, env, username);
-  if (!userId) {
-    return Response.redirect(new URL(loginUrl(hostname), request.url), 302);
-  }
+  if (!userId) return loginRedirect(request);
 
   const row = await env.LOGBOOK_DB.prepare(`SELECT beta_opt_in FROM settings WHERE user_id = ?`).bind(userId).first();
   const betaOptIn = row && row.beta_opt_in !== null ? !!row.beta_opt_in : null;

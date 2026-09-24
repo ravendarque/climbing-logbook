@@ -7,6 +7,7 @@
 // thing this spec actually needs to prove works.
 import { expect, test } from "@playwright/test";
 import { DEV_USER } from "../scripts/lib/dev-session.mjs";
+import { ownedRouteUrl } from "./owned-route-url.js";
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
@@ -49,15 +50,13 @@ test("logs in via the login page, then logs out again", async ({ page }) => {
   expect(afterSignOut).toBeNull();
 });
 
-// #443/#547, ADR-0020 -- the redirect *target* can't actually differ
-// locally (BETA_ORIGIN, like APP_ORIGIN before it, resolves to the same
-// same-origin "" on any non-apex hostname -- see resolve-app-origin.js's
-// own header comment, and test/login/resolve-app-origin.test.js for the
-// real branch coverage that can't be exercised here). What this proves
-// instead: the new settings lookup genuinely happens as part of the
-// login flow, and doesn't break the existing redirect for an opted-in
-// user -- they still land on /log same as anyone else would locally.
-test("an opted-in user's login still fetches settings and lands on /log (target itself untestable locally)", async ({ page }) => {
+// #955, ADR-0029 -- the enrolled-user beta redirect is the apex's job
+// only. On an app host (and locally, where every host is "not the apex"),
+// the login page skips the settings read entirely and lands the user on
+// their own /log on the same origin, enrolled or not. The apex branch
+// itself (beta when enrolled) is covered by test/login/
+// resolve-app-origin.test.js, since the real apex can't be reached here.
+test("an enrolled user logging in on a non-apex host skips the channel read and lands on /log on the same origin", async ({ page }) => {
   // Establish a session, opt in, then sign out again -- setting up state
   // via the real API, not the form under test.
   await page.goto("/login/");
@@ -84,12 +83,20 @@ test("an opted-in user's login still fetches settings and lands on /log (target 
   await page.locator("#email").fill(DEV_USER.email);
   await page.locator("#password").fill(DEV_USER.password);
 
-  await Promise.all([
-    page.waitForResponse(res => res.url().includes("/logbook/api/settings") && res.request().method() === "GET"),
-    page.locator("#login-submit-btn").click(),
-  ]);
-  await page.waitForURL(`**/${DEV_USER.username}/log`);
+  // Settings reads made while the login page is still the current page
+  // (the landing page makes its own afterwards, which don't count here).
+  const settingsReadsFromLogin = [];
+  page.on("request", req => {
+    if (req.url().includes("/logbook/api/settings") && req.method() === "GET" && new URL(page.url()).pathname === "/login/") {
+      settingsReadsFromLogin.push(req.url());
+    }
+  });
+  const origin = new URL(page.url()).origin;
+  await page.locator("#login-submit-btn").click();
+  await page.waitForURL(`${origin}/${DEV_USER.username}/log`);
+  expect(settingsReadsFromLogin).toEqual([]);
 });
+
 
 test("shows an inline error for the wrong password, without navigating away", async ({ page }) => {
   await page.goto("/login/");
@@ -123,4 +130,24 @@ test("forgot password requires an email first", async ({ page }) => {
   // rather than the error text itself (still announced via aria-live
   // either way).
   await expect(page.locator("#email")).toBeFocused();
+});
+
+// #955, ADR-0029 -- an owner page with no session sends the visitor to
+// its *own* origin's /login/ (never the apex, so login never leaves an
+// installed app), and signing in comes back to that exact page. This one
+// can reach the real destination: my.localhost serves owned routes, and the
+// session cookie the sign-in sets there is scoped to my.localhost itself.
+test("an owner page with no session logs in on its own origin and comes back to the same page", async ({ page }) => {
+  await page.goto(ownedRouteUrl(DEV_USER.username, "/map"));
+  await page.waitForURL(url => url.pathname === "/login/");
+  const loginUrl = new URL(page.url());
+  expect(loginUrl.host).toBe(new URL(ownedRouteUrl(DEV_USER.username, "/map")).host);
+  expect(loginUrl.searchParams.get("returnTo")).toBe(`/${DEV_USER.username}/map`);
+
+  await page.locator("#email").fill(DEV_USER.email);
+  await page.locator("#password").fill(DEV_USER.password);
+  await page.locator("#login-submit-btn").click();
+
+  await page.waitForURL(ownedRouteUrl(DEV_USER.username, "/map"));
+  await expect(page.locator("climbing-tab-bar")).toBeAttached();
 });
