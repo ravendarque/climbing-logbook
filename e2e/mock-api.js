@@ -136,11 +136,22 @@ export async function mockApi(page, {
       places: Math.max(0, ..._places.map(p => cursorOf.get(p.id) ?? 0)),
       locations: Math.max(0, ..._locations.map(l => cursorOf.get(l.id) ?? 0)),
     };
-    await page.addInitScript(({ seedEntries, cursors }) => {
+    // #939 follow-up -- also seeds the places/locations caches, not just
+    // entries: client/log-main.js's own boot() now reads all three from
+    // localStorage before the network fetch too (the same real gap this
+    // fixed -- see that file's own comment), so a genuinely warm device's
+    // local storage already has these, matching store.js's own
+    // setPlaces()/setLocations() persisting to these same keys on every
+    // successful fetch. Without this, every existing test would still
+    // exercise the (now narrower, cache-miss-only) "places starts empty
+    // until the network responds" path instead of the realistic warm one.
+    await page.addInitScript(({ seedEntries, seedPlaces, seedLocations, cursors }) => {
       localStorage.setItem("logbook_sync_status", JSON.stringify({ version: 1, syncedAt: Date.now() }));
       localStorage.setItem("logbook_entries_cache", JSON.stringify(seedEntries));
+      localStorage.setItem("logbook_places_cache", JSON.stringify(seedPlaces));
+      localStorage.setItem("logbook_locations_cache", JSON.stringify(seedLocations));
       localStorage.setItem("logbook_sync_cursors", JSON.stringify(cursors));
-    }, { seedEntries: _entries, cursors });
+    }, { seedEntries: _entries, seedPlaces: _places, seedLocations: _locations, cursors });
   }
 
   await page.route("**/logbook/api/auth/get-session", route =>
