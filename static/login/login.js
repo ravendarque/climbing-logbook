@@ -80,6 +80,13 @@ form.addEventListener("submit", async (event) => {
           // handling (never-decided) falls back to my.x, same safe default.
         }
       }
+      // #960 -- on an app host, record who's signed in on this device (the
+      // same key client/user-storage.js's SIGNED_IN_USER_KEY names), so the
+      // app's page-side ownership check knows them straight away, offline
+      // included. The apex is a different origin: nothing to record there.
+      if (!needsChannelChoice(window.location.hostname)) {
+        try { localStorage.setItem("logbook_signed_in_user", data.user.username.toLowerCase()); } catch { /* storage blocked */ }
+      }
       window.location.href = resolvePostLoginTarget({
         hostname: window.location.hostname,
         origin: window.location.origin,

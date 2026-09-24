@@ -1,3 +1,5 @@
+import { userKey } from "./user-storage.js";
+
 // #500 -- per-table sync cursors (ADR-0019 part 3), the client-side half
 // of server/lib/d1-resource.js's own "each table's sync_cursor sequence
 // is independent" design: a single shared cursor across entries/places/
@@ -12,7 +14,8 @@
 // "treat this table as never synced," naturally falling back to a full
 // (since=0) delta fetch for it. No separate migration/reset mechanism
 // needed the way SYNC_VERSION exists for isSynced().
-const CURSORS_KEY = "logbook_sync_cursors";
+// #960 -- namespaced per user (client/user-storage.js).
+const CURSORS_KEY = userKey("logbook_sync_cursors");
 
 // `storage` defaults to the real localStorage but is injectable -- same
 // reasoning as store.js/sync-status.js's own `storage` param: the

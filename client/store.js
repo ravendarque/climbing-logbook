@@ -41,10 +41,12 @@ import {
   entryLocation as entryLocationPure,
 } from "./entries.js";
 import { applyPendingQueue as applyPendingQueuePure } from "./offline-queue.js";
+import { userKey } from "./user-storage.js";
 
-const ENTRIES_CACHE_KEY = "logbook_entries_cache";
-const PLACES_CACHE_KEY = "logbook_places_cache";
-const LOCATIONS_CACHE_KEY = "logbook_locations_cache";
+// #960 -- namespaced to the owner page's username (client/user-storage.js).
+const ENTRIES_CACHE_KEY = userKey("logbook_entries_cache");
+const PLACES_CACHE_KEY = userKey("logbook_places_cache");
+const LOCATIONS_CACHE_KEY = userKey("logbook_locations_cache");
 
 // `storage` defaults to the real localStorage but is injectable -- the
 // Workers pool Vitest runs client/ tests under (see vitest.config.js) has

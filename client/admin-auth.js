@@ -20,6 +20,8 @@
 import { VALID_TYPES } from "../shared/entry-schema.js";
 import { BACKGROUND_FETCH_TIMEOUT_MS } from "./sync-status-icon.js";
 import { LOGIN_PATH, loginPageUrl } from "./login-url.js";
+import { clearSignedInUser, ownerOfPath, userKey, writeSignedInUser } from "./user-storage.js";
+import { isDemoUsername } from "./demo-mode.js";
 
 // #847 follow-up -- onFetchTimeout defaults to a no-op so the four
 // admin-hidden-style pages that construct this factory without a
@@ -41,7 +43,8 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
   // every consumer's first paint (tab bar's show-performance attribute,
   // the discipline filter) be right immediately instead of after a
   // network round trip.
-  const SETTINGS_CACHE_KEY = "logbook_settings_cache";
+  // #960 -- namespaced per user (client/user-storage.js).
+  const SETTINGS_CACHE_KEY = userKey("logbook_settings_cache");
 
   function loadSettingsFromCache() {
     try {
@@ -216,6 +219,17 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
       email = null;
     }
     localStorage.setItem(LOGIN_HINT_KEY, store.isLoggedIn() ? "1" : "0");
+    // #960 -- record who's signed in on this device (the ownership check's
+    // offline reference), and if this owner page belongs to someone else
+    // (only possible for a service-worker-served page -- the server checks
+    // network loads itself), go to the signed-in user's own logbook.
+    if (username) {
+      writeSignedInUser(localStorage, username);
+      const owner = ownerOfPath(window.location.pathname);
+      if (owner && !isDemoUsername(owner) && owner !== username.toLowerCase()) {
+        window.location.replace(`/${encodeURIComponent(username)}/log`);
+      }
+    }
   }
 
   // Shared by every one of #348's owner-only composition roots
@@ -270,6 +284,9 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
       });
       store.setLoggedIn(false);
       localStorage.setItem(LOGIN_HINT_KEY, "0");
+      // #960 -- nobody's signed in on this device any more. Their data stays
+      // in their own namespace (an unsynced queue is never discarded).
+      clearSignedInUser(localStorage);
     }
     // #561 -- every page this factory runs on (log/map/performance/sync/
     // account(/edit|/import)?) is owner-only, server-side gated
