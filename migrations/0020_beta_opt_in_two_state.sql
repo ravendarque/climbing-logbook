@@ -1,0 +1,18 @@
+-- #952, ADR-0029 -- the beta channel is two-state now: enrolled (1) or not
+-- enrolled (0). ADR-0029 removes ADR-0020's "never decided" state (NULL),
+-- so every existing NULL becomes 0 (not enrolled, the default).
+--
+-- Data only, no table rebuild to add NOT NULL DEFAULT 0: SQLite can't
+-- alter a column's constraints in place, and a rebuild of `settings` would
+-- be a lot of risk for no gain. A settings row created later by a write
+-- that doesn't mention beta_opt_in (e.g. the first Athlete Mode toggle)
+-- still gets NULL, so the app code treats NULL as "not enrolled" anyway
+-- (#952's app-code PR). This migration just stops "never decided" living on
+-- in existing data.
+--
+-- Its own PR, separate from the app code, per ADR-0020's PR discipline: a
+-- migrations/** change deploys straight to both beta and production.
+-- Backward-compatible with the code already running there: until #952's
+-- app-code change lands, beta.x treats 0 as "opted out" and redirects to
+-- my.x, which is exactly "not enrolled" under ADR-0029.
+UPDATE settings SET beta_opt_in = 0 WHERE beta_opt_in IS NULL;
