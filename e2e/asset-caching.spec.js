@@ -71,7 +71,7 @@ test("the service worker script keeps the platform default cache header, not imm
 });
 
 // #962, ADR-0028 -- the rebuilt worker is built to the site root (/sw.js,
-// scripts/service-worker-plugin.mjs) and gets the same treatment: a
+// scripts/service-worker-build.mjs) and gets the same treatment: a
 // JavaScript MIME type (required to register it at all) and the platform
 // default Cache-Control, never the immutable rule. Fetched via plain
 // localhost -- a static file, no owned-route hostname needed.

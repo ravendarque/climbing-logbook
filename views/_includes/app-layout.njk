@@ -15,10 +15,12 @@
        fuller reasoning. -->
   <link rel="preload" as="font" type="font/woff2" href="/logbook/fonts/BebasNeue-Regular.woff2" crossorigin>
   <!-- {{ staticShellNote | safe }} -->
-  <!-- #857 -- ?v={{ assetVersion }} (see .eleventy.js's own comment)
-       lets public/_headers cache these stable-named files immutably --
-       a real rebuild changes the query, busting every previously-cached
-       copy at once. Skipped entirely in dev (isDevBuild): vite.config.js's
+  <!-- #857 -- a ?v= query (see .eleventy.js's own comment) lets
+       public/_headers cache these stable-named files immutably. #961:
+       in production builds it becomes each file's own content hash
+       (scripts/content-hash-asset-urls.mjs), so a deploy only busts the
+       copies of files that actually changed. (Deliberately not printing
+       the value here: it would make every build's HTML differ.) Skipped entirely in dev (isDevBuild): vite.config.js's
        own devEntryRewrite middleware matches /logbook/<name>-app.js with
        a trailing $ anchor, so any query string on that specific URL would
        stop it from recognizing the request at all; dev mode doesn't need

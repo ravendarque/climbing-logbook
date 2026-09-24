@@ -98,21 +98,32 @@ deploy (`.github/workflows/deploy.yml`):
   run without one (`scripts/require-cloudflare-env.mjs`), since
   @cloudflare/vite-plugin selects environments at build time, not via
   `wrangler deploy --env=X`.
-- **The service worker's own build** (#962,
-  [ADR-0028](adr/0028-service-worker-owns-the-owner-app-shell.md)): the
-  worker is source, not a static file. `client/sw/` (request
-  classification, per-build cache naming, the entry point) is bundled by
-  `scripts/service-worker-plugin.mjs`, a Vite plugin in
-  `vite.deploy.config.js` that runs in the client environment's
-  `writeBundle` hook. That's after Vite has written its output and copied
-  `public/`, so it sees the final served files. It uses esbuild to write a
-  single classic script to `dist/client/sw.js`, served as `/sw.js` with the
-  platform-default `Cache-Control`. Two values are injected at build time:
-  a `BUILD_ID` (a hash of every served file, so it changes exactly when
-  served content does, and that byte change is what makes browsers install
-  the new worker), and the pre-cache list (empty until #948). There's no
-  worker in `pnpm dev`. Until #947 no page registers `/sw.js`; the old
-  `static/logbook/sw.js` is still what pages register.
+- **Post-build steps** (#961/#962,
+  [ADR-0028](adr/0028-service-worker-owns-the-owner-app-shell.md)):
+  `scripts/post-build-plugin.mjs`, a Vite plugin in `vite.deploy.config.js`,
+  runs two steps in order in the client environment's `writeBundle` hook.
+  That's after Vite has written its output and copied `public/`, so both
+  see the final served files.
+  1. **Content-hashed asset URLs** (`scripts/content-hash-asset-urls.mjs`).
+     Eleventy renders the shells before Vite emits the bundles, so the
+     templates still write `.eleventy.js`'s per-build `assetVersion` as
+     `?v=`. This step rewrites every such reference in the built HTML to
+     `?v=<hash of that file>`, and fails the build if a referenced file
+     wasn't emitted. A deploy then changes only the URLs of files that
+     actually changed, and identical source gives identical URLs. This
+     partly supersedes ADR-0025's build-wide version query.
+  2. **The service worker's own build** (`scripts/service-worker-build.mjs`).
+     The worker is source, not a static file: `client/sw/` (request
+     classification, per-build cache naming, the entry point) is bundled
+     with esbuild to a
+     single classic script at `dist/client/sw.js`, served as `/sw.js` with
+     the platform-default `Cache-Control`. Two values are injected at build
+     time: a `BUILD_ID` (a hash of every served file, computed after step 1,
+     so identical source gives an identical ID and any served change gives a
+     new one; that byte change is what makes browsers install the new
+     worker), and the pre-cache list (empty until #948). There's no worker
+     in `pnpm dev`. Until #947 no page registers `/sw.js`; the old
+     `static/logbook/sw.js` is still what pages register.
 
 Styling itself is Tailwind utility classes directly in each page's own
 markup — not a utilities layer sitting alongside a separate hand-rolled

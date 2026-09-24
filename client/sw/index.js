@@ -1,5 +1,5 @@
 // #962, ADR-0028 -- the service worker's entry point, bundled by the
-// production build (scripts/service-worker-plugin.mjs) into /sw.js with
+// production build (scripts/service-worker-build.mjs) into /sw.js with
 // BUILD_ID and the pre-cache list injected. Deliberately inert for now:
 // no page registers /sw.js until the runtime lands (#947), which adds the
 // install/activate/fetch handlers built on classify.js and caches.js.

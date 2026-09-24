@@ -50,12 +50,13 @@
 import { defineConfig } from "vite";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import { CLIENT_ENTRIES } from "./vite.entries.mjs";
-import { serviceWorkerPlugin } from "./scripts/service-worker-plugin.mjs";
+import { postBuildPlugin } from "./scripts/post-build-plugin.mjs";
 
 export default defineConfig({
-  // #962 -- serviceWorkerPlugin() builds /sw.js from client/sw/ after the
-  // client environment's output is written (scripts/service-worker-plugin.mjs).
-  plugins: [cloudflare(), serviceWorkerPlugin()],
+  // #961/#962 -- postBuildPlugin() finishes the client build once its
+  // output is written: content-hashes the ?v= asset URLs in the built HTML,
+  // then builds /sw.js from client/sw/ (scripts/post-build-plugin.mjs).
+  plugins: [cloudflare(), postBuildPlugin()],
   preview: {
     port: 8787,
   },

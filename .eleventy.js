@@ -28,6 +28,13 @@
 // content hashes, #774/#855) -- occasionally busting a cache that
 // didn't strictly need it (an unrelated rebuild) is a minor,
 // acceptable inefficiency, not a correctness bug.
+//
+// #961, ADR-0028 -- in production builds this value is only a
+// placeholder now: scripts/content-hash-asset-urls.mjs (run after Vite
+// has emitted every bundle) rewrites each ?v=<this value> in the built
+// HTML to ?v=<hash of that file's content>, so a deploy only changes the
+// URLs of files that actually changed. It can't happen here: Eleventy
+// renders before the bundles exist.
 import eleventyNavigationPlugin from "@11ty/eleventy-navigation";
 import { execFileSync } from "node:child_process";
 import { gradeScaleMatrixHtml, gradeScaleSourcesHtml } from "./client/grade-scale-matrix.js";
