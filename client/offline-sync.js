@@ -155,6 +155,27 @@ export function createOfflineSync({
     store.applyPendingQueue(getQueue());
   }
 
+  // #939 -- boot()-time entries-only reconcile (client/log-main.js),
+  // deliberately narrower than pullDeltas() above: that function also
+  // delta-fetches places/locations, which boot() already refreshes via
+  // its own full-list loadResource() calls (client/fetch-json.js) on
+  // every load -- calling pullDeltas() there too would fire a second,
+  // redundant places/locations request every single time. Entries has
+  // no equivalent full-refetch-on-boot path (#498/ADR-0019 made avoiding
+  // a full re-fetch on every load the whole point for entries
+  // specifically), which is exactly the gap a real incident (#939)
+  // fell through: nothing ever re-checked entries against the server
+  // except a sync-button click or an online-reconnect event -- a device
+  // simply reloaded (or left open) across an offline session at the crag
+  // kept showing whatever it last had, indefinitely. Same
+  // applyPendingQueue() re-apply pullDeltas() itself does, for the same
+  // reason: this device's own queued-but-unsynced rows must stay visible
+  // on top of whatever the fetch just merged in.
+  async function reconcileEntries() {
+    await syncStatusIcon.track(pullDelta(entriesUrl, "entries", store.getEntries, store.setEntries, store.loadEntriesFromCache));
+    store.applyPendingQueue(getQueue());
+  }
+
   // #514 -- syncBtn.disabled only blocks a second *button click* (a
   // disabled button doesn't fire click events); the `online` listener
   // below has no such protection, so flapping connectivity firing
@@ -273,5 +294,5 @@ export function createOfflineSync({
   syncBtn.addEventListener("click", syncPending);
   window.addEventListener("online", () => { if (store.isLoggedIn()) syncPending(); });
 
-  return { getQueue, setQueue, syncPending, updateSyncButton };
+  return { getQueue, setQueue, syncPending, updateSyncButton, reconcileEntries };
 }

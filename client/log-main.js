@@ -235,6 +235,38 @@ async function boot() {
   const sessionPromise = syncStatusIcon.track(adminAuth.checkSession());
   const settingsPromise = syncStatusIcon.track(adminAuth.fetchSettings());
 
+  // #939 -- a real, confirmed incident: a device left open (or simply
+  // reloaded) across an offline session at the crag never picked up
+  // entries added on another device, because nothing here ever
+  // re-checked entries against the server at all -- only the sync-button
+  // click and the `online` event did (offline-sync.js's own listeners).
+  // The cached render above already gives this an instant first paint
+  // (ADR-0023, unaffected by this addition -- see below); this fires
+  // offlineSync's own new entries-only reconcile (client/offline-sync.js's
+  // reconcileEntries(), added for this same fix -- see its own comment
+  // for why this isn't just pullDeltas()/syncPending(), which would
+  // redundantly re-fetch the places/locations this file's own
+  // loadResource() calls below already refresh in full).
+  //
+  // Chained on sessionPromise, not gated on the synchronous
+  // store.isLoggedIn() hint the way offline-sync.js's own `online`
+  // listener is: that hint (admin-auth.js's LOGIN_HINT_KEY) only exists
+  // once some earlier visit's checkSession() has actually resolved and
+  // persisted it, so a first-ever session on a device (cleared storage,
+  // private browsing, or simply never having reached that point yet)
+  // would silently skip this every single time. That optimistic hint
+  // exists for state that gates the shell's own first paint (the tab
+  // bar's show-performance attribute, the account menu, per ADR-0023) --
+  // this reconcile isn't on that path at all (it's fire-and-forget,
+  // already running in the background, invisible until it resolves), so
+  // there's no reason to accept that hint's false-negative window here.
+  // `.then()`, not `await` -- boot() keeps running immediately;
+  // whichever of this or the places/locations fetch below resolves first
+  // has no bearing on the other.
+  sessionPromise.then(() => {
+    if (!IS_DEMO && store.isLoggedIn()) offlineSync.reconcileEntries();
+  });
+
   // #251 -- a demo visitor has no local cache at all (never really
   // synced), so this reads over the network from ENTRIES_URL instead --
   // already the public, target-user-scoped endpoint for a demo account

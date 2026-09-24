@@ -1170,6 +1170,40 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     // queued forever).
     await expect(page.locator(".place-header", { hasText: "Existing Crag" })).toHaveCount(1);
   });
+
+  // #939 -- a real, confirmed incident: an entry added on another device
+  // never showed up here even after a real reload, because nothing in
+  // boot() (client/log-main.js) ever re-checked entries against the
+  // server -- only a sync-button click or an `online` event did (both
+  // exercised by the tests above). This is the missing case: a plain
+  // reload, no online event, no button click. Proves client/offline-
+  // sync.js's new reconcileEntries() (client/log-main.js's own boot())
+  // is what closes the gap, not a regression back to the click/online-only
+  // behavior.
+  test("#939 -- reloading the page alone picks up an entry added on another device, no click or online event needed", async ({ page }) => {
+    await gotoLogHarness(page);
+
+    // Simulate "another device" adding a brand-new entry directly against
+    // the mocked backend -- same pattern as the "reconnect drift" test
+    // above, bypassing this page's own form entirely.
+    const entryName = `E2E boot reconcile ${Date.now()}`;
+    await page.evaluate(name => fetch("/logbook/api/admin/logbook", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: crypto.randomUUID(), placeId: "p1", type: "boulder", status: "send", grade: "6A", gradeScale: "font", date: "2026-05-03", name }),
+    }), entryName);
+
+    // Not visible yet -- this device's own cache still only has the
+    // original seed, and nothing has told it to check the server.
+    await expect(page.locator("#sections")).not.toContainText(entryName);
+
+    // A plain reload -- deliberately no `online` event dispatch and no
+    // sync-button click anywhere in this test.
+    await page.reload();
+    await expect(page.locator("climbing-entries-table")).toBeVisible();
+
+    await expect(page.locator("#sections")).toContainText(entryName);
+  });
 });
 
 // #403 -- deliberately data-agnostic: neither test hardcodes which
