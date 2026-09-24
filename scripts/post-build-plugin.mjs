@@ -12,9 +12,9 @@ export function postBuildPlugin() {
   return {
     name: "logbook-post-build",
     applyToEnvironment: environment => environment.name === "client",
-    async writeBundle(options) {
+    async writeBundle(options, bundle) {
       contentHashAssetUrls(options.dir);
-      await buildServiceWorker(options.dir);
+      await buildServiceWorker(options.dir, bundle);
     },
   };
 }
