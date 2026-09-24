@@ -25,6 +25,18 @@ on:
       - '.github/workflows/preview.yml'
       - '.github/actions/setup-node-pnpm/**'
 
+# #970 -- two runs for the same PR (e.g. a push, then a merge from main a
+# minute later) used to overlap, and the newer run's reset of the shared
+# preview D1 (#391) deleted the session the older run was still seeding
+# with: 401s mid-seed. A newer push now cancels the older run, which is
+# superseded anyway. Different PRs still share the database and can race
+# each other; that's #636, and a single global group isn't a substitute
+# (GitHub keeps only one pending run per group, so it would silently
+# cancel other PRs' previews).
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   pull-requests: write
