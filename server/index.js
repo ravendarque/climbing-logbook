@@ -8,6 +8,7 @@ import { handleGetMapCounts } from "./api/map.js";
 import { handlePublicProfile } from "./api/public-profile.js";
 import { handlePublicResource } from "./api/public-data.js";
 import { handleOwnedRoute, handleBetaGatedRoute } from "./api/owned-routes.js";
+import { matchOwnerRoute } from "../shared/owner-routes.js";
 import { handleReportIssue } from "./api/report-issue.js";
 import { handleFeedback } from "./api/feedback.js";
 import { createAuth } from "./lib/auth.js";
@@ -96,18 +97,12 @@ export default {
       // #347 -- the authenticated owner's own routes, checked first: a
       // more specific path shape than the bare :username below, and this
       // one needs a session/authorization decision the bare route doesn't.
-      // #302 adds account(/edit), #498 adds sync, alongside log/map/
-      // performance -- same shape, one more SHELL_PATHS entry each (see
-      // owned-routes.js). #190 -- `grades` deliberately removed from this
-      // alternation: that page moved from here (gated, behind Athlete
-      // Mode) to a public /help page, and this regex matching it with no
-      // matching SHELL_PATHS entry was a real, found gap (handleOwnedRoute
-      // fetched a literal "undefined" asset path instead of a clean 404).
-      const ownedRouteMatch = pathname.match(/^\/([^/]+)\/(log|map|performance(?:\/(?:pyramid|injury|strengths|trends|gap|rpe))?|sync|account(?:\/edit|\/import)?)\/?$/);
-      if (ownedRouteMatch) {
-        const [, username, page] = ownedRouteMatch;
-        return handleOwnedRoute(request, env, username, page);
-      }
+      // #958 -- the page list is shared/owner-routes.js's SHELL_PATHS, and
+      // matchOwnerRoute derives from it, so a page can't be routed here
+      // without a shell to serve (the #190 drift, when this was a
+      // hand-copied regex, is no longer possible).
+      const ownerRoute = matchOwnerRoute(pathname);
+      if (ownerRoute) return handleOwnedRoute(request, env, ownerRoute.username, ownerRoute.page);
 
       const match = pathname.match(/^\/([^/]+)\/?$/);
       if (match) return handlePublicProfile(request, env, match[1]);
@@ -121,11 +116,8 @@ export default {
     // opt-in status; a pre-release preview has no meaning for a page
     // that's just read-only data display, so nothing to gate there.
     if (hostname.startsWith("beta.") && method === "GET") {
-      const ownedRouteMatch = pathname.match(/^\/([^/]+)\/(log|map|performance(?:\/(?:pyramid|injury|strengths|trends|gap|rpe))?|sync|account(?:\/edit|\/import)?)\/?$/);
-      if (ownedRouteMatch) {
-        const [, username, page] = ownedRouteMatch;
-        return handleBetaGatedRoute(request, env, username, page);
-      }
+      const ownerRoute = matchOwnerRoute(pathname);
+      if (ownerRoute) return handleBetaGatedRoute(request, env, ownerRoute.username, ownerRoute.page);
     }
 
     // Better Auth (#20) -- the only prefix-matched route in this router;
