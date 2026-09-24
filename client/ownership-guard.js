@@ -70,6 +70,9 @@ export async function ownershipAllowsBoot({
     return false;
   }
   if (sessionUser === owner) {
+    // The server has now authorised this user, so pre-#960 data is theirs,
+    // same as on the network-served path above.
+    if (recorded === null) adoptLegacyUserData(storage, owner);
     writeSignedInUser(storage, owner);
     return true;
   }
