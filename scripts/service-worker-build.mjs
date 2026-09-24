@@ -4,10 +4,11 @@
 // dist/client/sw.js, served as /sw.js. Hand-written worker, no library
 // (ADR-0028 decision 11 records the ADR-0005 check).
 //
-// Runs in the client environment's writeBundle hook, i.e. after Vite has
-// written its own output *and* copied public/ (Eleventy's shells, CSS,
-// components, icons) into dist/client -- so the worker is built from the
-// final served files. Spike #957 Q5 verified this mechanism, and that
+// Runs (via scripts/post-build-plugin.mjs) in the client environment's
+// writeBundle hook, after Vite has written its own output *and* copied
+// public/ (Eleventy's shells, CSS, components, icons) into dist/client,
+// and after the asset URLs got their content hashes -- so the worker is
+// built from the final served files. Spike #957 Q5 verified this mechanism, and that
 // Workers Static Assets serves the result with a JavaScript MIME type and
 // the platform-default Cache-Control (ADR-0025 keeps sw.js out of the
 // immutable rules).
@@ -15,9 +16,8 @@
 // BUILD_ID is a hash of every file the site serves (excluding the worker
 // itself and the e2e fixtures), so it changes exactly when served content
 // changes -- and a changed BUILD_ID changes sw.js's bytes, which is what
-// makes browsers install the new worker. Until #961 content-hashes the
-// ?v= asset URLs, every build changes the shells (Eleventy's per-build
-// timestamp), so every build gets a new BUILD_ID: correct, just wasteful.
+// makes browsers install the new worker. The asset URLs are content-hashed
+// first (#961), so identical source gives an identical BUILD_ID.
 //
 // The pre-cache list is injected empty here; #948 fills it.
 import { build as esbuild } from "esbuild";
@@ -46,26 +46,23 @@ export function computeBuildId(root) {
   return hash.digest("hex").slice(0, 16);
 }
 
-export function serviceWorkerPlugin() {
-  return {
-    name: "logbook-service-worker",
-    applyToEnvironment: environment => environment.name === "client",
-    async writeBundle(options) {
-      const outDir = options.dir;
-      const buildId = computeBuildId(outDir);
-      await esbuild({
-        entryPoints: [WORKER_ENTRY],
-        bundle: true,
-        format: "iife",
-        target: "es2020",
-        minify: true,
-        outfile: join(outDir, WORKER_FILE),
-        define: {
-          __BUILD_ID__: JSON.stringify(buildId),
-          __PRECACHE__: JSON.stringify([]),
-        },
-        logLevel: "warning",
-      });
+// Writes dist/client/sw.js. Called by scripts/post-build-plugin.mjs after
+// the asset URLs have their final content hashes, so BUILD_ID covers the
+// HTML exactly as it will be served.
+export async function buildServiceWorker(outDir) {
+  const buildId = computeBuildId(outDir);
+  await esbuild({
+    entryPoints: [WORKER_ENTRY],
+    bundle: true,
+    format: "iife",
+    target: "es2020",
+    minify: true,
+    outfile: join(outDir, WORKER_FILE),
+    define: {
+      __BUILD_ID__: JSON.stringify(buildId),
+      __PRECACHE__: JSON.stringify([]),
     },
-  };
+    logLevel: "warning",
+  });
+  return { buildId };
 }

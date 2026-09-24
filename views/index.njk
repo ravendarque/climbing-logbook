@@ -21,7 +21,7 @@
        the other apex pages (public/register/, public/login/) -- see
        public/login/index.html's own comment for why these are referenced
        rather than duplicated. -->
-  <!-- #857 -- ?v={{ assetVersion }} (see .eleventy.js's own comment)
+  <!-- #857 -- the ?v= query (see .eleventy.js's own comment; #961: a per-file content hash in production builds, and deliberately not printed here, since that would make every build's HTML differ)
        lets public/_headers cache these two files immutably; skipped in
        dev (isDevBuild), which doesn't need it (see app-layout.njk's own
        fuller comment on why). -->
