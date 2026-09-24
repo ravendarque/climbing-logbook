@@ -1,8 +1,9 @@
 {
+  "id": "/",
   "name": "Climbing Logbook",
   "short_name": "Logbook",
-  "description": "Nix's climbing logbook — add, edit, and browse sends offline.",
-  "start_url": "/ravendarque/log",
+  "description": "A climbing logbook built for the crag: log, edit and browse your climbs, even with no signal.",
+  "start_url": "/launch/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0f0f0f",
