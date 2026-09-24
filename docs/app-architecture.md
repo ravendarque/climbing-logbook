@@ -98,6 +98,21 @@ deploy (`.github/workflows/deploy.yml`):
   run without one (`scripts/require-cloudflare-env.mjs`), since
   @cloudflare/vite-plugin selects environments at build time, not via
   `wrangler deploy --env=X`.
+- **The service worker's own build** (#962,
+  [ADR-0028](adr/0028-service-worker-owns-the-owner-app-shell.md)): the
+  worker is source, not a static file. `client/sw/` (request
+  classification, per-build cache naming, the entry point) is bundled by
+  `scripts/service-worker-plugin.mjs`, a Vite plugin in
+  `vite.deploy.config.js` that runs in the client environment's
+  `writeBundle` hook. That's after Vite has written its output and copied
+  `public/`, so it sees the final served files. It uses esbuild to write a
+  single classic script to `dist/client/sw.js`, served as `/sw.js` with the
+  platform-default `Cache-Control`. Two values are injected at build time:
+  a `BUILD_ID` (a hash of every served file, so it changes exactly when
+  served content does, and that byte change is what makes browsers install
+  the new worker), and the pre-cache list (empty until #948). There's no
+  worker in `pnpm dev`. Until #947 no page registers `/sw.js`; the old
+  `static/logbook/sw.js` is still what pages register.
 
 Styling itself is Tailwind utility classes directly in each page's own
 markup — not a utilities layer sitting alongside a separate hand-rolled

@@ -50,9 +50,12 @@
 import { defineConfig } from "vite";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import { CLIENT_ENTRIES } from "./vite.entries.mjs";
+import { serviceWorkerPlugin } from "./scripts/service-worker-plugin.mjs";
 
 export default defineConfig({
-  plugins: [cloudflare()],
+  // #962 -- serviceWorkerPlugin() builds /sw.js from client/sw/ after the
+  // client environment's output is written (scripts/service-worker-plugin.mjs).
+  plugins: [cloudflare(), serviceWorkerPlugin()],
   preview: {
     port: 8787,
   },
