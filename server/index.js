@@ -7,7 +7,7 @@ import { handleGetEffort, handleGetGap, handleGetInjuryLog, handleGetPyramid, ha
 import { handleGetMapCounts } from "./api/map.js";
 import { handlePublicProfile } from "./api/public-profile.js";
 import { handlePublicResource } from "./api/public-data.js";
-import { handleOwnedRoute, handleBetaGatedRoute } from "./api/owned-routes.js";
+import { handleOwnedRoute } from "./api/owned-routes.js";
 import { matchOwnerRoute } from "../shared/owner-routes.js";
 import { handleReportIssue } from "./api/report-issue.js";
 import { handleFeedback } from "./api/feedback.js";
@@ -74,7 +74,12 @@ const ADMIN_ROUTES = {
   "/logbook/api/admin/logbook/import": { POST: handleImport },
   "/logbook/api/admin/places": { POST: handlePostPlaces },
   "/logbook/api/admin/locations": { POST: handlePostLocations },
-  "/logbook/api/admin/settings": { PATCH: handlePatchSettings },
+  // #952 -- GET here too (same handler as the public GET): a session-only
+  // read, so client/channel-guard.js can tell "not enrolled" (200, false)
+  // apart from "no session" (401). The public GET answers defaults for
+  // both, which would mark an enrolled user with an expired session as
+  // not enrolled.
+  "/logbook/api/admin/settings": { GET: handleGetSettings, PATCH: handlePatchSettings },
 };
 
 export default {
@@ -108,16 +113,16 @@ export default {
       if (match) return handlePublicProfile(request, env, match[1]);
     }
 
-    // #443/#548, ADR-0020 -- beta.<domain>'s owned routes, same shape as
-    // my.<domain> above, gated additionally by the visitor's own
-    // settings.beta_opt_in (see handleBetaGatedRoute's own comment for the
-    // three-way branch). No public-profile equivalent here -- #113's
-    // read-only :username page is always served from my.x regardless of
-    // opt-in status; a pre-release preview has no meaning for a page
-    // that's just read-only data display, so nothing to gate there.
+    // #443/#548 -- beta.<domain>'s owned routes, served exactly like my.x's
+    // (session + ownership check only). #952, ADR-0029: whether the visitor
+    // is enrolled in the beta is checked by the page's own boot
+    // (client/channel-guard.js), not here -- a service-worker-cached shell
+    // never reaches this code, so a server-side gate couldn't hold. No
+    // public-profile equivalent here -- #113's read-only :username page is
+    // always served from my.x.
     if (hostname.startsWith("beta.") && method === "GET") {
       const ownerRoute = matchOwnerRoute(pathname);
-      if (ownerRoute) return handleBetaGatedRoute(request, env, ownerRoute.username, ownerRoute.page);
+      if (ownerRoute) return handleOwnedRoute(request, env, ownerRoute.username, ownerRoute.page);
     }
 
     // Better Auth (#20) -- the only prefix-matched route in this router;

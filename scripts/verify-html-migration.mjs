@@ -17,7 +17,7 @@ const PAGES = [
   "performance/gap/index.html", "performance/rpe/index.html", "performance/injury/index.html",
   "performance/strengths/index.html", "performance/grades/index.html",
   "account/index.html", "account/edit/index.html", "account/import/index.html",
-  "sync/index.html", "beta-gate/index.html",
+  "sync/index.html",
 ];
 
 let failed = false;

@@ -106,17 +106,16 @@ test("Public Logbook toggle (#301, moved to this page by #445) switches and pers
 // this page's own entry point (the "Manage" button + row status text);
 // the modal's own markup/behavior is otherwise identical regardless of
 // which composition root opens it.
-test("beta opt-in: never-decided state shows no status line, submitting 'Yes' persists it and navigates to beta.x's equivalent page", async ({ page }) => {
-  await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: null } });
+test("beta opt-in: not-enrolled state says so, submitting 'Yes' persists it and navigates to beta.x's equivalent page", async ({ page }) => {
+  await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: false } });
   await page.goto("/e2e-fixtures/pages/account.html");
 
   await expect(page.locator("#beta-opt-in-row")).toBeVisible();
-  await expect(page.locator("#beta-opt-in-status")).toBeHidden();
+  // #952, ADR-0029 -- two states, so the status line always shows.
+  await expect(page.locator("#beta-opt-in-status")).toHaveText("You're not enrolled in the beta.");
 
   await page.locator("#beta-opt-in-manage-btn").click();
   await expect(page.locator("#beta-opt-in-overlay")).toBeVisible();
-  // Never decided -- neither radio pre-selected.
-  await expect(page.locator('input[name="beta-opt-in-choice"]:checked')).toHaveCount(0);
 
   await page.locator('input[name="beta-opt-in-choice"][value="in"]').check();
   // #557 -- opting in navigates to beta.x's own equivalent of this page
@@ -140,11 +139,11 @@ test("beta opt-in: never-decided state shows no status line, submitting 'Yes' pe
   ]);
   expect(patchRequest.postDataJSON()).toEqual({ betaOptIn: true });
 
-  await expect(page.locator("#beta-opt-in-status")).toHaveText("You're currently opted in.");
+  await expect(page.locator("#beta-opt-in-status")).toHaveText("You're enrolled in the beta.");
 });
 
 test("beta opt-in: submitting 'No' re-syncs the status line in place, no navigation", async ({ page }) => {
-  await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: null } });
+  await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: false } });
   await page.goto("/e2e-fixtures/pages/account.html");
 
   await page.locator("#beta-opt-in-manage-btn").click();
@@ -155,21 +154,21 @@ test("beta opt-in: submitting 'No' re-syncs the status line in place, no navigat
   ]);
 
   await expect(page.locator("#beta-opt-in-overlay")).toBeHidden();
-  await expect(page.locator("#beta-opt-in-status")).toHaveText("You're currently opted out.");
+  await expect(page.locator("#beta-opt-in-status")).toHaveText("You're not enrolled in the beta.");
 });
 
 test("beta opt-in: already-opted-in state pre-selects the matching radio on open", async ({ page }) => {
   await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: true } });
   await page.goto("/e2e-fixtures/pages/account.html");
 
-  await expect(page.locator("#beta-opt-in-status")).toHaveText("You're currently opted in.");
+  await expect(page.locator("#beta-opt-in-status")).toHaveText("You're enrolled in the beta.");
 
   await page.locator("#beta-opt-in-manage-btn").click();
   await expect(page.locator('input[name="beta-opt-in-choice"][value="in"]')).toBeChecked();
 });
 
 test("beta opt-in: Cancel closes the modal without persisting a choice", async ({ page }) => {
-  await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: null } });
+  await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: false } });
   await page.goto("/e2e-fixtures/pages/account.html");
 
   let patchCalled = false;
@@ -184,11 +183,11 @@ test("beta opt-in: Cancel closes the modal without persisting a choice", async (
 
   await expect(page.locator("#beta-opt-in-overlay")).toBeHidden();
   expect(patchCalled).toBe(false);
-  await expect(page.locator("#beta-opt-in-status")).toBeHidden();
+  await expect(page.locator("#beta-opt-in-status")).toHaveText("You're not enrolled in the beta.");
 });
 
 test("beta opt-in: Escape closes the modal, focus is trapped while open", async ({ page }) => {
-  await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: null } });
+  await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: false } });
   await page.goto("/e2e-fixtures/pages/account.html");
 
   await page.locator("#beta-opt-in-manage-btn").click();

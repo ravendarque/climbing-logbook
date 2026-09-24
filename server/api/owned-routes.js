@@ -35,9 +35,9 @@ function loginRedirect(request) {
 // (test/wrangler-run-worker-first.test.js, #799) keep working.
 export { SHELL_PATHS };
 
-// Shared by both handleOwnedRoute (my.x) and handleBetaGatedRoute (beta.x,
-// #443/#548) -- the exact same "is this the real owner's own session"
-// check either way. Returns the resolved user id, or null covering "not
+// handleOwnedRoute's "is this the real owner's own session" check, for
+// my.x and beta.x alike (#952, ADR-0029: beta enrollment is checked by the
+// page itself, not here). Returns the resolved user id, or null covering "not
 // logged in", "no such username", and "logged in as someone else" all
 // alike -- deliberately indistinguishable to the caller too, same
 // anti-enumeration reasoning as public-profile.js's resolvePublicUser.
@@ -85,43 +85,5 @@ export async function handleOwnedRoute(request, env, username, page) {
   // SHELL_PATHS[page] is never undefined here -- server/index.js only
   // calls this with a page matchOwnerRoute() found in SHELL_PATHS itself
   // (#958; before that a hand-kept regex could drift, #190).
-  return serveShell(request, env, page);
-}
-
-// #443/#548, ADR-0020 -- beta.<domain>'s equivalent of handleOwnedRoute
-// above, additionally gated by settings.beta_opt_in (tri-state,
-// migrations/0006). A real three-way branch, not a special case bolted
-// onto handleOwnedRoute itself -- the two share only the session/
-// ownership check, since what happens next genuinely differs.
-export async function handleBetaGatedRoute(request, env, username, page) {
-  const { hostname } = new URL(request.url);
-
-  const userId = await resolveOwnedSession(request, env, username);
-  if (!userId) return loginRedirect(request);
-
-  const row = await env.LOGBOOK_DB.prepare(`SELECT beta_opt_in FROM settings WHERE user_id = ?`).bind(userId).first();
-  const betaOptIn = row && row.beta_opt_in !== null ? !!row.beta_opt_in : null;
-
-  if (betaOptIn === false) {
-    // Opted out -- silently redirect to the equivalent my.x path. No
-    // modal, no repeat nagging for a user who's already declined once.
-    const myXUrl = new URL(request.url);
-    myXUrl.hostname = `my.${hostname.slice("beta.".length)}`;
-    return Response.redirect(myXUrl, 302);
-  }
-
-  if (betaOptIn === null) {
-    // Never decided -- the gate shell (header + the shared <beta-opt-in-
-    // modal>, client/beta-gate-main.js) instead of the real page. Fetched
-    // for *this exact request URL* (not a redirect to a different path)
-    // so the browser's own address bar -- and therefore
-    // location.pathname, which that page's own boot() reads -- stays
-    // exactly the path the visitor actually asked for; that's what lets
-    // "Yes" reload in place and land on the real page next time, with no
-    // returnTo query param needed at all.
-    return env.ASSETS.fetch(new Request(new URL("/beta-gate/index.html", request.url)));
-  }
-
-  // Opted in -- served exactly like my.x would serve it.
   return serveShell(request, env, page);
 }

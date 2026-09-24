@@ -26,6 +26,7 @@ import { buildEntriesCsv, resolveExportRows } from "../shared/csv-import.js";
 import { createBetaOptIn } from "./beta-opt-in.js";
 import { resolveBetaXUrl } from "./resolve-cross-hostname-url.js";
 import "./components/beta-opt-in-modal.js";
+import { enrollmentAllowsBoot } from "./channel-guard.js";
 
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
 const DATA_URL = "/logbook/api/logbook";
@@ -86,9 +87,9 @@ function syncSettingsToggles() {
   betaOptInRow.hidden = !loggedIn;
   athleteModeToggle.setAttribute("aria-checked", String(adminAuth.isAthleteMode()));
   publicLogbookToggle.setAttribute("aria-checked", String(adminAuth.isLogbookPublic()));
-  const betaChoice = adminAuth.getBetaOptIn();
-  betaOptInStatus.hidden = betaChoice === null;
-  betaOptInStatus.textContent = betaChoice === true ? "You're currently opted in." : betaChoice === false ? "You're currently opted out." : "";
+  // #952, ADR-0029 -- two states, so the status line always shows.
+  betaOptInStatus.hidden = false;
+  betaOptInStatus.textContent = adminAuth.getBetaOptIn() ? "You're enrolled in the beta." : "You're not enrolled in the beta.";
 }
 
 // Same disable-while-saving + title-on-failure shape admin-auth.js's own
@@ -203,4 +204,6 @@ async function boot() {
   updateAdminBar();
 }
 
-boot();
+// #952, ADR-0029 -- on beta.<domain>, only an enrolled user's page boots
+// (client/channel-guard.js); a no-op everywhere else.
+enrollmentAllowsBoot().then(allowed => { if (allowed) boot(); });

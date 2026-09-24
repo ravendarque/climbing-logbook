@@ -28,6 +28,7 @@ import { syncAdminBar } from "./admin-bar.js";
 import { createSyncStatusIcon } from "./sync-status-icon.js";
 import { demoDataUrl, isDemoUsername } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
+import { enrollmentAllowsBoot } from "./channel-guard.js";
 
 // /:username/map -- the only path segment this page cares about is the
 // first one. <climbing-tab-bar> needs it to build its own /:username/log
@@ -186,4 +187,6 @@ async function loadMapCounts() {
   }
 }
 
-boot();
+// #952, ADR-0029 -- on beta.<domain>, only an enrolled user's page boots
+// (client/channel-guard.js); a no-op everywhere else.
+enrollmentAllowsBoot().then(allowed => { if (allowed) boot(); });

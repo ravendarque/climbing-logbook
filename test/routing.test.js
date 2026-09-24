@@ -28,7 +28,7 @@ const ADMIN_ROUTES = {
   "/logbook/api/admin/logbook": ["POST", "PUT", "DELETE"],
   "/logbook/api/admin/places": ["POST"],
   "/logbook/api/admin/locations": ["POST"],
-  "/logbook/api/admin/settings": ["PATCH"],
+  "/logbook/api/admin/settings": ["GET", "PATCH"],
 };
 
 const ALL_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"];

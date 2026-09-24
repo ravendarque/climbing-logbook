@@ -2,10 +2,10 @@
 
 ## Overview
 
-A single Cloudflare Worker serving 20 static-shell frontend pages (#760)
-— 16 with their own Vite-bundled composition root (#761): `/log`, `/map`,
+A single Cloudflare Worker serving 19 static-shell frontend pages (#760)
+— 15 with their own Vite-bundled composition root (#761): `/log`, `/map`,
 `/profile`, `/account` + `/account/edit`/`/account/import`, `/sync`,
-`/beta-gate`, and `/performance`'s hub page plus its 7 report sub-pages
+and `/performance`'s hub page plus its 7 report sub-pages
 — and 4 standalone auth/marketing pages (`/login`, `/register`,
 `/reset-password`, the apex `/`) with small inline module scripts
 instead of a bundled composition root — and a JSON
@@ -582,8 +582,7 @@ client/*-main.js's own compiled output lives in dist/, not here -- see
 │                         Registered by every owned page's own
 │                         composition root except profile-main.js (see
 │                         its own comment for why -- no offline-queue
-│                         concept to begin with), sync-main.js, and
-│                         beta-gate-main.js
+│                         concept to begin with) and sync-main.js
 ├── world-map-greenwich.json  Static Equal Earth map data (landmass/border/
 ├── world-map-americas.json    graticule SVG paths + per-country pin x/y),
 ├── world-map-oceania.json     one file per central-meridian projection variant
@@ -689,7 +688,7 @@ waits on a script to appear. Three pieces in `views/_includes/`:
   has.
 - `menu-owned.njk`, `menu-profile.njk`, `menu-help.njk` -- one file per
   page family, holding only that family's rows. *Owned* (log, map,
-  performance, account, sync, beta-gate): username and My account (start
+  performance, account, sync): username and My account (start
   hidden, revealed by `admin-auth.js`), Help, the sync status row, theme
   toggle and log in/out. *Profile* (public `/:username`): Help and the
   theme toggle only -- no session-dependent row exists (security by
@@ -1277,6 +1276,18 @@ header matches the page it expected
 ([ADR-0028](adr/0028-service-worker-owns-the-owner-app-shell.md)), and a
 new page gets the header automatically.
 
+**Beta channel enrollment (#952, [ADR-0029](adr/0029-beta-channel-enrollment-model.md)).**
+`beta.<domain>` owner routes are served exactly like `my.<domain>`'s
+(session and ownership check only). Enrollment is checked by the page:
+every owner composition root runs `client/channel-guard.js`'s
+`enrollmentAllowsBoot()` before its `boot()`. On a beta host, a
+not-enrolled user gets a "Beta is for enrolled users" message (header and
+menu kept, the rest hidden, no data fetched) linking to My account on
+`my.<domain>`. The decision comes synchronously from the cached settings;
+a background read of the session-only `GET /logbook/api/admin/settings`
+corrects it (one reload) if it changed. `betaOptIn` is two-state
+(`true`/`false`); a `NULL` column value means not enrolled.
+
 ## Data model
 
 D1-backed (#21/#297), scoped per-user by `user_id` — every row belongs to
@@ -1709,8 +1720,8 @@ an opt-in.
 
 Two real categories of frontend page exist:
 
-1. **The 16 app pages** (`/log`, `/map`, `/profile`, `/account` +
-   `/account/edit`/`/account/import`, `/sync`, `/beta-gate`, and
+1. **The 15 app pages** (`/log`, `/map`, `/profile`, `/account` +
+   `/account/edit`/`/account/import`, `/sync`, and
    `/performance`'s hub page plus its 7 report sub-pages) — each
    Vite-bundled (#761) from its own composition root, sharing Web
    Components and a handful of pure-logic/view modules with each other

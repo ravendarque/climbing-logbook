@@ -311,13 +311,33 @@ describe("settings", () => {
   it("returns default settings for an anonymous caller", async () => {
     const res = await fetchJson("/logbook/api/settings");
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: null });
+    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: false });
   });
 
   it("returns default settings for a logged-in user who's never set any", async () => {
     const res = await fetchJson("/logbook/api/settings", { headers: { Cookie: cookie } });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: null });
+    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: false });
+  });
+
+  // #952 -- the session-only read client/channel-guard.js uses, so "no
+  // session" (401) is never mistaken for "not enrolled".
+  it("rejects an unauthenticated read of the admin settings", async () => {
+    const res = await fetchJson("/logbook/api/admin/settings");
+    expect(res.status).toBe(401);
+  });
+
+  it("reads the caller's own settings from the admin path", async () => {
+    await patchJson("/logbook/api/admin/settings", { betaOptIn: true });
+    const res = await fetchJson("/logbook/api/admin/settings", { headers: { Cookie: cookie } });
+    expect(res.status).toBe(200);
+    expect((await res.json()).betaOptIn).toBe(true);
+  });
+
+  it("treats a NULL beta_opt_in (row created without it) as not enrolled", async () => {
+    await patchJson("/logbook/api/admin/settings", { athleteMode: true });
+    const res = await fetchJson("/logbook/api/settings", { headers: { Cookie: cookie } });
+    expect((await res.json()).betaOptIn).toBe(false);
   });
 
   it("rejects an unauthenticated update request", async () => {
@@ -328,25 +348,25 @@ describe("settings", () => {
   it("updates athleteMode on the happy path", async () => {
     const res = await patchJson("/logbook/api/admin/settings", { athleteMode: true });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ athleteMode: true, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: null });
+    expect(await res.json()).toEqual({ athleteMode: true, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: false });
   });
 
   it("updates activeDiscipline on the happy path", async () => {
     const res = await patchJson("/logbook/api/admin/settings", { activeDiscipline: "sport" });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "sport", logbookPublic: true, betaOptIn: null });
+    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "sport", logbookPublic: true, betaOptIn: false });
   });
 
   it("updates logbookPublic on the happy path", async () => {
     const res = await patchJson("/logbook/api/admin/settings", { logbookPublic: false });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder", logbookPublic: false, betaOptIn: null });
+    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder", logbookPublic: false, betaOptIn: false });
   });
 
   it("merges a partial update onto existing settings instead of overwriting", async () => {
     await patchJson("/logbook/api/admin/settings", { athleteMode: true });
     const res = await patchJson("/logbook/api/admin/settings", { activeDiscipline: "sport" });
-    expect(await res.json()).toEqual({ athleteMode: true, activeDiscipline: "sport", logbookPublic: true, betaOptIn: null });
+    expect(await res.json()).toEqual({ athleteMode: true, activeDiscipline: "sport", logbookPublic: true, betaOptIn: false });
   });
 
   it("rejects malformed JSON", async () => {
@@ -415,6 +435,6 @@ describe("settings", () => {
 
     const userB = await createAuthedSession();
     const res = await fetchJson("/logbook/api/settings", { headers: { Cookie: userB.cookie } });
-    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: null });
+    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: false });
   });
 });

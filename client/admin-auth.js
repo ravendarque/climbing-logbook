@@ -56,10 +56,8 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
   const cachedSettings = loadSettingsFromCache();
   let athleteMode = !!cachedSettings?.athleteMode;
   let logbookPublic = cachedSettings ? !!cachedSettings.logbookPublic : true;
-  // Tri-state (#443/#546, ADR-0020) -- null = never decided, unlike
-  // athleteMode/logbookPublic's plain booleans. Stays null until
-  // fetchSettings() below reads a real value or setBetaOptIn() writes one.
-  let betaOptIn = cachedSettings?.betaOptIn ?? null;
+  // #952, ADR-0029 -- two states: enrolled or not (default not enrolled).
+  let betaOptIn = cachedSettings?.betaOptIn === true;
   // #302 -- the "My account" link needs the caller's own username to build
   // its href (/:username/account); the menu-username label needs it to
   // display; client/account-edit-main.js's own username/email rows need
@@ -104,11 +102,7 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
       // state elsewhere, same as persistedDiscipline being tracked
       // regardless of whether a given page's UI surfaces it.
       logbookPublic = !!data.logbookPublic;
-      // Tri-state -- preserve null ("never decided") rather than coercing
-      // it to false, unlike logbookPublic above. data.betaOptIn is already
-      // null/true/false on the wire (server/api/settings.js's own
-      // rowToJson), so no coercion is needed either way.
-      betaOptIn = data.betaOptIn;
+      betaOptIn = data.betaOptIn === true;
       localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({
         athleteMode, logbookPublic, betaOptIn, activeDiscipline: persistedDiscipline,
       }));
