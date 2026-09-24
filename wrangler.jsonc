@@ -62,7 +62,9 @@
       "/performance", "/performance/*",
       "/profile", "/profile/*",
       "/account", "/account/*",
-      "/sync", "/sync/*"
+      "/sync", "/sync/*",
+      // #956 -- served per host (server/api/app-identity.js).
+      "/logbook/manifest.json", "/logbook/apple-touch-icon.png"
     ]
   },
   // Better Auth (#20) + the eventual multi-tenant app data (#21) -- id is a

@@ -86,8 +86,12 @@ Four things make this model wrong for where the app is going (#950):
    so each has its own service worker, caches, local data and offline
    queue. They behave like two devices, reconciled by the existing delta
    sync (ADR-0019). Beta is installable as its own app, **Logbook Beta**,
-   with its own manifest `id`, name, icon and theme colour, and a visible
-   beta badge in the header, so the two can't be confused.
+   with its own name, icon and theme colour, and a visible beta badge in
+   the header, so the two can't be confused. Its app identity comes from
+   its origin: both manifests say `id: "/"`, which resolves to a different
+   app on each host (#956 checked Chromium's app IDs). Keeping `/` means
+   beta installs made since #949 pick up the new name and icon rather
+   than becoming orphaned.
 5. **Joining and leaving happen on a My account sub-page**
    (`/:username/account/beta`). It gives a concise explanation of the
    consequences and an explicit confirm, and links to a full help page

@@ -15,6 +15,7 @@ import { createAuth } from "./lib/auth.js";
 import { handleBetaGatedSignUp } from "./lib/beta-gate.js";
 import { resolveUserId } from "./lib/session.js";
 import { json } from "./lib/json.js";
+import { handlePerHostAsset, perHostAssetPath } from "./api/app-identity.js";
 
 // This Worker is only ever invoked for requests that don't match a static
 // asset under public/ (Workers Static Assets serves those directly) — so
@@ -124,6 +125,11 @@ export default {
       const ownerRoute = matchOwnerRoute(pathname);
       if (ownerRoute) return handleOwnedRoute(request, env, ownerRoute.username, ownerRoute.page);
     }
+
+    // #956 -- the manifest and apple-touch-icon differ per host (Logbook
+    // Beta is its own app); server/api/app-identity.js.
+    const perHostAsset = perHostAssetPath(hostname, pathname);
+    if (perHostAsset && (method === "GET" || method === "HEAD")) return handlePerHostAsset(request, env, perHostAsset);
 
     // Better Auth (#20) -- the only prefix-matched route in this router;
     // every other route below is an exact pathname match. Better Auth owns

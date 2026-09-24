@@ -26,6 +26,18 @@
 (function () {
   var TOKENS_STYLE_ID = "climbing-header-tokens";
 
+  // #956 -- beta.<domain> is Logbook Beta, its own installable app, so it
+  // must never be mistaken for the main one: a "Beta" badge on the brand
+  // header, and amber instead of red browser/app chrome. The page's
+  // theme-color meta (which sits above this script in every <head>) wins
+  // over the manifest's theme_color, so it's switched here.
+  var IS_BETA = location.hostname.indexOf("beta.") === 0;
+  var BETA_THEME_COLOR = "#ffb020";
+  if (IS_BETA) {
+    var themeColor = document.querySelector('meta[name="theme-color"]');
+    if (themeColor) themeColor.setAttribute("content", BETA_THEME_COLOR);
+  }
+
   var TOKENS_CSS = [
     ":root {",
     "  --color-bg:          #0f0f0f;",
@@ -483,11 +495,17 @@
     var taglineClass = "font-display font-normal uppercase tracking-wide leading-none whitespace-nowrap text-[calc(var(--brand-scale)*0.3547)] text-muted mb-0" + (alignLeft ? "" : " text-center");
     return (
       '<div class="' + rowClass + '" id="brand-header-row">' +
-      '  <div class="shrink-0 flex mb-[calc(var(--brand-scale)*0.1167)]">' +
+      '  <div class="shrink-0 flex relative mb-[calc(var(--brand-scale)*0.1167)]">' +
       '    <svg class="w-[calc(var(--brand-scale)*1.4133)] h-[calc(var(--brand-scale)*1.1042)]" viewBox="0 14.4 122.88 96" aria-hidden="true">' +
       '      <path d="M45.6,14.4l23.718,48l-2.99,6l-21.689,0l10.843,21.6l-10.142,20.4l-45.342,0l45.6,-96Z" fill="currentColor"/>' +
       '      <path d="M85.203,37.2l16.333,31.2l-10.787,21.6l21.63,0l10.501,20.4l-74.042,0l36.364,-73.2Z" fill="currentColor"/>' +
       '    </svg>' +
+      // #956 -- over the logo's foot, like the app icon's band, so it adds
+      // no width to a row that must never wrap (#789). Hidden from screen
+      // readers: the h1 below says "Beta" itself.
+      (IS_BETA
+        ? '    <span class="absolute left-1/2 -translate-x-1/2 bottom-[calc(var(--brand-scale)*-0.28)] font-display uppercase tracking-wide leading-none [font-size:calc(var(--brand-scale)*0.38)] px-[.35em] pt-[.2em] pb-[.1em] rounded-[.2em] bg-[#ffb020] text-[#0f0f0f]" id="beta-badge" aria-hidden="true">Beta</span>'
+        : '') +
       '  </div>' +
       '  <div>' +
       // #789 -- whitespace-nowrap: the title has no wrap
@@ -512,7 +530,7 @@
       // regardless of viewport. The explicit property syntax (already
       // used by this file's own footnote-trigger button, below) has no
       // such ambiguity to resolve.
-      '    <h1 class="font-display font-normal uppercase tracking-wide [font-size:var(--brand-scale)] leading-none mb-[calc(var(--brand-scale)*-0.125)] whitespace-nowrap"><span class="text-accent">Climbing</span> <span class="text-foreground">Logbook</span></h1>' +
+      '    <h1 class="font-display font-normal uppercase tracking-wide [font-size:var(--brand-scale)] leading-none mb-[calc(var(--brand-scale)*-0.125)] whitespace-nowrap"><span class="text-accent">Climbing</span> <span class="text-foreground">Logbook</span>' + (IS_BETA ? '<span class="sr-only"> Beta</span>' : '') + '</h1>' +
       '    <p class="' + taglineClass + '">Log your climbs, visualise your progress (<button type="button" class="inline [font-size:inherit] bg-transparent border-0 p-0 cursor-pointer text-accent" id="footnote-trigger">or not</button>)</p>' +
       '  </div>' +
       '</div>' +
