@@ -125,14 +125,18 @@ real flow/modal, not an instant toggle):
 | ![row-card settings-row variant with a button control](ui-component-catalog/row-card-settings-button-dark.png) | ![row-card settings-row variant with a button control](ui-component-catalog/row-card-settings-button-light.png) |
 
 ```html
-<div class="row-card flex items-center gap-3" id="beta-opt-in-row">
+<div class="row-card flex items-center gap-3" id="example-row">
   <div class="flex-1 min-w-0">
-    <span class="row-card-title">Check our beta</span>
-    <p class="text-[.82rem] text-muted mt-2">Opt in to get early access to new features before they're released.</p>
+    <span class="row-card-title">Setting name</span>
+    <p class="text-[.82rem] text-muted mt-2">What the setting does.</p>
   </div>
-  <button type="button" class="btn shrink-0" id="beta-opt-in-manage-btn">Manage</button>
+  <button type="button" class="btn shrink-0" id="example-manage-btn">Manage</button>
 </div>
 ```
+
+(The screenshots show the account page's former beta opt-in row. #953
+replaced that with a link to its own sub-page, `beta-row`: the same
+two-column shape with a chevron in place of the button.)
 
 (`public/account/index.html`) — same shape is also built programmatically
 by `client/row-card.js` for the Performance hub; keep both in sync if
@@ -188,7 +192,8 @@ on click, no separate save step (Athlete Mode, Public Logbook).
 ```
 
 Not for a setting that needs an explanatory modal/consent step first — use
-the button-triggered `row-card` variant above instead (see `beta-opt-in-row`).
+the button-triggered `row-card` variant above, or a sub-page (like the
+account page's Beta channel row, #953) instead.
 
 ## `page-title` / `section-heading` / `card-section-heading` / `sources-heading`
 

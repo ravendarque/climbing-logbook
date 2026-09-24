@@ -23,9 +23,6 @@ import { createThemeToggle } from "./theme-toggle.js";
 import { syncAdminBar } from "./admin-bar.js";
 import { loadResource } from "./fetch-json.js";
 import { buildEntriesCsv, resolveExportRows } from "../shared/csv-import.js";
-import { createBetaOptIn } from "./beta-opt-in.js";
-import { resolveBetaXUrl } from "./resolve-cross-hostname-url.js";
-import "./components/beta-opt-in-modal.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
 
@@ -49,6 +46,7 @@ const store = createStore();
 
 document.getElementById("edit-account-link").href = `/${encodeURIComponent(USERNAME)}/account/edit`;
 document.getElementById("import-link").href = `/${encodeURIComponent(USERNAME)}/account/import`;
+document.getElementById("beta-row").href = `/${encodeURIComponent(USERNAME)}/account/beta`;
 document.getElementById("back-to-logbook-link").href = `/${encodeURIComponent(USERNAME)}/log`;
 
 // Same divider rule as client/header-chrome.js's own updateMenuDivider()
@@ -75,22 +73,20 @@ const athleteModeRow = document.getElementById("athlete-mode-row");
 const athleteModeToggle = document.getElementById("athlete-mode-toggle");
 const publicLogbookRow = document.getElementById("public-logbook-row");
 const publicLogbookToggle = document.getElementById("public-logbook-toggle");
-// #443/#546 -- same hidden-until-session-confirmed treatment as the two
-// rows above, but no aria-checked to sync (this is a modal trigger, not a
-// switch) -- betaOptInStatus is the only other piece of state to reflect.
-const betaOptInRow = document.getElementById("beta-opt-in-row");
-const betaOptInStatus = document.getElementById("beta-opt-in-status");
+// #953 -- same hidden-until-session-confirmed treatment as the two rows
+// above; a link to the Beta channel sub-page, showing the saved status.
+const betaRow = document.getElementById("beta-row");
+const betaStatus = document.getElementById("beta-status");
 
 function syncSettingsToggles() {
   const loggedIn = store.isLoggedIn();
   athleteModeRow.hidden = !loggedIn;
   publicLogbookRow.hidden = !loggedIn;
-  betaOptInRow.hidden = !loggedIn;
+  betaRow.hidden = !loggedIn;
   athleteModeToggle.setAttribute("aria-checked", String(adminAuth.isAthleteMode()));
   publicLogbookToggle.setAttribute("aria-checked", String(adminAuth.isLogbookPublic()));
   // #952, ADR-0029 -- two states, so the status line always shows.
-  betaOptInStatus.hidden = false;
-  betaOptInStatus.textContent = adminAuth.getBetaOptIn() ? "You're enrolled in the beta." : "You're not enrolled in the beta.";
+  betaStatus.textContent = adminAuth.getBetaOptIn() ? "You're enrolled in the beta." : "You're not enrolled in the beta.";
 }
 
 // Same disable-while-saving + title-on-failure shape admin-auth.js's own
@@ -125,24 +121,6 @@ const adminAuth = createAdminAuth({
   adminSettingsUrl: ADMIN_SETTINGS_URL,
   updateAdminBar,
 });
-
-// #443/#546/#557 -- opting in navigates straight to beta.x's own
-// equivalent of this page (Raven's own call: opting in should feel like
-// it actually took you somewhere, not just flip a status label and leave
-// you on my.x) -- opting out just re-syncs the status line in place,
-// same callback syncSettingsToggles() already serves updateAdminBar()
-// with, since there's nowhere more useful to send someone who declined.
-const betaOptIn = createBetaOptIn({
-  adminAuth,
-  onDecided(choseIn) {
-    if (choseIn) {
-      location.href = resolveBetaXUrl(location.hostname, location.pathname);
-    } else {
-      syncSettingsToggles();
-    }
-  },
-});
-document.getElementById("beta-opt-in-manage-btn").addEventListener("click", () => betaOptIn.open());
 
 createDisclosure(document.getElementById("header-menu-btn"), document.getElementById("header-menu-popover"), "#header-menu-wrap");
 createThemeToggle();

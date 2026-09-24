@@ -65,8 +65,8 @@ export function renderNotEnrolled(doc, { reason, joinUrl }) {
     renderBlockedPage(doc, {
       id: "beta-not-enrolled",
       heading: "Beta is for enrolled users",
-      text: "You're not enrolled in the beta. You can join from My account.",
-      link: { href: joinUrl, label: "Go to My account" },
+      text: "You're not enrolled in the beta. You can join from My account in the main app.",
+      link: { href: joinUrl, label: "Join the beta" },
     });
   }
 }
@@ -82,9 +82,8 @@ export async function enrollmentAllowsBoot({
   if (!isBetaHost(loc.hostname)) return true;
 
   const username = loc.pathname.split("/").filter(Boolean)[0] ?? "";
-  // Until #953's /account/beta sub-page exists, joining happens from the
-  // account hub.
-  const joinUrl = resolveMyXUrl(loc.hostname, `/${encodeURIComponent(username)}/account`);
+  // Joining happens on the main app's Beta channel page (#953).
+  const joinUrl = resolveMyXUrl(loc.hostname, `/${encodeURIComponent(username)}/account/beta`);
   const cached = readCachedEnrollment(storage);
 
   if (cached === undefined) {

@@ -921,6 +921,14 @@ client/
 │                           server-side and validate every row before
 │                           anything is written, so there's no meaningful
 │                           way to queue one offline
+├── account-beta-main.js  Composition root for /:username/account/beta
+│                           (#953, ADR-0029) -- bundled into
+│                           account-beta-app.js. Joining and leaving the
+│                           beta: explains what changes, warns about this
+│                           address's unsynced queue, then one button
+│                           writes the setting and navigates to the right
+│                           app's /log. Offline, the button is disabled.
+│                           Replaced the account hub's opt-in modal
 ├── admin-bar.js          syncAdminBar({ store, adminAuth, headerChrome,
 │                           tabBar, addBtn?, offlineSync? }) (#399) --
 │                           the admin-bar-visibility/#151 Grade-Pyramid-

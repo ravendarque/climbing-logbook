@@ -79,6 +79,8 @@
   Cache-Control: public, max-age=31556952, immutable
 /logbook/account-import-app.js
   Cache-Control: public, max-age=31556952, immutable
+/logbook/account-beta-app.js
+  Cache-Control: public, max-age=31556952, immutable
 /logbook/sync-app.js
   Cache-Control: public, max-age=31556952, immutable
 /logbook/beta-gate-app.js

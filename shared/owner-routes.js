@@ -48,6 +48,8 @@ export const SHELL_PATHS = {
   // named "account/import-export" (Raven's own correction: these are two
   // very different flows, import is the only one this story builds).
   "account/import": "/account/import/index.html",
+  // #953, ADR-0029 -- joining and leaving the beta.
+  "account/beta": "/account/beta/index.html",
 };
 
 // pathname → { username, page } for an owner-page URL, else null.

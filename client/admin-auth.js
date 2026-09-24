@@ -96,6 +96,13 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
     ? cachedSettings.activeDiscipline
     : null;
 
+  // What the next page load starts from (loadSettingsFromCache above).
+  function persistSettingsCache() {
+    localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({
+      athleteMode, logbookPublic, betaOptIn, activeDiscipline: persistedDiscipline,
+    }));
+  }
+
   // Public visitors always see the effective settings (Athlete Mode off
   // by default, discipline from boot()'s has-entries heuristic by
   // default); only the logged-in admin sees a control to change either.
@@ -118,9 +125,7 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
       // regardless of whether a given page's UI surfaces it.
       logbookPublic = !!data.logbookPublic;
       betaOptIn = data.betaOptIn === true;
-      localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({
-        athleteMode, logbookPublic, betaOptIn, activeDiscipline: persistedDiscipline,
-      }));
+      persistSettingsCache();
     } catch (err) {
       // Offline (or a genuine timeout -- see err.name check below) — keep
       // the last-known in-memory defaults rather than guessing; the
@@ -187,7 +192,13 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
   // own PATCH validation, which has no "reset to null" case either).
   async function setBetaOptIn(next) {
     const result = await patchSetting("betaOptIn", next);
-    if (result.ok) betaOptIn = result.data.betaOptIn;
+    if (result.ok) {
+      betaOptIn = result.data.betaOptIn;
+      // #953 -- this origin's enrollment check (client/channel-guard.js)
+      // reads the cache, so leaving from beta.<domain> takes effect there
+      // straight away rather than on its next background check.
+      try { persistSettingsCache(); } catch { /* storage full or blocked */ }
+    }
     updateAdminBar();
     return result;
   }
