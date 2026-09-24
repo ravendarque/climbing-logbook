@@ -231,10 +231,43 @@ async function boot() {
   // entries in front of the user immediately, without waiting on that
   // reconcile to resolve first.
   //
+  // #939 follow-up (Raven, 2026-09-24) -- places/locations used to have
+  // no synchronous cache read at all, unlike entries: this.#places was
+  // still genuinely empty for this page's very first render, every load,
+  // on any connection speed. entries.js's own placeOf() falls back to an
+  // empty "" locationId for every entry when that happens, so
+  // <climbing-entries-table> group by that one, wrong id on first paint
+  // -- a single unlabeled section holding everything, always expanded
+  // (its own #maybeInitCollapse() can't seed real per-location collapse
+  // state without real places either) -- then completely restructures
+  // into the real per-crag sections, correctly collapsed, the moment the
+  // network fetch below resolves. On a slow connection that window can
+  // last long enough to actually browse and expand/collapse something in
+  // the wrong, transient structure, which the real one then silently
+  // replaces. Loading these from cache first, synchronously, same as
+  // loadEntriesFromCache() already does two lines below (and ahead of
+  // it, deliberately -- its own notify() is what fires the shared
+  // render, so this way that first render already sees all three
+  // collections together, not entries alone): a returning device (the
+  // realistic case -- setPlaces()/setLocations() persist to this same
+  // cache on every successful fetch, store.js's own PLACES_CACHE_KEY/
+  // LOCATIONS_CACHE_KEY) gets its real location structure, correctly
+  // collapsed, from the very first paint. Neither call notifies on its
+  // own (store.js's own loadPlacesFromCache()/loadLocationsFromCache(),
+  // unlike loadEntriesFromCache(), were only ever used as this file's
+  // network-failure fallback below, where a render was already pending
+  // for other reasons) -- relying on that ordering here rather than
+  // duplicating a notify() call.
+  if (!IS_DEMO) {
+    store.loadPlacesFromCache();
+    store.loadLocationsFromCache();
+  }
+
   // #762 -- now that loadEntriesFromCache() itself notifies (store.js),
-  // this line alone is what puts real cached entries in front of the
-  // user immediately, rather than waiting for the network-gated
-  // reconcile below to happen to trigger a render.
+  // this line alone is what puts real cached entries (and, per the
+  // comment above, places/locations too) in front of the user
+  // immediately, rather than waiting for the network-gated reconcile
+  // below to happen to trigger a render.
   if (!IS_DEMO) store.loadEntriesFromCache();
 
   const sessionPromise = syncStatusIcon.track(adminAuth.checkSession());

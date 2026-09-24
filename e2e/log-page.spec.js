@@ -74,6 +74,42 @@ test("renders the shared chrome and a real entries table, and switches disciplin
   await expect(page.locator("#discipline-btn-label")).toHaveText("Boulder");
 });
 
+// #939 follow-up (Raven, 2026-09-24) -- reported as jank: sections
+// rendered expanded, then all collapsed once "loaded". Root cause was
+// client/log-main.js's own boot() never reading places/locations from
+// cache the way it already did entries (#762/ADR-0023) -- every entry's
+// placeId was unresolvable on the very first render (entries.js's own
+// placeOf() falls back to an empty "" locationId), so everything grouped
+// into one unlabeled section, expanded by default (<climbing-entries-
+// table>'s own #maybeInitCollapse() can't seed real per-location collapse
+// state without real places either), then completely restructured into
+// the real per-crag sections, correctly collapsed, the instant the
+// places/locations network fetch resolved. e2e/mock-api.js's own
+// `synced` seed now also seeds the places/locations caches (mirroring
+// what store.js's setPlaces()/setLocations() actually persist on every
+// real fetch) precisely so this test can exercise the realistic warm-
+// device path, not the network-fetch-dependent one.
+test("#939 follow-up -- location sections start collapsed on the very first paint, no expand-then-collapse flash", async ({ page }) => {
+  await gotoLogHarness(page);
+
+  // The real per-crag section is there. renderLocationSectionHtml
+  // (entries-table-html.js) always renders a section's rows into the
+  // DOM regardless of collapse state -- only a "hidden" class on the
+  // wrapper and the header's own aria-expanded toggle visibility -- so
+  // this checks aria-expanded and real visibility, not mere text
+  // presence (toContainText would find "Boulder Seed" either way).
+  const header = page.locator(".place-header", { hasText: "Test Crag" });
+  await expect(header).toHaveAttribute("aria-expanded", "false");
+  const row = page.locator("tr", { has: page.getByText("Boulder Seed", { exact: true }) });
+  await expect(row).toBeHidden();
+
+  // Expanding it reveals the row -- proves it's genuinely collapsed via
+  // the real toggle mechanism, not just coincidentally not rendered.
+  await header.click();
+  await expect(header).toHaveAttribute("aria-expanded", "true");
+  await expect(row).toBeVisible();
+});
+
 test("#501 -- a table past one page shows Show more/Show all, both reveal the rest client-side (no fetch)", async ({ page }) => {
   // #606 -- PAGE_SIZE raised from 20 to 100; seed counts scaled to match
   // (was 25 entries against a page size of 20).
@@ -1260,6 +1296,39 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     // No section anywhere is headed by blank/empty text -- the specific
     // shape a placeOf() fallback (locationId "") would have produced.
     await expect(page.locator(".place-header[data-location-id='']")).toHaveCount(0);
+  });
+
+  // #939 follow-up (Raven, 2026-09-24) -- the other half of the same
+  // report: "on a slow connection, I can open a table to browse it and
+  // then when some trigger fires ... it collapses again." Root cause was
+  // shared with the initial-flash bug above: <climbing-entries-table>'s
+  // own #maybeInitCollapse() only actually seeds collapse state once
+  // places/locations are non-empty, which (before boot()'s own
+  // cache-first fix) could still be moments after first paint on a slow
+  // connection -- long enough for a user to manually expand a section,
+  // only to have that one-time seed silently overwrite it. Proven here
+  // via the `online` event, the same background reconcile trigger
+  // (offlineSync.pullDeltas(), which calls store.setEntries()/
+  // setPlaces()/setLocations()) Raven's own report pointed at.
+  test("#939 -- a manually expanded section survives a later background reconcile (online event)", async ({ page }) => {
+    await gotoLogHarness(page);
+
+    // Starts collapsed (the fix above) -- expand it manually.
+    // renderLocationSectionHtml always renders a section's rows into the
+    // DOM regardless of collapse state (only a "hidden" class toggles),
+    // so this checks real visibility, not mere text presence.
+    const row = page.locator("tr", { has: page.getByText("Boulder Seed", { exact: true }) });
+    await expect(row).toBeHidden();
+    await page.locator(".place-header", { hasText: "Test Crag" }).click();
+    await expect(row).toBeVisible();
+
+    // A background reconcile -- same trigger offlineSync.js's own
+    // `online` listener uses, re-applying store.setEntries()/
+    // setPlaces()/setLocations() with (here) the exact same seeded data.
+    // <climbing-entries-table>'s #collapseInitialized guard means this
+    // must not re-touch collapse state at all.
+    await page.evaluate(() => window.dispatchEvent(new Event("online")));
+    await expect(row).toBeVisible();
   });
 });
 
