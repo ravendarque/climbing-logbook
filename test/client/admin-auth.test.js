@@ -34,7 +34,7 @@ describe("settings cache", () => {
     const adminAuth = createAdminAuth({ store: makeStore(), adminFetch: fetch, isAuthRedirect: () => false, adminSettingsUrl: "/x", updateAdminBar: () => {} });
     expect(adminAuth.isAthleteMode()).toBe(false);
     expect(adminAuth.isLogbookPublic()).toBe(true);
-    expect(adminAuth.getBetaOptIn()).toBe(null);
+    expect(adminAuth.getBetaOptIn()).toBe(false);
     expect(adminAuth.getPersistedDiscipline()).toBe(null);
   });
 

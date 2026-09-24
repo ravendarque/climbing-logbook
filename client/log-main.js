@@ -36,6 +36,7 @@ import { isSynced } from "./sync-status.js";
 import { demoDataUrl, isDemoUsername } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
 import "./components/climbing-entries-table.js";
+import { enrollmentAllowsBoot } from "./channel-guard.js";
 
 // /:username/log -- same single-segment extraction as map-main.js/
 // performance-pyramid-main.js/performance-hub-main.js.
@@ -368,4 +369,6 @@ async function boot() {
   render();
 }
 
-boot();
+// #952, ADR-0029 -- on beta.<domain>, only an enrolled user's page boots
+// (client/channel-guard.js); a no-op everywhere else.
+enrollmentAllowsBoot().then(allowed => { if (allowed) boot(); });

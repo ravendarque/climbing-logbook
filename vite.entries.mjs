@@ -21,7 +21,6 @@ export const CLIENT_ENTRIES = {
   "account-edit": "client/account-edit-main.js",
   "account-import": "client/account-import-main.js",
   sync: "client/sync-main.js",
-  "beta-gate": "client/beta-gate-main.js",
   help: "client/help-main.js",
   // #924 -- its own dedicated bundle, not folded into help-main.js: that
   // one is a generic bundle every /help/* page loads (nav/search/theme

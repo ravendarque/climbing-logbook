@@ -3,9 +3,8 @@
 // real production apex family -- local dev/PR previews stay same-origin
 // (there's no real beta.<domain>/my.<domain> pair to swap between there).
 //
-// resolveMyXUrl: beta.x's opt-in gate (#548, client/beta-gate-main.js)
-// on "opted out" -- send the visitor to the my.x equivalent of the page
-// they were just gated out of.
+// resolveMyXUrl: beta.x's "not enrolled" message (#952, client/
+// channel-guard.js) links to the my.x equivalent of a page.
 export function resolveMyXUrl(hostname, pathname) {
   if (hostname !== "beta.climbinglogbook.com") return pathname;
   return `https://my.climbinglogbook.com${pathname}`;

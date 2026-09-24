@@ -4,7 +4,7 @@
 // not built here at runtime any more; display/align-items/justify-content
 // come from climbing-header.js's shared token stylesheet.
 //
-// class="mb-6" (account/account-edit/account-import/sync/beta-gate) vs no
+// class="mb-6" (account/account-edit/account-import/sync) vs no
 // margin stays a per-page class on this element, set through the include's
 // `headerClass` variable.
 //

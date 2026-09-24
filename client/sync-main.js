@@ -16,6 +16,7 @@ import { createStore } from "./store.js";
 import { isSynced, markSynced } from "./sync-status.js";
 import { getCursor, setCursor } from "./sync-cursors.js";
 import { mergeDelta } from "./delta-merge.js";
+import { enrollmentAllowsBoot } from "./channel-guard.js";
 
 const PLACES_URL = "/logbook/api/places";
 const LOCATIONS_URL = "/logbook/api/locations";
@@ -175,4 +176,6 @@ async function boot() {
 
 document.getElementById("sync-retry-btn").addEventListener("click", () => location.reload());
 
-boot();
+// #952, ADR-0029 -- on beta.<domain>, only an enrolled user's page boots
+// (client/channel-guard.js); a no-op everywhere else.
+enrollmentAllowsBoot().then(allowed => { if (allowed) boot(); });

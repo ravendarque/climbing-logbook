@@ -5,20 +5,18 @@ import { VALID_TYPES } from "../../shared/entry-schema.js";
 // 0003_app_data.sql) -- an anonymous caller or a logged-in user who's
 // never touched settings both see the same effective default server/api/
 // public-profile.js's own resolvePublicUser() already falls back to.
-// betaOptIn defaults to null ("never decided") -- migrations/0006_add_
-// beta_opt_in.sql's own column has no DEFAULT clause for the same reason.
-const DEFAULT_SETTINGS = { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: null };
+// betaOptIn defaults to false (not enrolled) -- ADR-0029's two states.
+const DEFAULT_SETTINGS = { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: false };
 
 function rowToJson(row) {
   return {
     athleteMode: !!row.athlete_mode,
     activeDiscipline: row.active_discipline,
     logbookPublic: !!row.logbook_public,
-    // Tri-state (#443/#546, ADR-0020) -- `!!row.beta_opt_in` would collapse
-    // NULL ("never decided") and 0 ("opted out") to the same `false`,
-    // losing the distinction the beta.x gate (#548) needs to make. NULL
-    // must stay `null` on the wire, not coerce to a boolean.
-    betaOptIn: row.beta_opt_in === null ? null : !!row.beta_opt_in,
+    // #952, ADR-0029 -- two states: enrolled or not. NULL (a row created by
+    // a write that never mentioned beta_opt_in, or pre-migration-0020 data)
+    // means not enrolled, same as 0.
+    betaOptIn: !!row.beta_opt_in,
   };
 }
 

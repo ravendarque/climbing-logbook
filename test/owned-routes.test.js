@@ -18,7 +18,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, resetAuthTables } from "./support.js";
 import { SHELL_HEADER, SHELL_PATHS } from "../shared/owner-routes.js";
 
-// #443/#548, ADR-0020 -- sets the tri-state beta_opt_in column directly
+// #443/#548 -- sets the raw beta_opt_in column directly (NULL included)
 // (not via the PATCH endpoint) so each test can set up exactly the state
 // it wants to assert against, independent of the settings API's own
 // coverage (test/handlers.test.js). Upsert, same shape as server/api/
@@ -243,13 +243,13 @@ describe("owned route authorization", () => {
   });
 });
 
-// #443/#548, ADR-0020 -- beta.<domain>'s equivalent of the suite above,
-// additionally gated by settings.beta_opt_in. Session/ownership coverage
-// (no session, wrong user, unknown username) is deliberately not
-// re-proven here -- handleBetaGatedRoute shares resolveOwnedSession()
-// with handleOwnedRoute verbatim, already covered by the suite above.
-describe("beta-gated route authorization", () => {
-  it("opted in -- serves the real page shell, same as my.x would", async () => {
+// #443/#548 -- beta.<domain>'s owned routes. #952, ADR-0029: served exactly
+// like my.x's (session + ownership check only) whatever the user's beta
+// enrollment -- enrollment is checked by the page itself
+// (client/channel-guard.js), since a service-worker-cached shell never
+// reaches the server.
+describe("beta.x owned routes", () => {
+  it("enrolled -- serves the real page shell, same as my.x would", async () => {
     const { cookie, userId } = await createAuthedSession({ username: "betainuser", hostname: "climbinglogbook.com" });
     await setBetaOptIn(userId, true);
     const res = await fetchOwnedRoute("betainuser", "log", { hostname: "beta.climbinglogbook.com", cookie });
@@ -259,32 +259,31 @@ describe("beta-gated route authorization", () => {
     expect(html).toMatch(/src="\/logbook\/log\-app\.js(\?v=\d+)?"/);
   });
 
-  it("opted out -- redirects silently to the equivalent my.x path, not the gate shell", async () => {
-    const { cookie, userId } = await createAuthedSession({ username: "betaoutuser", hostname: "climbinglogbook.com" });
-    await setBetaOptIn(userId, false);
-    const res = await fetchOwnedRoute("betaoutuser", "map", { hostname: "beta.climbinglogbook.com", cookie });
+  it.each([
+    ["not enrolled (0)", false],
+    ["no value (NULL)", null],
+  ])("%s -- still serves the real page shell (no server-side gate, no redirect)", async (_label, value) => {
+    const { cookie, userId } = await createAuthedSession({ username: `betanogate${value === null ? "null" : "0"}`, hostname: "climbinglogbook.com" });
+    await setBetaOptIn(userId, value);
+    const res = await fetchOwnedRoute(`betanogate${value === null ? "null" : "0"}`, "map", { hostname: "beta.climbinglogbook.com", cookie });
+    expect(res.status).toBe(200);
+    expect(res.headers.get(SHELL_HEADER)).toBe("map");
+    expect(await res.text()).not.toContain("<beta-opt-in-modal");
+  });
+
+  it("no settings row at all -- still serves the real page shell", async () => {
+    const { cookie } = await createAuthedSession({ username: "betanorow", hostname: "climbinglogbook.com" });
+    const res = await fetchOwnedRoute("betanorow", "performance", { hostname: "beta.climbinglogbook.com", cookie });
+    expect(res.status).toBe(200);
+    expect(res.headers.get(SHELL_HEADER)).toBe("performance");
+  });
+
+  it("redirects to login when logged in as a different user, same as my.x", async () => {
+    await createAuthedSession({ username: "betatarget", hostname: "climbinglogbook.com" });
+    const { cookie } = await createAuthedSession({ username: "betaother", hostname: "climbinglogbook.com" });
+    const res = await fetchOwnedRoute("betatarget", "log", { hostname: "beta.climbinglogbook.com", cookie });
     expect(res.status).toBe(302);
-    expect(res.headers.get("Location")).toBe("https://my.climbinglogbook.com/betaoutuser/map");
-  });
-
-  it("never decided (no settings row at all) -- serves the gate shell, not the real page", async () => {
-    const { cookie } = await createAuthedSession({ username: "betaneveruser", hostname: "climbinglogbook.com" });
-    const res = await fetchOwnedRoute("betaneveruser", "performance", { hostname: "beta.climbinglogbook.com", cookie });
-    expect(res.status).toBe(200);
-    const html = await res.text();
-    expect(html).toContain("<beta-opt-in-modal");
-    // The real page's own shell content must NOT be present -- proves
-    // this is genuinely a different response, not the real shell with
-    // extra markup tacked on.
-    expect(html).not.toContain("<climbing-grade-pyramid");
-  });
-
-  it("never decided (settings row exists, beta_opt_in explicitly NULL) -- same gate shell", async () => {
-    const { cookie, userId } = await createAuthedSession({ username: "betanullrow", hostname: "climbinglogbook.com" });
-    await setBetaOptIn(userId, null);
-    const res = await fetchOwnedRoute("betanullrow", "log", { hostname: "beta.climbinglogbook.com", cookie });
-    expect(res.status).toBe(200);
-    expect(await res.text()).toContain("<beta-opt-in-modal");
+    expect(res.headers.get("Location")).toBe("https://beta.climbinglogbook.com/login/?returnTo=%2Fbetatarget%2Flog");
   });
 
   it("redirects to login with no session at all, same as my.x", async () => {
@@ -372,14 +371,6 @@ describe("shell identity header (#959)", () => {
     const res = await fetchOwnedRoute("betashellheader", "map", { hostname: "beta.climbinglogbook.com", cookie });
     expect(res.status).toBe(200);
     expect(res.headers.get(SHELL_HEADER)).toBe("map");
-  });
-
-  it("does not mark the beta gate page served at an owner URL", async () => {
-    const { cookie, userId } = await createAuthedSession({ username: "betagatenoheader", hostname: "climbinglogbook.com" });
-    await setBetaOptIn(userId, null);
-    const res = await fetchOwnedRoute("betagatenoheader", "log", { hostname: "beta.climbinglogbook.com", cookie });
-    expect(res.status).toBe(200);
-    expect(res.headers.get(SHELL_HEADER)).toBeNull();
   });
 
   it("does not mark the unauthenticated login redirect", async () => {
