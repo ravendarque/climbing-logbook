@@ -184,13 +184,21 @@ decision and why it's an ongoing constraint, not a single shipped feature.
   loading a dataset only when the control that needs it is opened) is the
   wrong tradeoff here even when it would save real bytes on the common
   case — it puts the network dependency exactly where it's most likely to
-  fail: mid-interaction on a flaky connection, not at initial page load
-  (which the service worker/offline queue already treat as the resilience
-  boundary).
+  fail: mid-interaction on a flaky connection, not at initial page load,
+  which is the resilience boundary. Once a page is open, its local caches
+  (`client/store.js`) and offline queue (`client/offline-sync.js`) keep it
+  working with no signal.
+- **Opening an owner page with no signal is the service worker's job**
+  ([ADR-0028](adr/0028-service-worker-owns-the-owner-app-shell.md), being
+  delivered under #945; until then an offline *cold* launch fails). The
+  worker serves page shells and static assets only. **Never cache API
+  responses in the worker**: data belongs to `store.js`, and a second copy
+  in Cache Storage risks stale or cross-user data.
 - **Prefer bundling small, static, rarely-changing datasets directly into
   the single-file app** (e.g. a country list) over fetching them on demand.
-  If a dataset is genuinely too large to justify always-loading it, cache
-  it after first load (service worker) rather than leaving it an uncached
+  If a dataset is genuinely too large to justify always-loading it, serve
+  it as a static file under `/logbook/` so it's cached after first load
+  (ADR-0028's static-asset tier) rather than leaving it an uncached
   fetch-on-open.
 - See #111 for the broader initiative (progressive/streamed data loading)
   this principle is part of.

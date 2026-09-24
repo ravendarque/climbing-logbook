@@ -62,6 +62,7 @@ GitHub, the same treatment every other doc in this repo already gets.
 | [0022](0022-eleventy-for-page-shell-templating.md) | 11ty (Eleventy) for page-shell templating | Accepted |
 | [0023](0023-instant-shell-decoupled-content-loading.md) | Instant shell, decoupled content loading, and a shell-level sync/offline indicator | Accepted |
 | [0024](0024-sync-status-timeout-on-the-fetch-not-the-animation.md) | Sync/offline status timeout belongs on the fetch, not on how long the animation runs | Accepted |
-| [0025](0025-static-asset-caching-hash-or-version-query.md) | Static asset caching: content hashes where the build provides them, versioned query strings where it doesn't | Accepted |
+| [0025](0025-static-asset-caching-hash-or-version-query.md) | Static asset caching: content hashes where the build provides them, versioned query strings where it doesn't | Accepted, build-wide `?v=` superseded by 0028 |
 | [0026](0026-local-preview-cant-validate-network-performance.md) | Local preview tooling can't validate real network performance — automated tests stop at cache correctness | Accepted |
 | [0027](0027-database-backed-rate-limiting-on-sign-in.md) | Database-backed rate limiting, not Better Auth's in-memory default | Accepted |
+| [0028](0028-service-worker-owns-the-owner-app-shell.md) | The service worker owns the owner app's shell: offline cold launch, cache-first per build, never data | Accepted |
