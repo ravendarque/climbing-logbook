@@ -1291,6 +1291,24 @@ header matches the page it expected
 ([ADR-0028](adr/0028-service-worker-owns-the-owner-app-shell.md)), and a
 new page gets the header automatically.
 
+**Per-user local data and the page-side ownership check (#960,
+[ADR-0028](adr/0028-service-worker-owns-the-owner-app-shell.md)).** Every
+per-user localStorage key (entries/places/locations caches, the offline
+queue, settings, map counts, sync cursors and status) is namespaced by the
+owner page's username (`logbook_entries_cache:raven`) via
+`client/user-storage.js`'s `userKey()`. Anywhere that isn't an owner page
+(the fixture harness, unit tests) uses the plain key. Nothing is deleted on
+logout, so an unsynced queue stays with its owner and re-login doesn't
+force a cold sync. `logbook_signed_in_user` records who's signed in on
+this origin. It's written by a network-served owner page (the server has
+just authorised that user), by `admin-auth.js`'s session check and by the
+same-origin login page, and it's cleared on logout. Every owner
+composition root runs `client/boot-gate.js`'s `pageAllowsBoot()`: first
+`ownership-guard.js` (a page served by the service worker for anyone but
+the recorded user is refused offline, and online the session decides),
+then the beta enrollment check below. Pre-#960 un-namespaced data is
+adopted once, into the namespace of the user the server authorised.
+
 **Beta channel enrollment (#952, [ADR-0029](adr/0029-beta-channel-enrollment-model.md)).**
 `beta.<domain>` owner routes are served exactly like `my.<domain>`'s
 (session and ownership check only). Enrollment is checked by the page:

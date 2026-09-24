@@ -28,7 +28,8 @@ import { syncAdminBar } from "./admin-bar.js";
 import { createSyncStatusIcon } from "./sync-status-icon.js";
 import { demoDataUrl, isDemoUsername } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
-import { enrollmentAllowsBoot } from "./channel-guard.js";
+import { pageAllowsBoot } from "./boot-gate.js";
+import { userKey } from "./user-storage.js";
 
 // /:username/map -- the only path segment this page cares about is the
 // first one. <climbing-tab-bar> needs it to build its own /:username/log
@@ -44,7 +45,8 @@ const MAP_COUNTS_URL = demoDataUrl(USERNAME, "/logbook/api/map/counts", "map/cou
 // discipline aggregate is cheap enough to just cache directly here
 // (ADR-0018's own consequence: /map stays offline-capable on its own,
 // unlike /performance's deliberate online-only gate).
-const MAP_COUNTS_CACHE_KEY = "logbook_map_counts_cache";
+// #960 -- namespaced per user (client/user-storage.js).
+const MAP_COUNTS_CACHE_KEY = userKey("logbook_map_counts_cache");
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
 
 // Same opaqueredirect-detection reasoning as client/main.js's own
@@ -187,6 +189,6 @@ async function loadMapCounts() {
   }
 }
 
-// #952, ADR-0029 -- on beta.<domain>, only an enrolled user's page boots
-// (client/channel-guard.js); a no-op everywhere else.
-enrollmentAllowsBoot().then(allowed => { if (allowed) boot(); });
+// #952/#960 -- boots only for the signed-in owner of this page and, on
+// beta.<domain>, only if they're enrolled (client/boot-gate.js).
+pageAllowsBoot().then(allowed => { if (allowed) boot(); });

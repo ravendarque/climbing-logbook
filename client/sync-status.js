@@ -1,3 +1,5 @@
+import { userKey } from "./user-storage.js";
+
 // #498 -- a shared, versioned marker proving this device has been
 // through a real full sync (ADR-0019) at least once. Deliberately NOT
 // "is anything cached at all" -- a #493-era device could already have a
@@ -12,7 +14,8 @@
 // client/sync-main.js's own completion write) -- shared rather than
 // duplicated, matching this codebase's own "extract once 2+ call sites
 // exist" convention.
-const SYNC_STATUS_KEY = "logbook_sync_status";
+// #960 -- namespaced per user (client/user-storage.js).
+const SYNC_STATUS_KEY = userKey("logbook_sync_status");
 const SYNC_VERSION = 1;
 
 // `storage` defaults to the real localStorage but is injectable -- same

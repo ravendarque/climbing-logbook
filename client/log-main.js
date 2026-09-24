@@ -36,7 +36,8 @@ import { isSynced } from "./sync-status.js";
 import { demoDataUrl, isDemoUsername } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
 import "./components/climbing-entries-table.js";
-import { enrollmentAllowsBoot } from "./channel-guard.js";
+import { pageAllowsBoot } from "./boot-gate.js";
+import { userKey } from "./user-storage.js";
 
 // /:username/log -- same single-segment extraction as map-main.js/
 // performance-pyramid-main.js/performance-hub-main.js.
@@ -57,7 +58,9 @@ const ADMIN_PLACES_URL = "/logbook/api/admin/places";
 const LOCATIONS_URL = demoDataUrl(USERNAME, "/logbook/api/locations", "locations");
 const ADMIN_LOCATIONS_URL = "/logbook/api/admin/locations";
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
-const QUEUE_KEY = "logbook_pending_queue";
+// #960 -- namespaced per user (client/user-storage.js): an unsynced queue
+// stays attributed to its owner, never visible to another user's pages.
+const QUEUE_KEY = userKey("logbook_pending_queue");
 
 // Same opaqueredirect-detection reasoning as client/main.js's own
 // adminFetch/isAuthRedirect -- unchanged copy, not worth sharing a
@@ -369,6 +372,6 @@ async function boot() {
   render();
 }
 
-// #952, ADR-0029 -- on beta.<domain>, only an enrolled user's page boots
-// (client/channel-guard.js); a no-op everywhere else.
-enrollmentAllowsBoot().then(allowed => { if (allowed) boot(); });
+// #952/#960 -- boots only for the signed-in owner of this page and, on
+// beta.<domain>, only if they're enrolled (client/boot-gate.js).
+pageAllowsBoot().then(allowed => { if (allowed) boot(); });

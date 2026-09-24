@@ -18,7 +18,7 @@ import { createThemeToggle } from "./theme-toggle.js";
 import { syncAdminBar } from "./admin-bar.js";
 import { buildTemplateCsv } from "../shared/csv-import.js";
 import { loginPageUrl } from "./login-url.js";
-import { enrollmentAllowsBoot } from "./channel-guard.js";
+import { pageAllowsBoot } from "./boot-gate.js";
 
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
 const IMPORT_URL = "/logbook/api/admin/logbook/import";
@@ -159,6 +159,6 @@ async function boot() {
   updateAdminBar();
 }
 
-// #952, ADR-0029 -- on beta.<domain>, only an enrolled user's page boots
-// (client/channel-guard.js); a no-op everywhere else.
-enrollmentAllowsBoot().then(allowed => { if (allowed) boot(); });
+// #952/#960 -- boots only for the signed-in owner of this page and, on
+// beta.<domain>, only if they're enrolled (client/boot-gate.js).
+pageAllowsBoot().then(allowed => { if (allowed) boot(); });

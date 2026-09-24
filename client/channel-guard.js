@@ -15,9 +15,11 @@
 // never cached settings (first visit on it) waits for the network, and a
 // page there has no local data to show yet anyway.
 import { resolveMyXUrl } from "./resolve-cross-hostname-url.js";
+import { renderBlockedPage } from "./blocked-page.js";
+import { userKey } from "./user-storage.js";
 
 // Same key admin-auth.js reads and writes (its SETTINGS_CACHE_KEY).
-export const SETTINGS_CACHE_KEY = "logbook_settings_cache";
+export const SETTINGS_CACHE_KEY = userKey("logbook_settings_cache");
 // The session-only read (401 without a session): a missing or expired
 // session is "no information", never "not enrolled".
 const SETTINGS_URL = "/logbook/api/admin/settings";
@@ -51,35 +53,22 @@ async function fetchEnrollment(fetchImpl) {
   return (await res.json()).betaOptIn === true;
 }
 
-// Replaces everything after the shared page header (brand + menu, so the
-// visitor can still log out or navigate) with the message.
+// The "not enrolled" / "can't check" message (client/blocked-page.js).
 export function renderNotEnrolled(doc, { reason, joinUrl }) {
-  const header = doc.querySelector("climbing-page-header");
-  const container = header?.parentElement ?? doc.body;
-  for (const el of container.children) {
-    if (el !== header) el.hidden = true;
-  }
-  const section = doc.createElement("section");
-  section.id = "beta-not-enrolled";
-  section.className = "max-w-[480px] mt-8 flex flex-col gap-3";
-  const heading = doc.createElement("h2");
-  heading.className = "card-section-heading";
-  const text = doc.createElement("p");
-  text.className = "text-muted";
   if (reason === "unknown") {
-    heading.textContent = "Can't check your beta access";
-    text.textContent = "Connect to the internet to open the beta on this device for the first time.";
-    section.append(heading, text);
+    renderBlockedPage(doc, {
+      id: "beta-not-enrolled",
+      heading: "Can't check your beta access",
+      text: "Connect to the internet to open the beta on this device for the first time.",
+    });
   } else {
-    heading.textContent = "Beta is for enrolled users";
-    text.textContent = "You're not enrolled in the beta. You can join from My account.";
-    const link = doc.createElement("a");
-    link.className = "btn btn-primary self-start";
-    link.href = joinUrl;
-    link.textContent = "Go to My account";
-    section.append(heading, text, link);
+    renderBlockedPage(doc, {
+      id: "beta-not-enrolled",
+      heading: "Beta is for enrolled users",
+      text: "You're not enrolled in the beta. You can join from My account.",
+      link: { href: joinUrl, label: "Go to My account" },
+    });
   }
-  container.append(section);
 }
 
 // Resolves true when the page should boot normally.
