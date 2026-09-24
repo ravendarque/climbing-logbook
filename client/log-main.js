@@ -38,6 +38,7 @@ import "./components/climbing-tab-bar.js";
 import "./components/climbing-entries-table.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { userKey } from "./user-storage.js";
+import { registerServiceWorker } from "./register-sw.js";
 
 // /:username/log -- same single-segment extraction as map-main.js/
 // performance-pyramid-main.js/performance-hub-main.js.
@@ -180,10 +181,6 @@ const entryForm = createEntryForm({
 // no real reason -- its own content has no per-user state at all) onto
 // a genuinely public /help page. No username to interpolate any more.
 document.getElementById("grade-scale-reference-link").href = "/help/grade-scales/";
-
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/logbook/sw.js").catch(() => {});
-}
 
 async function boot() {
   // #498 -- checked before anything else: a device that's never been
@@ -374,4 +371,9 @@ async function boot() {
 
 // #952/#960 -- boots only for the signed-in owner of this page and, on
 // beta.<domain>, only if they're enrolled (client/boot-gate.js).
-pageAllowsBoot().then(allowed => { if (allowed) boot(); });
+pageAllowsBoot().then(allowed => {
+  if (!allowed) return;
+  boot();
+  // #947 -- the service worker, once the page has loaded and gone idle.
+  registerServiceWorker();
+});

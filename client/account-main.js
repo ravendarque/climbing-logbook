@@ -27,6 +27,7 @@ import { createBetaOptIn } from "./beta-opt-in.js";
 import { resolveBetaXUrl } from "./resolve-cross-hostname-url.js";
 import "./components/beta-opt-in-modal.js";
 import { pageAllowsBoot } from "./boot-gate.js";
+import { registerServiceWorker } from "./register-sw.js";
 
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
 const DATA_URL = "/logbook/api/logbook";
@@ -189,10 +190,6 @@ async function exportEntries(format) {
 document.getElementById("export-csv-btn").addEventListener("click", () => exportEntries("csv"));
 document.getElementById("export-json-btn").addEventListener("click", () => exportEntries("json"));
 
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/logbook/sw.js").catch(() => {});
-}
-
 async function boot() {
   // No entries/places/locations fetch here -- unlike every other owned
   // page, nothing on this one is discipline- or data-scoped, so there's
@@ -206,4 +203,9 @@ async function boot() {
 
 // #952/#960 -- boots only for the signed-in owner of this page and, on
 // beta.<domain>, only if they're enrolled (client/boot-gate.js).
-pageAllowsBoot().then(allowed => { if (allowed) boot(); });
+pageAllowsBoot().then(allowed => {
+  if (!allowed) return;
+  boot();
+  // #947 -- the service worker, once the page has loaded and gone idle.
+  registerServiceWorker();
+});

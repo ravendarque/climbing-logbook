@@ -88,6 +88,18 @@ describe("ownershipAllowsBoot", () => {
       expect(storage.dump().logbook_signed_in_user).toBe("raven");
     });
 
+    it("online, the session is this page's user and nobody's recorded: adopts un-namespaced data for them", async () => {
+      const storage = memoryStorage({ logbook_entries_cache: "[1]" });
+      expect(await ownershipAllowsBoot({ loc: loc("/raven/log"), storage, controlled: true, online: true, fetchImpl: session("raven"), doc: document })).toBe(true);
+      expect(storage.dump()).toEqual({ "logbook_entries_cache:raven": "[1]", logbook_signed_in_user: "raven" });
+    });
+
+    it("online, the session is someone else's: never adopts un-namespaced data", async () => {
+      const storage = memoryStorage({ logbook_entries_cache: "[1]" });
+      await ownershipAllowsBoot({ loc: loc("/bob/log"), storage, controlled: true, online: true, fetchImpl: session("alice"), doc: document, replace: vi.fn() });
+      expect(storage.dump()).toEqual({ logbook_entries_cache: "[1]" });
+    });
+
     it("a failed session check refuses rather than guessing", async () => {
       const fetchImpl = vi.fn().mockRejectedValue(new TypeError("Failed to fetch"));
       expect(await ownershipAllowsBoot({ loc: loc("/raven/log"), storage: memoryStorage(), controlled: true, online: true, fetchImpl, doc: document })).toBe(false);

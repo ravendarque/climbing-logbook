@@ -22,6 +22,18 @@ import { BACKGROUND_FETCH_TIMEOUT_MS } from "./sync-status-icon.js";
 import { LOGIN_PATH, loginPageUrl } from "./login-url.js";
 import { clearSignedInUser, ownerOfPath, userKey, writeSignedInUser } from "./user-storage.js";
 import { isDemoUsername } from "./demo-mode.js";
+import { isWorkerCache } from "./sw/caches.js";
+
+// #947 -- deletes every cache the service worker owns (logbook-*).
+async function clearWorkerCaches() {
+  try {
+    if (typeof caches === "undefined") return;
+    const names = await caches.keys();
+    await Promise.all(names.filter(isWorkerCache).map(name => caches.delete(name)));
+  } catch {
+    /* Cache Storage unavailable (private mode, blocked): nothing to clear */
+  }
+}
 
 // #847 follow-up -- onFetchTimeout defaults to a no-op so the four
 // admin-hidden-style pages that construct this factory without a
@@ -287,6 +299,10 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
       // #960 -- nobody's signed in on this device any more. Their data stays
       // in their own namespace (an unsynced queue is never discarded).
       clearSignedInUser(localStorage);
+      // #947 -- and the service worker's cached shells don't outlive the
+      // session on a shared device (#80's scenario): the next launch gets
+      // them from the network, through the server's own login check.
+      await clearWorkerCaches();
     }
     // #561 -- every page this factory runs on (log/map/performance/sync/
     // account(/edit|/import)?) is owner-only, server-side gated

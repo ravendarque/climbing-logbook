@@ -31,6 +31,7 @@ import { reportGradePoint, reportPositionOrder } from "../shared/volume-stats.js
 import { demoDataUrl, isDemoUsername } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
 import { pageAllowsBoot } from "./boot-gate.js";
+import { registerServiceWorker } from "./register-sw.js";
 
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
 
@@ -146,10 +147,6 @@ const headerChrome = createHeaderChrome({
   adminSettingsUrl: ADMIN_SETTINGS_URL,
 });
 
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/logbook/sw.js").catch(() => {});
-}
-
 async function boot() {
   store.setActiveView("performance-rpe");
 
@@ -220,4 +217,9 @@ async function boot() {
 
 // #952/#960 -- boots only for the signed-in owner of this page and, on
 // beta.<domain>, only if they're enrolled (client/boot-gate.js).
-pageAllowsBoot().then(allowed => { if (allowed) boot(); });
+pageAllowsBoot().then(allowed => {
+  if (!allowed) return;
+  boot();
+  // #947 -- the service worker, once the page has loaded and gone idle.
+  registerServiceWorker();
+});
