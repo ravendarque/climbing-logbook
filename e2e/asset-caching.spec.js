@@ -69,3 +69,16 @@ test("the service worker script keeps the platform default cache header, not imm
   const res = await page.request.get(new URL("/logbook/sw.js", ownedRouteUrl("devuser", "/log")).toString());
   expect(res.headers()["cache-control"]).toBe("public, max-age=0, must-revalidate");
 });
+
+// #962, ADR-0028 -- the rebuilt worker is built to the site root (/sw.js,
+// scripts/service-worker-plugin.mjs) and gets the same treatment: a
+// JavaScript MIME type (required to register it at all) and the platform
+// default Cache-Control, never the immutable rule. Fetched via plain
+// localhost -- a static file, no owned-route hostname needed.
+test("the root /sw.js is served as JavaScript with the platform default cache header", async ({ page }) => {
+  const res = await page.request.get("http://localhost:8787/sw.js");
+  expect(res.status()).toBe(200);
+  expect(res.headers()["content-type"]).toMatch(/^(text|application)\/javascript/);
+  expect(res.headers()["cache-control"]).toBe("public, max-age=0, must-revalidate");
+  expect(await res.text()).toMatch(/LOGBOOK_BUILD/);
+});
