@@ -4,11 +4,26 @@
      copyright line beneath in smaller muted text. In normal document flow
      -- no position: fixed/sticky -- so it sits at the end of whatever
      content precedes it and scrolls away with the page, never pinned to
-     the viewport. Included once, in app-layout.njk after {{ content }},
-     rather than per-page: help-layout.njk itself chains through
-     app-layout.njk (its own front matter sets layout: app-layout.njk), so
-     this one include covers every owned app page AND every /help page
-     with no second copy needed.
+     the viewport. Included once, in app-layout.njk after its own main
+     content block, rather than per-page: help-layout.njk itself chains
+     through app-layout.njk (its own front matter sets layout:
+     app-layout.njk), so this one include covers every owned app page AND
+     every /help page with no second copy needed.
+
+     2026-09-24 -- this comment used to name that content variable using
+     Nunjucks' own real double-curly-brace output syntax, spelled out
+     literally, in prose. Nunjucks has no notion of "this text is inside
+     an HTML comment, don't evaluate it" -- it template-substitutes
+     everywhere, so that literal expression was a second, live reference
+     to the real content variable, rendered HTML-escaped (not marked safe
+     here) and dumped into this comment on every single page that
+     includes this file. Found via a real 3G-throttling investigation
+     (Raven, 2026-09-24): it was roughly HALF of every page's total
+     transferred bytes (/log: 51.6KB of 99.7KB; /help: 19.8KB of 41.1KB;
+     /map: 11.1KB of 25.2KB), on every load. Never spell out Nunjucks'
+     own output/tag delimiters literally in prose anywhere in a template
+     file, comment or not -- describe them in words instead, the way this
+     paragraph now does.
 
      Same mountain-mark SVG paths as climbing-header.js's own brand logo
      (kept in sync by hand -- copied exactly, not re-derived, same
