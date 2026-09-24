@@ -43,6 +43,10 @@ test("pre-#960 data is adopted by the user the server authorised, not left globa
 
   await page.reload();
   await expect(page.locator("climbing-entries-table")).toBeVisible();
+  // The table is in the static shell, so it shows before boot. When the
+  // service worker serves the reload, the ownership check asks the server
+  // who's signed in first, then adopts and records them -- wait for that.
+  await expect.poll(async () => (await storageSnapshot(page)).logbook_signed_in_user).toBe(OWNER);
   const keys = await storageSnapshot(page);
   expect(keys.logbook_entries_cache).toBeUndefined();
   expect(keys.logbook_sync_status).toBeUndefined();
