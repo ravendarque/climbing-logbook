@@ -55,7 +55,7 @@ describe("owned route authorization", () => {
   it("redirects to login with no session at all", async () => {
     const res = await fetchOwnedRoute("someone", "log");
     expect(res.status).toBe(302);
-    expect(res.headers.get("Location")).toBe("https://climbinglogbook.com/login/");
+    expect(res.headers.get("Location")).toBe("https://my.climbinglogbook.com/login/?returnTo=%2Fsomeone%2Flog");
   });
 
   it("redirects to login when logged in as a *different* user", async () => {
@@ -63,14 +63,14 @@ describe("owned route authorization", () => {
     const { cookie: otherCookie } = await createAuthedSession({ username: "differentuser", hostname: "climbinglogbook.com" });
     const res = await fetchOwnedRoute("targetuser", "log", { cookie: otherCookie });
     expect(res.status).toBe(302);
-    expect(res.headers.get("Location")).toBe("https://climbinglogbook.com/login/");
+    expect(res.headers.get("Location")).toBe("https://my.climbinglogbook.com/login/?returnTo=%2Ftargetuser%2Flog");
   });
 
   it("redirects to login for a username that doesn't exist at all -- same response as a wrong user (anti-enumeration)", async () => {
     const { cookie } = await createAuthedSession({ username: "realuser", hostname: "climbinglogbook.com" });
     const res = await fetchOwnedRoute("nobody-by-this-name", "log", { cookie });
     expect(res.status).toBe(302);
-    expect(res.headers.get("Location")).toBe("https://climbinglogbook.com/login/");
+    expect(res.headers.get("Location")).toBe("https://my.climbinglogbook.com/login/?returnTo=%2Fnobody-by-this-name%2Flog");
   });
 
   it("looks up the username case-insensitively", async () => {
@@ -224,10 +224,21 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(404);
   });
 
-  it("redirects same-origin on hostnames without a real climbinglogbook.com apex (local dev)", async () => {
+  it("redirects to the same origin's login locally too (local dev)", async () => {
     const res = await exports.default.fetch("https://my.localhost/someone/log", { redirect: "manual" });
     expect(res.status).toBe(302);
-    expect(res.headers.get("Location")).toBe("https://my.localhost/login/");
+    expect(res.headers.get("Location")).toBe("https://my.localhost/login/?returnTo=%2Fsomeone%2Flog");
+  });
+
+  // #955, ADR-0029 -- login stays on the app's own origin (never the apex),
+  // and returnTo carries the full path including any query string.
+  it("keeps the page's query string in returnTo", async () => {
+    const res = await exports.default.fetch("https://my.climbinglogbook.com/someone/performance/rpe?window=90", { redirect: "manual" });
+    expect(res.status).toBe(302);
+    const location = new URL(res.headers.get("Location"));
+    expect(location.origin).toBe("https://my.climbinglogbook.com");
+    expect(location.pathname).toBe("/login/");
+    expect(location.searchParams.get("returnTo")).toBe("/someone/performance/rpe?window=90");
   });
 });
 
@@ -278,7 +289,7 @@ describe("beta-gated route authorization", () => {
   it("redirects to login with no session at all, same as my.x", async () => {
     const res = await fetchOwnedRoute("someone", "log", { hostname: "beta.climbinglogbook.com" });
     expect(res.status).toBe(302);
-    expect(res.headers.get("Location")).toBe("https://climbinglogbook.com/login/");
+    expect(res.headers.get("Location")).toBe("https://beta.climbinglogbook.com/login/?returnTo=%2Fsomeone%2Flog");
   });
 
   it("falls through (404) for a page shape that isn't a real owned route", async () => {

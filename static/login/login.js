@@ -6,7 +6,7 @@
 // same-origin requests, unlike the Node-side scripts in
 // scripts/lib/dev-session.mjs that have to set it by hand.
 //
-import { resolveAppOrigin } from "./resolve-app-origin.js";
+import { needsChannelChoice, resolvePostLoginTarget } from "./resolve-app-origin.js";
 
 const RESET_PASSWORD_URL = `${window.location.origin}/reset-password/`;
 
@@ -65,16 +65,28 @@ form.addEventListener("submit", async (event) => {
       // automatically (same-origin fetch, right after the response that
       // set it). A failed/slow settings read falls back to my.x, the
       // same safe default a never-decided or opted-out user gets.
+      //
+      // #955, ADR-0029 -- on an app host (my.x/beta.x) this page was
+      // reached from the app itself, so the settings read is skipped and
+      // the visitor goes back to returnTo (when it's one of their own
+      // pages) or their own /log, on this same origin.
       let betaOptIn = null;
-      try {
-        const settingsRes = await fetch("/logbook/api/settings");
-        betaOptIn = (await settingsRes.json()).betaOptIn;
-      } catch {
-        // Network hiccup reading settings -- resolveAppOrigin's own null
-        // handling (never-decided) falls back to my.x, same safe default.
+      if (needsChannelChoice(window.location.hostname)) {
+        try {
+          const settingsRes = await fetch("/logbook/api/settings");
+          betaOptIn = (await settingsRes.json()).betaOptIn;
+        } catch {
+          // Network hiccup reading settings -- resolveAppOrigin's own null
+          // handling (never-decided) falls back to my.x, same safe default.
+        }
       }
-      const appOrigin = resolveAppOrigin(window.location.hostname, betaOptIn);
-      window.location.href = `${appOrigin}/${data.user.username}/log`;
+      window.location.href = resolvePostLoginTarget({
+        hostname: window.location.hostname,
+        origin: window.location.origin,
+        username: data.user.username,
+        returnTo: new URLSearchParams(window.location.search).get("returnTo"),
+        betaOptIn,
+      });
       return;
     }
 

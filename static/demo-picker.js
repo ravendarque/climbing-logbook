@@ -11,9 +11,7 @@
 // public/ has no bundler, and shared/ isn't itself part of the public/
 // static-asset tree Workers Static Assets serves, so a runtime import of
 // "../shared/demo-personas.js" would 404. Three short, rarely-changing
-// entries; kept in sync by hand, same trade-off server/api/owned-routes.js's
-// loginUrl() and client/admin-auth.js's LOGIN_PAGE_URL already make for
-// their own independently-duplicated hostname list.
+// entries; kept in sync by hand.
 const DEMO_PERSONAS = [
   { username: "beginnerdemo", label: "Beginner", description: "Just starting out -- early V-grade boulders, first leads on toprope and easy sport routes." },
   { username: "intermediatedemo", label: "Intermediate", description: "A season or two in -- consistent mid-grade sends, a few onsight/redpoint projects on the go." },

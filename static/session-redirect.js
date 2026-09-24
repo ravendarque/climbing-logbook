@@ -14,7 +14,7 @@
 // already configured (server/lib/auth.js's crossSubDomainCookies), so this
 // same-origin get-session call sees a session established on either
 // hostname regardless of which one this script runs on.
-import { resolveAppOrigin } from "./login/resolve-app-origin.js";
+import { needsChannelChoice, resolvePostLoginTarget } from "./login/resolve-app-origin.js";
 
 export async function redirectIfLoggedIn(contentEl) {
   try {
@@ -27,15 +27,28 @@ export async function redirectIfLoggedIn(contentEl) {
       // by hand a third time. A failed/slow settings read falls back to
       // my.x, the same safe default resolveAppOrigin's own null handling
       // gives a never-decided or opted-out user.
+      //
+      // #955 -- same target rule as login.js after sign-in: on an app host,
+      // back to returnTo when it's this user's own page, else their /log.
+      // A returnTo for someone else's page is ignored, so a user already
+      // signed in as someone else can't loop between that page's login
+      // redirect and this one.
       let betaOptIn = null;
-      try {
-        const settingsRes = await fetch("/logbook/api/settings");
-        betaOptIn = (await settingsRes.json()).betaOptIn;
-      } catch {
-        // Network hiccup reading settings -- fall back to my.x below.
+      if (needsChannelChoice(location.hostname)) {
+        try {
+          const settingsRes = await fetch("/logbook/api/settings");
+          betaOptIn = (await settingsRes.json()).betaOptIn;
+        } catch {
+          // Network hiccup reading settings -- fall back to my.x below.
+        }
       }
-      const appOrigin = resolveAppOrigin(location.hostname, betaOptIn);
-      location.href = `${appOrigin}/${data.user.username}/log`;
+      location.href = resolvePostLoginTarget({
+        hostname: location.hostname,
+        origin: location.origin,
+        username: data.user.username,
+        returnTo: new URLSearchParams(location.search).get("returnTo"),
+        betaOptIn,
+      });
       return;
     }
   } catch {

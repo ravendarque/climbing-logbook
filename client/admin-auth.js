@@ -19,6 +19,7 @@
 // updateAdminBar() can still read the one piece of state that moved.
 import { VALID_TYPES } from "../shared/entry-schema.js";
 import { BACKGROUND_FETCH_TIMEOUT_MS } from "./sync-status-icon.js";
+import { LOGIN_PATH, loginPageUrl } from "./login-url.js";
 
 // #847 follow-up -- onFetchTimeout defaults to a no-op so the four
 // admin-hidden-style pages that construct this factory without a
@@ -30,18 +31,6 @@ import { BACKGROUND_FETCH_TIMEOUT_MS } from "./sync-status-icon.js";
 export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettingsUrl, updateAdminBar, onFetchTimeout = () => {} }) {
   const AUTH_SESSION_URL = "/logbook/api/auth/get-session";
   const AUTH_SIGN_OUT_URL = "/logbook/api/auth/sign-out";
-  // Cross-origin in production (#295 -- /login moved to the apex,
-  // climbinglogbook.com, while the app itself is reachable at
-  // my.climbinglogbook.com/:username/{log,map,performance,...} and, since
-  // #443/#548, beta.climbinglogbook.com too -- same cross-origin login
-  // target either way; and ravendarque.com now just 301-redirects to a
-  // public profile page, not the app). Same-origin fallback for local
-  // dev/PR previews, which don't have a real climbinglogbook.com to send
-  // a browser to -- see login.js's own REDIRECT_URL comment for the
-  // mirror-image version of this check.
-  const LOGIN_PAGE_URL = ["my.climbinglogbook.com", "beta.climbinglogbook.com", "ravendarque.com"].includes(window.location.hostname)
-    ? "https://climbinglogbook.com/login/"
-    : "/login/";
   const SETTINGS_URL = "/logbook/api/settings";
   const LOGIN_HINT_KEY = "logbook_logged_in_hint";
   // #762 -- mirrors store.js's ENTRIES_CACHE_KEY/PLACES_CACHE_KEY/
@@ -273,7 +262,8 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
   }
 
   loginToggleBtn.addEventListener("click", async () => {
-    if (store.isLoggedIn()) {
+    const wasLoggedIn = store.isLoggedIn();
+    if (wasLoggedIn) {
       // A plain same-origin POST, not a dedicated logout URL/page like
       // Access's -- Better Auth doesn't need a redirect ceremony to
       // clear its session cookie, so this can just fetch() first, then
@@ -297,7 +287,9 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
     // used on its own before this fix -- both branches now end up here,
     // so updateAdminBar()'s in-place UI sync is no longer needed on the
     // logout path either.
-    window.location.href = LOGIN_PAGE_URL;
+    // #955 -- same-origin login (client/login-url.js). Logging out starts
+    // over (no returnTo); logging in comes back to this page.
+    window.location.href = wasLoggedIn ? LOGIN_PATH : loginPageUrl();
   });
 
   return {
