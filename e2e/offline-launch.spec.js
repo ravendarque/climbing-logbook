@@ -60,13 +60,17 @@ test("after visiting only /log, every owner page opens offline", async ({ page, 
   await context.setOffline(true);
 
   // Only the pages' own requests count: the worker's background refresh of
-  // a font fails offline by design. And Chromium fetches favicons itself,
+  // a font fails offline by design. Chromium fetches favicons itself,
   // outside any service worker, so those fail offline whatever's cached.
+  // And the world-map data is fetched on demand and deliberately online-only
+  // (the map shows its own "you need to be online" state; see
+  // docs/app-architecture.md), like the API.
+  const onlineOnly = ["/logbook/api/", "/logbook/favicon-", "/logbook/world-map-"];
   const failed = [];
   context.on("requestfailed", req => {
     if (req.serviceWorker()) return;
     const { pathname } = new URL(req.url());
-    if (!pathname.startsWith("/logbook/api/") && !pathname.startsWith("/logbook/favicon-")) failed.push(`${pathname} (${req.frame().url()})`);
+    if (!onlineOnly.some(prefix => pathname.startsWith(prefix))) failed.push(`${pathname} (${req.frame().url()})`);
   });
   for (const ownerPage of Object.keys(SHELL_PATHS)) {
     const tab = await context.newPage();
