@@ -30,6 +30,7 @@ import { demoDataUrl, isDemoUsername } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { userKey } from "./user-storage.js";
+import { registerServiceWorker } from "./register-sw.js";
 
 // /:username/map -- the only path segment this page cares about is the
 // first one. <climbing-tab-bar> needs it to build its own /:username/log
@@ -101,10 +102,6 @@ const headerChrome = createHeaderChrome({
   store, adminFetch, isAuthRedirect,
   adminSettingsUrl: ADMIN_SETTINGS_URL,
 });
-
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/logbook/sw.js").catch(() => {});
-}
 
 async function boot() {
   // map-view.js's variant-switch loader only re-renders if the store's
@@ -191,4 +188,9 @@ async function loadMapCounts() {
 
 // #952/#960 -- boots only for the signed-in owner of this page and, on
 // beta.<domain>, only if they're enrolled (client/boot-gate.js).
-pageAllowsBoot().then(allowed => { if (allowed) boot(); });
+pageAllowsBoot().then(allowed => {
+  if (!allowed) return;
+  boot();
+  // #947 -- the service worker, once the page has loaded and gone idle.
+  registerServiceWorker();
+});

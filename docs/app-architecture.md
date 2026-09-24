@@ -122,8 +122,8 @@ deploy (`.github/workflows/deploy.yml`):
      so identical source gives an identical ID and any served change gives a
      new one; that byte change is what makes browsers install the new
      worker), and the pre-cache list (empty until #948). There's no worker
-     in `pnpm dev`. Until #947 no page registers `/sw.js`; the old
-     `static/logbook/sw.js` is still what pages register.
+     in `pnpm dev`. Owner pages register it through
+     `client/register-sw.js` (see "Offline-first design" below).
 
 Styling itself is Tailwind utility classes directly in each page's own
 markup — not a utilities layer sitting alongside a separate hand-rolled
@@ -597,18 +597,14 @@ server/
 
 public/logbook/ (no longer a page of its own, #375 -- just the shared
 asset directory every page's absolute paths resolve against: gitignored
-build output, fonts, favicons, and the PWA manifest/service worker;
+build output, fonts, favicons, and the PWA manifest (the service worker
+is `/sw.js`, built from `client/sw/`, #947);
 client/*-main.js's own compiled output lives in dist/, not here -- see
 "Client JS, real code-splitting, and the Worker's own build" above and
 "Composition roots, one per page" below for the full list)
 ├── chunks/               Shared code-split chunks (#761) -- content-
 │                           hashed filenames, not committed
 ├── tailwind.css         Generated — not committed, see .gitignore
-├── sw.js               Service worker — offline app-shell + API caching.
-│                         Registered by every owned page's own
-│                         composition root except profile-main.js (see
-│                         its own comment for why -- no offline-queue
-│                         concept to begin with) and sync-main.js
 ├── world-map-greenwich.json  Static Equal Earth map data (landmass/border/
 ├── world-map-americas.json    graticule SVG paths + per-country pin x/y),
 ├── world-map-oceania.json     one file per central-meridian projection variant
@@ -775,12 +771,12 @@ client/
 │                           (content-overlays.js is gone, #425 --
 │                           <climbing-entries-table> owns the notes
 │                           overlay itself now, see that component's own
-│                           entry below). Registers sw.js
+│                           entry below). Registers /sw.js
 ├── map-main.js           Composition root for /:username/map (#348) --
 │                           bundled into map-app.js. Reuses store.js/
 │                           admin-auth.js/header-chrome.js/map-view.js
 │                           completely unchanged from /logbook's own.
-│                           Also registers sw.js
+│                           Also registers /sw.js
 ├── performance-hub-main.js Composition root for /:username/performance
 │                           itself (#575, epic #5 Phase 2) -- bundled into
 │                           performance-hub-app.js. The hub: a tile per
@@ -888,7 +884,7 @@ client/
 │                           reasoning profile-main.js already established
 │                           for this exact situation. No fetch-json.js
 │                           usage -- nothing here is logbook data, so
-│                           there's nothing to load. Registers sw.js
+│                           there's nothing to load. Registers /sw.js
 ├── account-edit-main.js  Composition root for /:username/account/edit
 │                           (#302) -- bundled into account-edit-app.js.
 │                           Same "no header-chrome.js, reimplement
@@ -909,7 +905,7 @@ client/
 │                           form toggle, submit, disable-while-saving,
 │                           error display); what actually happens on
 │                           submit is each row's own callback. Registers
-│                           sw.js
+│                           /sw.js
 ├── account-import-main.js Composition root for /:username/account/import
 │                           (#224 phases 2-4) -- bundled into
 │                           account-import-app.js. Same "no
@@ -1199,7 +1195,7 @@ deliberate, narrow exception to the Connectivity Resilience standard's
 "don't fetch on demand" rule (`docs/coding-standards.md`) — the map is
 never needed at the crag, so a failed fetch shows a plain "you need to
 be online" message with Retry instead of pretending to work offline.
-`sw.js`'s existing generic GET handler (network-first, cache-fallback)
+The service worker's `/logbook/` tier (network-first, cache-fallback)
 caches each variant's JSON after its first successful fetch — no
 separate precache entry needed.
 
@@ -1290,8 +1286,7 @@ Static Assets.
 **One owner-page list, and the shell header (#958, #959).** The owner
 pages and their shell files are `SHELL_PATHS` in `shared/owner-routes.js`,
 the single source of truth. `matchOwnerRoute(pathname)` derives from it
-and is what `server/index.js` routes with (the service worker will use
-it too, #947). Adding an owner page means one `SHELL_PATHS` entry, plus
+and is what `server/index.js` and the service worker both route with. Adding an owner page means one `SHELL_PATHS` entry, plus
 its `run_worker_first` entries (enforced by
 `test/wrangler-run-worker-first.test.js`). Every successful owner shell
 response carries `X-Logbook-Shell: <page key>` (`SHELL_HEADER`, set by
@@ -1688,11 +1683,35 @@ have to wait. Not throwaway work: `#22` now shrinks to apex marketing +
 See [ADR-0006](adr/0006-design-for-poor-connectivity-first.md) for the
 design-level decision this section is the concrete implementation of.
 
-The service worker (`sw.js`) is network-first with cache-fallback for GETs
-only — non-GET requests pass through untouched so the app's own offline
-queue can detect the failure. It only caches `res.ok` responses; caching an
-error response would mean that error gets served back on the next
-genuinely-offline visit.
+The service worker ([ADR-0028](adr/0028-service-worker-owns-the-owner-app-shell.md))
+is `/sw.js`, scope `/`, built from `client/sw/`. Owner pages register it
+through `client/register-sw.js`, after the page has loaded and gone idle
+and only once `pageAllowsBoot()` has let the page boot; the same call
+unregisters the retired `/logbook/` worker. Each request is classified
+(`client/sw/classify.js`) into one tier:
+
+- **Owner shells** (a GET navigation matching `matchOwnerRoute`):
+  cache-first, keyed by page type (`SHELL_PATHS`, e.g. `/log/index.html`),
+  not by URL. A response is stored only if it's `ok`, not redirected, and
+  carries the matching `X-Logbook-Shell` header, so a login redirect or an
+  error page is never cached as a shell. The page itself does the
+  ownership and enrollment checks, since a cached shell never reaches the
+  server.
+- **Immutable assets** (`/logbook/chunks/*` and `?v=` URLs): cache-first.
+- **Fonts**: stale-while-revalidate.
+- **Everything else under `/logbook/`**: network-first, cache fallback.
+- **Passthrough**: everything else, including every `/logbook/api/*`
+  request, non-GETs and cross-origin requests. The API is never cached;
+  offline data is the page's own localStorage, and non-GET failures reach
+  the offline queue untouched.
+
+There is one cache per build (`logbook-<BUILD_ID>`). A new worker
+installs with `skipWaiting`, claims its clients, and on activate deletes
+every older cache except the previous build's, so a page still running
+the old build can finish loading its chunks. Pages pick up the new build
+on their next launch; nothing reloads underneath the user. Logout deletes
+every worker cache (`clearWorkerCaches()` in `client/admin-auth.js`), so
+no signed-in shell outlives the session on a shared device.
 
 Writes made while offline (or when a request throws) are queued in
 `localStorage` (`logbook_pending_queue`) as `{ kind, op, record }` records

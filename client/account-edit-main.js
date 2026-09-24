@@ -21,6 +21,7 @@ import { createDisclosure } from "./modal-utils.js";
 import { createThemeToggle } from "./theme-toggle.js";
 import { syncAdminBar } from "./admin-bar.js";
 import { pageAllowsBoot } from "./boot-gate.js";
+import { registerServiceWorker } from "./register-sw.js";
 
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
 const AUTH_BASE = "/logbook/api/auth";
@@ -64,10 +65,6 @@ const adminAuth = createAdminAuth({
 
 createDisclosure(document.getElementById("header-menu-btn"), document.getElementById("header-menu-popover"), "#header-menu-wrap");
 createThemeToggle();
-
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/logbook/sw.js").catch(() => {});
-}
 
 // Posts straight to Better Auth's own endpoints, same standalone-request
 // pattern as public/register/register.js -- `data?.message || fallback`
@@ -191,4 +188,9 @@ async function boot() {
 
 // #952/#960 -- boots only for the signed-in owner of this page and, on
 // beta.<domain>, only if they're enrolled (client/boot-gate.js).
-pageAllowsBoot().then(allowed => { if (allowed) boot(); });
+pageAllowsBoot().then(allowed => {
+  if (!allowed) return;
+  boot();
+  // #947 -- the service worker, once the page has loaded and gone idle.
+  registerServiceWorker();
+});

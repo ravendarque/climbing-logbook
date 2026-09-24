@@ -57,19 +57,6 @@ test("stable-named entry files serve from disk cache, not network, on a repeat v
   expect(transferSizes.aChunk).toBe(0);
 });
 
-// #857 -- sw.js deliberately does NOT get the ?v=/immutable treatment
-// (see .eleventy.js and public/_headers' own comments on why: browsers
-// already special-case service worker script update-checking,
-// independent of HTTP caching). Confirms that exclusion is real,
-// not just documented intent that silently stopped matching a glob.
-test("the service worker script keeps the platform default cache header, not immutable", async ({ page, context }) => {
-  await addOwnedRouteSessionCookie(context);
-  await page.goto(ownedRouteUrl("devuser", "/log"));
-
-  const res = await page.request.get(new URL("/logbook/sw.js", ownedRouteUrl("devuser", "/log")).toString());
-  expect(res.headers()["cache-control"]).toBe("public, max-age=0, must-revalidate");
-});
-
 // #962, ADR-0028 -- the rebuilt worker is built to the site root (/sw.js,
 // scripts/service-worker-build.mjs) and gets the same treatment: a
 // JavaScript MIME type (required to register it at all) and the platform

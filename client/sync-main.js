@@ -17,6 +17,7 @@ import { isSynced, markSynced } from "./sync-status.js";
 import { getCursor, setCursor } from "./sync-cursors.js";
 import { mergeDelta } from "./delta-merge.js";
 import { pageAllowsBoot } from "./boot-gate.js";
+import { registerServiceWorker } from "./register-sw.js";
 
 const PLACES_URL = "/logbook/api/places";
 const LOCATIONS_URL = "/logbook/api/locations";
@@ -178,4 +179,9 @@ document.getElementById("sync-retry-btn").addEventListener("click", () => locati
 
 // #952/#960 -- boots only for the signed-in owner of this page and, on
 // beta.<domain>, only if they're enrolled (client/boot-gate.js).
-pageAllowsBoot().then(allowed => { if (allowed) boot(); });
+pageAllowsBoot().then(allowed => {
+  if (!allowed) return;
+  boot();
+  // #947 -- the service worker, once the page has loaded and gone idle.
+  registerServiceWorker();
+});
