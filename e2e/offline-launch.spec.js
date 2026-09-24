@@ -1,10 +1,11 @@
-// #947, ADR-0028 -- the service worker, end to end against the production
-// build on the app origin (my.localhost). context.setOffline() cuts the
+// #947/#948, ADR-0028 -- the service worker, end to end against the
+// production build on the app origin (my.localhost). context.setOffline() cuts the
 // worker's own fetches too in Chromium (spike #957 Q3), so "offline" here
 // is real.
 import { expect, test } from "@playwright/test";
 import { DEV_USER } from "../scripts/lib/dev-session.mjs";
 import { addOwnedRouteSessionCookie, ownedRouteUrl } from "./owned-route-url.js";
+import { SHELL_PATHS } from "../shared/owner-routes.js";
 
 const ORIGIN = "http://my.localhost:8787";
 
@@ -44,6 +45,81 @@ test("offline cold launch: a fresh navigation to a visited owner page renders fr
   await map.goto(ownedRouteUrl(DEV_USER.username, "/map"));
   await expect(map.locator("climbing-tab-bar")).toBeAttached();
   await context.setOffline(false);
+});
+
+// #948 -- the install pre-caches every owner page and what it loads, so
+// visiting /log once is enough for every other page to open offline. Each
+// page's own offline treatment (e.g. a performance report's "you need to
+// be online" message, ADR-0018) is the page's business; what's asserted
+// is that the worker served the document and every static file it loaded.
+test("after visiting only /log, every owner page opens offline", async ({ page, context }) => {
+  const url = ownedRouteUrl(DEV_USER.username, "/log");
+  await page.goto(url);
+  await page.waitForURL(url);
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await context.setOffline(true);
+
+  // Only the pages' own requests count: the worker's background refresh of
+  // a font fails offline by design. Chromium fetches favicons itself,
+  // outside any service worker, so those fail offline whatever's cached.
+  // And the world-map data is fetched on demand and deliberately online-only
+  // (the map shows its own "you need to be online" state; see
+  // docs/app-architecture.md), like the API.
+  const onlineOnly = ["/logbook/api/", "/logbook/favicon-", "/logbook/world-map-"];
+  const failed = [];
+  context.on("requestfailed", req => {
+    if (req.serviceWorker()) return;
+    const { pathname } = new URL(req.url());
+    if (!onlineOnly.some(prefix => pathname.startsWith(prefix))) failed.push(`${pathname} (${req.frame().url()})`);
+  });
+  for (const ownerPage of Object.keys(SHELL_PATHS)) {
+    const tab = await context.newPage();
+    const res = await tab.goto(ownedRouteUrl(DEV_USER.username, `/${ownerPage}`));
+    expect(res.fromServiceWorker(), ownerPage).toBe(true);
+    await tab.waitForLoadState("load");
+    await expect(tab.locator("#header-menu-btn"), ownerPage).toBeAttached();
+    await tab.close();
+  }
+  expect(failed).toEqual([]);
+  await context.setOffline(false);
+});
+
+test("the installed app's start page (/launch/) opens offline and lands on the signed-in user's log", async ({ page, context }) => {
+  await warm(page, "/log");
+  await context.setOffline(true);
+  const app = await context.newPage();
+  await app.goto(`${ORIGIN}/launch/`);
+  await app.waitForURL(ownedRouteUrl(DEV_USER.username, "/log"));
+  await expect(app.locator(".place-header[data-location-id]").first()).toBeVisible();
+  await context.setOffline(false);
+});
+
+test("an interrupted install keeps what it fetched, and the retry fetches only the rest", async ({ page, context }) => {
+  const workerFetches = [];
+  let failManifest = true;
+  await context.route("**/logbook/manifest.json", route => (failManifest ? route.abort() : route.fallback()));
+  context.on("request", req => { if (req.serviceWorker()) workerFetches.push(new URL(req.url()).pathname + new URL(req.url()).search); });
+
+  const url = ownedRouteUrl(DEV_USER.username, "/log");
+  await page.goto(url);
+  await page.waitForURL(url);
+  // The first install fails on the manifest; nothing activates, but the
+  // rest is in this build's cache.
+  await expect.poll(() => workerFetches.includes("/logbook/manifest.json")).toBe(true);
+  await expect.poll(() => page.evaluate(async () => {
+    const registration = await navigator.serviceWorker.getRegistration();
+    return !registration?.installing && !registration?.active;
+  })).toBe(true);
+  const firstAttempt = workerFetches.length;
+  expect(firstAttempt).toBeGreaterThan(40);
+
+  // The retry (the next owner page load re-registers) fetches only the
+  // manifest, then activates.
+  failManifest = false;
+  await page.reload();
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  // (/sw.js is the browser's own update check of the worker script.)
+  expect(workerFetches.slice(firstAttempt).filter(path => path !== "/sw.js")).toEqual(["/logbook/manifest.json"]);
 });
 
 test("a warm launch takes the document and every static asset from the worker, not the network", async ({ page }) => {

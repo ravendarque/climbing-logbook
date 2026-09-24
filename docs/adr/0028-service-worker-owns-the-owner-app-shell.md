@@ -112,6 +112,12 @@ connection.
      returns 404. The worker fetches each shell through its owner URL
      `/<username>/<page>` with the session cookie (spike Q7: 200), using
      the username of the owner page that registered it.
+   - Refined in #948: shells, `/launch/` and other unversioned files carry
+     a SHA-256 in the list. A previous build's copy is reused only when
+     its bytes match, so a deploy downloads only what changed. Every owner
+     page also asks the active worker to top up anything missing (after a
+     logout cleared the caches, say). Registration waits for the page's
+     boot fetches, and a page that's navigating away doesn't register.
 6. **One cache per build, keeping the previous one.** Cache name
    `logbook-<BUILD_ID>`, where `BUILD_ID` is derived from the content the
    worker serves.

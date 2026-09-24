@@ -19,11 +19,13 @@
 // makes browsers install the new worker. The asset URLs are content-hashed
 // first (#961), so identical source gives an identical BUILD_ID.
 //
-// The pre-cache list is injected empty here; #948 fills it.
+// The pre-cache list (#948) comes from scripts/precache-list.mjs, which
+// reads the same final output plus Rollup's bundle graph.
 import { build as esbuild } from "esbuild";
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
+import { buildPrecacheList } from "./precache-list.mjs";
 
 const WORKER_ENTRY = "client/sw/index.js";
 const WORKER_FILE = "sw.js";
@@ -47,10 +49,12 @@ export function computeBuildId(root) {
 }
 
 // Writes dist/client/sw.js. Called by scripts/post-build-plugin.mjs after
-// the asset URLs have their final content hashes, so BUILD_ID covers the
-// HTML exactly as it will be served.
-export async function buildServiceWorker(outDir) {
+// the asset URLs have their final content hashes, so BUILD_ID and the
+// pre-cache list cover the HTML exactly as it will be served. `bundle` is
+// the client build's Rollup output (its chunk import graph).
+export async function buildServiceWorker(outDir, bundle) {
   const buildId = computeBuildId(outDir);
+  const precache = buildPrecacheList(outDir, bundle);
   await esbuild({
     entryPoints: [WORKER_ENTRY],
     bundle: true,
@@ -60,9 +64,9 @@ export async function buildServiceWorker(outDir) {
     outfile: join(outDir, WORKER_FILE),
     define: {
       __BUILD_ID__: JSON.stringify(buildId),
-      __PRECACHE__: JSON.stringify([]),
+      __PRECACHE__: JSON.stringify(precache),
     },
     logLevel: "warning",
   });
-  return { buildId };
+  return { buildId, precache };
 }

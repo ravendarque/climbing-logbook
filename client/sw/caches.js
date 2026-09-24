@@ -16,12 +16,16 @@ export function isWorkerCache(name) {
 // logbook-* caches such as the retired /logbook/ worker's logbook-shell-v3.
 const BUILD_CACHE = /^logbook-[0-9a-f]{16}$/;
 
+export function isBuildCache(name) {
+  return BUILD_CACHE.test(name);
+}
+
 // Names to delete on activate: every logbook-* cache except the current
 // one and the most recent *build* cache before it (so an open tab from the
 // last build keeps working). `keys` is caches.keys(), which returns names
 // in creation order. Caches that aren't ours are never touched.
 export function cachesToDelete(keys, currentName) {
   const others = keys.filter(name => isWorkerCache(name) && name !== currentName);
-  const previous = others.filter(name => BUILD_CACHE.test(name)).at(-1);
+  const previous = others.filter(isBuildCache).at(-1);
   return others.filter(name => name !== previous);
 }

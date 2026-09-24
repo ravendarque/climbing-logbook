@@ -187,7 +187,8 @@ async function boot() {
 // beta.<domain>, only if they're enrolled (client/boot-gate.js).
 pageAllowsBoot().then(allowed => {
   if (!allowed) return;
-  boot();
-  // #947 -- the service worker, once the page has loaded and gone idle.
-  registerServiceWorker();
+  // #947/#948 -- the service worker, once boot's own fetches have settled
+  // and the page has gone idle: its install downloads every owner page, so
+  // it must never compete with them on a bad connection.
+  registerServiceWorker({ after: boot() });
 });
