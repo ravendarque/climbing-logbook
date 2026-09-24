@@ -17,19 +17,10 @@ import { createDisclosure } from "./modal-utils.js";
 import { createThemeToggle } from "./theme-toggle.js";
 import { syncAdminBar } from "./admin-bar.js";
 import { buildTemplateCsv } from "../shared/csv-import.js";
+import { loginPageUrl } from "./login-url.js";
 
 const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
 const IMPORT_URL = "/logbook/api/admin/logbook/import";
-// Same cross-origin-in-production / same-origin-local-dev split as every
-// other composition root's own copy of this check (see
-// client/admin-auth.js's own LOGIN_PAGE_URL comment for why there isn't
-// one shared constant yet) -- beta.climbinglogbook.com (#443/#548) added
-// alongside my.climbinglogbook.com, found missing here the same way it
-// was missing from owned-routes.js's own loginUrl() (caught by a failing
-// test, not assumed).
-const LOGIN_PAGE_URL = ["my.climbinglogbook.com", "beta.climbinglogbook.com", "ravendarque.com"].includes(window.location.hostname)
-  ? "https://climbinglogbook.com/login/"
-  : "/login/";
 
 function adminFetch(url, options) {
   return fetch(url, { ...options, redirect: "manual" });
@@ -138,7 +129,7 @@ importForm.addEventListener("submit", async e => {
       headers: { "Content-Type": contentType },
       body: await file.text(),
     });
-    if (isAuthRedirect(res)) { window.location.href = LOGIN_PAGE_URL; return; }
+    if (isAuthRedirect(res)) { window.location.href = loginPageUrl(); return; }
 
     const data = await res.json();
     importStatus.hidden = true;
