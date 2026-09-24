@@ -1,6 +1,7 @@
 import { resolveUserId } from "../lib/session.js";
 import { lookupUserByUsername } from "../lib/user.js";
 import { DEMO_USERNAMES } from "../../shared/demo-personas.js";
+import { SHELL_PATHS } from "../../shared/owner-routes.js";
 
 // #347 -- the per-user equivalent of what Cloudflare Access used to do for
 // the single, global /logbook URL: my.<domain>/:username/{log,map,performance}
@@ -27,50 +28,11 @@ function loginUrl(hostname) {
     : "/login/";
 }
 
-// #348 -- one fixed-path static shell per page type, genuinely identical
-// content for every user (the client bundle reads :username off
-// location.pathname itself, not server-templated). :username can't be a
-// literal Workers Static Assets path, so this Worker fetches the shell
-// itself via the ASSETS binding and returns it, rather than letting Static
-// Assets try to match /:username/log directly (it can't -- static assets
-// only match literal paths).
-//
-// Exported (#799) so test/wrangler-run-worker-first.test.js can assert
-// every top-level page family here also has a run_worker_first entry in
-// wrangler.jsonc -- the #799 gap (sync added here without a matching
-// run_worker_first entry, leaving public/sync/index.html directly
-// asset-servable with no session check) shouldn't be able to silently
-// recur for the next new shell page either.
-export const SHELL_PATHS = {
-  log: "/log/index.html",
-  map: "/map/index.html",
-  performance: "/performance/index.html",
-  "performance/pyramid": "/performance/pyramid/index.html",
-  "performance/injury": "/performance/injury/index.html",
-  "performance/strengths": "/performance/strengths/index.html",
-  "performance/trends": "/performance/trends/index.html",
-  "performance/gap": "/performance/gap/index.html",
-  "performance/rpe": "/performance/rpe/index.html",
-  // #498 -- the cold-start/delta full-sync interstitial (ADR-0019).
-  // Session-gated the same as every other owned page here -- it reads
-  // the same session-scoped /logbook/api/logbook data /log itself does,
-  // just before /log ever renders.
-  sync: "/sync/index.html",
-  // #302 -- the first of the account section's own sub-pages
-  // (/:username/account/edit); the bare /:username/account landing page
-  // is its own separate entry ("account", no slash) rather than a
-  // redirect to /edit -- see server/index.js's own regex for how both are
-  // matched. Later sub-pages (display/import) each get one more entry
-  // here, same as this one -- no shared nav component needed until a
-  // second one actually exists (see #302's own scope notes).
-  account: "/account/index.html",
-  "account/edit": "/account/edit/index.html",
-  // #224 phase 2-4 -- CSV bulk import only. Export is a separate,
-  // one-click flow (#27), not part of this page -- deliberately not
-  // named "account/import-export" (Raven's own correction: these are two
-  // very different flows, import is the only one this story builds).
-  "account/import": "/account/import/index.html",
-};
+// #958 -- the page list and its URL matcher live in shared/owner-routes.js
+// (one list for this file, server/index.js, the service worker and tests).
+// Re-exported here so existing imports of SHELL_PATHS from this module
+// (test/wrangler-run-worker-first.test.js, #799) keep working.
+export { SHELL_PATHS };
 
 // Shared by both handleOwnedRoute (my.x) and handleBetaGatedRoute (beta.x,
 // #443/#548) -- the exact same "is this the real owner's own session"
@@ -114,12 +76,9 @@ export async function handleOwnedRoute(request, env, username, page) {
     return Response.redirect(new URL(loginUrl(hostname), request.url), 302);
   }
 
-  // SHELL_PATHS[page] is never undefined here -- server/index.js's own regex
-  // only ever passes a page shape this object has a real entry for (kept in
-  // sync by hand; the grade-scales page's own migration off this route,
-  // #190, is what the regex's own comment there now calls out explicitly,
-  // after a real gap here briefly let `page` be "performance/grades" with
-  // no matching SHELL_PATHS entry once that page moved to /help).
+  // SHELL_PATHS[page] is never undefined here -- server/index.js only
+  // calls this with a page matchOwnerRoute() found in SHELL_PATHS itself
+  // (#958; before that a hand-kept regex could drift, #190).
   return env.ASSETS.fetch(new Request(new URL(SHELL_PATHS[page], request.url)));
 }
 
