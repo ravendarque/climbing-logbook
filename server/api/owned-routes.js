@@ -1,7 +1,7 @@
 import { resolveUserId } from "../lib/session.js";
 import { lookupUserByUsername } from "../lib/user.js";
 import { DEMO_USERNAMES } from "../../shared/demo-personas.js";
-import { SHELL_PATHS } from "../../shared/owner-routes.js";
+import { SHELL_HEADER, SHELL_PATHS } from "../../shared/owner-routes.js";
 
 // #347 -- the per-user equivalent of what Cloudflare Access used to do for
 // the single, global /logbook URL: my.<domain>/:username/{log,map,performance}
@@ -61,9 +61,22 @@ function isDemoOwnedPage(username, page) {
   return DEMO_USERNAMES.includes(username) && (page === "log" || page === "map" || page.startsWith("performance"));
 }
 
+// #959, ADR-0028 -- every owner shell is served through here, so each one
+// carries SHELL_HEADER naming its page (the service worker's proof that a
+// response really is that page's shell). ASSETS responses have immutable
+// headers, hence the copy; the body stays a stream. Only a successful
+// response is marked -- a 404 or 304 passes through untouched.
+async function serveShell(request, env, page) {
+  const res = await env.ASSETS.fetch(new Request(new URL(SHELL_PATHS[page], request.url)));
+  if (!res.ok) return res;
+  const marked = new Response(res.body, res);
+  marked.headers.set(SHELL_HEADER, page);
+  return marked;
+}
+
 export async function handleOwnedRoute(request, env, username, page) {
   if (isDemoOwnedPage(username, page)) {
-    return env.ASSETS.fetch(new Request(new URL(SHELL_PATHS[page], request.url)));
+    return serveShell(request, env, page);
   }
 
   const userId = await resolveOwnedSession(request, env, username);
@@ -72,7 +85,7 @@ export async function handleOwnedRoute(request, env, username, page) {
   // SHELL_PATHS[page] is never undefined here -- server/index.js only
   // calls this with a page matchOwnerRoute() found in SHELL_PATHS itself
   // (#958; before that a hand-kept regex could drift, #190).
-  return env.ASSETS.fetch(new Request(new URL(SHELL_PATHS[page], request.url)));
+  return serveShell(request, env, page);
 }
 
 // #443/#548, ADR-0020 -- beta.<domain>'s equivalent of handleOwnedRoute
@@ -110,5 +123,5 @@ export async function handleBetaGatedRoute(request, env, username, page) {
   }
 
   // Opted in -- served exactly like my.x would serve it.
-  return env.ASSETS.fetch(new Request(new URL(SHELL_PATHS[page], request.url)));
+  return serveShell(request, env, page);
 }
