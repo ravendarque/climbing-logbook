@@ -1262,6 +1262,21 @@ the Worker's own code, unaffected by `run_worker_first`, which only
 governs how *incoming* HTTP requests are routed between the Worker and
 Static Assets.
 
+**One owner-page list, and the shell header (#958, #959).** The owner
+pages and their shell files are `SHELL_PATHS` in `shared/owner-routes.js`,
+the single source of truth. `matchOwnerRoute(pathname)` derives from it
+and is what `server/index.js` routes with (the service worker will use
+it too, #947). Adding an owner page means one `SHELL_PATHS` entry, plus
+its `run_worker_first` entries (enforced by
+`test/wrangler-run-worker-first.test.js`). Every successful owner shell
+response carries `X-Logbook-Shell: <page key>` (`SHELL_HEADER`, set by
+`owned-routes.js`'s `serveShell()`). Nothing else served at an owner URL
+does: not the beta gate page, a login redirect or an error. The service
+worker only caches a navigation response as a page's shell when that
+header matches the page it expected
+([ADR-0028](adr/0028-service-worker-owns-the-owner-app-shell.md)), and a
+new page gets the header automatically.
+
 ## Data model
 
 D1-backed (#21/#297), scoped per-user by `user_id` — every row belongs to

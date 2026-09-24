@@ -64,3 +64,11 @@ export function matchOwnerRoute(pathname) {
   const page = trimmed.slice(slash + 1);
   return Object.hasOwn(SHELL_PATHS, page) ? { username, page } : null;
 }
+
+// #959, ADR-0028 -- set by the server on every response that *is* an owner
+// page's shell, naming the page key (e.g. "log", "performance/rpe"). The
+// service worker (#947) caches a navigation response as a page's shell only
+// when this header equals the page it matched -- so an interstitial, an
+// error page or a login redirect served at an owner URL can never be cached
+// as "the log shell". Any page added to SHELL_PATHS gets it automatically.
+export const SHELL_HEADER = "X-Logbook-Shell";

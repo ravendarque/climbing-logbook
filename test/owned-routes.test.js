@@ -16,6 +16,7 @@
 import { env, exports } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, resetAuthTables } from "./support.js";
+import { SHELL_HEADER, SHELL_PATHS } from "../shared/owner-routes.js";
 
 // #443/#548, ADR-0020 -- sets the tri-state beta_opt_in column directly
 // (not via the PATCH endpoint) so each test can set up exactly the state
@@ -328,5 +329,57 @@ describe("demo account owned pages (#251)", () => {
       const res = await fetchOwnedRoute("notademoaccount", page);
       expect(res.status, `${page} should still be session-gated`).toBe(302);
     }
+  });
+});
+
+// #959, ADR-0028 -- every owner shell response names its page in
+// SHELL_HEADER; nothing else served at an owner URL does. The service
+// worker (#947) relies on this to never cache a non-shell response (the
+// beta gate page, a login redirect, an error) as a page's shell.
+describe("shell identity header (#959)", () => {
+  it("marks every SHELL_PATHS page on my.x with its own page key, body unchanged", async () => {
+    const { cookie } = await createAuthedSession({ username: "shellheaderuser", hostname: "climbinglogbook.com" });
+    for (const [page, shellPath] of Object.entries(SHELL_PATHS)) {
+      const res = await fetchOwnedRoute("shellheaderuser", page, { cookie });
+      expect(res.status, page).toBe(200);
+      expect(res.headers.get(SHELL_HEADER), page).toBe(page);
+      const direct = await env.ASSETS.fetch(new Request(new URL(shellPath, "https://my.climbinglogbook.com")));
+      expect(await res.text(), `${page} body`).toBe(await direct.text());
+      expect(res.headers.get("Content-Type"), `${page} content-type`).toBe(direct.headers.get("Content-Type"));
+    }
+  });
+
+  it("marks a demo account's shell (no session)", async () => {
+    const res = await fetchOwnedRoute("beginnerdemo", "performance/rpe");
+    expect(res.status).toBe(200);
+    expect(res.headers.get(SHELL_HEADER)).toBe("performance/rpe");
+  });
+
+  it("marks the real page on beta.x for an opted-in user", async () => {
+    const { cookie, userId } = await createAuthedSession({ username: "betashellheader", hostname: "climbinglogbook.com" });
+    await setBetaOptIn(userId, true);
+    const res = await fetchOwnedRoute("betashellheader", "map", { hostname: "beta.climbinglogbook.com", cookie });
+    expect(res.status).toBe(200);
+    expect(res.headers.get(SHELL_HEADER)).toBe("map");
+  });
+
+  it("does not mark the beta gate page served at an owner URL", async () => {
+    const { cookie, userId } = await createAuthedSession({ username: "betagatenoheader", hostname: "climbinglogbook.com" });
+    await setBetaOptIn(userId, null);
+    const res = await fetchOwnedRoute("betagatenoheader", "log", { hostname: "beta.climbinglogbook.com", cookie });
+    expect(res.status).toBe(200);
+    expect(res.headers.get(SHELL_HEADER)).toBeNull();
+  });
+
+  it("does not mark the unauthenticated login redirect", async () => {
+    const res = await fetchOwnedRoute("someone", "log");
+    expect(res.status).toBe(302);
+    expect(res.headers.get(SHELL_HEADER)).toBeNull();
+  });
+
+  it("does not mark the public profile page", async () => {
+    await createAuthedSession({ username: "profilenoheader", hostname: "climbinglogbook.com" });
+    const res = await exports.default.fetch("https://my.climbinglogbook.com/profilenoheader", { redirect: "manual" });
+    expect(res.headers.get(SHELL_HEADER)).toBeNull();
   });
 });
