@@ -2,7 +2,12 @@
 
 ## Status
 
-Accepted
+Accepted. The build-wide `?v=<timestamp>` for stable-named assets is
+superseded by [ADR-0028](0028-service-worker-owns-the-owner-app-shell.md),
+which replaces it with a per-file content hash. The rest of this decision
+(immutable headers, the `/logbook/chunks/*` rule, excluding the worker script
+from immutable caching, no versioning in dev builds) is unaffected and still
+holds.
 
 ## Context
 
