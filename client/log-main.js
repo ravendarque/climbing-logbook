@@ -213,18 +213,23 @@ async function boot() {
   adminAuth.setInitialActiveType();
 
   // #501 -- reads the local cache directly, no network fetch at all:
-  // isSynced() passing above already guarantees this device has the
-  // complete, current entries dataset (client/sync-main.js, ADR-0019).
-  // Places/locations (below) stay network-fetched-with-cache-fallback --
-  // comparatively small payloads where per-load freshness still matters
-  // more than the "one big blocking fetch" problem #111/#498 were built
-  // to solve for entries specifically. This still means a boot() itself
-  // doesn't pick up entries changed on another device/session -- but
-  // #500's delta pull, wired into offlineSync's reconnect/sync-button
-  // path (see client/offline-sync.js's own pullDeltas()), now closes
-  // most of that gap on the next reconnect or manual sync without
-  // needing a full re-sync, narrower than the interim gap this comment
-  // used to describe (Raven, 2026-08-21).
+  // isSynced() passing above already guarantees this device has a
+  // complete entries dataset (client/sync-main.js, ADR-0019), even if
+  // possibly stale relative to another device -- avoiding "one big
+  // blocking fetch" on every load was #111/#498's whole point for
+  // entries specifically. #939 (2026-09-24) -- this comment used to claim
+  // boot() itself never picks up entries changed on another device,
+  // relying entirely on a sync-button click or online-reconnect
+  // (offlineSync's own pullDeltas()) to close that gap "on the next
+  // reconnect or manual sync." That turned out to be wrong in practice --
+  // a real incident where a device was simply reloaded, not clicked or
+  // reconnected, went unnoticed for hours. boot() now also fires its own
+  // background entries-only reconcile once places/locations are applied
+  // (offlineSync.reconcileEntries(), a few lines below, after the
+  // places/locations block for ordering reasons explained there) --
+  // still fire-and-forget, so this line is still what puts real cached
+  // entries in front of the user immediately, without waiting on that
+  // reconcile to resolve first.
   //
   // #762 -- now that loadEntriesFromCache() itself notifies (store.js),
   // this line alone is what puts real cached entries in front of the
@@ -234,38 +239,6 @@ async function boot() {
 
   const sessionPromise = syncStatusIcon.track(adminAuth.checkSession());
   const settingsPromise = syncStatusIcon.track(adminAuth.fetchSettings());
-
-  // #939 -- a real, confirmed incident: a device left open (or simply
-  // reloaded) across an offline session at the crag never picked up
-  // entries added on another device, because nothing here ever
-  // re-checked entries against the server at all -- only the sync-button
-  // click and the `online` event did (offline-sync.js's own listeners).
-  // The cached render above already gives this an instant first paint
-  // (ADR-0023, unaffected by this addition -- see below); this fires
-  // offlineSync's own new entries-only reconcile (client/offline-sync.js's
-  // reconcileEntries(), added for this same fix -- see its own comment
-  // for why this isn't just pullDeltas()/syncPending(), which would
-  // redundantly re-fetch the places/locations this file's own
-  // loadResource() calls below already refresh in full).
-  //
-  // Chained on sessionPromise, not gated on the synchronous
-  // store.isLoggedIn() hint the way offline-sync.js's own `online`
-  // listener is: that hint (admin-auth.js's LOGIN_HINT_KEY) only exists
-  // once some earlier visit's checkSession() has actually resolved and
-  // persisted it, so a first-ever session on a device (cleared storage,
-  // private browsing, or simply never having reached that point yet)
-  // would silently skip this every single time. That optimistic hint
-  // exists for state that gates the shell's own first paint (the tab
-  // bar's show-performance attribute, the account menu, per ADR-0023) --
-  // this reconcile isn't on that path at all (it's fire-and-forget,
-  // already running in the background, invisible until it resolves), so
-  // there's no reason to accept that hint's false-negative window here.
-  // `.then()`, not `await` -- boot() keeps running immediately;
-  // whichever of this or the places/locations fetch below resolves first
-  // has no bearing on the other.
-  sessionPromise.then(() => {
-    if (!IS_DEMO && store.isLoggedIn()) offlineSync.reconcileEntries();
-  });
 
   // #251 -- a demo visitor has no local cache at all (never really
   // synced), so this reads over the network from ENTRIES_URL instead --
@@ -290,6 +263,53 @@ async function boot() {
   else store.loadPlacesFromCache();
   if (locationsResult.status === "fulfilled") store.setLocations(locationsResult.value);
   else store.loadLocationsFromCache();
+
+  // #939 -- a real, confirmed incident: a device left open (or simply
+  // reloaded) across an offline session at the crag never picked up
+  // entries added on another device, because nothing here ever
+  // re-checked entries against the server at all -- only the sync-button
+  // click and the `online` event did (offline-sync.js's own listeners).
+  // The cached render above already gives this an instant first paint
+  // (ADR-0023, unaffected by this addition); this fires offlineSync's own
+  // new entries-only reconcile (client/offline-sync.js's
+  // reconcileEntries(), added for this same fix -- see its own comment
+  // for why this isn't just pullDeltas()/syncPending(), which would
+  // redundantly re-fetch the places/locations already applied just
+  // above).
+  //
+  // Deliberately placed here, not immediately after checkSession() is
+  // called above -- entries.js's own placeOf() falls back to an empty
+  // "" locationId for a placeId it can't resolve, so if this had fired
+  // before store.setPlaces()/setLocations() above ran, a new entry
+  // referencing a brand-new place (both added together, the realistic
+  // case this bug actually hit) would transiently render grouped under
+  // an unknown/empty section, then visibly jump to its real location a
+  // moment later -- exactly the kind of flash ADR-0023 exists to
+  // eliminate. offline-sync.js's own pullDeltas() already documents the
+  // same ordering requirement ("places/locations before entries -- #500's
+  // own multi-table ordering requirement, entries reference placeId");
+  // this achieves it by placement, not a second explicit dependency, and
+  // is still fire-and-forget from here: `.then()`, not `await`, and the
+  // store.setPlaces()/setLocations() calls above are already synchronous
+  // and complete before this callback can ever run (a `.then()` callback
+  // is always deferred to a microtask after the current synchronous code
+  // finishes, even if sessionPromise settled long ago).
+  //
+  // Chained on sessionPromise, not gated on the synchronous
+  // store.isLoggedIn() hint the way offline-sync.js's own `online`
+  // listener is: that hint (admin-auth.js's LOGIN_HINT_KEY) only exists
+  // once some earlier visit's checkSession() has actually resolved and
+  // persisted it, so a first-ever session on a device (cleared storage,
+  // private browsing, or simply never having reached that point yet)
+  // would silently skip this every single time. That optimistic hint
+  // exists for state that gates the shell's own first paint (the tab
+  // bar's show-performance attribute, the account menu, per ADR-0023) --
+  // this reconcile isn't on that path at all (it's fire-and-forget,
+  // already running in the background, invisible until it resolves), so
+  // there's no reason to accept that hint's false-negative window here.
+  sessionPromise.then(() => {
+    if (!IS_DEMO && store.isLoggedIn()) offlineSync.reconcileEntries();
+  });
 
   // Applied once, after all three arrays are loaded -- same ordering
   // reasoning as client/main.js's own boot().

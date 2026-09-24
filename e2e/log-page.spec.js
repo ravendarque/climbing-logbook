@@ -1204,6 +1204,63 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
 
     await expect(page.locator("#sections")).toContainText(entryName);
   });
+
+  // #939 follow-up (Raven, 2026-09-24) -- a real question about the fix
+  // above: reconcileEntries() and boot()'s own places/locations fetch are
+  // now two genuinely independent network calls. entries.js's own
+  // placeOf() falls back to an empty "" locationId for a placeId it can't
+  // resolve, so if a new entry's own delta had landed in the store before
+  // its brand-new place/location did, it would have grouped under an
+  // empty/unknown section, then jumped to its real one a moment later --
+  // exactly the flash ADR-0023 exists to prevent. client/log-main.js's
+  // boot() now fires reconcileEntries() only after the places/locations
+  // block above it has already applied its result to the store (comment
+  // there explains the ordering), so this is a structural guarantee, not
+  // a network-timing coincidence -- proven here by adding both a new
+  // location+place AND an entry that references them together (the
+  // realistic case: a new crag visited and logged in one session), then
+  // asserting the entry lands under its own real location's header, with
+  // no stray/empty section ever left in the DOM once the page settles.
+  test("#939 -- a new entry and its new place, both added on another device together, group under the real location after reload (no empty/unknown section)", async ({ page }) => {
+    await gotoLogHarness(page);
+
+    const locationId = crypto.randomUUID();
+    const placeId = crypto.randomUUID();
+    const entryName = `E2E new-place reconcile ${Date.now()}`;
+
+    await page.evaluate(async ({ locationId, placeId, entryName }) => {
+      await fetch("/logbook/api/admin/locations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: locationId, name: "New Crag", country: "France" }),
+      });
+      await fetch("/logbook/api/admin/places", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: placeId, locationId, area: "Sector 1" }),
+      });
+      await fetch("/logbook/api/admin/logbook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: crypto.randomUUID(), placeId, type: "boulder", status: "send", grade: "6A", gradeScale: "font", date: "2026-05-04", name: entryName }),
+      });
+    }, { locationId, placeId, entryName });
+
+    await page.reload();
+    await expect(page.locator("climbing-entries-table")).toBeVisible();
+    await expect(page.locator("#sections")).toContainText(entryName);
+
+    // The new entry's own section is headed by its real location's name --
+    // never landed (even transiently in a way that left a trace) under an
+    // empty-locationId section.
+    const row = page.locator("tr", { has: page.getByText(entryName, { exact: true }) });
+    const section = row.locator("xpath=ancestor::div[@data-location-id][1]");
+    await expect(section.locator(".place-header")).toContainText("New Crag");
+
+    // No section anywhere is headed by blank/empty text -- the specific
+    // shape a placeOf() fallback (locationId "") would have produced.
+    await expect(page.locator(".place-header[data-location-id='']")).toHaveCount(0);
+  });
 });
 
 // #403 -- deliberately data-agnostic: neither test hardcodes which
