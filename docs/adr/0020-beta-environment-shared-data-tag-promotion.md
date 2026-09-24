@@ -2,7 +2,12 @@
 
 ## Status
 
-Accepted
+Accepted. The "Access control" section below (tri-state `beta_opt_in`,
+the server-side `beta.x` gate, the forced opt-in modal and the unconditional
+login-time redirect) is superseded by
+[ADR-0029](0029-beta-channel-enrollment-model.md). The rest of this
+decision (shared database, deploy classification, tag promotion) is
+unaffected and still holds.
 
 ## Context
 
