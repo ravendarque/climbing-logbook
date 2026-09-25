@@ -18,7 +18,7 @@ import { needsChannelChoice, resolvePostLoginTarget } from "./login/resolve-app-
 
 export async function redirectIfLoggedIn(contentEl) {
   try {
-    const res = await fetch("/logbook/api/auth/get-session");
+    const res = await fetch("/-/api/auth/get-session");
     const data = await res.json();
     if (data?.user) {
       // #443/#547/#559, ADR-0020 -- same betaOptIn-aware target
@@ -36,7 +36,7 @@ export async function redirectIfLoggedIn(contentEl) {
       let betaOptIn = null;
       if (needsChannelChoice(location.hostname)) {
         try {
-          const settingsRes = await fetch("/logbook/api/settings");
+          const settingsRes = await fetch("/-/api/settings");
           betaOptIn = (await settingsRes.json()).betaOptIn;
         } catch {
           // Network hiccup reading settings -- fall back to my.x below.

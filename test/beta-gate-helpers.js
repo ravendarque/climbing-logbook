@@ -43,7 +43,7 @@ export async function seedInvite({ code = "test-code", email = null, used = fals
 }
 
 export function signUp(body) {
-  return jsonRequest("POST", "/logbook/api/auth/sign-up/email", {
+  return jsonRequest("POST", "/-/api/auth/sign-up/email", {
     email: "nix@example.com",
     password: "correct-horse-battery-staple",
     name: "Nix",

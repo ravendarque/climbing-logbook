@@ -43,9 +43,9 @@ async function clearWorkerCaches() {
 // to pass anything; the 10 real consumers that do pass their own
 // syncStatusIcon.reportTimeout directly.
 export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettingsUrl, updateAdminBar, onFetchTimeout = () => {} }) {
-  const AUTH_SESSION_URL = "/logbook/api/auth/get-session";
-  const AUTH_SIGN_OUT_URL = "/logbook/api/auth/sign-out";
-  const SETTINGS_URL = "/logbook/api/settings";
+  const AUTH_SESSION_URL = "/-/api/auth/get-session";
+  const AUTH_SIGN_OUT_URL = "/-/api/auth/sign-out";
+  const SETTINGS_URL = "/-/api/settings";
   const LOGIN_HINT_KEY = "logbook_logged_in_hint";
   // #762 -- mirrors store.js's ENTRIES_CACHE_KEY/PLACES_CACHE_KEY/
   // LOCATIONS_CACHE_KEY convention. Written on every successful

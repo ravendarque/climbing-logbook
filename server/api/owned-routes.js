@@ -9,7 +9,7 @@ import { SHELL_HEADER, SHELL_PATHS } from "../../shared/owner-routes.js";
 // though the URL shape looks the same for every user. Session's own user id
 // must match the user id the URL's :username resolves to, else redirect to
 // login -- not a 403, matching this app's existing full-page-redirect UX
-// (see e.g. public/logbook/app.js's own login-redirect handling) rather
+// (see e.g. public/-/app.js's own login-redirect handling) rather
 // than an error page.
 async function resolveUserIdByUsername(env, username) {
   const user = await lookupUserByUsername(env, username);

@@ -6,8 +6,8 @@ import { env } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
 
-const MAP_COUNTS_URL = "/logbook/api/map/counts";
-const ADMIN_ENTRY_URL = "/logbook/api/admin/logbook";
+const MAP_COUNTS_URL = "/-/api/map/counts";
+const ADMIN_ENTRY_URL = "/-/api/admin/logbook";
 
 beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
 afterAll(() => { env.BETA_GATE_ENABLED = "true"; });

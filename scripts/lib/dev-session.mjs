@@ -134,7 +134,7 @@ export async function bootstrapDevSession(baseUrl, { user = DEV_USER, inviteCode
   // dev's TURNSTILE_SECRET_KEY (.dev.vars) and the preview env's
   // (wrangler.jsonc's env.preview.vars, #323) are Cloudflare's own
   // "always passes" test secret, which accepts any response string.
-  await fetchWithRetry(`${baseUrl}/logbook/api/auth/sign-up/email`, {
+  await fetchWithRetry(`${baseUrl}/-/api/auth/sign-up/email`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Origin: baseUrl },
     body: JSON.stringify({ ...user, code: inviteCode, turnstileToken: "test-token" }),
@@ -142,7 +142,7 @@ export async function bootstrapDevSession(baseUrl, { user = DEV_USER, inviteCode
 
   d1Execute(`UPDATE "user" SET emailVerified = 1 WHERE email = '${user.email}'`, options);
 
-  const signInRes = await fetchWithRetry(`${baseUrl}/logbook/api/auth/sign-in/email`, {
+  const signInRes = await fetchWithRetry(`${baseUrl}/-/api/auth/sign-in/email`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Origin: baseUrl },
     body: JSON.stringify({ email: user.email, password: user.password }),

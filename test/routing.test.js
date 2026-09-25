@@ -18,17 +18,17 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createAuthedSession, fetchJson, resetAuthTables } from "./support.js";
 
 const PUBLIC_ROUTES = {
-  "/logbook/api/logbook": ["GET"],
-  "/logbook/api/places": ["GET"],
-  "/logbook/api/locations": ["GET"],
-  "/logbook/api/settings": ["GET"],
+  "/-/api/logbook": ["GET"],
+  "/-/api/places": ["GET"],
+  "/-/api/locations": ["GET"],
+  "/-/api/settings": ["GET"],
 };
 
 const ADMIN_ROUTES = {
-  "/logbook/api/admin/logbook": ["POST", "PUT", "DELETE"],
-  "/logbook/api/admin/places": ["POST"],
-  "/logbook/api/admin/locations": ["POST"],
-  "/logbook/api/admin/settings": ["GET", "PATCH"],
+  "/-/api/admin/logbook": ["POST", "PUT", "DELETE"],
+  "/-/api/admin/places": ["POST"],
+  "/-/api/admin/locations": ["POST"],
+  "/-/api/admin/settings": ["GET", "PATCH"],
 };
 
 const ALL_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"];

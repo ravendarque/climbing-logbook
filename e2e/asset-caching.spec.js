@@ -44,10 +44,10 @@ test("stable-named entry files serve from disk cache, not network, on a repeat v
     const resources = performance.getEntriesByType("resource");
     const find = substring => resources.find(e => e.name.includes(substring))?.transferSize;
     return {
-      tailwindCss: find("/logbook/tailwind.css"),
-      logApp: find("/logbook/log-app.js"),
-      climbingHeader: find("/logbook/components/climbing-header.js"),
-      aChunk: find("/logbook/chunks/"),
+      tailwindCss: find("/-/tailwind.css"),
+      logApp: find("/-/log-app.js"),
+      climbingHeader: find("/-/components/climbing-header.js"),
+      aChunk: find("/-/chunks/"),
     };
   });
 

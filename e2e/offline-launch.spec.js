@@ -65,7 +65,7 @@ test("after visiting only /log, every owner page opens offline", async ({ page, 
   // And the world-map data is fetched on demand and deliberately online-only
   // (the map shows its own "you need to be online" state; see
   // docs/app-architecture.md), like the API.
-  const onlineOnly = ["/logbook/api/", "/logbook/favicon-", "/logbook/world-map-"];
+  const onlineOnly = ["/-/api/", "/-/favicon-", "/-/world-map-"];
   const failed = [];
   context.on("requestfailed", req => {
     if (req.serviceWorker()) return;
@@ -97,7 +97,7 @@ test("the installed app's start page (/launch/) opens offline and lands on the s
 test("an interrupted install keeps what it fetched, and the retry fetches only the rest", async ({ page, context }) => {
   const workerFetches = [];
   let failManifest = true;
-  await context.route("**/logbook/manifest.json", route => (failManifest ? route.abort() : route.fallback()));
+  await context.route("**/-/manifest.json", route => (failManifest ? route.abort() : route.fallback()));
   context.on("request", req => { if (req.serviceWorker()) workerFetches.push(new URL(req.url()).pathname + new URL(req.url()).search); });
 
   const url = ownedRouteUrl(DEV_USER.username, "/log");
@@ -105,7 +105,7 @@ test("an interrupted install keeps what it fetched, and the retry fetches only t
   await page.waitForURL(url);
   // The first install fails on the manifest; nothing activates, but the
   // rest is in this build's cache.
-  await expect.poll(() => workerFetches.includes("/logbook/manifest.json")).toBe(true);
+  await expect.poll(() => workerFetches.includes("/-/manifest.json")).toBe(true);
   await expect.poll(() => page.evaluate(async () => {
     const registration = await navigator.serviceWorker.getRegistration();
     return !registration?.installing && !registration?.active;
@@ -119,7 +119,7 @@ test("an interrupted install keeps what it fetched, and the retry fetches only t
   await page.reload();
   await page.evaluate(() => navigator.serviceWorker.ready);
   // (/service-worker.js is the browser's own update check of the worker script.)
-  expect(workerFetches.slice(firstAttempt).filter(path => path !== "/service-worker.js")).toEqual(["/logbook/manifest.json"]);
+  expect(workerFetches.slice(firstAttempt).filter(path => path !== "/service-worker.js")).toEqual(["/-/manifest.json"]);
 });
 
 test("a warm launch takes the document and every static asset from the worker, not the network", async ({ page }) => {
@@ -127,7 +127,7 @@ test("a warm launch takes the document and every static asset from the worker, n
   const fromNetwork = [];
   page.on("response", res => {
     const url = new URL(res.url());
-    const isShellOrAsset = res.request().isNavigationRequest() || url.pathname.startsWith("/logbook/") && !url.pathname.startsWith("/logbook/api/");
+    const isShellOrAsset = res.request().isNavigationRequest() || url.pathname.startsWith("/-/") && !url.pathname.startsWith("/-/api/");
     if (isShellOrAsset && !res.fromServiceWorker()) fromNetwork.push(url.pathname);
   });
   const nav = await page.goto(ownedRouteUrl(DEV_USER.username, "/log"));
@@ -155,7 +155,7 @@ test("API responses never end up in the worker's cache", async ({ page }) => {
     return urls;
   });
   expect(cachedUrls.length).toBeGreaterThan(0);
-  expect(cachedUrls.filter(p => p.startsWith("/logbook/api/"))).toEqual([]);
+  expect(cachedUrls.filter(p => p.startsWith("/-/api/"))).toEqual([]);
   // Shells are cached by page type, never under a user's URL.
   expect(cachedUrls).toContain("/log/index.html");
   expect(cachedUrls.filter(p => p.startsWith(`/${DEV_USER.username}/`))).toEqual([]);
@@ -186,16 +186,16 @@ test("logging out deletes the worker's caches: no owner shell survives the sessi
   // "already signed in?" check (static/session-redirect.js) is also told
   // there's no session -- as it would be after a real sign-out -- or it
   // would bounce straight back to /log.
-  await page.route("**/logbook/api/auth/sign-out", route => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }));
+  await page.route("**/-/api/auth/sign-out", route => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }));
   await page.locator("#header-menu-btn").click();
-  await page.route("**/logbook/api/auth/get-session", route => route.fulfill({ status: 200, contentType: "application/json", body: "null" }));
+  await page.route("**/-/api/auth/get-session", route => route.fulfill({ status: 200, contentType: "application/json", body: "null" }));
   await page.locator("#login-toggle-btn").click();
   await page.waitForURL(url => url.pathname === "/login/");
   await page.waitForLoadState("networkidle");
   expect(new URL(page.url()).pathname).toBe("/login/");
   const after = await cachedPaths(page);
   expect(after.filter(p => p.endsWith("/index.html"))).toEqual([]);
-  expect(after.filter(p => !p.startsWith("/logbook/"))).toEqual([]);
+  expect(after.filter(p => !p.startsWith("/-/"))).toEqual([]);
 });
 
 // #983 -- the worker moved from /sw.js (a valid username) to

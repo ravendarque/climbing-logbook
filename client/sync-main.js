@@ -1,5 +1,5 @@
 // Composition root for /:username/sync (#498, ADR-0019) -- bundled by
-// esbuild into public/logbook/sync-app.js, same pattern as client/
+// esbuild into public/-/sync-app.js, same pattern as client/
 // log-main.js's own header comment for the general "trimmed from
 // client/main.js" reasoning. This page has exactly one job: get this
 // device's local dataset to a complete, correct state (locations,
@@ -19,9 +19,9 @@ import { mergeDelta } from "./delta-merge.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
 
-const PLACES_URL = "/logbook/api/places";
-const LOCATIONS_URL = "/logbook/api/locations";
-const ENTRIES_URL = "/logbook/api/logbook";
+const PLACES_URL = "/-/api/places";
+const LOCATIONS_URL = "/-/api/locations";
+const ENTRIES_URL = "/-/api/logbook";
 
 // #498 -- larger than /log's own 20-row UI page size on purpose: this is
 // a one-off bulk transfer, not a per-click UI page, so it's sized for a

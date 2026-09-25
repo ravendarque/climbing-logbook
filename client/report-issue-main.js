@@ -4,7 +4,7 @@
 // static/register/register.js (#311) -- this form is public and
 // unauthenticated (reachable logged out, same as /help itself), just
 // posting to a different, non-Better-Auth endpoint
-// (/logbook/api/report-issue, server/api/report-issue.js).
+// (/-/api/report-issue, server/api/report-issue.js).
 //
 // bundle: report-issue REPLACES help-main.js entirely (11ty's data
 // cascade -- it doesn't layer on top), so the header menu popover, theme
@@ -111,7 +111,7 @@ form.addEventListener("submit", async (event) => {
   }
 
   try {
-    const res = await fetch("/logbook/api/report-issue", {
+    const res = await fetch("/-/api/report-issue", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

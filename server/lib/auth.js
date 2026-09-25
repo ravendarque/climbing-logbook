@@ -158,7 +158,7 @@ export function createAuth(env, hostname) {
   const emailSender = createEmailSender(env);
   const auth = betterAuth({
     database: env.LOGBOOK_DB,
-    basePath: "/logbook/api/auth",
+    basePath: "/-/api/auth",
     secret: env.BETTER_AUTH_SECRET,
     trustedOrigins: TRUSTED_ORIGINS,
     baseURL: { allowedHosts: ALLOWED_HOSTS },

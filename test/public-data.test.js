@@ -1,10 +1,10 @@
 // #351 -- the read-only JSON data client/profile-main.js fetches for one
 // target user's logbook/places/locations, at
-// /logbook/api/public/:username/{logbook,places,locations}. Not
+// /-/api/public/:username/{logbook,places,locations}. Not
 // hostname-gated (unlike test/public-profile.test.js's own shell route --
 // see server/api/public-data.js's own comment on why), so exercised here
 // against a plain https://example.com origin, same as every other
-// /logbook/api/* test file.
+// /-/api/* test file.
 import { env, exports } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
@@ -13,7 +13,7 @@ beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
 afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
 
 function fetchPublic(username, resource) {
-  return exports.default.fetch(`https://example.com/logbook/api/public/${username}/${resource}`);
+  return exports.default.fetch(`https://example.com/-/api/public/${username}/${resource}`);
 }
 
 beforeEach(async () => {
@@ -24,7 +24,7 @@ describe("public data API", () => {
   it("returns a public user's entries/places/locations without a session", async () => {
     const { cookie } = await createAuthedSession({ username: "publicdatauser" });
     const placeId = await seedPlace(cookie, { locationName: "Fontainebleau", country: "France", area: "Bas Cuvier" });
-    await jsonRequest("POST", "/logbook/api/admin/logbook", { placeId, name: "Sleepwalker", grade: "7A", type: "boulder", status: "send" }, { Cookie: cookie });
+    await jsonRequest("POST", "/-/api/admin/logbook", { placeId, name: "Sleepwalker", grade: "7A", type: "boulder", status: "send" }, { Cookie: cookie });
 
     const entriesRes = await fetchPublic("publicdatauser", "logbook");
     expect(entriesRes.status).toBe(200);
@@ -61,7 +61,7 @@ describe("public data API", () => {
 
   it("404s once logbook_public is turned off, same as the profile page itself", async () => {
     const { cookie } = await createAuthedSession({ username: "privatedatauser" });
-    await jsonRequest("PATCH", "/logbook/api/admin/settings", {}, { Cookie: cookie }); // creates the settings row
+    await jsonRequest("PATCH", "/-/api/admin/settings", {}, { Cookie: cookie }); // creates the settings row
     await env.LOGBOOK_DB.prepare(`UPDATE settings SET logbook_public = 0 WHERE user_id = (SELECT id FROM "user" WHERE username = 'privatedatauser')`).run();
 
     const res = await fetchPublic("privatedatauser", "logbook");
@@ -71,7 +71,7 @@ describe("public data API", () => {
   it("#497 -- serves the map/counts aggregate for a public user, same anti-enumeration 404 for a private/nonexistent one", async () => {
     const { cookie } = await createAuthedSession({ username: "publicmapuser" });
     const placeId = await seedPlace(cookie, { locationName: "Fontainebleau", country: "France" });
-    await jsonRequest("POST", "/logbook/api/admin/logbook", { placeId, name: "Sleepwalker", grade: "7A", type: "boulder", status: "send" }, { Cookie: cookie });
+    await jsonRequest("POST", "/-/api/admin/logbook", { placeId, name: "Sleepwalker", grade: "7A", type: "boulder", status: "send" }, { Cookie: cookie });
 
     const res = await fetchPublic("publicmapuser", "map/counts");
     expect(res.status).toBe(200);
@@ -89,9 +89,9 @@ describe("public data API", () => {
       const { cookie } = await createAuthedSession({ username: "countsuser" });
       const placeIdA = await seedPlace(cookie, { locationName: "Fontainebleau", country: "France" });
       const placeIdB = await seedPlace(cookie, { locationName: "Magic Wood", country: "Switzerland" });
-      await jsonRequest("POST", "/logbook/api/admin/logbook", { placeId: placeIdA, name: "Sleepwalker", grade: "7A", type: "boulder", status: "send" }, { Cookie: cookie });
-      await jsonRequest("POST", "/logbook/api/admin/logbook", { placeId: placeIdA, name: "Rainbow Rocket", grade: "7B", type: "boulder", status: "project" }, { Cookie: cookie });
-      await jsonRequest("POST", "/logbook/api/admin/logbook", { placeId: placeIdB, name: "Practice Boy", grade: "6A", type: "boulder", status: "send" }, { Cookie: cookie });
+      await jsonRequest("POST", "/-/api/admin/logbook", { placeId: placeIdA, name: "Sleepwalker", grade: "7A", type: "boulder", status: "send" }, { Cookie: cookie });
+      await jsonRequest("POST", "/-/api/admin/logbook", { placeId: placeIdA, name: "Rainbow Rocket", grade: "7B", type: "boulder", status: "project" }, { Cookie: cookie });
+      await jsonRequest("POST", "/-/api/admin/logbook", { placeId: placeIdB, name: "Practice Boy", grade: "6A", type: "boulder", status: "send" }, { Cookie: cookie });
 
       const res = await fetchPublic("countsuser", "logbook/counts");
       expect(res.status).toBe(200);
@@ -109,8 +109,8 @@ describe("public data API", () => {
     it("excludes a soft-deleted entry from its location's count", async () => {
       const { cookie } = await createAuthedSession({ username: "countsdeleteduser" });
       const placeId = await seedPlace(cookie, { locationName: "Fontainebleau" });
-      const created = await (await jsonRequest("POST", "/logbook/api/admin/logbook", { placeId, name: "Sleepwalker", grade: "7A", type: "boulder", status: "send" }, { Cookie: cookie })).json();
-      await fetchJson(`/logbook/api/admin/logbook?id=${created.entries[0].id}`, { method: "DELETE", headers: { Cookie: cookie } });
+      const created = await (await jsonRequest("POST", "/-/api/admin/logbook", { placeId, name: "Sleepwalker", grade: "7A", type: "boulder", status: "send" }, { Cookie: cookie })).json();
+      await fetchJson(`/-/api/admin/logbook?id=${created.entries[0].id}`, { method: "DELETE", headers: { Cookie: cookie } });
 
       const { locations, counts } = await (await fetchPublic("countsdeleteduser", "logbook/counts")).json();
       const locationId = locations.find(l => l.name === "Fontainebleau").id;
@@ -132,7 +132,7 @@ describe("public data API", () => {
     it("never leaks a different user's counts for the same resource path", async () => {
       const { cookie: cookieA } = await createAuthedSession({ username: "countsusera" });
       const placeIdA = await seedPlace(cookieA, { locationName: "Location A" });
-      await jsonRequest("POST", "/logbook/api/admin/logbook", { placeId: placeIdA, name: "A's Send", grade: "7A", type: "boulder", status: "send" }, { Cookie: cookieA });
+      await jsonRequest("POST", "/-/api/admin/logbook", { placeId: placeIdA, name: "A's Send", grade: "7A", type: "boulder", status: "send" }, { Cookie: cookieA });
 
       const { cookie: cookieB } = await createAuthedSession({ username: "countsuserb" });
 
@@ -144,11 +144,11 @@ describe("public data API", () => {
   it("never leaks a different user's data for the same resource path", async () => {
     const { cookie: cookieA } = await createAuthedSession({ username: "userdataa" });
     const placeIdA = await seedPlace(cookieA);
-    await jsonRequest("POST", "/logbook/api/admin/logbook", { placeId: placeIdA, name: "User A's Send", grade: "7A", type: "boulder", status: "send" }, { Cookie: cookieA });
+    await jsonRequest("POST", "/-/api/admin/logbook", { placeId: placeIdA, name: "User A's Send", grade: "7A", type: "boulder", status: "send" }, { Cookie: cookieA });
 
     const { cookie: cookieB } = await createAuthedSession({ username: "userdatab" });
     const placeIdB = await seedPlace(cookieB);
-    await jsonRequest("POST", "/logbook/api/admin/logbook", { placeId: placeIdB, name: "User B's Send", grade: "6A", type: "boulder", status: "send" }, { Cookie: cookieB });
+    await jsonRequest("POST", "/-/api/admin/logbook", { placeId: placeIdB, name: "User B's Send", grade: "6A", type: "boulder", status: "send" }, { Cookie: cookieB });
 
     const { entries: entriesA } = await (await fetchPublic("userdataa", "logbook")).json();
     expect(entriesA.map(e => e.name)).toEqual(["User A's Send"]);
@@ -169,8 +169,8 @@ describe("public data API", () => {
     it("a soft-deleted entry's content never appears publicly via ?since=, even at cursor 0", async () => {
       const { cookie } = await createAuthedSession({ username: "sincedeleteduser" });
       const placeId = await seedPlace(cookie);
-      const created = await (await jsonRequest("POST", "/logbook/api/admin/logbook", { placeId, name: "Sleepwalker", grade: "7A", type: "boulder", status: "send" }, { Cookie: cookie })).json();
-      await fetchJson(`/logbook/api/admin/logbook?id=${created.entries[0].id}`, { method: "DELETE", headers: { Cookie: cookie } });
+      const created = await (await jsonRequest("POST", "/-/api/admin/logbook", { placeId, name: "Sleepwalker", grade: "7A", type: "boulder", status: "send" }, { Cookie: cookie })).json();
+      await fetchJson(`/-/api/admin/logbook?id=${created.entries[0].id}`, { method: "DELETE", headers: { Cookie: cookie } });
 
       const res = await fetchPublic("sincedeleteduser", "logbook?since=0");
       expect(res.status).toBe(200);
@@ -184,7 +184,7 @@ describe("public data API", () => {
     it("a live entry is still returned normally when ?since= is present, just via the plain (not delta) shape", async () => {
       const { cookie } = await createAuthedSession({ username: "sincelivenuser" });
       const placeId = await seedPlace(cookie);
-      await jsonRequest("POST", "/logbook/api/admin/logbook", { placeId, name: "Sleepwalker", grade: "7A", type: "boulder", status: "send" }, { Cookie: cookie });
+      await jsonRequest("POST", "/-/api/admin/logbook", { placeId, name: "Sleepwalker", grade: "7A", type: "boulder", status: "send" }, { Cookie: cookie });
 
       const res = await fetchPublic("sincelivenuser", "logbook?since=0");
       const body = await res.json();
@@ -196,7 +196,7 @@ describe("public data API", () => {
   it("never returns rpe/attemptsToSend/moves/painMoves, even when the owner's entry has them (Task 7)", async () => {
     const { cookie } = await createAuthedSession({ username: "sensitivedatauser" });
     const placeId = await seedPlace(cookie);
-    await jsonRequest("POST", "/logbook/api/admin/logbook", {
+    await jsonRequest("POST", "/-/api/admin/logbook", {
       placeId, name: "Private Beta", grade: "7A", type: "boulder", status: "send",
       rpe: 90, attemptsToSend: 3,
       moves: [{ difficulty: "hardest", limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" }],
@@ -223,7 +223,7 @@ describe("public data API", () => {
   it("returns sportStyle for a public Sport entry, unlike the deliberately-excluded fields above", async () => {
     const { cookie } = await createAuthedSession({ username: "sportstyleuser" });
     const placeId = await seedPlace(cookie);
-    await jsonRequest("POST", "/logbook/api/admin/logbook", {
+    await jsonRequest("POST", "/-/api/admin/logbook", {
       placeId, name: "Public Sport Send", grade: "6a", type: "sport", status: "send", sportStyle: "top_rope",
     }, { Cookie: cookie });
 
@@ -247,7 +247,7 @@ describe("public data API", () => {
 
     it("serves performance data for a user with is_demo set", async () => {
       const { cookie } = await createAuthedSession({ username: "demoflaguser" });
-      await jsonRequest("PATCH", "/logbook/api/admin/settings", {}, { Cookie: cookie }); // creates the settings row
+      await jsonRequest("PATCH", "/-/api/admin/settings", {}, { Cookie: cookie }); // creates the settings row
       await env.LOGBOOK_DB.prepare(`UPDATE settings SET is_demo = 1 WHERE user_id = (SELECT id FROM "user" WHERE username = 'demoflaguser')`).run();
 
       // volume/gap/rpe additionally require start/end query params

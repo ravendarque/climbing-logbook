@@ -13,7 +13,7 @@
 // /:username/{log,map,performance} as further consumers, using the exact
 // same brand markup (logo/title/tagline) -- the brand header is meant to
 // be consistent everywhere, app pages included, not just marketing/
-// auxiliary ones. public/logbook/index.html is deliberately left
+// auxiliary ones. public/-/index.html is deliberately left
 // untouched -- per #344's parallel-migration decision, nothing in
 // Phase A-D of that epic modifies the live admin SPA; it stays a working
 // reference/fallback until Phase E (#375) decides its fate, which may be
@@ -38,7 +38,7 @@
     "  --r: 8px;",
     '  --font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;',
     '  --font-display: "Bebas Neue", sans-serif;',
-    // Carried over from public/logbook/index.html's own second :root
+    // Carried over from public/-/index.html's own second :root
     // block (predates #345 -- these never made it into this shared token
     // set when it was created, so every /:username/{log,map,performance}
     // page and the public profile page had .btn/the discipline
@@ -117,7 +117,7 @@
     // on which page loaded it.
     "@font-face {",
     '  font-family: "Bebas Neue";',
-    '  src: url("/logbook/fonts/BebasNeue-Regular.woff2") format("woff2");',
+    '  src: url("/-/fonts/BebasNeue-Regular.woff2") format("woff2");',
     "  font-weight: 400;",
     "  font-style: normal;",
     "  font-display: swap;",
@@ -432,7 +432,7 @@
   // let alone before first paint.
   injectTokens();
 
-  // Exact markup/classes from public/logbook/index.html's former
+  // Exact markup/classes from public/-/index.html's former
   // #brand-header-row and #footnote-overlay -- reused, not reinvented.
   // See #208 for the logo's cap-height/baseline alignment derivation and
   // #356 for why the logo uses fill="currentColor" rather than a

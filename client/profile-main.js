@@ -1,5 +1,5 @@
 // Composition root for the public, read-only /:username page (#351) --
-// bundled by esbuild into public/logbook/profile-app.js. Still no
+// bundled by esbuild into public/-/profile-app.js. Still no
 // adminFetch/isAuthRedirect, no entry-form.js/place-picker.js/
 // offline-sync.js/content-overlays.js at all -- "Security by absence"
 // per #344's decision: this bundle genuinely cannot write anything, not
@@ -30,7 +30,7 @@
 //
 // <climbing-entries-table> (#350) is fed from the public data endpoints
 // (server/api/public-data.js) instead of the session-scoped
-// /logbook/api/* ones, and never given the `editable` attribute -- and,
+// /-/api/* ones, and never given the `editable` attribute -- and,
 // unlike client/log-main.js's own `editable` (fully-loaded) usage, is
 // given `lazy` (#494, ADR-0017): boot() below only fetches locations/
 // places/per-location counts up front, real entry rows load one
@@ -121,7 +121,7 @@ createThemeToggle();
 const PAGE_SIZE = 50;
 entriesTable.addEventListener("location-expand", async e => {
   const { locationId } = e.detail;
-  const base = `/logbook/api/public/${encodeURIComponent(USERNAME)}`;
+  const base = `/-/api/public/${encodeURIComponent(USERNAME)}`;
   try {
     const loaded = await loadResource(`${base}/logbook?locationId=${encodeURIComponent(locationId)}&limit=${PAGE_SIZE}`, "entries");
     entriesTable.entries = [...entriesTable.entries, ...loaded];
@@ -136,7 +136,7 @@ entriesTable.addEventListener("location-expand", async e => {
 });
 
 async function boot() {
-  const base = `/logbook/api/public/${encodeURIComponent(USERNAME)}`;
+  const base = `/-/api/public/${encodeURIComponent(USERNAME)}`;
   // .catch(() => []/{}) on each: a failed/404 fetch here (private or
   // nonexistent user) can't actually happen in practice --
   // server/api/public-profile.js's own gate already 404s before this shell

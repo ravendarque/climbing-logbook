@@ -11,10 +11,10 @@ import {
 } from "./performance.js";
 
 // #351 -- the read-only data feeding client/profile-main.js's
-// <climbing-entries-table>, at /logbook/api/public/:username/{logbook,
+// <climbing-entries-table>, at /-/api/public/:username/{logbook,
 // places,locations}. Not hostname-gated (unlike server/api/owned-routes.js/
 // this file's own sibling handlePublicProfile) -- same reasoning every
-// other /logbook/api/* route already has: the client bundle that calls
+// other /-/api/* route already has: the client bundle that calls
 // this always does so same-origin, regardless of which hostname served
 // the page itself.
 //
@@ -60,7 +60,7 @@ const DEMO_ONLY_HANDLERS = {
   "performance/injury": handleGetInjuryLog,
   "performance/strengths": handleGetStrengthsWeaknesses,
   // "volume", not "trends" -- matches the real session-scoped endpoint's
-  // own name (/logbook/api/performance/volume, server/index.js's
+  // own name (/-/api/performance/volume, server/index.js's
   // PUBLIC_GET_ROUTES), which predates and differs from the page route's
   // own name (/performance/trends, #15).
   "performance/volume": handleGetVolume,

@@ -12,9 +12,9 @@ export const LAUNCH_PATH = "/launch/";
 //                the matched page key)
 //   launch       a navigation to /launch/, the installed app's start page
 //                (#949; cache-first per build, pre-cached by #948)
-//   immutable    content-addressed: /logbook/chunks/* or any ?v= URL
-//   font         /logbook/fonts/* (unversioned, so stale-while-revalidate)
-//   static       any other /logbook/ static file (network-first)
+//   immutable    content-addressed: /-/chunks/* or any ?v= URL
+//   font         /-/fonts/* (unversioned, so stale-while-revalidate)
+//   static       any other /-/ static file (network-first)
 //   passthrough  everything else, including every API call
 export function classifyRequest({ url, method, mode, workerOrigin }) {
   const u = new URL(url);
@@ -27,9 +27,9 @@ export function classifyRequest({ url, method, mode, workerOrigin }) {
   }
 
   // Data belongs to client/store.js, never the worker (ADR-0028 decision 3).
-  if (u.pathname.startsWith("/logbook/api/")) return { kind: "passthrough" };
-  if (!u.pathname.startsWith("/logbook/")) return { kind: "passthrough" };
-  if (u.pathname.startsWith("/logbook/chunks/") || u.searchParams.has("v")) return { kind: "immutable" };
-  if (u.pathname.startsWith("/logbook/fonts/")) return { kind: "font" };
+  if (u.pathname.startsWith("/-/api/")) return { kind: "passthrough" };
+  if (!u.pathname.startsWith("/-/")) return { kind: "passthrough" };
+  if (u.pathname.startsWith("/-/chunks/") || u.searchParams.has("v")) return { kind: "immutable" };
+  if (u.pathname.startsWith("/-/fonts/")) return { kind: "font" };
   return { kind: "static" };
 }

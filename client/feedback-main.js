@@ -1,7 +1,7 @@
 // #925 -- own dedicated bundle (vite.entries.mjs), same "form only exists
 // on this one page" reasoning as report-issue-main.js (#924). Identical
 // Turnstile explicit-render + fetch/submit pattern, posting to
-// /logbook/api/feedback (server/api/feedback.js) instead.
+// /-/api/feedback (server/api/feedback.js) instead.
 //
 // bundle: feedback REPLACES help-main.js entirely (11ty's data cascade),
 // so this page needs report-issue-main.js's own fix for the same gap
@@ -78,7 +78,7 @@ form.addEventListener("submit", async (event) => {
   }
 
   try {
-    const res = await fetch("/logbook/api/feedback", {
+    const res = await fetch("/-/api/feedback", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

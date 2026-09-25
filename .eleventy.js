@@ -24,7 +24,7 @@
 // while nothing changes within a single build/dev-server lifetime. Not
 // a content hash -- these files' own content doesn't feed this build
 // step, and a build-identity value is enough for cache-busting (unlike
-// the Vite-built chunks under /logbook/chunks/, which DO get real
+// the Vite-built chunks under /-/chunks/, which DO get real
 // content hashes, #774/#855) -- occasionally busting a cache that
 // didn't strictly need it (an unrelated rebuild) is a minor,
 // acceptable inefficiency, not a correctness bug.

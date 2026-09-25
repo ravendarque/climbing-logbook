@@ -9,9 +9,9 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
 import { MIN_TAG_COUNT } from "../shared/injury-stats.js";
 
-const PYRAMID_URL = "/logbook/api/performance/pyramid";
-const INJURY_URL = "/logbook/api/performance/injury";
-const ADMIN_ENTRY_URL = "/logbook/api/admin/logbook";
+const PYRAMID_URL = "/-/api/performance/pyramid";
+const INJURY_URL = "/-/api/performance/injury";
+const ADMIN_ENTRY_URL = "/-/api/admin/logbook";
 
 beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
 afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
@@ -201,7 +201,7 @@ describe("handleGetInjuryLog", () => {
   });
 });
 
-const STRENGTHS_URL = "/logbook/api/performance/strengths";
+const STRENGTHS_URL = "/-/api/performance/strengths";
 function getStrengths(params = {}, extraCookie = cookie) {
   const qs = new URLSearchParams(params).toString();
   return fetchJson(`${STRENGTHS_URL}${qs ? `?${qs}` : ""}`, { headers: { Cookie: extraCookie } });
@@ -267,7 +267,7 @@ describe("handleGetStrengthsWeaknesses", () => {
   });
 });
 
-const VOLUME_URL = "/logbook/api/performance/volume";
+const VOLUME_URL = "/-/api/performance/volume";
 function getVolume(params, extraCookie = cookie) {
   const qs = new URLSearchParams(params).toString();
   return fetchJson(`${VOLUME_URL}?${qs}`, { headers: { Cookie: extraCookie } });
@@ -352,7 +352,7 @@ describe("handleGetVolume", () => {
   });
 });
 
-const GAP_URL = "/logbook/api/performance/gap";
+const GAP_URL = "/-/api/performance/gap";
 function getGap(params, extraCookie = cookie) {
   const qs = new URLSearchParams(params).toString();
   return fetchJson(`${GAP_URL}?${qs}`, { headers: { Cookie: extraCookie } });
@@ -424,7 +424,7 @@ describe("handleGetGap", () => {
   });
 });
 
-const EFFORT_URL = "/logbook/api/performance/rpe";
+const EFFORT_URL = "/-/api/performance/rpe";
 function getEffort(params, extraCookie = cookie) {
   const qs = new URLSearchParams(params).toString();
   return fetchJson(`${EFFORT_URL}?${qs}`, { headers: { Cookie: extraCookie } });

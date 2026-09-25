@@ -24,7 +24,7 @@ describe("worker caches (#962)", () => {
     expect(cachesToDelete([C], C)).toEqual([]);
   });
 
-  it("deletes the retired /logbook/ worker's logbook-shell-v3 straight away -- it isn't a build cache, so never 'previous'", () => {
+  it("deletes the retired /-/ worker's logbook-shell-v3 straight away -- it isn't a build cache, so never 'previous'", () => {
     expect(cachesToDelete(["logbook-shell-v3", C], C)).toEqual(["logbook-shell-v3"]);
     expect(cachesToDelete([B, "logbook-shell-v3", C], C)).toEqual(["logbook-shell-v3"]);
   });

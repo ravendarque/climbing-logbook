@@ -69,7 +69,7 @@ test("switching the report grade scale relabels the chart's grade point", async 
 test("switching the time window to 52w re-fetches with a wider range", async ({ page }) => {
   let lastRequestUrl = null;
   await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
-  await page.route("**/logbook/api/performance/volume**", route => {
+  await page.route("**/-/api/performance/volume**", route => {
     lastRequestUrl = route.request().url();
     return route.fulfill({ json: { boulder: { buckets: [], sendCounts: [], maxGradeByBucket: [] }, lead: { buckets: [], sendCounts: [], maxGradeByBucket: [] } } });
   });
@@ -101,7 +101,7 @@ test("switching the time window to 52w re-fetches with a wider range", async ({ 
 test("Custom range: picking a start date via the calendar popover re-fetches with that date", async ({ page }) => {
   let lastRequestUrl = null;
   await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
-  await page.route("**/logbook/api/performance/volume**", route => {
+  await page.route("**/-/api/performance/volume**", route => {
     lastRequestUrl = route.request().url();
     return route.fulfill({ json: { boulder: { buckets: [], sendCounts: [], maxGradeByBucket: [] }, lead: { buckets: [], sendCounts: [], maxGradeByBucket: [] } } });
   });
@@ -127,7 +127,7 @@ test("Custom range: picking a start date via the calendar popover re-fetches wit
 
 test("shows the offline message instead of the chart when the fetch fails", async ({ page }) => {
   await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
-  await page.route("**/logbook/api/performance/volume**", route => route.fulfill({ status: 500 }));
+  await page.route("**/-/api/performance/volume**", route => route.fulfill({ status: 500 }));
   await page.goto("/e2e-fixtures/pages/performance-trends.html");
 
   await expect(page.locator("#performance-offline")).toBeVisible();

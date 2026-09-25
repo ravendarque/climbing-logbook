@@ -1,4 +1,4 @@
-// #949 -- the installed app's start_url (/launch/, static/logbook/
+// #949 -- the installed app's start_url (/launch/, static/-/
 // manifest.json) sends whoever last signed in on this device to their own
 // logbook, and nobody to login. Exercised on the app origin (my.localhost)
 // against the production build.
@@ -10,7 +10,7 @@ const LAUNCH = "http://my.localhost:8787/launch/";
 
 test("the manifest names no user and starts at /launch/", async ({ page }) => {
   await page.goto("http://my.localhost:8787/login/");
-  const manifest = await page.evaluate(() => fetch("/logbook/manifest.json").then(r => r.json()));
+  const manifest = await page.evaluate(() => fetch("/-/manifest.json").then(r => r.json()));
   expect(manifest.start_url).toBe("/launch/");
   expect(manifest.id).toBe("/");
   expect(JSON.stringify(manifest)).not.toContain(DEV_USER.username);

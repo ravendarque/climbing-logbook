@@ -4,20 +4,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Climbing Logbook</title>
-  <link rel="icon" type="image/png" sizes="32x32" href="./logbook/favicon-32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="./logbook/favicon-16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="./-/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="./-/favicon-16.png">
   <meta name="theme-color" content="#ff2727">
   <!-- #470 -- starts the brand font fetch during initial HTML parsing
        instead of waiting for layout to discover it via climbing-header.js's
        own @font-face rule, shrinking the FOUT window (font-display: swap
        still applies -- this doesn't eliminate the swap, just gets the
-       fetch started sooner). Always the absolute /logbook/... path,
+       fetch started sooner). Always the absolute /-/... path,
        matching climbing-header.js's own hardcoded @font-face url()
        exactly, regardless of this page's own relative-path convention for
        other assets below -- the preload only helps if its URL matches the
        eventual font request byte-for-byte. -->
-  <link rel="preload" as="font" type="font/woff2" href="/logbook/fonts/BebasNeue-Regular.woff2" crossorigin>
-  <!-- Same shared stylesheet/font/favicon assets as public/logbook/ and
+  <link rel="preload" as="font" type="font/woff2" href="/-/fonts/BebasNeue-Regular.woff2" crossorigin>
+  <!-- Same shared stylesheet/font/favicon assets as public/-/ and
        the other apex pages (public/register/, public/login/) -- see
        public/login/index.html's own comment for why these are referenced
        rather than duplicated. -->
@@ -25,11 +25,11 @@
        lets public/_headers cache these two files immutably; skipped in
        dev (isDevBuild), which doesn't need it (see app-layout.njk's own
        fuller comment on why). -->
-  <link rel="stylesheet" href="./logbook/tailwind.css{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}">
+  <link rel="stylesheet" href="./-/tailwind.css{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}">
   <!-- Shared design tokens + <climbing-header> Custom Element (#345).
        Classic script, not a module -- must run synchronously here, before
        first paint. See the file's own comment for why. -->
-  <script src="./logbook/components/climbing-header.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
+  <script src="./-/components/climbing-header.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
   <script>
     (function () {
       var stored = localStorage.getItem("logbook_theme");
@@ -44,7 +44,7 @@
        all (redirected straight to their own /log), a logged-out one gets
        it revealed. display:none (not the [hidden] attribute) so this
        works without depending on styles/tailwind.css's own [hidden]
-       override (public/logbook/index.html's own comment on that same
+       override (public/-/index.html's own comment on that same
        subtlety) having loaded yet. -->
   <div class="w-full max-w-[440px] text-center" id="page-content" style="display:none">
     <climbing-header variant="brand"></climbing-header>

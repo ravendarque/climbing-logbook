@@ -5,7 +5,7 @@ import { env } from "cloudflare:workers";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createAuthedSession, fetchJson, resetAuthTables } from "./support.js";
 
-const FEEDBACK_URL = "/logbook/api/feedback";
+const FEEDBACK_URL = "/-/api/feedback";
 
 beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
 afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
@@ -133,7 +133,7 @@ describe("handleFeedback", () => {
   it("keeps the feedback rate limit separate from the report-issue rate limit", async () => {
     stubSiteverify(true);
     for (let i = 0; i < 5; i++) {
-      const res = await fetchJson("/logbook/api/report-issue", {
+      const res = await fetchJson("/-/api/report-issue", {
         method: "POST",
         headers: { "Content-Type": "application/json", "cf-connecting-ip": "9.9.9.9" },
         body: JSON.stringify({ message: `Report ${i}`, turnstileToken: "any-token" }),

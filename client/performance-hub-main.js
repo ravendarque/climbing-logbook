@@ -1,6 +1,6 @@
 // Composition root for /:username/performance (#575, epic #5 Phase 2) --
 // the hub page listing every Performance Insight as a tile. Bundled by
-// esbuild into public/logbook/performance-hub-app.js, same pattern as
+// esbuild into public/-/performance-hub-app.js, same pattern as
 // every other owned page's composition root. Reuses store.js/admin-
 // auth.js/header-chrome.js unchanged, same as client/performance-
 // pyramid-main.js.
@@ -21,7 +21,7 @@ import "./components/climbing-tab-bar.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
 
-const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
+const ADMIN_SETTINGS_URL = "/-/api/admin/settings";
 
 // Each entry becomes one tile. Only #12 (grade pyramid) exists today --
 // #15/#13/#14/#38/#39 each add their own entry here when they land, per

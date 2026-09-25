@@ -9,7 +9,7 @@ even though both live on the same domain (`ravendarque.com`).
 ```
 ravendarque.com
 ├── /              → my-limn (Cloudflare Pages, dashboard git-integrated)
-└── /logbook/*     → 301 redirect to my.climbinglogbook.com/ravendarque
+└── /-/*     → 301 redirect to my.climbinglogbook.com/ravendarque
                       (infra/redirects.tf, #295 -- retired; the Workers
                       Route to climbing-logbook still exists in
                       wrangler.jsonc underneath this, but the redirect
@@ -31,7 +31,7 @@ deploy)
 └── my.climbinglogbook.com
     ├── /logbook*  → 404 (retired, #375 -- the legacy single-page app that
     │                used to live here is gone once every page below was
-    │                live and proven; `public/logbook/` itself is now just
+    │                live and proven; `public/-/` itself is now just
     │                the shared asset directory every page below still
     │                resolves absolute paths against, not a page)
     ├── /:username/{log,map,performance} → climbing-logbook (#347/#348 --
@@ -89,20 +89,20 @@ expose a second, unlisted hostname for the same Worker.
 See [ADR-0002](adr/0002-replace-cloudflare-access-with-better-auth.md) for
 why Better Auth replaced Cloudflare Access as the mechanism itself.
 
-Write endpoints (`/logbook/api/admin/*`) are gated by a real, in-Worker
+Write endpoints (`/-/api/admin/*`) are gated by a real, in-Worker
 Better Auth session check (`server/lib/session.js`, #297) — every admin
 handler resolves the caller's session and 401s without one, scoping the
 write to that session's own `user_id`. Read endpoints
-(`/logbook/api/logbook`, GET only) stay public.
+(`/-/api/logbook`, GET only) stay public.
 
 This replaced two earlier designs in turn: a single shared `ADMIN_KEY`
 string compared via an HMAC-signed session cookie, then a Cloudflare
-Access Application + Policy gating `/logbook/api/admin/*` at the edge.
+Access Application + Policy gating `/-/api/admin/*` at the edge.
 Access was architecturally the wrong tool for self-service signup (it
 gates known identities the account owner manages by hand, not a
 customer-facing registration flow) — it was viable only as long as this
 was a single-user app. [Better Auth](https://www.better-auth.com/)
-(`server/lib/auth.js`) is mounted at `/logbook/api/auth/*` with a real
+(`server/lib/auth.js`) is mounted at `/-/api/auth/*` with a real
 D1-backed user/session/account schema (`migrations/0001_better_auth_core.sql`,
 generated via the Better Auth CLI — see `auth.config.mjs`'s header comment
 for the exact (deliberately temporary-install, #305) command, not
@@ -155,7 +155,7 @@ Everything provisionable is declarative and idempotent via Terraform in
   Worker-side one, deliberately: Cloudflare Static Assets matches by path
   only (confirmed during #113/#335), so a redirect written inside
   `server/index.js`'s own `fetch()` could never win against the real static
-  app files that sat at `public/logbook/` at the time (also reachable at
+  app files that sat at `public/-/` at the time (also reachable at
   `my.climbinglogbook.com/logbook` -- both since retired, #375) -- a
   redirect ruleset runs at the edge, ahead of both Workers Routes and
   Static Assets, so it intercepted cleanly regardless. The
