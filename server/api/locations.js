@@ -13,7 +13,7 @@ async function validateFields(location) {
 }
 
 // #490 -- case-insensitive name match, scoped to this user, mirroring
-// server/api/logbook-import.js's own resolveLocationsAndPlaces() match
+// server/api/entries-import.js's own resolveLocationsAndPlaces() match
 // logic (that file's own locationByName Map keyed by
 // `l.name.toLowerCase()`) rather than a second, independently-drifting
 // copy of the same rule. Two offline devices independently minting a
@@ -32,7 +32,7 @@ async function findDuplicateLocation(env, userId, location) {
 // country stays optional free text, like place/area were before it --
 // no server-side allowlist, expected to be a plain name matching
 // COUNTRIES[i].name in index.html in practice. Exported -- #224 phase 3's
-// bulk import (server/api/logbook-import.js) mints new Location rows the
+// bulk import (server/api/entries-import.js) mints new Location rows the
 // exact same way as this single-record POST path, not a second copy.
 export function buildRow(location, id, userId) {
   return {

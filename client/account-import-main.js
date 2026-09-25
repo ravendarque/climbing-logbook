@@ -21,8 +21,8 @@ import { loginPageUrl } from "./login-url.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
 
-const ADMIN_SETTINGS_URL = "/-/api/admin/settings";
-const IMPORT_URL = "/-/api/admin/logbook/import";
+const SETTINGS_URL = "/-/api/settings";
+const IMPORT_URL = "/-/api/entries/import";
 
 function adminFetch(url, options) {
   return fetch(url, { ...options, redirect: "manual" });
@@ -58,7 +58,7 @@ function updateAdminBar() {
 
 const adminAuth = createAdminAuth({
   store, adminFetch, isAuthRedirect,
-  adminSettingsUrl: ADMIN_SETTINGS_URL,
+  settingsUrl: SETTINGS_URL,
   updateAdminBar,
 });
 

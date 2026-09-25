@@ -34,8 +34,8 @@ export function createPlacePicker({
   isAuthRedirect,
   getQueue,
   setQueue,
-  adminLocationsUrl,
-  adminPlacesUrl,
+  locationsWriteUrl,
+  placesWriteUrl,
 }) {
   const placeBtn = document.getElementById("place-btn");
   const placeBtnFlag = document.getElementById("place-btn-flag");
@@ -225,7 +225,7 @@ export function createPlacePicker({
 
     if (!matched) {
       try {
-        const res = await adminFetch(adminLocationsUrl, {
+        const res = await adminFetch(locationsWriteUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(location),
@@ -257,7 +257,7 @@ export function createPlacePicker({
       queue.push({ kind: "place", op: "add", record: place });
     } else {
       try {
-        const res = await adminFetch(adminPlacesUrl, {
+        const res = await adminFetch(placesWriteUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(place),

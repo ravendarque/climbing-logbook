@@ -113,7 +113,7 @@ createThemeToggle();
 // location, page size 50 (not /log's 20 -- no editing-friction tradeoff
 // to weigh against fewer clicks on a read-only page, per this issue's
 // own scope note) -- reuses the existing `?locationId=&limit=&offset=`
-// shape server/api/logbook.js's handleGet already supports for the
+// shape server/api/entries.js's handleGet already supports for the
 // *target* user (server/api/public-data.js), so no new server code was
 // needed for this half of the feature. Merges onto the table's current
 // entries (not a replace) -- a previously-loaded location's rows must
@@ -123,7 +123,7 @@ entriesTable.addEventListener("location-expand", async e => {
   const { locationId } = e.detail;
   const base = `/-/api/public/${encodeURIComponent(USERNAME)}`;
   try {
-    const loaded = await loadResource(`${base}/logbook?locationId=${encodeURIComponent(locationId)}&limit=${PAGE_SIZE}`, "entries");
+    const loaded = await loadResource(`${base}/entries?locationId=${encodeURIComponent(locationId)}&limit=${PAGE_SIZE}`, "entries");
     entriesTable.entries = [...entriesTable.entries, ...loaded];
   } catch {
     // Left as a permanent "Loading…" shell rather than retried
@@ -143,12 +143,12 @@ async function boot() {
   // is ever served -- but the empty fallback keeps this page inert rather
   // than throwing if that assumption is ever wrong.
   //
-  // #494 -- logbook/counts replaces the old full-entries fetch (the
+  // #494 -- entries/counts replaces the old full-entries fetch (the
   // table starts in shell mode, real rows load lazily per location
   // above) -- and, like map/counts, isn't a single-keyed-array response
   // (loadResource's own assumption), so a plain fetch here too.
   const [{ locations, places, counts }, mapCounts] = await Promise.all([
-    fetch(`${base}/logbook/counts`).then(res => (res.ok ? res.json() : { locations: [], places: [], counts: {} })).catch(() => ({ locations: [], places: [], counts: {} })),
+    fetch(`${base}/entries/counts`).then(res => (res.ok ? res.json() : { locations: [], places: [], counts: {} })).catch(() => ({ locations: [], places: [], counts: {} })),
     fetch(`${base}/map/counts`).then(res => (res.ok ? res.json() : {})).catch(() => ({})),
   ]);
 

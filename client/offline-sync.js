@@ -22,8 +22,9 @@ import { BACKGROUND_FETCH_TIMEOUT_MS } from "./sync-status-icon.js";
 // import here to a store.js method for the same reason (#264) -- see
 // store.js's own comment on why it lives there now.
 //
-// entriesUrl/placesUrl/locationsUrl (#500) -- the public GET routes, not
-// the admin* write ones above -- pullDeltas() below reads through them
+// entriesUrl/placesUrl/locationsUrl (#500) -- the read URLs (the same
+// routes as the write ones for a real user since #992; a demo page reads
+// its public equivalents) -- pullDeltas() below reads through them
 // to catch this device up on drift from another device/session before
 // replaying its own queue on top.
 export function createOfflineSync({
@@ -31,9 +32,9 @@ export function createOfflineSync({
   adminFetch,
   isAuthRedirect,
   syncStatusIcon,
-  adminDataUrl,
-  adminLocationsUrl,
-  adminPlacesUrl,
+  entriesWriteUrl,
+  locationsWriteUrl,
+  placesWriteUrl,
   entriesUrl,
   placesUrl,
   locationsUrl,
@@ -68,22 +69,22 @@ export function createOfflineSync({
   // with.
   function syncOne(item) {
     if (item.kind === "location") {
-      return adminFetch(adminLocationsUrl, {
+      return adminFetch(locationsWriteUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(item.record),
       });
     }
     if (item.kind === "place") {
-      return adminFetch(adminPlacesUrl, {
+      return adminFetch(placesWriteUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(item.record),
       });
     }
     return item.op === "delete"
-      ? adminFetch(`${adminDataUrl}?id=${encodeURIComponent(item.record.id)}`, { method: "DELETE" })
-      : adminFetch(adminDataUrl, {
+      ? adminFetch(`${entriesWriteUrl}?id=${encodeURIComponent(item.record.id)}`, { method: "DELETE" })
+      : adminFetch(entriesWriteUrl, {
           method: item.op === "edit" ? "PUT" : "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(item.record),
@@ -94,10 +95,10 @@ export function createOfflineSync({
   // (e.g. a bulk import elsewhere) before syncPending() below replays
   // this device's own queue on top -- reduces (per #500's own scope
   // note, doesn't eliminate) the #490 duplicate-creation window a stale
-  // local view could otherwise widen. Public GET, plain fetch -- not
-  // adminFetch -- same reasoning client/fetch-json.js's own header
-  // comment gives for every other read-only fetch in this app
-  // (session-optional, no opaqueredirect concept on a GET route). A
+  // local view could otherwise widen. Plain fetch, not adminFetch --
+  // same reasoning client/fetch-json.js's own header comment gives for
+  // every other read in this app (no opaqueredirect concept on a GET; a
+  // 401 is just a non-OK response, #992). A
   // failure here (offline, network error, non-OK response) is swallowed
   // -- the queue-replay loop below already has its own offline handling,
   // and a missed delta catch-up this pass just means it's retried again

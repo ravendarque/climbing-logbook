@@ -14,7 +14,7 @@ import { json, parseJsonBody } from "./json.js";
 // already 401s before dispatching to any admin path.
 
 // Exported standalone (not just used internally below) -- server/api/
-// logbook.js's handlePut/handleDelete need the exact same "list this
+// entries.js's handlePut/handleDelete need the exact same "list this
 // user's rows, shaped for the wire" query after their own writes, and
 // used to hand-copy it rather than share it (found via code review,
 // 2026-08-09).
@@ -37,7 +37,7 @@ export async function listForUser(env, table, userId, rowToJson, { excludeDelete
 // boundary ("does this id belong to this user"), used two ways across
 // server/api/*.js: (1) here, as an idempotent-replay check ("does a row with
 // this exact id already exist for this user"); (2) by places.js/
-// logbook.js's own validateFields, as a foreign-key ownership check
+// entries.js's own validateFields, as a foreign-key ownership check
 // ("does this placeId/locationId reference a row owned by this user").
 // Same query shape either way -- previously hand-copied at each call site
 // rather than shared, which is exactly the kind of duplication a real fix
@@ -99,9 +99,9 @@ export async function listChangedForUser(env, table, userId, rowToJson, since) {
   return { rows: results.map(rowToJson), cursor };
 }
 
-// #800 -- split out from insertRow below so server/api/logbook-import.js
+// #800 -- split out from insertRow below so server/api/entries-import.js
 // can collect statements for a real env.LOGBOOK_DB.batch() call (D1's own
-// transaction primitive -- see replaceChildRows in server/api/logbook.js
+// transaction primitive -- see replaceChildRows in server/api/entries.js
 // for the existing precedent) instead of one INSERT per await, per row.
 // Building the statement is the part import needs to share; running it
 // immediately is insertRow's own single-record concern.
@@ -114,7 +114,7 @@ export function buildInsertStatement(env, table, row) {
 
 // Exported standalone -- handlePost below's single-record case, and every
 // other single-row insert in this app outside the bulk-import path (#224
-// phase 3, server/api/logbook-import.js), which builds its own statements
+// phase 3, server/api/entries-import.js), which builds its own statements
 // via buildInsertStatement above for a real batch() transaction instead.
 export async function insertRow(env, table, row) {
   await buildInsertStatement(env, table, row).run();

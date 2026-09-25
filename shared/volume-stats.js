@@ -90,7 +90,7 @@ export function bucketIndexForDate(date, buckets) {
 // which scale it came from.
 //
 // `entry.gradeScale` is expected on every real row today (#702's
-// migration backfilled it, server/api/logbook.js's defaultGradeScale()
+// migration backfilled it, server/api/entries.js's defaultGradeScale()
 // guarantees every future write sets one) -- the discipline's own
 // primary stored scale (matching #702's own migration backfill:
 // font-non-standard for Boulder, french for Sport) is used only as a

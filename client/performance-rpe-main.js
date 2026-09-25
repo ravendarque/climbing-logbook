@@ -33,7 +33,7 @@ import "./components/climbing-tab-bar.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
 
-const ADMIN_SETTINGS_URL = "/-/api/admin/settings";
+const SETTINGS_URL = "/-/api/settings";
 
 // Same opaqueredirect-detection reasoning as client/main.js's own
 // adminFetch/isAuthRedirect -- unchanged copy, not worth sharing a
@@ -134,7 +134,7 @@ function updateAdminBar() {
 
 const adminAuth = createAdminAuth({
   store, adminFetch, isAuthRedirect,
-  adminSettingsUrl: ADMIN_SETTINGS_URL,
+  settingsUrl: SETTINGS_URL,
   updateAdminBar,
   // #847 follow-up -- lets checkSession()/fetchSettings() report a
   // genuine fetch timeout through to the shell sync/offline indicator
@@ -144,7 +144,7 @@ const adminAuth = createAdminAuth({
 
 const headerChrome = createHeaderChrome({
   store, adminFetch, isAuthRedirect,
-  adminSettingsUrl: ADMIN_SETTINGS_URL,
+  settingsUrl: SETTINGS_URL,
 });
 
 async function boot() {

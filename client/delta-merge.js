@@ -1,6 +1,6 @@
 // #500 -- pure merge logic for a delta-sync response (server/lib/
 // d1-resource.js's listChangedForUser): upsert-by-id onto the current
-// array, dropping any row flagged `deleted: true` (server/api/logbook.js's
+// array, dropping any row flagged `deleted: true` (server/api/entries.js's
 // own rowToJsonWithDeleted tombstone flag -- places/locations deltas
 // never carry it, since neither has a deleted_at column, so that branch
 // is simply never taken for them). Mirrors client/offline-queue.js's own

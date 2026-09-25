@@ -1,7 +1,7 @@
 // Direct unit coverage for the CSV template/parser (#224 phase 2/3) --
 // same reasoning as test/shared/entry-schema.test.js: faster to iterate
 // against than a full Worker round-trip, and this is what
-// server/api/logbook-import.js's own tests build on for row-shape
+// server/api/entries-import.js's own tests build on for row-shape
 // assumptions.
 import { describe, expect, it } from "vitest";
 import { CSV_COLUMNS, buildEntriesCsv, buildTemplateCsv, parseCsvText, parseJsonText, resolveExportRows } from "../../shared/csv-import.js";

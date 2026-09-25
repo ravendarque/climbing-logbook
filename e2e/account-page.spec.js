@@ -68,7 +68,7 @@ test("Athlete Mode toggle (#445) switches and persists via the settings PATCH", 
   await expect(athleteToggle).toHaveAttribute("aria-checked", "false");
 
   await Promise.all([
-    page.waitForResponse(res => res.url().includes("/-/api/admin/settings") && res.request().method() === "PATCH"),
+    page.waitForResponse(res => res.url().includes("/-/api/settings") && res.request().method() === "PATCH"),
     athleteToggle.click(),
   ]);
   await expect(athleteToggle).toHaveAttribute("aria-checked", "true");
@@ -91,7 +91,7 @@ test("Public Logbook toggle (#301, moved to this page by #445) switches and pers
   await expect(publicToggle).toHaveAttribute("aria-checked", "true");
 
   await Promise.all([
-    page.waitForResponse(res => res.url().includes("/-/api/admin/settings") && res.request().method() === "PATCH"),
+    page.waitForResponse(res => res.url().includes("/-/api/settings") && res.request().method() === "PATCH"),
     publicToggle.click(),
   ]);
   await expect(publicToggle).toHaveAttribute("aria-checked", "false");
@@ -129,7 +129,7 @@ test("beta opt-in: not-enrolled state says so, submitting 'Yes' persists it and 
   // test in this suite already has (see e.g. e2e/login.spec.js's own
   // header comment).
   const [patchRequest] = await Promise.all([
-    page.waitForRequest(req => req.url().includes("/-/api/admin/settings") && req.method() === "PATCH"),
+    page.waitForRequest(req => req.url().includes("/-/api/settings") && req.method() === "PATCH"),
     // Not a literal ".html" match -- Workers Static Assets normalizes the
     // extension away on navigation (confirmed: the real resulting URL is
     // .../pages/account, not .../pages/account.html), so this only
@@ -149,7 +149,7 @@ test("beta opt-in: submitting 'No' re-syncs the status line in place, no navigat
   await page.locator("#beta-opt-in-manage-btn").click();
   await page.locator('input[name="beta-opt-in-choice"][value="out"]').check();
   await Promise.all([
-    page.waitForResponse(res => res.url().includes("/-/api/admin/settings") && res.request().method() === "PATCH"),
+    page.waitForResponse(res => res.url().includes("/-/api/settings") && res.request().method() === "PATCH"),
     page.locator("#beta-opt-in-submit").click(),
   ]);
 
@@ -172,9 +172,9 @@ test("beta opt-in: Cancel closes the modal without persisting a choice", async (
   await page.goto("/e2e-fixtures/pages/account.html");
 
   let patchCalled = false;
-  await page.route("**/-/api/admin/settings", route => {
-    patchCalled = true;
-    return route.continue();
+  await page.route("**/-/api/settings", route => {
+    if (route.request().method() === "PATCH") patchCalled = true;
+    return route.fallback();
   });
 
   await page.locator("#beta-opt-in-manage-btn").click();
@@ -251,7 +251,7 @@ test("Export JSON downloads the resolved rows as JSON", async ({ page }) => {
 
 test("Export shows an error message instead of a download when the data fetch fails", async ({ page }) => {
   await mockApi(page, EXPORT_FIXTURE);
-  await page.route("**/-/api/logbook", route => route.fulfill({ status: 500 }));
+  await page.route("**/-/api/entries", route => route.fulfill({ status: 500 }));
   await page.goto("/e2e-fixtures/pages/account.html");
 
   await page.locator("#export-csv-btn").click();

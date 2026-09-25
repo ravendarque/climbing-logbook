@@ -22,7 +22,7 @@ import { userKey } from "./user-storage.js";
 export const SETTINGS_CACHE_KEY = userKey("logbook_settings_cache");
 // The session-only read (401 without a session): a missing or expired
 // session is "no information", never "not enrolled".
-const SETTINGS_URL = "/-/api/admin/settings";
+const SETTINGS_URL = "/-/api/settings";
 
 export function isBetaHost(hostname) {
   return hostname.startsWith("beta.");

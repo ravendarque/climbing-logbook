@@ -21,7 +21,7 @@ import "./components/climbing-tab-bar.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
 
-const ADMIN_SETTINGS_URL = "/-/api/admin/settings";
+const SETTINGS_URL = "/-/api/settings";
 
 // Each entry becomes one tile. Only #12 (grade pyramid) exists today --
 // #15/#13/#14/#38/#39 each add their own entry here when they land, per
@@ -117,7 +117,7 @@ function updateAdminBar() {
 
 const adminAuth = createAdminAuth({
   store, adminFetch, isAuthRedirect,
-  adminSettingsUrl: ADMIN_SETTINGS_URL,
+  settingsUrl: SETTINGS_URL,
   updateAdminBar,
   // #847 follow-up -- lets checkSession()/fetchSettings() report a
   // genuine fetch timeout through to the shell sync/offline indicator
@@ -127,7 +127,7 @@ const adminAuth = createAdminAuth({
 
 const headerChrome = createHeaderChrome({
   store, adminFetch, isAuthRedirect,
-  adminSettingsUrl: ADMIN_SETTINGS_URL,
+  settingsUrl: SETTINGS_URL,
 });
 
 async function boot() {
