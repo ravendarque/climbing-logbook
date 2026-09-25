@@ -68,7 +68,8 @@ app rather than a published library with a versioned API contract:
   CI enforces this (#995): `require-release-label.yml` fails `release:
   none` unless every changed file is on an allowlist of paths that never
   reach users (`docs/`, `.github/`, `.claude/`, `.gitignore`, `test/`,
-  `e2e/`, the test runner configs and repo-root Markdown). To widen it,
+  `e2e/`, the test runner configs, repo-root Markdown and the synthetic
+  production check). To widen it,
   edit the allowlist in the workflow, in a reviewed diff. Changes in this
   bucket are real work, just not release-worthy on their own; they ride
   along into whichever version comes next.
