@@ -18,9 +18,13 @@ Log in at **climbinglogbook.com**. You'll land on your log, and that's the page 
 
 ## Android
 
-**Chrome:** open the menu (⋮) and choose **Install app**. On some versions it's called **Add to Home screen**.
+**Firefox:** open the menu (⋮) and choose **Install**. On some versions it's under **More**, as **Add app to Home screen**.
 
-Other Android browsers may not install it fully as a PWA, so use Chrome if you can.
+**Brave:** open the menu (⋮) and choose **Add to Home screen**.
+
+**Opera:** open the menu (⋮) and choose **Add to Home screen**.
+
+**Chrome:** open the menu (⋮) and choose **Install app**. On some versions it's called **Add to Home screen**.
 
 ## iPhone and iPad
 
@@ -34,10 +38,12 @@ The first time you open it from your home screen, you may need to log in again.
 
 ## Computers
 
-- **Chrome or Edge** (Windows, Mac, Linux, ChromeOS): click the install icon at the right-hand end of the address bar, or open the browser menu and look for **Install**. Confirm, and it opens in its own window.
-- **Safari on a Mac** (macOS Sonoma or later): choose **File**, then **Add to Dock**.
 - **Firefox on Windows** (version 143 or later): click **Add tab to taskbar** in the address bar.
-- **Firefox on a Mac or Linux** can't install it. Use Chrome, Edge or Safari instead.
+- **Brave** (Windows, Mac, Linux): click the install icon in the address bar, or open the main menu and choose **Save and share**, then **Install**. Confirm, and it opens in its own window.
+- **Safari on a Mac** (macOS Sonoma or later): choose **File**, then **Add to Dock**.
+- **Chrome or Edge** (Windows, Mac, Linux, ChromeOS): click the install icon at the right-hand end of the address bar, or open the browser menu and look for **Install**. Confirm, and it opens in its own window.
+- **Firefox on a Mac or Linux** can't install it, but you can keep using it in a Firefox tab.
+- **Opera** on a computer can't install it, but you can keep using it in an Opera tab.
 
 Browsers change their menus from time to time, so the exact wording may differ slightly from what's written here.
 
