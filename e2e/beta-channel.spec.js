@@ -64,11 +64,11 @@ test.describe("beta channel enrollment check", () => {
 test.describe("Logbook Beta's identity", () => {
   test.beforeEach(async ({ context }) => { await useSessionOnBeta(context); });
 
-  test("beta pages carry the Beta badge, amber theme colour and Logbook Beta's manifest", async ({ page }) => {
+  test("beta pages carry the Beta badge, yellow theme colour and Logbook Beta's manifest", async ({ page }) => {
     await page.goto(`${BETA}/${DEV_USER.username}/log`);
     await expect(page.locator("#beta-badge")).toBeVisible();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Climbing Logbook Beta");
-    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#ffb020");
+    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#ffcc00");
     // (Fetched by the page: Chromium resolves *.localhost, Node doesn't.)
     const manifest = await page.evaluate(async () => (await fetch("/-/manifest.json")).json());
     expect(manifest.short_name).toBe("Logbook Beta");
