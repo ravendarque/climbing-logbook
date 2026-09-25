@@ -11,7 +11,7 @@ import { createAdminAuth } from "./admin-auth.js";
 import { createDisclosure } from "./modal-utils.js";
 import { createThemeToggle } from "./theme-toggle.js";
 import { syncAdminBar } from "./admin-bar.js";
-import { resolveBetaXUrl, resolveMyXUrl } from "./resolve-cross-hostname-url.js";
+import { resolveApexUrl, resolveBetaXUrl, resolveMyXUrl } from "./resolve-cross-hostname-url.js";
 import { userKey } from "./user-storage.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
@@ -33,6 +33,8 @@ const LOG_PATH = `/${encodeURIComponent(USERNAME)}/log`;
 const store = createStore();
 
 document.getElementById("back-to-account-link").href = `/${encodeURIComponent(USERNAME)}/account`;
+// Help is an apex page; app hosts serve only the app.
+document.getElementById("beta-help-link").href = resolveApexUrl(location.hostname, "/help/beta-channel/");
 
 const menuUsername = document.getElementById("menu-username");
 const headerMenuBottomRow = document.getElementById("header-menu-bottom-row");
