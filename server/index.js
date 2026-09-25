@@ -1,5 +1,5 @@
-import { handleGet, handlePost, handlePut, handleDelete } from "./api/logbook.js";
-import { handleImport } from "./api/logbook-import.js";
+import { handleGet, handlePost, handlePut, handleDelete } from "./api/entries.js";
+import { handleImport } from "./api/entries-import.js";
 import { handleGet as handleGetPlaces, handlePost as handlePostPlaces } from "./api/places.js";
 import { handleGet as handleGetLocations, handlePost as handlePostLocations } from "./api/locations.js";
 import { handleGetSettings, handlePatchSettings } from "./api/settings.js";
@@ -18,69 +18,47 @@ import { json } from "./lib/json.js";
 import { handlePerHostAsset, perHostAssetPath } from "./api/app-identity.js";
 
 // This Worker is only ever invoked for requests that don't match a static
-// asset under public/ (Workers Static Assets serves those directly) — so
+// asset under public/ (Workers Static Assets serves those directly) -- so
 // everything reaching fetch() here is a /-/api/* call, or (#113) a
 // my.<domain>/:username public-profile request.
 //
-// /-/api/logbook, places, locations, settings — GET is public
-//   (reachable without a session), admin writes require a real Better
-//   Auth session (#297) resolved below, scoped server-side to that
-//   session's own user_id -- the actual multi-tenant isolation boundary.
-
-// GET is public (reachable without a session, see each handler's own
-// "userId may be null" comment) -- keyed by pathname only, since every
-// entry here is GET-only.
-const PUBLIC_GET_ROUTES = {
-  "/-/api/logbook": handleGet,
-  "/-/api/places": handleGetPlaces,
-  "/-/api/locations": handleGetLocations,
-  "/-/api/settings": handleGetSettings,
-  // #111 -- Grade Pyramid computed server-side; /performance itself is
-  // owner-only (owned-routes.js gates the page), but this route follows
-  // the same public-GET convention as every other read here rather than
-  // being a special case.
-  "/-/api/performance/pyramid": handleGetPyramid,
-  // #39 -- same public-GET + server-side-computed convention as the
-  // pyramid route above; /performance/injury itself is owner-only in
-  // practice (owned-routes.js gates the page).
-  "/-/api/performance/injury": handleGetInjuryLog,
-  // #13 -- same public-GET + server-side-computed convention as the two
-  // routes above.
-  "/-/api/performance/strengths": handleGetStrengthsWeaknesses,
-  // #15 -- same public-GET + server-side-computed convention as the
-  // three routes above.
-  "/-/api/performance/volume": handleGetVolume,
-  // #14 -- same public-GET + server-side-computed convention as the four
-  // routes above.
-  "/-/api/performance/gap": handleGetGap,
-  // #38 -- same public-GET + server-side-computed convention as the five
-  // routes above.
-  "/-/api/performance/rpe": handleGetEffort,
-  // #497 -- Map's own per-country/discipline/status aggregate, same
-  // reasoning as the pyramid route above.
-  "/-/api/map/counts": handleGetMapCounts,
-};
-
-// Every write here requires a real Better Auth session -- keyed by
-// pathname, then by method (some resources handle more than one).
-const ADMIN_ROUTES = {
-  "/-/api/admin/logbook": {
+// #992 -- every resource route requires a real Better Auth session (#297)
+// for every method, reads included, and is scoped server-side to that
+// session's own user_id -- the multi-tenant isolation boundary. No
+// session is a 401, never an empty 200, so a page with a lapsed session
+// keeps its cached data instead of rendering "no entries". Anonymous
+// reads exist only under /-/api/public/:username/* (below), which checks
+// the target user's logbook_public itself: a private logbook is secure by
+// absence, not by a per-route exception.
+//
+// Keyed by pathname, then method. A method a route doesn't list is a 404.
+const RESOURCE_ROUTES = {
+  "/-/api/entries": {
+    GET: handleGet,
     POST: handlePost,
     PUT: handlePut,
     DELETE: handleDelete,
   },
-  // #224 phase 3 -- CSV bulk import, a raw text/csv body rather than
-  // JSON (see handleImport's own comment), so it's its own pathname
-  // rather than a third method on /-/api/admin/logbook.
-  "/-/api/admin/logbook/import": { POST: handleImport },
-  "/-/api/admin/places": { POST: handlePostPlaces },
-  "/-/api/admin/locations": { POST: handlePostLocations },
-  // #952 -- GET here too (same handler as the public GET): a session-only
-  // read, so client/channel-guard.js can tell "not enrolled" (200, false)
-  // apart from "no session" (401). The public GET answers defaults for
-  // both, which would mark an enrolled user with an expired session as
-  // not enrolled.
-  "/-/api/admin/settings": { GET: handleGetSettings, PATCH: handlePatchSettings },
+  // #224 phase 3 -- CSV/JSON bulk import, a raw text/csv (or JSON array)
+  // body rather than one entry, so it's its own pathname rather than a
+  // fifth method on /-/api/entries.
+  "/-/api/entries/import": { POST: handleImport },
+  "/-/api/places": { GET: handleGetPlaces, POST: handlePostPlaces },
+  "/-/api/locations": { GET: handleGetLocations, POST: handlePostLocations },
+  // #952 -- client/channel-guard.js tells "not enrolled" (200, false)
+  // apart from "no session" (401): a lapsed session must never read as
+  // "not enrolled".
+  "/-/api/settings": { GET: handleGetSettings, PATCH: handlePatchSettings },
+  // Computed server-side (#111, #39, #13, #15, #14, #38): the performance
+  // pages' data.
+  "/-/api/performance/pyramid": { GET: handleGetPyramid },
+  "/-/api/performance/injury": { GET: handleGetInjuryLog },
+  "/-/api/performance/strengths": { GET: handleGetStrengthsWeaknesses },
+  "/-/api/performance/volume": { GET: handleGetVolume },
+  "/-/api/performance/gap": { GET: handleGetGap },
+  "/-/api/performance/rpe": { GET: handleGetEffort },
+  // #497 -- Map's own per-country/discipline/status aggregate.
+  "/-/api/map/counts": { GET: handleGetMapCounts },
 };
 
 export default {
@@ -162,8 +140,8 @@ export default {
       return createAuth(env, hostname).handler(request);
     }
 
-    // #924 -- same bare-if shape as sign-up above, not the ADMIN_ROUTES
-    // lookup table below: this is a public, unauthenticated endpoint
+    // #924 -- same bare-if shape as sign-up above, not the RESOURCE_ROUTES
+    // lookup table: this is a public, unauthenticated endpoint
     // (reachable logged out, same as /help itself), not one that requires
     // a real session.
     if (pathname === "/-/api/report-issue" && method === "POST") {
@@ -173,38 +151,25 @@ export default {
       return handleFeedback(request, env);
     }
 
-    // Every public (session-optional) GET resource follows the identical
-    // "look up the caller's own session, hand it to the handler" shape --
-    // a lookup table here (not four copy-pasted if-blocks) means the next
-    // simple GET resource is a one-line entry, not a new if-block (found
-    // via code review, 2026-08-09).
-    const publicGetHandler = method === "GET" && PUBLIC_GET_ROUTES[pathname];
-    if (publicGetHandler) {
-      return publicGetHandler(request, env, await resolveUserId(request, env));
-    }
-
     // #351 -- read-only data for the public /:username page, scoped to
     // whichever *target* user the path names, not the caller's own
     // session (see server/api/public-data.js's own comment). Not
     // hostname-gated, same as every other /-/api/* route here.
-    const publicDataMatch = pathname.match(/^\/-\/api\/public\/([^/]+)\/(logbook\/counts|logbook|places|locations|map\/counts|performance\/(?:pyramid|injury|strengths|volume|gap|rpe))$/);
+    const publicDataMatch = pathname.match(/^\/-\/api\/public\/([^/]+)\/(entries\/counts|entries|places|locations|map\/counts|performance\/(?:pyramid|injury|strengths|volume|gap|rpe))$/);
     if (publicDataMatch && method === "GET") {
       const [, username, resource] = publicDataMatch;
       return handlePublicResource(request, env, username, resource);
     }
 
-    // Same one-auth-check-then-dispatch shape as PUBLIC_GET_ROUTES above,
-    // but keyed by path *and* method (some of these resources handle more
-    // than one) -- also replaces what used to be a re-check of the same
-    // four pathnames twice (once in the outer OR guard, once again inside)
-    // with a single lookup (found via code review, 2026-08-09).
-    const adminRoute = ADMIN_ROUTES[pathname];
-    if (adminRoute) {
+    // Method first, so a wrong method is a 404 without a session lookup.
+    // Own properties only: a custom method named e.g. "constructor" must
+    // not reach Object.prototype.
+    const route = Object.hasOwn(RESOURCE_ROUTES, pathname) ? RESOURCE_ROUTES[pathname] : null;
+    const handler = route && Object.hasOwn(route, method) ? route[method] : null;
+    if (handler) {
       const userId = await resolveUserId(request, env);
       if (!userId) return json({ error: "Unauthorized" }, 401);
-
-      const handler = adminRoute[method];
-      if (handler) return handler(request, env, userId);
+      return handler(request, env, userId);
     }
 
     return new Response("Not found", { status: 404 });

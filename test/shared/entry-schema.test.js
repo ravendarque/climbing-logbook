@@ -1,4 +1,4 @@
-// Direct unit coverage for the schema itself (#224) -- test/logbook.test.js
+// Direct unit coverage for the schema itself (#224) -- test/entries.test.js
 // covers the same rules indirectly through the real HTTP contract (and
 // stays the source of truth for "does the admin write path still behave
 // the same"), but this file is what future bulk-import/export work checks

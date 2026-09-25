@@ -216,13 +216,14 @@ export function createMapView({ store, allDisciplines = false }) {
   async function loadMapVariant(name) {
     if (mapDataCache.has(name)) return mapDataCache.get(name);
     // Absolute path (#348), not relative -- this was only ever safe on
-    // /-/ because that page's own URL and the data files' real
-    // location (public/-/) happened to be the same directory.
+    // the old /logbook/ page because that page's own URL and the data
+    // files' real location (then public/logbook/) happened to be the same
+    // directory.
     // client/map-main.js (client/components/climbing-tab-bar.js's
     // /:username/map, more precisely) reuses this function unchanged from
     // a different page, where the relative form resolved to a 404 (caught
     // during manual verification, not hypothetical) -- absolute is a
-    // no-op on /-/ (resolves to the exact same path) and correct
+    // no-op there (resolves to the exact same path) and correct
     // everywhere else.
     const data = await fetchWithProgress(`/-/world-map-${name}.json`, MAP_VARIANT_SIZES[name] ?? 0, frac => {
       // A background fetch for a variant the user's since switched away

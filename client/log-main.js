@@ -51,14 +51,14 @@ const IS_DEMO = isDemoUsername(USERNAME);
 // ENTRIES_URL/PLACES_URL/LOCATIONS_URL swap to the public, target-user-
 // scoped equivalent for a demo account (server/api/public-data.js,
 // already built for the public profile page) -- a demo visitor never has
-// a session, so the plain session-scoped URLs would just return nothing. ──
-const ADMIN_DATA_URL = "/-/api/admin/logbook";
-const ENTRIES_URL = demoDataUrl(USERNAME, "/-/api/logbook", "logbook");
+// a session, so the plain session-scoped URLs would just 401 (#992). ──
+const ENTRIES_WRITE_URL = "/-/api/entries";
+const ENTRIES_URL = demoDataUrl(USERNAME, "/-/api/entries", "entries");
 const PLACES_URL = demoDataUrl(USERNAME, "/-/api/places", "places");
-const ADMIN_PLACES_URL = "/-/api/admin/places";
+const PLACES_WRITE_URL = "/-/api/places";
 const LOCATIONS_URL = demoDataUrl(USERNAME, "/-/api/locations", "locations");
-const ADMIN_LOCATIONS_URL = "/-/api/admin/locations";
-const ADMIN_SETTINGS_URL = "/-/api/admin/settings";
+const LOCATIONS_WRITE_URL = "/-/api/locations";
+const SETTINGS_URL = "/-/api/settings";
 // #960 -- namespaced per user (client/user-storage.js): an unsynced queue
 // stays attributed to its owner, never visible to another user's pages.
 const QUEUE_KEY = userKey("logbook_pending_queue");
@@ -95,7 +95,7 @@ const { openModal, closeModal } = createModalHelpers(["add-place-overlay", "entr
 
 const offlineSync = createOfflineSync({
   store, adminFetch, isAuthRedirect, syncStatusIcon,
-  adminDataUrl: ADMIN_DATA_URL, adminLocationsUrl: ADMIN_LOCATIONS_URL, adminPlacesUrl: ADMIN_PLACES_URL,
+  entriesWriteUrl: ENTRIES_WRITE_URL, locationsWriteUrl: LOCATIONS_WRITE_URL, placesWriteUrl: PLACES_WRITE_URL,
   entriesUrl: ENTRIES_URL, placesUrl: PLACES_URL, locationsUrl: LOCATIONS_URL,
   queueKey: QUEUE_KEY,
 });
@@ -135,7 +135,7 @@ function updateAdminBar() {
 
 const adminAuth = createAdminAuth({
   store, adminFetch, isAuthRedirect,
-  adminSettingsUrl: ADMIN_SETTINGS_URL,
+  settingsUrl: SETTINGS_URL,
   updateAdminBar,
   // #847 follow-up -- lets checkSession()/fetchSettings() report a
   // genuine fetch timeout through to the shell sync/offline indicator
@@ -145,7 +145,7 @@ const adminAuth = createAdminAuth({
 
 const headerChrome = createHeaderChrome({
   store, adminFetch, isAuthRedirect,
-  adminSettingsUrl: ADMIN_SETTINGS_URL,
+  settingsUrl: SETTINGS_URL,
 });
 
 // Same edit-btn -> entry-form.js delegation as client/main.js's own --
@@ -163,7 +163,7 @@ document.addEventListener("click", e => {
 const entryForm = createEntryForm({
   store, openModal, closeModal, adminFetch, isAuthRedirect,
   getQueue: offlineSync.getQueue, setQueue: offlineSync.setQueue,
-  adminDataUrl: ADMIN_DATA_URL, adminLocationsUrl: ADMIN_LOCATIONS_URL, adminPlacesUrl: ADMIN_PLACES_URL,
+  entriesWriteUrl: ENTRIES_WRITE_URL, locationsWriteUrl: LOCATIONS_WRITE_URL, placesWriteUrl: PLACES_WRITE_URL,
   readOnly: IS_DEMO,
   // #791 -- gates the Performance data page (and the only way to reach
   // it, #entry-nav-forward) -- adminAuth is already constructed above,

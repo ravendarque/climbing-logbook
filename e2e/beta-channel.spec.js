@@ -15,7 +15,7 @@ async function useSessionOnBeta(context) {
 }
 
 async function setEnrollment(page, enrolled) {
-  const res = await page.request.patch("http://localhost:8787/-/api/admin/settings", { data: { betaOptIn: enrolled } });
+  const res = await page.request.patch("http://localhost:8787/-/api/settings", { data: { betaOptIn: enrolled } });
   expect(res.ok()).toBe(true);
 }
 

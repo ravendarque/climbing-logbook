@@ -66,7 +66,7 @@ export default defineConfig({
     env: {
       CLOUDFLARE_ENV: "e2e",
     },
-    // /login/, not /-/ (retired, #375) -- just needs a real, always-
+    // /login/, not /logbook/ (retired, #375) -- just needs a real, always-
     // reachable static page to poll for readiness, unrelated to what any
     // individual spec actually tests.
     url: `${BASE_URL}/login/`,

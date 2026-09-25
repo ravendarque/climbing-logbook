@@ -1,13 +1,13 @@
-// Exercises server/api/logbook-import.js through the real Worker entrypoint
+// Exercises server/api/entries-import.js through the real Worker entrypoint
 // (real routing + real D1 binding), same "public HTTP contract" reasoning
-// as test/logbook.test.js -- a CSV body rather than JSON is the one real
+// as test/entries.test.js -- a CSV body rather than JSON is the one real
 // difference from that file's own request-building.
 import { env } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { CSV_COLUMNS } from "../shared/csv-import.js";
 import { createAuthedSession, fetchJson, resetAuthTables } from "./support.js";
 
-const IMPORT_URL = "/-/api/admin/logbook/import";
+const IMPORT_URL = "/-/api/entries/import";
 const HEADER = CSV_COLUMNS.join(",");
 
 beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
@@ -147,7 +147,7 @@ describe("handleImport", () => {
     const res = await importCsv([csvRow(), csvRow({ grade: "VI+" })]);
     expect(res.status).toBe(400);
 
-    const entries = await (await fetchJson("/-/api/logbook", { headers: { Cookie: cookie } })).json();
+    const entries = await (await fetchJson("/-/api/entries", { headers: { Cookie: cookie } })).json();
     expect(entries.entries).toEqual([]);
     const locations = await (await fetchJson("/-/api/locations", { headers: { Cookie: cookie } })).json();
     expect(locations.locations).toEqual([]);
@@ -216,7 +216,7 @@ describe("handleImport", () => {
 });
 
 // #639 -- JSON import, parity with the "Export as JSON" button. Content-
-// Type is what dispatches to the JSON parser (server/api/logbook-
+// Type is what dispatches to the JSON parser (server/api/entries-
 // import.js's own parserFor()) -- every test below sets it explicitly,
 // same as importCsv's own "text/csv" above.
 function jsonEntry(overrides = {}) {
@@ -276,7 +276,7 @@ describe("handleImport (JSON, #639)", () => {
   it("writes nothing when any entry is invalid (all-or-nothing, same as CSV)", async () => {
     const res = await importJson([jsonEntry(), jsonEntry({ grade: "VI+" })]);
     expect(res.status).toBe(400);
-    const entries = await (await fetchJson("/-/api/logbook", { headers: { Cookie: cookie } })).json();
+    const entries = await (await fetchJson("/-/api/entries", { headers: { Cookie: cookie } })).json();
     expect(entries.entries).toEqual([]);
   });
 

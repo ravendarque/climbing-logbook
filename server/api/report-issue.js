@@ -26,7 +26,7 @@ const reportSchema = v.object({
 });
 
 // Public, unauthenticated POST -- same bare-if routing shape as sign-up
-// (server/index.js), not the ADMIN_ROUTES lookup table, which
+// (server/index.js), not the RESOURCE_ROUTES lookup table, which
 // unconditionally requires a session this endpoint doesn't have. Rate
 // limit checked BEFORE the body is even parsed -- the cheapest possible
 // rejection for a flood of requests, before spending any work on JSON

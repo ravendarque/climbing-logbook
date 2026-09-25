@@ -240,9 +240,9 @@ test("notes overlay shows the entry's real notes text (#425 -- previously did no
 test("shell-then-expand: collapsed with a count badge by default, expands to real rows on one fetch, doesn't re-fetch on re-expand", async ({ page }) => {
   await mockApi(page, SEED);
 
-  const logbookRequests = [];
+  const entriesRequests = [];
   page.on("request", req => {
-    if (req.url().includes("/-/api/public/") && req.url().includes("/logbook?")) logbookRequests.push(req.url());
+    if (req.url().includes("/-/api/public/") && req.url().includes("/entries?")) entriesRequests.push(req.url());
   });
 
   await page.goto("/e2e-fixtures/pages/profile.html");
@@ -252,14 +252,14 @@ test("shell-then-expand: collapsed with a count badge by default, expands to rea
   // no entry row content at all yet -- no network request for it either.
   await expect(page.locator("#sections")).toContainText("Test Crag");
   await expect(page.locator("#sections")).not.toContainText("Boulder Seed");
-  expect(logbookRequests).toHaveLength(0);
+  expect(entriesRequests).toHaveLength(0);
 
   const placeHeader = page.locator(".place-header").first();
   await placeHeader.click();
 
   await expect(page.locator("#sections")).toContainText("Boulder Seed");
-  expect(logbookRequests).toHaveLength(1);
-  expect(logbookRequests[0]).toContain("locationId=l1");
+  expect(entriesRequests).toHaveLength(1);
+  expect(entriesRequests[0]).toContain("locationId=l1");
 
   // Re-collapse, then re-expand -- the data's already loaded (real rows,
   // not a shell anymore, so collapsing just CSS-hides the table rather
@@ -269,7 +269,7 @@ test("shell-then-expand: collapsed with a count badge by default, expands to rea
   await expect(page.getByText("Boulder Seed")).toBeHidden();
   await placeHeader.click();
   await expect(page.getByText("Boulder Seed")).toBeVisible();
-  expect(logbookRequests).toHaveLength(1);
+  expect(entriesRequests).toHaveLength(1);
 });
 
 test("shows the entries table's own empty state when the target user has no data", async ({ page }) => {
@@ -287,7 +287,7 @@ test("#470 -- shows a loading state before the counts-only shell fetch resolves,
   let resolveCounts;
   const countsDelay = new Promise(resolve => { resolveCounts = resolve; });
   await mockApi(page, { entries: [], places: [], locations: [] });
-  await page.route("**/-/api/public/*/logbook/counts", async route => {
+  await page.route("**/-/api/public/*/entries/counts", async route => {
     await countsDelay;
     return route.fallback();
   });
