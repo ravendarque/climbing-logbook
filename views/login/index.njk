@@ -27,6 +27,9 @@
        Classic script, not a module -- must run synchronously here, before
        the [hidden]-dependent markup below and before first paint. See the
        file's own comment for why. -->
+  <!-- #1015 -- the brand lockup SVG the header <use>s: fetched during parsing,
+       content-hashed by the build, and pre-cached by the service worker. -->
+  <link rel="preload" as="image" type="image/svg+xml" href="/-/brand-lockup.svg{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}">
   <script src="/-/components/climbing-header.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
   <script>
     // Same pre-paint theme bootstrap as public/-/index.html --

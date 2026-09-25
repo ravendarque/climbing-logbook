@@ -30,6 +30,26 @@ test("renders the logo/title and opens/closes the footnote modal via Escape", as
   await expect(page.locator("#footnote-trigger")).toBeFocused();
 });
 
+// #1015 -- the lockup is one SVG file, referenced by the content-hashed
+// URL of the page's own preload link, and the "or not" button sits over
+// its drawn words.
+test("draws the lockup from the preloaded, content-hashed SVG, with the button over 'or not'", async ({ page }) => {
+  await page.goto("/login/");
+  const preload = await page.locator('link[rel="preload"][href^="/-/brand-lockup.svg"]').getAttribute("href");
+  expect(preload).toMatch(/^\/-\/brand-lockup\.svg\?v=[0-9a-f]{10}$/);
+  await expect(page.locator("#brand-lockup use")).toHaveAttribute("href", `${preload}#lockup`);
+  const svg = await page.evaluate(async url => (await fetch(url)).text(), preload);
+  expect(svg).toContain('<symbol id="lockup"');
+
+  const lockup = await page.locator("#brand-lockup").boundingBox();
+  const button = await page.locator("#footnote-trigger").boundingBox();
+  // "(OR NOT)" ends the tagline: the button is in the lockup's bottom right.
+  expect(button.x).toBeGreaterThan(lockup.x + lockup.width * 0.8);
+  expect(button.x + button.width).toBeLessThanOrEqual(lockup.x + lockup.width + 0.5);
+  expect(button.y).toBeGreaterThan(lockup.y + lockup.height * 0.6);
+  expect(button.y + button.height).toBeLessThanOrEqual(lockup.y + lockup.height + 0.5);
+});
+
 test("footnote modal closes via its close button and via backdrop click", async ({ page }) => {
   await page.goto("/login/");
 

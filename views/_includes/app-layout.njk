@@ -29,6 +29,9 @@
        regex, but the query is skipped uniformly here for consistency --
        nothing in dev mode benefits from immutable caching regardless. -->
   <link rel="stylesheet" href="/-/tailwind.css{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}">
+  <!-- #1015 -- the brand lockup SVG the header <use>s: fetched during parsing,
+       content-hashed by the build, and pre-cached by the service worker. -->
+  <link rel="preload" as="image" type="image/svg+xml" href="/-/brand-lockup.svg{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}">
   <script src="/-/components/climbing-header.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
 {%- if discipline %}
   <script src="/-/components/climbing-discipline-picker.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
