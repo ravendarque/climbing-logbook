@@ -79,7 +79,7 @@ describe("ownershipAllowsBoot", () => {
     it("online, no session: goes to this origin's login, coming back here", async () => {
       const replace = vi.fn();
       await ownershipAllowsBoot({ loc: { pathname: "/bob/log", search: "?x=1" }, storage: memoryStorage(), controlled: true, online: true, fetchImpl: session(null), doc: document, replace });
-      expect(replace).toHaveBeenCalledWith("/login/?returnTo=%2Fbob%2Flog%3Fx%3D1");
+      expect(replace).toHaveBeenCalledWith("/-/login/?returnTo=%2Fbob%2Flog%3Fx%3D1");
     });
 
     it("online, the session is this page's user (e.g. after an apex login): records them and boots", async () => {

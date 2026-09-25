@@ -35,7 +35,7 @@ form.addEventListener("submit", async (event) => {
   submitBtn.disabled = true;
 
   try {
-    const res = await fetch("/logbook/api/auth/sign-in/email", {
+    const res = await fetch("/-/api/auth/sign-in/email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -48,7 +48,7 @@ form.addEventListener("submit", async (event) => {
 
     if (res.ok) {
       // Redirects to the signed-in user's own /log page (#352) -- not a
-      // fixed /logbook/ target, which was this page's original bug
+      // fixed /-/ target, which was this page's original bug
       // (landed everyone on the same app-root URL regardless of who
       // signed in). Previously targeted the user's public profile page
       // (#113) instead of /log -- that was the only real page #348/#351
@@ -73,7 +73,7 @@ form.addEventListener("submit", async (event) => {
       let betaOptIn = null;
       if (needsChannelChoice(window.location.hostname)) {
         try {
-          const settingsRes = await fetch("/logbook/api/settings");
+          const settingsRes = await fetch("/-/api/settings");
           betaOptIn = (await settingsRes.json()).betaOptIn;
         } catch {
           // Network hiccup reading settings -- resolveAppOrigin's own null
@@ -126,7 +126,7 @@ forgotPasswordBtn.addEventListener("click", async () => {
 
   forgotPasswordBtn.disabled = true;
   try {
-    const res = await fetch("/logbook/api/auth/request-password-reset", {
+    const res = await fetch("/-/api/auth/request-password-reset", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: emailInput.value, redirectTo: RESET_PASSWORD_URL }),

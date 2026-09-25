@@ -89,7 +89,7 @@ test("switching the report grade scale relabels both grade line series", async (
 test("switching the time window to 52w re-fetches with a wider range", async ({ page }) => {
   let lastRequestUrl = null;
   await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
-  await page.route("**/logbook/api/performance/gap**", route => {
+  await page.route("**/-/api/performance/gap**", route => {
     lastRequestUrl = route.request().url();
     return route.fulfill({ json: { boulder: { buckets: [], flashMaxByBucket: [], sendMaxByBucket: [], avgAttemptsByBucket: [], headline: "No sends logged in this window yet." }, lead: { buckets: [], flashMaxByBucket: [], sendMaxByBucket: [], avgAttemptsByBucket: [], headline: "No sends logged in this window yet." } } });
   });
@@ -111,7 +111,7 @@ test("switching the time window to 52w re-fetches with a wider range", async ({ 
 
 test("shows the offline message instead of the chart when the fetch fails", async ({ page }) => {
   await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
-  await page.route("**/logbook/api/performance/gap**", route => route.fulfill({ status: 500 }));
+  await page.route("**/-/api/performance/gap**", route => route.fulfill({ status: 500 }));
   await page.goto("/e2e-fixtures/pages/performance-gap.html");
 
   await expect(page.locator("#performance-offline")).toBeVisible();

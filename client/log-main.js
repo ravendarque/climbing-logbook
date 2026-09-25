@@ -1,5 +1,5 @@
 // Composition root for /:username/log (#348) -- bundled by esbuild into
-// public/logbook/log-app.js, same pattern as client/map-main.js/
+// public/-/log-app.js, same pattern as client/map-main.js/
 // client/performance-pyramid-main.js (see either file's own comment for
 // the general "trimmed from client/main.js" reasoning). This is the
 // largest of the three: it's the one page that actually writes data, so
@@ -47,18 +47,18 @@ const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 const IS_DEMO = isDemoUsername(USERNAME);
 
 // ── Config -- identical to client/main.js's own (#348 pages all still
-// hit /logbook/api/* -- only the page shell moved, not the API surface).
+// hit /-/api/* -- only the page shell moved, not the API surface).
 // ENTRIES_URL/PLACES_URL/LOCATIONS_URL swap to the public, target-user-
 // scoped equivalent for a demo account (server/api/public-data.js,
 // already built for the public profile page) -- a demo visitor never has
 // a session, so the plain session-scoped URLs would just return nothing. ──
-const ADMIN_DATA_URL = "/logbook/api/admin/logbook";
-const ENTRIES_URL = demoDataUrl(USERNAME, "/logbook/api/logbook", "logbook");
-const PLACES_URL = demoDataUrl(USERNAME, "/logbook/api/places", "places");
-const ADMIN_PLACES_URL = "/logbook/api/admin/places";
-const LOCATIONS_URL = demoDataUrl(USERNAME, "/logbook/api/locations", "locations");
-const ADMIN_LOCATIONS_URL = "/logbook/api/admin/locations";
-const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
+const ADMIN_DATA_URL = "/-/api/admin/logbook";
+const ENTRIES_URL = demoDataUrl(USERNAME, "/-/api/logbook", "logbook");
+const PLACES_URL = demoDataUrl(USERNAME, "/-/api/places", "places");
+const ADMIN_PLACES_URL = "/-/api/admin/places";
+const LOCATIONS_URL = demoDataUrl(USERNAME, "/-/api/locations", "locations");
+const ADMIN_LOCATIONS_URL = "/-/api/admin/locations";
+const ADMIN_SETTINGS_URL = "/-/api/admin/settings";
 // #960 -- namespaced per user (client/user-storage.js): an unsynced queue
 // stays attributed to its owner, never visible to another user's pages.
 const QUEUE_KEY = userKey("logbook_pending_queue");

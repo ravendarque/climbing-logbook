@@ -88,7 +88,7 @@ const dev = spawn("concurrently", [
   "-n", "vite,tailwind,html",
   "-c", "blue,magenta,green",
   "vite dev",
-  "tailwindcss -i ./styles/tailwind.css -o ./public/logbook/tailwind.css --watch",
+  "tailwindcss -i ./styles/tailwind.css -o ./public/-/tailwind.css --watch",
   "pnpm run html:watch",
 ], {
   stdio: ["inherit", "pipe", "inherit"],

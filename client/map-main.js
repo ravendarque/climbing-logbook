@@ -1,5 +1,5 @@
 // Composition root for /:username/map (#348) -- bundled by esbuild into
-// public/logbook/map-app.js, alongside client/main.js's existing
+// public/-/map-app.js, alongside client/main.js's existing
 // app.js (unchanged). Trimmed from client/main.js's boot sequence: reuses
 // client/store.js/client/admin-auth.js/client/header-chrome.js/
 // client/map-view.js completely unchanged (all already framework-
@@ -39,7 +39,7 @@ const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 // #251 -- one of the three seeded, publicly-viewable demo accounts.
 const IS_DEMO = isDemoUsername(USERNAME);
 
-const MAP_COUNTS_URL = demoDataUrl(USERNAME, "/logbook/api/map/counts", "map/counts");
+const MAP_COUNTS_URL = demoDataUrl(USERNAME, "/-/api/map/counts", "map/counts");
 // #497 -- its own small offline cache, separate from /log's raw-entries
 // one (client/store.js) -- this page never needed /sync's completeness
 // guarantee (ADR-0019) in the first place, and a bounded country x
@@ -48,7 +48,7 @@ const MAP_COUNTS_URL = demoDataUrl(USERNAME, "/logbook/api/map/counts", "map/cou
 // unlike /performance's deliberate online-only gate).
 // #960 -- namespaced per user (client/user-storage.js).
 const MAP_COUNTS_CACHE_KEY = userKey("logbook_map_counts_cache");
-const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
+const ADMIN_SETTINGS_URL = "/-/api/admin/settings";
 
 // Same opaqueredirect-detection reasoning as client/main.js's own
 // adminFetch/isAuthRedirect -- unchanged copy, not worth sharing a

@@ -35,18 +35,18 @@ test("logs in via the login page, then logs out again", async ({ page }) => {
   // Better Auth's own real endpoints is more direct proof than a UI
   // toggle ever was anyway -- it confirms the session is genuinely valid
   // server-side, not just that some cookie is present.
-  const session = await page.evaluate(() => fetch("/logbook/api/auth/get-session").then(r => r.json()));
+  const session = await page.evaluate(() => fetch("/-/api/auth/get-session").then(r => r.json()));
   expect(session?.user?.email).toBe(DEV_USER.email);
 
   // Same shape client/admin-auth.js's own sign-out call uses -- a bare
   // POST with no body/content-type silently fails to end the session
   // (found while writing this test, not assumed).
-  await page.evaluate(() => fetch("/logbook/api/auth/sign-out", {
+  await page.evaluate(() => fetch("/-/api/auth/sign-out", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: "{}",
   }));
-  const afterSignOut = await page.evaluate(() => fetch("/logbook/api/auth/get-session").then(r => r.json()));
+  const afterSignOut = await page.evaluate(() => fetch("/-/api/auth/get-session").then(r => r.json()));
   expect(afterSignOut).toBeNull();
 });
 
@@ -61,19 +61,19 @@ test("an enrolled user logging in on a non-apex host skips the channel read and 
   // via the real API, not the form under test.
   await page.goto("/login/");
   await page.evaluate(
-    ({ email, password }) => fetch("/logbook/api/auth/sign-in/email", {
+    ({ email, password }) => fetch("/-/api/auth/sign-in/email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     }),
     { email: DEV_USER.email, password: DEV_USER.password }
   );
-  await page.evaluate(() => fetch("/logbook/api/admin/settings", {
+  await page.evaluate(() => fetch("/-/api/admin/settings", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ betaOptIn: true }),
   }));
-  await page.evaluate(() => fetch("/logbook/api/auth/sign-out", {
+  await page.evaluate(() => fetch("/-/api/auth/sign-out", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: "{}",
@@ -87,7 +87,7 @@ test("an enrolled user logging in on a non-apex host skips the channel read and 
   // (the landing page makes its own afterwards, which don't count here).
   const settingsReadsFromLogin = [];
   page.on("request", req => {
-    if (req.url().includes("/logbook/api/settings") && req.method() === "GET" && new URL(page.url()).pathname === "/login/") {
+    if (req.url().includes("/-/api/settings") && req.method() === "GET" && new URL(page.url()).pathname === "/login/") {
       settingsReadsFromLogin.push(req.url());
     }
   });
@@ -139,7 +139,7 @@ test("forgot password requires an email first", async ({ page }) => {
 // session cookie the sign-in sets there is scoped to my.localhost itself.
 test("an owner page with no session logs in on its own origin and comes back to the same page", async ({ page }) => {
   await page.goto(ownedRouteUrl(DEV_USER.username, "/map"));
-  await page.waitForURL(url => url.pathname === "/login/");
+  await page.waitForURL(url => url.pathname === "/-/login/");
   const loginUrl = new URL(page.url());
   expect(loginUrl.host).toBe(new URL(ownedRouteUrl(DEV_USER.username, "/map")).host);
   expect(loginUrl.searchParams.get("returnTo")).toBe(`/${DEV_USER.username}/map`);

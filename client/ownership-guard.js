@@ -17,7 +17,7 @@ import { renderBlockedPage } from "./blocked-page.js";
 import { loginPageUrl } from "./login-url.js";
 import { adoptLegacyUserData, ownerOfPath, readSignedInUser, writeSignedInUser } from "./user-storage.js";
 
-const SESSION_URL = "/logbook/api/auth/get-session";
+const SESSION_URL = "/-/api/auth/get-session";
 
 export function renderNotAvailableOffline(doc) {
   renderBlockedPage(doc, {

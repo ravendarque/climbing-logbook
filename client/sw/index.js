@@ -138,7 +138,7 @@ async function staleWhileRevalidate(event) {
   return refresh;
 }
 
-// Other /logbook/ static files (icons, manifest, world-map data): the
+// Other /-/ static files (icons, manifest, world-map data): the
 // network when there is one, the last good copy when there isn't.
 async function networkFirst(event) {
   try {

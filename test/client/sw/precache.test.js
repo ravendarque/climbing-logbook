@@ -12,10 +12,10 @@ const BODY = url => `body of ${url}`;
 const LIST = {
   shells: [{ page: "log", hash: hashOf(BODY("/raven/log")) }, { page: "account/import", hash: hashOf(BODY("/raven/account/import")) }],
   assets: [
-    { url: "/logbook/chunks/store-abc123.js" },
-    { url: "/logbook/log-app.js?v=1234567890" },
-    { url: "/logbook/manifest.json", hash: hashOf(BODY("/logbook/manifest.json")) },
-    { url: "/launch/", hash: hashOf(BODY("/launch/")) },
+    { url: "/-/chunks/store-abc123.js" },
+    { url: "/-/log-app.js?v=1234567890" },
+    { url: "/-/manifest.json", hash: hashOf(BODY("/-/manifest.json")) },
+    { url: "/-/launch/", hash: hashOf(BODY("/-/launch/")) },
   ],
 };
 const abs = url => new URL(url, ORIGIN).href;
@@ -64,7 +64,7 @@ describe("precacheUsername", () => {
   });
 
   it("is null anywhere else, and for a demo account (no session to fetch shells with)", () => {
-    for (const path of ["/raven", "/help/", "/launch/", "/beginnerdemo/log"]) expect(precacheUsername(`${ORIGIN}${path}`)).toBeNull();
+    for (const path of ["/raven", "/help/", "/-/launch/", "/beginnerdemo/log"]) expect(precacheUsername(`${ORIGIN}${path}`)).toBeNull();
   });
 });
 
@@ -83,7 +83,7 @@ describe("precacheItems", () => {
 
   it("marks only content-addressed files as immutable", () => {
     const immutable = precacheItems(LIST, ORIGIN, null).filter(item => item.immutable).map(item => item.url);
-    expect(immutable).toEqual(["/logbook/chunks/store-abc123.js", "/logbook/log-app.js?v=1234567890"]);
+    expect(immutable).toEqual(["/-/chunks/store-abc123.js", "/-/log-app.js?v=1234567890"]);
   });
 });
 
@@ -101,28 +101,32 @@ describe("fillPrecache", () => {
     expect(result.missing).toEqual([]);
     expect(result.fetched).toHaveLength(6);
     expect([...cachesImpl.stores.get(CURRENT).keys()].sort()).toEqual([
-      abs("/account/import/index.html"), abs("/launch/"), abs("/log/index.html"),
-      abs("/logbook/chunks/store-abc123.js"), abs("/logbook/log-app.js?v=1234567890"), abs("/logbook/manifest.json"),
+      abs("/-/chunks/store-abc123.js"),
+      abs("/-/launch/"),
+      abs("/-/log-app.js?v=1234567890"),
+      abs("/-/manifest.json"),
+      abs("/account/import/index.html"),
+      abs("/log/index.html"),
     ]);
   });
 
   it("an interrupted install keeps its progress, and the retry fetches only what's missing", async () => {
     const cachesImpl = fakeCaches();
-    const first = await fill(cachesImpl, server({ "/logbook/manifest.json": new TypeError("Failed to fetch"), "/raven/log": new TypeError("Failed to fetch") }));
-    expect(first.missing.sort()).toEqual(["/logbook/manifest.json", "/raven/log"]);
+    const first = await fill(cachesImpl, server({ "/-/manifest.json": new TypeError("Failed to fetch"), "/raven/log": new TypeError("Failed to fetch") }));
+    expect(first.missing.sort()).toEqual(["/-/manifest.json", "/raven/log"]);
 
     const retry = server();
     const second = await fill(cachesImpl, retry);
     expect(second.missing).toEqual([]);
-    expect(retry.mock.calls.map(([url]) => url).sort()).toEqual(["/logbook/manifest.json", "/raven/log"]);
+    expect(retry.mock.calls.map(([url]) => url).sort()).toEqual(["/-/manifest.json", "/raven/log"]);
   });
 
   it("a deploy copies unchanged content-addressed files from the previous build instead of downloading them", async () => {
-    const cachesImpl = fakeCaches({ [PREVIOUS]: { [abs("/logbook/chunks/store-abc123.js")]: response() } });
+    const cachesImpl = fakeCaches({ [PREVIOUS]: { [abs("/-/chunks/store-abc123.js")]: response() } });
     const fetchImpl = server();
     const result = await fill(cachesImpl, fetchImpl);
-    expect(result.copied).toEqual(["/logbook/chunks/store-abc123.js"]);
-    expect(fetchImpl.mock.calls.map(([url]) => url)).not.toContain("/logbook/chunks/store-abc123.js");
+    expect(result.copied).toEqual(["/-/chunks/store-abc123.js"]);
+    expect(fetchImpl.mock.calls.map(([url]) => url)).not.toContain("/-/chunks/store-abc123.js");
     expect(result.missing).toEqual([]);
   });
 
@@ -130,13 +134,13 @@ describe("fillPrecache", () => {
     const cachesImpl = fakeCaches({ [PREVIOUS]: {
       [abs("/log/index.html")]: response({ shell: "log", body: BODY("/raven/log") }),
       [abs("/account/import/index.html")]: response({ shell: "account/import", body: "last build's import shell" }),
-      [abs("/launch/")]: response({ body: BODY("/launch/") }),
-      [abs("/logbook/manifest.json")]: response({ body: "last build's manifest" }),
+      [abs("/-/launch/")]: response({ body: BODY("/-/launch/") }),
+      [abs("/-/manifest.json")]: response({ body: "last build's manifest" }),
     } });
     const fetchImpl = server();
     const result = await fill(cachesImpl, fetchImpl);
-    expect(result.copied.sort()).toEqual(["/launch/", "/raven/log"]);
-    expect(fetchImpl.mock.calls.map(([url]) => url).sort()).toEqual(["/logbook/chunks/store-abc123.js", "/logbook/log-app.js?v=1234567890", "/logbook/manifest.json", "/raven/account/import"]);
+    expect(result.copied.sort()).toEqual(["/-/launch/", "/raven/log"]);
+    expect(fetchImpl.mock.calls.map(([url]) => url).sort()).toEqual(["/-/chunks/store-abc123.js", "/-/log-app.js?v=1234567890", "/-/manifest.json", "/raven/account/import"]);
     expect(result.missing).toEqual([]);
   });
 
@@ -145,16 +149,16 @@ describe("fillPrecache", () => {
     const fetchImpl = server();
     await fill(cachesImpl, fetchImpl);
     const calls = Object.fromEntries(fetchImpl.mock.calls.map(([url, init]) => [url, init]));
-    expect(calls["/logbook/manifest.json"].cache).toBe("no-cache");
+    expect(calls["/-/manifest.json"].cache).toBe("no-cache");
     expect(calls["/raven/log"].cache).toBe("no-cache");
-    expect(calls["/logbook/chunks/store-abc123.js"].cache).toBe("default");
+    expect(calls["/-/chunks/store-abc123.js"].cache).toBe("default");
   });
 
   it("never copies from a cache that isn't a build cache (the retired worker's)", async () => {
-    const cachesImpl = fakeCaches({ "logbook-shell-v3": { [abs("/logbook/chunks/store-abc123.js")]: response() } });
+    const cachesImpl = fakeCaches({ "logbook-shell-v3": { [abs("/-/chunks/store-abc123.js")]: response() } });
     const result = await fill(cachesImpl, server());
     expect(result.copied).toEqual([]);
-    expect(result.fetched).toContain("/logbook/chunks/store-abc123.js");
+    expect(result.fetched).toContain("/-/chunks/store-abc123.js");
   });
 
   it("never stores a login redirect or an unmarked page as a shell, or an error as an asset", async () => {
@@ -162,12 +166,12 @@ describe("fillPrecache", () => {
     const result = await fill(cachesImpl, server({
       "/raven/log": response({ redirected: true, shell: "log" }),
       "/raven/account/import": response(),
-      "/logbook/manifest.json": response({ status: 503 }),
+      "/-/manifest.json": response({ status: 503 }),
     }));
-    expect(result.missing.sort()).toEqual(["/logbook/manifest.json", "/raven/account/import", "/raven/log"]);
+    expect(result.missing.sort()).toEqual(["/-/manifest.json", "/raven/account/import", "/raven/log"]);
     const stored = [...cachesImpl.stores.get(CURRENT).keys()];
     expect(stored).not.toContain(abs("/log/index.html"));
-    expect(stored).not.toContain(abs("/logbook/manifest.json"));
+    expect(stored).not.toContain(abs("/-/manifest.json"));
   });
 
   it("a complete cache fetches nothing", async () => {

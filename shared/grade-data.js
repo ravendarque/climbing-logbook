@@ -654,7 +654,7 @@ export function gradeTier(g, type) {
 }
 
 // #463 -- five colours picked from #170's own decided "Fiery Red Sunset"
-// palette (see public/logbook/components/climbing-header.js's own
+// palette (see public/-/components/climbing-header.js's own
 // --grade-tier-* tokens for the real hex values and the reasoning
 // behind which five were picked). One shared mapping across both
 // disciplines -- a tier name means the same thing regardless of which

@@ -43,7 +43,7 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); });
 
 function signUp(body = SIGNUP) {
-  return jsonRequest("POST", "/logbook/api/auth/sign-up/email", body);
+  return jsonRequest("POST", "/-/api/auth/sign-up/email", body);
 }
 
 describe("sign-up with email verification required", () => {
@@ -57,12 +57,12 @@ describe("sign-up with email verification required", () => {
     expect(resendCalls).toHaveLength(1);
     expect(resendCalls[0].body.to).toEqual(SIGNUP.email);
     expect(resendCalls[0].body.subject).toMatch(/verify/i);
-    expect(resendCalls[0].body.html).toContain("/logbook/api/auth/verify-email?token=");
+    expect(resendCalls[0].body.html).toContain("/-/api/auth/verify-email?token=");
   });
 
   it("rejects sign-in before the email is verified", async () => {
     await signUp();
-    const res = await jsonRequest("POST", "/logbook/api/auth/sign-in/email", { email: SIGNUP.email, password: SIGNUP.password });
+    const res = await jsonRequest("POST", "/-/api/auth/sign-in/email", { email: SIGNUP.email, password: SIGNUP.password });
     expect(res.status).toBe(403);
   });
 
@@ -73,13 +73,13 @@ describe("sign-up with email verification required", () => {
     // verify-email is a plain GET (the link a user clicks from their email
     // client) -- fetchJson() directly, not jsonRequest(), which always
     // attaches a JSON body/Content-Type that a bodyless GET doesn't need.
-    const res = await fetchJson(`/logbook/api/auth/verify-email?token=${token}`);
+    const res = await fetchJson(`/-/api/auth/verify-email?token=${token}`);
     expect([200, 302]).toContain(res.status);
 
     const cookie = res.headers.get("set-cookie");
     expect(cookie).toBeTruthy();
 
-    const sessionRes = await fetchJson("/logbook/api/auth/get-session", { headers: { Cookie: cookie.split(";")[0] } });
+    const sessionRes = await fetchJson("/-/api/auth/get-session", { headers: { Cookie: cookie.split(";")[0] } });
     expect((await sessionRes.json()).user.email).toBe(SIGNUP.email);
   });
 });
@@ -91,35 +91,35 @@ describe("password reset", () => {
     await signUp();
     resendCalls.length = 0; // only care about the reset email from here
 
-    const reqRes = await jsonRequest("POST", "/logbook/api/auth/request-password-reset", { email: SIGNUP.email });
+    const reqRes = await jsonRequest("POST", "/-/api/auth/request-password-reset", { email: SIGNUP.email });
     expect(reqRes.status).toBe(200);
     expect(resendCalls).toHaveLength(1);
     expect(resendCalls[0].body.subject).toMatch(/reset/i);
 
     const token = extractToken(resendCalls[0].body.html, "reset-password/");
-    const resetRes = await jsonRequest("POST", "/logbook/api/auth/reset-password", { newPassword: "a-brand-new-password", token });
+    const resetRes = await jsonRequest("POST", "/-/api/auth/reset-password", { newPassword: "a-brand-new-password", token });
     expect(resetRes.status).toBe(200);
 
-    const oldPasswordRes = await jsonRequest("POST", "/logbook/api/auth/sign-in/email", { email: SIGNUP.email, password: SIGNUP.password });
+    const oldPasswordRes = await jsonRequest("POST", "/-/api/auth/sign-in/email", { email: SIGNUP.email, password: SIGNUP.password });
     expect(oldPasswordRes.status).not.toBe(200);
 
-    const newPasswordRes = await jsonRequest("POST", "/logbook/api/auth/sign-in/email", { email: SIGNUP.email, password: "a-brand-new-password" });
+    const newPasswordRes = await jsonRequest("POST", "/-/api/auth/sign-in/email", { email: SIGNUP.email, password: "a-brand-new-password" });
     expect(newPasswordRes.status).toBe(403); // still unverified -- correct password, but sign-in itself requires verification (see above)
   });
 
   it("rejects a reused reset token", async () => {
     await signUp();
     resendCalls.length = 0;
-    await jsonRequest("POST", "/logbook/api/auth/request-password-reset", { email: SIGNUP.email });
+    await jsonRequest("POST", "/-/api/auth/request-password-reset", { email: SIGNUP.email });
     const token = extractToken(resendCalls[0].body.html, "reset-password/");
 
-    expect((await jsonRequest("POST", "/logbook/api/auth/reset-password", { newPassword: "first-new-password", token })).status).toBe(200);
-    const secondAttempt = await jsonRequest("POST", "/logbook/api/auth/reset-password", { newPassword: "second-new-password", token });
+    expect((await jsonRequest("POST", "/-/api/auth/reset-password", { newPassword: "first-new-password", token })).status).toBe(200);
+    const secondAttempt = await jsonRequest("POST", "/-/api/auth/reset-password", { newPassword: "second-new-password", token });
     expect(secondAttempt.status).not.toBe(200);
   });
 
   it("rejects an unknown token", async () => {
-    const res = await jsonRequest("POST", "/logbook/api/auth/reset-password", { newPassword: "whatever", token: "not-a-real-token" });
+    const res = await jsonRequest("POST", "/-/api/auth/reset-password", { newPassword: "whatever", token: "not-a-real-token" });
     expect(res.status).not.toBe(200);
   });
 });

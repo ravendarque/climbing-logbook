@@ -245,9 +245,9 @@ export async function seedLogbookData(baseUrl, cookie, { type } = {}) {
   const entries = type ? ENTRIES.filter(e => e.type === type) : ENTRIES;
   console.log(`Seeding ${LOCATIONS.length} locations, ${PLACES.length} places, ${entries.length} entries into ${baseUrl}...`);
   let failed = 0;
-  failed += await seedAll(baseUrl, "Locations", "/logbook/api/admin/locations", LOCATIONS, cookie);
-  failed += await seedAll(baseUrl, "Places", "/logbook/api/admin/places", PLACES, cookie);
-  failed += await seedAll(baseUrl, "Entries", "/logbook/api/admin/logbook", entries, cookie);
+  failed += await seedAll(baseUrl, "Locations", "/-/api/admin/locations", LOCATIONS, cookie);
+  failed += await seedAll(baseUrl, "Places", "/-/api/admin/places", PLACES, cookie);
+  failed += await seedAll(baseUrl, "Entries", "/-/api/admin/logbook", entries, cookie);
   return failed;
 }
 
@@ -258,8 +258,8 @@ export async function seedLogbookData(baseUrl, cookie, { type } = {}) {
 export async function seedLargeLogbookData(baseUrl, cookie) {
   console.log(`Seeding ${LARGE_LOCATIONS.length} more locations, ${LARGE_PLACES.length} more places, ${LARGE_ENTRIES.length} more entries (large dataset, #111) into ${baseUrl}...`);
   let failed = 0;
-  failed += await seedAll(baseUrl, "Large locations", "/logbook/api/admin/locations", LARGE_LOCATIONS, cookie);
-  failed += await seedAll(baseUrl, "Large places", "/logbook/api/admin/places", LARGE_PLACES, cookie);
-  failed += await seedAll(baseUrl, "Large entries", "/logbook/api/admin/logbook", LARGE_ENTRIES, cookie);
+  failed += await seedAll(baseUrl, "Large locations", "/-/api/admin/locations", LARGE_LOCATIONS, cookie);
+  failed += await seedAll(baseUrl, "Large places", "/-/api/admin/places", LARGE_PLACES, cookie);
+  failed += await seedAll(baseUrl, "Large entries", "/-/api/admin/logbook", LARGE_ENTRIES, cookie);
   return failed;
 }

@@ -33,7 +33,7 @@ export const VALID_STATUSES = ["send", "project", "archived", "checkout"];
 // #129 -- derived directly from BOULDER_GRADES/LEAD_GRADES (shared/
 // grade-data.js), not a second, separately-maintained literal list.
 // This used to be its own hand-copied array ("mirrors BOULDER_GRADES/
-// LEAD_GRADES in public/logbook/index.html" -- itself a stale reference,
+// LEAD_GRADES in public/-/index.html" -- itself a stale reference,
 // that file hasn't been the real source in a long time); #129's own
 // range extension would otherwise have needed updating two independent
 // lists in lockstep, exactly the kind of drift this file's own header

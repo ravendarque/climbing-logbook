@@ -3,7 +3,7 @@
 // e2e/performance-pyramid-page.spec.js (see that file's own header
 // comment): the real client/performance-injury-main.js ->
 // performance-injury-app.js bundle against a verbatim copy of
-// public/performance/injury/index.html, with fabricated /logbook/api/*
+// public/performance/injury/index.html, with fabricated /-/api/*
 // responses. athleteMode: true is required in the mocked settings
 // response -- client/performance-injury-main.js redirects to /log
 // otherwise (#151's rule).
@@ -52,7 +52,7 @@ test("renders the ranked headline and log rows when a cluster clears the confide
 
 test("shows the offline message instead of the log when the fetch fails", async ({ page }) => {
   await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
-  await page.route("**/logbook/api/performance/injury", route => route.fulfill({ status: 500 }));
+  await page.route("**/-/api/performance/injury", route => route.fulfill({ status: 500 }));
   await page.goto("/e2e-fixtures/pages/performance-injury.html");
 
   await expect(page.locator("#performance-offline")).toBeVisible();

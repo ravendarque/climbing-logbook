@@ -33,7 +33,7 @@ function stubSiteverify(success) {
 afterEach(() => { vi.unstubAllGlobals(); });
 
 function signUp(body = {}) {
-  return jsonRequest("POST", "/logbook/api/auth/sign-up/email", { ...SIGNUP, ...body });
+  return jsonRequest("POST", "/-/api/auth/sign-up/email", { ...SIGNUP, ...body });
 }
 
 it("rejects sign-up with no turnstileToken", async () => {

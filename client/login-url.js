@@ -5,7 +5,7 @@
 // afterwards when it's one of their own pages. Mirrored server-side by
 // server/api/owned-routes.js's loginRedirect() for unauthenticated owner
 // routes.
-export const LOGIN_PATH = "/login/";
+export const LOGIN_PATH = "/-/login/";
 
 // The login page URL that returns to where the visitor is now.
 export function loginPageUrl(loc = window.location) {

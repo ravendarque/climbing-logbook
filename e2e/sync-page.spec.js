@@ -1,7 +1,7 @@
 // #498 (ADR-0019) -- composition-root-wiring coverage for /:username/sync,
 // same harness pattern as e2e/log-page.spec.js's own header comment
 // explains (real, unmodified shell + compiled bundle, fabricated
-// /logbook/api/* responses via mockApi()). The real cross-page hop this
+// /-/api/* responses via mockApi()). The real cross-page hop this
 // page makes (/log <-> /sync, both under a real :username the my.-
 // hostname dispatch needs) can't be followed end-to-end in this flat
 // /e2e-fixtures/pages/*.html harness -- same limitation
@@ -88,7 +88,7 @@ test("a failed fetch shows the error state with a retry button, not a silent han
   // logbook route comment documents) -- without it this abort silently
   // never fires and the request falls through to mockApi()'s own
   // (non-aborting) places route instead.
-  await page.route("**/logbook/api/places*", route => route.abort());
+  await page.route("**/-/api/places*", route => route.abort());
 
   await page.goto("/e2e-fixtures/pages/sync.html?returnTo=%2Fe2e-fixtures%2Flog");
   await expect(page.locator("#sync-error")).toBeVisible();
@@ -143,7 +143,7 @@ test("warm with drift: /sync takes the delta path and catches up on a change fro
   // genuinely stale cursor would matter if this test's own request
   // assertion were wrong.
   await page.goto("/e2e-fixtures/pages/log.html");
-  await page.evaluate(() => fetch("/logbook/api/admin/logbook", {
+  await page.evaluate(() => fetch("/-/api/admin/logbook", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id: "drift-1", placeId: "p1", type: "boulder", status: "send", grade: "7A", name: "Drifted In" }),
@@ -156,7 +156,7 @@ test("warm with drift: /sync takes the delta path and catches up on a change fro
 
   const entriesRequests = [];
   page.on("request", req => {
-    if (req.url().includes("/logbook/api/logbook") && !req.url().includes("/admin/")) entriesRequests.push(req.url());
+    if (req.url().includes("/-/api/logbook") && !req.url().includes("/admin/")) entriesRequests.push(req.url());
   });
 
   await stubReturnTarget(page, "/e2e-fixtures/log");

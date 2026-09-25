@@ -2,7 +2,7 @@
 // fixture-harness pattern as e2e/log-page.spec.js (see that file's own
 // header comment) -- the real client/account-main.js -> account-app.js
 // bundle against a verbatim copy of public/account/index.html, with
-// fabricated /logbook/api/* responses. Athlete Mode/Public Logbook toggle
+// fabricated /-/api/* responses. Athlete Mode/Public Logbook toggle
 // coverage (#445) lives here too, ported from e2e/log-page.spec.js's own
 // pre-#445 version once that UI moved off the shared menu onto this page.
 import { expect, test } from "@playwright/test";
@@ -68,12 +68,12 @@ test("Athlete Mode toggle (#445) switches and persists via the settings PATCH", 
   await expect(athleteToggle).toHaveAttribute("aria-checked", "false");
 
   await Promise.all([
-    page.waitForResponse(res => res.url().includes("/logbook/api/admin/settings") && res.request().method() === "PATCH"),
+    page.waitForResponse(res => res.url().includes("/-/api/admin/settings") && res.request().method() === "PATCH"),
     athleteToggle.click(),
   ]);
   await expect(athleteToggle).toHaveAttribute("aria-checked", "true");
 
-  // Reload -- the mocked GET /logbook/api/settings now reflects the PATCH
+  // Reload -- the mocked GET /-/api/settings now reflects the PATCH
   // (mockApi() mutates its in-memory settings on every write), proving
   // the toggle's state actually round-trips through the backend rather
   // than just flipping client-side.
@@ -91,7 +91,7 @@ test("Public Logbook toggle (#301, moved to this page by #445) switches and pers
   await expect(publicToggle).toHaveAttribute("aria-checked", "true");
 
   await Promise.all([
-    page.waitForResponse(res => res.url().includes("/logbook/api/admin/settings") && res.request().method() === "PATCH"),
+    page.waitForResponse(res => res.url().includes("/-/api/admin/settings") && res.request().method() === "PATCH"),
     publicToggle.click(),
   ]);
   await expect(publicToggle).toHaveAttribute("aria-checked", "false");
@@ -129,7 +129,7 @@ test("beta opt-in: not-enrolled state says so, submitting 'Yes' persists it and 
   // test in this suite already has (see e.g. e2e/login.spec.js's own
   // header comment).
   const [patchRequest] = await Promise.all([
-    page.waitForRequest(req => req.url().includes("/logbook/api/admin/settings") && req.method() === "PATCH"),
+    page.waitForRequest(req => req.url().includes("/-/api/admin/settings") && req.method() === "PATCH"),
     // Not a literal ".html" match -- Workers Static Assets normalizes the
     // extension away on navigation (confirmed: the real resulting URL is
     // .../pages/account, not .../pages/account.html), so this only
@@ -149,7 +149,7 @@ test("beta opt-in: submitting 'No' re-syncs the status line in place, no navigat
   await page.locator("#beta-opt-in-manage-btn").click();
   await page.locator('input[name="beta-opt-in-choice"][value="out"]').check();
   await Promise.all([
-    page.waitForResponse(res => res.url().includes("/logbook/api/admin/settings") && res.request().method() === "PATCH"),
+    page.waitForResponse(res => res.url().includes("/-/api/admin/settings") && res.request().method() === "PATCH"),
     page.locator("#beta-opt-in-submit").click(),
   ]);
 
@@ -172,7 +172,7 @@ test("beta opt-in: Cancel closes the modal without persisting a choice", async (
   await page.goto("/e2e-fixtures/pages/account.html");
 
   let patchCalled = false;
-  await page.route("**/logbook/api/admin/settings", route => {
+  await page.route("**/-/api/admin/settings", route => {
     patchCalled = true;
     return route.continue();
   });
@@ -251,7 +251,7 @@ test("Export JSON downloads the resolved rows as JSON", async ({ page }) => {
 
 test("Export shows an error message instead of a download when the data fetch fails", async ({ page }) => {
   await mockApi(page, EXPORT_FIXTURE);
-  await page.route("**/logbook/api/logbook", route => route.fulfill({ status: 500 }));
+  await page.route("**/-/api/logbook", route => route.fulfill({ status: 500 }));
   await page.goto("/e2e-fixtures/pages/account.html");
 
   await page.locator("#export-csv-btn").click();

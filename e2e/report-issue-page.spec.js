@@ -31,7 +31,7 @@ test("submits a report and shows the success state", async ({ page }) => {
 
 test("shows an inline error, keeps the form, and re-enables the button when the request fails", async ({ page }) => {
   await mockTurnstile(page);
-  await page.route("**/logbook/api/report-issue", route => route.fulfill({ status: 500, json: { error: "Something went wrong on our end." } }));
+  await page.route("**/-/api/report-issue", route => route.fulfill({ status: 500, json: { error: "Something went wrong on our end." } }));
   await page.goto("/help/report-an-issue/");
   await waitForTurnstile(page);
 

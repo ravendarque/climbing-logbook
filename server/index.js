@@ -18,10 +18,10 @@ import { json } from "./lib/json.js";
 
 // This Worker is only ever invoked for requests that don't match a static
 // asset under public/ (Workers Static Assets serves those directly) — so
-// everything reaching fetch() here is a /logbook/api/* call, or (#113) a
+// everything reaching fetch() here is a /-/api/* call, or (#113) a
 // my.<domain>/:username public-profile request.
 //
-// /logbook/api/logbook, places, locations, settings — GET is public
+// /-/api/logbook, places, locations, settings — GET is public
 //   (reachable without a session), admin writes require a real Better
 //   Auth session (#297) resolved below, scoped server-side to that
 //   session's own user_id -- the actual multi-tenant isolation boundary.
@@ -30,56 +30,56 @@ import { json } from "./lib/json.js";
 // "userId may be null" comment) -- keyed by pathname only, since every
 // entry here is GET-only.
 const PUBLIC_GET_ROUTES = {
-  "/logbook/api/logbook": handleGet,
-  "/logbook/api/places": handleGetPlaces,
-  "/logbook/api/locations": handleGetLocations,
-  "/logbook/api/settings": handleGetSettings,
+  "/-/api/logbook": handleGet,
+  "/-/api/places": handleGetPlaces,
+  "/-/api/locations": handleGetLocations,
+  "/-/api/settings": handleGetSettings,
   // #111 -- Grade Pyramid computed server-side; /performance itself is
   // owner-only (owned-routes.js gates the page), but this route follows
   // the same public-GET convention as every other read here rather than
   // being a special case.
-  "/logbook/api/performance/pyramid": handleGetPyramid,
+  "/-/api/performance/pyramid": handleGetPyramid,
   // #39 -- same public-GET + server-side-computed convention as the
   // pyramid route above; /performance/injury itself is owner-only in
   // practice (owned-routes.js gates the page).
-  "/logbook/api/performance/injury": handleGetInjuryLog,
+  "/-/api/performance/injury": handleGetInjuryLog,
   // #13 -- same public-GET + server-side-computed convention as the two
   // routes above.
-  "/logbook/api/performance/strengths": handleGetStrengthsWeaknesses,
+  "/-/api/performance/strengths": handleGetStrengthsWeaknesses,
   // #15 -- same public-GET + server-side-computed convention as the
   // three routes above.
-  "/logbook/api/performance/volume": handleGetVolume,
+  "/-/api/performance/volume": handleGetVolume,
   // #14 -- same public-GET + server-side-computed convention as the four
   // routes above.
-  "/logbook/api/performance/gap": handleGetGap,
+  "/-/api/performance/gap": handleGetGap,
   // #38 -- same public-GET + server-side-computed convention as the five
   // routes above.
-  "/logbook/api/performance/rpe": handleGetEffort,
+  "/-/api/performance/rpe": handleGetEffort,
   // #497 -- Map's own per-country/discipline/status aggregate, same
   // reasoning as the pyramid route above.
-  "/logbook/api/map/counts": handleGetMapCounts,
+  "/-/api/map/counts": handleGetMapCounts,
 };
 
 // Every write here requires a real Better Auth session -- keyed by
 // pathname, then by method (some resources handle more than one).
 const ADMIN_ROUTES = {
-  "/logbook/api/admin/logbook": {
+  "/-/api/admin/logbook": {
     POST: handlePost,
     PUT: handlePut,
     DELETE: handleDelete,
   },
   // #224 phase 3 -- CSV bulk import, a raw text/csv body rather than
   // JSON (see handleImport's own comment), so it's its own pathname
-  // rather than a third method on /logbook/api/admin/logbook.
-  "/logbook/api/admin/logbook/import": { POST: handleImport },
-  "/logbook/api/admin/places": { POST: handlePostPlaces },
-  "/logbook/api/admin/locations": { POST: handlePostLocations },
+  // rather than a third method on /-/api/admin/logbook.
+  "/-/api/admin/logbook/import": { POST: handleImport },
+  "/-/api/admin/places": { POST: handlePostPlaces },
+  "/-/api/admin/locations": { POST: handlePostLocations },
   // #952 -- GET here too (same handler as the public GET): a session-only
   // read, so client/channel-guard.js can tell "not enrolled" (200, false)
   // apart from "no session" (401). The public GET answers defaults for
   // both, which would mark an enrolled user with an expired session as
   // not enrolled.
-  "/logbook/api/admin/settings": { GET: handleGetSettings, PATCH: handlePatchSettings },
+  "/-/api/admin/settings": { GET: handleGetSettings, PATCH: handlePatchSettings },
 };
 
 export default {
@@ -87,12 +87,25 @@ export default {
     const { hostname, pathname } = new URL(request.url);
     const method = request.method;
 
+    // #984 -- app hosts log in on their own origin (#955, ADR-0029) at
+    // /-/login/, inside the collision-proof /-/ namespace (#982): the same
+    // page the apex serves at its clean /login/ URL. The page's own
+    // references are absolute, so it works at either path.
+    if (pathname === "/-/login" && (method === "GET" || method === "HEAD")) {
+      const target = new URL(request.url);
+      target.pathname = "/-/login/";
+      return Response.redirect(target, 301);
+    }
+    if (pathname === "/-/login/" && (method === "GET" || method === "HEAD")) {
+      return env.ASSETS.fetch(new Request(new URL("/login/", request.url), request));
+    }
+
     // #113 -- my.<domain> hosts each user's public profile at /:username,
     // a single path segment with no further structure. Scoped narrowly on
     // purpose: no real DNS route binds a my.-prefixed hostname to this
     // Worker yet (#295 owns provisioning that), and exactly how the rest
     // of the app gets served from that hostname (e.g. whether
-    // /logbook/api/* moves too) is #295's decision, not pre-empted here --
+    // /-/api/* moves too) is #295's decision, not pre-empted here --
     // anything that doesn't match this one route shape falls through to
     // the normal routing below unchanged, same as it would on any other
     // hostname. Untestable against real traffic until #295 lands, but
@@ -136,10 +149,10 @@ export default {
     // header comment for why), so it needs to be the thing that decides
     // whether Better Auth's real handler runs at all, not something
     // wired into that handler's own hooks.
-    if (pathname === "/logbook/api/auth/sign-up/email" && method === "POST") {
+    if (pathname === "/-/api/auth/sign-up/email" && method === "POST") {
       return handleBetaGatedSignUp(request, env, createAuth(env, hostname));
     }
-    if (pathname.startsWith("/logbook/api/auth/")) {
+    if (pathname.startsWith("/-/api/auth/")) {
       return createAuth(env, hostname).handler(request);
     }
 
@@ -147,10 +160,10 @@ export default {
     // lookup table below: this is a public, unauthenticated endpoint
     // (reachable logged out, same as /help itself), not one that requires
     // a real session.
-    if (pathname === "/logbook/api/report-issue" && method === "POST") {
+    if (pathname === "/-/api/report-issue" && method === "POST") {
       return handleReportIssue(request, env);
     }
-    if (pathname === "/logbook/api/feedback" && method === "POST") {
+    if (pathname === "/-/api/feedback" && method === "POST") {
       return handleFeedback(request, env);
     }
 
@@ -167,8 +180,8 @@ export default {
     // #351 -- read-only data for the public /:username page, scoped to
     // whichever *target* user the path names, not the caller's own
     // session (see server/api/public-data.js's own comment). Not
-    // hostname-gated, same as every other /logbook/api/* route here.
-    const publicDataMatch = pathname.match(/^\/logbook\/api\/public\/([^/]+)\/(logbook\/counts|logbook|places|locations|map\/counts|performance\/(?:pyramid|injury|strengths|volume|gap|rpe))$/);
+    // hostname-gated, same as every other /-/api/* route here.
+    const publicDataMatch = pathname.match(/^\/-\/api\/public\/([^/]+)\/(logbook\/counts|logbook|places|locations|map\/counts|performance\/(?:pyramid|injury|strengths|volume|gap|rpe))$/);
     if (publicDataMatch && method === "GET") {
       const [, username, resource] = publicDataMatch;
       return handlePublicResource(request, env, username, resource);

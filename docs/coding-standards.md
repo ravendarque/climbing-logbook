@@ -197,7 +197,7 @@ decision and why it's an ongoing constraint, not a single shipped feature.
 - **Prefer bundling small, static, rarely-changing datasets directly into
   the single-file app** (e.g. a country list) over fetching them on demand.
   If a dataset is genuinely too large to justify always-loading it, serve
-  it as a static file under `/logbook/` so it's cached after first load
+  it as a static file under `/-/` so it's cached after first load
   (ADR-0028's static-asset tier) rather than leaving it an uncached
   fetch-on-open.
 - See #111 for the broader initiative (progressive/streamed data loading)

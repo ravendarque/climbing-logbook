@@ -69,7 +69,7 @@ async function waitForServer(url, timeoutMs = 60_000) {
 }
 
 async function seed() {
-  await waitForServer(`${baseUrl}/logbook/api/logbook`);
+  await waitForServer(`${baseUrl}/-/api/logbook`);
 
   console.log(`Resetting the preview database (${D1_OPTIONS.database})...`);
   resetDatabase(D1_OPTIONS);

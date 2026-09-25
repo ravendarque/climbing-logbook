@@ -169,7 +169,7 @@ export function createSearchableListbox({
 // #704's report scale picker). Same role="option"/data-key/checkmark
 // rendering convention as createSearchableListbox's own render() and
 // the discipline picker's static options
-// (public/logbook/components/climbing-discipline-picker.js) -- one
+// (public/-/components/climbing-discipline-picker.js) -- one
 // shared implementation instead of near-identical copies per caller.
 // `render`/`onSelect` are set after construction (setRender/
 // setOnSelect), not passed in up front, since most callers need to

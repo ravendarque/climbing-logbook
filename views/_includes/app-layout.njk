@@ -4,16 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ title }}</title>
-  <link rel="manifest" href="/logbook/manifest.json">
-  <link rel="icon" type="image/png" sizes="32x32" href="/logbook/favicon-32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/logbook/favicon-16.png">
-  <link rel="apple-touch-icon" href="/logbook/apple-touch-icon.png">
+  <link rel="manifest" href="/-/manifest.json">
+  <link rel="icon" type="image/png" sizes="32x32" href="/-/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/-/favicon-16.png">
+  <link rel="apple-touch-icon" href="/-/apple-touch-icon.png">
   <meta name="theme-color" content="#ff2727">
   <!-- #470 -- starts the brand font fetch during initial parsing rather
        than waiting for layout to discover climbing-header.js's own
        @font-face rule -- see public/index.html's own comment for the
        fuller reasoning. -->
-  <link rel="preload" as="font" type="font/woff2" href="/logbook/fonts/BebasNeue-Regular.woff2" crossorigin>
+  <link rel="preload" as="font" type="font/woff2" href="/-/fonts/BebasNeue-Regular.woff2" crossorigin>
   <!-- {{ staticShellNote | safe }} -->
   <!-- #857 -- a ?v= query (see .eleventy.js's own comment) lets
        public/_headers cache these stable-named files immutably. #961:
@@ -21,20 +21,20 @@
        (scripts/content-hash-asset-urls.mjs), so a deploy only busts the
        copies of files that actually changed. (Deliberately not printing
        the value here: it would make every build's HTML differ.) Skipped entirely in dev (isDevBuild): vite.config.js's
-       own devEntryRewrite middleware matches /logbook/<name>-app.js with
+       own devEntryRewrite middleware matches /-/<name>-app.js with
        a trailing $ anchor, so any query string on that specific URL would
        stop it from recognizing the request at all; dev mode doesn't need
        this caching anyway (Vite's own dev server + HMR already handles
        freshness). Only {{ bundle }}-app.js is at risk from that specific
        regex, but the query is skipped uniformly here for consistency --
        nothing in dev mode benefits from immutable caching regardless. -->
-  <link rel="stylesheet" href="/logbook/tailwind.css{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}">
-  <script src="/logbook/components/climbing-header.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
+  <link rel="stylesheet" href="/-/tailwind.css{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}">
+  <script src="/-/components/climbing-header.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
 {%- if discipline %}
-  <script src="/logbook/components/climbing-discipline-picker.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
+  <script src="/-/components/climbing-discipline-picker.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
 {%- endif %}
-  <script src="/logbook/components/climbing-burger-menu.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
-  <script src="/logbook/components/climbing-page-header.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
+  <script src="/-/components/climbing-burger-menu.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
+  <script src="/-/components/climbing-page-header.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
   <script>
     (function () {
       var stored = localStorage.getItem("logbook_theme");
@@ -76,7 +76,7 @@
      always set bundle, and keeps the door open for a genuinely
      bundle-less page later without a second change here. -->
 {%- if bundle %}
-<script type="module" src="/logbook/{{ bundle }}-app.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
+<script type="module" src="/-/{{ bundle }}-app.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
 {%- endif %}
 </body>
 </html>

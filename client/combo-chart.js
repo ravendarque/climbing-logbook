@@ -106,7 +106,7 @@ function lineScale(positionOrder) {
 // color went unnoticed until Gap's own two series (Flash/Onsight max
 // grade, Send/Redpoint max grade) rendered identically and were
 // impossible to tell apart. tier-heuristic (an amber, already theme-aware
-// -- public/logbook/components/climbing-header.js's own --tier-heuristic
+// -- public/-/components/climbing-header.js's own --tier-heuristic
 // token) is distinct from both foreground (series 0, unchanged) and
 // accent (already used by this same chart's own bar series). Blue is not
 // in this app's palette anywhere and is off-limits app-wide (Raven,

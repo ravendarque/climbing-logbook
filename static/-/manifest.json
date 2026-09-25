@@ -3,7 +3,7 @@
   "name": "Climbing Logbook",
   "short_name": "Logbook",
   "description": "A climbing logbook built for the crag: log, edit and browse your climbs, even with no signal.",
-  "start_url": "/launch/",
+  "start_url": "/-/launch/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0f0f0f",

@@ -30,7 +30,7 @@ import { cloudflare } from "@cloudflare/vite-plugin";
 import { CLIENT_ENTRIES } from "./vite.entries.mjs";
 
 // #775 (#761 Part 3) -- keeps views/*.njk (#760) completely unaware of
-// dev vs. prod: the script src is always "/logbook/<name>-app.js"
+// dev vs. prod: the script src is always "/-/<name>-app.js"
 // either way. In dev, this middleware transparently hands that request
 // to Vite's own module graph as the real client/<name>-main.js source
 // instead, with HMR; in prod there's no dev server at all, so the
@@ -45,7 +45,7 @@ function devEntryRewrite(entries) {
     name: "logbook-dev-entry-rewrite",
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
-        const match = req.url?.match(/^\/logbook\/([\w-]+)-app\.js$/);
+        const match = req.url?.match(/^\/-\/([\w-]+)-app\.js$/);
         const source = match && entries[match[1]];
         if (source) req.url = `/${source}`;
         next();
