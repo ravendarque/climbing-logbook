@@ -525,14 +525,24 @@
       // used by this file's own footnote-trigger button, below) has no
       // such ambiguity to resolve.
       '    <h1 class="font-display font-normal uppercase tracking-wide [font-size:var(--brand-scale)] leading-none mb-[calc(var(--brand-scale)*-0.125)] whitespace-nowrap"><span class="text-accent">Climbing</span> <span class="text-foreground relative">Logbook' +
-      // #956 -- Raven's design: a yellow tag leaning like the K's arm,
-      // over the word's top-right corner. Absolutely positioned, so it
-      // adds no width to a row that must never wrap (#789). The tag is
-      // decoration, drawn with ::after so the heading's text stays
-      // "Climbing Logbook Beta"; screen readers get "Beta" from the sr-only
-      // text.
+      // #956, #1012 -- Raven's design: a yellow tag leaning like the K's
+      // arm (26.6 degrees, 1 across per 2 down), level with the top of
+      // LOGBOOK and clear of the K, with BETA centred in it. Proportions
+      // come from Raven's draft, in font units (cap height 700 per 1000).
+      //
+      // It hangs off a zero-size anchor sitting on the text baseline, and
+      // the word is glyph outlines (as in the app icons), so where it lands
+      // doesn't depend on how a browser reads the font's ascent metrics.
+      // Its top is the capitals' top: 0.434 + 0.283 = 0.717 of the font
+      // size above the baseline (Bebas' caps as rendered, a hair over the
+      // nominal 0.7). The offsets are a transform, not left/bottom, because
+      // Chromium snaps a positioned SVG's box to whole CSS pixels while the
+      // text beside it renders at subpixel positions.
+      // Absolutely positioned, so it adds no width to a row that must
+      // never wrap (#789). It's decoration: the heading's text stays
+      // "Climbing Logbook Beta" through the sr-only word.
       (IS_BETA
-        ? '<span class="absolute left-[calc(100%-var(--brand-scale)*0.07)] top-[calc(var(--brand-scale)*0.18)] -skew-x-[20deg] bg-[#ffcc00] text-[#0f0f0f] leading-none [font-size:calc(var(--brand-scale)*0.225)] tracking-wide px-[.5em] pt-[.12em] pb-[.02em]" id="beta-badge" aria-hidden="true"><span class="inline-block skew-x-[20deg] after:content-[attr(data-label)]" data-label="Beta"></span></span><span class="sr-only"> Beta</span>'
+        ? '<span class="relative inline-block w-0 h-0" id="beta-badge" aria-hidden="true"><svg class="absolute left-0 bottom-0 -translate-x-[calc(var(--brand-scale)*0.107)] -translate-y-[calc(var(--brand-scale)*0.434)] w-[calc(var(--brand-scale)*0.7625)] h-[calc(var(--brand-scale)*0.283)]" viewBox="0 0 722 268"><polygon points="134,0 722,0 588,268 0,268" fill="#ffcc00"/><g transform="translate(170.4,216.5) scale(0.235,-0.235)" fill="#0f0f0f"><path transform="translate(0.0,0)" d="M41 0H214C324 0 381 58 381 166V226C381 300 358 352 299 372V374C348 394 370 439 370 511V539C370 647 321 700 207 700H41ZM151 415V600H204C243 600 260 578 260 528V489C260 433 235 415 194 415ZM151 100V315H200C250 315 271 295 271 230V169C271 117 251 100 214 100Z"/><path transform="translate(434.0,0)" d="M41 0H341V100H151V315H302V415H151V600H341V700H41Z"/><path transform="translate(827.0,0)" d="M127 0H237V600H352V700H12V600H127Z"/><path transform="translate(1221.0,0)" d="M12 0H114L134 137H259V139L279 0H389L275 700H126ZM147 232 195 578H197L246 232Z"/></g></svg></span><span class="sr-only"> Beta</span>'
         : '') +
       '</span></h1>' +
       '    <p class="' + taglineClass + '">Log your climbs, visualise your progress (<button type="button" class="inline [font-size:inherit] bg-transparent border-0 p-0 cursor-pointer text-accent" id="footnote-trigger">or not</button>)</p>' +
