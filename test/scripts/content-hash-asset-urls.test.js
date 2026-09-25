@@ -13,24 +13,24 @@ const read = rel => readFileSync(join(dir, rel), "utf8");
 
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "content-hash-"));
-  write("logbook/log-app.js", "console.log('log');");
-  write("logbook/tailwind.css", "body{}");
-  write("logbook/components/climbing-header.js", "customElements.define('x', class {});");
+  write("-/log-app.js", "console.log('log');");
+  write("-/tailwind.css", "body{}");
+  write("-/components/climbing-header.js", "customElements.define('x', class {});");
 });
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-const shell = v => `<link rel="stylesheet" href="/logbook/tailwind.css?v=${v}">
-<script src="/logbook/components/climbing-header.js?v=${v}"></script>
-<script type="module" src="/logbook/log-app.js?v=${v}"></script>
-<a href="/help/?v=123">not a /logbook/ asset</a>`;
+const shell = v => `<link rel="stylesheet" href="/-/tailwind.css?v=${v}">
+<script src="/-/components/climbing-header.js?v=${v}"></script>
+<script type="module" src="/-/log-app.js?v=${v}"></script>
+<a href="/help/?v=123">not a /-/ asset</a>`;
 
 describe("contentHashAssetUrls (#961)", () => {
-  it("rewrites every ?v=<timestamp> on a /logbook/ asset to that file's content hash", () => {
+  it("rewrites every ?v=<timestamp> on a /-/ asset to that file's content hash", () => {
     write("log/index.html", shell("1790275604825"));
     const stats = contentHashAssetUrls(dir);
     const html = read("log/index.html");
-    expect(html).toContain(`/logbook/tailwind.css?v=${contentHash(Buffer.from("body{}"))}`);
-    expect(html).toContain(`/logbook/log-app.js?v=${contentHash(Buffer.from("console.log('log');"))}`);
+    expect(html).toContain(`/-/tailwind.css?v=${contentHash(Buffer.from("body{}"))}`);
+    expect(html).toContain(`/-/log-app.js?v=${contentHash(Buffer.from("console.log('log');"))}`);
     expect(html).not.toMatch(/\?v=\d{13}/);
     expect(html).toContain('href="/help/?v=123"');
     expect(stats).toEqual({ files: 1, refs: 3, assets: 3 });
@@ -48,16 +48,16 @@ describe("contentHashAssetUrls (#961)", () => {
     contentHashAssetUrls(dir);
     const before = read("log/index.html");
     write("log/index.html", shell("2"));
-    write("logbook/components/climbing-header.js", "customElements.define('y', class {});");
+    write("-/components/climbing-header.js", "customElements.define('y', class {});");
     contentHashAssetUrls(dir);
     const after = read("log/index.html");
-    const urls = html => [...html.matchAll(/(\/logbook\/[^"?]+)\?v=([0-9a-f]+)/g)].map(m => [m[1], m[2]]);
+    const urls = html => [...html.matchAll(/(\/-\/[^"?]+)\?v=([0-9a-f]+)/g)].map(m => [m[1], m[2]]);
     const changed = urls(after).filter(([path, hash]) => urls(before).find(([p]) => p === path)[1] !== hash).map(([p]) => p);
-    expect(changed).toEqual(["/logbook/components/climbing-header.js"]);
+    expect(changed).toEqual(["/-/components/climbing-header.js"]);
   });
 
   it("fails the build when a referenced file doesn't exist (#761)", () => {
-    write("log/index.html", `<script src="/logbook/missing-app.js?v=1"></script>`);
+    write("log/index.html", `<script src="/-/missing-app.js?v=1"></script>`);
     expect(() => contentHashAssetUrls(dir)).toThrow(/missing-app\.js/);
   });
 

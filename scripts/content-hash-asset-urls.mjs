@@ -17,7 +17,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-const VERSIONED_REF = /(\/logbook\/[^"'?\s]+)\?v=\d+/g;
+const VERSIONED_REF = /(\/-\/[^"'?\s]+)\?v=\d+/g;
 
 function htmlFiles(dir) {
   return readdirSync(dir).flatMap(name => {

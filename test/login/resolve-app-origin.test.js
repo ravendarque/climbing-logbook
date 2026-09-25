@@ -3,7 +3,7 @@
 // imported into a test (this project's only Vitest pool is workerd, no
 // DOM at all).
 import { describe, expect, it } from "vitest";
-import { needsChannelChoice, resolveAppOrigin, resolvePostLoginTarget, safeReturnTo } from "../../static/login/resolve-app-origin.js";
+import { needsChannelChoice, resolveAppOrigin, resolvePostLoginTarget, safeReturnTo } from "../../static/-/login/resolve-app-origin.js";
 
 describe("resolveAppOrigin", () => {
   it("returns beta.climbinglogbook.com for an opted-in user on the real apex", () => {

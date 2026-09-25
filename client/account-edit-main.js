@@ -1,5 +1,5 @@
 // Composition root for /:username/account/edit (#302) -- bundled by
-// esbuild into public/logbook/account-edit-app.js. Same "no
+// esbuild into public/-/account-edit-app.js. Same "no
 // header-chrome.js, reimplement narrowly" reasoning as
 // client/account-main.js (see that file's own header comment) -- the two
 // share no other code, this is a genuinely separate page/bundle, not a
@@ -23,8 +23,8 @@ import { syncAdminBar } from "./admin-bar.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
 
-const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
-const AUTH_BASE = "/logbook/api/auth";
+const ADMIN_SETTINGS_URL = "/-/api/admin/settings";
+const AUTH_BASE = "/-/api/auth";
 
 function adminFetch(url, options) {
   return fetch(url, { ...options, redirect: "manual" });

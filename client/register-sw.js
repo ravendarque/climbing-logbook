@@ -13,7 +13,10 @@
 import { ownerOfPath } from "./user-storage.js";
 import { isDemoUsername } from "./demo-mode.js";
 
-const WORKER_URL = "/sw.js";
+// #983 -- was /sw.js, which is a valid username. Registering this URL at the
+// same scope replaces an existing /sw.js registration's script, so devices
+// switch over on their next owner-page load with no unregister step.
+const WORKER_URL = "/service-worker.js";
 
 // Set once this document starts navigating away. Boots redirect (a new
 // device's /log to /sync and back, a performance page to /log, a lapsed

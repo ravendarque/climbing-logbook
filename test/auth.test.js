@@ -45,10 +45,10 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); });
 
 function signUp(body = VALID_SIGNUP) {
-  return jsonRequest("POST", "/logbook/api/auth/sign-up/email", body);
+  return jsonRequest("POST", "/-/api/auth/sign-up/email", body);
 }
 function signIn(email, password) {
-  return jsonRequest("POST", "/logbook/api/auth/sign-in/email", { email, password });
+  return jsonRequest("POST", "/-/api/auth/sign-in/email", { email, password });
 }
 
 // Better Auth issues a real session cookie via Set-Cookie -- fetchJson()
@@ -62,7 +62,7 @@ function cookieFrom(response) {
   return setCookie.split(";")[0];
 }
 function getSession(cookie) {
-  return fetchJson("/logbook/api/auth/get-session", cookie ? { headers: { Cookie: cookie } } : undefined);
+  return fetchJson("/-/api/auth/get-session", cookie ? { headers: { Cookie: cookie } } : undefined);
 }
 
 // update-user/change-password/change-email (#302) are all authenticated
@@ -82,7 +82,7 @@ async function signUpAndVerify(body = VALID_SIGNUP) {
   await signUp(body);
   const html = resendCalls.at(-1).body.html;
   const token = decodeURIComponent(html.match(/token=([^"&<?]+)/)[1]);
-  const res = await fetchJson(`/logbook/api/auth/verify-email?token=${token}`);
+  const res = await fetchJson(`/-/api/auth/verify-email?token=${token}`);
   return cookieFrom(res);
 }
 
@@ -160,7 +160,7 @@ describe("session lifecycle", () => {
     // against a real browser hitting the real dev server, not just this
     // Miniflare-backed test. It also requires a real (even empty) JSON
     // body with a matching Content-Type -- a bodyless POST here 415s.
-    const signOutRes = await fetchJson("/logbook/api/auth/sign-out", {
+    const signOutRes = await fetchJson("/-/api/auth/sign-out", {
       method: "POST",
       headers: { Cookie: cookie, Origin: BASE_URL, "Content-Type": "application/json" },
       body: "{}",
@@ -185,10 +185,10 @@ describe("account settings (#302)", () => {
     const cookie = await signUpAndVerify();
     await signUpAndVerify({ ...VALID_SIGNUP, email: "someone-else@example.com", username: "taken" });
 
-    const takenRes = await authedPost("/logbook/api/auth/update-user", { username: "taken" }, cookie);
+    const takenRes = await authedPost("/-/api/auth/update-user", { username: "taken" }, cookie);
     expect(takenRes.status).toBe(400);
 
-    const okRes = await authedPost("/logbook/api/auth/update-user", { username: "newname" }, cookie);
+    const okRes = await authedPost("/-/api/auth/update-user", { username: "newname" }, cookie);
     expect(okRes.status).toBe(200);
     const session = await (await getSession(cookie)).json();
     expect(session.user.username).toBe("newname");
@@ -197,14 +197,14 @@ describe("account settings (#302)", () => {
   it("changes the password, rejecting the wrong current password", async () => {
     const cookie = await signUpAndVerify();
 
-    const wrongRes = await authedPost("/logbook/api/auth/change-password", {
+    const wrongRes = await authedPost("/-/api/auth/change-password", {
       currentPassword: "not-the-password",
       newPassword: "a-brand-new-password",
     }, cookie);
     expect(wrongRes.status).toBe(400);
     expect((await wrongRes.json()).code).toBe("INVALID_PASSWORD");
 
-    const okRes = await authedPost("/logbook/api/auth/change-password", {
+    const okRes = await authedPost("/-/api/auth/change-password", {
       currentPassword: VALID_SIGNUP.password,
       newPassword: "a-brand-new-password",
     }, cookie);
@@ -218,7 +218,7 @@ describe("account settings (#302)", () => {
     const cookie = await signUpAndVerify();
     resendCalls.length = 0;
 
-    const res = await authedPost("/logbook/api/auth/change-email", { newEmail: "new@example.com" }, cookie);
+    const res = await authedPost("/-/api/auth/change-email", { newEmail: "new@example.com" }, cookie);
     expect(res.status).toBe(200);
 
     // Sent to the account's own (old) address -- server/lib/email.js's own

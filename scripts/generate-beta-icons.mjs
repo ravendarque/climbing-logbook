@@ -1,4 +1,4 @@
-// #956 -- rasterises Logbook Beta's icon sources (static/logbook/beta/
+// #956 -- rasterises Logbook Beta's icon sources (static/-/beta/
 // icon.svg and icon-maskable.svg) to the PNG sizes its manifest and the
 // apple-touch-icon need, with Playwright's Chromium. The PNGs are committed;
 // run this only after changing an SVG:
@@ -10,7 +10,7 @@
 import { chromium } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
-const DIR = "static/logbook/beta";
+const DIR = "static/-/beta";
 const OUTPUTS = [
   { svg: "icon.svg", png: "icon-192.png", size: 192 },
   { svg: "icon.svg", png: "icon-512.png", size: 512 },

@@ -1,5 +1,5 @@
 // #947, ADR-0028 -- the service worker. Bundled by the production build
-// (scripts/service-worker-build.mjs) into /sw.js with BUILD_ID and the
+// (scripts/service-worker-build.mjs) into /service-worker.js with BUILD_ID and the
 // pre-cache list injected, registered with scope "/" by owner pages only
 // (client/register-sw.js).
 //
@@ -138,7 +138,7 @@ async function staleWhileRevalidate(event) {
   return refresh;
 }
 
-// Other /logbook/ static files (icons, manifest, world-map data): the
+// Other /-/ static files (icons, manifest, world-map data): the
 // network when there is one, the last good copy when there isn't.
 async function networkFirst(event) {
   try {

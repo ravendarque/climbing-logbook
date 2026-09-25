@@ -1,7 +1,9 @@
 // #962, ADR-0028 -- builds the service worker as part of the production
 // build: bundles client/sw/index.js (and what it imports, including
 // shared/owner-routes.js) into a single classic script at the site root,
-// dist/client/sw.js, served as /sw.js. Hand-written worker, no library
+// dist/client/service-worker.js, served as /service-worker.js (#983: a
+// hyphenated name can never be a username, so it can't clash with a
+// /:username route on app hosts). Hand-written worker, no library
 // (ADR-0028 decision 11 records the ADR-0005 check).
 //
 // Runs (via scripts/post-build-plugin.mjs) in the client environment's
@@ -10,12 +12,12 @@
 // and after the asset URLs got their content hashes -- so the worker is
 // built from the final served files. Spike #957 Q5 verified this mechanism, and that
 // Workers Static Assets serves the result with a JavaScript MIME type and
-// the platform-default Cache-Control (ADR-0025 keeps sw.js out of the
+// the platform-default Cache-Control (ADR-0025 keeps the worker script out of the
 // immutable rules).
 //
 // BUILD_ID is a hash of every file the site serves (excluding the worker
 // itself and the e2e fixtures), so it changes exactly when served content
-// changes -- and a changed BUILD_ID changes sw.js's bytes, which is what
+// changes -- and a changed BUILD_ID changes the worker script's bytes, which is what
 // makes browsers install the new worker. The asset URLs are content-hashed
 // first (#961), so identical source gives an identical BUILD_ID.
 //
@@ -28,7 +30,7 @@ import { join, relative, sep } from "node:path";
 import { buildPrecacheList } from "./precache-list.mjs";
 
 const WORKER_ENTRY = "client/sw/index.js";
-const WORKER_FILE = "sw.js";
+const WORKER_FILE = "service-worker.js";
 const EXCLUDED_DIRS = new Set(["e2e-fixtures"]);
 
 function servedFiles(root, dir = root) {
@@ -48,7 +50,7 @@ export function computeBuildId(root) {
   return hash.digest("hex").slice(0, 16);
 }
 
-// Writes dist/client/sw.js. Called by scripts/post-build-plugin.mjs after
+// Writes dist/client/service-worker.js. Called by scripts/post-build-plugin.mjs after
 // the asset URLs have their final content hashes, so BUILD_ID and the
 // pre-cache list cover the HTML exactly as it will be served. `bundle` is
 // the client build's Rollup output (its chunk import graph).

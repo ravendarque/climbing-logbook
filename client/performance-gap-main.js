@@ -1,5 +1,5 @@
 // Composition root for /:username/performance/gap (#14) -- bundled by
-// esbuild into public/logbook/performance-gap-app.js, same pattern as
+// esbuild into public/-/performance-gap-app.js, same pattern as
 // client/map-main.js (see that file's own comment for the general "trimmed
 // from client/main.js" reasoning). Reuses store.js/admin-auth.js/
 // header-chrome.js unchanged.
@@ -34,7 +34,7 @@ import "./components/climbing-tab-bar.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
 
-const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
+const ADMIN_SETTINGS_URL = "/-/api/admin/settings";
 
 // Same opaqueredirect-detection reasoning as client/main.js's own
 // adminFetch/isAuthRedirect -- unchanged copy, not worth sharing a
@@ -134,7 +134,7 @@ function render() {
 // takes start/end query params and returns a shape keyed by discipline, not
 // a single `{ [key]: array }` list.
 async function fetchGap(start, end) {
-  const res = await fetch(`${demoDataUrl(USERNAME, "/logbook/api/performance/gap", "performance/gap")}?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
+  const res = await fetch(`${demoDataUrl(USERNAME, "/-/api/performance/gap", "performance/gap")}?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }

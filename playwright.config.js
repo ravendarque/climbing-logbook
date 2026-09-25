@@ -36,7 +36,7 @@ export default defineConfig({
   ],
   globalSetup: "./e2e/global-setup.js",
   webServer: {
-    // Rebuilds assets before serving, since public/logbook/{tailwind.css,
+    // Rebuilds assets before serving, since public/-/{tailwind.css,
     // map-app.js,...} are gitignored build output (see .gitignore) --
     // stale or missing bundles otherwise. Same reasoning for
     // e2e:build-fixtures (#407 Tier 1) -- public/e2e-fixtures/ is
@@ -66,7 +66,7 @@ export default defineConfig({
     env: {
       CLOUDFLARE_ENV: "e2e",
     },
-    // /login/, not /logbook/ (retired, #375) -- just needs a real, always-
+    // /login/, not /-/ (retired, #375) -- just needs a real, always-
     // reachable static page to poll for readiness, unrelated to what any
     // individual spec actually tests.
     url: `${BASE_URL}/login/`,

@@ -87,7 +87,7 @@ export async function createAuthedSession({
     throw new Error(`Unexpected fetch to ${url} -- only Resend/Turnstile calls should reach real fetch() during createAuthedSession()`);
   }));
 
-  await request("/logbook/api/auth/sign-up/email", {
+  await request("/-/api/auth/sign-up/email", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -100,7 +100,7 @@ export async function createAuthedSession({
   });
 
   const token = decodeURIComponent(capturedHtml.match(/token=([^"&<?]+)/)[1]);
-  const res = await request(`/logbook/api/auth/verify-email?token=${token}`);
+  const res = await request(`/-/api/auth/verify-email?token=${token}`);
   const cookie = res.headers.get("set-cookie").split(";")[0];
 
   vi.unstubAllGlobals();
@@ -116,7 +116,7 @@ export async function createAuthedSession({
 export async function seedPlace(cookie, { locationName = "Magic Wood", country = "Switzerland", area = "Sector 1" } = {}) {
   const locRes = await jsonRequest(
     "POST",
-    "/logbook/api/admin/locations",
+    "/-/api/admin/locations",
     { name: locationName, country },
     { Cookie: cookie }
   );
@@ -125,7 +125,7 @@ export async function seedPlace(cookie, { locationName = "Magic Wood", country =
 
   const placeRes = await jsonRequest(
     "POST",
-    "/logbook/api/admin/places",
+    "/-/api/admin/places",
     { locationId, area },
     { Cookie: cookie }
   );

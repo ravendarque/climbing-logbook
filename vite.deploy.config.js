@@ -55,7 +55,7 @@ import { postBuildPlugin } from "./scripts/post-build-plugin.mjs";
 export default defineConfig({
   // #961/#962 -- postBuildPlugin() finishes the client build once its
   // output is written: content-hashes the ?v= asset URLs in the built HTML,
-  // then builds /sw.js from client/sw/ (scripts/post-build-plugin.mjs).
+  // then builds /service-worker.js from client/sw/ (scripts/post-build-plugin.mjs).
   plugins: [cloudflare(), postBuildPlugin()],
   preview: {
     port: 8787,
@@ -82,15 +82,15 @@ export default defineConfig({
           input: CLIENT_ENTRIES,
           output: {
             // Stable, unhashed entry names -- #760's views/*.njk
-            // templates already reference `/logbook/<bundle>-app.js`
+            // templates already reference `/-/<bundle>-app.js`
             // literally; keeping this stable means zero template
             // changes. Only shared chunks get content hashes (cache-
             // busting matters there; entries are already cache-busted
             // at the deploy level by whatever cache headers/versioning
             // this app's CDN config uses today, unchanged by this
             // migration).
-            entryFileNames: "logbook/[name]-app.js",
-            chunkFileNames: "logbook/chunks/[name]-[hash].js",
+            entryFileNames: "-/[name]-app.js",
+            chunkFileNames: "-/chunks/[name]-[hash].js",
           },
         },
       },

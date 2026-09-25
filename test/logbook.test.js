@@ -13,8 +13,8 @@ import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables, seedPlace
 // calls it with, not a new testing style for the rest of the file.
 import { handlePublicGet, publicRowToJson } from "../server/api/logbook.js";
 
-const PUBLIC_URL = "/logbook/api/logbook";
-const ADMIN_URL = "/logbook/api/admin/logbook";
+const PUBLIC_URL = "/-/api/logbook";
+const ADMIN_URL = "/-/api/admin/logbook";
 
 // Beta gate (#296) is orthogonal to what this file tests -- disabled here
 // the same way test/auth.test.js/test/email.test.js do, since
@@ -40,7 +40,7 @@ beforeEach(async () => {
 // belongs to via the real API, rather than widening seedPlace()'s own
 // return shape for the sake of this one file's new tests.
 async function locationIdOf(id, extraCookie = cookie) {
-  const { places } = await (await fetchJson("/logbook/api/places", { headers: { Cookie: extraCookie } })).json();
+  const { places } = await (await fetchJson("/-/api/places", { headers: { Cookie: extraCookie } })).json();
   return places.find(p => p.id === id).locationId;
 }
 
@@ -226,7 +226,7 @@ describe("handleGet (locationId -- #111 per-table pagination)", () => {
   it("returns only that location's entries, across every place under it", async () => {
     // A second place under the SAME location -- proves this aggregates
     // across places, not just one.
-    const secondPlaceId = (await (await jsonRequest("POST", "/logbook/api/admin/places", { locationId, area: "Second Area" }, { Cookie: cookie })).json()).places.at(-1).id;
+    const secondPlaceId = (await (await jsonRequest("POST", "/-/api/admin/places", { locationId, area: "Second Area" }, { Cookie: cookie })).json()).places.at(-1).id;
     const otherLocationPlaceId = await seedPlace(cookie, { locationName: "Other Crag" });
     await post(validEntry());
     await post({ ...validEntry(), name: "Second Area Route", placeId: secondPlaceId });
@@ -906,7 +906,7 @@ describe("publicRowToJson / handlePublicGet (Task 7 -- public profile exclusions
 
   it("handlePublicGet's response has no rpe/attemptsToSend/moves/painMoves keys on any entry", async () => {
     await post({ ...validEntry(), rpe: 80, attemptsToSend: 5, moves: [validMoveRow()], painMoves: [validPainRow()] });
-    const request = new Request("https://example.com/logbook/api/logbook");
+    const request = new Request("https://example.com/-/api/logbook");
     const res = await handlePublicGet(request, env, userId);
     const { entries } = await res.json();
     expect(entries).toHaveLength(1);

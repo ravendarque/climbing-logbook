@@ -12,8 +12,8 @@
 // runs, and iOS reads them at "Add to Home Screen" time -- a link swapped
 // by JavaScript isn't reliably what gets installed.
 const BETA_VARIANTS = {
-  "/logbook/manifest.json": "/logbook/beta/manifest.json",
-  "/logbook/apple-touch-icon.png": "/logbook/beta/apple-touch-icon.png",
+  "/-/manifest.json": "/-/beta/manifest.json",
+  "/-/apple-touch-icon.png": "/-/beta/apple-touch-icon.png",
 };
 
 export const PER_HOST_ASSET_PATHS = Object.keys(BETA_VARIANTS);

@@ -38,7 +38,7 @@ export async function handleGetSettings(request, env, userId) {
   });
 }
 
-// Reachable only via /logbook/api/admin/settings -- server/index.js's
+// Reachable only via /-/api/admin/settings -- server/index.js's
 // authorization step already 401s before dispatching here, so userId is
 // always real.
 //

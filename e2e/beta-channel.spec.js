@@ -15,7 +15,7 @@ async function useSessionOnBeta(context) {
 }
 
 async function setEnrollment(page, enrolled) {
-  const res = await page.request.patch("http://localhost:8787/logbook/api/admin/settings", { data: { betaOptIn: enrolled } });
+  const res = await page.request.patch("http://localhost:8787/-/api/admin/settings", { data: { betaOptIn: enrolled } });
   expect(res.ok()).toBe(true);
 }
 
@@ -26,7 +26,7 @@ test.describe("beta channel enrollment check", () => {
   test("a not-enrolled user sees the message, keeps the header, and the page never loads its data", async ({ page }) => {
     await setEnrollment(page, false);
     const dataRequests = [];
-    page.on("request", req => { if (/\/logbook\/api\/(logbook|places|locations)\b/.test(req.url())) dataRequests.push(req.url()); });
+    page.on("request", req => { if (/\/-\/api\/(logbook|places|locations)\b/.test(req.url())) dataRequests.push(req.url()); });
 
     await page.goto(`${BETA}/${DEV_USER.username}/log`);
     const message = page.locator("#beta-not-enrolled");
@@ -70,7 +70,7 @@ test.describe("Logbook Beta's identity", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Climbing Logbook Beta");
     await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#ffb020");
     // (Fetched by the page: Chromium resolves *.localhost, Node doesn't.)
-    const manifest = await page.evaluate(async () => (await fetch("/logbook/manifest.json")).json());
+    const manifest = await page.evaluate(async () => (await fetch("/-/manifest.json")).json());
     expect(manifest.short_name).toBe("Logbook Beta");
   });
 
@@ -81,7 +81,7 @@ test.describe("Logbook Beta's identity", () => {
     await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
     await expect(page.locator("#beta-badge")).toHaveCount(0);
     await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#ff2727");
-    const manifest = await page.evaluate(async () => (await fetch("/logbook/manifest.json")).json());
+    const manifest = await page.evaluate(async () => (await fetch("/-/manifest.json")).json());
     expect(manifest.short_name).toBe("Logbook");
   });
 });

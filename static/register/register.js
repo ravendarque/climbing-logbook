@@ -70,7 +70,7 @@ form.addEventListener("submit", async (event) => {
   }
 
   try {
-    const res = await fetch("/logbook/api/auth/sign-up/email", {
+    const res = await fetch("/-/api/auth/sign-up/email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
