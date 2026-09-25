@@ -89,3 +89,29 @@ test("rejects sign-up with no invite code", async ({ page }) => {
   // focus moving there too means a sighted keyboard user notices it.
   await expect(page.locator("#register-error")).toBeFocused();
 });
+
+// #997 -- the username policy rejects a lookalike of a reserved name with
+// the same "isn't available" wording for every rule, and the invite code
+// isn't used up by the rejected attempt (#379's claim/release).
+test("a reserved-lookalike username isn't available, and the invite code still works", async ({ page }) => {
+  const code = `e2e-reserved-${Date.now()}`;
+  seedInviteCode(code);
+
+  await mockTurnstile(page);
+  await page.goto("/register/");
+  await waitForTurnstile(page);
+  await page.locator("#code").fill(code);
+  await page.locator("#email").fill(`e2e-reserved-${Date.now()}@example.com`);
+  await page.locator("#username").fill("he1p");
+  await page.locator("#password").fill("correct-horse-battery-staple");
+  await page.locator("#register-submit-btn").click();
+
+  await expect(page.locator("#register-error")).toHaveText("That username isn't available. Try another.");
+  await expect(page.locator("#register-error")).toBeFocused();
+  await expect(page.locator("#register-success")).toBeHidden();
+
+  await waitForTurnstile(page);
+  await page.locator("#username").fill(`e2ereserved${Date.now()}`);
+  await page.locator("#register-submit-btn").click();
+  await expect(page.locator("#register-success")).toBeVisible();
+});

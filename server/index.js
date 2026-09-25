@@ -136,6 +136,13 @@ export default {
     if (pathname === "/-/api/auth/sign-up/email" && method === "POST") {
       return handleBetaGatedSignUp(request, env, createAuth(env, hostname));
     }
+    // #1000 -- the username plugin's availability check answers anyone
+    // whether an account exists, which undoes the anti-enumeration 404s
+    // elsewhere (#113, #351). Nothing in the app calls it, so it's just
+    // another unknown route.
+    if (pathname === "/-/api/auth/is-username-available") {
+      return new Response("Not found", { status: 404 });
+    }
     if (pathname.startsWith("/-/api/auth/")) {
       return createAuth(env, hostname).handler(request);
     }

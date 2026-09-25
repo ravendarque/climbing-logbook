@@ -19,3 +19,11 @@ export function resolveBetaXUrl(hostname, pathname) {
   if (hostname !== "my.climbinglogbook.com") return pathname;
   return `https://beta.climbinglogbook.com${pathname}`;
 }
+
+// resolveApexUrl: a link from an app host (my.x/beta.x) to an apex-only
+// page, such as /help/* (#953). App hosts serve only the app itself, so
+// help always lives on the apex.
+export function resolveApexUrl(hostname, pathname) {
+  if (hostname !== "my.climbinglogbook.com" && hostname !== "beta.climbinglogbook.com") return pathname;
+  return `https://climbinglogbook.com${pathname}`;
+}
