@@ -33,6 +33,8 @@ export function createEntryForm({
   isAuthRedirect,
   getQueue,
   setQueue,
+  enqueue,
+  syncPending,
   entriesWriteUrl,
   locationsWriteUrl,
   placesWriteUrl,
@@ -105,7 +107,7 @@ export function createEntryForm({
 
   const placePicker = createPlacePicker({
     store, openModal, closeModal, adminFetch, isAuthRedirect,
-    getQueue, setQueue,
+    getQueue, enqueue,
     locationsWriteUrl, placesWriteUrl,
   });
 
@@ -599,6 +601,13 @@ export function createEntryForm({
   document.getElementById("entry-close").addEventListener("click", () => closeModal(entryOverlay));
   entryOverlay.addEventListener("click", e => { if (e.target === entryOverlay) closeModal(entryOverlay); });
 
+  function queueAndSync(item) {
+    enqueue(item);
+    store.applyPendingQueue(getQueue());
+    closeModal(entryOverlay);
+    if (store.isLoggedIn()) syncPending();
+  }
+
   // ── Submit (online -> API, offline -> queue) ───────────────────────────
   entryForm.addEventListener("submit", async e => {
     e.preventDefault();
@@ -647,6 +656,17 @@ export function createEntryForm({
 
     const op = editingId ? "edit" : "add";
 
+    // #1077 -- a save never overtakes older queued writes. Sent straight
+    // to the server, it would be followed by an older queued edit to the
+    // same entry when the queue next syncs, and that edit would undo it.
+    // So while anything is queued, this goes to the back of the queue and
+    // the queue drains in order now.
+    if (getQueue().length) {
+      queueAndSync({ kind: "entry", op, record: entry });
+      entrySubmitBtns.forEach(btn => { btn.disabled = false; });
+      return;
+    }
+
     try {
       const res = await adminFetch(entriesWriteUrl, {
         method: editingId ? "PUT" : "POST",
@@ -678,9 +698,7 @@ export function createEntryForm({
       if (err.message === "not-authenticated") {
         store.setLoggedIn(false); // Store mutation -- notify() covers the admin-bar update (#264)
       }
-      const queue = getQueue();
-      queue.push({ kind: "entry", op, record: entry });
-      setQueue(queue);
+      enqueue({ kind: "entry", op, record: entry });
       store.applyPendingQueue(getQueue());
       closeModal(entryOverlay);
     }
@@ -697,6 +715,13 @@ export function createEntryForm({
     entryMsg.className = "hidden";
     const id = editingId;
     const entrySnapshot = store.getEntries().find(e => e.id === id);
+
+    // #1077 -- same rule as a save: queued behind anything older.
+    if (getQueue().length) {
+      queueAndSync({ kind: "entry", op: "delete", record: entrySnapshot ?? { id } });
+      entryDeleteBtn.disabled = false;
+      return;
+    }
 
     // Always attempts the real DELETE now, even for an entry that only
     // ever existed as a queued, never-synced add (#268) -- the old
@@ -736,9 +761,7 @@ export function createEntryForm({
       if (err.message === "not-authenticated") {
         store.setLoggedIn(false); // Store mutation -- notify() covers the admin-bar update (#264)
       }
-      const queue = getQueue();
-      queue.push({ kind: "entry", op: "delete", record: entrySnapshot ?? { id } });
-      setQueue(queue);
+      enqueue({ kind: "entry", op: "delete", record: entrySnapshot ?? { id } });
       store.applyPendingQueue(getQueue());
       closeModal(entryOverlay);
     }
