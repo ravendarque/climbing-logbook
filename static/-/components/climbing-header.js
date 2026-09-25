@@ -33,6 +33,13 @@
   // over the manifest's theme_color, so it's switched here.
   var IS_BETA = location.hostname.indexOf("beta.") === 0;
   var BETA_THEME_COLOR = "#ffcc00";
+
+  // #1015 -- the brand lockup's sizes (units of 1/1000 of --brand-scale)
+  // and the "or not" box, from the same run that wrote
+  // static/-/brand-lockup.svg.
+  // BEGIN GENERATED (scripts/generate-brand-lockup.mjs)
+  var LOCKUP = { width: 7781.3, betaWidth: 8357, height: 1146.8, orNot: { x: 6892.8, y: 852.4, width: 791, height: 255.4 } };
+  // END GENERATED
   if (IS_BETA) {
     var themeColor = document.querySelector('meta[name="theme-color"]');
     if (themeColor) themeColor.setAttribute("content", BETA_THEME_COLOR);
@@ -444,108 +451,53 @@
   // let alone before first paint.
   injectTokens();
 
-  // Exact markup/classes from public/-/index.html's former
-  // #brand-header-row and #footnote-overlay -- reused, not reinvented.
-  // See #208 for the logo's cap-height/baseline alignment derivation and
-  // #356 for why the logo uses fill="currentColor" rather than a
-  // hardcoded hex. The footnote trigger/modal is specific to this
-  // component (it only ever appears as part of it, per Raven, 2026-08-07)
-  // so its open/close/focus-trap behavior is wired below, self-contained
-  // -- not sharing client/modal-utils.js's createModalHelpers(), which
+  // The footnote trigger/modal is specific to this component (it only
+  // ever appears as part of it, per Raven, 2026-08-07) so its
+  // open/close/focus-trap behavior is wired below, self-contained -- not
+  // sharing client/modal-utils.js's createModalHelpers(), which
   // coordinates a fixed multi-overlay stacking list specific to whichever
   // page instantiates it. Consuming pages that also use that shared
   // modal machinery for other overlays (client/content-overlays.js,
   // client/modal-utils.js) need to leave the footnote out of their own
   // config, since this component already owns it end to end -- see
   // those files' own comments (#348).
-  //
-  // alignLeft (new, 2026-08-10): login/register/reset-password/apex are
-  // narrow single-column pages, where centering this row (the default)
-  // is correct -- but #348 later added /:username/{log,map,performance}
-  // and the public profile page as consumers, and those are left-aligned
-  // dashboard layouts matching /logbook's own #brand-header-row (no
-  // justify-center there, no text-center on the tagline). Reusing the
-  // centered markup unmodified for those four was wrong -- found via
-  // Raven's production report. alignLeft is opt-in (default false) so
-  // the four original, unaffected consumers don't change at all.
   function brandHtml(alignLeft) {
-    // #789 -- every size below is `calc(var(--brand-scale) * <ratio to
-    // the h1's own font-size>)`, so the whole lockup shrinks/grows as
-    // one rigid unit (see --brand-scale's own comment, in TOKENS_CSS,
-    // for why -- including why this is a length-times-number, not the
-    // reverse, after a Firefox-only bug in the first version of this).
-    // No property here has its own independent breakpoint any more --
-    // that was the actual bug (see #789/#791 history: the logo, h1 and
-    // tagline each had their own max-[600px]/max-[400px] rules that
-    // didn't even reduce by the same ratio as each other, so
-    // "unwrappable" and "in proportion" kept failing together). Ratios
-    // are each original value's own size relative to the h1's original
-    // 2.4rem: tagline .8512/2.4, logo width 54.272px/38.4px, logo
-    // height 42.4px/38.4px, logo margin 4.48px/38.4px, row gap
-    // .26rem/2.4rem, h1's own margin -.3rem/2.4rem.
-    var rowClass = alignLeft
-      ? "flex items-end gap-[calc(var(--brand-scale)*0.1083)] mb-4"
-      : "flex items-end justify-center gap-[calc(var(--brand-scale)*0.1083)] mb-4";
-    // whitespace-nowrap -- found live (Raven's report, 2026-09-19, a
-    // real 312px-wide device): the h1 already had this (#789), but the
-    // tagline never did, so IT was the one that wrapped once the
-    // tagline's own text (longer than the h1's, just rendered smaller)
-    // ran out of room -- the exact same class of bug #789 fixed for
-    // the h1, just on the other element.
-    var taglineClass = "font-display font-normal uppercase tracking-wide leading-none whitespace-nowrap text-[calc(var(--brand-scale)*0.3547)] text-muted mb-0" + (alignLeft ? "" : " text-center");
+    // #1015 -- the lockup (mark, title, tagline, and Logbook Beta's tag on
+    // beta) is ONE image, static/-/brand-lockup.svg, generated from Bebas
+    // Neue by scripts/generate-brand-lockup.mjs. As separate HTML boxes,
+    // each part was pixel-snapped and placed from the font's ascent
+    // metrics on its own, so they drifted against each other with zoom
+    // level and platform (#1012). One viewBox can't drift. It still
+    // realises #208's alignment (the mark's top on the title's ink top,
+    // its bottom on the tagline's baseline) and #789's single
+    // --brand-scale, now exactly rather than via CSS box maths.
+    //
+    // The <svg> is decoration (aria-hidden); the heading and tagline are
+    // real, visually hidden text, so screen readers get "Climbing
+    // Logbook" (plus "Beta" on beta) as the h1, then the tagline. The
+    // "or not" footnote trigger stays a real <button>, laid over its drawn
+    // words in percentages of the lockup's box so it scales with it.
+    //
+    // Colours come from the page's theme tokens, which inherit into <use>.
+    // The file's URL is the <link rel="preload"> each page's <head> has,
+    // which the build gives a content hash (?v=) -- so an update always
+    // reaches browsers despite the immutable caching -- and which puts it
+    // in the service worker's pre-cache for offline use.
+    //
+    // alignLeft: login/register/reset-password/apex centre the lockup; the
+    // owner and profile pages are left-aligned dashboards (#348).
+    var width = IS_BETA ? LOCKUP.betaWidth : LOCKUP.width;
+    var pct = function (n, of) { return (n / of * 100).toFixed(3) + "%"; };
+    var orNot = LOCKUP.orNot;
     return (
-      '<div class="' + rowClass + '" id="brand-header-row">' +
-      '  <div class="shrink-0 flex mb-[calc(var(--brand-scale)*0.1167)]">' +
-      '    <svg class="w-[calc(var(--brand-scale)*1.4133)] h-[calc(var(--brand-scale)*1.1042)]" viewBox="0 14.4 122.88 96" aria-hidden="true">' +
-      '      <path d="M45.6,14.4l23.718,48l-2.99,6l-21.689,0l10.843,21.6l-10.142,20.4l-45.342,0l45.6,-96Z" fill="currentColor"/>' +
-      '      <path d="M85.203,37.2l16.333,31.2l-10.787,21.6l21.63,0l10.501,20.4l-74.042,0l36.364,-73.2Z" fill="currentColor"/>' +
+      '<div class="flex' + (alignLeft ? "" : " justify-center") + ' mb-4" id="brand-header-row">' +
+      '  <div class="relative shrink-0" style="width:calc(var(--brand-scale) * ' + (width / 1000) + ');aspect-ratio:' + width + ' / ' + LOCKUP.height + '">' +
+      '    <svg class="block w-full h-full" viewBox="0 0 ' + width + ' ' + LOCKUP.height + '" aria-hidden="true" id="brand-lockup">' +
+      '      <use href="' + lockupUrl() + (IS_BETA ? "#lockup-beta" : "#lockup") + '" width="' + width + '" height="' + LOCKUP.height + '"/>' +
       '    </svg>' +
-      '  </div>' +
-      '  <div>' +
-      // #789 -- whitespace-nowrap: the title has no wrap
-      // opportunity of its own (it's meant to read as one wordmark).
-      // Without it, a narrow flex row (this brand block is a sibling of
-      // the sync icon+burger-menu group in climbing-page-header's own
-      // space-between row) could squeeze this element's box below its
-      // natural text width, and the browser filled that by wrapping
-      // "Climbing"/"Logbook" onto two lines -- the original bug report.
-      // nowrap forbids that escape valve entirely (so it can never
-      // wrap, regardless of available space); --brand-scale is what
-      // keeps the now-unshrinkable text a sensible size at narrow
-      // viewports instead of just overflowing.
-      // [font-size:var(--brand-scale)], not text-[var(--brand-scale)] --
-      // found live (Raven's report, 2026-09-18): the `text-` prefix is
-      // ambiguous between Tailwind's font-size and text-color utilities,
-      // and a bare var() with no calc()/unit hint resolves that
-      // ambiguity as a COLOR arbitrary value (compiles to `color:
-      // var(--brand-scale)`, not `font-size: ...`) -- silently a no-op
-      // here since --brand-scale is a length, invalid as a color, so
-      // the h1 fell back to the browser's own default h1 sizing
-      // regardless of viewport. The explicit property syntax (already
-      // used by this file's own footnote-trigger button, below) has no
-      // such ambiguity to resolve.
-      '    <h1 class="font-display font-normal uppercase tracking-wide [font-size:var(--brand-scale)] leading-none mb-[calc(var(--brand-scale)*-0.125)] whitespace-nowrap"><span class="text-accent">Climbing</span> <span class="text-foreground relative">Logbook' +
-      // #956, #1012 -- Raven's design: a yellow tag leaning like the K's
-      // arm (26.6 degrees, 1 across per 2 down), level with the top of
-      // LOGBOOK and clear of the K, with BETA centred in it. Proportions
-      // come from Raven's draft, in font units (cap height 700 per 1000).
-      //
-      // It hangs off a zero-size anchor sitting on the text baseline, and
-      // the word is glyph outlines (as in the app icons), so where it lands
-      // doesn't depend on how a browser reads the font's ascent metrics.
-      // Its top is the capitals' top: 0.434 + 0.283 = 0.717 of the font
-      // size above the baseline (Bebas' caps as rendered, a hair over the
-      // nominal 0.7). The offsets are a transform, not left/bottom, because
-      // Chromium snaps a positioned SVG's box to whole CSS pixels while the
-      // text beside it renders at subpixel positions.
-      // Absolutely positioned, so it adds no width to a row that must
-      // never wrap (#789). It's decoration: the heading's text stays
-      // "Climbing Logbook Beta" through the sr-only word.
-      (IS_BETA
-        ? '<span class="relative inline-block w-0 h-0" id="beta-badge" aria-hidden="true"><svg class="absolute left-0 bottom-0 -translate-x-[calc(var(--brand-scale)*0.107)] -translate-y-[calc(var(--brand-scale)*0.434)] w-[calc(var(--brand-scale)*0.7625)] h-[calc(var(--brand-scale)*0.283)]" viewBox="0 0 722 268"><polygon points="134,0 722,0 588,268 0,268" fill="#ffcc00"/><g transform="translate(170.4,216.5) scale(0.235,-0.235)" fill="#0f0f0f"><path transform="translate(0.0,0)" d="M41 0H214C324 0 381 58 381 166V226C381 300 358 352 299 372V374C348 394 370 439 370 511V539C370 647 321 700 207 700H41ZM151 415V600H204C243 600 260 578 260 528V489C260 433 235 415 194 415ZM151 100V315H200C250 315 271 295 271 230V169C271 117 251 100 214 100Z"/><path transform="translate(434.0,0)" d="M41 0H341V100H151V315H302V415H151V600H341V700H41Z"/><path transform="translate(827.0,0)" d="M127 0H237V600H352V700H12V600H127Z"/><path transform="translate(1221.0,0)" d="M12 0H114L134 137H259V139L279 0H389L275 700H126ZM147 232 195 578H197L246 232Z"/></g></svg></span><span class="sr-only"> Beta</span>'
-        : '') +
-      '</span></h1>' +
-      '    <p class="' + taglineClass + '">Log your climbs, visualise your progress (<button type="button" class="inline [font-size:inherit] bg-transparent border-0 p-0 cursor-pointer text-accent" id="footnote-trigger">or not</button>)</p>' +
+      '    <h1 class="sr-only">Climbing Logbook' + (IS_BETA ? " Beta" : "") + '</h1>' +
+      '    <p class="sr-only">Log your climbs, visualise your progress</p>' +
+      '    <button type="button" class="absolute bg-transparent border-0 p-0 cursor-pointer" id="footnote-trigger" style="left:' + pct(orNot.x, width) + ';top:' + pct(orNot.y, LOCKUP.height) + ';width:' + pct(orNot.width, width) + ';height:' + pct(orNot.height, LOCKUP.height) + '"><span class="sr-only">or not</span></button>' +
       '  </div>' +
       '</div>' +
       '<div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-center justify-center px-4 py-6 overflow-y-auto" id="footnote-overlay" hidden role="dialog" aria-modal="true" aria-label="Or not" tabindex="-1">' +
@@ -557,6 +509,13 @@
       '  </div>' +
       '</div>'
     );
+  }
+
+  // The content-hashed URL from the page's preload link (see brandHtml).
+  // Dev builds and any page without the link fall back to the bare path.
+  function lockupUrl() {
+    var link = document.querySelector('link[rel="preload"][href^="/-/brand-lockup.svg"]');
+    return link ? link.getAttribute("href") : "/-/brand-lockup.svg";
   }
 
   function focusableEls(overlay) {

@@ -51,6 +51,8 @@
   Cache-Control: public, max-age=31556952, immutable
 /-/components/*
   Cache-Control: public, max-age=31556952, immutable
+/-/brand-lockup.svg
+  Cache-Control: public, max-age=31556952, immutable
 /-/log-app.js
   Cache-Control: public, max-age=31556952, immutable
 /-/map-app.js
