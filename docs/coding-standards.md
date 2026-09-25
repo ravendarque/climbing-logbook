@@ -140,8 +140,10 @@ why Better Auth replaced Cloudflare Access as the mechanism itself.
   every username, on sign-up and on change, via Better Auth's
   `usernameValidator`. It covers the format, the demo accounts, reserved
   names and their lookalikes (`he1p`, `log_in`), authority words as part
-  of a name (`admin_raven`), and the brand. The lists are data in
-  `shared/reserved-usernames.js`. Adding a name takes a PR with a test;
+  of a name (`admin_raven`), the brand, and slurs and hate speech (read
+  through leet and repeated letters via obscenity; swearing and political
+  terms aren't blocked). The lists are data in
+  `shared/reserved-usernames.js` and `shared/blocked-username-terms.js`. Adding a name takes a PR with a test;
   then run `pnpm audit:usernames --remote` to find existing accounts that
   already have it. The script only reports, so a person decides what
   happens to each account.

@@ -13,9 +13,16 @@
 // 4. No part of the name, split on "." and "_", is an authority word
 //    (admin_raven, raven.support).
 // 5. Doesn't contain the brand anywhere (the_climbinglogbook).
+// 6. Contains no slur or hate-speech term (shared/blocked-username-terms.js),
+//    read through leet, lookalikes and repeated letters, with "." and "_"
+//    treated both as word breaks (raven_spic) and as nothing (white_power).
 //
 // A rejection is reported only as "unavailable" to the person registering
 // (static/register/register.js), so the lists can't be probed rule by rule.
+import {
+  DataSet, RegExpMatcher, englishDataset, englishRecommendedTransformers, parseRawPattern,
+} from "obscenity";
+import { ALLOWED_TERMS, EXTRA_PATTERNS, OBSCENITY_PHRASES, RAW_TERMS } from "./blocked-username-terms.js";
 import { DEMO_USERNAMES } from "./demo-personas.js";
 import { AUTHORITY_TOKENS, BRAND_TERMS, RESERVED_USERNAMES } from "./reserved-usernames.js";
 
@@ -45,6 +52,29 @@ const RESERVED = skeletonSet(RESERVED_USERNAMES);
 const AUTHORITY = skeletonSet(AUTHORITY_TOKENS);
 const BRAND = BRAND_TERMS.flatMap(skeletons);
 
+const hateTerms = new DataSet()
+  .addAll(englishDataset)
+  .removePhrasesIf(phrase => !OBSCENITY_PHRASES.includes(phrase.metadata?.originalWord));
+for (const [word, patterns] of Object.entries(EXTRA_PATTERNS)) {
+  hateTerms.addPhrase(phrase => {
+    phrase.setMetadata({ originalWord: word });
+    for (const raw of patterns) phrase.addPattern(parseRawPattern(raw));
+    return phrase;
+  });
+}
+hateTerms.addPhrase(phrase => {
+  for (const term of ALLOWED_TERMS) phrase.addWhitelistedTerm(term);
+  return phrase;
+});
+const HATE = new RegExpMatcher({ ...hateTerms.build(), ...englishRecommendedTransformers });
+
+function containsHateTerm(candidate) {
+  const joined = candidate.replace(/[._]/g, "");
+  return RAW_TERMS.some(term => joined.includes(term))
+    || HATE.hasMatch(candidate.replace(/[._]/g, " "))
+    || HATE.hasMatch(joined);
+}
+
 // { ok: true } or { ok: false, reason } -- reason is for tests and
 // scripts/audit-usernames.mjs, never shown to the person registering.
 export function checkUsername(candidate) {
@@ -58,5 +88,6 @@ export function checkUsername(candidate) {
   const parts = candidate.split(/[._]/).filter(Boolean);
   if (parts.some(part => skeletons(part).some(form => AUTHORITY.has(form)))) return { ok: false, reason: "authority" };
   if (forms.some(form => BRAND.some(brand => form.includes(brand)))) return { ok: false, reason: "brand" };
+  if (containsHateTerm(candidate)) return { ok: false, reason: "hate" };
   return { ok: true };
 }
