@@ -73,7 +73,7 @@ jobs:
       - run: pnpm run html:build
       - run: pnpm run tailwind:build
       # #391 -- these were missing entirely, so /map and /performance 404'd
-      # on their JS bundle on every preview deployment (public/logbook/
+      # on their JS bundle on every preview deployment (public/-/
       # map-app.js and the performance-pyramid-app.js/performance-hub-
       # app.js pair are gitignored build output -- nothing else ever
       # produces them).

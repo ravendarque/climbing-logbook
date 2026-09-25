@@ -58,7 +58,7 @@ const TABS = [
 
 // #211/#465 -- was a locally-owned Tailwind utility string (including its
 // own no-underline fix, Raven's production report 2026-08-10); now the
-// shared .tab-nav-item rule in public/logbook/components/climbing-header.js
+// shared .tab-nav-item rule in public/-/components/climbing-header.js
 // -- see that rule's own comment for why this is shared with public/
 // profile/index.html's #view-tabs despite the two being genuinely
 // different components.

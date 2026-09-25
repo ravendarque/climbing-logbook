@@ -1,5 +1,5 @@
 // Composition root for /:username/performance/strengths (#13) -- bundled by
-// esbuild into public/logbook/performance-strengths-app.js, same pattern as
+// esbuild into public/-/performance-strengths-app.js, same pattern as
 // client/map-main.js (see that file's own comment for the general "trimmed
 // from client/main.js" reasoning). Reuses store.js/admin-auth.js/
 // header-chrome.js unchanged.
@@ -29,7 +29,7 @@ import "./components/climbing-tab-bar.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
 
-const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
+const ADMIN_SETTINGS_URL = "/-/api/admin/settings";
 
 // Same opaqueredirect-detection reasoning as client/main.js's own
 // adminFetch/isAuthRedirect -- unchanged copy, not worth sharing a
@@ -45,7 +45,7 @@ function isAuthRedirect(res) {
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 // #251 -- one of the three seeded, publicly-viewable demo accounts.
 const IS_DEMO = isDemoUsername(USERNAME);
-const STRENGTHS_URL = demoDataUrl(USERNAME, "/logbook/api/performance/strengths", "performance/strengths");
+const STRENGTHS_URL = demoDataUrl(USERNAME, "/-/api/performance/strengths", "performance/strengths");
 
 const store = createStore();
 const syncStatusIcon = createSyncStatusIcon();

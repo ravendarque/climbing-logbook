@@ -2,7 +2,7 @@
 // the public, read-only /:username page. Same fixture-harness pattern as
 // e2e/log-page.spec.js (see that file's own header comment) -- the real
 // client/profile-main.js -> profile-app.js bundle against a verbatim copy
-// of public/profile/index.html, with fabricated /logbook/api/public/*
+// of public/profile/index.html, with fabricated /-/api/public/*
 // responses (mockApi() glob-matches these regardless of the harness's own
 // synthetic :username).
 import { expect, test } from "@playwright/test";
@@ -242,7 +242,7 @@ test("shell-then-expand: collapsed with a count badge by default, expands to rea
 
   const logbookRequests = [];
   page.on("request", req => {
-    if (req.url().includes("/logbook/api/public/") && req.url().includes("/logbook?")) logbookRequests.push(req.url());
+    if (req.url().includes("/-/api/public/") && req.url().includes("/logbook?")) logbookRequests.push(req.url());
   });
 
   await page.goto("/e2e-fixtures/pages/profile.html");
@@ -287,7 +287,7 @@ test("#470 -- shows a loading state before the counts-only shell fetch resolves,
   let resolveCounts;
   const countsDelay = new Promise(resolve => { resolveCounts = resolve; });
   await mockApi(page, { entries: [], places: [], locations: [] });
-  await page.route("**/logbook/api/public/*/logbook/counts", async route => {
+  await page.route("**/-/api/public/*/logbook/counts", async route => {
     await countsDelay;
     return route.fallback();
   });

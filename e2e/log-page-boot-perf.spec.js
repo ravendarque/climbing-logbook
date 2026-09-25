@@ -33,7 +33,7 @@ test("log page renders real content within a generous local budget, no artificia
   await page.goto(ownedRouteUrl("devuser", "/log"));
   // A real rendered location section, not just DOM-attached markup.
   // Confirmed empirically (2026-09-19, an isolated Playwright run that
-  // artificially delayed /logbook/api/places and /logbook/api/locations
+  // artificially delayed /-/api/places and /-/api/locations
   // by 4s each): this renders in ~440ms regardless, well before either
   // resolves -- client/log-main.js's own boot() calls
   // store.loadEntriesFromCache() (synchronous, no network) before

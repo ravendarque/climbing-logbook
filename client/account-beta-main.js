@@ -1,5 +1,5 @@
 // Composition root for /:username/account/beta (#953, ADR-0029 decision
-// 5) -- bundled into public/logbook/account-beta-app.js. Joining and
+// 5) -- bundled into public/-/account-beta-app.js. Joining and
 // leaving the beta: a short explanation of what changes, then one button
 // that writes the setting and takes you to the right app. Replaced the
 // <beta-opt-in-modal> the account hub used to open.
@@ -16,7 +16,7 @@ import { userKey } from "./user-storage.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
 
-const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
+const ADMIN_SETTINGS_URL = "/-/api/admin/settings";
 // This origin's offline queue (client/log-main.js's QUEUE_KEY).
 const QUEUE_KEY = userKey("logbook_pending_queue");
 

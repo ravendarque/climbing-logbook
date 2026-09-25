@@ -44,10 +44,10 @@ test("stable-named entry files serve from disk cache, not network, on a repeat v
     const resources = performance.getEntriesByType("resource");
     const find = substring => resources.find(e => e.name.includes(substring))?.transferSize;
     return {
-      tailwindCss: find("/logbook/tailwind.css"),
-      logApp: find("/logbook/log-app.js"),
-      climbingHeader: find("/logbook/components/climbing-header.js"),
-      aChunk: find("/logbook/chunks/"),
+      tailwindCss: find("/-/tailwind.css"),
+      logApp: find("/-/log-app.js"),
+      climbingHeader: find("/-/components/climbing-header.js"),
+      aChunk: find("/-/chunks/"),
     };
   });
 
@@ -57,13 +57,13 @@ test("stable-named entry files serve from disk cache, not network, on a repeat v
   expect(transferSizes.aChunk).toBe(0);
 });
 
-// #962, ADR-0028 -- the rebuilt worker is built to the site root (/sw.js,
+// #962, ADR-0028 -- the rebuilt worker is built to the site root (/service-worker.js,
 // scripts/service-worker-build.mjs) and gets the same treatment: a
 // JavaScript MIME type (required to register it at all) and the platform
 // default Cache-Control, never the immutable rule. Fetched via plain
 // localhost -- a static file, no owned-route hostname needed.
-test("the root /sw.js is served as JavaScript with the platform default cache header", async ({ page }) => {
-  const res = await page.request.get("http://localhost:8787/sw.js");
+test("the root /service-worker.js is served as JavaScript with the platform default cache header", async ({ page }) => {
+  const res = await page.request.get("http://localhost:8787/service-worker.js");
   expect(res.status()).toBe(200);
   expect(res.headers()["content-type"]).toMatch(/^(text|application)\/javascript/);
   expect(res.headers()["cache-control"]).toBe("public, max-age=0, must-revalidate");

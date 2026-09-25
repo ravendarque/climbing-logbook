@@ -69,8 +69,8 @@ function renderMessage(message) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Climbing Logbook</title>
-<link rel="stylesheet" href="/logbook/tailwind.css">
-<script src="/logbook/components/climbing-header.js"></script>
+<link rel="stylesheet" href="/-/tailwind.css">
+<script src="/-/components/climbing-header.js"></script>
 <script>
   (function () {
     var stored = localStorage.getItem("logbook_theme");
@@ -100,7 +100,7 @@ export async function handlePublicProfile(request, env, username) {
   // Genuinely static shell (#351, same pattern as owned-routes.js) --
   // identical content for every public user; client/profile-main.js reads
   // the username from location.pathname itself and fetches this user's
-  // actual data from the new /logbook/api/public/:username/* endpoints
+  // actual data from the new /-/api/public/:username/* endpoints
   // (server/api/public-data.js).
   return env.ASSETS.fetch(new Request(new URL("/profile/index.html", request.url)));
 }

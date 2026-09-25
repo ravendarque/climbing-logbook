@@ -1,7 +1,7 @@
 // #953, ADR-0029 -- /:username/account/beta, joining and leaving the beta.
 // Same fixture-harness pattern as e2e/account-page.spec.js: the real
 // client/account-beta-main.js bundle against a copy of the built shell,
-// with fabricated /logbook/api/* responses. The page's "username" is the
+// with fabricated /-/api/* responses. The page's "username" is the
 // harness's own path segment, e2e-fixtures, so the log it sends you to is
 // /e2e-fixtures/log -- same-origin here, as on every non-production host.
 import { expect, test } from "@playwright/test";
@@ -21,7 +21,7 @@ test("not enrolled: explains joining, and Join writes the setting and opens the 
   await expect(page.locator("#beta-queue-warning")).toBeHidden();
 
   const [patch] = await Promise.all([
-    page.waitForRequest(req => req.url().endsWith("/logbook/api/admin/settings") && req.method() === "PATCH"),
+    page.waitForRequest(req => req.url().endsWith("/-/api/admin/settings") && req.method() === "PATCH"),
     page.getByRole("button", { name: "Join the beta" }).click(),
   ]);
   expect(patch.postDataJSON()).toEqual({ betaOptIn: true });
@@ -37,7 +37,7 @@ test("enrolled: explains leaving, and Leave writes the setting and opens the mai
   await expect(page.locator("#beta-join")).toBeHidden();
 
   const [patch] = await Promise.all([
-    page.waitForRequest(req => req.url().endsWith("/logbook/api/admin/settings") && req.method() === "PATCH"),
+    page.waitForRequest(req => req.url().endsWith("/-/api/admin/settings") && req.method() === "PATCH"),
     page.getByRole("button", { name: "Leave the beta" }).click(),
   ]);
   expect(patch.postDataJSON()).toEqual({ betaOptIn: false });
@@ -73,7 +73,7 @@ test("changes waiting to sync on this device are pointed out, without blocking",
 
 test("a failed save shows the error, focused, and stays on the page", async ({ page }) => {
   await mockApi(page, { settings: settings(false) });
-  await page.route("**/logbook/api/admin/settings", route => (route.request().method() === "PATCH" ? route.fulfill({ status: 500, json: {} }) : route.fallback()));
+  await page.route("**/-/api/admin/settings", route => (route.request().method() === "PATCH" ? route.fulfill({ status: 500, json: {} }) : route.fallback()));
   await page.goto(PAGE);
   const before = page.url();
 

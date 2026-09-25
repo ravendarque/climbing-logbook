@@ -15,7 +15,7 @@ async function useSessionOnBeta(context) {
 }
 
 async function setEnrollment(page, enrolled) {
-  const res = await page.request.patch("http://localhost:8787/logbook/api/admin/settings", { data: { betaOptIn: enrolled } });
+  const res = await page.request.patch("http://localhost:8787/-/api/admin/settings", { data: { betaOptIn: enrolled } });
   expect(res.ok()).toBe(true);
 }
 
@@ -26,7 +26,7 @@ test.describe("beta channel enrollment check", () => {
   test("a not-enrolled user sees the message, keeps the header, and the page never loads its data", async ({ page }) => {
     await setEnrollment(page, false);
     const dataRequests = [];
-    page.on("request", req => { if (/\/logbook\/api\/(logbook|places|locations)\b/.test(req.url())) dataRequests.push(req.url()); });
+    page.on("request", req => { if (/\/-\/api\/(logbook|places|locations)\b/.test(req.url())) dataRequests.push(req.url()); });
 
     await page.goto(`${BETA}/${DEV_USER.username}/log`);
     const message = page.locator("#beta-not-enrolled");

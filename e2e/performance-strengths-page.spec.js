@@ -62,7 +62,7 @@ test("renders the headline and drill-down picker, and re-ranks on anchor change"
 
 test("shows the offline message instead of the view when the fetch fails", async ({ page }) => {
   await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
-  await page.route("**/logbook/api/performance/strengths", route => route.fulfill({ status: 500 }));
+  await page.route("**/-/api/performance/strengths", route => route.fulfill({ status: 500 }));
   await page.goto("/e2e-fixtures/pages/performance-strengths.html");
 
   await expect(page.locator("#performance-offline")).toBeVisible();

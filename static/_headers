@@ -12,11 +12,11 @@
 # ~9.4s (a real ~25% improvement) with this file in place.
 #
 # vite.deploy.config.js's own entryFileNames/chunkFileNames give every
-# chunk under /logbook/chunks/ a content hash in its filename -- any
+# chunk under /-/chunks/ a content hash in its filename -- any
 # code change produces a new URL, so a cached copy of the OLD URL can
 # never go stale; safe to cache "forever" (no revalidation at all, not
 # even a fast one).
-/logbook/chunks/*
+/-/chunks/*
   Cache-Control: public, max-age=31556952, immutable
 
 # #857 -- the top-level *-app.js/tailwind.css/components/*.js files have
@@ -34,54 +34,54 @@
 # template's own comment on why an unversioned request still needs to
 # reach vite.config.js's own devEntryRewrite middleware unchanged.
 #
-# sw.js is NOT listed here, deliberately: it's the service worker
+# service-worker.js (#983, was sw.js) is NOT listed here, deliberately: it's the service worker
 # script itself, which browsers already special-case for update
 # checking (a new registration is compared byte-for-byte against the
 # previous one on its own schedule, independent of HTTP caching) --
 # immutable caching on its URL would fight that mechanism, not help it.
 #
-# Explicit filenames, not a single /logbook/*-app.js pattern -- the
+# Explicit filenames, not a single /-/*-app.js pattern -- the
 # _headers glob syntax's one documented example only shows a trailing
 # `/*`, so a mid-segment wildcard's support is unconfirmed; listing
 # vite.entries.mjs's own CLIENT_ENTRIES keys (as "<key>-app.js") is
 # unambiguous. Add a line here whenever a new entry is added there --
 # the same "one list, not two copies that silently drift" lesson that
 # file's own comment already states, extended to this file too.
-/logbook/tailwind.css
+/-/tailwind.css
   Cache-Control: public, max-age=31556952, immutable
-/logbook/components/*
+/-/components/*
   Cache-Control: public, max-age=31556952, immutable
-/logbook/log-app.js
+/-/log-app.js
   Cache-Control: public, max-age=31556952, immutable
-/logbook/map-app.js
+/-/map-app.js
   Cache-Control: public, max-age=31556952, immutable
-/logbook/performance-hub-app.js
+/-/performance-hub-app.js
   Cache-Control: public, max-age=31556952, immutable
-/logbook/performance-pyramid-app.js
+/-/performance-pyramid-app.js
   Cache-Control: public, max-age=31556952, immutable
-/logbook/performance-trends-app.js
+/-/performance-trends-app.js
   Cache-Control: public, max-age=31556952, immutable
-/logbook/performance-gap-app.js
+/-/performance-gap-app.js
   Cache-Control: public, max-age=31556952, immutable
-/logbook/performance-rpe-app.js
+/-/performance-rpe-app.js
   Cache-Control: public, max-age=31556952, immutable
-/logbook/performance-injury-app.js
+/-/performance-injury-app.js
   Cache-Control: public, max-age=31556952, immutable
-/logbook/performance-strengths-app.js
+/-/performance-strengths-app.js
   Cache-Control: public, max-age=31556952, immutable
-/logbook/performance-grades-app.js
+/-/performance-grades-app.js
   Cache-Control: public, max-age=31556952, immutable
-/logbook/profile-app.js
+/-/profile-app.js
   Cache-Control: public, max-age=31556952, immutable
-/logbook/account-app.js
+/-/account-app.js
   Cache-Control: public, max-age=31556952, immutable
-/logbook/account-edit-app.js
+/-/account-edit-app.js
   Cache-Control: public, max-age=31556952, immutable
-/logbook/account-import-app.js
+/-/account-import-app.js
   Cache-Control: public, max-age=31556952, immutable
-/logbook/account-beta-app.js
+/-/account-beta-app.js
   Cache-Control: public, max-age=31556952, immutable
-/logbook/sync-app.js
+/-/sync-app.js
   Cache-Control: public, max-age=31556952, immutable
-/logbook/beta-gate-app.js
+/-/beta-gate-app.js
   Cache-Control: public, max-age=31556952, immutable

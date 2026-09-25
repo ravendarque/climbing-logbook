@@ -40,8 +40,8 @@ describe("matchOwnerRoute (#958)", () => {
     "/help/",
     "/help/working-offline/",
     "/login/",
-    "/logbook/api/logbook",
-    "/logbook/log-app.js",
+    "/-/api/logbook",
+    "/-/log-app.js",
     "devuser/log",
   ])("does not match %j", (pathname) => {
     expect(matchOwnerRoute(pathname)).toBeNull();
@@ -62,7 +62,7 @@ describe("matchOwnerRoute (#958)", () => {
     const suffixes = [...pre958Pages, ...pre958Pages.map(p => `${p}/`), "", "/", "performance/grades", "account/display", "log/extra", "log//", "/log", "settings", "constructor"];
     const corpus = [];
     for (const u of usernames) for (const s of suffixes) corpus.push(`/${u}/${s}`);
-    corpus.push("", "/", "//log", "/help/", "/login/", "/logbook/api/logbook");
+    corpus.push("", "/", "//log", "/help/", "/login/", "/-/api/logbook");
 
     for (const pathname of corpus) {
       const old = pathname.match(PRE_958_REGEX);

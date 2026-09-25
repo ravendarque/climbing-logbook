@@ -8,7 +8,7 @@
 @import "tailwindcss/theme" layer(theme);
 @import "tailwindcss/utilities" layer(utilities);
 
-@source "../public/logbook/**/*.html";
+@source "../public/-/**/*.html";
 @source "../client/**/*.js";
 
 /* This has to live in a layer, not a plain unlayered rule (which is
@@ -65,7 +65,7 @@
 
 /* ── Theme tokens ──────────────────────────────────────────────────
    Aliases to the app's actual design tokens, defined once in
-   public/logbook/index.html's `:root` (not duplicated here as literal
+   public/-/index.html's `:root` (not duplicated here as literal
    values, which would create a second source of truth that can drift).
    This works because Tailwind compiles @theme into `@layer theme`, and
    a layered declaration always loses the cascade to the unlayered
@@ -88,7 +88,7 @@
   --color-accent-foreground: var(--color-accent-text);
   --color-border:            var(--color-border);
   /* #807 -- form-error text, a distinct theme-adapted red (see
-     public/logbook/components/climbing-header.js's own token comment)
+     public/-/components/climbing-header.js's own token comment)
      from --color-accent, which is a fixed brand red rather than
      something that adapts per theme for contrast. */
   --color-error:             var(--color-error-text);

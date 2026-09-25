@@ -175,7 +175,7 @@ export function createEntryForm({
 
   // Same role="option"/data-key/checkmark convention as client/
   // place-picker.js's own place-listbox (#241/#403) and the discipline
-  // picker's static options (public/logbook/components/climbing-
+  // picker's static options (public/-/components/climbing-
   // discipline-picker.js) -- one shared implementation
   // (client/modal-utils.js's createListPicker/renderOptionList) instead
   // of a local copy per consumer (#704 needed the identical pattern for

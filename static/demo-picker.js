@@ -27,7 +27,7 @@ const DEMO_PERSONAS = [
 // DEMO_PERSONAS above isn't either, but public/login/resolve-app-origin.js
 // is itself outside client/ too (a plain public/ file), so this one *is*
 // import-safe -- both live under public/, no bundler involved either way.
-import { resolveAppOrigin } from "./login/resolve-app-origin.js";
+import { resolveAppOrigin } from "/-/login/resolve-app-origin.js";
 
 const APP_ORIGIN = resolveAppOrigin(window.location.hostname, false);
 
