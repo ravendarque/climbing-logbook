@@ -20,10 +20,6 @@ Log in at **climbinglogbook.com**. You'll land on your log, and that's the page 
 
 **Firefox:** open the menu (⋮) and choose **Install**. On some versions it's under **More**, as **Add app to Home screen**.
 
-**Brave:** open the menu (⋮) and choose **Add to Home screen**.
-
-**Opera:** open the menu (⋮) and choose **Add to Home screen**.
-
 **Chrome:** open the menu (⋮) and choose **Install app**. On some versions it's called **Add to Home screen**.
 
 ## iPhone and iPad
