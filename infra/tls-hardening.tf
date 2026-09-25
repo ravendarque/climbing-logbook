@@ -73,12 +73,29 @@ resource "cloudflare_dns_record" "app_www" {
   comment = "#527 -- www redirects to the apex, doesn't serve traffic itself."
 }
 
+# #985 -- the apex's own pages. The app hosts (my./beta.) serve only the
+# app: /-/*, /service-worker.js and /:username/* (#982). A request there
+# for one of these 301s to the same path on the apex instead of serving a
+# copy that looks like part of someone's profile. An allowlist, not
+# "everything else", so the Worker never has to run for apex pages
+# (static assets stay free and unlimited; see #985 for the trade-off).
+# test/scripts/apex-redirect-rule.test.js fails if a top-level apex page
+# is missing here. Their names are also reserved usernames (#997), so none
+# can be a profile.
+locals {
+  app_hosts               = ["my.${var.app_zone_name}", "beta.${var.app_zone_name}"]
+  apex_only_exact_paths   = ["/", "/help", "/login", "/register", "/reset-password", "/demo-picker.js"]
+  apex_only_path_prefixes = ["/help/", "/login/", "/register/", "/reset-password/"]
+}
+
+# The zone's one ruleset for this phase (Cloudflare allows one entrypoint
+# per phase), so every redirect rule lives here.
 resource "cloudflare_ruleset" "app_www_redirect" {
   zone_id     = data.cloudflare_zone.app.id
   kind        = "zone"
   phase       = "http_request_dynamic_redirect"
   name        = "www to apex redirect"
-  description = "www.climbinglogbook.com -> climbinglogbook.com (#527)"
+  description = "www.climbinglogbook.com -> climbinglogbook.com (#527); apex pages off the app hosts (#985)"
 
   rules = [
     {
@@ -88,6 +105,20 @@ resource "cloudflare_ruleset" "app_www_redirect" {
       action_parameters = {
         from_value = {
           status_code = 301
+          target_url = {
+            expression = "concat(\"https://${var.app_zone_name}\", http.request.uri.path)"
+          }
+        }
+      }
+    },
+    {
+      description = "Redirect apex-only pages on the app hosts to the apex, preserving path and query (#985)"
+      expression  = "(http.host in {${join(" ", [for host in local.app_hosts : "\"${host}\""])}}) and (http.request.uri.path in {${join(" ", [for path in local.apex_only_exact_paths : "\"${path}\""])}} or ${join(" or ", [for prefix in local.apex_only_path_prefixes : "starts_with(http.request.uri.path, \"${prefix}\")"])})"
+      action      = "redirect"
+      action_parameters = {
+        from_value = {
+          status_code           = 301
+          preserve_query_string = true
           target_url = {
             expression = "concat(\"https://${var.app_zone_name}\", http.request.uri.path)"
           }
