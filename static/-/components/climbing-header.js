@@ -26,6 +26,18 @@
 (function () {
   var TOKENS_STYLE_ID = "climbing-header-tokens";
 
+  // #956 -- beta.<domain> is Logbook Beta, its own installable app, so it
+  // must never be mistaken for the main one: a "Beta" badge on the brand
+  // header, and yellow instead of red browser/app chrome. The page's
+  // theme-color meta (which sits above this script in every <head>) wins
+  // over the manifest's theme_color, so it's switched here.
+  var IS_BETA = location.hostname.indexOf("beta.") === 0;
+  var BETA_THEME_COLOR = "#ffcc00";
+  if (IS_BETA) {
+    var themeColor = document.querySelector('meta[name="theme-color"]');
+    if (themeColor) themeColor.setAttribute("content", BETA_THEME_COLOR);
+  }
+
   var TOKENS_CSS = [
     ":root {",
     "  --color-bg:          #0f0f0f;",
@@ -512,7 +524,17 @@
       // regardless of viewport. The explicit property syntax (already
       // used by this file's own footnote-trigger button, below) has no
       // such ambiguity to resolve.
-      '    <h1 class="font-display font-normal uppercase tracking-wide [font-size:var(--brand-scale)] leading-none mb-[calc(var(--brand-scale)*-0.125)] whitespace-nowrap"><span class="text-accent">Climbing</span> <span class="text-foreground">Logbook</span></h1>' +
+      '    <h1 class="font-display font-normal uppercase tracking-wide [font-size:var(--brand-scale)] leading-none mb-[calc(var(--brand-scale)*-0.125)] whitespace-nowrap"><span class="text-accent">Climbing</span> <span class="text-foreground relative">Logbook' +
+      // #956 -- Raven's design: a yellow tag leaning like the K's arm,
+      // over the word's top-right corner. Absolutely positioned, so it
+      // adds no width to a row that must never wrap (#789). The tag is
+      // decoration, drawn with ::after so the heading's text stays
+      // "Climbing Logbook Beta"; screen readers get "Beta" from the sr-only
+      // text.
+      (IS_BETA
+        ? '<span class="absolute left-[calc(100%-var(--brand-scale)*0.07)] top-[calc(var(--brand-scale)*0.18)] -skew-x-[20deg] bg-[#ffcc00] text-[#0f0f0f] leading-none [font-size:calc(var(--brand-scale)*0.225)] tracking-wide px-[.5em] pt-[.12em] pb-[.02em]" id="beta-badge" aria-hidden="true"><span class="inline-block skew-x-[20deg] after:content-[attr(data-label)]" data-label="Beta"></span></span><span class="sr-only"> Beta</span>'
+        : '') +
+      '</span></h1>' +
       '    <p class="' + taglineClass + '">Log your climbs, visualise your progress (<button type="button" class="inline [font-size:inherit] bg-transparent border-0 p-0 cursor-pointer text-accent" id="footnote-trigger">or not</button>)</p>' +
       '  </div>' +
       '</div>' +
