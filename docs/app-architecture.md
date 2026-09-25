@@ -618,10 +618,17 @@ client/*-main.js's own compiled output lives in dist/, not here -- see
 ├── icon.svg             PWA icon
 ├── fonts/
 │   └── BebasNeue-Regular.woff2  Display font (headings)
-├── manifest.json        PWA manifest -- start_url/scope point at
-│                           /:username/log generically now (#375; there's
-│                           no longer a single fixed page to name the way
-│                           /logbook/ once was)
+├── manifest.json        PWA manifest -- start_url is /-/launch/, which
+│                           opens whoever last signed in on the device
+│                           (#949). On beta.<domain> the Worker serves
+│                           beta/manifest.json at this URL instead (#956)
+├── beta/                Logbook Beta's own app identity (#956): its
+│                           manifest, icons (SVG sources plus PNGs from
+│                           scripts/generate-beta-icons.mjs) and
+│                           apple-touch-icon. server/api/app-identity.js
+│                           serves the manifest and apple-touch-icon at
+│                           the usual URLs on beta.<domain>, so shells
+│                           stay identical on every host
 └── components/             Classic, non-module <script> Web Components
                               (not the ES-module client/components/ family
                               below) -- loaded directly via <script src>
