@@ -201,11 +201,18 @@ decision and why it's an ongoing constraint, not a single shipped feature.
   (`client/store.js`) and offline queue (`client/offline-sync.js`) keep it
   working with no signal.
 - **Opening an owner page with no signal is the service worker's job**
-  ([ADR-0028](adr/0028-service-worker-owns-the-owner-app-shell.md), being
-  delivered under #945; until then an offline *cold* launch fails). The
-  worker serves page shells and static assets only. **Never cache API
-  responses in the worker**: data belongs to `store.js`, and a second copy
-  in Cache Storage risks stale or cross-user data.
+  ([ADR-0028](adr/0028-service-worker-owns-the-owner-app-shell.md), #945).
+  `/service-worker.js`, built from `client/sw/`, is registered with scope
+  `/` by owner pages only. At install it pre-caches every owner page's
+  shell and assets for the build (resumable, reusing unchanged files), so
+  any owner page opens offline from a cold launch, visited or not
+  (`e2e/offline-launch.spec.js`). Shells are cache-first per build; a new
+  build applies silently on the next launch. The public profile, help,
+  apex and auth pages are never intercepted, and logging out clears the
+  worker's caches. The worker serves page shells and static assets only.
+  **Never cache API responses in the worker**: data belongs to
+  `store.js`, and a second copy in Cache Storage risks stale or
+  cross-user data.
 - **Prefer bundling small, static, rarely-changing datasets directly into
   the single-file app** (e.g. a country list) over fetching them on demand.
   If a dataset is genuinely too large to justify always-loading it, serve
