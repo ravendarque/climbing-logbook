@@ -25,6 +25,9 @@ resource "cloudflare_ruleset" "app_cache_rules" {
 
   rules = [
     {
+      # #988 -- /-/api/* is the API prefix from #984 on; /logbook/api/*
+      # stays matched until production runs #984 (beta deploys first and
+      # shares this zone), then #989 drops it.
       # /logbook/api/* is this app's one API prefix -- covers
       # /logbook/api/auth/* (sign-in/sign-up/session) too, not just
       # /logbook/api/logbook et al (server/index.js's own routing).
@@ -33,7 +36,7 @@ resource "cloudflare_ruleset" "app_cache_rules" {
       # happens there, so they're left cacheable rather than bypassed
       # on the audit's generic (and, for this app, inaccurate) guess.
       description = "Bypass cache - API and auth endpoints"
-      expression  = "starts_with(http.request.uri.path, \"/logbook/api/\")"
+      expression  = "starts_with(http.request.uri.path, \"/logbook/api/\") or starts_with(http.request.uri.path, \"/-/api/\")"
       action      = "set_cache_settings"
       action_parameters = {
         cache = false
