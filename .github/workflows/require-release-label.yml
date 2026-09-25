@@ -39,3 +39,40 @@ jobs:
             echo "::error::No release label on this PR. Apply one of 'release: major', 'release: minor', 'release: patch', or 'release: none' before merging — see docs/versioning.md."
             exit 1
           fi
+
+      # #995 -- release: none is only for changes that never reach users.
+      # Twice the docs alone didn't hold that line: #990 changed infra/
+      # under release: none, its change rode into the next tag's diff, and
+      # deploy.yml sent that tag straight to production (a diff touching
+      # infra/ or migrations/ deploys to both beta and production). So every
+      # changed file, renames' old paths included, must be on this
+      # allowlist. To widen it, edit it here, in a reviewed diff.
+      - name: Verify release none only covers files that never reach users
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          labels=$(gh pr view "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --json labels --jq '.labels[].name')
+          if ! echo "$labels" | grep -qx "release: none"; then
+            echo "Not release: none -- nothing to check."
+            exit 0
+          fi
+          files=$(gh api --paginate "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" --jq '.[] | .filename, (.previous_filename // empty)')
+          offending=""
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            case "$f" in
+              docs/*|.github/*|.claude/*|.gitignore|test/*|e2e/*|playwright.config.js|vitest.config.js) continue ;;
+            esac
+            # Repo-root Markdown only: views/help/*.md is user-facing.
+            case "$f" in
+              */*) ;;
+              *.md) continue ;;
+            esac
+            offending="$offending$f"$'\n'
+          done <<< "$files"
+          if [ -n "$offending" ]; then
+            echo "::error::release: none is only for changes that never reach users (see docs/versioning.md). These files can reach users, so this PR needs release: patch, minor or major:"
+            printf '%s' "$offending"
+            exit 1
+          fi
+          echo "Every changed file is on the never-reaches-users allowlist."
