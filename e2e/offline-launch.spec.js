@@ -118,8 +118,8 @@ test("an interrupted install keeps what it fetched, and the retry fetches only t
   failManifest = false;
   await page.reload();
   await page.evaluate(() => navigator.serviceWorker.ready);
-  // (/sw.js is the browser's own update check of the worker script.)
-  expect(workerFetches.slice(firstAttempt).filter(path => path !== "/sw.js")).toEqual(["/logbook/manifest.json"]);
+  // (/service-worker.js is the browser's own update check of the worker script.)
+  expect(workerFetches.slice(firstAttempt).filter(path => path !== "/service-worker.js")).toEqual(["/logbook/manifest.json"]);
 });
 
 test("a warm launch takes the document and every static asset from the worker, not the network", async ({ page }) => {
@@ -196,4 +196,24 @@ test("logging out deletes the worker's caches: no owner shell survives the sessi
   const after = await cachedPaths(page);
   expect(after.filter(p => p.endsWith("/index.html"))).toEqual([]);
   expect(after.filter(p => !p.startsWith("/logbook/"))).toEqual([]);
+});
+
+// #983 -- the worker moved from /sw.js (a valid username) to
+// /service-worker.js. A device still registered at /sw.js switches over
+// on its next owner-page load: same scope, one registration, no unregister.
+test("a device registered at the old /sw.js switches to /service-worker.js on its next owner-page load", async ({ page, context }) => {
+  // The old script is gone from the build; stand in for the one the device
+  // installed back then.
+  await context.route("**/sw.js", route => route.fulfill({ contentType: "text/javascript", body: "self.addEventListener('fetch', () => {});" }));
+  await page.goto(`${ORIGIN}/${DEV_USER.username}`);
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+    await navigator.serviceWorker.ready;
+  });
+
+  await warm(page, "/log");
+  await expect.poll(() => page.evaluate(async () => {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    return registrations.map(r => [new URL(r.scope).pathname, new URL(r.active?.scriptURL ?? "http://x/none").pathname]);
+  })).toEqual([["/", "/service-worker.js"]]);
 });

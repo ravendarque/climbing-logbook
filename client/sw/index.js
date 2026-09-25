@@ -1,5 +1,5 @@
 // #947, ADR-0028 -- the service worker. Bundled by the production build
-// (scripts/service-worker-build.mjs) into /sw.js with BUILD_ID and the
+// (scripts/service-worker-build.mjs) into /service-worker.js with BUILD_ID and the
 // pre-cache list injected, registered with scope "/" by owner pages only
 // (client/register-sw.js).
 //
