@@ -70,8 +70,8 @@ async function main() {
   const email = requireEnv("SYNTHETIC_USER_EMAIL");
   const password = requireEnv("SYNTHETIC_USER_PASSWORD");
 
-  console.log(`Signing in via ${APEX}/logbook/api/auth/sign-in/email ...`);
-  const signInRes = await fetch(`${APEX}/logbook/api/auth/sign-in/email`, {
+  console.log(`Signing in via ${APEX}/-/api/auth/sign-in/email ...`);
+  const signInRes = await fetch(`${APEX}/-/api/auth/sign-in/email`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Origin: APEX },
     body: JSON.stringify({ email, password }),
@@ -92,8 +92,8 @@ async function main() {
     );
   }
 
-  console.log(`Reusing cookie against ${APP}/logbook/api/auth/get-session ...`);
-  const sessionRes = await fetch(`${APP}/logbook/api/auth/get-session`, {
+  console.log(`Reusing cookie against ${APP}/-/api/auth/get-session ...`);
+  const sessionRes = await fetch(`${APP}/-/api/auth/get-session`, {
     headers: { Cookie: pair },
   });
   if (!sessionRes.ok) {
@@ -105,12 +105,12 @@ async function main() {
   }
   console.log(`Session resolved for ${session.user.email} on ${appHostname}.`);
 
-  console.log(`Checking read-only data endpoint ${APP}/logbook/api/logbook ...`);
-  const dataRes = await fetch(`${APP}/logbook/api/logbook`, {
+  console.log(`Checking read-only data endpoint ${APP}/-/api/entries ...`);
+  const dataRes = await fetch(`${APP}/-/api/entries`, {
     headers: { Cookie: pair },
   });
   if (!dataRes.ok) {
-    throw new Error(`GET /logbook/api/logbook failed: ${dataRes.status} ${await dataRes.text()}`);
+    throw new Error(`GET /-/api/entries failed: ${dataRes.status} ${await dataRes.text()}`);
   }
 
   console.log("Synthetic check passed: session shares correctly across climbinglogbook.com -> my.climbinglogbook.com.");

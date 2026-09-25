@@ -62,6 +62,8 @@ jobs:
             [ -z "$f" ] && continue
             case "$f" in
               docs/*|.github/*|.claude/*|.gitignore|test/*|e2e/*|playwright.config.js|vitest.config.js) continue ;;
+              # #1002 -- a production monitor run from CI, never deployed.
+              scripts/synthetic-check.mjs) continue ;;
             esac
             # Repo-root Markdown only: views/help/*.md is user-facing.
             case "$f" in
