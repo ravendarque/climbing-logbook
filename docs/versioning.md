@@ -50,16 +50,28 @@ app rather than a published library with a versioned API contract:
   a user of the deployed app sees or experiences at all." If it does,
   it's at minimum a PATCH; `release: none` is not a smaller version of
   "user-facing," it's the absence of it (see below).
-- **No bump** — reserved for changes with **zero user-visible surface**:
-  docs-only changes, CI/tooling changes, dev-only scripts and local
-  tooling (seed scripts, review helpers, one-off migration/ops scripts
-  run outside the app's own runtime), dependency/chore bumps that don't
-  change shipped code, infrastructure/provisioning changes that don't
-  alter the deployed app's behavior (e.g. moving KV provisioning from a
-  one-off script to Terraform), and refactors too small to be worth
-  flagging (internal-only restructuring with no observable difference in
-  the running app at all). These are real work, just not release-worthy
-  on their own — they ride along into whichever version comes next.
+- **No bump** — only for changes that **never reach users**: docs,
+  CI workflows, `.gitignore`, tests and similar. Nothing that's deployed,
+  applied or built into what users run qualifies, however small or
+  behavior-neutral it seems. That means:
+  - **`infra/` and `migrations/` always get a real bump.** Terraform is
+    applied to production, and migrations run against its database. A
+    tag whose diff touches either deploys straight to production as well
+    as beta (`deploy.yml`). So an untagged infra or migration change
+    doesn't wait for the next promote: it takes whatever release comes
+    next to production with it. That's how #984 reached production
+    unpromoted (#990, #995).
+  - **App code, build scripts and build config always get a real bump**,
+    including refactors with no intended visible difference: they change
+    what's deployed.
+
+  CI enforces this (#995): `require-release-label.yml` fails `release:
+  none` unless every changed file is on an allowlist of paths that never
+  reach users (`docs/`, `.github/`, `.claude/`, `.gitignore`, `test/`,
+  `e2e/`, the test runner configs and repo-root Markdown). To widen it,
+  edit the allowlist in the workflow, in a reviewed diff. Changes in this
+  bucket are real work, just not release-worthy on their own; they ride
+  along into whichever version comes next.
   Critically, this bucket is not a place for "the app looks or works
   slightly different but it felt too small to call a release" — a
   version-labelling decision is not the same question as "was this a lot
@@ -72,7 +84,8 @@ The test isn't "which files changed" or "how much work was it" — it's
 **"would a user of the app notice or need to know about this."** Any yes
 is at least a PATCH (new capability bumps it to MINOR instead). Only a
 genuine "no" — nothing a user looking at or using the app could ever
-observe — belongs in `release: none`. The one exception is
+observe — belongs in `release: none`, and CI also requires every changed
+file to be on the never-reaches-users allowlist (see **No bump**). The one exception is
 MINOR-as-substantial-rewrite (an internal-only change with literally zero
 intended user-facing difference, but big enough to be worth a line in the
 version history): that's a separate, deliberate judgment call the team
@@ -103,9 +116,9 @@ time, by applying one of four labels to the PR:
 - `release: major`
 - `release: minor`
 - `release: patch`
-- `release: none` — an explicit, deliberate "this doesn't warrant a
-  version bump" for docs-only/infra-only/refactor-too-small-to-flag
-  changes.
+- `release: none` — an explicit, deliberate "this never reaches users"
+  for docs, workflow, test and similar changes. Never for `infra/`,
+  `migrations/` or app code (see **No bump** above); CI checks this.
 
 **A release label is required before merge** — `.github/workflows/
 require-release-label.yml` runs as a required check on every PR and fails
