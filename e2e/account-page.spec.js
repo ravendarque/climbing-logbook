@@ -56,7 +56,7 @@ test("logged out -- username/My account link/settings rows all hidden", async ({
   await expect(page.locator("#athlete-mode-row")).toBeHidden();
   await expect(page.locator("#public-logbook-row")).toBeHidden();
   // #443/#546 -- same treatment as the two rows above.
-  await expect(page.locator("#beta-opt-in-row")).toBeHidden();
+  await expect(page.locator("#beta-row")).toBeHidden();
 });
 
 test("Athlete Mode toggle (#445) switches and persists via the settings PATCH", async ({ page }) => {
@@ -100,111 +100,18 @@ test("Public Logbook toggle (#301, moved to this page by #445) switches and pers
   await expect(page.locator("#public-logbook-toggle")).toHaveAttribute("aria-checked", "false");
 });
 
-// #443/#546, ADR-0020 -- <beta-opt-in-modal> (client/components/
-// beta-opt-in-modal.js) + its wiring (client/beta-opt-in.js), the shared
-// component #548's future beta.x gate page will reuse. Coverage here is
-// this page's own entry point (the "Manage" button + row status text);
-// the modal's own markup/behavior is otherwise identical regardless of
-// which composition root opens it.
-test("beta opt-in: not-enrolled state says so, submitting 'Yes' persists it and navigates to beta.x's equivalent page", async ({ page }) => {
-  await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: false } });
-  await page.goto("/e2e-fixtures/pages/account.html");
-
-  await expect(page.locator("#beta-opt-in-row")).toBeVisible();
-  // #952, ADR-0029 -- two states, so the status line always shows.
-  await expect(page.locator("#beta-opt-in-status")).toHaveText("You're not enrolled in the beta.");
-
-  await page.locator("#beta-opt-in-manage-btn").click();
-  await expect(page.locator("#beta-opt-in-overlay")).toBeVisible();
-
-  await page.locator('input[name="beta-opt-in-choice"][value="in"]').check();
-  // #557 -- opting in navigates to beta.x's own equivalent of this page
-  // (client/resolve-cross-hostname-url.js's resolveBetaXUrl), not an
-  // in-place status update. The fixture harness's own hostname isn't the
-  // real my.climbinglogbook.com apex, so that resolves to the same
-  // same-origin path -- a real reload of this exact fixture page, which
-  // is enough to prove the navigation actually happens and the choice
-  // survives it; the real cross-hostname target itself isn't observable
-  // locally, same documented limitation every other beta.x/my.x redirect
-  // test in this suite already has (see e.g. e2e/login.spec.js's own
-  // header comment).
-  const [patchRequest] = await Promise.all([
-    page.waitForRequest(req => req.url().includes("/-/api/settings") && req.method() === "PATCH"),
-    // Not a literal ".html" match -- Workers Static Assets normalizes the
-    // extension away on navigation (confirmed: the real resulting URL is
-    // .../pages/account, not .../pages/account.html), so this only
-    // anchors on the path itself, not the exact served asset name.
-    page.waitForURL(/\/e2e-fixtures\/pages\/account/),
-    page.locator("#beta-opt-in-submit").click(),
-  ]);
-  expect(patchRequest.postDataJSON()).toEqual({ betaOptIn: true });
-
-  await expect(page.locator("#beta-opt-in-status")).toHaveText("You're enrolled in the beta.");
-});
-
-test("beta opt-in: submitting 'No' re-syncs the status line in place, no navigation", async ({ page }) => {
-  await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: false } });
-  await page.goto("/e2e-fixtures/pages/account.html");
-
-  await page.locator("#beta-opt-in-manage-btn").click();
-  await page.locator('input[name="beta-opt-in-choice"][value="out"]').check();
-  await Promise.all([
-    page.waitForResponse(res => res.url().includes("/-/api/settings") && res.request().method() === "PATCH"),
-    page.locator("#beta-opt-in-submit").click(),
-  ]);
-
-  await expect(page.locator("#beta-opt-in-overlay")).toBeHidden();
-  await expect(page.locator("#beta-opt-in-status")).toHaveText("You're not enrolled in the beta.");
-});
-
-test("beta opt-in: already-opted-in state pre-selects the matching radio on open", async ({ page }) => {
+// #953 -- the Beta channel row links to its own sub-page (covered by
+// e2e/account-beta-page.spec.js) and shows the saved status.
+test("the Check our beta row links to its sub-page and shows the saved status", async ({ page }) => {
   await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: true } });
   await page.goto("/e2e-fixtures/pages/account.html");
 
-  await expect(page.locator("#beta-opt-in-status")).toHaveText("You're enrolled in the beta.");
-
-  await page.locator("#beta-opt-in-manage-btn").click();
-  await expect(page.locator('input[name="beta-opt-in-choice"][value="in"]')).toBeChecked();
+  const row = page.locator("#beta-row");
+  await expect(row).toBeVisible();
+  await expect(row).toHaveAttribute("href", "/e2e-fixtures/account/beta");
+  await expect(page.locator("#beta-status")).toHaveText("You're enrolled in the beta.");
 });
 
-test("beta opt-in: Cancel closes the modal without persisting a choice", async ({ page }) => {
-  await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: false } });
-  await page.goto("/e2e-fixtures/pages/account.html");
-
-  let patchCalled = false;
-  await page.route("**/-/api/settings", route => {
-    if (route.request().method() === "PATCH") patchCalled = true;
-    return route.fallback();
-  });
-
-  await page.locator("#beta-opt-in-manage-btn").click();
-  await page.locator('input[name="beta-opt-in-choice"][value="out"]').check();
-  await page.locator("#beta-opt-in-cancel").click();
-
-  await expect(page.locator("#beta-opt-in-overlay")).toBeHidden();
-  expect(patchCalled).toBe(false);
-  await expect(page.locator("#beta-opt-in-status")).toHaveText("You're not enrolled in the beta.");
-});
-
-test("beta opt-in: Escape closes the modal, focus is trapped while open", async ({ page }) => {
-  await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: false } });
-  await page.goto("/e2e-fixtures/pages/account.html");
-
-  await page.locator("#beta-opt-in-manage-btn").click();
-  await expect(page.locator("#beta-opt-in-overlay")).toBeVisible();
-
-  // Focus starts on the first focusable element inside the overlay
-  // (client/modal-utils.js's own openModal()), not wherever it happened
-  // to be before -- the close button, same as entry-overlay's own
-  // #entry-close (it's first in DOM order, ahead of the form itself).
-  await expect(page.locator("#beta-opt-in-close")).toBeFocused();
-
-  await page.keyboard.press("Escape");
-  await expect(page.locator("#beta-opt-in-overlay")).toBeHidden();
-});
-
-// #27 -- "a simple one-click process" (Raven's own call, unlike #224's
-// import which got a whole wizard page): no navigation, just a download.
 // The real CSV/JSON serialization logic is Vitest's job
 // (test/shared/csv-import.test.js, including a full export-then-reimport
 // round-trip) -- this only proves the client's own wiring: fetching this

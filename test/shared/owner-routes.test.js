@@ -8,6 +8,9 @@ import { SHELL_PATHS, matchOwnerRoute } from "../../shared/owner-routes.js";
 const PRE_958_REGEX = /^\/([^/]+)\/(log|map|performance(?:\/(?:pyramid|injury|strengths|trends|gap|rpe))?|sync|account(?:\/edit|\/import)?)\/?$/;
 
 const PAGES = Object.keys(SHELL_PATHS);
+// Pages added since #958, which the old regex never knew about. The first
+// test below covers them; the equivalence check leaves them out.
+const ADDED_SINCE_958 = ["account/beta"];
 
 describe("matchOwnerRoute (#958)", () => {
   it("matches every owner page, with and without one trailing slash", () => {
@@ -55,7 +58,8 @@ describe("matchOwnerRoute (#958)", () => {
   // on match/no-match and on the captured username and page.
   it("agrees with the pre-#958 regex on every path in the corpus", () => {
     const usernames = ["devuser", "a", "j%C3%B6rg", "user.name", "user-name_1"];
-    const suffixes = [...PAGES, ...PAGES.map(p => `${p}/`), "", "/", "performance/grades", "account/display", "log/extra", "log//", "/log", "settings", "constructor"];
+    const pre958Pages = PAGES.filter(p => !ADDED_SINCE_958.includes(p));
+    const suffixes = [...pre958Pages, ...pre958Pages.map(p => `${p}/`), "", "/", "performance/grades", "account/display", "log/extra", "log//", "/log", "settings", "constructor"];
     const corpus = [];
     for (const u of usernames) for (const s of suffixes) corpus.push(`/${u}/${s}`);
     corpus.push("", "/", "//log", "/help/", "/login/", "/-/api/entries");

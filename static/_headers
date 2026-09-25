@@ -79,6 +79,8 @@
   Cache-Control: public, max-age=31556952, immutable
 /-/account-import-app.js
   Cache-Control: public, max-age=31556952, immutable
+/-/account-beta-app.js
+  Cache-Control: public, max-age=31556952, immutable
 /-/sync-app.js
   Cache-Control: public, max-age=31556952, immutable
 /-/beta-gate-app.js

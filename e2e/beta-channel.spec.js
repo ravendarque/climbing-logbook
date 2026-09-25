@@ -32,7 +32,7 @@ test.describe("beta channel enrollment check", () => {
     const message = page.locator("#beta-not-enrolled");
     await expect(message).toBeVisible();
     await expect(message).toContainText("Beta is for enrolled users");
-    await expect(message.getByRole("link", { name: "Go to My account" })).toHaveAttribute("href", `/${DEV_USER.username}/account`);
+    await expect(message.getByRole("link", { name: "Join the beta" })).toHaveAttribute("href", `/${DEV_USER.username}/account/beta`);
     await expect(page.locator("climbing-page-header")).toBeVisible();
     await expect(page.locator("climbing-entries-table")).toBeHidden();
     expect(dataRequests).toEqual([]);

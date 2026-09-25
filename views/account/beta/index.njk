@@ -1,0 +1,66 @@
+---
+layout: app-layout.njk
+title: Check our beta – Climbing Logbook
+bundle: account-beta
+staticShellNote: |-
+  Genuinely static shell (#348), same pattern as public/account/index.html
+         -- see that file's own comment for why every path below is absolute
+         and client/account-beta-main.js reads the username from
+         location.pathname itself rather than this file being templated.
+---
+<div class="max-w-[960px] mx-auto">
+  {% set headerClass = "mb-6" %}{% include "page-header.njk" %}
+
+  <a class="back-link mt-4 mb-5" id="back-to-account-link" href="#">
+    <svg class="w-[.9rem] h-[.9rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
+    My Account
+  </a>
+
+  <!-- #953, ADR-0029 decision 5 -- joining and leaving the beta: a short
+       explanation of what changes, then one button to confirm. The long
+       version is /help/beta-channel/ (#954). Which half shows depends on
+       the saved setting (client/account-beta-main.js); both start hidden
+       so nothing flashes before it's known. -->
+  <div class="max-w-[560px]">
+    <h2 class="card-section-heading">Check our beta</h2>
+    <p class="text-[.9rem] text-accent pl-4 mb-3" id="beta-status" hidden></p>
+
+    <div class="row-card" id="beta-join" hidden>
+      <h3 class="row-card-title mb-2">Join the beta</h3>
+      <p class="text-[.9rem] mb-2">Get early access to new features before they're released. They may have bugs.</p>
+      <ul class="list-disc pl-5 text-[.9rem] flex flex-col gap-1 mb-3">
+        <li>The beta uses your logbook. Anything you add, change or delete in the beta is real, and shows up outside the beta too.</li>
+        <li>The beta has its own address, <strong>beta.climbinglogbook.com</strong>. Logging in at climbinglogbook.com takes you there.</li>
+        <li>Each device downloads your logbook the first time it opens the beta.</li>
+        <li>If you've installed Climbing Logbook as a Progressive Web App (<a class="text-accent underline" href="/help/install/" data-apex-link>PWA</a>), install <strong>Logbook Beta</strong> from the beta address too. It's a separate PWA, so you can keep both.</li>
+      </ul>
+    </div>
+
+    <div class="row-card" id="beta-leave" hidden>
+      <h3 class="row-card-title mb-2">Leave the beta</h3>
+      <p class="text-[.9rem] mb-2">You'll go back to the regular version of Climbing Logbook, without the beta features.</p>
+      <ul class="list-disc pl-5 text-[.9rem] flex flex-col gap-1 mb-3">
+        <li>The Logbook Beta PWA will say you're not enrolled from then on. You can uninstall it.</li>
+        <li>Anything you created with beta-only features stays in your logbook, but the regular version may not show it yet.</li>
+      </ul>
+    </div>
+
+    <!-- Advisory, never a block: changes made offline wait on the device
+         they were made on, so switching before they sync strands them
+         here until this address is opened again. -->
+    <div class="row-card border-accent mt-2" id="beta-queue-warning" hidden>
+      <p class="text-[.9rem]" id="beta-queue-count"></p>
+      <p class="text-[.85rem] text-muted mt-1">Sync them before you switch. Other devices you've used offline need to sync on their own.</p>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3 mt-4" id="beta-actions" hidden>
+      <button type="button" class="btn btn-primary" id="beta-confirm-btn"></button>
+      <p class="text-[.85rem] text-muted" id="beta-offline-note" hidden>Joining or leaving the beta needs a connection.</p>
+    </div>
+    <p class="text-[.9rem] text-error mt-3" id="beta-error" role="alert" tabindex="-1" hidden></p>
+
+    <p class="text-[.9rem] mt-6"><a class="text-accent underline" id="beta-help-link" href="/help/beta-channel/">Read more about the beta</a></p>
+  </div>
+
+  <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>
+</div>
