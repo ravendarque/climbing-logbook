@@ -52,7 +52,7 @@ export default defineConfig({
           // below, which must NOT run under this pool (see the comment
           // above).
           include: ["test/**/*.test.js"],
-          exclude: ["test/client/move-tagging.test.js", "test/client/time-window.test.js", "test/client/climbing-tab-bar.test.js", "test/client/climbing-entries-table.test.js", "test/client/climbing-grade-pyramid.test.js", "test/client/calendar-date-picker.test.js", "test/client/modal-utils.test.js", "test/client/report-grade-scale-picker.test.js", "test/client/admin-auth.test.js", "test/client/admin-bar.test.js", "test/client/sync-status-icon.test.js", "test/client/channel-guard.test.js", "test/client/ownership-guard.test.js", "test/scripts/content-hash-asset-urls.test.js", "test/scripts/precache-list.test.js"],
+          exclude: ["test/client/move-tagging.test.js", "test/client/time-window.test.js", "test/client/climbing-tab-bar.test.js", "test/client/climbing-entries-table.test.js", "test/client/climbing-grade-pyramid.test.js", "test/client/calendar-date-picker.test.js", "test/client/modal-utils.test.js", "test/client/report-grade-scale-picker.test.js", "test/client/admin-auth.test.js", "test/client/admin-bar.test.js", "test/client/sync-status-icon.test.js", "test/client/channel-guard.test.js", "test/client/ownership-guard.test.js", "test/scripts/content-hash-asset-urls.test.js", "test/scripts/precache-list.test.js", "test/client/apex-links.test.js"],
           setupFiles: ["./test/apply-migrations.js"],
           // D1 (#20) adds real per-test-file startup cost -- Miniflare's D1
           // storage backend initialization plus this file's own migration-apply
@@ -113,7 +113,7 @@ export default defineConfig({
           // other test/client/*.test.js file tests pure functions and
           // stays on the "workers" project above (no reason to pay for a
           // second, non-Workers pool when nothing needs a DOM).
-          include: ["test/client/move-tagging.test.js", "test/client/time-window.test.js", "test/client/climbing-tab-bar.test.js", "test/client/climbing-entries-table.test.js", "test/client/climbing-grade-pyramid.test.js", "test/client/calendar-date-picker.test.js", "test/client/modal-utils.test.js", "test/client/report-grade-scale-picker.test.js", "test/client/admin-auth.test.js", "test/client/admin-bar.test.js", "test/client/sync-status-icon.test.js", "test/client/channel-guard.test.js", "test/client/ownership-guard.test.js", "test/scripts/content-hash-asset-urls.test.js", "test/scripts/precache-list.test.js"],
+          include: ["test/client/move-tagging.test.js", "test/client/time-window.test.js", "test/client/climbing-tab-bar.test.js", "test/client/climbing-entries-table.test.js", "test/client/climbing-grade-pyramid.test.js", "test/client/calendar-date-picker.test.js", "test/client/modal-utils.test.js", "test/client/report-grade-scale-picker.test.js", "test/client/admin-auth.test.js", "test/client/admin-bar.test.js", "test/client/sync-status-icon.test.js", "test/client/channel-guard.test.js", "test/client/ownership-guard.test.js", "test/scripts/content-hash-asset-urls.test.js", "test/scripts/precache-list.test.js", "test/client/apex-links.test.js"],
           environment: "happy-dom",
         },
       },
