@@ -18,6 +18,7 @@ import { getCursor, setCursor } from "./sync-cursors.js";
 import { mergeDelta } from "./delta-merge.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
+import { pointApexLinksAtApex } from "./apex-links.js";
 
 const PLACES_URL = "/-/api/places";
 const LOCATIONS_URL = "/-/api/locations";
@@ -179,6 +180,10 @@ document.getElementById("sync-retry-btn").addEventListener("click", () => locati
 
 // #952/#960 -- boots only for the signed-in owner of this page and, on
 // beta.<domain>, only if they're enrolled (client/boot-gate.js).
+// #985 -- this page has no header chrome, so it points the footer's
+// help links at the apex itself.
+pointApexLinksAtApex();
+
 pageAllowsBoot().then(allowed => {
   if (!allowed) return;
   // #947/#948 -- the service worker, once boot's own fetches have settled
