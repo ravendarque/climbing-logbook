@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- #956: Logbook Beta, the main icon's peaks over a yellow BETA tag leaning like the header's (1 across per 2 down)
+       (Bebas Neue outlines, so it renders the same everywhere). Source for
+       the PNGs; regenerate them with scripts/generate-beta-icons.mjs. -->
+  <rect width="100" height="100" fill="#0f0f0f"/>
+  <g transform="translate(25.4240,14.7400) scale(0.4)">
+    <path d="M45.6,14.4l23.718,48l-2.99,6l-21.689,0l10.843,21.6l-10.142,20.4l-45.342,0l45.6,-96Z" fill="#f0f0f0"/>
+    <path d="M85.203,37.2l16.333,31.2l-10.787,21.6l21.63,0l10.501,20.4l-74.042,0l36.364,-73.2Z" fill="#f0f0f0"/>
+  </g>
+  <polygon points="31.00,63.50 77.00,63.50 69.00,79.50 23.00,79.50" fill="#ffcc00"/>
+  <g transform="translate(38.507,76.460) scale(0.014171,-0.014171)" fill="#0f0f0f"><path transform="translate(0.0,0)" d="M41 0H214C324 0 381 58 381 166V226C381 300 358 352 299 372V374C348 394 370 439 370 511V539C370 647 321 700 207 700H41ZM151 415V600H204C243 600 260 578 260 528V489C260 433 235 415 194 415ZM151 100V315H200C250 315 271 295 271 230V169C271 117 251 100 214 100Z"/><path transform="translate(434.0,0)" d="M41 0H341V100H151V315H302V415H151V600H341V700H41Z"/><path transform="translate(827.0,0)" d="M127 0H237V600H352V700H12V600H127Z"/><path transform="translate(1221.0,0)" d="M12 0H114L134 137H259V139L279 0H389L275 700H126ZM147 232 195 578H197L246 232Z"/></g>
+</svg>

@@ -20,6 +20,7 @@ export const CLIENT_ENTRIES = {
   account: "client/account-main.js",
   "account-edit": "client/account-edit-main.js",
   "account-import": "client/account-import-main.js",
+  "account-beta": "client/account-beta-main.js",
   sync: "client/sync-main.js",
   help: "client/help-main.js",
   // #924 -- its own dedicated bundle, not folded into help-main.js: that

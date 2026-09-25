@@ -54,4 +54,4 @@ Logging out removes the saved copy of Climbing Logbook from the device, so the n
 
 Changes that haven't synced yet only exist on your device. If you clear your browser's site data before they sync, they're gone. Check the menu shows no *Offline* or *Syncing…* status before you clear anything.
 
-Related: [Installing the PWA](/help/install/), [Grade scales & conversion](/help/grade-scales/).
+Related: [Installing the PWA](/help/install/), [Grade scales & conversion](/help/grade-scales/), [Check our beta](/help/beta-channel/).

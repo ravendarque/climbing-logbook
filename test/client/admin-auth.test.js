@@ -53,6 +53,24 @@ describe("settings cache", () => {
     });
   });
 
+  it("joining or leaving the beta updates the cache too, so this origin's enrollment check sees it straight away (#953)", async () => {
+    localStorage.setItem("logbook_settings_cache", JSON.stringify({ athleteMode: true, logbookPublic: false, betaOptIn: true, activeDiscipline: "sport" }));
+    const adminFetch = vi.fn().mockResolvedValue({ ok: true, status: 200, type: "basic", json: async () => ({ betaOptIn: false }) });
+    const adminAuth = createAdminAuth({ store: makeStore(), adminFetch, isAuthRedirect: () => false, settingsUrl: "/x", updateAdminBar: () => {} });
+    expect((await adminAuth.setBetaOptIn(false)).ok).toBe(true);
+    expect(JSON.parse(localStorage.getItem("logbook_settings_cache"))).toEqual({
+      athleteMode: true, logbookPublic: false, betaOptIn: false, activeDiscipline: "sport",
+    });
+  });
+
+  it("a failed join or leave leaves the cache alone", async () => {
+    localStorage.setItem("logbook_settings_cache", JSON.stringify({ athleteMode: false, logbookPublic: true, betaOptIn: true, activeDiscipline: null }));
+    const adminFetch = vi.fn().mockResolvedValue({ ok: false, status: 500, type: "basic" });
+    const adminAuth = createAdminAuth({ store: makeStore(), adminFetch, isAuthRedirect: () => false, settingsUrl: "/x", updateAdminBar: () => {} });
+    expect((await adminAuth.setBetaOptIn(false)).ok).toBe(false);
+    expect(JSON.parse(localStorage.getItem("logbook_settings_cache")).betaOptIn).toBe(true);
+  });
+
   it("a failed fetchSettings() leaves the cache-seeded values untouched, not a hardcoded default", async () => {
     localStorage.setItem("logbook_settings_cache", JSON.stringify({ athleteMode: true, logbookPublic: true, betaOptIn: null, activeDiscipline: "sport" }));
     global.fetch = vi.fn().mockRejectedValue(new Error("offline"));

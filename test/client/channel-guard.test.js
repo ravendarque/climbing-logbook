@@ -58,7 +58,7 @@ describe("enrollmentAllowsBoot", () => {
     expect(allowed).toBe(false);
     expect(message()).not.toBeNull();
     expect(message().textContent).toContain("Beta is for enrolled users");
-    expect(message().querySelector("a").getAttribute("href")).toBe("https://my.climbinglogbook.com/raven/account");
+    expect(message().querySelector("a").getAttribute("href")).toBe("https://my.climbinglogbook.com/raven/account/beta");
     expect(document.querySelector("climbing-page-header").hidden).toBe(false);
     expect(document.getElementById("content").hidden).toBe(true);
   });

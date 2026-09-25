@@ -3,6 +3,7 @@
 // reimplementing its own fetch wrapper.
 import { env, exports } from "cloudflare:workers";
 import { vi } from "vitest";
+import { checkUsername } from "../shared/username-policy.js";
 
 export const BASE_URL = "https://example.com";
 
@@ -57,9 +58,20 @@ export function jsonRequest(method, path, body, headers = {}) {
 // Callers must disable the beta gate for their file (`env.BETA_GATE_ENABLED
 // = "false"` in beforeAll/afterAll, matching test/auth.test.js's pattern)
 // since this doesn't supply an invite code.
+// #1011 -- a random name can spell something the username policy (#997)
+// rejects: "user1488c4d2f1", or "ab33d" read through leet. About 1 in
+// 6,000 did, and with hundreds of sessions per run that failed a few
+// percent of CI runs. Draw again until the policy accepts it.
+function randomUsername() {
+  for (;;) {
+    const name = `user${crypto.randomUUID().replace(/-/g, "").slice(0, 10)}`;
+    if (checkUsername(name).ok) return name;
+  }
+}
+
 export async function createAuthedSession({
   email = `user-${crypto.randomUUID()}@example.com`,
-  username = `user${crypto.randomUUID().replace(/-/g, "").slice(0, 10)}`,
+  username = randomUsername(),
   // #468 -- signing up on a real climbinglogbook.com-family hostname
   // (rather than the default example.com) exercises the same
   // crossSubDomainCookies-enabled cookie-naming path a real apex signup
@@ -87,7 +99,7 @@ export async function createAuthedSession({
     throw new Error(`Unexpected fetch to ${url} -- only Resend/Turnstile calls should reach real fetch() during createAuthedSession()`);
   }));
 
-  await request("/-/api/auth/sign-up/email", {
+  const signUp = await request("/-/api/auth/sign-up/email", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -99,6 +111,7 @@ export async function createAuthedSession({
     }),
   });
 
+  if (!signUp.ok) throw new Error(`createAuthedSession: sign-up as "${username}" failed (${signUp.status}): ${await signUp.text()}`);
   const token = decodeURIComponent(capturedHtml.match(/token=([^"&<?]+)/)[1]);
   const res = await request(`/-/api/auth/verify-email?token=${token}`);
   const cookie = res.headers.get("set-cookie").split(";")[0];
