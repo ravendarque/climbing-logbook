@@ -23,7 +23,7 @@ export function renderNotAvailableOffline(doc) {
   renderBlockedPage(doc, {
     id: "not-available-offline",
     heading: "Not available offline on this device",
-    text: "This logbook hasn't been opened while signed in on this device. Connect to the internet and sign in to open it.",
+    text: "This logbook hasn't been opened while logged in on this device. Connect to the internet and log in to open it.",
   });
 }
 
