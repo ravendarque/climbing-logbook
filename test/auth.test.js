@@ -118,6 +118,17 @@ describe("sign-up", () => {
     const res = await signUp({ ...VALID_SIGNUP, email: "someone-else@example.com" });
     expect(res.status).toBe(400);
   });
+
+  // #997 -- shared/username-policy.js, through the real route: the code
+  // is what static/register/register.js turns into "isn't available".
+  it("rejects a reserved username and a lookalike of one, creating no account", async () => {
+    for (const username of ["help", "he1p", "admin_raven"]) {
+      const res = await signUp({ ...VALID_SIGNUP, username });
+      expect(res.status, username).toBe(400);
+      expect((await res.json()).code, username).toBe("INVALID_USERNAME");
+    }
+    expect(resendCalls).toHaveLength(0);
+  });
 });
 
 describe("session lifecycle", () => {
@@ -187,6 +198,10 @@ describe("account settings (#302)", () => {
 
     const takenRes = await authedPost("/-/api/auth/update-user", { username: "taken" }, cookie);
     expect(takenRes.status).toBe(400);
+
+    // #997 -- the username policy applies to a change too.
+    const reservedRes = await authedPost("/-/api/auth/update-user", { username: "l0gin" }, cookie);
+    expect(reservedRes.status).toBe(400);
 
     const okRes = await authedPost("/-/api/auth/update-user", { username: "newname" }, cookie);
     expect(okRes.status).toBe(200);

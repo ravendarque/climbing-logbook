@@ -3,7 +3,7 @@ import { username } from "better-auth/plugins";
 import { createBetaGateAfterHook } from "./beta-gate.js";
 import { createEmailSender } from "./email.js";
 import { createTurnstileHook } from "./turnstile.js";
-import { DEMO_USERNAMES } from "../../shared/demo-personas.js";
+import { checkUsername, USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH } from "../../shared/username-policy.js";
 
 // Better Auth (#20) -- replaces Cloudflare Access as the auth mechanism for
 // the multi-user rollout. `createAuth` still has to be a function, not a
@@ -142,13 +142,14 @@ function crossSubDomainCookies(hostname) {
 // same isolate, unlike hostname.
 const authCache = new Map();
 
-// #341/#251 -- lowercase letters, digits, `.` and `_` (Instagram's charset),
-// never a demo account's name. #982/#983: this charset is also what keeps
-// app-host paths collision-free -- /service-worker.js and everything under
-// /-/ contain a hyphen, which no username can. Widening it means revisiting
-// those routes (test/username.test.js guards this).
+// #341/#251/#997 -- shared/username-policy.js decides: the charset
+// (Instagram's: lowercase letters, digits, `.` and `_`), the demo accounts,
+// and reserved names and their lookalikes. #982/#983: the charset is also
+// what keeps app-host paths collision-free -- /service-worker.js and
+// everything under /-/ contain a hyphen, which no username can. Widening
+// it means revisiting those routes (test/username.test.js guards this).
 export function isValidUsername(candidate) {
-  return /^[a-z0-9._]+$/.test(candidate) && !DEMO_USERNAMES.includes(candidate);
+  return checkUsername(candidate).ok;
 }
 
 export function createAuth(env, hostname) {
@@ -304,10 +305,12 @@ export function createAuth(env, hostname) {
     // accounts.mjs); a real visitor registering one of these usernames
     // would either collide with or shadow the demo, so the validator
     // rejects them the same way it rejects any other malformed candidate.
+    // #997 -- so are reserved names and their lookalikes
+    // (shared/username-policy.js).
     plugins: [username({
       usernameValidator: isValidUsername,
-      minUsernameLength: 1,
-      maxUsernameLength: 30,
+      minUsernameLength: USERNAME_MIN_LENGTH,
+      maxUsernameLength: USERNAME_MAX_LENGTH,
     })],
     // Turnstile bot check (#311) -- reject non-human requests. The beta
     // gate (#296) used to run here too, as a second hooks.before entry,
