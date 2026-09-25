@@ -16,7 +16,7 @@ import { userKey } from "./user-storage.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
 
-const ADMIN_SETTINGS_URL = "/-/api/admin/settings";
+const SETTINGS_URL = "/-/api/settings";
 // This origin's offline queue (client/log-main.js's QUEUE_KEY).
 const QUEUE_KEY = userKey("logbook_pending_queue");
 
@@ -93,7 +93,7 @@ function updateAdminBar() {
 
 const adminAuth = createAdminAuth({
   store, adminFetch, isAuthRedirect,
-  adminSettingsUrl: ADMIN_SETTINGS_URL,
+  settingsUrl: SETTINGS_URL,
   updateAdminBar,
 });
 

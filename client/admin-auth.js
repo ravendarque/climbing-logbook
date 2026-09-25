@@ -42,7 +42,7 @@ async function clearWorkerCaches() {
 // checkSession()/fetchSettings() in syncStatusIcon.track()) don't need
 // to pass anything; the 10 real consumers that do pass their own
 // syncStatusIcon.reportTimeout directly.
-export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettingsUrl, updateAdminBar, onFetchTimeout = () => {} }) {
+export function createAdminAuth({ store, adminFetch, isAuthRedirect, settingsUrl, updateAdminBar, onFetchTimeout = () => {} }) {
   const AUTH_SESSION_URL = "/-/api/auth/get-session";
   const AUTH_SIGN_OUT_URL = "/-/api/auth/sign-out";
   const SETTINGS_URL = "/-/api/settings";
@@ -155,7 +155,7 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, adminSettin
   // state), not an exceptional one; a thrown network/parse error still
   // propagates normally to the caller's own try/catch.
   async function patchSetting(field, value) {
-    const res = await adminFetch(adminSettingsUrl, {
+    const res = await adminFetch(settingsUrl, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ [field]: value }),

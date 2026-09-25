@@ -48,7 +48,7 @@ const MAP_COUNTS_URL = demoDataUrl(USERNAME, "/-/api/map/counts", "map/counts");
 // unlike /performance's deliberate online-only gate).
 // #960 -- namespaced per user (client/user-storage.js).
 const MAP_COUNTS_CACHE_KEY = userKey("logbook_map_counts_cache");
-const ADMIN_SETTINGS_URL = "/-/api/admin/settings";
+const SETTINGS_URL = "/-/api/settings";
 
 // Same opaqueredirect-detection reasoning as client/main.js's own
 // adminFetch/isAuthRedirect -- unchanged copy, not worth sharing a
@@ -90,7 +90,7 @@ function updateAdminBar() {
 
 const adminAuth = createAdminAuth({
   store, adminFetch, isAuthRedirect,
-  adminSettingsUrl: ADMIN_SETTINGS_URL,
+  settingsUrl: SETTINGS_URL,
   updateAdminBar,
   // #847 follow-up -- lets checkSession()/fetchSettings() report a
   // genuine fetch timeout through to the shell sync/offline indicator
@@ -100,7 +100,7 @@ const adminAuth = createAdminAuth({
 
 const headerChrome = createHeaderChrome({
   store, adminFetch, isAuthRedirect,
-  adminSettingsUrl: ADMIN_SETTINGS_URL,
+  settingsUrl: SETTINGS_URL,
 });
 
 async function boot() {

@@ -64,7 +64,8 @@ async function waitForServer(url, timeoutMs = 60_000) {
 const D1_OPTIONS = { database: "climbing-logbook-preview", env: "preview" };
 
 export default async function globalSetup() {
-  await waitForServer(`${BASE_URL}/-/api/logbook`);
+  // get-session answers 200 without a session; every resource route 401s (#992).
+  await waitForServer(`${BASE_URL}/-/api/auth/get-session`);
 
   // Schema must exist before resetDatabase() can DELETE FROM its tables --
   // a fresh checkout/CI runner has none yet at this point (see

@@ -68,7 +68,7 @@ test("Athlete Mode toggle (#445) switches and persists via the settings PATCH", 
   await expect(athleteToggle).toHaveAttribute("aria-checked", "false");
 
   await Promise.all([
-    page.waitForResponse(res => res.url().includes("/-/api/admin/settings") && res.request().method() === "PATCH"),
+    page.waitForResponse(res => res.url().includes("/-/api/settings") && res.request().method() === "PATCH"),
     athleteToggle.click(),
   ]);
   await expect(athleteToggle).toHaveAttribute("aria-checked", "true");
@@ -91,7 +91,7 @@ test("Public Logbook toggle (#301, moved to this page by #445) switches and pers
   await expect(publicToggle).toHaveAttribute("aria-checked", "true");
 
   await Promise.all([
-    page.waitForResponse(res => res.url().includes("/-/api/admin/settings") && res.request().method() === "PATCH"),
+    page.waitForResponse(res => res.url().includes("/-/api/settings") && res.request().method() === "PATCH"),
     publicToggle.click(),
   ]);
   await expect(publicToggle).toHaveAttribute("aria-checked", "false");
@@ -158,7 +158,7 @@ test("Export JSON downloads the resolved rows as JSON", async ({ page }) => {
 
 test("Export shows an error message instead of a download when the data fetch fails", async ({ page }) => {
   await mockApi(page, EXPORT_FIXTURE);
-  await page.route("**/-/api/logbook", route => route.fulfill({ status: 500 }));
+  await page.route("**/-/api/entries", route => route.fulfill({ status: 500 }));
   await page.goto("/e2e-fixtures/pages/account.html");
 
   await page.locator("#export-csv-btn").click();

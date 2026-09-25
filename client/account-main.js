@@ -26,8 +26,8 @@ import { buildEntriesCsv, resolveExportRows } from "../shared/csv-import.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
 
-const ADMIN_SETTINGS_URL = "/-/api/admin/settings";
-const DATA_URL = "/-/api/logbook";
+const SETTINGS_URL = "/-/api/settings";
+const DATA_URL = "/-/api/entries";
 const PLACES_URL = "/-/api/places";
 const LOCATIONS_URL = "/-/api/locations";
 
@@ -118,7 +118,7 @@ function updateAdminBar() {
 
 const adminAuth = createAdminAuth({
   store, adminFetch, isAuthRedirect,
-  adminSettingsUrl: ADMIN_SETTINGS_URL,
+  settingsUrl: SETTINGS_URL,
   updateAdminBar,
 });
 

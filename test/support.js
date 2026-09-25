@@ -116,7 +116,7 @@ export async function createAuthedSession({
 export async function seedPlace(cookie, { locationName = "Magic Wood", country = "Switzerland", area = "Sector 1" } = {}) {
   const locRes = await jsonRequest(
     "POST",
-    "/-/api/admin/locations",
+    "/-/api/locations",
     { name: locationName, country },
     { Cookie: cookie }
   );
@@ -125,7 +125,7 @@ export async function seedPlace(cookie, { locationName = "Magic Wood", country =
 
   const placeRes = await jsonRequest(
     "POST",
-    "/-/api/admin/places",
+    "/-/api/places",
     { locationId, area },
     { Cookie: cookie }
   );

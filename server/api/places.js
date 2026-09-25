@@ -15,7 +15,7 @@ async function validateFields(place, env, userId) {
 }
 
 // #490 -- case-insensitive area match scoped to (user, locationId),
-// mirroring server/api/logbook-import.js's own resolveLocationsAndPlaces()
+// mirroring server/api/entries-import.js's own resolveLocationsAndPlaces()
 // match logic (that file's own placeByKey Map keyed by
 // `${p.location_id}::${p.area.toLowerCase()}`) rather than a second,
 // independently-drifting copy of the same rule -- including an empty
@@ -41,7 +41,7 @@ async function findDuplicatePlace(env, userId, place) {
 // (location determines country, a real functional dependency; storing it
 // on every Place row would make it transitively dependent on location
 // rather than on this row's own key, i.e. not actually 3NF -- see #158).
-// Exported -- #224 phase 3's bulk import (server/api/logbook-import.js)
+// Exported -- #224 phase 3's bulk import (server/api/entries-import.js)
 // mints new Place rows the exact same way as this single-record POST
 // path, not a second copy.
 export function buildRow(place, id, userId) {

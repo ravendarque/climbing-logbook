@@ -1,6 +1,6 @@
 import { json } from "../lib/json.js";
 import { resolvePublicUser } from "./public-profile.js";
-import { handlePublicGet } from "./logbook.js";
+import { handlePublicGet } from "./entries.js";
 import { handleGet as handleGetPlaces } from "./places.js";
 import { handleGet as handleGetLocations } from "./locations.js";
 import { handleGetMapCounts } from "./map.js";
@@ -11,7 +11,7 @@ import {
 } from "./performance.js";
 
 // #351 -- the read-only data feeding client/profile-main.js's
-// <climbing-entries-table>, at /-/api/public/:username/{logbook,
+// <climbing-entries-table>, at /-/api/public/:username/{entries,
 // places,locations}. Not hostname-gated (unlike server/api/owned-routes.js/
 // this file's own sibling handlePublicProfile) -- same reasoning every
 // other /-/api/* route already has: the client bundle that calls
@@ -19,7 +19,7 @@ import {
 // the page itself.
 //
 // Reuses server/api/{places,locations}.js's existing handleGet completely
-// unchanged, and server/api/logbook.js's handlePublicGet (a thin wrapper
+// unchanged, and server/api/entries.js's handlePublicGet (a thin wrapper
 // over its own handleGet, Task 7 -- see that file for why: the raw
 // handleGet's rowToJson/attachChildRows leaked rpe/attemptsToSend/
 // entry_moves/entry_pain_moves to anonymous callers) -- server/lib/
@@ -35,7 +35,7 @@ import {
 // here too, not a distinguishable response an attacker could use to probe
 // which usernames are real accounts.
 const HANDLERS = {
-  logbook: handlePublicGet,
+  entries: handlePublicGet,
   places: handleGetPlaces,
   locations: handleGetLocations,
   // #497 -- handleGetMapCounts already takes a plain userId with no
@@ -43,13 +43,13 @@ const HANDLERS = {
   // reuses above already rely on.
   "map/counts": handleGetMapCounts,
   // #494 -- the profile page's own lazy-load shell data (ADR-0017).
-  "logbook/counts": handleGetProfileCounts,
+  "entries/counts": handleGetProfileCounts,
 };
 
 // #251 -- performance-insight data (Grade Pyramid, injury log,
 // strengths/weaknesses, volume/trends, gap, RPE/effort) reuses
 // server/api/performance.js's existing handlers exactly like HANDLERS
-// above reuses logbook/places/locations -- each already takes a plain
+// above reuses entries/places/locations -- each already takes a plain
 // userId with no session-derived assumptions baked in. Kept in a separate
 // map (not merged into HANDLERS) because it's gated by target.isDemo,
 // below -- real users' performance data stays owner-only regardless of
@@ -61,7 +61,7 @@ const DEMO_ONLY_HANDLERS = {
   "performance/strengths": handleGetStrengthsWeaknesses,
   // "volume", not "trends" -- matches the real session-scoped endpoint's
   // own name (/-/api/performance/volume, server/index.js's
-  // PUBLIC_GET_ROUTES), which predates and differs from the page route's
+  // RESOURCE_ROUTES), which predates and differs from the page route's
   // own name (/performance/trends, #15).
   "performance/volume": handleGetVolume,
   "performance/gap": handleGetGap,
@@ -83,7 +83,7 @@ export async function handlePublicResource(request, env, username, resource) {
   // #511 -- strip ?since= before dispatching: every HANDLERS entry above
   // is a server/api/*.js handleGet shared unchanged with an owner-only
   // route that also supports a delta-sync `?since=` mode (server/lib/
-  // d1-resource.js's createD1ResourceHandlers, and logbook.js's own
+  // d1-resource.js's createD1ResourceHandlers, and entries.js's own
   // bespoke branch) -- built for the owner's own /sync page (#500), and
   // for entries specifically, surfacing a soft-deleted row's *full
   // content* (name, grade, notes, video) flagged `deleted: true` so the

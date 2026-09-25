@@ -477,27 +477,26 @@ client/
                           above
 server/
 ├── index.js            Router — hostname + pathname + method, dispatches.
-│                         Route tables (PUBLIC_GET_ROUTES/ADMIN_ROUTES,
-│                         pathname -> handler[/method]) replaced four
-│                         copy-pasted if-blocks with lookups (found via
-│                         code review, 2026-08-09) -- the next simple GET/
-│                         admin resource is a one-line table entry, not a
+│                         One route table (RESOURCE_ROUTES, pathname ->
+│                         method -> handler, #992): every route in it
+│                         requires a session for every method, so the
+│                         next resource is a one-line table entry, not a
 │                         new if. The one hostname check
 │                         (`hostname.startsWith("my.")`) gates #347/#351's
 │                         owner-only and public per-user routes -- see
 │                         "Request routing" below
 ├── api/
-│   ├── logbook.js       GET (public) / POST,PUT,DELETE (admin) — CRUD on
+│   ├── entries.js       GET/POST/PUT/DELETE /-/api/entries — CRUD on
 │   │                      entries. handleGet/handlePost delegate to
 │   │                      lib/d1-resource.js; handlePut/handleDelete stay
 │   │                      here since entries is the only resource with
 │   │                      edit/delete
-│   ├── places.js        GET (public) / POST (admin) — create/read on
+│   ├── places.js        GET/POST /-/api/places — create/read on
 │   │                      places, same lib/d1-resource.js delegation
-│   ├── locations.js     GET (public) / POST (admin) — create/read on
+│   ├── locations.js     GET/POST /-/api/locations — create/read on
 │   │                      locations; edit/delete deliberately not yet
 │   │                      implemented for either (#159, #160)
-│   ├── settings.js      GET (public) / PATCH (admin) — Athlete Mode +
+│   ├── settings.js      GET/PATCH /-/api/settings — Athlete Mode +
 │   │                      persisted-discipline settings row
 │   ├── owned-routes.js  (#347, +#302) my.<domain>/:username/{log,map,
 │   │                      performance,account,account/edit} -- the
@@ -527,7 +526,7 @@ server/
 │   │                      404 message page (renderMessage()), not a bare
 │   │                      Response
 │   └── public-data.js   (#351) GET /-/api/public/:username/
-│                          {logbook,places,locations} — the read-only JSON
+│                          {entries,places,locations} — the read-only JSON
 │                          API the public profile page's own client bundle
 │                          (client/profile-main.js) fetches from. Scoped
 │                          to whichever *target* user the path names, not
@@ -597,7 +596,8 @@ server/
                             email-sending needs Better Auth's config
                             actually calls into
 
-public/-/ (no longer a page of its own, #375 -- just the shared
+public/-/ (public/logbook/ until #984, and no longer a page of its own
+since #375 -- just the shared
 asset directory every page's absolute paths resolve against: gitignored
 build output, fonts, favicons, and the PWA manifest (the service worker
 is `/service-worker.js`, built from `client/sw/`, #947/#983);
@@ -621,7 +621,7 @@ client/*-main.js's own compiled output lives in dist/, not here -- see
 ├── manifest.json        PWA manifest -- start_url/scope point at
 │                           /:username/log generically now (#375; there's
 │                           no longer a single fixed page to name the way
-│                           /-/ once was)
+│                           /logbook/ once was)
 └── components/             Classic, non-module <script> Web Components
                               (not the ES-module client/components/ family
                               below) -- loaded directly via <script src>
@@ -1238,24 +1238,28 @@ static file — in practice, the `/-/api/*` routes plus two
 
 | Path | Host | Method | Auth | Handler |
 |---|---|---|---|---|
-| `/-/api/logbook` | any | GET | public, session-scoped | `handleGet` |
-| `/-/api/admin/logbook` | any | POST/PUT/DELETE | Better Auth session (#297) | `handlePost`/`handlePut`/`handleDelete` |
-| `/-/api/places` | any | GET | public, session-scoped | `handleGet` (places.js) |
-| `/-/api/admin/places` | any | POST | Better Auth session (#297) | `handlePost` (places.js) |
-| `/-/api/locations` | any | GET | public, session-scoped | `handleGet` (locations.js) |
-| `/-/api/admin/locations` | any | POST | Better Auth session (#297) | `handlePost` (locations.js) |
-| `/-/api/settings` | any | GET | public, session-scoped | `handleGetSettings` |
-| `/-/api/admin/settings` | any | PATCH | Better Auth session (#297) | `handlePatchSettings` |
-| `/-/api/public/:username/{logbook,places,locations}` | any | GET | public, target-user-scoped (#351) | `handlePublicResource` |
+| `/-/api/entries` | any | GET/POST/PUT/DELETE | Better Auth session (#297, #992) | `handleGet`/`handlePost`/`handlePut`/`handleDelete` (entries.js) |
+| `/-/api/entries/import` | any | POST | Better Auth session | `handleImport` (entries-import.js) |
+| `/-/api/places` | any | GET/POST | Better Auth session | `handleGet`/`handlePost` (places.js) |
+| `/-/api/locations` | any | GET/POST | Better Auth session | `handleGet`/`handlePost` (locations.js) |
+| `/-/api/settings` | any | GET/PATCH | Better Auth session | `handleGetSettings`/`handlePatchSettings` |
+| `/-/api/performance/{pyramid,injury,strengths,volume,gap,rpe}`, `/-/api/map/counts` | any | GET | Better Auth session | performance.js, map.js |
+| `/-/api/public/:username/{entries,entries/counts,places,locations,map/counts}` | any | GET | none; target-user-scoped, `logbook_public`-gated (#351) | `handlePublicResource` |
+| `/-/api/public/:username/performance/*` | any | GET | none; demo accounts only (#251) | `handlePublicResource` |
 | `/-/api/auth/*` | any | any | Better Auth's own (#20) | `createAuth(env, hostname).handler` |
 | `/:username/{log,map,performance,account,account/edit}` | `my.*` only | GET | owner's own Better Auth session (#347, +#302) | `handleOwnedRoute` |
 | `/:username` | `my.*` only | GET | public, `logbook_public`-gated (#113/#351) | `handlePublicProfile` |
 
-"Public, session-scoped" means the route is reachable without a session,
-but the *response* isn't the same for everyone — see "Data model" above.
-The admin routes are gated by Better Auth's own session check inside the
-Worker itself (#297) — the actual multi-tenant isolation boundary; this
-app never had any other in-Worker authorization until #297 added it.
+Every resource route is gated by Better Auth's own session check inside
+the Worker itself (#297) — the actual multi-tenant isolation boundary —
+for every method, reads included (#992). No session is a 401, never an
+empty 200, so a page whose session has lapsed keeps its cached data
+rather than rendering an empty logbook. A method a route doesn't accept is
+a 404, checked before the session. Anonymous reads exist only under
+`/-/api/public/:username/*`, which checks the target user's
+`logbook_public` itself: a private logbook is secure by absence. #992 also
+retired the `admin/` prefix for writes (a holdover from Cloudflare Access)
+and the `logbook` resource name for entries.
 Cloudflare Access's own edge-authentication glue (`/admin/session`,
 `/admin/login`) was removed entirely (#427) once #298's removal of Access
 itself and #320's rewire of `client/admin-auth.js` onto Better Auth's own
@@ -1349,7 +1353,7 @@ every owner composition root runs `client/channel-guard.js`'s
 not-enrolled user gets a "Beta is for enrolled users" message (header and
 menu kept, the rest hidden, no data fetched) linking to My account on
 `my.<domain>`. The decision comes synchronously from the cached settings;
-a background read of the session-only `GET /-/api/admin/settings`
+a background read of the session-only `GET /-/api/settings`
 corrects it (one reload) if it changed. `betaOptIn` is two-state
 (`true`/`false`); a `NULL` column value means not enrolled.
 
@@ -1438,7 +1442,7 @@ real requirement: a climber logs a grade exactly as their guidebook
 shows it, sees it in the logbook exactly as logged, and exports it
 exactly as logged — none of that is possible if the stored value is
 already converted to some canonical notation. `gradeScale` is optional
-on write (`server/api/logbook.js`'s `defaultGradeScale()` infers a
+on write (`server/api/entries.js`'s `defaultGradeScale()` infers a
 sensible value when a client omits it — needed for older/imported rows
 and any other write path that predates the picker) — `client/entry-form.js`
 sends it on every submit since sub-issue #703's scale/preference picker
@@ -1524,7 +1528,7 @@ its step count), but plumbing a real per-discipline tier facet through
 that mode's own combined `filteredEntries()` call sites is separate
 scope from this facet's own replacement.
 
-`buildRow()`/`rowToJson()` (`server/api/logbook.js`, `server/api/places.js`,
+`buildRow()`/`rowToJson()` (`server/api/entries.js`, `server/api/places.js`,
 `server/api/locations.js`, alongside the shared `server/lib/d1-resource.js`
 factory) reconstruct these fixed shapes from the incoming payload on
 every write rather than spreading the raw request body into storage — a
@@ -1568,9 +1572,8 @@ schema doesn't create it at signup) holds a small settings record
 separate from the entries data: `{ athleteMode: boolean,
 activeDiscipline: "boulder" | "lead" }`, defaulting to `{ athleteMode:
 false, activeDiscipline: "boulder" }` when no row exists yet (so existing
-behavior is unchanged until an admin explicitly opts in). It follows the
-same public-read/admin-write split as the entries API, gated the same
-way. Toggling Athlete Mode off hides (not deletes) the coaching-mode UI
+behavior is unchanged until the user explicitly opts in). Like every
+resource route, it needs a session to read or write (#992). Toggling Athlete Mode off hides (not deletes) the coaching-mode UI
 it gates — the underlying data is unaffected by the toggle.
 `activeDiscipline` persists which discipline tab (#137) was last active,
 best-effort (only when logged in; a logged-out visitor's switch stays
@@ -1612,10 +1615,10 @@ why Better Auth replaced Cloudflare Access as the mechanism itself.
 
 The client-facing flow (login button, session check, logout) is Better
 Auth's now (#320) — Cloudflare Access is gone entirely (#298), so Better
-Auth's session check is the only gate `/-/api/admin/*` has.
+Auth's session check is the only gate `/-/api/*` has.
 
 Server-side, `server/index.js` independently resolves a Better Auth session
-(`server/lib/session.js`) before dispatching to any `/-/api/admin/
+(`server/lib/session.js`) before dispatching to any `/-/api/
 {logbook,places,locations,settings}` handler, 401ing without one (#297)
 — this is the actual per-user data-isolation boundary, not Access.
 
@@ -1809,7 +1812,7 @@ the collapsing logic entirely and matching what `applyPendingQueue()`'s
 merge loop and `syncPending()`'s replay loop already did (both were always
 plain, unconditional per-item processing; #268 didn't need to touch
 either). The one thing that made unconditional replay actually safe:
-`handleDelete` (`server/api/logbook.js`) treats a missing id as an idempotent
+`handleDelete` (`server/api/entries.js`) treats a missing id as an idempotent
 success (200, unchanged entries) rather than a 404 error, mirroring
 `handlePost`'s existing duplicate-id idempotency -- without that, deleting
 a queued-but-never-synced entry while online would 404 and get stuck.

@@ -21,7 +21,7 @@ test("not enrolled: explains joining, and Join writes the setting and opens the 
   await expect(page.locator("#beta-queue-warning")).toBeHidden();
 
   const [patch] = await Promise.all([
-    page.waitForRequest(req => req.url().endsWith("/-/api/admin/settings") && req.method() === "PATCH"),
+    page.waitForRequest(req => req.url().endsWith("/-/api/settings") && req.method() === "PATCH"),
     page.getByRole("button", { name: "Join the beta" }).click(),
   ]);
   expect(patch.postDataJSON()).toEqual({ betaOptIn: true });
@@ -37,7 +37,7 @@ test("enrolled: explains leaving, and Leave writes the setting and opens the mai
   await expect(page.locator("#beta-join")).toBeHidden();
 
   const [patch] = await Promise.all([
-    page.waitForRequest(req => req.url().endsWith("/-/api/admin/settings") && req.method() === "PATCH"),
+    page.waitForRequest(req => req.url().endsWith("/-/api/settings") && req.method() === "PATCH"),
     page.getByRole("button", { name: "Leave the beta" }).click(),
   ]);
   expect(patch.postDataJSON()).toEqual({ betaOptIn: false });
@@ -73,7 +73,7 @@ test("changes waiting to sync on this device are pointed out, without blocking",
 
 test("a failed save shows the error, focused, and stays on the page", async ({ page }) => {
   await mockApi(page, { settings: settings(false) });
-  await page.route("**/-/api/admin/settings", route => (route.request().method() === "PATCH" ? route.fulfill({ status: 500, json: {} }) : route.fallback()));
+  await page.route("**/-/api/settings", route => (route.request().method() === "PATCH" ? route.fulfill({ status: 500, json: {} }) : route.fallback()));
   await page.goto(PAGE);
   const before = page.url();
 

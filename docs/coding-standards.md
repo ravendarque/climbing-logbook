@@ -127,10 +127,11 @@ why Better Auth replaced Cloudflare Access as the mechanism itself.
 
 - **Better Auth sessions gate admin/write paths inside the Worker itself
   (#297)** — not a shared secret checked ad hoc, and not an edge-only gate.
-  Read (public) and write (admin) endpoints still live on distinct path
-  prefixes (`/api/logbook` vs `/api/admin/logbook`) — a holdover from this
-  project's earlier Cloudflare-Access-gated design, kept because it's a
-  clear, self-documenting split, not because anything still requires it.
+  Every resource route under `/-/api/` (entries, places, locations,
+  settings, performance, map) requires a session for every method and
+  answers 401 without one (#992). Anonymous reads exist only under
+  `/-/api/public/:username/*`, which checks the target user's
+  `logbook_public` itself, so a private logbook is secure by absence.
 - Every write endpoint resolves its session server-side
   (`server/lib/session.js`) and scopes the operation to that session's own
   `user_id` — the actual multi-tenant isolation boundary. Never trust a

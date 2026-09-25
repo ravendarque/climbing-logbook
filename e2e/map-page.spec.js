@@ -28,7 +28,7 @@ test("renders the shared chrome, a real map, and switches discipline (persisted 
 
   await page.locator("#discipline-btn").click();
   await Promise.all([
-    page.waitForResponse(res => res.url().includes("/-/api/admin/settings") && res.request().method() === "PATCH"),
+    page.waitForResponse(res => res.url().includes("/-/api/settings") && res.request().method() === "PATCH"),
     page.locator('.discipline-option[data-discipline="sport"]').click(),
   ]);
   await expect(page.locator("#discipline-btn-label")).toHaveText("Sport");

@@ -36,8 +36,8 @@ describe("classifyRequest (#962)", () => {
   });
 
   it.each([
-    "/-/api/logbook?since=1",
-    "/-/api/admin/settings",
+    "/-/api/entries?since=1",
+    "/-/api/settings",
     "/-/api/auth/get-session",
     "/-/api/performance/pyramid?v=2",
   ])("never touches API responses: %s passes through", (path) => {

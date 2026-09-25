@@ -29,8 +29,8 @@ together (#468 -- not plain `wrangler dev`, which can't honor a
 a `routes`-configured Worker, breaking Better Auth locally). Serves at
 `http://localhost:5173`.
 
-See `docs/app-architecture.md` for local auth setup — `/-/api/admin/*`
-requires a real Better Auth session, same as production.
+See `docs/app-architecture.md` for local auth setup — the `/-/api/`
+resource routes require a real Better Auth session, same as production.
 
 ## Deploying
 

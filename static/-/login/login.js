@@ -48,7 +48,7 @@ form.addEventListener("submit", async (event) => {
 
     if (res.ok) {
       // Redirects to the signed-in user's own /log page (#352) -- not a
-      // fixed /-/ target, which was this page's original bug
+      // fixed /logbook/ target, which was this page's original bug
       // (landed everyone on the same app-root URL regardless of who
       // signed in). Previously targeted the user's public profile page
       // (#113) instead of /log -- that was the only real page #348/#351
