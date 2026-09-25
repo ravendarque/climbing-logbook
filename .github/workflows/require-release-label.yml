@@ -9,15 +9,23 @@ name: Require release label
 # real user-facing changes into an untagged, unreleased backlog. Making the
 # choice itself required, rather than opt-in, is what actually prevents
 # that recurring.
+#
+# Draft PRs are skipped, and ready_for_review runs it (#1021): Claude opens
+# PRs as drafts, labels them, then marks them ready, because its GitHub tool
+# can't label at creation. Checking at `opened` failed in the seconds
+# before the label landed, and that failed run stayed on the PR as a stale
+# red even after the `labeled` run passed. A draft can't be merged, so
+# skipping it gives nothing away.
 on:
   pull_request:
-    types: [opened, reopened, labeled, unlabeled, synchronize]
+    types: [opened, reopened, labeled, unlabeled, synchronize, ready_for_review]
 
 permissions:
   pull-requests: read
 
 jobs:
   check-label:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
       # Live query, not `github.event.pull_request.labels` -- that's a
