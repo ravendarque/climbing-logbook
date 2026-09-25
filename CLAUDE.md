@@ -33,7 +33,11 @@ Process rules for how Claude works in this repository. Code-level standards
 
 Every PR needs a `release: major/minor/patch/none` label before merge
 (enforced by a required check) — see `docs/versioning.md` for what
-qualifies. **`release: none` is only for changes that never reach users**
+qualifies. **Open every PR as a draft, add its release label, then mark it
+ready for review** — the label check skips drafts and runs on
+ready-for-review, so it first runs with the label already on. Opening a
+non-draft PR and labelling it afterwards leaves a stale failed check on
+it (#1021). **`release: none` is only for changes that never reach users**
 (docs, workflows, `.gitignore`, tests). `infra/`, `migrations/`, app code
 and build config always get a real bump: an untagged `infra/` or
 `migrations/` change sends the next release straight to production (#995).
