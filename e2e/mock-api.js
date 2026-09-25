@@ -184,12 +184,12 @@ export async function mockApi(page, {
 
   // #111 -- honors locationId/limit/offset when present (the "Show
   // more"/"Show all" follow-up shape), same contract as server/api/
-  // logbook.js's own handleGet, so a test exercising that UI genuinely
+  // entries.js's own handleGet, so a test exercising that UI genuinely
   // proves the client's own request construction rather than always
   // getting back everything regardless of what it asked for. Trailing
-  // `*` -- see the admin/logbook route below's own comment on why a bare
+  // `*` -- see the entries write route below's own comment on why a bare
   // pattern silently never matches a query-string-bearing URL at all.
-  await page.route("**/-/api/logbook*", route => {
+  await page.route("**/-/api/entries*", route => {
     const url = new URL(route.request().url());
     const locationId = url.searchParams.get("locationId");
     const limitParam = url.searchParams.get("limit");
@@ -197,14 +197,14 @@ export async function mockApi(page, {
     const offset = Number(url.searchParams.get("offset")) || 0;
 
     // #500 -- ?since= switches to the delta shape (mirrors server/api/
-    // logbook.js's own handleGet) -- checked first, mutually exclusive
+    // entries.js's own handleGet) -- checked first, mutually exclusive
     // with locationId/limit below, same precedence as the real handler.
     // Every row here comes back `deleted: false` -- this mock's own
     // DELETE route (below) still does a hard removal rather than
     // replicating #499's tombstone/soft-delete, out of scope for what
     // #500's own e2e coverage needs (a warm-with-drift *catch-up*
     // scenario, not a delete-propagation one -- that's already covered
-    // directly by test/logbook.test.js's own Vitest contract tests).
+    // directly by test/entries.test.js's own Vitest contract tests).
     if (sinceParam !== null) {
       const since = Number(sinceParam);
       const changed = _entries.filter(e => (cursorOf.get(e.id) ?? 0) >= since);
@@ -218,7 +218,7 @@ export async function mockApi(page, {
       return route.fulfill({ json: { entries: scoped.slice(offset, offset + limit) } });
     }
     // #498 -- flat chunked mode (no locationId, `limit` present): mirrors
-    // server/api/logbook.js's own `total` field (COUNT(*) OVER(), the
+    // server/api/entries.js's own `total` field (COUNT(*) OVER(), the
     // true count regardless of this slice's own offset/limit) --
     // client/sync-main.js's progress bar depends on it. `cursor` (#500)
     // -- MAX(sync_cursor) OVER(), same independence from offset/limit --
@@ -235,7 +235,7 @@ export async function mockApi(page, {
   // server/lib/d1-resource.js, which places.js/locations.js both use
   // unmodified) -- trailing `*`, not a bare pattern, since a query
   // string appended (?since=...) otherwise never matches (see the
-  // admin/logbook route further down for the fuller version of this
+  // entries write route further down for the fuller version of this
   // same gotcha).
   await page.route("**/-/api/places*", route => {
     const since = new URL(route.request().url()).searchParams.get("since");
@@ -323,22 +323,26 @@ export async function mockApi(page, {
   // tested here. Trailing `*` on the plain logbook route (#494) -- the
   // public profile's own lazy mode now requests it with `?locationId=&
   // limit=`, and a bare pattern never matches a query-string-bearing URL
-  // (same gotcha this file's own admin/logbook route comment documents).
-  await page.route("**/-/api/public/*/logbook*", route => {
+  // (same gotcha this file's own entries write route comment documents).
+  await page.route("**/-/api/public/*/entries*", route => {
     const locationId = new URL(route.request().url()).searchParams.get("locationId");
     if (!locationId) return route.fulfill({ json: { entries: _entries } });
     const limit = Number(new URL(route.request().url()).searchParams.get("limit")) || 20;
     const scoped = _entries.filter(e => _places.find(p => p.id === e.placeId)?.locationId === locationId);
     return route.fulfill({ json: { entries: scoped.slice(0, limit) } });
   });
-  await page.route("**/-/api/public/*/logbook/counts", route =>
+  await page.route("**/-/api/public/*/entries/counts", route =>
     route.fulfill({ json: { locations: _locations, places: _places, counts: computeLocationCounts() } }));
   await page.route("**/-/api/public/*/places", route => route.fulfill({ json: { places: _places } }));
   await page.route("**/-/api/public/*/locations", route => route.fulfill({ json: { locations: _locations } }));
   await page.route("**/-/api/public/*/map/counts", route => route.fulfill({ json: computeMapCounts() }));
 
-  await page.route("**/-/api/admin/settings", async route => {
-    if (route.request().method() !== "PATCH") return route.continue();
+  // #992 -- GET and PATCH share one URL now, so each write route below
+  // hands every other method back to the read route above with
+  // route.fallback(), not route.continue() (which would go to the real
+  // network instead).
+  await page.route("**/-/api/settings", async route => {
+    if (route.request().method() !== "PATCH") return route.fallback();
     _settings = { ..._settings, ...route.request().postDataJSON() };
     return route.fulfill({ json: _settings });
   });
@@ -346,12 +350,12 @@ export async function mockApi(page, {
   // Trailing `*` -- Playwright's URL glob matching requires an exact
   // literal match all the way to the end of the URL string (query string
   // included) when a pattern has no trailing wildcard, so a bare
-  // "**/-/api/admin/logbook" silently never matches
-  // "...admin/logbook?id=X" (confirmed empirically) and the DELETE below
+  // "**/-/api/entries" silently never matches
+  // "...entries?id=X" (confirmed empirically) and the DELETE below
   // would otherwise fall through unmocked to the real network. `*`
   // doesn't cross `/`, so this still can't accidentally also swallow the
-  // sibling "/admin/logbook/import" route below.
-  await page.route("**/-/api/admin/logbook*", async route => {
+  // sibling "/entries/import" route below.
+  await page.route("**/-/api/entries*", async route => {
     const method = route.request().method();
     if (method === "POST") {
       _entries = [..._entries, stamp(route.request().postDataJSON())];
@@ -367,22 +371,22 @@ export async function mockApi(page, {
       _entries = _entries.filter(e => e.id !== id);
       return route.fulfill({ json: { entries: _entries } });
     }
-    return route.continue();
+    return route.fallback();
   });
 
   // #224 -- the client sends the raw CSV body as-is (text/csv, not JSON),
-  // so this fakes just enough of server/api/logbook-import.js's own
+  // so this fakes just enough of server/api/entries-import.js's own
   // contract (a row count and an appended entries array) for
   // e2e/account-import-page.spec.js to prove the client's own wiring
   // (file read, request, success/error panel toggling) -- the real
   // parsing/validation/resolution logic is Vitest's job
-  // (test/logbook-import.test.js), not re-tested here.
+  // (test/entries-import.test.js), not re-tested here.
   // #639 -- a JSON upload's Content-Type (client/account-import-main.js's
   // own extension-based detection) is what this branches on, mirroring
-  // server/api/logbook-import.js's own parserFor() -- an array's own
+  // server/api/entries-import.js's own parserFor() -- an array's own
   // length is the "row" count here, not a newline split, since a JSON
   // body isn't line-per-entry shaped the way CSV is.
-  await page.route("**/-/api/admin/logbook/import", async route => {
+  await page.route("**/-/api/entries/import", async route => {
     if (route.request().method() !== "POST") return route.continue();
     const contentType = route.request().headers()["content-type"] ?? "";
     const rowCount = contentType.includes("json")
@@ -399,8 +403,8 @@ export async function mockApi(page, {
   // exercise the real client-side remap logic (client/offline-sync.js)
   // against a mocked dedup response, not just the server-side rule
   // itself (already covered directly by test/handlers.test.js).
-  await page.route("**/-/api/admin/places", async route => {
-    if (route.request().method() !== "POST") return route.continue();
+  await page.route("**/-/api/places*", async route => {
+    if (route.request().method() !== "POST") return route.fallback();
     const body = route.request().postDataJSON();
     const duplicate = _places.find(p => p.locationId === body.locationId && (p.area ?? "").toLowerCase() === (body.area ?? "").toLowerCase());
     if (duplicate) return route.fulfill({ json: { places: _places, dedupedTo: duplicate.id } });
@@ -408,8 +412,8 @@ export async function mockApi(page, {
     return route.fulfill({ status: 201, json: { places: _places } });
   });
 
-  await page.route("**/-/api/admin/locations", async route => {
-    if (route.request().method() !== "POST") return route.continue();
+  await page.route("**/-/api/locations*", async route => {
+    if (route.request().method() !== "POST") return route.fallback();
     const body = route.request().postDataJSON();
     const duplicate = _locations.find(l => l.name.toLowerCase() === body.name.toLowerCase());
     if (duplicate) return route.fulfill({ json: { locations: _locations, dedupedTo: duplicate.id } });

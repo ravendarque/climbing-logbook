@@ -217,3 +217,26 @@ test("a device registered at the old /sw.js switches to /service-worker.js on it
     return registrations.map(r => [new URL(r.scope).pathname, new URL(r.active?.scriptURL ?? "http://x/none").pathname]);
   })).toEqual([["/", "/service-worker.js"]]);
 });
+
+// #992 -- every resource read needs a session: a lapsed one gets a 401,
+// never an empty 200, so a worker-served page keeps showing the device's
+// cached logbook instead of replacing it with "no entries".
+test("a lapsed session: reads 401 and the worker-served page keeps the cached logbook", async ({ page, context }) => {
+  await warm(page, "/log");
+  const places = await page.locator(".place-header[data-location-id]").count();
+  expect(places).toBeGreaterThan(0);
+
+  await context.clearCookies();
+  const reads = [];
+  const lapsed = await context.newPage();
+  lapsed.on("response", res => {
+    const { pathname } = new URL(res.url());
+    if (res.request().method() === "GET" && /^\/-\/api\/(entries|places|locations|settings)$/.test(pathname)) reads.push(`${pathname} ${res.status()}`);
+  });
+  await lapsed.goto(ownedRouteUrl(DEV_USER.username, "/log"));
+  await lapsed.waitForLoadState("networkidle");
+
+  expect(reads.length).toBeGreaterThan(0);
+  expect(reads.every(read => read.endsWith(" 401"))).toBe(true);
+  await expect(lapsed.locator(".place-header[data-location-id]")).toHaveCount(places);
+});

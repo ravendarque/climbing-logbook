@@ -1,7 +1,7 @@
 // CSV template/parsing for bulk entry import (#224 phase 2/3), CSV/JSON
 // serialization for export (#27), and JSON import (#639). Shared between
 // client/account-import-main.js (template download, upload), client/
-// account-main.js (export), and server/api/logbook-import.js (upload
+// account-main.js (export), and server/api/entries-import.js (upload
 // parsing) -- same reasoning as entry-schema.js: one column list, one
 // parser per format, one serializer, not several copies drifting apart.
 // Deliberately hand-written, not a dependency -- no CSV code anywhere in
@@ -11,7 +11,7 @@
 // entry-schema.js precedent, #224 phase 1) than it'd save in code.
 
 // Order matters -- this IS the template's header row, and
-// logbook-import.js requires an uploaded file's header to match exactly
+// entries-import.js requires an uploaded file's header to match exactly
 // (see parseCsvText below), so this is the one place that order is
 // decided. location/area/country are free text here (not placeId) --
 // resolved server-side against the user's existing Locations/Places the
@@ -28,7 +28,7 @@
 // #476/#884 -- attemptsToSend/rpe/gradeScale, same trailing-append
 // precedent as sportStyle above, all three optional/blank-falls-back
 // (entrySchema already validates each of them when given; gradeScale
-// falls back to defaultGradeScale() server-side, server/api/logbook.js,
+// falls back to defaultGradeScale() server-side, server/api/entries.js,
 // when blank/omitted, same as it already does for an entry created via
 // the regular entry form). The compound Athlete Mode fields (moves/
 // painMoves -- strengths/weaknesses and pain/injury tagging) are
@@ -131,7 +131,7 @@ export function parseCsvText(text) {
 // button (below) already produce, giving export/import parity. Normalizes
 // into the exact same row shape parseCsvText produces above (every field
 // a string, firstAttempt as "true"/"false" not a real boolean) so
-// server/api/logbook-import.js's handleImport can feed either parser's
+// server/api/entries-import.js's handleImport can feed either parser's
 // output through the same resolveLocationsAndPlaces/draftEntry/
 // entrySchema pipeline unchanged -- one shared row shape, two parsers,
 // not two independent import pipelines. Deliberately permissive about a

@@ -1,4 +1,4 @@
-// Exercises server/api/logbook.js through the real Worker entrypoint (real
+// Exercises server/api/entries.js through the real Worker entrypoint (real
 // routing + real D1 binding), not by importing validateFields/buildRow
 // directly -- they're module-private, and testing through the public HTTP
 // contract means these tests keep passing across any internal refactor
@@ -11,10 +11,9 @@ import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables, seedPlace
 // HTTP-contract testing philosophy, see header comment above): it's the
 // exact same (request, env, userId) signature server/api/public-data.js
 // calls it with, not a new testing style for the rest of the file.
-import { handlePublicGet, publicRowToJson } from "../server/api/logbook.js";
+import { handlePublicGet, publicRowToJson } from "../server/api/entries.js";
 
-const PUBLIC_URL = "/-/api/logbook";
-const ADMIN_URL = "/-/api/admin/logbook";
+const ENTRIES_URL = "/-/api/entries";
 
 // Beta gate (#296) is orthogonal to what this file tests -- disabled here
 // the same way test/auth.test.js/test/email.test.js do, since
@@ -45,16 +44,16 @@ async function locationIdOf(id, extraCookie = cookie) {
 }
 
 function get(extraCookie = cookie) {
-  return fetchJson(PUBLIC_URL, { headers: { Cookie: extraCookie } });
+  return fetchJson(ENTRIES_URL, { headers: { Cookie: extraCookie } });
 }
 function post(body, extraCookie = cookie) {
-  return jsonRequest("POST", ADMIN_URL, body, { Cookie: extraCookie });
+  return jsonRequest("POST", ENTRIES_URL, body, { Cookie: extraCookie });
 }
 function put(body, extraCookie = cookie) {
-  return jsonRequest("PUT", ADMIN_URL, body, { Cookie: extraCookie });
+  return jsonRequest("PUT", ENTRIES_URL, body, { Cookie: extraCookie });
 }
 function del(id, extraCookie = cookie) {
-  const path = id === undefined ? ADMIN_URL : `${ADMIN_URL}?id=${encodeURIComponent(id)}`;
+  const path = id === undefined ? ENTRIES_URL : `${ENTRIES_URL}?id=${encodeURIComponent(id)}`;
   return fetchJson(path, { method: "DELETE", headers: { Cookie: extraCookie } });
 }
 
@@ -69,10 +68,9 @@ function validEntry() {
 }
 
 describe("handleGet", () => {
-  it("returns an empty entries array for an anonymous caller", async () => {
-    const res = await fetchJson(PUBLIC_URL);
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ entries: [] });
+  it("401s an anonymous caller (#992)", async () => {
+    const res = await fetchJson(ENTRIES_URL);
+    expect(res.status).toBe(401);
   });
 
   it("returns the logged-in caller's own entries", async () => {
@@ -128,7 +126,7 @@ describe("attemptsToSend / rpe", () => {
 describe("handleGet (flat limit/offset, no locationId -- #498 chunked full sync)", () => {
   function getChunk(params, extraCookie = cookie) {
     const qs = new URLSearchParams(params).toString();
-    return fetchJson(`${PUBLIC_URL}?${qs}`, { headers: { Cookie: extraCookie } });
+    return fetchJson(`${ENTRIES_URL}?${qs}`, { headers: { Cookie: extraCookie } });
   }
 
   it("returns a capped, offset slice ordered the same way listForUser() would, plus the true total", async () => {
@@ -160,10 +158,9 @@ describe("handleGet (flat limit/offset, no locationId -- #498 chunked full sync)
     expect(await res.json()).toEqual({ entries: [], total: 0, cursor: 0 });
   });
 
-  it("anonymous caller gets an empty chunk with a zero total, not an error", async () => {
+  it("401s an anonymous caller (#992)", async () => {
     const res = await getChunk({ limit: "20" }, "");
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ entries: [], total: 0, cursor: 0 });
+    expect(res.status).toBe(401);
   });
 
   it("cross-user isolation -- a chunk never includes another user's entries", async () => {
@@ -220,13 +217,13 @@ describe("handleGet (flat limit/offset, no locationId -- #498 chunked full sync)
 describe("handleGet (locationId -- #111 per-table pagination)", () => {
   function getLocation(id, params = {}, extraCookie = cookie) {
     const qs = new URLSearchParams({ locationId: id, ...params }).toString();
-    return fetchJson(`${PUBLIC_URL}?${qs}`, { headers: { Cookie: extraCookie } });
+    return fetchJson(`${ENTRIES_URL}?${qs}`, { headers: { Cookie: extraCookie } });
   }
 
   it("returns only that location's entries, across every place under it", async () => {
     // A second place under the SAME location -- proves this aggregates
     // across places, not just one.
-    const secondPlaceId = (await (await jsonRequest("POST", "/-/api/admin/places", { locationId, area: "Second Area" }, { Cookie: cookie })).json()).places.at(-1).id;
+    const secondPlaceId = (await (await jsonRequest("POST", "/-/api/places", { locationId, area: "Second Area" }, { Cookie: cookie })).json()).places.at(-1).id;
     const otherLocationPlaceId = await seedPlace(cookie, { locationName: "Other Crag" });
     await post(validEntry());
     await post({ ...validEntry(), name: "Second Area Route", placeId: secondPlaceId });
@@ -263,10 +260,9 @@ describe("handleGet (locationId -- #111 per-table pagination)", () => {
     expect(entries).toEqual([]);
   });
 
-  it("returns an empty list for an anonymous caller, not an error", async () => {
-    const res = await fetchJson(`${PUBLIC_URL}?locationId=${encodeURIComponent(locationId)}`);
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ entries: [] });
+  it("401s an anonymous caller (#992)", async () => {
+    const res = await fetchJson(`${ENTRIES_URL}?locationId=${encodeURIComponent(locationId)}`);
+    expect(res.status).toBe(401);
   });
 
   it("returns an empty list for a nonexistent locationId, not an error (anti-enumeration)", async () => {
@@ -291,16 +287,15 @@ describe("handleGet (locationId -- #111 per-table pagination)", () => {
 // regression in one can't hide behind the other's passing tests.
 describe("handleGet (?since= -- #500 delta sync)", () => {
   function getSince(since, extraCookie = cookie) {
-    return fetchJson(`${PUBLIC_URL}?since=${since}`, { headers: { Cookie: extraCookie } });
+    return fetchJson(`${ENTRIES_URL}?since=${since}`, { headers: { Cookie: extraCookie } });
   }
   function cursorOf(id) {
     return env.LOGBOOK_DB.prepare(`SELECT sync_cursor FROM entries WHERE id = ?`).bind(id).first().then(r => r.sync_cursor);
   }
 
-  it("returns an empty delta and echoes back `since` as `cursor` for an anonymous caller", async () => {
-    const res = await fetchJson(`${PUBLIC_URL}?since=0`);
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ entries: [], cursor: 0 });
+  it("401s an anonymous caller (#992)", async () => {
+    const res = await fetchJson(`${ENTRIES_URL}?since=0`);
+    expect(res.status).toBe(401);
   });
 
   it("returns nothing changed, cursor unchanged, when since is ahead of every row's cursor", async () => {
@@ -364,7 +359,7 @@ describe("handleGet (?since= -- #500 delta sync)", () => {
 
 describe("handlePost", () => {
   it("rejects an unauthenticated request", async () => {
-    const res = await jsonRequest("POST", ADMIN_URL, validEntry());
+    const res = await jsonRequest("POST", ENTRIES_URL, validEntry());
     expect(res.status).toBe(401);
   });
 
@@ -624,7 +619,7 @@ describe("handlePost", () => {
 describe("handlePut", () => {
   it("rejects an unauthenticated request", async () => {
     const created = await (await post(validEntry())).json();
-    const res = await jsonRequest("PUT", ADMIN_URL, { ...validEntry(), id: created.entries[0].id, name: "Renamed" });
+    const res = await jsonRequest("PUT", ENTRIES_URL, { ...validEntry(), id: created.entries[0].id, name: "Renamed" });
     expect(res.status).toBe(401);
   });
 
@@ -687,7 +682,7 @@ describe("handlePut", () => {
 describe("handleDelete", () => {
   it("rejects an unauthenticated request", async () => {
     const created = await (await post(validEntry())).json();
-    const res = await fetchJson(`${ADMIN_URL}?id=${created.entries[0].id}`, { method: "DELETE" });
+    const res = await fetchJson(`${ENTRIES_URL}?id=${created.entries[0].id}`, { method: "DELETE" });
     expect(res.status).toBe(401);
   });
 
@@ -822,7 +817,7 @@ describe("entry_moves / entry_pain_moves", () => {
   // and D1 (SQLite) hard-caps a statement at 100 bound params -- verified
   // empirically, 101 params throws D1_ERROR: too many SQL variables. 105
   // entries is enough to exercise more than one full 90-id chunk plus a
-  // remainder (see CHUNK_SIZE in server/api/logbook.js) without slowing the
+  // remainder (see CHUNK_SIZE in server/api/entries.js) without slowing the
   // suite down further than needed to prove the chunking works. Before the
   // chunk-and-merge fix, this GET throws/500s once past 100 entries; after
   // it, every entry's moves/painMoves come back (empty arrays here, since
@@ -906,7 +901,7 @@ describe("publicRowToJson / handlePublicGet (Task 7 -- public profile exclusions
 
   it("handlePublicGet's response has no rpe/attemptsToSend/moves/painMoves keys on any entry", async () => {
     await post({ ...validEntry(), rpe: 80, attemptsToSend: 5, moves: [validMoveRow()], painMoves: [validPainRow()] });
-    const request = new Request("https://example.com/-/api/logbook");
+    const request = new Request("https://example.com/-/api/entries");
     const res = await handlePublicGet(request, env, userId);
     const { entries } = await res.json();
     expect(entries).toHaveLength(1);

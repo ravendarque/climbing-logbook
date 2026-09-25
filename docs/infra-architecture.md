@@ -89,15 +89,17 @@ expose a second, unlisted hostname for the same Worker.
 See [ADR-0002](adr/0002-replace-cloudflare-access-with-better-auth.md) for
 why Better Auth replaced Cloudflare Access as the mechanism itself.
 
-Write endpoints (`/-/api/admin/*`) are gated by a real, in-Worker
-Better Auth session check (`server/lib/session.js`, #297) — every admin
-handler resolves the caller's session and 401s without one, scoping the
-write to that session's own `user_id`. Read endpoints
-(`/-/api/logbook`, GET only) stay public.
+Every resource route under `/-/api/` (entries, places, locations,
+settings, performance, map) is gated by a real, in-Worker Better Auth
+session check (`server/lib/session.js`, #297) for every method, reads
+included (#992): no session is a 401, and a request is scoped to that
+session's own `user_id`. Anonymous reads exist only under
+`/-/api/public/:username/*`, gated by the target user's `logbook_public`.
 
 This replaced two earlier designs in turn: a single shared `ADMIN_KEY`
 string compared via an HMAC-signed session cookie, then a Cloudflare
-Access Application + Policy gating `/-/api/admin/*` at the edge.
+Access Application + Policy gating the then-separate admin write paths
+at the edge.
 Access was architecturally the wrong tool for self-service signup (it
 gates known identities the account owner manages by hand, not a
 customer-facing registration flow) — it was viable only as long as this

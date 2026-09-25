@@ -3,7 +3,7 @@
 // seventh piece of #233's modularization epic). Reads/writes active
 // discipline through the Store (#234).
 //
-// `adminFetch`/`isAuthRedirect`/`adminSettingsUrl` are the same
+// `adminFetch`/`isAuthRedirect`/`settingsUrl` are the same
 // not-yet-extracted auth/admin-bar surface place-picker.js and
 // entry-form.js already depend on. `render`/`updateAdminBar` are no
 // longer injected (#264) -- every state change here goes through a Store
@@ -20,7 +20,7 @@ export function createHeaderChrome({
   store,
   adminFetch,
   isAuthRedirect,
-  adminSettingsUrl,
+  settingsUrl,
 }) {
   // ── Theme toggle (light/dark) ─────────────────────────────────────────
   createThemeToggle();
@@ -66,7 +66,7 @@ export function createHeaderChrome({
     // the local switch above either way -- offline/failure just means
     // it doesn't carry over to other devices this time.
     try {
-      const res = await adminFetch(adminSettingsUrl, {
+      const res = await adminFetch(settingsUrl, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ activeDiscipline: store.getActiveType() }),

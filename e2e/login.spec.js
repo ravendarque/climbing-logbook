@@ -1,6 +1,6 @@
 // Exercises the actual login bridge (#320) -- Better Auth's sign-in/
 // sign-out through the real rendered form, not just the API directly
-// (that's test/logbook.test.js's job). Every other spec in this suite
+// (that's test/entries.test.js's job). Every other spec in this suite
 // runs pre-authenticated via playwright.config.js's shared storageState
 // (see e2e/global-setup.js) -- this file deliberately starts from a
 // genuinely logged-out browser context instead, since that's the one
@@ -68,7 +68,7 @@ test("an enrolled user logging in on a non-apex host skips the channel read and 
     }),
     { email: DEV_USER.email, password: DEV_USER.password }
   );
-  await page.evaluate(() => fetch("/-/api/admin/settings", {
+  await page.evaluate(() => fetch("/-/api/settings", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ betaOptIn: true }),

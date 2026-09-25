@@ -21,7 +21,7 @@ import { registerServiceWorker } from "./register-sw.js";
 
 const PLACES_URL = "/-/api/places";
 const LOCATIONS_URL = "/-/api/locations";
-const ENTRIES_URL = "/-/api/logbook";
+const ENTRIES_URL = "/-/api/entries";
 
 // #498 -- larger than /log's own 20-row UI page size on purpose: this is
 // a one-off bulk transfer, not a per-click UI page, so it's sized for a
@@ -95,7 +95,7 @@ async function syncSmallTable(table, url, loadFromCache, getCurrent, setCurrent)
 // Cold path -- entries alone still needs #498's chunked fetch (the
 // 10k-entry scale target this app is sized for), so this stays a
 // straight replace via store.setEntries(), not a merge. `cursor` --
-// server/api/logbook.js's own MAX(sync_cursor) OVER() on this same
+// server/api/entries.js's own MAX(sync_cursor) OVER() on this same
 // query -- is the same value on every chunk (a window function over the
 // *whole* matching set, independent of this chunk's own LIMIT/OFFSET),
 // but Math.max across every chunk seen is taken anyway rather than
@@ -108,7 +108,7 @@ async function syncEntriesCold(store) {
   let cursor = 0;
   setProgress(0, 0);
   // Stops as soon as a chunk comes back shorter than requested -- never
-  // issues an offset past the true total (see server/api/logbook.js's
+  // issues an offset past the true total (see server/api/entries.js's
   // own comment on why COUNT(*) OVER() can't report a real total once
   // that happens).
   for (;;) {

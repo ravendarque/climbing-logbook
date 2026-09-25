@@ -30,7 +30,7 @@ async function validateFields(entry, env, userId) {
 // type/status map directly onto discipline_id/status_id -- #21's lookup
 // tables use the same slugs as natural keys, so this is a column rename,
 // not a value translation; the JSON wire format is unchanged. Exported --
-// server/api/logbook-import.js (#224 phase 3) builds rows for its own
+// server/api/entries-import.js (#224 phase 3) builds rows for its own
 // validated-and-resolved entries the exact same way, not a second copy.
 export function buildRow(entry, id, userId) {
   return {
@@ -222,7 +222,7 @@ export async function attachChildRows(rows, env) {
 // handlePost (#297) -- see server/lib/d1-resource.js for the shared
 // shape every D1-backed create+list resource follows. handleGet is its
 // own custom implementation below (#111 -- per-location pagination),
-// handlePut/handleDelete stay logbook.js's own exports further down --
+// handlePut/handleDelete stay entries.js's own exports further down --
 // entries is the only resource with edit/delete (places/locations don't
 // have them yet, #159/#160).
 export const { handlePost } = createD1ResourceHandlers({

@@ -77,9 +77,9 @@ describe("public profile visibility", () => {
   it("404s (not the shell) once logbook_public is turned off", async () => {
     const { cookie } = await createAuthedSession({ username: "privateuser" });
     const placeId = await seedPlace(cookie);
-    await jsonRequest("POST", "/-/api/admin/logbook", { placeId, name: "Sleepwalker", grade: "7A", type: "boulder", status: "send" }, { Cookie: cookie });
+    await jsonRequest("POST", "/-/api/entries", { placeId, name: "Sleepwalker", grade: "7A", type: "boulder", status: "send" }, { Cookie: cookie });
 
-    await jsonRequest("PATCH", "/-/api/admin/settings", {}, { Cookie: cookie }); // creates the settings row
+    await jsonRequest("PATCH", "/-/api/settings", {}, { Cookie: cookie }); // creates the settings row
     await env.LOGBOOK_DB.prepare(`UPDATE settings SET logbook_public = 0 WHERE user_id = (SELECT id FROM "user" WHERE username = 'privateuser')`).run();
 
     const res = await fetchProfile("privateuser");

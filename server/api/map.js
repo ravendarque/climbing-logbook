@@ -29,8 +29,9 @@ import { json } from "../lib/json.js";
 // has no country, matching what the old raw-entries-based computation
 // counted.
 //
-// Same public-GET convention as handleGet in ./logbook.js (userId may be
-// null -- an anonymous caller just gets an empty object back).
+// userId is the session's own user (server/index.js) or a public
+// profile's target user (public-data.js); a null one just gets an empty
+// object back, same convention as handleGet in ./entries.js.
 export async function handleGetMapCounts(request, env, userId) {
   if (!userId) return json({}, 200, { "Cache-Control": "no-store" });
 

@@ -69,7 +69,8 @@ async function waitForServer(url, timeoutMs = 60_000) {
 }
 
 async function seed() {
-  await waitForServer(`${baseUrl}/-/api/logbook`);
+  // get-session answers 200 without a session; every resource route 401s (#992).
+  await waitForServer(`${baseUrl}/-/api/auth/get-session`);
 
   console.log(`Resetting the preview database (${D1_OPTIONS.database})...`);
   resetDatabase(D1_OPTIONS);
