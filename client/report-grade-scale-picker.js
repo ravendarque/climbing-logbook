@@ -17,6 +17,7 @@
 // on refresh()).
 import { createListPicker, renderOptionList } from "./modal-utils.js";
 import { STANDARD_SCALES_BY_DISCIPLINE, resolveScaleId, DEFAULT_SCALE_BY_TYPE } from "../shared/grade-data.js";
+import { resolveApexUrl } from "./resolve-cross-hostname-url.js";
 
 function prefKey(type) {
   return `logbook_grade_scale_reports_${type}`;
@@ -58,14 +59,15 @@ export function createReportGradeScalePicker({ containerEl, getType, onChange })
         <!-- #705/#876 -- same "What's this?" link as #703's own entry-form
              picker (public/log/index.html), pointing at the (now public,
              static) reference page. -->
-        <a class="block text-[.72rem] text-accent text-center pt-[.4rem] mt-[.2rem] border-t border-border hover:brightness-90" id="report-grade-scale-reference-link" href="#">What's this?</a>
+        <a class="block text-[.72rem] text-accent text-center pt-[.4rem] mt-[.2rem] border-t border-border hover:brightness-90" id="report-grade-scale-reference-link" data-apex-link href="#">What's this?</a>
       </div>
     </div>`;
 
   // #190/#876 -- static, not owned-route: see client/log-main.js's own
   // identical comment on the equivalent link -- the grade-scales
   // reference page is genuinely public now, no username to interpolate.
-  containerEl.querySelector("#report-grade-scale-reference-link").href = "/help/grade-scales/";
+  // #985 -- help lives on the apex.
+  containerEl.querySelector("#report-grade-scale-reference-link").href = resolveApexUrl(location.hostname, "/help/grade-scales/");
 
   const btnLabel = containerEl.querySelector("#report-grade-scale-btn-label");
   const picker = createListPicker({

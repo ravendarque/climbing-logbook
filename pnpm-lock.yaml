@@ -19,6 +19,9 @@ importers:
       better-auth:
         specifier: ^1.7.5
         version: 1.7.5(@prisma/client@5.22.0)(pg@8.22.0)(vitest@4.1.11(@types/node@26.6.2)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)))
+      obscenity:
+        specifier: 0.4.6
+        version: 0.4.6
       resend:
         specifier: ^6.28.1
         version: 6.28.1
@@ -1948,6 +1951,10 @@ packages:
     peerDependenciesMeta:
       chokidar:
         optional: true
+
+  obscenity@0.4.6:
+    resolution: {integrity: sha512-pHk7kNN7j3L3zGhhGnwxjvXIGsPpLrcZl2r58fqWh/V/rH6b/dafscj2sMmAY+A/9/wPsocLmimgGk2DKeKsFQ==}
+    engines: {node: '>=18.0.0'}
 
   obug@2.2.1:
     resolution: {integrity: sha512-XrsrhT5sybtKI6wakr2SPOlGZWWYbUXZ7a0jT8/QOeAPau+1X/bSegNe5YR75oJmEZQbKningirmGOEJCIk61Q==}
@@ -3929,6 +3936,8 @@ snapshots:
       commander: 5.1.0
     optionalDependencies:
       chokidar: 3.6.0
+
+  obscenity@0.4.6: {}
 
   obug@2.2.1: {}
 

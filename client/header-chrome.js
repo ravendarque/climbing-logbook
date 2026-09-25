@@ -12,6 +12,7 @@
 // callback into <climbing-grade-pyramid>'s own "Show lower grades" toggle
 // state -- removed in #742 once #737 deleted that feature entirely, the
 // callback's only reason to exist.
+import { pointApexLinksAtApex } from "./apex-links.js";
 import { createDisclosure } from "./modal-utils.js";
 import { createThemeToggle } from "./theme-toggle.js";
 import { disciplineLabel } from "./status.js";
@@ -24,6 +25,9 @@ export function createHeaderChrome({
 }) {
   // ── Theme toggle (light/dark) ─────────────────────────────────────────
   createThemeToggle();
+
+  // #985 -- the footer's and menu's help links go straight to the apex.
+  pointApexLinksAtApex();
 
   // ── Discipline picker (#110): header popover, always offers both
   // disciplines regardless of entry counts -- see the markup comment

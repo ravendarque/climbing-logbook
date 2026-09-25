@@ -33,7 +33,11 @@ Process rules for how Claude works in this repository. Code-level standards
 
 Every PR needs a `release: major/minor/patch/none` label before merge
 (enforced by a required check) — see `docs/versioning.md` for what
-qualifies. Versioning is tag-based (`vX.Y.Z` git tags), not a
+qualifies. **`release: none` is only for changes that never reach users**
+(docs, workflows, `.gitignore`, tests). `infra/`, `migrations/`, app code
+and build config always get a real bump: an untagged `infra/` or
+`migrations/` change sends the next release straight to production (#995).
+CI rejects `release: none` on any other path. Versioning is tag-based (`vX.Y.Z` git tags), not a
 `package.json` commit.
 
 ## GitHub API usage (rate limits)
