@@ -55,7 +55,7 @@ import { postBuildPlugin } from "./scripts/post-build-plugin.mjs";
 export default defineConfig({
   // #961/#962 -- postBuildPlugin() finishes the client build once its
   // output is written: content-hashes the ?v= asset URLs in the built HTML,
-  // then builds /sw.js from client/sw/ (scripts/post-build-plugin.mjs).
+  // then builds /service-worker.js from client/sw/ (scripts/post-build-plugin.mjs).
   plugins: [cloudflare(), postBuildPlugin()],
   preview: {
     port: 8787,

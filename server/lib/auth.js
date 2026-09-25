@@ -142,6 +142,15 @@ function crossSubDomainCookies(hostname) {
 // same isolate, unlike hostname.
 const authCache = new Map();
 
+// #341/#251 -- lowercase letters, digits, `.` and `_` (Instagram's charset),
+// never a demo account's name. #982/#983: this charset is also what keeps
+// app-host paths collision-free -- /service-worker.js and everything under
+// /-/ contain a hyphen, which no username can. Widening it means revisiting
+// those routes (test/username.test.js guards this).
+export function isValidUsername(candidate) {
+  return /^[a-z0-9._]+$/.test(candidate) && !DEMO_USERNAMES.includes(candidate);
+}
+
 export function createAuth(env, hostname) {
   const cached = authCache.get(hostname);
   if (cached) return cached;
@@ -296,7 +305,7 @@ export function createAuth(env, hostname) {
     // would either collide with or shadow the demo, so the validator
     // rejects them the same way it rejects any other malformed candidate.
     plugins: [username({
-      usernameValidator: candidate => /^[a-z0-9._]+$/.test(candidate) && !DEMO_USERNAMES.includes(candidate),
+      usernameValidator: isValidUsername,
       minUsernameLength: 1,
       maxUsernameLength: 30,
     })],

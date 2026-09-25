@@ -34,7 +34,7 @@
 # template's own comment on why an unversioned request still needs to
 # reach vite.config.js's own devEntryRewrite middleware unchanged.
 #
-# sw.js is NOT listed here, deliberately: it's the service worker
+# service-worker.js (#983, was sw.js) is NOT listed here, deliberately: it's the service worker
 # script itself, which browsers already special-case for update
 # checking (a new registration is compared byte-for-byte against the
 # previous one on its own schedule, independent of HTTP caching) --

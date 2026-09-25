@@ -65,7 +65,9 @@ Every rule below is judged against the north star: the worker must never
 download anything that competes with the first delta fetch on a bad
 connection.
 
-1. **Scope and registration.** The worker is served at `/sw.js` and
+1. **Scope and registration.** The worker is served at `/service-worker.js`
+   (renamed from `/sw.js` in #983: a hyphenated name can never be a
+   username, so it can't clash with a `/:username` route) and
    registered with scope `/` on each app origin (`my.x`, `beta.x`), by
    owner pages only, through one shared registration module.
    - Registration is **deferred until the page's first boot data fetches
@@ -150,7 +152,7 @@ connection.
      immutable `_headers` rules keep working.
 10. **The worker is source, built by the production build.**
     - `client/sw/` modules are bundled by esbuild into a single classic
-      script at `dist/client/sw.js`, from a `writeBundle` hook of a Vite
+      script at `dist/client/service-worker.js` (`sw.js` until #983), from a `writeBundle` hook of a Vite
       plugin scoped to the client environment. The same hook injects
       `BUILD_ID` and the pre-cache list, and does the content hashing.
     - Spike Q5: served at `/sw.js` as `text/javascript` with the platform

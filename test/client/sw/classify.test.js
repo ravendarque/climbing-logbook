@@ -70,7 +70,7 @@ describe("classifyRequest (#962)", () => {
     ["a non-GET owner navigation", "/raven/log", { method: "POST", mode: "navigate" }],
     ["a cross-origin request", "/logbook/log-app.js?v=1", { origin: "https://cdn.example" }],
     ["a cross-origin owner-shaped navigation", "/raven/log", { origin: "https://evil.example", mode: "navigate" }],
-    ["the worker script itself", "/sw.js", {}],
+    ["the worker script itself", "/service-worker.js", {}],
     ["a page asset outside /logbook/", "/help/pagefind/pagefind.js", {}],
     ["a subresource at an owner-page URL", "/raven/log", { mode: "cors" }],
   ])("%s passes through", (_label, path, opts) => {
