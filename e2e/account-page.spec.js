@@ -102,7 +102,7 @@ test("Public Logbook toggle (#301, moved to this page by #445) switches and pers
 
 // #953 -- the Beta channel row links to its own sub-page (covered by
 // e2e/account-beta-page.spec.js) and shows the saved status.
-test("the Beta channel row links to its sub-page and shows the saved status", async ({ page }) => {
+test("the Check our beta row links to its sub-page and shows the saved status", async ({ page }) => {
   await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: true } });
   await page.goto("/e2e-fixtures/pages/account.html");
 

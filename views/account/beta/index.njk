@@ -1,6 +1,6 @@
 ---
 layout: app-layout.njk
-title: Beta channel – Climbing Logbook
+title: Check our beta – Climbing Logbook
 bundle: account-beta
 staticShellNote: |-
   Genuinely static shell (#348), same pattern as public/account/index.html
@@ -22,26 +22,26 @@ staticShellNote: |-
        the saved setting (client/account-beta-main.js); both start hidden
        so nothing flashes before it's known. -->
   <div class="max-w-[560px]">
-    <h2 class="card-section-heading">Beta channel</h2>
+    <h2 class="card-section-heading">Check our beta</h2>
     <p class="text-[.9rem] text-accent pl-4 mb-3" id="beta-status" hidden></p>
 
     <div class="row-card" id="beta-join" hidden>
       <h3 class="row-card-title mb-2">Join the beta</h3>
       <p class="text-[.9rem] mb-2">Get early access to new features before they're released. They may have bugs.</p>
       <ul class="list-disc pl-5 text-[.9rem] flex flex-col gap-1 mb-3">
-        <li>It's the same logbook with the same data. Anything you add, change or delete in the beta is real.</li>
+        <li>The beta uses your logbook. Anything you add, change or delete in the beta is real, and shows up outside the beta too.</li>
         <li>The beta has its own address, <strong>beta.climbinglogbook.com</strong>. Logging in at climbinglogbook.com takes you there.</li>
         <li>Each device downloads your logbook the first time it opens the beta.</li>
-        <li>To use it as an app, install <strong>Logbook Beta</strong> from the beta address. It's a separate app, so you can keep Logbook too.</li>
+        <li>If you've installed Climbing Logbook as a Progressive Web App (<a class="text-accent underline" href="/help/install/" data-apex-link>PWA</a>), install <strong>Logbook Beta</strong> from the beta address too. It's a separate PWA, so you can keep both.</li>
       </ul>
     </div>
 
     <div class="row-card" id="beta-leave" hidden>
       <h3 class="row-card-title mb-2">Leave the beta</h3>
-      <p class="text-[.9rem] mb-2">You'll go back to the main app.</p>
+      <p class="text-[.9rem] mb-2">You'll go back to the regular version of Climbing Logbook, without the beta features.</p>
       <ul class="list-disc pl-5 text-[.9rem] flex flex-col gap-1 mb-3">
-        <li>The Logbook Beta app will say you're not enrolled from then on. You can uninstall it.</li>
-        <li>Anything you created with beta-only features stays in your logbook, but the main app may not show it yet.</li>
+        <li>The Logbook Beta PWA will say you're not enrolled from then on. You can uninstall it.</li>
+        <li>Anything you created with beta-only features stays in your logbook, but the regular version may not show it yet.</li>
       </ul>
     </div>
 
@@ -59,7 +59,7 @@ staticShellNote: |-
     </div>
     <p class="text-[.9rem] text-error mt-3" id="beta-error" role="alert" tabindex="-1" hidden></p>
 
-    <p class="text-[.9rem] mt-6"><a class="text-accent underline" id="beta-help-link" href="/help/beta-channel/">Read more about the beta channel</a></p>
+    <p class="text-[.9rem] mt-6"><a class="text-accent underline" id="beta-help-link" href="/help/beta-channel/">Read more about the beta</a></p>
   </div>
 
   <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>

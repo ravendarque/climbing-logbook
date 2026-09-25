@@ -34,4 +34,4 @@ Open Climbing Logbook once while you still have a connection. That's when it loa
 
 Changes that haven't synced yet only exist on your device. If you clear your browser's site data before they sync, they're gone. Check the menu shows no *Offline* or *Syncing…* status before you clear anything.
 
-Related: [Grade scales & conversion](/help/grade-scales/), [Beta channel](/help/beta-channel/).
+Related: [Installing the PWA](/help/install/), [Grade scales & conversion](/help/grade-scales/), [Check our beta](/help/beta-channel/).

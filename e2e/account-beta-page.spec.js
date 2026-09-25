@@ -14,9 +14,9 @@ test("not enrolled: explains joining, and Join writes the setting and opens the 
   await mockApi(page, { settings: settings(false) });
   await page.goto(PAGE);
 
-  await expect(page.getByRole("heading", { name: "Beta channel" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Check our beta" })).toBeVisible();
   await expect(page.locator("#beta-status")).toHaveText("You're not enrolled in the beta.");
-  await expect(page.locator("#beta-join")).toContainText("same logbook with the same data");
+  await expect(page.locator("#beta-join")).toContainText("The beta uses your logbook");
   await expect(page.locator("#beta-leave")).toBeHidden();
   await expect(page.locator("#beta-queue-warning")).toBeHidden();
 
@@ -28,12 +28,12 @@ test("not enrolled: explains joining, and Join writes the setting and opens the 
   await page.waitForURL("**/e2e-fixtures/log");
 });
 
-test("enrolled: explains leaving, and Leave writes the setting and opens the main app's log", async ({ page }) => {
+test("enrolled: explains leaving, and Leave writes the setting and opens the regular version's log", async ({ page }) => {
   await mockApi(page, { settings: settings(true) });
   await page.goto(PAGE);
 
   await expect(page.locator("#beta-status")).toHaveText("You're enrolled in the beta.");
-  await expect(page.locator("#beta-leave")).toContainText("Logbook Beta app will say you're not enrolled");
+  await expect(page.locator("#beta-leave")).toContainText("Logbook Beta PWA will say you're not enrolled");
   await expect(page.locator("#beta-join")).toBeHidden();
 
   const [patch] = await Promise.all([
@@ -88,6 +88,6 @@ test("a failed save shows the error, focused, and stays on the page", async ({ p
 test("links to the full help page and back to My account", async ({ page }) => {
   await mockApi(page, { settings: settings(false) });
   await page.goto(PAGE);
-  await expect(page.getByRole("link", { name: "Read more about the beta channel" })).toHaveAttribute("href", "/help/beta-channel/");
+  await expect(page.getByRole("link", { name: "Read more about the beta" })).toHaveAttribute("href", "/help/beta-channel/");
   await expect(page.locator("#back-to-account-link")).toHaveAttribute("href", "/e2e-fixtures/account");
 });
