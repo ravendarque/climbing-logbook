@@ -5,12 +5,12 @@
 // exactly as if there were no worker.
 import { matchOwnerRoute } from "../../shared/owner-routes.js";
 
-export const LAUNCH_PATH = "/launch/";
+export const LAUNCH_PATH = "/-/launch/";
 
 // kinds:
 //   owner-shell  an owner-page navigation (cache-first per build; carries
 //                the matched page key)
-//   launch       a navigation to /launch/, the installed app's start page
+//   launch       a navigation to /-/launch/, the installed app's start page
 //                (#949; cache-first per build, pre-cached by #948)
 //   immutable    content-addressed: /-/chunks/* or any ?v= URL
 //   font         /-/fonts/* (unversioned, so stale-while-revalidate)

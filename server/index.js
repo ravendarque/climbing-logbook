@@ -87,6 +87,19 @@ export default {
     const { hostname, pathname } = new URL(request.url);
     const method = request.method;
 
+    // #984 -- app hosts log in on their own origin (#955, ADR-0029) at
+    // /-/login/, inside the collision-proof /-/ namespace (#982): the same
+    // page the apex serves at its clean /login/ URL. The page's own
+    // references are absolute, so it works at either path.
+    if (pathname === "/-/login" && (method === "GET" || method === "HEAD")) {
+      const target = new URL(request.url);
+      target.pathname = "/-/login/";
+      return Response.redirect(target, 301);
+    }
+    if (pathname === "/-/login/" && (method === "GET" || method === "HEAD")) {
+      return env.ASSETS.fetch(new Request(new URL("/login/", request.url), request));
+    }
+
     // #113 -- my.<domain> hosts each user's public profile at /:username,
     // a single path segment with no further structure. Scoped narrowly on
     // purpose: no real DNS route binds a my.-prefixed hostname to this

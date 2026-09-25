@@ -86,7 +86,7 @@ test("logging out keeps an unsynced queue attributed to its owner and forgets wh
   await page.route("**/-/api/auth/sign-out", route => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }));
   await page.locator("#header-menu-btn").click();
   await page.locator("#login-toggle-btn").click();
-  await page.waitForURL(url => url.pathname === "/login/");
+  await page.waitForURL(url => url.pathname === "/-/login/");
 
   const keys = await storageSnapshot(page);
   expect(keys.logbook_signed_in_user).toBeUndefined();

@@ -139,7 +139,7 @@ test("forgot password requires an email first", async ({ page }) => {
 // session cookie the sign-in sets there is scoped to my.localhost itself.
 test("an owner page with no session logs in on its own origin and comes back to the same page", async ({ page }) => {
   await page.goto(ownedRouteUrl(DEV_USER.username, "/map"));
-  await page.waitForURL(url => url.pathname === "/login/");
+  await page.waitForURL(url => url.pathname === "/-/login/");
   const loginUrl = new URL(page.url());
   expect(loginUrl.host).toBe(new URL(ownedRouteUrl(DEV_USER.username, "/map")).host);
   expect(loginUrl.searchParams.get("returnTo")).toBe(`/${DEV_USER.username}/map`);

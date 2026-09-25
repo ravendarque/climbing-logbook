@@ -19,8 +19,8 @@ describe("classifyRequest (#962)", () => {
   });
 
   it("a navigation to /launch/ (the installed app's start page, #949) is the launch page (#948)", () => {
-    expect(req("/launch/", { mode: "navigate" })).toEqual({ kind: "launch" });
-    expect(req("/launch/")).toEqual({ kind: "passthrough" });
+    expect(req("/-/launch/", { mode: "navigate" })).toEqual({ kind: "launch" });
+    expect(req("/launch/", { mode: "navigate" })).toEqual({ kind: "passthrough" });
   });
 
   it.each([

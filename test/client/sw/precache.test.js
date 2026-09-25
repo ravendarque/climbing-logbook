@@ -15,7 +15,7 @@ const LIST = {
     { url: "/-/chunks/store-abc123.js" },
     { url: "/-/log-app.js?v=1234567890" },
     { url: "/-/manifest.json", hash: hashOf(BODY("/-/manifest.json")) },
-    { url: "/launch/", hash: hashOf(BODY("/launch/")) },
+    { url: "/-/launch/", hash: hashOf(BODY("/-/launch/")) },
   ],
 };
 const abs = url => new URL(url, ORIGIN).href;
@@ -64,7 +64,7 @@ describe("precacheUsername", () => {
   });
 
   it("is null anywhere else, and for a demo account (no session to fetch shells with)", () => {
-    for (const path of ["/raven", "/help/", "/launch/", "/beginnerdemo/log"]) expect(precacheUsername(`${ORIGIN}${path}`)).toBeNull();
+    for (const path of ["/raven", "/help/", "/-/launch/", "/beginnerdemo/log"]) expect(precacheUsername(`${ORIGIN}${path}`)).toBeNull();
   });
 });
 
@@ -101,8 +101,12 @@ describe("fillPrecache", () => {
     expect(result.missing).toEqual([]);
     expect(result.fetched).toHaveLength(6);
     expect([...cachesImpl.stores.get(CURRENT).keys()].sort()).toEqual([
-      abs("/account/import/index.html"), abs("/launch/"), abs("/log/index.html"),
-      abs("/-/chunks/store-abc123.js"), abs("/-/log-app.js?v=1234567890"), abs("/-/manifest.json"),
+      abs("/-/chunks/store-abc123.js"),
+      abs("/-/launch/"),
+      abs("/-/log-app.js?v=1234567890"),
+      abs("/-/manifest.json"),
+      abs("/account/import/index.html"),
+      abs("/log/index.html"),
     ]);
   });
 
@@ -130,12 +134,12 @@ describe("fillPrecache", () => {
     const cachesImpl = fakeCaches({ [PREVIOUS]: {
       [abs("/log/index.html")]: response({ shell: "log", body: BODY("/raven/log") }),
       [abs("/account/import/index.html")]: response({ shell: "account/import", body: "last build's import shell" }),
-      [abs("/launch/")]: response({ body: BODY("/launch/") }),
+      [abs("/-/launch/")]: response({ body: BODY("/-/launch/") }),
       [abs("/-/manifest.json")]: response({ body: "last build's manifest" }),
     } });
     const fetchImpl = server();
     const result = await fill(cachesImpl, fetchImpl);
-    expect(result.copied.sort()).toEqual(["/launch/", "/raven/log"]);
+    expect(result.copied.sort()).toEqual(["/-/launch/", "/raven/log"]);
     expect(fetchImpl.mock.calls.map(([url]) => url).sort()).toEqual(["/-/chunks/store-abc123.js", "/-/log-app.js?v=1234567890", "/-/manifest.json", "/raven/account/import"]);
     expect(result.missing).toEqual([]);
   });

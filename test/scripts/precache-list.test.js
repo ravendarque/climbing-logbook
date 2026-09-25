@@ -38,7 +38,7 @@ beforeEach(() => {
   write("-/manifest.json", JSON.stringify({ icons: [{ src: "./icon-192.png" }, { src: "./icon.svg" }] }));
   for (const file of ["favicon-32.png", "icon-192.png", "icon.svg", "components/climbing-header.js", "log-app.js", "help-app.js", "fonts/Bebas.woff2", "fonts/Other.woff2"]) write(`-/${file}`);
   for (const file of Object.keys(BUNDLE)) write(file);
-  write("launch/index.html");
+  write("-/launch/index.html");
 });
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
@@ -51,7 +51,6 @@ describe("buildPrecacheList (#948)", () => {
 
   it("lists what the shells load, their chunk graph, stylesheet urls, manifest icons, fonts and /launch/", () => {
     expect(buildPrecacheList(dir, BUNDLE).assets.map(asset => asset.url)).toEqual([
-      "/launch/",
       "/-/chunks/lazy-2.js",
       "/-/chunks/store-1.js",
       "/-/chunks/util-3.js",
@@ -61,6 +60,7 @@ describe("buildPrecacheList (#948)", () => {
       "/-/fonts/Other.woff2",
       "/-/icon-192.png",
       "/-/icon.svg",
+      "/-/launch/",
       "/-/log-app.js?v=cccccccccc",
       "/-/manifest.json",
       "/-/tailwind.css?v=aaaaaaaaaa",
@@ -69,7 +69,7 @@ describe("buildPrecacheList (#948)", () => {
 
   it("hashes only what isn't content-addressed", () => {
     const hashed = buildPrecacheList(dir, BUNDLE).assets.filter(asset => asset.hash).map(asset => asset.url);
-    expect(hashed).toEqual(["/launch/", "/-/favicon-32.png", "/-/fonts/Bebas.woff2", "/-/fonts/Other.woff2", "/-/icon-192.png", "/-/icon.svg", "/-/manifest.json"]);
+    expect(hashed).toEqual(["/-/favicon-32.png", "/-/fonts/Bebas.woff2", "/-/fonts/Other.woff2", "/-/icon-192.png", "/-/icon.svg", "/-/launch/", "/-/manifest.json"]);
   });
 
   it("leaves out anchors, other origins, pages outside the worker's tiers, and bundles no owner page loads", () => {

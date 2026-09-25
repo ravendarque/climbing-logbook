@@ -1,5 +1,5 @@
 ---
-permalink: /launch/index.html
+permalink: /-/launch/index.html
 eleventyExcludeFromCollections: true
 ---
 <!DOCTYPE html>
@@ -22,11 +22,11 @@ eleventyExcludeFromCollections: true
     (function () {
       var user = null;
       try { user = localStorage.getItem("logbook_signed_in_user"); } catch (e) { /* storage blocked */ }
-      location.replace(user ? "/" + encodeURIComponent(user) + "/log" : "/login/");
+      location.replace(user ? "/" + encodeURIComponent(user) + "/log" : "/-/login/");
     })();
   </script>
 </head>
 <body>
-  <noscript><p><a href="/login/">Open Climbing Logbook</a></p></noscript>
+  <noscript><p><a href="/-/login/">Open Climbing Logbook</a></p></noscript>
 </body>
 </html>

@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Log in – Climbing Logbook</title>
-  <link rel="icon" type="image/png" sizes="32x32" href="../-/favicon-32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="../-/favicon-16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/-/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/-/favicon-16.png">
   <meta name="theme-color" content="#ff2727">
   <!-- #470 -- starts the brand font fetch during initial parsing rather
        than waiting for layout to discover climbing-header.js's own
@@ -22,12 +22,12 @@
        lets public/_headers cache these two files immutably; skipped in
        dev (isDevBuild), which doesn't need it (see app-layout.njk's own
        fuller comment on why). -->
-  <link rel="stylesheet" href="../-/tailwind.css{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}">
+  <link rel="stylesheet" href="/-/tailwind.css{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}">
   <!-- Shared design tokens + <climbing-header> Custom Element (#345).
        Classic script, not a module -- must run synchronously here, before
        the [hidden]-dependent markup below and before first paint. See the
        file's own comment for why. -->
-  <script src="../-/components/climbing-header.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
+  <script src="/-/components/climbing-header.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
   <script>
     // Same pre-paint theme bootstrap as public/-/index.html --
     // must run synchronously here, not deferred/module, or the browser
@@ -92,14 +92,14 @@
       <button type="submit" class="btn btn-primary w-full disabled:opacity-[.45] disabled:cursor-not-allowed" id="login-submit-btn">Log in</button>
 
       <p class="text-sm text-muted mt-4 text-center">
-        Don't have an account? <a class="text-accent" href="../register/">Sign up</a>
+        Don't have an account? <a class="text-accent" href="/register/">Sign up</a>
       </p>
     </form>
   </div>
   <script type="module">
-    import { redirectIfLoggedIn } from "../session-redirect.js";
+    import { redirectIfLoggedIn } from "/-/session-redirect.js";
     redirectIfLoggedIn(document.getElementById("page-content"));
   </script>
-  <script type="module" src="./login.js"></script>
+  <script type="module" src="/-/login/login.js"></script>
 </body>
 </html>

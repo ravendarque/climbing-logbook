@@ -84,11 +84,11 @@ test("after visiting only /log, every owner page opens offline", async ({ page, 
   await context.setOffline(false);
 });
 
-test("the installed app's start page (/launch/) opens offline and lands on the signed-in user's log", async ({ page, context }) => {
+test("the installed app's start page (/-/launch/) opens offline and lands on the signed-in user's log", async ({ page, context }) => {
   await warm(page, "/log");
   await context.setOffline(true);
   const app = await context.newPage();
-  await app.goto(`${ORIGIN}/launch/`);
+  await app.goto(`${ORIGIN}/-/launch/`);
   await app.waitForURL(ownedRouteUrl(DEV_USER.username, "/log"));
   await expect(app.locator(".place-header[data-location-id]").first()).toBeVisible();
   await context.setOffline(false);
@@ -190,9 +190,9 @@ test("logging out deletes the worker's caches: no owner shell survives the sessi
   await page.locator("#header-menu-btn").click();
   await page.route("**/-/api/auth/get-session", route => route.fulfill({ status: 200, contentType: "application/json", body: "null" }));
   await page.locator("#login-toggle-btn").click();
-  await page.waitForURL(url => url.pathname === "/login/");
+  await page.waitForURL(url => url.pathname === "/-/login/");
   await page.waitForLoadState("networkidle");
-  expect(new URL(page.url()).pathname).toBe("/login/");
+  expect(new URL(page.url()).pathname).toBe("/-/login/");
   const after = await cachedPaths(page);
   expect(after.filter(p => p.endsWith("/index.html"))).toEqual([]);
   expect(after.filter(p => !p.startsWith("/-/"))).toEqual([]);

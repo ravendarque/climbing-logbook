@@ -24,7 +24,7 @@ async function resolveUserIdByUsername(env, username) {
 // needs an absolute URL, hence the request URL as the base.
 function loginRedirect(request) {
   const { pathname, search } = new URL(request.url);
-  const target = new URL("/login/", request.url);
+  const target = new URL("/-/login/", request.url);
   target.searchParams.set("returnTo", pathname + search);
   return Response.redirect(target, 302);
 }

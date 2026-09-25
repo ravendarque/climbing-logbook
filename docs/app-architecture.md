@@ -1203,6 +1203,22 @@ separate precache entry needed.
 
 ## Request routing
 
+**The app hosts' namespace (#982, #983, #984).** `my.<domain>` and
+`beta.<domain>` serve users' routes, `/:username/*` (plus the public
+profile at `/:username` on `my.`), alongside the app's own routes. The app's
+own routes must never be something a user could register as a username, and
+usernames are `[a-z0-9._]` only (`isValidUsername`, `server/lib/auth.js`).
+So every non-user route contains a hyphen:
+
+- `/service-worker.js` at the root, so it can control scope `/` (#983);
+- everything else under `/-/`: assets and bundles (`/-/…`), the API
+  (`/-/api/…`), app-host login (`/-/login/`, the same page the apex serves
+  at `/login/`), and the installed app's start page (`/-/launch/`).
+
+`test/username.test.js` fails if the username charset is ever widened to
+allow a hyphen. Apex-only pages (help, register, reset-password, the
+marketing home) are served only on the apex (#985).
+
 Workers Static Assets serves anything matching a file under `public/`
 directly, without invoking the Worker script at all (asset-first, by
 default) — `wrangler.jsonc`'s `assets.run_worker_first` scopes an
