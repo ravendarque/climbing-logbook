@@ -17,6 +17,10 @@ resource "cloudflare_turnstile_widget" "register" {
   # -- both sides have to agree, or a client picking the real sitekey on
   # a hostname Cloudflare doesn't recognize here would just get a real
   # siteverify rejection instead of a working widget.
-  domains = [var.app_zone_name, "beta.${var.app_zone_name}"]
+  # #991 -- sorted, because Cloudflare returns the list sorted and the
+  # provider types it as a list, not a set: any other order showed as an
+  # in-place update (and a "changing" turnstile_secret output) in every
+  # plan, masking real changes.
+  domains = sort([var.app_zone_name, "beta.${var.app_zone_name}"])
   mode    = "managed"
 }
