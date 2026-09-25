@@ -1,6 +1,6 @@
 /**
  * Regenerates the world-map static data fetched on demand by
- * public/logbook/index.html's Map tab (#17, #169): SVG paths for the
+ * public/-/index.html's Map tab (#17, #169): SVG paths for the
  * world's landmasses, internal country borders, and a lat/long graticule,
  * plus a projected {x, y} pixel position for every country in COUNTRIES
  * (#153), all pre-computed here in Node via d3-geo/topojson-client rather
@@ -14,11 +14,11 @@
  * variants -- Greenwich (0deg), Americas (90degW), and Oceania (150degE)
  * -- each recentring the map on a different part of the world instead of
  * splitting it across the left/right edges. This script generates all
- * three, writing one JSON file per variant (static/logbook/world-map-
+ * three, writing one JSON file per variant (static/-/world-map-
  * <variant>.json) that the client fetches on demand when the user picks
  * that variant, rather than printing to stdout for manual splicing --
  * three variants is too much to hand-paste, and JSON fits the app's
- * existing fetch-and-cache pattern (sw.js's generic GET handler) better
+ * existing fetch-and-cache pattern (the service worker's network-first /-/ tier) better
  * than baking any one of them into index.html as a special-cased default.
  *
  * Source data is countries-110m.json, not the plain land-110m.json used
@@ -95,7 +95,7 @@
  * attention at this element's small rendered size.
  *
  * Usage: node scripts/generate-world-map.mjs
- * (writes static/logbook/world-map-{greenwich,americas,oceania}.json)
+ * (writes static/-/world-map-{greenwich,americas,oceania}.json)
  */
 
 import { writeFileSync } from "node:fs";
@@ -107,7 +107,7 @@ import { feature, mesh } from "topojson-client";
 import countriesTopo from "world-atlas/countries-110m.json" with { type: "json" };
 import { EXCLUDED_CCA2 } from "./lib/country-exclusions.mjs";
 
-const OUT_DIR = fileURLToPath(new URL("../static/logbook/", import.meta.url));
+const OUT_DIR = fileURLToPath(new URL("../static/-/", import.meta.url));
 
 const MAP_WIDTH = 960;
 const GRATICULE_STEP = 20; // degrees

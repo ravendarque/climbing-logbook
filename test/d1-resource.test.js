@@ -1,6 +1,6 @@
 // Exercises the two generic extension hooks (afterWrite, decorateRows)
 // added for #575 Phase 2's entry-data plan -- entries.js (server/api/
-// logbook.js) is their real consumer, but these hooks are table-agnostic
+// entries.js) is their real consumer, but these hooks are table-agnostic
 // infrastructure, worth testing against a throwaway table rather than only
 // indirectly through entries' own much larger test file.
 import { env } from "cloudflare:workers";

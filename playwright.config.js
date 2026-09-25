@@ -36,7 +36,7 @@ export default defineConfig({
   ],
   globalSetup: "./e2e/global-setup.js",
   webServer: {
-    // Rebuilds assets before serving, since public/logbook/{tailwind.css,
+    // Rebuilds assets before serving, since public/-/{tailwind.css,
     // map-app.js,...} are gitignored build output (see .gitignore) --
     // stale or missing bundles otherwise. Same reasoning for
     // e2e:build-fixtures (#407 Tier 1) -- public/e2e-fixtures/ is

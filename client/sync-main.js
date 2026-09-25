@@ -1,5 +1,5 @@
 // Composition root for /:username/sync (#498, ADR-0019) -- bundled by
-// esbuild into public/logbook/sync-app.js, same pattern as client/
+// esbuild into public/-/sync-app.js, same pattern as client/
 // log-main.js's own header comment for the general "trimmed from
 // client/main.js" reasoning. This page has exactly one job: get this
 // device's local dataset to a complete, correct state (locations,
@@ -18,10 +18,11 @@ import { getCursor, setCursor } from "./sync-cursors.js";
 import { mergeDelta } from "./delta-merge.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
+import { pointApexLinksAtApex } from "./apex-links.js";
 
-const PLACES_URL = "/logbook/api/places";
-const LOCATIONS_URL = "/logbook/api/locations";
-const ENTRIES_URL = "/logbook/api/logbook";
+const PLACES_URL = "/-/api/places";
+const LOCATIONS_URL = "/-/api/locations";
+const ENTRIES_URL = "/-/api/entries";
 
 // #498 -- larger than /log's own 20-row UI page size on purpose: this is
 // a one-off bulk transfer, not a per-click UI page, so it's sized for a
@@ -95,7 +96,7 @@ async function syncSmallTable(table, url, loadFromCache, getCurrent, setCurrent)
 // Cold path -- entries alone still needs #498's chunked fetch (the
 // 10k-entry scale target this app is sized for), so this stays a
 // straight replace via store.setEntries(), not a merge. `cursor` --
-// server/api/logbook.js's own MAX(sync_cursor) OVER() on this same
+// server/api/entries.js's own MAX(sync_cursor) OVER() on this same
 // query -- is the same value on every chunk (a window function over the
 // *whole* matching set, independent of this chunk's own LIMIT/OFFSET),
 // but Math.max across every chunk seen is taken anyway rather than
@@ -108,7 +109,7 @@ async function syncEntriesCold(store) {
   let cursor = 0;
   setProgress(0, 0);
   // Stops as soon as a chunk comes back shorter than requested -- never
-  // issues an offset past the true total (see server/api/logbook.js's
+  // issues an offset past the true total (see server/api/entries.js's
   // own comment on why COUNT(*) OVER() can't report a real total once
   // that happens).
   for (;;) {
@@ -179,6 +180,10 @@ document.getElementById("sync-retry-btn").addEventListener("click", () => locati
 
 // #952/#960 -- boots only for the signed-in owner of this page and, on
 // beta.<domain>, only if they're enrolled (client/boot-gate.js).
+// #985 -- this page has no header chrome, so it points the footer's
+// help links at the apex itself.
+pointApexLinksAtApex();
+
 pageAllowsBoot().then(allowed => {
   if (!allowed) return;
   // #947/#948 -- the service worker, once boot's own fetches have settled

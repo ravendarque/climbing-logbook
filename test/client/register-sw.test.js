@@ -26,13 +26,13 @@ describe("unregisterRetiredWorkers", () => {
 });
 
 describe("registerServiceWorker", () => {
-  it("registers /sw.js with scope / on an owner page, after removing the retired worker", async () => {
+  it("registers /service-worker.js with scope / on an owner page, after removing the retired worker", async () => {
     const old = registration("https://my.climbinglogbook.com/logbook/");
     const active = { postMessage: vi.fn() };
     const container = { getRegistrations: vi.fn().mockResolvedValue([old]), register: vi.fn().mockResolvedValue({}), ready: Promise.resolve({ active }) };
     await registerServiceWorker({ win: fakeWindow("/raven/log", container) });
     expect(old.unregister).toHaveBeenCalled();
-    expect(container.register).toHaveBeenCalledWith("/sw.js", { scope: "/" });
+    expect(container.register).toHaveBeenCalledWith("/service-worker.js", { scope: "/" });
     // #948 -- then asks the active worker to top up its pre-cache.
     expect(active.postMessage).toHaveBeenCalledWith({ type: "precache" });
   });
@@ -52,7 +52,7 @@ describe("registerServiceWorker", () => {
     expect(container.register).not.toHaveBeenCalled();
     finishBoot(new Error("offline"));
     await done;
-    expect(container.register).toHaveBeenCalledWith("/sw.js", { scope: "/" });
+    expect(container.register).toHaveBeenCalledWith("/service-worker.js", { scope: "/" });
   });
 
   it("never registers from a page that's navigating away (its destination will)", async () => {

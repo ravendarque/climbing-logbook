@@ -2,7 +2,7 @@
 // /:username/map. Same fixture-harness pattern as e2e/log-page.spec.js
 // (see that file's own header comment) -- the real client/map-main.js ->
 // map-app.js bundle against a verbatim copy of public/map/index.html,
-// with fabricated /logbook/api/* responses. Zoom/pan-controls behavior
+// with fabricated /-/api/* responses. Zoom/pan-controls behavior
 // (map-view.js's own, not this composition root's) is covered separately
 // by e2e/component-harnesses.spec.js (#407 Tier 1) -- not duplicated here.
 import { expect, test } from "@playwright/test";
@@ -28,7 +28,7 @@ test("renders the shared chrome, a real map, and switches discipline (persisted 
 
   await page.locator("#discipline-btn").click();
   await Promise.all([
-    page.waitForResponse(res => res.url().includes("/logbook/api/admin/settings") && res.request().method() === "PATCH"),
+    page.waitForResponse(res => res.url().includes("/-/api/settings") && res.request().method() === "PATCH"),
     page.locator('.discipline-option[data-discipline="sport"]').click(),
   ]);
   await expect(page.locator("#discipline-btn-label")).toHaveText("Sport");

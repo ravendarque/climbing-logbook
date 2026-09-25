@@ -30,8 +30,8 @@ import { SHELL_PATHS } from "../shared/owner-routes.js";
 import { classifyRequest, LAUNCH_PATH } from "../client/sw/classify.js";
 
 const ORIGIN = "https://build.invalid";
-const MANIFEST = "/logbook/manifest.json";
-const FONTS_DIR = "logbook/fonts";
+const MANIFEST = "/-/manifest.json";
+const FONTS_DIR = "-/fonts";
 
 // <script ... src="…"> and <link ... href="…">, root-relative only. Anchors
 // are navigation, not something the page loads.
@@ -97,7 +97,7 @@ export function buildPrecacheList(outDir, bundle) {
     for (const name of readdirSync(join(outDir, FONTS_DIR))) add(`/${FONTS_DIR}/${name}`);
   }
 
-  // Not an owner page and not under /logbook/, so added directly: the
+  // Not an owner page and not under /-/, so added directly: the
   // installed app opens here, so an offline launch needs it (#949).
   assets.add(LAUNCH_PATH);
 

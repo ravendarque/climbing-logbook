@@ -1,5 +1,5 @@
 // Single source of truth for what a climbing log entry looks like (#224) --
-// replaces server/api/logbook.js's previous hand-written validateShape(), which
+// replaces server/api/entries.js's previous hand-written validateShape(), which
 // had drifted into duplicated logic once #27 (export)/#224 (bulk import)
 // needed the exact same rules. Every consumer (the admin write path today;
 // client/entry-form.js; bulk import, export, and CSV template generation
@@ -33,7 +33,7 @@ export const VALID_STATUSES = ["send", "project", "archived", "checkout"];
 // #129 -- derived directly from BOULDER_GRADES/LEAD_GRADES (shared/
 // grade-data.js), not a second, separately-maintained literal list.
 // This used to be its own hand-copied array ("mirrors BOULDER_GRADES/
-// LEAD_GRADES in public/logbook/index.html" -- itself a stale reference,
+// LEAD_GRADES in public/-/index.html" -- itself a stale reference,
 // that file hasn't been the real source in a long time); #129's own
 // range extension would otherwise have needed updating two independent
 // lists in lockstep, exactly the kind of drift this file's own header
@@ -161,7 +161,7 @@ export const entrySchema = v.pipe(
     // grade/type/status -- but unlike those three (each narrowed to an
     // allowlist via .includes() below, which a non-string value simply
     // fails, no crash), placeId/name flow straight into server/api/
-    // logbook.js's buildRow() and then a D1 .bind() call unmodified. A
+    // entries.js's buildRow() and then a D1 .bind() call unmodified. A
     // truthy non-string (an array/object) passed the check above
     // unnoticed and crashed there as an unhandled 500 instead of this
     // schema's own graceful 400 (confirmed empirically -- D1 only
@@ -182,7 +182,7 @@ export const entrySchema = v.pipe(
     // tell which scale was meant. Optional, not required -- an older
     // client (or a row from before #703 shipped) may omit it entirely,
     // and the server defaults it sensibly on write either way
-    // (server/api/logbook.js's defaultGradeScale()).
+    // (server/api/entries.js's defaultGradeScale()).
     if (entry.gradeScale !== undefined && entry.gradeScale !== null) {
       const validScaleIds = SCALES_BY_DISCIPLINE[entry.type]?.map(s => s.id) ?? [];
       if (!validScaleIds.includes(entry.gradeScale)) {
@@ -314,8 +314,8 @@ export const entrySchema = v.pipe(
   })
 );
 
-// The admin write path (server/api/logbook.js) only ever surfaces one error
-// message at a time (its own established contract, see test/logbook.test.js) --
+// The admin write path (server/api/entries.js) only ever surfaces one error
+// message at a time (its own established contract, see test/entries.test.js) --
 // this is that single-message adapter. Bulk import (#224 phase 3) will call
 // v.safeParse(entrySchema, entry) directly instead, to report every row's
 // issues at once rather than stopping at the first.

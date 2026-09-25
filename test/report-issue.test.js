@@ -10,7 +10,7 @@ import { env } from "cloudflare:workers";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createAuthedSession, fetchJson, resetAuthTables } from "./support.js";
 
-const REPORT_URL = "/logbook/api/report-issue";
+const REPORT_URL = "/-/api/report-issue";
 
 beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
 afterAll(() => { env.BETA_GATE_ENABLED = "true"; });

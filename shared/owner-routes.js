@@ -36,7 +36,7 @@ export const SHELL_PATHS = {
   "performance/rpe": "/performance/rpe/index.html",
   // #498 -- the cold-start/delta full-sync interstitial (ADR-0019).
   // Session-gated the same as every other owned page here -- it reads
-  // the same session-scoped /logbook/api/logbook data /log itself does,
+  // the same session-scoped /-/api/entries data /log itself does,
   // just before /log ever renders.
   sync: "/sync/index.html",
   // #302 -- the bare /:username/account landing page is its own entry

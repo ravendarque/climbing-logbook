@@ -1,5 +1,5 @@
 // Composition root for /:username/account (#302) -- bundled by esbuild
-// into public/logbook/account-app.js. A landing page listing the
+// into public/-/account-app.js. A landing page listing the
 // account section's own sub-pages ("Edit account details", #224's
 // "Import entries", and #27's "Export entries" CSV/JSON buttons below;
 // Display preferences is still listed as "Coming soon" in the shell's
@@ -29,10 +29,10 @@ import "./components/beta-opt-in-modal.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
 
-const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
-const DATA_URL = "/logbook/api/logbook";
-const PLACES_URL = "/logbook/api/places";
-const LOCATIONS_URL = "/logbook/api/locations";
+const SETTINGS_URL = "/-/api/settings";
+const DATA_URL = "/-/api/entries";
+const PLACES_URL = "/-/api/places";
+const LOCATIONS_URL = "/-/api/locations";
 
 function adminFetch(url, options) {
   return fetch(url, { ...options, redirect: "manual" });
@@ -122,7 +122,7 @@ function updateAdminBar() {
 
 const adminAuth = createAdminAuth({
   store, adminFetch, isAuthRedirect,
-  adminSettingsUrl: ADMIN_SETTINGS_URL,
+  settingsUrl: SETTINGS_URL,
   updateAdminBar,
 });
 

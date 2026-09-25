@@ -6,8 +6,8 @@ import { env } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
 
-const MAP_COUNTS_URL = "/logbook/api/map/counts";
-const ADMIN_ENTRY_URL = "/logbook/api/admin/logbook";
+const MAP_COUNTS_URL = "/-/api/map/counts";
+const ENTRIES_URL = "/-/api/entries";
 
 beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
 afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
@@ -23,17 +23,16 @@ function get(extraCookie = cookie) {
   return fetchJson(MAP_COUNTS_URL, { headers: { Cookie: extraCookie } });
 }
 function postEntry(placeId, overrides = {}, extraCookie = cookie) {
-  return jsonRequest("POST", ADMIN_ENTRY_URL, {
+  return jsonRequest("POST", ENTRIES_URL, {
     name: "La Marie-Rose", grade: "6B", placeId, type: "boulder", status: "send",
     ...overrides,
   }, { Cookie: extraCookie });
 }
 
 describe("handleGetMapCounts", () => {
-  it("returns an empty object for an anonymous caller", async () => {
+  it("401s an anonymous caller (#992)", async () => {
     const res = await fetchJson(MAP_COUNTS_URL);
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({});
+    expect(res.status).toBe(401);
   });
 
   it("groups by country and discipline, splitting flash from a plain send", async () => {

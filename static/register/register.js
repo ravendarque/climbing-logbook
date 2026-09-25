@@ -70,7 +70,7 @@ form.addEventListener("submit", async (event) => {
   }
 
   try {
-    const res = await fetch("/logbook/api/auth/sign-up/email", {
+    const res = await fetch("/-/api/auth/sign-up/email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -100,6 +100,13 @@ form.addEventListener("submit", async (event) => {
     }
 
     const data = await res.json().catch(() => null);
+    // #997 -- the input's pattern already covers the format, so from the
+    // server this means the username policy said no. Worded the same for
+    // every rule, so it doesn't reveal which list a name is on.
+    if (data?.code === "INVALID_USERNAME") {
+      showError("That username isn't available. Try another.");
+      return;
+    }
     showError(data?.message || `Sign-up failed (${res.status}).`);
   } catch {
     showError("Network error -- check your connection and try again.");

@@ -175,7 +175,7 @@ export function shellHtml(allDisciplines) {
          external action buttons in here (e.g. client/log-main.js's
          Add/Sync buttons, owned by entry-form.js/offline-sync.js, not
          this component) -- same slot position/classes as /logbook's own
-         hand-authored equivalent row (public/logbook/index.html), so a
+         hand-authored equivalent row (public/-/index.html), so a
          page that fills it gets an identical layout, and a page that
          doesn't (the read-only public profile page) just sees an empty,
          invisible div next to collapse-all-btn. Found via Raven's

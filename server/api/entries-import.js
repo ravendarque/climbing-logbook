@@ -3,7 +3,7 @@ import { json } from "../lib/json.js";
 import { entrySchema } from "../../shared/entry-schema.js";
 import { parseCsvText, parseJsonText } from "../../shared/csv-import.js";
 import { buildInsertStatement, listForUser } from "../lib/d1-resource.js";
-import { attachChildRows, buildRow as buildEntryRow, rowToJson as entryRowToJson } from "./logbook.js";
+import { attachChildRows, buildRow as buildEntryRow, rowToJson as entryRowToJson } from "./entries.js";
 import { buildRow as buildLocationRow } from "./locations.js";
 import { buildRow as buildPlaceRow } from "./places.js";
 
@@ -22,7 +22,7 @@ import { buildRow as buildPlaceRow } from "./places.js";
 // logbook with no rollback, contradicting this exact comment. Every
 // location/place/entry insert is now one real env.LOGBOOK_DB.batch()
 // transaction (D1's own atomic-batch primitive -- see
-// server/api/logbook.js's replaceChildRows for the existing precedent),
+// server/api/entries.js's replaceChildRows for the existing precedent),
 // so a mid-import failure now rolls back everything, matching what this
 // header always claimed.
 const MAX_IMPORT_ROWS = 500;
@@ -123,7 +123,7 @@ function draftEntry(row, placeId) {
     rpe: row.rpe ? Number(row.rpe) : undefined,
     // #884 -- same blank-normalizes-to-undefined pattern as sportStyle
     // above; entrySchema validates it against the discipline's scales
-    // when given, and buildEntryRow (server/api/logbook.js) already
+    // when given, and buildEntryRow (server/api/entries.js) already
     // falls back to defaultGradeScale() when it's undefined -- the same
     // fallback an entry created via the regular entry form gets.
     gradeScale: row.gradeScale || undefined,

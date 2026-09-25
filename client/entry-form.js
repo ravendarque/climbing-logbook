@@ -33,9 +33,9 @@ export function createEntryForm({
   isAuthRedirect,
   getQueue,
   setQueue,
-  adminDataUrl,
-  adminLocationsUrl,
-  adminPlacesUrl,
+  entriesWriteUrl,
+  locationsWriteUrl,
+  placesWriteUrl,
   // #791 -- a function, not a plain value: Athlete Mode is fetched async
   // (client/admin-auth.js's own fetchSettings()) and can already have
   // resolved by the time this factory runs at module load, or still be
@@ -106,7 +106,7 @@ export function createEntryForm({
   const placePicker = createPlacePicker({
     store, openModal, closeModal, adminFetch, isAuthRedirect,
     getQueue, setQueue,
-    adminLocationsUrl, adminPlacesUrl,
+    locationsWriteUrl, placesWriteUrl,
   });
 
   const hardestMoves = createMoveRowList({ listEl: document.getElementById("hardest-moves-list"), addBtnEl: document.getElementById("hardest-moves-add"), hasDifficulty: true, defaultDifficulty: "hardest", listLabel: "hardest move" });
@@ -175,7 +175,7 @@ export function createEntryForm({
 
   // Same role="option"/data-key/checkmark convention as client/
   // place-picker.js's own place-listbox (#241/#403) and the discipline
-  // picker's static options (public/logbook/components/climbing-
+  // picker's static options (public/-/components/climbing-
   // discipline-picker.js) -- one shared implementation
   // (client/modal-utils.js's createListPicker/renderOptionList) instead
   // of a local copy per consumer (#704 needed the identical pattern for
@@ -563,7 +563,7 @@ export function createEntryForm({
     // only a NEW entry seeds from the persisted per-discipline
     // preference. entry.gradeScale can be absent on an older/imported
     // entry -- defaults the same way the server does (defaultGradeScale,
-    // server/api/logbook.js).
+    // server/api/entries.js).
     const type = store.getActiveType();
     activeGradeScaleId = entry
       ? (entry.gradeScale ?? DEFAULT_SCALE_BY_TYPE[type])
@@ -648,7 +648,7 @@ export function createEntryForm({
     const op = editingId ? "edit" : "add";
 
     try {
-      const res = await adminFetch(adminDataUrl, {
+      const res = await adminFetch(entriesWriteUrl, {
         method: editingId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(entry),
@@ -702,10 +702,10 @@ export function createEntryForm({
     // ever existed as a queued, never-synced add (#268) -- the old
     // queuedAdd short-circuit avoided a doomed round-trip back when
     // handleDelete 404d on a missing id; now that it's idempotent
-    // (server/api/logbook.js, #268), a delete for something the server
+    // (server/api/entries.js, #268), a delete for something the server
     // never saw just no-ops successfully, same as any other delete.
     try {
-      const res = await adminFetch(`${adminDataUrl}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      const res = await adminFetch(`${entriesWriteUrl}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
       if (isAuthRedirect(res)) throw new Error("not-authenticated");
       const data = await res.json();
       if (!res.ok) {

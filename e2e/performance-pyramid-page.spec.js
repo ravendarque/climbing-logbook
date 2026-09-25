@@ -3,7 +3,7 @@
 // e2e/log-page.spec.js (see that file's own header comment) -- the real
 // client/performance-pyramid-main.js -> performance-pyramid-app.js bundle
 // against a verbatim copy of public/performance/pyramid/index.html, with
-// fabricated /logbook/api/* responses. athleteMode: true is required in
+// fabricated /-/api/* responses. athleteMode: true is required in
 // the mocked settings response -- client/performance-pyramid-main.js
 // redirects to /log otherwise (#151's rule: Grade Pyramid needs both
 // login AND Athlete Mode). The component's own inline Sources section
@@ -73,7 +73,7 @@ test("shows the offline message instead of a pyramid when the fetch fails", asyn
   // carries ?boulderScale=&sportScale= query params, same convention
   // e2e/performance-{trends,gap}-page.spec.js's own volume/gap route
   // mocks already use for their own query-param-bearing endpoints.
-  await page.route("**/logbook/api/performance/pyramid**", route => route.fulfill({ status: 500 }));
+  await page.route("**/-/api/performance/pyramid**", route => route.fulfill({ status: 500 }));
   await page.goto("/e2e-fixtures/pages/performance-pyramid.html");
 
   await expect(page.locator("#performance-offline")).toBeVisible();

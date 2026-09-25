@@ -40,7 +40,7 @@ compiled stylesheet.
 That build step is real but narrowly scoped: it only touches CSS. Nothing
 about it requires a JS bundler, a framework, or changes to how `index.html`
 loads its `<script type="module">` — it's an isolated, additive step
-(compile a stylesheet, write it to `public/logbook/`) alongside the existing
+(compile a stylesheet, write it to `public/-/`) alongside the existing
 `wrangler dev`/`wrangler deploy` scripts, not a replacement for the current
 no-JS-bundler approach.
 
@@ -61,8 +61,8 @@ Weighed against that modest, isolated cost:
   only this codebase uses.
 
 **Migration cost:** add `tailwindcss` as a devDependency, a `tailwind.config`
-scoped to `public/logbook/index.html`, a small input stylesheet compiled to
-`public/logbook/styles.css`, and a `build:css` script wired into `dev`/
+scoped to `public/-/index.html`, a small input stylesheet compiled to
+`public/-/styles.css`, and a `build:css` script wired into `dev`/
 `deploy`. Existing hand-written CSS in `index.html` doesn't need a big-bang
 rewrite — it can convert incrementally as components are touched, same as
 any other refactor-as-you-go change.
@@ -73,7 +73,7 @@ Radix Primitives are React components — there's no framework-agnostic
 Radix. Adopting it means adopting React, JSX, and a JS bundler underneath
 it, which is a much bigger, much less reversible commitment than a CSS
 build step: it changes what "frontend code" means for every file in
-`public/logbook/`, not just how styles are authored.
+`public/-/`, not just how styles are authored.
 
 That cost isn't justified by an actual gap. The project's existing
 hand-rolled a11y patterns (`docs/coding-standards.md`'s Accessibility

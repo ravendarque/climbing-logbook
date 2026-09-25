@@ -9,9 +9,9 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
 import { MIN_TAG_COUNT } from "../shared/injury-stats.js";
 
-const PYRAMID_URL = "/logbook/api/performance/pyramid";
-const INJURY_URL = "/logbook/api/performance/injury";
-const ADMIN_ENTRY_URL = "/logbook/api/admin/logbook";
+const PYRAMID_URL = "/-/api/performance/pyramid";
+const INJURY_URL = "/-/api/performance/injury";
+const ENTRIES_URL = "/-/api/entries";
 
 beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
 afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
@@ -29,7 +29,7 @@ function get(extraCookie = cookie) {
   return fetchJson(PYRAMID_URL, { headers: { Cookie: extraCookie } });
 }
 function postEntry(overrides = {}, extraCookie = cookie) {
-  return jsonRequest("POST", ADMIN_ENTRY_URL, {
+  return jsonRequest("POST", ENTRIES_URL, {
     name: "La Marie-Rose", grade: "6B", placeId, type: "boulder", status: "send",
     date: "2026-06-01", // within 12 months of #currentDate (2026-08-21)
     ...overrides,
@@ -38,22 +38,18 @@ function postEntry(overrides = {}, extraCookie = cookie) {
 function getInjuryLog(extraCookie = cookie) {
   return fetchJson(INJURY_URL, { headers: { Cookie: extraCookie } });
 }
-// Matches test/logbook.test.js's own del() convention exactly (#499's
+// Matches test/entries.test.js's own del() convention exactly (#499's
 // soft-delete DELETE ?id= route) -- needed here to prove a soft-deleted
 // entry's pain moves drop out of both the log and the cluster count.
 function del(id, extraCookie = cookie) {
-  const path = id === undefined ? ADMIN_ENTRY_URL : `${ADMIN_ENTRY_URL}?id=${encodeURIComponent(id)}`;
+  const path = id === undefined ? ENTRIES_URL : `${ENTRIES_URL}?id=${encodeURIComponent(id)}`;
   return fetchJson(path, { method: "DELETE", headers: { Cookie: extraCookie } });
 }
 
 describe("handleGetPyramid", () => {
-  it("returns empty pyramids for an anonymous caller", async () => {
+  it("401s an anonymous caller (#992)", async () => {
     const res = await fetchJson(PYRAMID_URL);
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({
-      boulder: { top4: [], hasSends: false, promotedGrade: null },
-      sport: { top4: [], hasSends: false, promotedGrade: null },
-    });
+    expect(res.status).toBe(401);
   });
 
   it("returns both disciplines in one response, reflecting the caller's own sends", async () => {
@@ -158,10 +154,9 @@ describe("handleGetInjuryLog", () => {
     expect(body.cluster).toBeNull();
   });
 
-  it("returns an empty log and null cluster for an anonymous caller", async () => {
+  it("401s an anonymous caller (#992)", async () => {
     const res = await fetchJson(INJURY_URL);
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ log: [], cluster: null });
+    expect(res.status).toBe(401);
   });
 
   it("includes only entries that have at least one pain move", async () => {
@@ -201,7 +196,7 @@ describe("handleGetInjuryLog", () => {
   });
 });
 
-const STRENGTHS_URL = "/logbook/api/performance/strengths";
+const STRENGTHS_URL = "/-/api/performance/strengths";
 function getStrengths(params = {}, extraCookie = cookie) {
   const qs = new URLSearchParams(params).toString();
   return fetchJson(`${STRENGTHS_URL}${qs ? `?${qs}` : ""}`, { headers: { Cookie: extraCookie } });
@@ -253,10 +248,9 @@ describe("handleGetStrengthsWeaknesses", () => {
     expect(body.anchors).toEqual([]);
   });
 
-  it("returns an empty headline/anchors for an anonymous caller", async () => {
+  it("401s an anonymous caller (#992)", async () => {
     const res = await fetchJson(STRENGTHS_URL);
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ headline: null, anchors: [] });
+    expect(res.status).toBe(401);
   });
 
   it("a second user's own request never reflects the first user's tagged moves", async () => {
@@ -267,7 +261,7 @@ describe("handleGetStrengthsWeaknesses", () => {
   });
 });
 
-const VOLUME_URL = "/logbook/api/performance/volume";
+const VOLUME_URL = "/-/api/performance/volume";
 function getVolume(params, extraCookie = cookie) {
   const qs = new URLSearchParams(params).toString();
   return fetchJson(`${VOLUME_URL}?${qs}`, { headers: { Cookie: extraCookie } });
@@ -337,11 +331,9 @@ describe("handleGetVolume", () => {
     expect(boulder.sendCounts).toEqual([0, 0, 0]);
   });
 
-  it("returns empty per-bucket data for an anonymous caller", async () => {
+  it("401s an anonymous caller (#992)", async () => {
     const res = await fetchJson(`${VOLUME_URL}?start=${WINDOW.start}&end=${WINDOW.end}`);
-    expect(res.status).toBe(200);
-    const { boulder } = await res.json();
-    expect(boulder.sendCounts).toEqual([0, 0, 0]);
+    expect(res.status).toBe(401);
   });
 
   it("a second user's own request never reflects the first user's sends", async () => {
@@ -352,7 +344,7 @@ describe("handleGetVolume", () => {
   });
 });
 
-const GAP_URL = "/logbook/api/performance/gap";
+const GAP_URL = "/-/api/performance/gap";
 function getGap(params, extraCookie = cookie) {
   const qs = new URLSearchParams(params).toString();
   return fetchJson(`${GAP_URL}?${qs}`, { headers: { Cookie: extraCookie } });
@@ -395,7 +387,7 @@ describe("handleGetGap", () => {
     const body = await (await getGap(WINDOW)).json();
     // #717 -- each bucket's own winner is a real { grade, gradeScale }
     // pair now, not a bare string -- defaultGradeScale() (server/api/
-    // logbook.js) infers font-non-standard/french here since neither
+    // entries.js) infers font-non-standard/french here since neither
     // postEntry() call above sets gradeScale explicitly.
     expect(body.boulder.flashMaxByBucket).toEqual([null, { grade: "6B", gradeScale: "font-non-standard" }, null]);
     expect(body.sport.flashMaxByBucket).toEqual([null, null, null]);
@@ -409,11 +401,9 @@ describe("handleGetGap", () => {
     expect(boulder.sendMaxByBucket).toEqual([null, null, null]);
   });
 
-  it("returns empty per-bucket data for an anonymous caller", async () => {
+  it("401s an anonymous caller (#992)", async () => {
     const res = await fetchJson(`${GAP_URL}?start=${WINDOW.start}&end=${WINDOW.end}`);
-    expect(res.status).toBe(200);
-    const { boulder } = await res.json();
-    expect(boulder.sendMaxByBucket).toEqual([null, null, null]);
+    expect(res.status).toBe(401);
   });
 
   it("a second user's own request never reflects the first user's sends", async () => {
@@ -424,7 +414,7 @@ describe("handleGetGap", () => {
   });
 });
 
-const EFFORT_URL = "/logbook/api/performance/rpe";
+const EFFORT_URL = "/-/api/performance/rpe";
 function getEffort(params, extraCookie = cookie) {
   const qs = new URLSearchParams(params).toString();
   return fetchJson(`${EFFORT_URL}?${qs}`, { headers: { Cookie: extraCookie } });
@@ -476,11 +466,9 @@ describe("handleGetEffort", () => {
     expect(boulder.avgExertionByBucket).toEqual([null, null, null]);
   });
 
-  it("returns empty per-bucket data for an anonymous caller", async () => {
+  it("401s an anonymous caller (#992)", async () => {
     const res = await fetchJson(`${EFFORT_URL}?start=${WINDOW.start}&end=${WINDOW.end}`);
-    expect(res.status).toBe(200);
-    const { boulder } = await res.json();
-    expect(boulder.avgExertionByBucket).toEqual([null, null, null]);
+    expect(res.status).toBe(401);
   });
 
   it("a second user's own request never reflects the first user's sends", async () => {

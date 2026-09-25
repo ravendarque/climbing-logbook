@@ -28,7 +28,7 @@ import Database from "better-sqlite3";
 
 export const auth = betterAuth({
   database: new Database(":memory:"),
-  basePath: "/logbook/api/auth",
+  basePath: "/-/api/auth",
   secret: "cli-schema-generation-only",
   emailAndPassword: { enabled: true },
   // #889 -- mirrors server/lib/auth.js's own rateLimit config, so this

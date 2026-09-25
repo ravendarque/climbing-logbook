@@ -127,14 +127,26 @@ why Better Auth replaced Cloudflare Access as the mechanism itself.
 
 - **Better Auth sessions gate admin/write paths inside the Worker itself
   (#297)** — not a shared secret checked ad hoc, and not an edge-only gate.
-  Read (public) and write (admin) endpoints still live on distinct path
-  prefixes (`/api/logbook` vs `/api/admin/logbook`) — a holdover from this
-  project's earlier Cloudflare-Access-gated design, kept because it's a
-  clear, self-documenting split, not because anything still requires it.
+  Every resource route under `/-/api/` (entries, places, locations,
+  settings, performance, map) requires a session for every method and
+  answers 401 without one (#992). Anonymous reads exist only under
+  `/-/api/public/:username/*`, which checks the target user's
+  `logbook_public` itself, so a private logbook is secure by absence.
 - Every write endpoint resolves its session server-side
   (`server/lib/session.js`) and scopes the operation to that session's own
   `user_id` — the actual multi-tenant isolation boundary. Never trust a
   `user_id` supplied in the request body.
+- **One username policy (#997).** `shared/username-policy.js` decides
+  every username, on sign-up and on change, via Better Auth's
+  `usernameValidator`. It covers the format, the demo accounts, reserved
+  names and their lookalikes (`he1p`, `log_in`), authority words as part
+  of a name (`admin_raven`), the brand, and slurs and hate speech (read
+  through leet and repeated letters via obscenity; swearing and political
+  terms aren't blocked). The lists are data in
+  `shared/reserved-usernames.js` and `shared/blocked-username-terms.js`. Adding a name takes a PR with a test;
+  then run `pnpm audit:usernames --remote` to find existing accounts that
+  already have it. The script only reports, so a person decides what
+  happens to each account.
 
 ### Application code
 - **Escape all user-controlled data before HTML interpolation.** Every
@@ -197,7 +209,7 @@ decision and why it's an ongoing constraint, not a single shipped feature.
 - **Prefer bundling small, static, rarely-changing datasets directly into
   the single-file app** (e.g. a country list) over fetching them on demand.
   If a dataset is genuinely too large to justify always-loading it, serve
-  it as a static file under `/logbook/` so it's cached after first load
+  it as a static file under `/-/` so it's cached after first load
   (ADR-0028's static-asset tier) rather than leaving it an uncached
   fetch-on-open.
 - See #111 for the broader initiative (progressive/streamed data loading)

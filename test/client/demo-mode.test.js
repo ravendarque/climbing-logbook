@@ -12,13 +12,13 @@ describe("demo-mode", () => {
   });
 
   it("builds the public, target-user-scoped URL for a demo username", () => {
-    expect(demoDataUrl("beginnerdemo", "/logbook/api/performance/pyramid", "performance/pyramid")).toBe("/logbook/api/public/beginnerdemo/performance/pyramid");
-    expect(demoDataUrl("beginnerdemo", "/logbook/api/logbook", "logbook")).toBe("/logbook/api/public/beginnerdemo/logbook");
+    expect(demoDataUrl("beginnerdemo", "/-/api/performance/pyramid", "performance/pyramid")).toBe("/-/api/public/beginnerdemo/performance/pyramid");
+    expect(demoDataUrl("beginnerdemo", "/-/api/entries", "entries")).toBe("/-/api/public/beginnerdemo/entries");
   });
 
   it("returns the given session-scoped URL unchanged for a real (non-demo) username", () => {
-    expect(demoDataUrl("realuser", "/logbook/api/performance/pyramid", "performance/pyramid")).toBe("/logbook/api/performance/pyramid");
-    expect(demoDataUrl("realuser", "/logbook/api/logbook", "logbook")).toBe("/logbook/api/logbook");
+    expect(demoDataUrl("realuser", "/-/api/performance/pyramid", "performance/pyramid")).toBe("/-/api/performance/pyramid");
+    expect(demoDataUrl("realuser", "/-/api/entries", "entries")).toBe("/-/api/entries");
   });
 
   it("DEMO_USERNAMES is derived from DEMO_PERSONAS, not a separately maintained list", () => {

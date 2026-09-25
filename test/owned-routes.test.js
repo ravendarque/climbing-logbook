@@ -6,7 +6,7 @@
 // Host header, same "public HTTP contract" philosophy as
 // test/public-profile.test.js.
 //
-// #857 -- every `src="/logbook/<name>-app.js"` assertion below is a
+// #857 -- every `src="/-/<name>-app.js"` assertion below is a
 // regex tolerating an optional trailing `?v=<digits>`, not an exact
 // string match: .eleventy.js's own assetVersion appends that query to
 // the real built HTML this test reads (via env.ASSETS.fetch(), the
@@ -56,7 +56,7 @@ describe("owned route authorization", () => {
   it("redirects to login with no session at all", async () => {
     const res = await fetchOwnedRoute("someone", "log");
     expect(res.status).toBe(302);
-    expect(res.headers.get("Location")).toBe("https://my.climbinglogbook.com/login/?returnTo=%2Fsomeone%2Flog");
+    expect(res.headers.get("Location")).toBe("https://my.climbinglogbook.com/-/login/?returnTo=%2Fsomeone%2Flog");
   });
 
   it("redirects to login when logged in as a *different* user", async () => {
@@ -64,14 +64,14 @@ describe("owned route authorization", () => {
     const { cookie: otherCookie } = await createAuthedSession({ username: "differentuser", hostname: "climbinglogbook.com" });
     const res = await fetchOwnedRoute("targetuser", "log", { cookie: otherCookie });
     expect(res.status).toBe(302);
-    expect(res.headers.get("Location")).toBe("https://my.climbinglogbook.com/login/?returnTo=%2Ftargetuser%2Flog");
+    expect(res.headers.get("Location")).toBe("https://my.climbinglogbook.com/-/login/?returnTo=%2Ftargetuser%2Flog");
   });
 
   it("redirects to login for a username that doesn't exist at all -- same response as a wrong user (anti-enumeration)", async () => {
     const { cookie } = await createAuthedSession({ username: "realuser", hostname: "climbinglogbook.com" });
     const res = await fetchOwnedRoute("nobody-by-this-name", "log", { cookie });
     expect(res.status).toBe(302);
-    expect(res.headers.get("Location")).toBe("https://my.climbinglogbook.com/login/?returnTo=%2Fnobody-by-this-name%2Flog");
+    expect(res.headers.get("Location")).toBe("https://my.climbinglogbook.com/-/login/?returnTo=%2Fnobody-by-this-name%2Flog");
   });
 
   it("looks up the username case-insensitively", async () => {
@@ -99,7 +99,7 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("<climbing-tab-bar");
-    expect(html).toMatch(/src="\/logbook\/map\-app\.js(\?v=\d+)?"/);
+    expect(html).toMatch(/src="\/-\/map\-app\.js(\?v=\d+)?"/);
   });
 
   it("serves the real static shell for performance", async () => {
@@ -111,7 +111,7 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('id="insight-tiles"');
-    expect(html).toMatch(/src="\/logbook\/performance\-hub\-app\.js(\?v=\d+)?"/);
+    expect(html).toMatch(/src="\/-\/performance\-hub\-app\.js(\?v=\d+)?"/);
   });
 
   it("serves the real static shell for performance/pyramid", async () => {
@@ -120,7 +120,7 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("<climbing-grade-pyramid");
-    expect(html).toMatch(/src="\/logbook\/performance\-pyramid\-app\.js(\?v=\d+)?"/);
+    expect(html).toMatch(/src="\/-\/performance\-pyramid\-app\.js(\?v=\d+)?"/);
   });
 
   it("serves the real static shell for performance/injury", async () => {
@@ -129,7 +129,7 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('id="injury-log-root"');
-    expect(html).toMatch(/src="\/logbook\/performance\-injury\-app\.js(\?v=\d+)?"/);
+    expect(html).toMatch(/src="\/-\/performance\-injury\-app\.js(\?v=\d+)?"/);
   });
 
   it("serves the real static shell for performance/strengths", async () => {
@@ -138,7 +138,7 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('id="strengths-root"');
-    expect(html).toMatch(/src="\/logbook\/performance\-strengths\-app\.js(\?v=\d+)?"/);
+    expect(html).toMatch(/src="\/-\/performance\-strengths\-app\.js(\?v=\d+)?"/);
   });
 
   it("serves the real static shell for performance/trends", async () => {
@@ -147,7 +147,7 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('id="trends-root"');
-    expect(html).toMatch(/src="\/logbook\/performance\-trends\-app\.js(\?v=\d+)?"/);
+    expect(html).toMatch(/src="\/-\/performance\-trends\-app\.js(\?v=\d+)?"/);
   });
 
   it("serves the real static shell for performance/gap", async () => {
@@ -156,7 +156,7 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('id="gap-root"');
-    expect(html).toMatch(/src="\/logbook\/performance\-gap\-app\.js(\?v=\d+)?"/);
+    expect(html).toMatch(/src="\/-\/performance\-gap\-app\.js(\?v=\d+)?"/);
   });
 
   it("serves the real static shell for performance/rpe", async () => {
@@ -165,7 +165,7 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('id="rpe-root"');
-    expect(html).toMatch(/src="\/logbook\/performance\-rpe\-app\.js(\?v=\d+)?"/);
+    expect(html).toMatch(/src="\/-\/performance\-rpe\-app\.js(\?v=\d+)?"/);
   });
 
   it("serves the real static shell for log", async () => {
@@ -174,7 +174,7 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("<climbing-entries-table");
-    expect(html).toMatch(/src="\/logbook\/log\-app\.js(\?v=\d+)?"/);
+    expect(html).toMatch(/src="\/-\/log\-app\.js(\?v=\d+)?"/);
   });
 
   it("serves the real static shell for account", async () => {
@@ -183,7 +183,7 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("My account");
-    expect(html).toMatch(/src="\/logbook\/account\-app\.js(\?v=\d+)?"/);
+    expect(html).toMatch(/src="\/-\/account\-app\.js(\?v=\d+)?"/);
   });
 
   it("serves the real static shell for account/edit", async () => {
@@ -192,7 +192,7 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("Edit account details");
-    expect(html).toMatch(/src="\/logbook\/account\-edit\-app\.js(\?v=\d+)?"/);
+    expect(html).toMatch(/src="\/-\/account\-edit\-app\.js(\?v=\d+)?"/);
   });
 
   it("serves the real static shell for account/import", async () => {
@@ -201,7 +201,7 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("Import entries");
-    expect(html).toMatch(/src="\/logbook\/account\-import\-app\.js(\?v=\d+)?"/);
+    expect(html).toMatch(/src="\/-\/account\-import\-app\.js(\?v=\d+)?"/);
   });
 
   it("falls through (404) for a fourth path segment that isn't log/map/performance", async () => {
@@ -228,7 +228,7 @@ describe("owned route authorization", () => {
   it("redirects to the same origin's login locally too (local dev)", async () => {
     const res = await exports.default.fetch("https://my.localhost/someone/log", { redirect: "manual" });
     expect(res.status).toBe(302);
-    expect(res.headers.get("Location")).toBe("https://my.localhost/login/?returnTo=%2Fsomeone%2Flog");
+    expect(res.headers.get("Location")).toBe("https://my.localhost/-/login/?returnTo=%2Fsomeone%2Flog");
   });
 
   // #955, ADR-0029 -- login stays on the app's own origin (never the apex),
@@ -238,7 +238,7 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(302);
     const location = new URL(res.headers.get("Location"));
     expect(location.origin).toBe("https://my.climbinglogbook.com");
-    expect(location.pathname).toBe("/login/");
+    expect(location.pathname).toBe("/-/login/");
     expect(location.searchParams.get("returnTo")).toBe("/someone/performance/rpe?window=90");
   });
 });
@@ -256,7 +256,7 @@ describe("beta.x owned routes", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("<climbing-entries-table");
-    expect(html).toMatch(/src="\/logbook\/log\-app\.js(\?v=\d+)?"/);
+    expect(html).toMatch(/src="\/-\/log\-app\.js(\?v=\d+)?"/);
   });
 
   it.each([
@@ -283,13 +283,13 @@ describe("beta.x owned routes", () => {
     const { cookie } = await createAuthedSession({ username: "betaother", hostname: "climbinglogbook.com" });
     const res = await fetchOwnedRoute("betatarget", "log", { hostname: "beta.climbinglogbook.com", cookie });
     expect(res.status).toBe(302);
-    expect(res.headers.get("Location")).toBe("https://beta.climbinglogbook.com/login/?returnTo=%2Fbetatarget%2Flog");
+    expect(res.headers.get("Location")).toBe("https://beta.climbinglogbook.com/-/login/?returnTo=%2Fbetatarget%2Flog");
   });
 
   it("redirects to login with no session at all, same as my.x", async () => {
     const res = await fetchOwnedRoute("someone", "log", { hostname: "beta.climbinglogbook.com" });
     expect(res.status).toBe(302);
-    expect(res.headers.get("Location")).toBe("https://beta.climbinglogbook.com/login/?returnTo=%2Fsomeone%2Flog");
+    expect(res.headers.get("Location")).toBe("https://beta.climbinglogbook.com/-/login/?returnTo=%2Fsomeone%2Flog");
   });
 
   it("falls through (404) for a page shape that isn't a real owned route", async () => {

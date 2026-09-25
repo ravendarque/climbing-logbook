@@ -5,7 +5,7 @@
 // shell + client/log-main.js -> log-app.js bundle (a verbatim copy of the
 // shell, made by `pnpm run e2e:build-fixtures`, served from a path #407's
 // run_worker_first fix doesn't block -- see e2e/mock-api.js's own header
-// comment) against fabricated /logbook/api/* responses (mockApi()), not a
+// comment) against fabricated /-/api/* responses (mockApi()), not a
 // real backend. Component-level behavior this composition root delegates
 // to a shared Web Component (grade-pyramid citations overlay, map zoom/
 // pan) is covered separately, in e2e/component-harnesses.spec.js (#407
@@ -41,7 +41,7 @@ test("#470 -- shows a loading state before real data resolves, then flips to the
   let resolvePlaces;
   const placesDelay = new Promise(resolve => { resolvePlaces = resolve; });
   await mockApi(page, { entries: [], places: [], locations: [] });
-  await page.route("**/logbook/api/places*", async route => {
+  await page.route("**/-/api/places*", async route => {
     await placesDelay;
     return route.fallback();
   });
@@ -127,7 +127,7 @@ test("#501 -- a table past one page shows Show more/Show all, both reveal the re
   // already the complete, locally-synced dataset (ADR-0019); the button
   // just raises how many already-loaded rows render.
   const entriesRequests = [];
-  page.on("request", req => { if (req.url().includes("/logbook/api/logbook")) entriesRequests.push(req.url()); });
+  page.on("request", req => { if (req.url().includes("/-/api/entries") && req.method() === "GET") entriesRequests.push(req.url()); });
 
   await page.locator(".show-more-btn").click();
   await expect(page.locator("tbody tr")).toHaveCount(125);
@@ -151,7 +151,7 @@ test("#501 -- Show all reveals the exact remainder client-side, no fetch", async
   await expect(page.locator("#sections")).toContainText("100 of 130 shown");
 
   const entriesRequests = [];
-  page.on("request", req => { if (req.url().includes("/logbook/api/logbook")) entriesRequests.push(req.url()); });
+  page.on("request", req => { if (req.url().includes("/-/api/entries") && req.method() === "GET") entriesRequests.push(req.url()); });
 
   await page.locator(".show-all-btn").click();
   await expect(page.locator("tbody tr")).toHaveCount(130);
@@ -267,7 +267,7 @@ test("adds and then deletes an entry via the Add/Edit modal", async ({ page }) =
   await page.locator("#place-btn").click();
   await page.locator('#place-listbox li[data-key="p1"]').click();
   await Promise.all([
-    page.waitForResponse(res => res.url().includes("/logbook/api/admin/logbook") && res.request().method() === "POST"),
+    page.waitForResponse(res => res.url().includes("/-/api/entries") && res.request().method() === "POST"),
     page.locator("#entry-submit-btn").click(),
   ]);
   await expect(page.locator("#entry-overlay")).toBeHidden();
@@ -280,7 +280,7 @@ test("adds and then deletes an entry via the Add/Edit modal", async ({ page }) =
 
   page.once("dialog", dialog => dialog.accept());
   await Promise.all([
-    page.waitForResponse(res => res.url().includes("/logbook/api/admin/logbook") && res.request().method() === "DELETE"),
+    page.waitForResponse(res => res.url().includes("/-/api/entries") && res.request().method() === "DELETE"),
     page.locator("#entry-delete-btn").click(),
   ]);
   await expect(page.locator("#entry-overlay")).toBeHidden();
@@ -352,7 +352,7 @@ test("Style control is hidden for Boulder, shown+required for Sport, and pre-fil
   await page.locator('#sport-style-group input[value="top_rope"]').check({ force: true });
 
   const [postReq] = await Promise.all([
-    page.waitForRequest(req => req.url().includes("/logbook/api/admin/logbook") && req.method() === "POST"),
+    page.waitForRequest(req => req.url().includes("/-/api/entries") && req.method() === "POST"),
     page.locator("#entry-submit-btn").click(),
   ]);
   expect(postReq.postDataJSON().sportStyle).toBe("top_rope");
@@ -524,11 +524,12 @@ test("adding a move and saving submits it in the entry payload", async ({ page }
 
   // Registered after gotoLogHarness (same layering the offline-queue
   // describe block above uses for its own page.route() overrides) --
-  // this intercept wins over mockApi()'s own stateful admin/logbook
+  // this intercept wins over mockApi()'s own stateful entries write
   // handler and lets the test assert on the exact payload the form
   // built, not just the client-rendered end state.
   let submittedBody;
-  await page.route("**/logbook/api/admin/logbook*", async route => {
+  await page.route("**/-/api/entries*", async route => {
+    if (route.request().method() !== "POST") return route.fallback();
     submittedBody = route.request().postDataJSON();
     await route.fulfill({ status: 201, json: { entries: [{ ...submittedBody, id: "new-id" }] } });
   });
@@ -548,7 +549,7 @@ test("adding a move and saving submits it in the entry payload", async ({ page }
   await page.locator('#hardest-moves-list [data-field="limbSide"]').selectOption("foot-right");
 
   await Promise.all([
-    page.waitForResponse(res => res.url().includes("/logbook/api/admin/logbook") && res.request().method() === "POST"),
+    page.waitForResponse(res => res.url().includes("/-/api/entries") && res.request().method() === "POST"),
     page.locator("#entry-submit-btn-2").click(),
   ]);
   await expect(page.locator("#entry-overlay")).toBeHidden();
@@ -673,7 +674,8 @@ test("choosing Font (Non-standard) switches to the number/letter/modifier fields
   await gotoLogHarness(page);
 
   let submittedBody;
-  await page.route("**/logbook/api/admin/logbook*", async route => {
+  await page.route("**/-/api/entries*", async route => {
+    if (route.request().method() !== "POST") return route.fallback();
     submittedBody = route.request().postDataJSON();
     await route.fulfill({ status: 201, json: { entries: [{ ...submittedBody, id: "new-id" }] } });
   });
@@ -707,7 +709,7 @@ test("choosing Font (Non-standard) switches to the number/letter/modifier fields
   await page.locator('#grade-ns-modifier-listbox [role="option"][data-key="+"]').click();
 
   await Promise.all([
-    page.waitForResponse(res => res.url().includes("/logbook/api/admin/logbook") && res.request().method() === "POST"),
+    page.waitForResponse(res => res.url().includes("/-/api/entries") && res.request().method() === "POST"),
     page.locator("#entry-submit-btn").click(),
   ]);
 
@@ -788,7 +790,7 @@ test("add-place modal: brand-new location leaves the country field open", async 
   await page.locator('#add-place-country-listbox li[data-key="Norway"]').click();
 
   await Promise.all([
-    page.waitForResponse(res => res.url().includes("/logbook/api/admin/locations") && res.request().method() === "POST"),
+    page.waitForResponse(res => res.url().includes("/-/api/locations") && res.request().method() === "POST"),
     page.locator("#add-place-submit-btn").click(),
   ]);
   await expect(page.locator("#add-place-overlay")).toBeHidden();
@@ -817,7 +819,7 @@ test("add-place modal: an existing location name locks the country field", async
   await page.locator("#add-place-area").fill(areaName);
   await Promise.all([
     // No new location this time (already exists) -- only a places POST.
-    page.waitForResponse(res => res.url().includes("/logbook/api/admin/places") && res.request().method() === "POST"),
+    page.waitForResponse(res => res.url().includes("/-/api/places") && res.request().method() === "POST"),
     page.locator("#add-place-submit-btn").click(),
   ]);
   await expect(page.locator("#add-place-overlay")).toBeHidden();
@@ -838,7 +840,7 @@ test("edits an existing entry via the table's Edit button", async ({ page }) => 
   const editedName = `Edited Boulder ${Date.now()}`;
   await page.locator("#entry-name").fill(editedName);
   await Promise.all([
-    page.waitForResponse(res => res.url().includes("/logbook/api/admin/logbook") && res.request().method() === "PUT"),
+    page.waitForResponse(res => res.url().includes("/-/api/entries") && res.request().method() === "PUT"),
     page.locator("#entry-submit-btn").click(),
   ]);
   await expect(page.locator("#entry-overlay")).toBeHidden();
@@ -942,8 +944,12 @@ test("theme toggle flips data-theme and persists to localStorage", async ({ page
 // queue, not because sync didn't run, but because the request it sent
 // wasn't the one this test meant to simulate at all.
 //
+// #992 -- reads and writes share each resource's URL now, so these
+// overrides fail only the writes (non-GET), exactly as the old admin/-only
+// routes did: the tests simulate a write that can't reach the server.
+//
 // The route pattern itself has a trailing `**`, not just
-// ".../admin/logbook" -- the DELETE request appends `?id=...`, and a glob
+// ".../entries" -- the DELETE request appends `?id=...`, and a glob
 // pattern with no wildcard after the path doesn't match a URL with a
 // query string tacked on. Without it, the delete-while-offline test's own
 // DELETE silently missed this route entirely and hit mockApi()'s real
@@ -957,7 +963,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     const entryName = `E2E offline climb ${Date.now()}`;
 
     let failing = true;
-    await page.route("**/logbook/api/admin/logbook**", route => (failing ? route.abort("failed") : route.fallback()));
+    await page.route("**/-/api/entries**", route => (failing && route.request().method() !== "GET" ? route.abort("failed") : route.fallback()));
 
     await page.locator("#add-btn").click();
     await page.locator("#entry-name").fill(entryName);
@@ -975,7 +981,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     // fallback()), and a real `online` event triggers log-main.js's own
     // auto-sync listener, same as a genuine connectivity change would.
     const responsePromise = page.waitForResponse(
-      res => res.url().includes("/logbook/api/admin/logbook") && res.request().method() === "POST",
+      res => res.url().includes("/-/api/entries") && res.request().method() === "POST",
     );
     failing = false;
     await page.evaluate(() => window.dispatchEvent(new Event("online")));
@@ -990,7 +996,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     const entryName = `E2E add-then-delete ${Date.now()}`;
 
     let failing = true;
-    await page.route("**/logbook/api/admin/logbook**", route => (failing ? route.abort("failed") : route.fallback()));
+    await page.route("**/-/api/entries**", route => (failing && route.request().method() !== "GET" ? route.abort("failed") : route.fallback()));
 
     await page.locator("#add-btn").click();
     await page.locator("#entry-name").fill(entryName);
@@ -1019,7 +1025,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
 
     const requestMethods = [];
     page.on("requestfinished", req => {
-      if (req.url().includes("/logbook/api/admin/logbook")) requestMethods.push(req.method());
+      if (req.url().includes("/-/api/entries") && req.method() !== "GET") requestMethods.push(req.method());
     });
 
     failing = false;
@@ -1053,7 +1059,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await gotoLogHarness(page);
 
     let failing = true;
-    await page.route("**/logbook/api/admin/logbook**", route => (failing ? route.abort("failed") : route.fallback()));
+    await page.route("**/-/api/entries**", route => (failing && route.request().method() !== "GET" ? route.abort("failed") : route.fallback()));
 
     // Queue a delete for the seeded "Boulder Seed" entry while offline.
     await page.locator("#collapse-all-btn").click();
@@ -1070,7 +1076,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     // then restore it so the queued delete itself still can't reach the
     // server yet.
     failing = false;
-    await page.evaluate(() => fetch("/logbook/api/admin/logbook", {
+    await page.evaluate(() => fetch("/-/api/entries", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: "e1", placeId: "p1", type: "boulder", status: "send", grade: "6A", name: "Edited By Other Device" }),
@@ -1080,7 +1086,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     // Reconnect -- pullDeltas() picks up the drift edit first, then the
     // queued delete replays.
     const deleteResponsePromise = page.waitForResponse(
-      res => res.url().includes("/logbook/api/admin/logbook") && res.request().method() === "DELETE",
+      res => res.url().includes("/-/api/entries") && res.request().method() === "DELETE",
     );
     failing = false;
     await page.evaluate(() => window.dispatchEvent(new Event("online")));
@@ -1110,7 +1116,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     const entryName = `E2E reentrancy ${Date.now()}`;
 
     let failing = true;
-    await page.route("**/logbook/api/admin/logbook**", route => (failing ? route.abort("failed") : route.fallback()));
+    await page.route("**/-/api/entries**", route => (failing && route.request().method() !== "GET" ? route.abort("failed") : route.fallback()));
 
     await page.locator("#add-btn").click();
     await page.locator("#entry-name").fill(entryName);
@@ -1122,7 +1128,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
 
     const postRequests = [];
     page.on("requestfinished", req => {
-      if (req.url().includes("/logbook/api/admin/logbook") && req.method() === "POST") postRequests.push(req.url());
+      if (req.url().includes("/-/api/entries") && req.method() === "POST") postRequests.push(req.url());
     });
 
     failing = false;
@@ -1155,16 +1161,16 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     // that omits it, so leaving this out would silently make the
     // dedup match below return an id-less row and the whole point of
     // this test (proving the *remap*, keyed by that id) untestable.
-    await page.evaluate(() => fetch("/logbook/api/admin/locations", {
+    await page.evaluate(() => fetch("/-/api/locations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: crypto.randomUUID(), name: "Existing Crag", country: "France" }),
     }));
 
     let failing = true;
-    await page.route("**/logbook/api/admin/locations", route => (failing ? route.abort("failed") : route.fallback()));
-    await page.route("**/logbook/api/admin/places", route => (failing ? route.abort("failed") : route.fallback()));
-    await page.route("**/logbook/api/admin/logbook**", route => (failing ? route.abort("failed") : route.fallback()));
+    await page.route("**/-/api/locations", route => (failing && route.request().method() !== "GET" ? route.abort("failed") : route.fallback()));
+    await page.route("**/-/api/places", route => (failing && route.request().method() !== "GET" ? route.abort("failed") : route.fallback()));
+    await page.route("**/-/api/entries**", route => (failing && route.request().method() !== "GET" ? route.abort("failed") : route.fallback()));
 
     const entryName = `E2E dedup remap ${Date.now()}`;
     await page.locator("#add-btn").click();
@@ -1223,7 +1229,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     // the mocked backend -- same pattern as the "reconnect drift" test
     // above, bypassing this page's own form entirely.
     const entryName = `E2E boot reconcile ${Date.now()}`;
-    await page.evaluate(name => fetch("/logbook/api/admin/logbook", {
+    await page.evaluate(name => fetch("/-/api/entries", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: crypto.randomUUID(), placeId: "p1", type: "boulder", status: "send", grade: "6A", gradeScale: "font", date: "2026-05-03", name }),
@@ -1265,17 +1271,17 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     const entryName = `E2E new-place reconcile ${Date.now()}`;
 
     await page.evaluate(async ({ locationId, placeId, entryName }) => {
-      await fetch("/logbook/api/admin/locations", {
+      await fetch("/-/api/locations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: locationId, name: "New Crag", country: "France" }),
       });
-      await fetch("/logbook/api/admin/places", {
+      await fetch("/-/api/places", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: placeId, locationId, area: "Sector 1" }),
       });
-      await fetch("/logbook/api/admin/logbook", {
+      await fetch("/-/api/entries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: crypto.randomUUID(), placeId, type: "boulder", status: "send", grade: "6A", gradeScale: "font", date: "2026-05-04", name: entryName }),
@@ -1471,7 +1477,7 @@ test("#847 -- the sync status ring actually disappears (not just the data attrib
   // fulfillment above for this test only, creating a real, observable
   // "still working" window without needing to fake timers or reach into
   // the page's own internals.
-  await page.route("**/logbook/api/auth/get-session", async route => {
+  await page.route("**/-/api/auth/get-session", async route => {
     await new Promise(r => setTimeout(r, 400));
     await route.fulfill({ json: { session: { id: "s1" }, user: { id: "u1", username: "e2euser", email: "e2e@example.com" } } });
   });
@@ -1489,7 +1495,7 @@ test("#847 -- the sync status ring actually disappears (not just the data attrib
 // during that window sees a real explanation of what's happening.
 test("#847 -- the burger menu shows a status row while syncing; #878 -- Help is always present regardless; #893 -- the sync live region announces start and completion", async ({ page }) => {
   await mockApi(page, SEED);
-  await page.route("**/logbook/api/auth/get-session", async route => {
+  await page.route("**/-/api/auth/get-session", async route => {
     await new Promise(r => setTimeout(r, 400));
     await route.fulfill({ json: { session: { id: "s1" }, user: { id: "u1", username: "e2euser", email: "e2e@example.com" } } });
   });
@@ -1558,11 +1564,11 @@ test("#893 -- the live region doesn't re-announce while already syncing", async 
   const settingsGate = new Promise(r => { releaseSettings = r; });
 
   await mockApi(page, SEED);
-  await page.route("**/logbook/api/auth/get-session", async route => {
+  await page.route("**/-/api/auth/get-session", async route => {
     await sessionGate;
     await route.fulfill({ json: { session: { id: "s1" }, user: { id: "u1", username: "e2euser", email: "e2e@example.com" } } });
   });
-  await page.route("**/logbook/api/settings", async route => {
+  await page.route("**/-/api/settings", async route => {
     await settingsGate;
     await route.fulfill({ json: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true } });
   });
@@ -1574,7 +1580,7 @@ test("#893 -- the live region doesn't re-announce while already syncing", async 
   // put by coincidence.
   await page.evaluate(() => { document.getElementById("menu-sync-announce").textContent = ""; });
 
-  const sessionSettled = page.waitForResponse(res => res.url().includes("/logbook/api/auth/get-session"));
+  const sessionSettled = page.waitForResponse(res => res.url().includes("/-/api/auth/get-session"));
   releaseSession();
   await sessionSettled;
   // Settings is still held open (releaseSettings() hasn't been called) --
@@ -1584,7 +1590,7 @@ test("#893 -- the live region doesn't re-announce while already syncing", async 
   // catch it.
   await expect(page.locator("#menu-sync-announce")).toHaveText("");
 
-  const settingsSettled = page.waitForResponse(res => res.url().includes("/logbook/api/settings"));
+  const settingsSettled = page.waitForResponse(res => res.url().includes("/-/api/settings"));
   releaseSettings();
   await settingsSettled;
   await expect(page.locator("#menu-sync-announce")).toHaveText("Synced.");

@@ -2,7 +2,7 @@
 // Same fixture-harness pattern as e2e/log-page.spec.js (see that file's
 // own header comment) -- the real client/account-edit-main.js ->
 // account-edit-app.js bundle against a verbatim copy of
-// public/account/edit/index.html, with fabricated /logbook/api/auth/*
+// public/account/edit/index.html, with fabricated /-/api/auth/*
 // responses (mock-api.js's own #302 additions).
 //
 // Username save deliberately isn't asserted past "the right request was
@@ -45,7 +45,7 @@ test("username row: saving posts only { username }, nothing else", async ({ page
   await page.goto("/e2e-fixtures/pages/account-edit.html");
 
   const updateUserRequest = page.waitForRequest(req =>
-    req.url().includes("/logbook/api/auth/update-user") && req.method() === "POST"
+    req.url().includes("/-/api/auth/update-user") && req.method() === "POST"
   );
 
   await page.locator("#username-edit-btn").click();
@@ -89,7 +89,7 @@ test("password row: saving succeeds and closes the form, without touching userna
 
 test("shows the server's own error message and keeps the form open on failure", async ({ page }) => {
   await mockApi(page, { username: "nix", email: "nix@example.com" });
-  await page.route("**/logbook/api/auth/change-password", route =>
+  await page.route("**/-/api/auth/change-password", route =>
     route.fulfill({ status: 400, json: { message: "Incorrect password.", code: "INVALID_PASSWORD" } }));
   await page.goto("/e2e-fixtures/pages/account-edit.html");
 

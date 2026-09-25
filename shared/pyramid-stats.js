@@ -59,7 +59,7 @@ export function isWithinLast12Months(d) {
 export const ROW_SCALE_BY_TYPE = { boulder: "font-non-standard", sport: "french-non-standard" };
 // Fallback only for an entry with no real gradeScale at all -- shouldn't
 // happen for any real row today (#702's migration backfilled every
-// existing row, server/api/logbook.js's defaultGradeScale() guarantees
+// existing row, server/api/entries.js's defaultGradeScale() guarantees
 // every future write sets one), but a cheap defensive default avoids a
 // silently-dropped entry if that guarantee is ever violated, rather than
 // crashing or comparing against `undefined`.

@@ -6,16 +6,17 @@
   "packageManager": "pnpm@11.11.0+sha512.4463f65fd80ed80d69bc1d4bf163ee94f605c7380fc318bb5b2ebe15f8cd12d49c51a4d59e951b401e764d3b6ca751cbf51bc50ed7001a6bcb4935e684c34882",
   "scripts": {
     "dev": "node scripts/dev.mjs",
-    "dev:vite": "concurrently -n vite,tailwind,html -c blue,magenta,green \"vite dev\" \"tailwindcss -i ./styles/tailwind.css -o ./public/logbook/tailwind.css --watch\" \"pnpm run html:watch\"",
+    "dev:vite": "concurrently -n vite,tailwind,html -c blue,magenta,green \"vite dev\" \"tailwindcss -i ./styles/tailwind.css -o ./public/-/tailwind.css --watch\" \"pnpm run html:watch\"",
     "deploy": "pnpm run html:build && pnpm run tailwind:build && pnpm run deploy:build && wrangler deploy",
     "html:build": "eleventy",
     "html:watch": "eleventy --watch",
-    "tailwind:build": "tailwindcss -i ./styles/tailwind.css -o ./public/logbook/tailwind.css --minify",
-    "tailwind:watch": "tailwindcss -i ./styles/tailwind.css -o ./public/logbook/tailwind.css --watch",
+    "tailwind:build": "tailwindcss -i ./styles/tailwind.css -o ./public/-/tailwind.css --minify",
+    "tailwind:watch": "tailwindcss -i ./styles/tailwind.css -o ./public/-/tailwind.css --watch",
     "deploy:build": "node scripts/require-cloudflare-env.mjs && vite build --config vite.deploy.config.js",
     "preview": "pnpm run html:build && pnpm run tailwind:build && pnpm run deploy:build && vite preview --config vite.deploy.config.js",
     "seed": "node scripts/seed-dev-data.mjs",
     "seed:demo": "node scripts/seed-demo-accounts.mjs",
+    "audit:usernames": "node scripts/audit-usernames.mjs",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "e2e:build-fixtures": "mkdir -p public/e2e-fixtures/pages && cp e2e/fixtures/*.html public/e2e-fixtures/ && esbuild e2e/fixtures/map-harness-entry.js --bundle --format=esm --outfile=public/e2e-fixtures/map-harness.js && esbuild e2e/fixtures/pyramid-harness-entry.js --bundle --format=esm --outfile=public/e2e-fixtures/pyramid-harness.js && esbuild client/components/climbing-grade-pyramid.js --bundle --format=esm --outfile=public/e2e-fixtures/climbing-grade-pyramid.js && esbuild client/components/climbing-entries-table.js --bundle --format=esm --outfile=public/e2e-fixtures/climbing-entries-table.js && cp public/log/index.html public/e2e-fixtures/pages/log.html && cp public/map/index.html public/e2e-fixtures/pages/map.html && cp public/performance/pyramid/index.html public/e2e-fixtures/pages/performance-pyramid.html && cp public/performance/injury/index.html public/e2e-fixtures/pages/performance-injury.html && cp public/performance/strengths/index.html public/e2e-fixtures/pages/performance-strengths.html && cp public/performance/trends/index.html public/e2e-fixtures/pages/performance-trends.html && cp public/performance/gap/index.html public/e2e-fixtures/pages/performance-gap.html && cp public/performance/rpe/index.html public/e2e-fixtures/pages/performance-rpe.html && cp public/performance/index.html public/e2e-fixtures/pages/performance.html && cp public/profile/index.html public/e2e-fixtures/pages/profile.html && cp public/account/index.html public/e2e-fixtures/pages/account.html && cp public/account/edit/index.html public/e2e-fixtures/pages/account-edit.html && cp public/account/import/index.html public/e2e-fixtures/pages/account-import.html && cp public/sync/index.html public/e2e-fixtures/pages/sync.html"
@@ -44,6 +45,7 @@
   "dependencies": {
     "@floating-ui/dom": "^1.8.0",
     "better-auth": "^1.7.5",
+    "obscenity": "0.4.6",
     "resend": "^6.28.1",
     "valibot": "^1.5.0"
   }

@@ -25,15 +25,16 @@ resource "cloudflare_ruleset" "app_cache_rules" {
 
   rules = [
     {
-      # /logbook/api/* is this app's one API prefix -- covers
-      # /logbook/api/auth/* (sign-in/sign-up/session) too, not just
-      # /logbook/api/logbook et al (server/index.js's own routing).
+      # /-/api/* is this app's one API prefix (#984; /logbook/api/* until
+      # then, matched alongside it by #988 until #989) -- covers
+      # /-/api/auth/* (sign-in/sign-up/session) too, not just the resource
+      # routes (server/index.js's own routing).
       # /login and /register (public/login/, public/register/) are
       # static, unpersonalized pages -- no server-side personalization
       # happens there, so they're left cacheable rather than bypassed
       # on the audit's generic (and, for this app, inaccurate) guess.
       description = "Bypass cache - API and auth endpoints"
-      expression  = "starts_with(http.request.uri.path, \"/logbook/api/\")"
+      expression  = "starts_with(http.request.uri.path, \"/-/api/\")"
       action      = "set_cache_settings"
       action_parameters = {
         cache = false

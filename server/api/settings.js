@@ -20,17 +20,12 @@ function rowToJson(row) {
   };
 }
 
-// GET is reachable without a session (#297) -- userId may be null, in
-// which case there's no row to read and the caller just sees the
-// defaults, same as a logged-in user who's never touched settings (no
-// row exists for them either until their first PATCH, see below).
+// #992 -- reachable only with a session (server/index.js 401s without
+// one), so userId is always real. No row yet (a user who's never changed
+// a setting) reads as the defaults.
 export async function handleGetSettings(request, env, userId) {
-  let body = DEFAULT_SETTINGS;
-  if (userId) {
-    const row = await env.LOGBOOK_DB.prepare(`SELECT * FROM settings WHERE user_id = ?`).bind(userId).first();
-    if (row) body = rowToJson(row);
-  }
-  return new Response(JSON.stringify(body), {
+  const row = await env.LOGBOOK_DB.prepare(`SELECT * FROM settings WHERE user_id = ?`).bind(userId).first();
+  return new Response(JSON.stringify(row ? rowToJson(row) : DEFAULT_SETTINGS), {
     headers: {
       "Content-Type": "application/json",
       "Cache-Control": "no-store",
@@ -38,9 +33,8 @@ export async function handleGetSettings(request, env, userId) {
   });
 }
 
-// Reachable only via /logbook/api/admin/settings -- server/index.js's
-// authorization step already 401s before dispatching here, so userId is
-// always real.
+// Same: server/index.js 401s before dispatching here without a session,
+// so userId is always real.
 //
 // PATCH, not PUT (#137) -- merges onto the existing stored settings rather
 // than replacing them wholesale, since callers only ever send the one

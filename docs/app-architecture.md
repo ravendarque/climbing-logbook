@@ -13,7 +13,7 @@ API (`server/`), backed by D1 (#21/#297 -- the earlier Workers KV data model
 is fully gone, code and infra both, #299). No frontend
 framework — plain ES modules, direct DOM manipulation, and a handful of
 framework-free Web Components (`client/components/*.js`,
-`static/logbook/components/climbing-header.js`) shared across pages.
+`static/-/components/climbing-header.js`) shared across pages.
 `public/` is 100% generated build output and gitignored (#877) -- safe to
 delete and rebuild from nothing. Hand-authored static assets (fonts,
 icons, the PWA manifest/service worker, the classic-script components,
@@ -63,7 +63,7 @@ deploy (`.github/workflows/deploy.yml`):
   every visitor; every page's own composition root still reads the
   username from `location.pathname` client-side at runtime, unchanged.
 - **CSS**: Tailwind (adopted per the design decision in issue #45/PR #46,
-  see `styles/tailwind.css`), compiled to `public/logbook/tailwind.css` via
+  see `styles/tailwind.css`), compiled to `public/-/tailwind.css` via
   `pnpm run tailwind:build` (one-shot) or `tailwind:watch` (used by `pnpm
   dev` alongside vite, #468) — shared by every page.
 - **Client JS, real code-splitting, and the Worker's own build** (#761,
@@ -87,7 +87,7 @@ deploy (`.github/workflows/deploy.yml`):
   `--external:./escape-html.js` convention (and the real bug it caused,
   #388, when a new component's relative import didn't match the flat
   esbuild output layout it assumed) no longer exists to get wrong.
-  Output goes to `dist/` (`dist/client/logbook/<page>-app.js` + shared
+  Output goes to `dist/` (`dist/client/-/<page>-app.js` + shared
   chunks, `dist/climbing_logbook/` for the Worker), not `public/` — a
   deliberately different, deploy-only location; `vite dev` (local
   development, `vite.config.js`) serves everything on demand from source
@@ -116,7 +116,8 @@ deploy (`.github/workflows/deploy.yml`):
      The worker is source, not a static file: `client/sw/` (request
      classification, per-build cache naming, the entry point) is bundled
      with esbuild to a
-     single classic script at `dist/client/sw.js`, served as `/sw.js` with
+     single classic script at `dist/client/service-worker.js`, served as
+     `/service-worker.js` (#983; a hyphenated name can't be a username) with
      the platform-default `Cache-Control`. Two values are injected at build
      time: a `BUILD_ID` (a hash of every served file, computed after step 1,
      so identical source gives an identical ID and any served change gives a
@@ -135,13 +136,13 @@ tokens (colors, radius, font stack) that
 documented exception (`[hidden] { display: none }`, needed because a
 normal-origin author `display` utility always beats the browser's own
 `[hidden]` rule regardless of layers or specificity), are injected once by
-`static/logbook/components/climbing-header.js` (#345) -- every page loads
+`static/-/components/climbing-header.js` (#345) -- every page loads
 it as a classic `<script>` in `<head>`, so the tokens exist before the
 parser reaches any content that depends on them, regardless of where
 `<climbing-header>` itself appears in the body (see that file's own
 comment for why a classic script, not an ES module, and why it can't move
 into Tailwind's layer system). This used to be duplicated per-shell
-(`/logbook/index.html`'s own inline `<style>` block was the original,
+(`/-/index.html`'s own inline `<style>` block was the original,
 canonical copy before #345 extracted it) -- #375 removed the last
 consumer of that duplicate along with the page itself. Composite patterns
 Tailwind's utility set has no direct equivalent for (stacked gradients/
@@ -152,7 +153,7 @@ system, rather than as plain CSS.
 ```
 styles/
 └── tailwind.css        Tailwind entry point (utilities only, no preflight —
-                          see file for why); compiles to public/logbook/tailwind.css
+                          see file for why); compiles to public/-/tailwind.css
 
 client/
 ├── store.js            Owns client-side app state (statusFilters, gradeRange,
@@ -476,27 +477,26 @@ client/
                           above
 server/
 ├── index.js            Router — hostname + pathname + method, dispatches.
-│                         Route tables (PUBLIC_GET_ROUTES/ADMIN_ROUTES,
-│                         pathname -> handler[/method]) replaced four
-│                         copy-pasted if-blocks with lookups (found via
-│                         code review, 2026-08-09) -- the next simple GET/
-│                         admin resource is a one-line table entry, not a
+│                         One route table (RESOURCE_ROUTES, pathname ->
+│                         method -> handler, #992): every route in it
+│                         requires a session for every method, so the
+│                         next resource is a one-line table entry, not a
 │                         new if. The one hostname check
 │                         (`hostname.startsWith("my.")`) gates #347/#351's
 │                         owner-only and public per-user routes -- see
 │                         "Request routing" below
 ├── api/
-│   ├── logbook.js       GET (public) / POST,PUT,DELETE (admin) — CRUD on
+│   ├── entries.js       GET/POST/PUT/DELETE /-/api/entries — CRUD on
 │   │                      entries. handleGet/handlePost delegate to
 │   │                      lib/d1-resource.js; handlePut/handleDelete stay
 │   │                      here since entries is the only resource with
 │   │                      edit/delete
-│   ├── places.js        GET (public) / POST (admin) — create/read on
+│   ├── places.js        GET/POST /-/api/places — create/read on
 │   │                      places, same lib/d1-resource.js delegation
-│   ├── locations.js     GET (public) / POST (admin) — create/read on
+│   ├── locations.js     GET/POST /-/api/locations — create/read on
 │   │                      locations; edit/delete deliberately not yet
 │   │                      implemented for either (#159, #160)
-│   ├── settings.js      GET (public) / PATCH (admin) — Athlete Mode +
+│   ├── settings.js      GET/PATCH /-/api/settings — Athlete Mode +
 │   │                      persisted-discipline settings row
 │   ├── owned-routes.js  (#347, +#302) my.<domain>/:username/{log,map,
 │   │                      performance,account,account/edit} -- the
@@ -525,14 +525,14 @@ server/
 │   │                      on failure, a real climbing-header.js-consistent
 │   │                      404 message page (renderMessage()), not a bare
 │   │                      Response
-│   └── public-data.js   (#351) GET /logbook/api/public/:username/
-│                          {logbook,places,locations} — the read-only JSON
+│   └── public-data.js   (#351) GET /-/api/public/:username/
+│                          {entries,places,locations} — the read-only JSON
 │                          API the public profile page's own client bundle
 │                          (client/profile-main.js) fetches from. Scoped
 │                          to whichever *target* user the path names, not
 │                          the caller's own session -- not hostname-gated,
 │                          reachable from any origin same as every other
-│                          /logbook/api/* route
+│                          /-/api/* route
 └── lib/
     ├── json.js          json()/parseJsonBody() -- tiny JSON Response/
     │                      request-body helpers shared across every handler
@@ -565,7 +565,7 @@ server/
     │                      needed for public-profile.js's server-rendered
     │                      404 message page
     ├── auth.js          createAuth(env, hostname) — mounts Better Auth
-    │                      (#20/#320) under /logbook/api/auth/*, wiring
+    │                      (#20/#320) under /-/api/auth/*, wiring
     │                      turnstile.js as a sign-up before-hook and
     │                      email.js for verification/reset/change-email
     │                      mail. user.changeEmail (#302) is enabled here --
@@ -596,10 +596,11 @@ server/
                             email-sending needs Better Auth's config
                             actually calls into
 
-public/logbook/ (no longer a page of its own, #375 -- just the shared
+public/-/ (public/logbook/ until #984, and no longer a page of its own
+since #375 -- just the shared
 asset directory every page's absolute paths resolve against: gitignored
 build output, fonts, favicons, and the PWA manifest (the service worker
-is `/sw.js`, built from `client/sw/`, #947);
+is `/service-worker.js`, built from `client/sw/`, #947/#983);
 client/*-main.js's own compiled output lives in dist/, not here -- see
 "Client JS, real code-splitting, and the Worker's own build" above and
 "Composition roots, one per page" below for the full list)
@@ -764,7 +765,7 @@ document's own level of detail, not a full rewrite of the section:
 ```
 client/
 ├── log-main.js          Composition root for /:username/log (#348) --
-│                           bundled into public/logbook/log-app.js. The
+│                           bundled into public/-/log-app.js. The
 │                           largest of the six: the one page that
 │                           actually writes data, so it pulls in
 │                           entry-form.js/place-picker.js/offline-sync.js
@@ -772,12 +773,12 @@ client/
 │                           (content-overlays.js is gone, #425 --
 │                           <climbing-entries-table> owns the notes
 │                           overlay itself now, see that component's own
-│                           entry below). Registers /sw.js
+│                           entry below). Registers /service-worker.js
 ├── map-main.js           Composition root for /:username/map (#348) --
 │                           bundled into map-app.js. Reuses store.js/
 │                           admin-auth.js/header-chrome.js/map-view.js
 │                           completely unchanged from /logbook's own.
-│                           Also registers /sw.js
+│                           Also registers /service-worker.js
 ├── performance-hub-main.js Composition root for /:username/performance
 │                           itself (#575, epic #5 Phase 2) -- bundled into
 │                           performance-hub-app.js. The hub: a tile per
@@ -885,7 +886,7 @@ client/
 │                           reasoning profile-main.js already established
 │                           for this exact situation. No fetch-json.js
 │                           usage -- nothing here is logbook data, so
-│                           there's nothing to load. Registers /sw.js
+│                           there's nothing to load. Registers /service-worker.js
 ├── account-edit-main.js  Composition root for /:username/account/edit
 │                           (#302) -- bundled into account-edit-app.js.
 │                           Same "no header-chrome.js, reimplement
@@ -906,7 +907,7 @@ client/
 │                           form toggle, submit, disable-while-saving,
 │                           error display); what actually happens on
 │                           submit is each row's own callback. Registers
-│                           /sw.js
+│                           /service-worker.js
 ├── account-import-main.js Composition root for /:username/account/import
 │                           (#224 phases 2-4) -- bundled into
 │                           account-import-app.js. Same "no
@@ -949,7 +950,7 @@ client/
 │                           Wraps checkSession()/fetchSettings() (every
 │                           owned page) and pullDeltas() (offline-sync.js)
 │                           to drive the small icon
-│                           static/logbook/components/
+│                           static/-/components/
 │                           climbing-page-header.js (#759) renders --
 │                           idle/working/offline. Deliberately excludes
 │                           each page's own primary-content fetch (map
@@ -1196,11 +1197,27 @@ deliberate, narrow exception to the Connectivity Resilience standard's
 "don't fetch on demand" rule (`docs/coding-standards.md`) — the map is
 never needed at the crag, so a failed fetch shows a plain "you need to
 be online" message with Retry instead of pretending to work offline.
-The service worker's `/logbook/` tier (network-first, cache-fallback)
+The service worker's `/-/` tier (network-first, cache-fallback)
 caches each variant's JSON after its first successful fetch — no
 separate precache entry needed.
 
 ## Request routing
+
+**The app hosts' namespace (#982, #983, #984).** `my.<domain>` and
+`beta.<domain>` serve users' routes, `/:username/*` (plus the public
+profile at `/:username` on `my.`), alongside the app's own routes. The app's
+own routes must never be something a user could register as a username, and
+usernames are `[a-z0-9._]` only (`isValidUsername`, `server/lib/auth.js`).
+So every non-user route contains a hyphen:
+
+- `/service-worker.js` at the root, so it can control scope `/` (#983);
+- everything else under `/-/`: assets and bundles (`/-/…`), the API
+  (`/-/api/…`), app-host login (`/-/login/`, the same page the apex serves
+  at `/login/`), and the installed app's start page (`/-/launch/`).
+
+`test/username.test.js` fails if the username charset is ever widened to
+allow a hyphen. Apex-only pages (help, register, reset-password, the
+marketing home) are served only on the apex (#985).
 
 Workers Static Assets serves anything matching a file under `public/`
 directly, without invoking the Worker script at all (asset-first, by
@@ -1208,35 +1225,39 @@ default) — `wrangler.jsonc`'s `assets.run_worker_first` scopes an
 exception for exactly five path groups (`/account/*` covers both
 `/account` and `/account/edit`), see below. The Worker's `fetch` handler
 in `server/index.js` otherwise only ever sees requests that *don't* match a
-static file — in practice, the `/logbook/api/*` routes plus two
+static file — in practice, the `/-/api/*` routes plus two
 `my.<domain>`-hostname-gated route shapes:
 
 | Path | Host | Method | Auth | Handler |
 |---|---|---|---|---|
-| `/logbook/api/logbook` | any | GET | public, session-scoped | `handleGet` |
-| `/logbook/api/admin/logbook` | any | POST/PUT/DELETE | Better Auth session (#297) | `handlePost`/`handlePut`/`handleDelete` |
-| `/logbook/api/places` | any | GET | public, session-scoped | `handleGet` (places.js) |
-| `/logbook/api/admin/places` | any | POST | Better Auth session (#297) | `handlePost` (places.js) |
-| `/logbook/api/locations` | any | GET | public, session-scoped | `handleGet` (locations.js) |
-| `/logbook/api/admin/locations` | any | POST | Better Auth session (#297) | `handlePost` (locations.js) |
-| `/logbook/api/settings` | any | GET | public, session-scoped | `handleGetSettings` |
-| `/logbook/api/admin/settings` | any | PATCH | Better Auth session (#297) | `handlePatchSettings` |
-| `/logbook/api/public/:username/{logbook,places,locations}` | any | GET | public, target-user-scoped (#351) | `handlePublicResource` |
-| `/logbook/api/auth/*` | any | any | Better Auth's own (#20) | `createAuth(env, hostname).handler` |
+| `/-/api/entries` | any | GET/POST/PUT/DELETE | Better Auth session (#297, #992) | `handleGet`/`handlePost`/`handlePut`/`handleDelete` (entries.js) |
+| `/-/api/entries/import` | any | POST | Better Auth session | `handleImport` (entries-import.js) |
+| `/-/api/places` | any | GET/POST | Better Auth session | `handleGet`/`handlePost` (places.js) |
+| `/-/api/locations` | any | GET/POST | Better Auth session | `handleGet`/`handlePost` (locations.js) |
+| `/-/api/settings` | any | GET/PATCH | Better Auth session | `handleGetSettings`/`handlePatchSettings` |
+| `/-/api/performance/{pyramid,injury,strengths,volume,gap,rpe}`, `/-/api/map/counts` | any | GET | Better Auth session | performance.js, map.js |
+| `/-/api/public/:username/{entries,entries/counts,places,locations,map/counts}` | any | GET | none; target-user-scoped, `logbook_public`-gated (#351) | `handlePublicResource` |
+| `/-/api/public/:username/performance/*` | any | GET | none; demo accounts only (#251) | `handlePublicResource` |
+| `/-/api/auth/*` | any | any | Better Auth's own (#20) | `createAuth(env, hostname).handler` |
 | `/:username/{log,map,performance,account,account/edit}` | `my.*` only | GET | owner's own Better Auth session (#347, +#302) | `handleOwnedRoute` |
 | `/:username` | `my.*` only | GET | public, `logbook_public`-gated (#113/#351) | `handlePublicProfile` |
 
-"Public, session-scoped" means the route is reachable without a session,
-but the *response* isn't the same for everyone — see "Data model" above.
-The admin routes are gated by Better Auth's own session check inside the
-Worker itself (#297) — the actual multi-tenant isolation boundary; this
-app never had any other in-Worker authorization until #297 added it.
+Every resource route is gated by Better Auth's own session check inside
+the Worker itself (#297) — the actual multi-tenant isolation boundary —
+for every method, reads included (#992). No session is a 401, never an
+empty 200, so a page whose session has lapsed keeps its cached data
+rather than rendering an empty logbook. A method a route doesn't accept is
+a 404, checked before the session. Anonymous reads exist only under
+`/-/api/public/:username/*`, which checks the target user's
+`logbook_public` itself: a private logbook is secure by absence. #992 also
+retired the `admin/` prefix for writes (a holdover from Cloudflare Access)
+and the `logbook` resource name for entries.
 Cloudflare Access's own edge-authentication glue (`/admin/session`,
 `/admin/login`) was removed entirely (#427) once #298's removal of Access
 itself and #320's rewire of `client/admin-auth.js` onto Better Auth's own
 session/sign-in/sign-out endpoints left both permanently unreachable.
 
-`/logbook/api/auth/*` is the one **prefix**-matched `/logbook/api/*`
+`/-/api/auth/*` is the one **prefix**-matched `/-/api/*`
 route here — every other route above (that isn't hostname-gated) is an
 exact `pathname ===` match. Better Auth owns its own internal routing
 under that prefix (sign-up/sign-in/sign-out/session-check/etc, see
@@ -1324,7 +1345,7 @@ every owner composition root runs `client/channel-guard.js`'s
 not-enrolled user gets a "Beta is for enrolled users" message (header and
 menu kept, the rest hidden, no data fetched) linking to My account on
 `my.<domain>`. The decision comes synchronously from the cached settings;
-a background read of the session-only `GET /logbook/api/admin/settings`
+a background read of the session-only `GET /-/api/settings`
 corrects it (one reload) if it changed. `betaOptIn` is two-state
 (`true`/`false`); a `NULL` column value means not enrolled.
 
@@ -1413,7 +1434,7 @@ real requirement: a climber logs a grade exactly as their guidebook
 shows it, sees it in the logbook exactly as logged, and exports it
 exactly as logged — none of that is possible if the stored value is
 already converted to some canonical notation. `gradeScale` is optional
-on write (`server/api/logbook.js`'s `defaultGradeScale()` infers a
+on write (`server/api/entries.js`'s `defaultGradeScale()` infers a
 sensible value when a client omits it — needed for older/imported rows
 and any other write path that predates the picker) — `client/entry-form.js`
 sends it on every submit since sub-issue #703's scale/preference picker
@@ -1499,7 +1520,7 @@ its step count), but plumbing a real per-discipline tier facet through
 that mode's own combined `filteredEntries()` call sites is separate
 scope from this facet's own replacement.
 
-`buildRow()`/`rowToJson()` (`server/api/logbook.js`, `server/api/places.js`,
+`buildRow()`/`rowToJson()` (`server/api/entries.js`, `server/api/places.js`,
 `server/api/locations.js`, alongside the shared `server/lib/d1-resource.js`
 factory) reconstruct these fixed shapes from the incoming payload on
 every write rather than spreading the raw request body into storage — a
@@ -1543,9 +1564,8 @@ schema doesn't create it at signup) holds a small settings record
 separate from the entries data: `{ athleteMode: boolean,
 activeDiscipline: "boulder" | "lead" }`, defaulting to `{ athleteMode:
 false, activeDiscipline: "boulder" }` when no row exists yet (so existing
-behavior is unchanged until an admin explicitly opts in). It follows the
-same public-read/admin-write split as the entries API, gated the same
-way. Toggling Athlete Mode off hides (not deletes) the coaching-mode UI
+behavior is unchanged until the user explicitly opts in). Like every
+resource route, it needs a session to read or write (#992). Toggling Athlete Mode off hides (not deletes) the coaching-mode UI
 it gates — the underlying data is unaffected by the toggle.
 `activeDiscipline` persists which discipline tab (#137) was last active,
 best-effort (only when logged in; a logged-out visitor's switch stays
@@ -1587,15 +1607,15 @@ why Better Auth replaced Cloudflare Access as the mechanism itself.
 
 The client-facing flow (login button, session check, logout) is Better
 Auth's now (#320) — Cloudflare Access is gone entirely (#298), so Better
-Auth's session check is the only gate `/logbook/api/admin/*` has.
+Auth's session check is the only gate `/-/api/*` has.
 
 Server-side, `server/index.js` independently resolves a Better Auth session
-(`server/lib/session.js`) before dispatching to any `/logbook/api/admin/
+(`server/lib/session.js`) before dispatching to any `/-/api/
 {logbook,places,locations,settings}` handler, 401ing without one (#297)
 — this is the actual per-user data-isolation boundary, not Access.
 
 - **Checking login state:** `checkSession()` in `client/admin-auth.js`
-  `fetch`es Better Auth's own `/logbook/api/auth/get-session`. It returns
+  `fetch`es Better Auth's own `/-/api/auth/get-session`. It returns
   `null` (valid JSON) when there's no session, `{ session, user }` when
   there is — a genuine network exception (`fetch` itself throwing) is
   handled separately as "offline," falling back to the last-known state
@@ -1685,13 +1705,14 @@ See [ADR-0006](adr/0006-design-for-poor-connectivity-first.md) for the
 design-level decision this section is the concrete implementation of.
 
 The service worker ([ADR-0028](adr/0028-service-worker-owns-the-owner-app-shell.md))
-is `/sw.js`, scope `/`, built from `client/sw/`. Owner pages register it
+is `/service-worker.js` (#983; was `/sw.js`), scope `/`, built from
+`client/sw/`. Owner pages register it
 through `client/register-sw.js`, only once `pageAllowsBoot()` has let the
 page boot, and then only after `boot()`'s own fetches have settled and the
 page has gone idle. A page that's navigating away (a boot redirect such as
 a new device's `/log` → `/sync`) doesn't register, since its destination
 will; nor do the demo accounts' pages. The same call unregisters the
-retired `/logbook/` worker. Each request is classified
+retired `/-/` worker. Each request is classified
 (`client/sw/classify.js`) into one tier:
 
 - **Owner shells** (a GET navigation matching `matchOwnerRoute`):
@@ -1703,10 +1724,10 @@ retired `/logbook/` worker. Each request is classified
   server.
 - **`/launch/`**, the installed app's start page (#949): cache-first,
   like a shell.
-- **Immutable assets** (`/logbook/chunks/*` and `?v=` URLs): cache-first.
+- **Immutable assets** (`/-/chunks/*` and `?v=` URLs): cache-first.
 - **Fonts**: stale-while-revalidate.
-- **Everything else under `/logbook/`**: network-first, cache fallback.
-- **Passthrough**: everything else, including every `/logbook/api/*`
+- **Everything else under `/-/`**: network-first, cache fallback.
+- **Passthrough**: everything else, including every `/-/api/*`
   request, non-GETs and cross-origin requests. The API is never cached;
   offline data is the page's own localStorage, and non-GET failures reach
   the offline queue untouched.
@@ -1714,7 +1735,7 @@ retired `/logbook/` worker. Each request is classified
 **Pre-cache (#948).** The install caches every owner page and everything
 those pages load, so visiting one page online is enough for every page to
 open offline. The list is generated by the build
-(`scripts/precache-list.mjs`) and injected into `sw.js`:
+(`scripts/precache-list.mjs`) and injected into the worker script:
 
 - `shells`: every `SHELL_PATHS` page, each with the SHA-256 of its file.
   The worker fetches each through its owner URL (`/<username>/<page>`,
@@ -1783,7 +1804,7 @@ the collapsing logic entirely and matching what `applyPendingQueue()`'s
 merge loop and `syncPending()`'s replay loop already did (both were always
 plain, unconditional per-item processing; #268 didn't need to touch
 either). The one thing that made unconditional replay actually safe:
-`handleDelete` (`server/api/logbook.js`) treats a missing id as an idempotent
+`handleDelete` (`server/api/entries.js`) treats a missing id as an idempotent
 success (200, unchanged entries) rather than a 404 error, mirroring
 `handlePost`'s existing duplicate-id idempotency -- without that, deleting
 a queued-but-never-synced entry while online would 404 and get stuck.
@@ -1793,7 +1814,7 @@ a queued-but-never-synced entry while online would 404 and get stuck.
 See [ADR-0012](adr/0012-client-modularization-factories-no-framework.md)
 for why this is esbuild + ES modules + factories, and no framework.
 
-Client-side logic used to live entirely inline in `/logbook/index.html`'s
+Client-side logic used to live entirely inline in `/-/index.html`'s
 `<script type="module">`, before being incrementally extracted into real
 ES modules under `client/` starting at #206 -- pure-logic pieces (grade
 data, the offline-queue merge, filter/sort, grade-pyramid stats, map

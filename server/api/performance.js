@@ -1,6 +1,6 @@
 import { json } from "../lib/json.js";
 import { listForUser } from "../lib/d1-resource.js";
-import { attachChildRows, rowToJson } from "./logbook.js";
+import { attachChildRows, rowToJson } from "./entries.js";
 import { pyramidSplitRows, ROW_SCALE_BY_TYPE } from "../../shared/pyramid-stats.js";
 import { resolveScaleId, STANDARD_SCALES_BY_DISCIPLINE } from "../../shared/grade-data.js";
 import { painLogEntries, topPainCluster } from "../../shared/injury-stats.js";
@@ -19,12 +19,10 @@ import { effortByBucket, effortHeadline } from "../../shared/effort-stats.js";
 // <climbing-grade-pyramid>'s activeDiscipline switch stays instant
 // client-side, no re-fetch per switch.
 //
-// Same public-GET convention as handleGet in ./logbook.js (userId may be
-// null -- resolveUserId() in index.js already handles that, an anonymous
-// caller just gets empty pyramids back) even though /performance itself
-// is owner-only in practice (owned-routes.js gates the page before this
-// bundle ever loads) -- consistent with every other GET route here, not
-// a special case.
+// userId is the session's own user (server/index.js requires one, #992)
+// or a demo account's (public-data.js's anonymous demo-only carve-out); a
+// null one just gets empty pyramids back, same convention as handleGet in
+// ./entries.js.
 //
 // #737 -- ?boulderScale=<id>&sportScale=<id>: which scale each
 // discipline's rows/health-card text render in. Both disciplines still
@@ -40,13 +38,13 @@ import { effortByBucket, effortHeadline } from "../../shared/effort-stats.js";
 // the discipline's own native row scale, same defensive default
 // ROW_SCALE_BY_TYPE already provides pyramidCounts() itself.
 // #737 -- a request-supplied scale id reaches this endpoint unauthenticated
-// (this route needs no session, see this function's own header comment)
+// (anonymously via the demo accounts' /-/api/public/:username/ route)
 // and gets used as a bare object key/property lookup (buildRows()'s own
 // SCALES[viewScaleId].labels) -- an arbitrary or cross-discipline value
 // (Sport's "french" for a Boulder request) would otherwise crash the
 // request or silently mix disciplines' scales, so it's validated against
 // that discipline's own real picker list before use, same "never trust a
-// query param as a safe object key" discipline server/api/logbook.js's
+// query param as a safe object key" discipline server/api/entries.js's
 // own writes already apply.
 // #754 -- the actual validation logic moved to shared/grade-data.js's
 // resolveScaleId() (this exact check was hand-duplicated 3x across the
@@ -54,7 +52,7 @@ import { effortByBucket, effortHeadline } from "../../shared/effort-stats.js";
 // policy (ROW_SCALE_BY_TYPE, the discipline's native row scale).
 // #796 -- validated against STANDARD_SCALES_BY_DISCIPLINE, not every
 // real scale id: this query param reaches the server directly from the
-// client (unauthenticated route), so the client picker's own #796
+// client (anonymously, for the demo accounts), so the client picker's own #796
 // restriction to standard-only scales isn't enough on its own -- a
 // crafted ?boulderScale=font-non-standard request would otherwise still
 // be honored server-side. Falls back to ROW_SCALE_BY_TYPE exactly like
@@ -93,7 +91,7 @@ export async function handleGetInjuryLog(request, env, userId) {
 
 // #13 -- same online-only, server-computed convention as handleGetPyramid/
 // handleGetInjuryLog above. One endpoint, two response shapes via query
-// params, same branching-by-query-param pattern server/api/logbook.js's
+// params, same branching-by-query-param pattern server/api/entries.js's
 // own handleGet already uses for its own multiple response shapes: no
 // params returns the auto-surfaced default view (headline + the anchors
 // a drill-down can pick from), ?dimension=X&value=Y returns that anchor's
@@ -146,7 +144,7 @@ function daysBetween(start, end) {
   return Math.round((new Date(`${end}T00:00:00Z`) - new Date(`${start}T00:00:00Z`)) / 86400000) + 1;
 }
 
-// Single shared validator for the three PUBLIC_GET_ROUTES handlers below
+// Single shared validator for the three date-range handlers below
 // (handleGetVolume/handleGetGap/handleGetEffort) -- was hand-duplicated
 // three times as a plain DATE_SHAPE-then-daysBetween-cap check, which is
 // exactly how the invalid-date/reversed-range gap above went unnoticed
@@ -168,7 +166,7 @@ function validateDateRange(start, end) {
 // default for a time-windowed view the way there is for a ranked-list
 // or log view.
 //
-// This route is in PUBLIC_GET_ROUTES (no session required), so start/end
+// Reachable anonymously (the demo accounts' public route), so start/end
 // need real validation, not just a presence check -- an unbounded range
 // like ?start=0001-01-01&end=9999-12-31 would otherwise make weekBuckets()
 // compute an absurdly wide bucket from a ~60-byte unauthenticated request.
@@ -194,7 +192,7 @@ export async function handleGetVolume(request, env, userId) {
 
 // #14 -- same online-only, server-computed, start/end-validated
 // convention as handleGetVolume immediately above (this route is also in
-// PUBLIC_GET_ROUTES with no session required, so it needs the identical
+// reachable anonymously for the demo accounts, so it needs the identical
 // date-shape + span-cap validation from the start, not discovered again
 // in a second review cycle).
 export async function handleGetGap(request, env, userId) {
@@ -223,7 +221,7 @@ export async function handleGetGap(request, env, userId) {
 
 // #38 -- same online-only, server-computed, start/end-validated
 // convention as handleGetVolume/handleGetGap above (also in
-// PUBLIC_GET_ROUTES with no session required, same date-shape + span-cap
+// reachable anonymously for the demo accounts, same date-shape + span-cap
 // validation).
 export async function handleGetEffort(request, env, userId) {
   const url = new URL(request.url);

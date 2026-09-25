@@ -32,13 +32,13 @@ resource "cloudflare_ruleset" "app_waf_custom_rules" {
     {
       # text/csv is real, legitimate traffic here -- client/account-
       # import-main.js's bulk CSV import (#224) posts `Content-Type:
-      # text/csv` to /logbook/api/admin/logbook/import, not JSON.
+      # text/csv` to /-/api/entries/import, not JSON.
       # Confirmed by reading that file before writing this rule, not
       # assumed from the audit's own generic "non-JSON, non-multipart"
       # guess (which named multipart -- this app doesn't actually use
-      # multipart anywhere against /logbook/api/).
+      # multipart anywhere against /-/api/).
       description = "Block unexpected content types to the API"
-      expression  = "(starts_with(http.request.uri.path, \"/logbook/api/\")) and (http.request.method eq \"POST\") and (not any(http.request.headers[\"content-type\"][*] contains \"application/json\")) and (not any(http.request.headers[\"content-type\"][*] contains \"text/csv\"))"
+      expression  = "starts_with(http.request.uri.path, \"/-/api/\") and (http.request.method eq \"POST\") and (not any(http.request.headers[\"content-type\"][*] contains \"application/json\")) and (not any(http.request.headers[\"content-type\"][*] contains \"text/csv\"))"
       action      = "block"
     }
   ]

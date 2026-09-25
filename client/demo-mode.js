@@ -15,7 +15,7 @@ export function isDemoUsername(username) {
 }
 
 // sessionScopedUrl: this resource's normal, real-user URL (unchanged).
-// publicResource: the matching path under /logbook/api/public/:username/
+// publicResource: the matching path under /-/api/public/:username/
 // -- logbook/places/locations/map/counts already exist (built for the
 // public profile page, #351); performance/* is gated server-side on
 // settings.is_demo (server/api/public-data.js's own DEMO_ONLY_HANDLERS) --
@@ -23,6 +23,6 @@ export function isDemoUsername(username) {
 // them at all.
 export function demoDataUrl(username, sessionScopedUrl, publicResource) {
   return isDemoUsername(username)
-    ? `/logbook/api/public/${encodeURIComponent(username)}/${publicResource}`
+    ? `/-/api/public/${encodeURIComponent(username)}/${publicResource}`
     : sessionScopedUrl;
 }

@@ -1,5 +1,5 @@
 // Composition root for /:username/log (#348) -- bundled by esbuild into
-// public/logbook/log-app.js, same pattern as client/map-main.js/
+// public/-/log-app.js, same pattern as client/map-main.js/
 // client/performance-pyramid-main.js (see either file's own comment for
 // the general "trimmed from client/main.js" reasoning). This is the
 // largest of the three: it's the one page that actually writes data, so
@@ -39,6 +39,7 @@ import "./components/climbing-entries-table.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { userKey } from "./user-storage.js";
 import { registerServiceWorker } from "./register-sw.js";
+import { resolveApexUrl } from "./resolve-cross-hostname-url.js";
 
 // /:username/log -- same single-segment extraction as map-main.js/
 // performance-pyramid-main.js/performance-hub-main.js.
@@ -47,18 +48,18 @@ const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 const IS_DEMO = isDemoUsername(USERNAME);
 
 // ── Config -- identical to client/main.js's own (#348 pages all still
-// hit /logbook/api/* -- only the page shell moved, not the API surface).
+// hit /-/api/* -- only the page shell moved, not the API surface).
 // ENTRIES_URL/PLACES_URL/LOCATIONS_URL swap to the public, target-user-
 // scoped equivalent for a demo account (server/api/public-data.js,
 // already built for the public profile page) -- a demo visitor never has
-// a session, so the plain session-scoped URLs would just return nothing. ──
-const ADMIN_DATA_URL = "/logbook/api/admin/logbook";
-const ENTRIES_URL = demoDataUrl(USERNAME, "/logbook/api/logbook", "logbook");
-const PLACES_URL = demoDataUrl(USERNAME, "/logbook/api/places", "places");
-const ADMIN_PLACES_URL = "/logbook/api/admin/places";
-const LOCATIONS_URL = demoDataUrl(USERNAME, "/logbook/api/locations", "locations");
-const ADMIN_LOCATIONS_URL = "/logbook/api/admin/locations";
-const ADMIN_SETTINGS_URL = "/logbook/api/admin/settings";
+// a session, so the plain session-scoped URLs would just 401 (#992). ──
+const ENTRIES_WRITE_URL = "/-/api/entries";
+const ENTRIES_URL = demoDataUrl(USERNAME, "/-/api/entries", "entries");
+const PLACES_URL = demoDataUrl(USERNAME, "/-/api/places", "places");
+const PLACES_WRITE_URL = "/-/api/places";
+const LOCATIONS_URL = demoDataUrl(USERNAME, "/-/api/locations", "locations");
+const LOCATIONS_WRITE_URL = "/-/api/locations";
+const SETTINGS_URL = "/-/api/settings";
 // #960 -- namespaced per user (client/user-storage.js): an unsynced queue
 // stays attributed to its owner, never visible to another user's pages.
 const QUEUE_KEY = userKey("logbook_pending_queue");
@@ -95,7 +96,7 @@ const { openModal, closeModal } = createModalHelpers(["add-place-overlay", "entr
 
 const offlineSync = createOfflineSync({
   store, adminFetch, isAuthRedirect, syncStatusIcon,
-  adminDataUrl: ADMIN_DATA_URL, adminLocationsUrl: ADMIN_LOCATIONS_URL, adminPlacesUrl: ADMIN_PLACES_URL,
+  entriesWriteUrl: ENTRIES_WRITE_URL, locationsWriteUrl: LOCATIONS_WRITE_URL, placesWriteUrl: PLACES_WRITE_URL,
   entriesUrl: ENTRIES_URL, placesUrl: PLACES_URL, locationsUrl: LOCATIONS_URL,
   queueKey: QUEUE_KEY,
 });
@@ -135,7 +136,7 @@ function updateAdminBar() {
 
 const adminAuth = createAdminAuth({
   store, adminFetch, isAuthRedirect,
-  adminSettingsUrl: ADMIN_SETTINGS_URL,
+  settingsUrl: SETTINGS_URL,
   updateAdminBar,
   // #847 follow-up -- lets checkSession()/fetchSettings() report a
   // genuine fetch timeout through to the shell sync/offline indicator
@@ -145,7 +146,7 @@ const adminAuth = createAdminAuth({
 
 const headerChrome = createHeaderChrome({
   store, adminFetch, isAuthRedirect,
-  adminSettingsUrl: ADMIN_SETTINGS_URL,
+  settingsUrl: SETTINGS_URL,
 });
 
 // Same edit-btn -> entry-form.js delegation as client/main.js's own --
@@ -163,7 +164,7 @@ document.addEventListener("click", e => {
 const entryForm = createEntryForm({
   store, openModal, closeModal, adminFetch, isAuthRedirect,
   getQueue: offlineSync.getQueue, setQueue: offlineSync.setQueue,
-  adminDataUrl: ADMIN_DATA_URL, adminLocationsUrl: ADMIN_LOCATIONS_URL, adminPlacesUrl: ADMIN_PLACES_URL,
+  entriesWriteUrl: ENTRIES_WRITE_URL, locationsWriteUrl: LOCATIONS_WRITE_URL, placesWriteUrl: PLACES_WRITE_URL,
   readOnly: IS_DEMO,
   // #791 -- gates the Performance data page (and the only way to reach
   // it, #entry-nav-forward) -- adminAuth is already constructed above,
@@ -180,7 +181,8 @@ const entryForm = createEntryForm({
 // moved off /:username/performance/grades (gated behind Athlete Mode for
 // no real reason -- its own content has no per-user state at all) onto
 // a genuinely public /help page. No username to interpolate any more.
-document.getElementById("grade-scale-reference-link").href = "/help/grade-scales/";
+// #985 -- help lives on the apex.
+document.getElementById("grade-scale-reference-link").href = resolveApexUrl(location.hostname, "/help/grade-scales/");
 
 async function boot() {
   // #498 -- checked before anything else: a device that's never been

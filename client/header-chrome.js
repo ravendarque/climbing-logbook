@@ -3,7 +3,7 @@
 // seventh piece of #233's modularization epic). Reads/writes active
 // discipline through the Store (#234).
 //
-// `adminFetch`/`isAuthRedirect`/`adminSettingsUrl` are the same
+// `adminFetch`/`isAuthRedirect`/`settingsUrl` are the same
 // not-yet-extracted auth/admin-bar surface place-picker.js and
 // entry-form.js already depend on. `render`/`updateAdminBar` are no
 // longer injected (#264) -- every state change here goes through a Store
@@ -12,6 +12,7 @@
 // callback into <climbing-grade-pyramid>'s own "Show lower grades" toggle
 // state -- removed in #742 once #737 deleted that feature entirely, the
 // callback's only reason to exist.
+import { pointApexLinksAtApex } from "./apex-links.js";
 import { createDisclosure } from "./modal-utils.js";
 import { createThemeToggle } from "./theme-toggle.js";
 import { disciplineLabel } from "./status.js";
@@ -20,10 +21,13 @@ export function createHeaderChrome({
   store,
   adminFetch,
   isAuthRedirect,
-  adminSettingsUrl,
+  settingsUrl,
 }) {
   // ── Theme toggle (light/dark) ─────────────────────────────────────────
   createThemeToggle();
+
+  // #985 -- the footer's and menu's help links go straight to the apex.
+  pointApexLinksAtApex();
 
   // ── Discipline picker (#110): header popover, always offers both
   // disciplines regardless of entry counts -- see the markup comment
@@ -66,7 +70,7 @@ export function createHeaderChrome({
     // the local switch above either way -- offline/failure just means
     // it doesn't carry over to other devices this time.
     try {
-      const res = await adminFetch(adminSettingsUrl, {
+      const res = await adminFetch(settingsUrl, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ activeDiscipline: store.getActiveType() }),

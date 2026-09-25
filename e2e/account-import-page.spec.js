@@ -3,9 +3,9 @@
 // e2e/account-edit-page.spec.js (see that file's own header comment) --
 // the real client/account-import-main.js -> account-import-app.js bundle
 // against a verbatim copy of public/account/import/index.html, with
-// fabricated /logbook/api/* responses (mock-api.js's own import route).
+// fabricated /-/api/* responses (mock-api.js's own import route).
 // The real CSV/JSON (#639) parsing/validation/location-resolution logic
-// is Vitest's job (test/logbook-import.test.js, test/shared/
+// is Vitest's job (test/entries-import.test.js, test/shared/
 // csv-import.test.js) -- this file only proves the client's own wiring:
 // template download, file upload -> request (including which Content-Type
 // a JSON vs. CSV upload sets), success/error panel toggling.
@@ -36,7 +36,7 @@ test("uploads a valid CSV and shows the success summary", async ({ page }) => {
     buffer: Buffer.from(VALID_CSV),
   });
   await Promise.all([
-    page.waitForResponse(res => res.url().includes("/logbook/api/admin/logbook/import") && res.request().method() === "POST"),
+    page.waitForResponse(res => res.url().includes("/-/api/entries/import") && res.request().method() === "POST"),
     page.locator("#import-submit-btn").click(),
   ]);
 
@@ -50,7 +50,7 @@ test("uploads a valid CSV and shows the success summary", async ({ page }) => {
 // application/json (client/account-import-main.js's own extension-based
 // detection) and the request/response flow renders success, not the real
 // parsing logic (Vitest's job, test/shared/csv-import.test.js/
-// test/logbook-import.test.js).
+// test/entries-import.test.js).
 test("uploads a valid JSON export and shows the success summary, with the right Content-Type", async ({ page }) => {
   await mockApi(page);
   await page.goto("/e2e-fixtures/pages/account-import.html");
@@ -64,7 +64,7 @@ test("uploads a valid JSON export and shows the success summary, with the right 
     buffer: Buffer.from(validJson),
   });
   const [request] = await Promise.all([
-    page.waitForRequest(req => req.url().includes("/logbook/api/admin/logbook/import") && req.method() === "POST"),
+    page.waitForRequest(req => req.url().includes("/-/api/entries/import") && req.method() === "POST"),
     page.locator("#import-submit-btn").click(),
   ]);
 
@@ -75,7 +75,7 @@ test("uploads a valid JSON export and shows the success summary, with the right 
 
 test("shows every row's error at once when the server rejects the file", async ({ page }) => {
   await mockApi(page);
-  await page.route("**/logbook/api/admin/logbook/import", route =>
+  await page.route("**/-/api/entries/import", route =>
     route.fulfill({
       status: 400,
       json: { errors: [{ row: 2, error: "Missing required field: location" }, { row: 3, error: "grade must be one of: 5, 5+, 5A" }] },
@@ -88,7 +88,7 @@ test("shows every row's error at once when the server rejects the file", async (
     buffer: Buffer.from(VALID_CSV),
   });
   await Promise.all([
-    page.waitForResponse(res => res.url().includes("/logbook/api/admin/logbook/import")),
+    page.waitForResponse(res => res.url().includes("/-/api/entries/import")),
     page.locator("#import-submit-btn").click(),
   ]);
 
@@ -102,7 +102,7 @@ test("shows every row's error at once when the server rejects the file", async (
 
 test("a structural error (e.g. bad header) shows as a single-item list, same panel", async ({ page }) => {
   await mockApi(page);
-  await page.route("**/logbook/api/admin/logbook/import", route =>
+  await page.route("**/-/api/entries/import", route =>
     route.fulfill({ status: 400, json: { error: "CSV file is empty." } }));
   await page.goto("/e2e-fixtures/pages/account-import.html");
 
@@ -112,7 +112,7 @@ test("a structural error (e.g. bad header) shows as a single-item list, same pan
     buffer: Buffer.from(""),
   });
   await Promise.all([
-    page.waitForResponse(res => res.url().includes("/logbook/api/admin/logbook/import")),
+    page.waitForResponse(res => res.url().includes("/-/api/entries/import")),
     page.locator("#import-submit-btn").click(),
   ]);
 

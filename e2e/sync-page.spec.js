@@ -1,7 +1,7 @@
 // #498 (ADR-0019) -- composition-root-wiring coverage for /:username/sync,
 // same harness pattern as e2e/log-page.spec.js's own header comment
 // explains (real, unmodified shell + compiled bundle, fabricated
-// /logbook/api/* responses via mockApi()). The real cross-page hop this
+// /-/api/* responses via mockApi()). The real cross-page hop this
 // page makes (/log <-> /sync, both under a real :username the my.-
 // hostname dispatch needs) can't be followed end-to-end in this flat
 // /e2e-fixtures/pages/*.html harness -- same limitation
@@ -88,7 +88,7 @@ test("a failed fetch shows the error state with a retry button, not a silent han
   // logbook route comment documents) -- without it this abort silently
   // never fires and the request falls through to mockApi()'s own
   // (non-aborting) places route instead.
-  await page.route("**/logbook/api/places*", route => route.abort());
+  await page.route("**/-/api/places*", route => route.abort());
 
   await page.goto("/e2e-fixtures/pages/sync.html?returnTo=%2Fe2e-fixtures%2Flog");
   await expect(page.locator("#sync-error")).toBeVisible();
@@ -109,7 +109,7 @@ test("/log redirects to /:username/sync when not yet synced, preserving returnTo
 // recorded cursor per table from mockApi()'s own `synced: true` seeding)
 // takes the warm delta path instead of a full chunked resync. Asserted
 // via the actual *request* client/sync-main.js's own syncEntriesWarm()
-// issues (a GET to .../logbook?since=<the seeded pre-drift cursor>, not
+// issues (a GET to .../entries?since=<the seeded pre-drift cursor>, not
 // a `?limit=...` chunked one) rather than its response body or the
 // post-redirect cache state -- both confirmed empirically to be
 // unreliable in this harness: a response's own body races the redirect
@@ -126,7 +126,7 @@ test("/log redirects to /:username/sync when not yet synced, preserving returnTo
 // the instant it's dispatched, well before the response (let alone any
 // navigation after it) exists at all. What the response actually
 // contained is already covered directly by test/client/
-// delta-merge.test.js (the merge logic) and test/logbook.test.js /
+// delta-merge.test.js (the merge logic) and test/entries.test.js /
 // test/handlers.test.js (the server's own delta contract) -- this test's
 // job is only to prove /sync's own wiring picks the right request shape
 // for a warm device, which the request alone fully demonstrates.
@@ -143,7 +143,7 @@ test("warm with drift: /sync takes the delta path and catches up on a change fro
   // genuinely stale cursor would matter if this test's own request
   // assertion were wrong.
   await page.goto("/e2e-fixtures/pages/log.html");
-  await page.evaluate(() => fetch("/logbook/api/admin/logbook", {
+  await page.evaluate(() => fetch("/-/api/entries", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id: "drift-1", placeId: "p1", type: "boulder", status: "send", grade: "7A", name: "Drifted In" }),
@@ -156,7 +156,7 @@ test("warm with drift: /sync takes the delta path and catches up on a change fro
 
   const entriesRequests = [];
   page.on("request", req => {
-    if (req.url().includes("/logbook/api/logbook") && !req.url().includes("/admin/")) entriesRequests.push(req.url());
+    if (req.url().includes("/-/api/entries") && req.method() === "GET") entriesRequests.push(req.url());
   });
 
   await stubReturnTarget(page, "/e2e-fixtures/log");

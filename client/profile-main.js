@@ -1,5 +1,5 @@
 // Composition root for the public, read-only /:username page (#351) --
-// bundled by esbuild into public/logbook/profile-app.js. Still no
+// bundled by esbuild into public/-/profile-app.js. Still no
 // adminFetch/isAuthRedirect, no entry-form.js/place-picker.js/
 // offline-sync.js/content-overlays.js at all -- "Security by absence"
 // per #344's decision: this bundle genuinely cannot write anything, not
@@ -30,7 +30,7 @@
 //
 // <climbing-entries-table> (#350) is fed from the public data endpoints
 // (server/api/public-data.js) instead of the session-scoped
-// /logbook/api/* ones, and never given the `editable` attribute -- and,
+// /-/api/* ones, and never given the `editable` attribute -- and,
 // unlike client/log-main.js's own `editable` (fully-loaded) usage, is
 // given `lazy` (#494, ADR-0017): boot() below only fetches locations/
 // places/per-location counts up front, real entry rows load one
@@ -113,7 +113,7 @@ createThemeToggle();
 // location, page size 50 (not /log's 20 -- no editing-friction tradeoff
 // to weigh against fewer clicks on a read-only page, per this issue's
 // own scope note) -- reuses the existing `?locationId=&limit=&offset=`
-// shape server/api/logbook.js's handleGet already supports for the
+// shape server/api/entries.js's handleGet already supports for the
 // *target* user (server/api/public-data.js), so no new server code was
 // needed for this half of the feature. Merges onto the table's current
 // entries (not a replace) -- a previously-loaded location's rows must
@@ -121,9 +121,9 @@ createThemeToggle();
 const PAGE_SIZE = 50;
 entriesTable.addEventListener("location-expand", async e => {
   const { locationId } = e.detail;
-  const base = `/logbook/api/public/${encodeURIComponent(USERNAME)}`;
+  const base = `/-/api/public/${encodeURIComponent(USERNAME)}`;
   try {
-    const loaded = await loadResource(`${base}/logbook?locationId=${encodeURIComponent(locationId)}&limit=${PAGE_SIZE}`, "entries");
+    const loaded = await loadResource(`${base}/entries?locationId=${encodeURIComponent(locationId)}&limit=${PAGE_SIZE}`, "entries");
     entriesTable.entries = [...entriesTable.entries, ...loaded];
   } catch {
     // Left as a permanent "Loading…" shell rather than retried
@@ -136,19 +136,19 @@ entriesTable.addEventListener("location-expand", async e => {
 });
 
 async function boot() {
-  const base = `/logbook/api/public/${encodeURIComponent(USERNAME)}`;
+  const base = `/-/api/public/${encodeURIComponent(USERNAME)}`;
   // .catch(() => []/{}) on each: a failed/404 fetch here (private or
   // nonexistent user) can't actually happen in practice --
   // server/api/public-profile.js's own gate already 404s before this shell
   // is ever served -- but the empty fallback keeps this page inert rather
   // than throwing if that assumption is ever wrong.
   //
-  // #494 -- logbook/counts replaces the old full-entries fetch (the
+  // #494 -- entries/counts replaces the old full-entries fetch (the
   // table starts in shell mode, real rows load lazily per location
   // above) -- and, like map/counts, isn't a single-keyed-array response
   // (loadResource's own assumption), so a plain fetch here too.
   const [{ locations, places, counts }, mapCounts] = await Promise.all([
-    fetch(`${base}/logbook/counts`).then(res => (res.ok ? res.json() : { locations: [], places: [], counts: {} })).catch(() => ({ locations: [], places: [], counts: {} })),
+    fetch(`${base}/entries/counts`).then(res => (res.ok ? res.json() : { locations: [], places: [], counts: {} })).catch(() => ({ locations: [], places: [], counts: {} })),
     fetch(`${base}/map/counts`).then(res => (res.ok ? res.json() : {})).catch(() => ({})),
   ]);
 
