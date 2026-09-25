@@ -90,3 +90,16 @@ describe("resource routes with a session", () => {
     expect(res.status).toBe(404);
   });
 });
+
+// #1000 -- Better Auth's username plugin would answer whether an account
+// exists; the router hides it like any unknown route.
+describe("username availability endpoint", () => {
+  it("404s, so it can't be used to test whether an account exists", async () => {
+    const res = await fetchJson("/-/api/auth/is-username-available", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Origin: "http://localhost" },
+      body: JSON.stringify({ username: "anyone" }),
+    });
+    expect(res.status).toBe(404);
+  });
+});
