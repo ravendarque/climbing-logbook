@@ -3,6 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { checkUsername, skeletons } from "../../shared/username-policy.js";
 import { AUTHORITY_TOKENS, RESERVED_USERNAMES } from "../../shared/reserved-usernames.js";
+import { EXTRA_PATTERNS, OBSCENITY_PHRASES, RAW_TERMS } from "../../shared/blocked-username-terms.js";
 
 const reason = name => checkUsername(name).reason;
 
@@ -58,5 +59,35 @@ describe("checkUsername", () => {
     ]) {
       expect(checkUsername(name), name).toEqual({ ok: true });
     }
+  });
+
+  // #997 phase 2 -- slurs and hate speech only (Raven, 2026-09-25).
+  describe("slurs and hate speech", () => {
+    it("rejects every listed phrase as written", () => {
+      for (const word of [...OBSCENITY_PHRASES, ...Object.keys(EXTRA_PATTERNS), ...RAW_TERMS]) {
+        expect(reason(word), word).toBe("hate");
+      }
+    });
+
+    it("sees through leet, repeated letters and separators", () => {
+      for (const name of ["n1gger", "niiigger", "kike_hater", "tr4nny", "h1tler_fan", "heil.hitler", "white_power", "whitepride88", "towel_head", "fourteen_words", "raven_spic", "wolf1488", "14.88", "the14words", "kkk_member", "shem_ale"]) {
+        expect(reason(name), name).toBe("hate");
+      }
+    });
+
+    it("accepts innocent names that share letters with a listed term", () => {
+      for (const name of [
+        "grape_vine", "therapist", "scrape", "negroni", "montenegro", "nigeria", "sniggering",
+        "spicy", "spice.girl", "raccoon", "tycoon", "cocoon", "pakistan", "wogan", "woggle",
+        "gookie", "beanery", "abode", "about_time", "vandyke", "fagus", "retardant", "trans_climber",
+        "tomwhite", "power_climber", "pride_climber", "con_man",
+      ]) {
+        expect(checkUsername(name), name).toEqual({ ok: true });
+      }
+    });
+
+    it("doesn't block 88 or 14 on their own: mostly birth years and grades", () => {
+      for (const name of ["tom88", "climber14", "v14_crusher", "1988"]) expect(checkUsername(name), name).toEqual({ ok: true });
+    });
   });
 });
