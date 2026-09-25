@@ -10,6 +10,11 @@ Process rules for how Claude works in this repository. Code-level standards
   before implementation starts.** No branch work without a tracking issue.
 - **Feature branches + PRs, always** — no direct commits/pushes to `main`,
   even for small fixes.
+- **Name branches by what the change does for users:** `feature/` for new
+  behaviour or content, `fix/` for corrections, `ci/` for workflows,
+  `spike/` for investigations. Help pages and all other copy are
+  user-facing, so they're `feature/` or `fix/`; `docs/` is only for repo
+  docs that never reach users, the same line as `release: none`.
 - **Never force-push without asking first, full stop.** Not "when it seems
   safe" — always ask, every time, regardless of how confident the situation
   looks.
