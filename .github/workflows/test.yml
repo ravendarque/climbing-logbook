@@ -41,7 +41,7 @@ jobs:
               # #760 -- test/owned-routes.test.js and test/public-profile.test.js
               # exercise the real ASSETS binding, which needs the page shells
               # to actually exist on disk (11ty-generated, gitignored, no
-              # longer committed) -- a views/-only change needs a real
+              # longer committed) -- a change only under views/ needs a real
               # test run, not just a skip.
               - 'views/**'
               - '.eleventy.js'

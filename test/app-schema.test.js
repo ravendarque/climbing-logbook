@@ -241,7 +241,7 @@ describe("entry_moves (#36)", () => {
     ).rejects.toThrow(/CHECK/);
   });
 
-  it("allows lockoff for hand but not for foot/knee, and static/dynamic for every limb", async () => {
+  it("allows lockoff for hand but not for foot/knee, and static and dynamic for every limb", async () => {
     const userId = await seedUser();
     const locationId = await seedLocation(userId);
     const placeId = await seedPlace(userId, locationId);

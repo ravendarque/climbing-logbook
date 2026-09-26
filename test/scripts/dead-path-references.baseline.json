@@ -1,20 +1,6 @@
 [
-  ".github/workflows/e2e.yml: views/-only",
-  ".github/workflows/infra.yml: infra/sync-kv-id",
-  ".github/workflows/test.yml: views/-only",
-  "auth.config.mjs: migrations/000N_",
-  "client/components/entries-table-html.js: client/content-overlays.js",
-  "client/user-storage.js: static/login/login.js",
-  "docs/coding-standards.md: client/server",
-  "docs/coding-standards.md: infra/platform-specific",
   "docs/infra-architecture.md: infra/access.tf",
   "docs/infra-architecture.md: infra/redirects.tf",
   "infra/README.md: infra/deploy",
-  "infra/variables.tf: infra/redirects.tf",
-  "test/app-schema.test.js: static/dynamic",
-  "views/help/feedback/index.njk: views/help/feedback/index.md",
-  "views/log/index.njk: client/client",
-  "views/performance/gap/index.njk: client/evidence-tier.js",
-  "views/profile/index.njk: client/main.js",
-  "wrangler.jsonc: infra/redirects.tf"
+  "infra/variables.tf: infra/redirects.tf"
 ]

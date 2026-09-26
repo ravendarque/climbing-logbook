@@ -1,24 +1,31 @@
-// Template comments are for developers and must not ship (#1088): an HTML
-// comment lands in every built page, public, on every load. Use {# #}.
+// HTML comments ship to every visitor (#1088): templates use {# #}, and markup built in JS has none.
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const VIEWS = join(import.meta.dirname, "../../views");
+const ROOT = join(import.meta.dirname, "../..");
 
-function templates(dir) {
+function files(dir, pattern) {
   return readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
     const path = join(dir, entry.name);
-    if (entry.isDirectory()) return templates(path);
-    return /\.(?:njk|md|html)$/.test(entry.name) ? [path] : [];
+    if (entry.isDirectory()) return files(path, pattern);
+    return pattern.test(entry.name) ? [path] : [];
   });
 }
 
-describe("views/", () => {
-  it("uses {# #} for comments, never <!-- -->", () => {
-    const offenders = templates(VIEWS)
-      .filter(path => readFileSync(path, "utf8").includes("<!--"))
-      .map(path => relative(VIEWS, path));
-    expect(offenders).toEqual([]);
+function withHtmlComments(dirs, pattern) {
+  return dirs
+    .flatMap(dir => files(join(ROOT, dir), pattern))
+    .filter(path => readFileSync(path, "utf8").includes("<!--"))
+    .map(path => relative(ROOT, path));
+}
+
+describe("shipped markup", () => {
+  it("views/ uses {# #} for comments, never <!-- -->", () => {
+    expect(withHtmlComments(["views"], /\.(?:njk|md|html)$/)).toEqual([]);
+  });
+
+  it("markup built in JS contains no <!-- -->", () => {
+    expect(withHtmlComments(["client", "static", "shared"], /\.m?js$/)).toEqual([]);
   });
 });

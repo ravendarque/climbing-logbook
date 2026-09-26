@@ -9,28 +9,8 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/-/favicon-16.png">
   <link rel="apple-touch-icon" href="/-/apple-touch-icon.png">
   <meta name="theme-color" content="#ff2727">
-  {# #470 -- starts the brand font fetch during initial parsing rather
-       than waiting for layout to discover climbing-header.js's own
-       @font-face rule -- see public/index.html's own comment for the
-       fuller reasoning. #}
   <link rel="preload" as="font" type="font/woff2" href="/-/fonts/BebasNeue-Regular.woff2" crossorigin>
-  {# {{ staticShellNote | safe }} #}
-  {# #857 -- a ?v= query (see .eleventy.js's own comment) lets
-       public/_headers cache these stable-named files immutably. #961:
-       in production builds it becomes each file's own content hash
-       (scripts/content-hash-asset-urls.mjs), so a deploy only busts the
-       copies of files that actually changed. (Deliberately not printing
-       the value here: it would make every build's HTML differ.) Skipped entirely in dev (isDevBuild): vite.config.js's
-       own devEntryRewrite middleware matches /-/<name>-app.js with
-       a trailing $ anchor, so any query string on that specific URL would
-       stop it from recognizing the request at all; dev mode doesn't need
-       this caching anyway (Vite's own dev server + HMR already handles
-       freshness). Only {{ bundle }}-app.js is at risk from that specific
-       regex, but the query is skipped uniformly here for consistency --
-       nothing in dev mode benefits from immutable caching regardless. #}
   <link rel="stylesheet" href="/-/tailwind.css{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}">
-  {# #1015 -- the brand lockup SVG the header <use>s: fetched during parsing,
-       content-hashed by the build, and pre-cached by the service worker. #}
   <link rel="preload" as="image" type="image/svg+xml" href="/-/brand-lockup.svg{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}">
   <script src="/-/components/climbing-header.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
 {%- if discipline %}
@@ -45,20 +25,6 @@
       document.documentElement.dataset.theme = theme;
     })();
   </script>
-  {# #775 (#761 Part 3) -- Vite's own dev-mode HMR client, Vite's
-       documented pattern for HTML a backend serves itself (not Vite's
-       own index.html handling, which this app deliberately doesn't use
-       -- #760's own templating/#758's rejection of letting Vite own
-       HTML entries). Originally emitted unconditionally on the
-       assumption that /@vite/client "404s harmlessly" once nothing
-       serves that path in production -- confirmed false live on beta
-       (2026-09-17): Cloudflare's static-asset 404 response has a
-       Content-Type Firefox treats as a blocked/corrupted module load,
-       not a plain failed request, logging a confusing error on every
-       real page load for zero functional benefit (a failed `<script
-       type="module">` doesn't block its unrelated siblings, so nothing
-       else on the page was actually affected). Gated on isDevBuild
-       (.eleventy.js's own ELEVENTY_RUN_MODE check) instead. #}
   {%- if isDevBuild %}
   <script type="module" src="/@vite/client"></script>
   {%- endif %}
@@ -66,18 +32,6 @@
 <body class="bg-background text-foreground font-sans px-4 pt-6 pb-16 min-w-[300px]">
 {{ content | safe }}
 {% include "footer.njk" %}
-{# #876/#878 -- conditional rather than assumed-always-present: a first
-     pass here had views/help/** genuinely bundle-less (content-only, no
-     client-main.js), on the theory that the header menu's interactivity
-     could just import modal-utils.js/theme-toggle.js directly as plain
-     <script type="module"> src files -- that happened to work in dev
-     (Vite's dev server serves the raw client/ source tree unbundled, as
-     a convenience) but 404s for real in production, where those files
-     only exist as Vite-bundled hashed chunks. help-layout.njk sets its
-     own `bundle: help` (client/help-main.js) now, same as every other
-     page -- but the conditional stays: it costs nothing for pages that
-     always set bundle, and keeps the door open for a genuinely
-     bundle-less page later without a second change here. #}
 {%- if bundle %}
 <script type="module" src="/-/{{ bundle }}-app.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
 {%- endif %}

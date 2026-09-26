@@ -113,13 +113,6 @@ export function renderComboChartHtml({ bucketLabels, bars, lines, headline }) {
   return `<div>
     <p class="text-[.95rem] font-semibold text-foreground mb-3">${escapeHtml(headline)}</p>
     <svg viewBox="0 0 ${CHART_WIDTH} ${CHART_HEIGHT}" class="w-full h-auto">
-      <!-- #735 -- frames the whole plot area so the chart's own boundary
-           is always visible, even when every value in the window is low
-           and the bars/lines cluster near the bottom axis, leaving the
-           mostly-empty upper plot area indistinguishable from the chart
-           simply not having rendered. The baseline/gridlines below
-           already draw thin internal lines, but nothing previously
-           framed the plot area as a whole. -->
       <rect x="${MARGIN.left}" y="${MARGIN.top}" width="${PLOT_WIDTH}" height="${PLOT_HEIGHT}" class="fill-none stroke-border" stroke-width="1" />
       <line x1="${MARGIN.left}" y1="${MARGIN.top + PLOT_HEIGHT}" x2="${MARGIN.left + PLOT_WIDTH}" y2="${MARGIN.top + PLOT_HEIGHT}" class="stroke-border" stroke-width="1" />
       ${bars.length ? barYAxisHtml(maxValue, y) : ""}

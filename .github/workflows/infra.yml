@@ -142,7 +142,7 @@ jobs:
             exit 0
           fi
 
-          BRANCH="infra/sync-kv-id-${{ github.run_id }}"
+          BRANCH="ci/sync-generated-config-${{ github.run_id }}"
           git checkout -b "$BRANCH"
           git commit -m "chore: sync generated infra config"
           git push origin "$BRANCH"
