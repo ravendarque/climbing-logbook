@@ -10,9 +10,7 @@ import {
   resolveScaleId, DEFAULT_SCALE_BY_TYPE,
 } from "../../shared/grade-data.js";
 
-// #702 -- canonical grade model, sub-issue A of #183. See
-// docs/superpowers/specs/2026-09-10-configurable-grade-systems-design.md
-// and docs/superpowers/plans/2026-09-11-grade-canonical-model.md.
+// The canonical grade model (#702).
 describe("nonStandardOrdinal", () => {
   it("orders the 12 sub-positions within one number correctly -- bare -/plain at the bottom, lettered positions in the middle, bare + at the very top (corrected 2026-09-11, see Raven's worked example below)", () => {
     const ordinals = [

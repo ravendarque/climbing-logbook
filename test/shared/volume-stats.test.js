@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { bucketIndexForDate, gradeDisplayLabelForScale, reportGradeLabel, reportGradeOrdinal, reportGradePoint, reportPositionOrder, volumeByBucket, volumeHeadline, weekBucketLabel, weekBuckets } from "../../shared/volume-stats.js";
 
-// #702 -- scale-aware sibling of gradeDisplayLabel, added alongside it
-// (see docs/superpowers/plans/2026-09-11-grade-canonical-model.md Task 4).
+// Scale-aware sibling of gradeDisplayLabel.
 describe("gradeDisplayLabelForScale", () => {
   it("renders the V-scale label for a Boulder grade regardless of which scale it was logged in", () => {
     expect(gradeDisplayLabelForScale("6A", "font", "boulder")).toBe("V3");

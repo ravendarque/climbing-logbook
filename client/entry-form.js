@@ -392,8 +392,7 @@ export function createEntryForm({
   });
   hydrateStatusIcons(entryOverlay);
 
-  // Design doc's own rule (docs/superpowers/specs/2026-08-27-performance-
-  // insights-ui-design.md "Exertion") -- visible only when the Status
+  // Exertion is visible only when the Status
   // radio group has Send checked (selectedStatus === "send", true for
   // both the plain Send and Flash buttons -- Flash isn't its own status
   // value, see isFlash above). Genuinely removed from the DOM's visible

@@ -150,13 +150,10 @@ const headerChrome = createHeaderChrome({
 async function boot() {
   store.setActiveView("performance-rpe");
 
-  // #762 -- triggers this page's first render (-> tabBar
-  // markReady()) from cached/heuristic state, before any network call
-  // starts. Deliberately does NOT change the Athlete-Mode redirect
-  // check below -- that still waits for the real network settings
-  // fetch (see docs/superpowers/plans/
-  // 2026-09-14-perceived-performance-boot-architecture.md's "Two real
-  // deviations" note for why).
+  // Renders the shell (tab bar, header) from cached state before any network
+  // call. The Athlete Mode redirect below deliberately waits for the real
+  // settings fetch: a cached "on" can be stale if Athlete Mode was turned off
+  // on another device, and nothing would re-check it once the fetch lands.
   adminAuth.setInitialActiveType();
 
   const sessionPromise = syncStatusIcon.track(adminAuth.checkSession());
