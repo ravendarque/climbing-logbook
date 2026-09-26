@@ -186,6 +186,7 @@ async function handleChunked(url, env, userId, { shapeRow, includeChildRows }) {
   if (!userId) return json({ entries: [], total: 0, cursor: 0 }, 200, { "Cache-Control": "no-store" });
 
   const limit = Number(url.searchParams.get("limit"));
+  if (!Number.isInteger(limit) || limit < 1) return json({ error: "limit must be a positive integer" }, 400);
   const afterCreatedAt = url.searchParams.get("afterCreatedAt") ?? "";
   const afterId = url.searchParams.get("afterId") ?? "";
   // Only clients cached from before keyset paging still send offset.
