@@ -1,22 +1,10 @@
-// Reset-password landing page (#22) -- the redirectTo target
-// ../login/login.js's "forgot password?" flow passes to Better Auth's
-// request-password-reset. Better Auth's own /reset-password/:token GET
-// handler validates the emailed token server-side *before* ever
-// redirecting here, appending the result as a query param: `?token=...`
-// on success, `?error=INVALID_TOKEN` if the link was bad/expired/already
-// used -- this page never sees or validates the raw token itself, only
-// what that handler decided.
+// Better Auth validates the emailed token before redirecting here with ?token= or ?error=.
 const form = document.getElementById("reset-form");
 const errorEl = document.getElementById("reset-error");
 const submitBtn = document.getElementById("reset-submit-btn");
 const invalidEl = document.getElementById("reset-invalid");
 const successEl = document.getElementById("reset-success");
 
-// #806 -- errorEl carries role="alert"/aria-live="assertive" in the
-// template (views/reset-password/index.njk), so a screen reader
-// announces it once its text/visibility change; tabindex="-1" (template)
-// makes it programmatically focusable so a sighted keyboard user also
-// notices it.
 function showError(message) {
   errorEl.textContent = message;
   errorEl.hidden = false;

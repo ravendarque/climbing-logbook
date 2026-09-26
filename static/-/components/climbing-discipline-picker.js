@@ -1,34 +1,4 @@
-// <climbing-discipline-picker> (#211/#465): split out of the former
-// <climbing-menu-bar> (#346, classic-scripted in #626), which bundled this
-// picker together with the burger menu into one row. That shape stopped
-// working once the layout redesign asked for the picker to sit beside
-// <climbing-tab-bar> while the burger menu moves to align with the brand
-// logo instead -- two different, non-adjacent locations on the same page,
-// which one combined component can't render into.
-//
-// The split cost nothing for climbing-menu-bar's other consumers: every
-// page except /log, /map, /performance(+subpages) already opted out of the
-// picker half via the old no-discipline attribute, so this component only
-// ever gets used on the pages that were already asking for it. See
-// climbing-burger-menu.js for the other half.
-//
-// Markup-only, no behavior -- same reasoning as the component this was
-// split from (see this file's git history / climbing-burger-menu.js's own
-// comment for the fuller "why markup-only" rationale). client/header-
-// chrome.js wires the actual discipline-switching behavior from outside,
-// purely via getElementById("discipline-btn" / "discipline-popover" /
-// "discipline-btn-label") and the "#discipline-wrap" selector passed to
-// createDisclosure() -- none of that cares where in the document this
-// element's markup physically lives.
-//
-// #430/#649 -- "Lead" option renamed to "Sport" (data-discipline="lead"
-// -> "sport"), covering both Lead and Top Rope going forward (#643 adds
-// the Lead/Top-Rope sub-choice on the entry form itself). Deliberately
-// the FIRST client-facing piece of the rename to land, ahead of the data
-// cutover (#646): entry-form.js's `type: store.getActiveType()` reads
-// directly from whichever discipline this picker last selected, so the
-// picker must stop offering "lead" before the DB stops accepting it, or
-// a real user creating a new entry in that gap gets a 500.
+// Markup only: client/header-chrome.js wires the behaviour by element id.
 (function () {
   class ClimbingDisciplinePicker extends HTMLElement {
     connectedCallback() {
