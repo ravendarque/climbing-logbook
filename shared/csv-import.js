@@ -1,41 +1,4 @@
-// CSV template/parsing for bulk entry import (#224 phase 2/3), CSV/JSON
-// serialization for export (#27), and JSON import (#639). Shared between
-// client/account-import-main.js (template download, upload), client/
-// account-main.js (export), and server/api/entries-import.js (upload
-// parsing) -- same reasoning as entry-schema.js: one column list, one
-// parser per format, one serializer, not several copies drifting apart.
-// Deliberately hand-written, not a dependency -- no CSV code anywhere in
-// this repo yet, and the format needed (one flat header row, no
-// nested/multi-line records beyond RFC4180 quoting) is small enough that
-// a library would cost more in bundle size (this app's own
-// entry-schema.js precedent, #224 phase 1) than it'd save in code.
-
-// Order matters -- this IS the template's header row, and
-// entries-import.js requires an uploaded file's header to match exactly
-// (see parseCsvText below), so this is the one place that order is
-// decided. location/area/country are free text here (not placeId) --
-// resolved server-side against the user's existing Locations/Places the
-// same way client/place-picker.js's own match-or-create flow already
-// does for the single-entry form (#224's own body).
-// #639 -- sportStyle appended at the end (not inserted mid-list) so an
-// already-downloaded-but-not-yet-uploaded old template only needs the one
-// new trailing column added, not every column shifting position. Named
-// "sportStyle" here, matching entrySchema's own field name exactly
-// (unlike location/discipline, which differ from the wire names placeId/
-// type and need toCsvFieldNames' translation below) -- required, not
-// optional, for a discipline of "sport" (entrySchema's own #643 rule);
-// blank/omitted for "boulder", same as every other sport-only column.
-// #476/#884 -- attemptsToSend/rpe/gradeScale, same trailing-append
-// precedent as sportStyle above, all three optional/blank-falls-back
-// (entrySchema already validates each of them when given; gradeScale
-// falls back to defaultGradeScale() server-side, server/api/entries.js,
-// when blank/omitted, same as it already does for an entry created via
-// the regular entry form). The compound Athlete Mode fields (moves/
-// painMoves -- strengths/weaknesses and pain/injury tagging) are
-// deliberately NOT here -- split out to #915, since their shared
-// hold_type/movement_style vocabulary is under active revisit (#598,
-// #576) and isn't settled enough to lock into an export column shape
-// yet.
+// The template's header row, in order. New columns go at the end so an old template needs only one added.
 export const CSV_COLUMNS = [
   "name", "grade", "discipline", "status", "firstAttempt",
   "date", "location", "area", "country", "video", "notes", "sportStyle",
@@ -46,12 +9,6 @@ export function buildTemplateCsv() {
   return CSV_COLUMNS.join(",") + "\n";
 }
 
-// Minimal RFC4180 field/row tokenizer -- quoted fields, "" as an escaped
-// quote, commas/newlines inside quotes, CRLF/CR normalized to LF first
-// (a deliberate simplification: a literal \r\n *inside* a quoted field
-// collapses to \n too, which is fine for this app's own fields -- notes
-// is the only one plausibly multi-line, and no downstream code cares
-// which line-ending it was saved with).
 function parseRows(text) {
   const rows = [];
   let row = [];
@@ -69,16 +26,7 @@ function parseRows(text) {
         field += ch;
       }
     } else if (ch === '"' && field === "") {
-      // #512 -- only a quote at the very *start* of a field opens
-      // quote-mode (RFC4180: a field is either fully quoted from its
-      // first character, or not quoted at all). Without the `field ===
-      // ""` check, a bare quote anywhere mid-field (e.g. a notes value
-      // like `Worked a 6" crimp`) incorrectly opened quote-mode too,
-      // silently swallowing every following comma/newline -- including
-      // subsequent rows -- into that one field until another `"`
-      // happened to close it, with no error surfaced. A non-leading
-      // quote now falls through to the plain `field += ch` branch below
-      // and is kept as a literal character instead.
+      // RFC 4180: only a leading quote opens a quoted field, so 6" crimp keeps its quote.
       inQuotes = true;
     } else if (ch === ",") {
       row.push(field); field = "";
@@ -95,13 +43,6 @@ function parseRows(text) {
   return rows;
 }
 
-// Requires the uploaded header to match CSV_COLUMNS exactly (same order,
-// same names) -- the template is the only supported starting point, so a
-// mismatch means the file wasn't built from it (reordered/renamed/
-// hand-typed columns), and reporting that up front beats silently
-// misreading column N as the wrong field. Blank rows (a trailing newline,
-// or a stray empty line mid-file) are skipped rather than reported as
-// errors -- spreadsheet apps routinely leave one on save.
 export function parseCsvText(text) {
   const rows = parseRows(text);
   if (rows.length === 0) return { ok: false, error: "CSV file is empty." };
@@ -127,19 +68,7 @@ export function parseCsvText(text) {
   return { ok: true, rows: parsedRows };
 }
 
-// #639 -- imports the JSON format resolveExportRows/the "Export as JSON"
-// button (below) already produce, giving export/import parity. Normalizes
-// into the exact same row shape parseCsvText produces above (every field
-// a string, firstAttempt as "true"/"false" not a real boolean) so
-// server/api/entries-import.js's handleImport can feed either parser's
-// output through the same resolveLocationsAndPlaces/draftEntry/
-// entrySchema pipeline unchanged -- one shared row shape, two parsers,
-// not two independent import pipelines. Deliberately permissive about a
-// row's exact key set (unlike parseCsvText's strict header-must-match
-// rule, which has no real JSON equivalent) -- a missing/blank field
-// normalizes to "", the same as an empty CSV cell, and entrySchema's own
-// downstream check is what actually reports it as invalid, same
-// "resolve once, validate once" split as everything else in this file.
+// Normalises to parseCsvText's row shape so both formats share one import pipeline.
 export function parseJsonText(text) {
   let parsed;
   try {
@@ -156,12 +85,6 @@ export function parseJsonText(text) {
     if (typeof row !== "object" || row === null || Array.isArray(row)) {
       return { ok: false, error: `Entry ${i + 1} isn't a valid object.` };
     }
-    // String(true)/String(false) for a real JSON boolean (the export's own
-    // shape); String(row.firstAttempt ?? "") for anything else (a
-    // hand-edited "true"/"false" string, or genuinely absent) --
-    // anything other than a literal true/boolean-true-as-string
-    // normalizes to "false", same permissive-by-default convention
-    // draftEntry()'s own `.toLowerCase() === "true"` check already has.
     const normalized = {};
     CSV_COLUMNS.forEach(col => {
       normalized[col] = col === "firstAttempt"
@@ -174,17 +97,6 @@ export function parseJsonText(text) {
   return { ok: true, rows };
 }
 
-// #27 -- the export-side mirror of a CSV row: joins the wire-shape entry
-// (placeId, type) the /logbook API already returns against places/
-// locations to reconstruct the same location/area/country text columns
-// import expects, and the same discipline/firstAttempt naming CSV_COLUMNS
-// uses. Both buildEntriesCsv and the JSON export (client/account-main.js)
-// consume this same resolved-row shape -- one join, two serializations,
-// not two independent reconstructions of it. firstAttempt stays a real
-// boolean here (JSON export wants that, not a string) -- buildEntriesCsv
-// below is what turns it into "true"/"false" text at CSV-serialization
-// time, same "resolve once, format per output" split entry-schema.js
-// established between validateEntryShape() and entrySchema.
 export function resolveExportRows(entries, places, locations) {
   const placeById = new Map(places.map(p => [p.id, p]));
   const locationById = new Map(locations.map(l => [l.id, l]));
@@ -212,38 +124,15 @@ export function resolveExportRows(entries, places, locations) {
   });
 }
 
-// #487 -- CSV/formula injection: a field value starting with =, +, -, @,
-// a tab, or a CR is interpreted as a formula by Excel/Sheets/LibreOffice
-// when the exported file is opened -- a real, distinct attack class from
-// CSV *parsing* correctness (e.g. a stored name of
-// =HYPERLINK("http://evil.com","click") would otherwise pass straight
-// through untouched, and execute when whoever exports their own data
-// opens the file). Neutralized here, at the output boundary, rather than
-// blocked at input -- same "escape at the dangerous boundary, don't
-// restrict what a user can type" principle this app already applies to
-// HTML injection (escapeHtml() at DOM-injection sites, not banning </>
-// from being typed into a name field). A single leading quote defuses
-// the formula interpretation in every major spreadsheet app while
-// keeping the rest of the value intact and visible in the cell.
+// Formula injection: a leading quote defuses =, +, -, @, tab and CR in every spreadsheet app.
 const FORMULA_TRIGGER = /^[-=+@\t\r]/;
 
-// RFC4180 field escaping -- the serialization-side mirror of parseRows'
-// own reader above. Quotes a field only when it needs it (a bare comma/
-// quote/newline), matching how most real spreadsheet-app CSV writers
-// behave, rather than unconditionally quoting every field. Formula
-// neutralization happens first -- a field can need both (e.g.
-// `=A1,"B1"` starts with a trigger char AND contains a comma).
 function escapeCsvField(value) {
   let text = String(value);
   if (FORMULA_TRIGGER.test(text)) text = `'${text}`;
   return /["\n,]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
-// Exported rows always come from resolveExportRows above -- an empty
-// `rows` array (a user with no entries yet) still produces a valid,
-// re-uploadable template (header row only), same file parseCsvText
-// itself would reject as "no data rows to import," which is the correct
-// outcome for a genuinely empty logbook.
 export function buildEntriesCsv(rows) {
   const lines = rows.map(row =>
     CSV_COLUMNS.map(col => escapeCsvField(col === "firstAttempt" ? (row.firstAttempt ? "true" : "false") : row[col])).join(",")

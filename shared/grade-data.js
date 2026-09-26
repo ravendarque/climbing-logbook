@@ -1,33 +1,6 @@
-// Grade ordering, coloring, and per-discipline grade lists used by entry
-// filtering/sorting, rendering, and the Grade Pyramid. Extracted from
-// client/main.js (#206) -- first pure-logic module pulled out of the
-// former inline script.
+// Grade storage, ordinals, conversion and tiers: docs/grade-model.md.
 
-// #702 -- the canonical ordinal. One shared, discipline-agnostic formula:
-// every number 1-9 takes the full combination of an optional letter (a-c)
-// and an optional modifier (+/-), independently -- confirmed with Raven
-// 2026-09-11 against real guidebooks (Jingo Wobbly uses "-" for Font in
-// the wild), not just the two verified real scales (Font-extended, FFME)
-// this was originally derived from. No per-discipline parameters --
-// Boulder and Sport each interpret this same numbering as their own
-// separate ordinal space (never cross-compared, same as #461's
-// BOULDER_RANK/LEAD_RANK split), but the formula computing a position
-// within one number is identical for both.
-//
-// Sub-position order within one number, corrected 2026-09-11 per Raven's
-// own worked example (three real climbs logged as "2", "2+", and "2a+"
-// must sort as 2 < 2a+ < 2+): bare "-"/plain sit at the very bottom
-// (Raven's earlier "bare sits at the bottom" call, unchanged) -- but bare
-// "+" moves to the very TOP of the number's range instead of sitting
-// right after plain. "+" on a bare number reads as "the strong edge of
-// this number, bordering the next one," the same intuition "+" already
-// carries everywhere else in this matrix (UIAA/Norwegian's own -/plain/+
-// triads, French's a+/b+/c+). An explicit ordered list, not a derived
-// formula -- once "+" moves out of sequence for the no-letter case
-// specifically, the ordering isn't a clean arithmetic function of
-// (letterSlot, modifierSlot) anymore, so spelling out the 12 positions
-// directly is clearer (and less error-prone) than a formula hiding a
-// special case.
+// Bare + is the top of its number, so this is a list rather than a formula.
 const SUB_POSITION_ORDER = [
   [null, "-"], [null, null],
   ["a", "-"], ["a", null], ["a", "+"],
@@ -49,10 +22,6 @@ export function nonStandardLabel(number, letter, modifier) {
   return `${number}${letter ?? ""}${modifier ?? ""}`;
 }
 
-// Strict shape: one digit 1-9, optional single lowercase letter a-c,
-// optional trailing +/-. Case-insensitive on input (real logged text may
-// be uppercase); always normalizes letter to lowercase, matching
-// nonStandardLabel()'s own output so toOrdinal(toLabel(x)) round-trips.
 const NON_STANDARD_RE = /^([1-9])([abc])?([+-])?$/i;
 export function parseNonStandardLabel(label) {
   const m = NON_STANDARD_RE.exec(String(label).trim());
@@ -82,35 +51,10 @@ function makeNonStandardScale(id, discipline, name) {
   };
 }
 
-// #702 -- Font (Non-standard) and French (Non-standard): not lookup
-// tables, real guidebooks use letters/modifiers inconsistently (the
-// exact class of drift bug #698 found in a hand-maintained list can't
-// recur here since there's no list at all, just the shared formula
-// above). Both delegate to the identical function -- per Raven's
-// explicit call, there are no per-discipline parameters left; the only
-// difference between the two is `id`/`discipline`.
 export const FONT_NON_STANDARD = makeNonStandardScale("font-non-standard", "boulder", "Font (Non-standard)");
 export const FRENCH_NON_STANDARD = makeNonStandardScale("french-non-standard", "sport", "French (Non-standard)");
 
-// #702 -- Font-standard and French-standard both decompose exactly
-// through the same number+letter+modifier shape parseNonStandardLabel
-// already parses -- neither real table ever uses "-", and French's 1/2
-// simply have no letter (parseNonStandardLabel already treats a missing
-// letter as valid). Built from the literal, already-verified label lists
-// (spec "The eight -- now nine -- scales"), not re-typed as raw
-// ordinals -- one source of truth per scale, same "derive, don't
-// hand-duplicate" fix this whole rework exists to make (the #698
-// BOULDER_ORDER drift bug was exactly two hand-kept lists of the same
-// data going out of sync).
-
-// #733 -- shared by makeAnchoredScale's own toLabel(): a named scale
-// (UIAA, YDS, Norwegian, Ewbank) has far fewer real steps than the full
-// canonical ordinal space it's anchored/interpolated against, so
-// converting an arbitrary ordinal needs a "closest real step" fallback,
-// not an exact-or-nothing lookup. `labelByOrdinal` must already be in
-// ascending-ordinal iteration order (true here -- each scale's own
-// `labels` array is itself real-world ascending order) so a genuine tie
-// rounds DOWN to the lower/earlier-registered step, not up.
+// Ties round down: labelByOrdinal must be in ascending order.
 function closestLabel(ordinal, labelByOrdinal) {
   if (labelByOrdinal.has(ordinal)) return labelByOrdinal.get(ordinal);
   let closest = null, closestDist = Infinity;
@@ -121,27 +65,7 @@ function closestLabel(ordinal, labelByOrdinal) {
   return closest;
 }
 
-// #733 -- makeParsedScale's own toLabel() degrade is DELIBERATELY not
-// closestLabel() above: Font-standard/French-standard share the exact
-// same number+letter+modifier ordinal space as Font/French-Non-standard
-// (they're a curated SUBSET of it, not a separately-anchored scale), so
-// a Non-standard grade with no exact standard-scale match degrades to
-// the closest step WITHIN ITS OWN NUMBER -- "5-" is defined
-// (SUB_POSITION_ORDER's own comment) as the low edge of NUMBER 5's own
-// range, not a bridge into number 4's, so it must never be compared
-// against "4+" (a different number) at all, even though "4+" happens to
-// sit one ordinal-step closer in the raw combined space than "5" does at
-// the family boundary. When the input's own number has NO standard-scale
-// representation at all (numbers 1-2, below Font-standard's real floor
-// of 3), this returns null -- NOT the scale's lowest label. Raven,
-// 2026-09-12: clamping a genuinely-easier grade up to the scale's floor
-// is grade inflation, not a conversion; a Non-standard grade below what
-// a named scale represents is simply excluded from that scale's view,
-// the same way reportGradeLabel's own callers already treat a null
-// label as "no point here" for a bucket with no data at all. Confirmed
-// against Raven's own worked example: 5-/5a-/5a/5a+/5b-/5b -> "5",
-// 5b+/5c-/5c/5c+ -> "5+" (a genuine tie, e.g. "5b", rounds DOWN to the
-// lower/earlier-registered step within that same number).
+// Within the same number only; null below the scale's range (no inflation).
 function numberOfOrdinal(ordinal) {
   return Math.floor(ordinal / 12) + 1;
 }
@@ -172,21 +96,9 @@ function makeParsedScale(id, discipline, name, labels) {
     id,
     discipline,
     name,
-    // #703 -- the entry-form/reports pickers need each scale's own
-    // ordered label list to populate a dropdown; a copy (not the
-    // original array reference) so a consumer can't mutate this scale's
-    // own internal order.
+    // A copy, so callers can't reorder the scale.
     labels: [...labels],
     toOrdinal(label) { return byLabel.get(String(label).toLowerCase()) ?? null; },
-    // #733 -- was an exact-or-null lookup; a Non-standard grade with no
-    // exact match in this named scale (e.g. Font-standard has no "5a")
-    // now degrades to its closest real step within the SAME number
-    // (closestParsedLabel, not the plain global-nearest closestLabel --
-    // see that function's own comment for why) instead of returning
-    // null, which reportGradeLabel's own `?? grade` fallback would
-    // otherwise turn into the RAW, un-converted grade string leaking
-    // through -- the bug Raven caught live: Font showing grades that
-    // don't exist in Font at all.
     toLabel(ordinal) { return closestParsedLabel(ordinal, byOrdinal); },
   };
 }
@@ -204,41 +116,24 @@ const FRENCH_STANDARD_LABELS = [
 ];
 export const FRENCH_STANDARD = makeParsedScale("french", "sport", "French", FRENCH_STANDARD_LABELS);
 
-// #702 -- V-scale doesn't decompose through the number/letter/modifier
-// shape at all (VB/V0-/V0/V0+/V1... isn't that pattern) -- an explicit
-// anchor table against FONT_STANDARD's own ordinals instead, using the
-// corrected Rockfax-charted correspondence (previously hakaru.io) (the spec's first draft had
-// this wrong: 6A=V0, which no real chart shows). V3/V4/V5/V8 are
-// genuinely 2-wide (map to two Font ordinals) -- everything else is 1:1.
+// Rockfax's chart. V3, V4, V5 and V8 each cover two Font grades.
 const V_SCALE_TO_FONT = {
   "vb": "3", "v0-": "3+", "v0": "4", "v0+": "4+", "v1": "5", "v2": "5+",
   "v3": "6A", "v4": "6B", "v5": "6C", "v6": "7A", "v7": "7A+",
   "v8": "7B", "v9": "7C", "v10": "7C+", "v11": "8A", "v12": "8A+",
   "v13": "8B", "v14": "8B+", "v15": "8C", "v16": "8C+", "v17": "9A",
 };
-// The upper bound of each V-scale step's range, for 2-wide steps -- used
-// only if a future consumer needs the "upper" edge (C's cross-scale
-// rendering); toOrdinal() below always resolves the LOWER edge on input,
-// per Raven's "no true middle of a 2-wide range" ruling.
 const V_SCALE_UPPER = { v3: "6A+", v4: "6B+", v5: "6C+", v8: "7B+" };
 export const V_SCALE = {
   id: "v-scale",
   discipline: "boulder",
   name: "V-scale (Hueco)",
-  // #703 -- V_SCALE_TO_FONT's own keys are already in ascending order
-  // (object literal insertion order, verified by every test asserting
-  // this scale's monotonicity) -- reused directly rather than a third
-  // hand-kept copy of the same 21 labels.
   labels: Object.keys(V_SCALE_TO_FONT).map(k => k.toUpperCase()),
   toOrdinal(label) {
     const font = V_SCALE_TO_FONT[String(label).toLowerCase()];
     return font ? FONT_STANDARD.toOrdinal(font) : null;
   },
   toLabel(ordinal) {
-    // Reverse lookup: find the V-scale key whose Font ordinal (or, for a
-    // 2-wide step, whose UPPER Font ordinal) is the smallest one >=
-    // `ordinal` -- i.e. which V-scale bucket this canonical ordinal falls
-    // into. Table is small (21 entries); linear scan is fine.
     const entries = Object.entries(V_SCALE_TO_FONT);
     for (const [vKey, fontLabel] of entries) {
       const upperLabel = V_SCALE_UPPER[vKey] ?? fontLabel;
@@ -248,16 +143,6 @@ export const V_SCALE = {
   },
 };
 
-// #702 -- shared by the four "no natural decomposition" Sport scales.
-// `anchors` is the ordered subset of `labels` whose French-standard
-// equivalent is actually sourced (spec "The conversion matrix"/"Risks --
-// Matrix authority"); every other label in `labels` is spaced evenly
-// between its neighboring anchors. Two anchors with the same French
-// ordinal are allowed (multiple coarse labels legitimately collapsing to
-// one French grade) -- the labels between them then also collapse to
-// that same ordinal (zero-width interpolation), which is exactly the
-// "coarse scale, several ordinals->one label" shape the spec already
-// documents for these scales.
 function makeAnchoredScale(id, name, labels, anchors) {
   const anchorIndex = new Map(anchors.map(a => [a.label, FRENCH_STANDARD.toOrdinal(a.frenchAnchor)]));
   const ordinalByLabel = new Map();
@@ -276,13 +161,7 @@ function makeAnchoredScale(id, name, labels, anchors) {
     }
     const nextAnchorPos = anchoredPositions.find(p => p > i);
     if (lastAnchorPos === -1) {
-      // Before the first anchor: extrapolate backward from the first two
-      // anchors' slope, clamped so it never goes negative. With only one
-      // anchor (UIAA/YDS/Ewbank each have exactly one sourced anchor --
-      // GRADE_CONVERSION_MATRIX below), there's no second real anchor to
-      // derive a slope from -- fall back to a 1:1 slope (one label step
-      // = one French canonical-ordinal step), matching the spec's own
-      // "French<->UIAA<->YDS are roughly 1:1" framing near the anchor.
+      // One anchor: fall back to one label per French step.
       const firstPos = anchoredPositions[0];
       const secondPos = anchoredPositions[1];
       const slope = secondPos === undefined ? 1
@@ -291,8 +170,6 @@ function makeAnchoredScale(id, name, labels, anchors) {
       continue;
     }
     if (nextAnchorPos === undefined) {
-      // After the last anchor: extrapolate forward from the last two, or
-      // the same 1:1 fallback slope if there's only one anchor overall.
       const lastTwo = anchoredPositions.slice(-2);
       const slope = lastTwo.length < 2 ? 1
         : (anchorIndex.get(labels[lastTwo[1]]) - anchorIndex.get(labels[lastTwo[0]])) / (lastTwo[1] - lastTwo[0]);
@@ -307,12 +184,6 @@ function makeAnchoredScale(id, name, labels, anchors) {
   const labelByOrdinal = new Map();
   for (const [label, ordinal] of ordinalByLabel) if (!labelByOrdinal.has(ordinal)) labelByOrdinal.set(ordinal, label);
 
-  // Case-insensitive lookup keyed separately from the raw label ->
-  // ordinal map above -- the raw map keeps each scale's own real casing
-  // (UIAA's Roman numerals, YDS's lowercase a/b/c/d) for toLabel()'s
-  // reverse output, while this one normalizes both sides to lowercase
-  // for toOrdinal(), so "vi+"/"VI+"/"Vi+" all resolve the same way (same
-  // case-insensitivity every other scale in this file already has).
   const ordinalByLowerLabel = new Map([...ordinalByLabel].map(([l, o]) => [l.toLowerCase(), o]));
 
   return {
@@ -321,8 +192,6 @@ function makeAnchoredScale(id, name, labels, anchors) {
     name,
     labels: [...labels],
     toOrdinal(label) { return ordinalByLowerLabel.get(String(label).toLowerCase()) ?? null; },
-    // #733 -- now the same shared closestLabel() helper makeParsedScale
-    // uses, rather than a second hand-kept copy of this exact fallback.
     toLabel(ordinal) { return closestLabel(ordinal, labelByOrdinal); },
   };
 }
@@ -332,8 +201,6 @@ const UIAA_LABELS = [
   "VII-","VII","VII+","VIII-","VIII","VIII+","IX-","IX","IX+","X-","X","X+",
   "XI-","XI","XI+","XII-","XII","XII+",
 ];
-// Wikipedia "Grade (climbing)" comparison table anchor row:
-// 5.10a ~ 6a ~ VI+ ~ Ewbank 18-19 ~ Norwegian 6-.
 const UIAA_ANCHORS = [
   { label: "VI+", frenchAnchor: "6a", source: "Wikipedia: Grade (climbing)" },
 ];
@@ -354,8 +221,6 @@ const NORWEGIAN_LABELS = [
   "1","1+","2-","2","2+","3-","3","3+","4-","4","4+","5-","5","5+",
   "6-","6","6+","7-","7","7+","8-","8","8+","9-","9","9+","10-","10","10+","11-","11",
 ];
-// theCrag's Norwegian conversion, both points the spec cites: 6a=6-, and
-// the "6a...8c=9+" upper anchor.
 const NORWEGIAN_ANCHORS = [
   { label: "6-", frenchAnchor: "6a", source: "theCrag: Norwegian grade conversion" },
   { label: "9+", frenchAnchor: "8c", source: "theCrag: Norwegian grade conversion" },
@@ -368,13 +233,7 @@ const EWBANK_ANCHORS = [
 ];
 export const EWBANK_SCALE = makeAnchoredScale("ewbank", "Australian (Ewbank)", EWBANK_LABELS, EWBANK_ANCHORS);
 
-// #702 -- the committed conversion matrix: every anchor used above, in
-// one place, with its source -- what sub-issue E's reference page reads
-// to cite where each equivalence came from. Deliberately only the
-// ANCHORS (not every interpolated label) -- an interpolated label isn't
-// a sourced claim, it's this module's own best-effort fill-in, and the
-// spec's "Matrix authority" risk note is explicit that this whole thing
-// is tunable data, not settled fact.
+// Sourced anchors only: interpolated labels are not claims.
 export const GRADE_CONVERSION_MATRIX = [
   ...UIAA_ANCHORS.map(a => ({ scaleId: "uiaa", ...a })),
   ...YDS_ANCHORS.map(a => ({ scaleId: "yds", ...a })),
@@ -383,9 +242,6 @@ export const GRADE_CONVERSION_MATRIX = [
   { scaleId: "v-scale", label: "V9", frenchAnchor: "7c", source: "Rockfax: Bouldering Grade Table (2020)" },
 ];
 
-// #702 -- every scale keyed by id, and split by discipline -- what
-// sub-issue B/C's future picker UI enumerates, and what gradeOrdinal()
-// below resolves through.
 export const SCALES = {
   [FONT_STANDARD.id]: FONT_STANDARD,
   [FONT_NON_STANDARD.id]: FONT_NON_STANDARD,
@@ -402,59 +258,17 @@ export const SCALES_BY_DISCIPLINE = {
   sport: Object.values(SCALES).filter(s => s.discipline === "sport"),
 };
 
-// #796 -- Performance Insights reports offer only the STANDARD scale per
-// discipline, never Font/French (Non-standard) -- Raven's explicit call:
-// "we should be opinionated about how we represent the data" for reports
-// specifically. Storage stays "as logged" (an entry can still be logged
-// in a non-standard scale via the entry-form's own #703 picker, which is
-// unaffected) -- reportGradeLabel()/reportGradeOrdinal() (shared/
-// volume-stats.js) already convert ANY entry's own real gradeScale into
-// whichever viewScaleId a report is showing via the shared ordinal path,
-// so restricting which scales a report can be SET to display needs no
-// conversion-logic changes, just a narrower option list at both places
-// that resolve a requested scale id into one reports actually use: the
-// client picker (client/report-grade-scale-picker.js) and the pyramid
-// endpoint's own server-side query-param resolution (server/api/
-// performance.js's resolveViewScale) -- the latter matters too, since
-// that scale id reaches the server as a plain, client-suppliable query
-// param the client-side picker restriction alone can't stop from being
-// requested directly.
+// Enforced server-side too: the scale is a query parameter anyone can send.
 export const STANDARD_SCALES_BY_DISCIPLINE = {
   boulder: SCALES_BY_DISCIPLINE.boulder.filter(s => s.id !== FONT_NON_STANDARD.id),
   sport: SCALES_BY_DISCIPLINE.sport.filter(s => s.id !== FRENCH_NON_STANDARD.id),
 };
 
-// #754 -- the "is `requested` a real scale id for this discipline, else
-// fall back" check was hand-duplicated 3x (server/api/performance.js's
-// own resolveViewScale, client/entry-form.js's loadGradeScalePref,
-// client/report-grade-scale-picker.js's loadPref) with identical logic
-// but different fallback values -- exactly the drift class this file's
-// own #698/#702 comments elsewhere warn about (a rule needing to be
-// remembered in more than one place). `fallback` stays a parameter
-// rather than baked in here: performance.js's own pyramid route falls
-// back to each discipline's NATIVE row scale (ROW_SCALE_BY_TYPE, a
-// pyramid-stats.js concept this module doesn't know about), while
-// entry-form.js/report-grade-scale-picker.js fall back to
-// DEFAULT_SCALE_BY_TYPE below -- two genuinely different policies, not
-// one value duplicated three ways.
-// #796 -- `scales` defaults to the full per-discipline list (entry-form.js's
-// own call site is unaffected, still resolving against every real scale
-// id) but is a real parameter now, not a hardcoded SCALES_BY_DISCIPLINE[type]
-// read, so a caller enforcing a narrower option set (the two report-scale
-// call sites above, against STANDARD_SCALES_BY_DISCIPLINE) rejects a
-// stale/tampered non-standard id the same way it rejects any other
-// unrecognized one -- falling back to `fallback`, not silently honoring it.
 export function resolveScaleId(type, requested, fallback, scales = SCALES_BY_DISCIPLINE[type]) {
   const validIds = scales.map(s => s.id);
   return validIds.includes(requested) ? requested : fallback;
 }
 
-// A Non-standard scale is never the default for either discipline -- it
-// exists for when a guidebook's own notation doesn't match the real
-// published scale, not as the ordinary starting point (Raven,
-// 2026-09-11). Was independently hand-copied in client/entry-form.js,
-// client/report-grade-scale-picker.js, and shared/gap-stats.js -- two of
-// which already commented that they "mirror" each other.
 export const DEFAULT_SCALE_BY_TYPE = { boulder: "font", sport: "french" };
 
 export function gradeOrdinal(grade, scaleId) {
@@ -462,33 +276,7 @@ export function gradeOrdinal(grade, scaleId) {
   return scale ? scale.toOrdinal(grade) : null;
 }
 
-// #461 -- gradeRank() used to share ONE flat, Boulder-only order across
-// both disciplines: every caller (gap-stats.js, effort-stats.js,
-// volume-stats.js, client/entries.js) called it directly on raw entry
-// grades, boulder or sport alike, and it "worked" for Sport only by
-// coincidence -- Sport's a/b/c notation happened to collide with a
-// Boulder substring in the old list that sorted the same direction.
-// #129's own low/high-end extension (Sport grades like "4a"/"9c+" that
-// don't exist in Boulder's notation at all) exposed this: those grades
-// fell through to the `?? 99` fallback, tying every one of them at
-// "harder than everything." Real per-discipline order now.
-//
-// Each list is deliberately WIDER than its own current picker
-// (BOULDER_GRADES/LEAD_GRADES below) -- same reasoning the original
-// Boulder list already followed for pre-#60 sub-picker historical
-// entries (a grade a user logged before the picker's range was what it
-// is today still needs a real rank, not the fallback). Applied to Sport
-// for the first time here, defensively, since the same kind of
-// historical/out-of-picker entry could exist for Sport too.
-// #129 -- extended alongside BOULDER_GRADES/LEAD_GRADES below: both
-// orders MUST stay a superset of their own discipline's full current
-// picker range, or a picker grade would fall straight back into the
-// `?? 99` fallback this file was fixed to avoid. (These are still hand-
-// maintained separately from BOULDER_GRADES/LEAD_GRADES -- #698 caught
-// that drift: 3A-4C were added to the Boulder picker by #129 but not
-// here, so every one of those six grades mis-ranked as 99. Worth
-// deriving these from the picker lists + a couple of explicit
-// out-of-picker extras in a future cleanup.)
+// Must stay supersets of the pickers' grade lists, or a picker grade ranks as unknown.
 const BOULDER_ORDER = [
   "1","1+","1A","1B","1C","2","2+","2A","2B","2C",
   "3","3+","3A","3B","3C","4","4+","4A","4B","4C",
@@ -508,26 +296,11 @@ const LEAD_ORDER = [
 const BOULDER_RANK = Object.fromEntries(BOULDER_ORDER.map((g, i) => [g, i]));
 const LEAD_RANK = Object.fromEntries(LEAD_ORDER.map((g, i) => [g, i]));
 
-// `type` defaults to "boulder", matching gradeColor()'s own documented
-// default (and every other type-defaulting function in this file) --
-// an omitted type is never silently routed to whichever discipline
-// happened to be checked first.
 export function gradeRank(g, type) {
   const rank = (type ?? "boulder") === "boulder" ? BOULDER_RANK : LEAD_RANK;
   return rank[String(g).toUpperCase()] ?? 99;
 }
 
-// #129 -- extended down to 1/1A and up to 9A. Bottom end (1-4) mirrors
-// the existing 5/5+/5A/5B/5C shape at every tier -- both notations
-// (bare number and lettered) coexist as genuinely distinct picker
-// entries, same pattern 5 already established, not a new one invented
-// for the extension. `v` (V-scale label): everything below the existing
-// V0 threshold is `VB`, not a reused V0 -- V0 is the real cutoff (`5`/
-// `5+`/`5A`), so extending the range downward can't also silently
-// relabel what V0 already means. New top end (8C/8C+/9A) continues the
-// same V-count-up pattern (V15/V16/V17). No per-grade colour field
-// anymore -- #463 moved colouring onto gradeColor()/gradeTier() below,
-// which needs only `type`, not a per-grade lookup table.
 export const BOULDER_GRADES = [
   { g: "1",   v: "VB" },
   { g: "1+",  v: "VB" },
@@ -574,10 +347,6 @@ export const BOULDER_GRADES = [
   { g: "8C+", v: "V16" },
   { g: "9A",  v: "V17" },
 ];
-// #129 -- extended down to French `1` and up to `9c+`. Low end (1-5b)
-// uses the scale's own standard progression (letters start at 4, per
-// the real French system -- no equivalent to Boulder's 5/5A ambiguity
-// here, so no parallel notation decision was needed).
 export const LEAD_GRADES = [
   { g: "1" }, { g: "1+" }, { g: "2" }, { g: "2+" }, { g: "3" }, { g: "3+" },
   { g: "4a" }, { g: "4b" }, { g: "4c" }, { g: "5a" }, { g: "5b" }, { g: "5c" },
@@ -587,40 +356,7 @@ export const LEAD_GRADES = [
   { g: "9a" }, { g: "9a+" }, { g: "9b" }, { g: "9b+" }, { g: "9c" }, { g: "9c+" },
 ];
 
-// #462 -- five-tier headline classification, decided 2026-09-09 (see the
-// issue for the full reasoning): Raven's own felt sense of each
-// discipline's grade distribution, not a scientific equivalence, not
-// derived from any cross-system conversion table (an earlier attempt at
-// that badly misfired, see the issue). Deliberately narrower bands the
-// higher the tier, cross-checked against Rockfax's 2020 grade-comparison
-// posters and found to require *more* to reach each label than that
-// now-dated reference does, by design -- climbing has gotten more
-// competitive since 2020.
-//
-// #710 -- Sport's own boundaries, corrected: #462 originally applied
-// Boulder's boundaries to Sport verbatim (same letters/numbers, lowercase
-// notation). That worked fine through Advanced, but Sport's real grade
-// range extends much further past `8b+` than Boulder's extends past
-// `8B+` (Sport's picker runs to `9c+`, Boulder's stops at `9A`), so
-// Sport's Hyper Elite ended up the *widest* tier (9 real grade-steps)
-// instead of the narrowest -- the opposite of this file's own stated
-// design principle above. Investigated proportional grade-count scaling
-// and real athlete-rarity data (hardestclimbs.info vs. 8a.nu) as ways to
-// derive a precise fix; neither held up (proportional scaling shifted
-// every boundary upward, not just the top one; the two rarity sources
-// turned out to measure genuinely different things and couldn't support
-// a specific number). Settled by the same felt-sense method #462 itself
-// used, not a formula: `6a`-`7a` / `7a+`-`8a` / `8a+`-`9a` / `9a+` and up
-// -- 7/6/6/5 real grade-steps per tier, a real narrowing toward the top.
-// Boulder's own boundaries are unchanged.
-//
-// Each entry is [tierName, thresholdGrade] in ascending order; `null`
-// marks the bottom (no lower bound). The two disciplines never compare
-// against each other -- each grade resolves against its own thresholds
-// only, matching #461's own "no consumer needs true cross-discipline
-// comparability yet" scoping. Sport's thresholds no longer share
-// Boulder's exact letters past Intermediate -- that divergence is
-// deliberate, not an oversight (see #710).
+// Felt sense, narrowing towards the top; sport's upper bands differ from boulder's.
 const GRADE_TIER_THRESHOLDS = {
   boulder: [
     ["beginner", null],
@@ -638,10 +374,6 @@ const GRADE_TIER_THRESHOLDS = {
   ],
 };
 
-// Purely the numeric classification -- no UI/naming/visual treatment
-// here (#463 wires this into rendering; #689 is the still-open design
-// conversation about how a tier actually looks). Returns one of
-// "beginner"/"intermediate"/"advanced"/"elite"/"hyper-elite".
 export function gradeTier(g, type) {
   const resolvedType = type ?? "boulder";
   const thresholds = GRADE_TIER_THRESHOLDS[resolvedType] ?? GRADE_TIER_THRESHOLDS.boulder;
@@ -653,13 +385,6 @@ export function gradeTier(g, type) {
   return tier;
 }
 
-// #463 -- five colours picked from #170's own decided "Fiery Red Sunset"
-// palette (see public/-/components/climbing-header.js's own
-// --grade-tier-* tokens for the real hex values and the reasoning
-// behind which five were picked). One shared mapping across both
-// disciplines -- a tier name means the same thing regardless of which
-// discipline produced it, so there's exactly one colour per tier, not
-// two independent sets that happen to agree.
 const GRADE_TIER_COLORS = {
   beginner: "var(--grade-tier-beginner)",
   intermediate: "var(--grade-tier-intermediate)",
@@ -668,70 +393,21 @@ const GRADE_TIER_COLORS = {
   "hyper-elite": "var(--grade-tier-hyper-elite)",
 };
 
-// #463 -- replaces the old per-grade curated-colour lookup (a `c` field
-// on every BOULDER_GRADES/LEAD_GRADES entry, plus a fractional-banding
-// fallback for anything outside the current picker range) with tier-
-// based colouring throughout. gradeTier() already resolves *any* grade
-// via gradeRank() -- in-picker or not -- to one of five tiers, so the
-// separate fallback-banding math the old implementation needed for
-// out-of-range grades isn't needed here at all; every grade just goes
-// through the same one path.
 export function gradeColor(g, type) {
   return GRADE_TIER_COLORS[gradeTier(g, type)];
 }
 
-// #830 -- the filter menu's own tier-legend swatches need a tier's colour
-// directly (by id), not resolved from an actual grade -- the same lookup
-// gradeColor()/gradeColorForScale() already use internally, exported
-// rather than duplicated so there's exactly one place that knows which
-// hex each tier resolves to.
 export function gradeTierColor(tierId) {
   return GRADE_TIER_COLORS[tierId];
 }
 
-// #698 -- the Grade Pyramid's 8-4-2-1 window is only ~4 grades wide and
-// spans at most two tiers, often just one, so gradeColor()'s flat
-// per-tier colour would leave every bar the same. This walks the full
-// 10-colour "Fiery Red Sunset" palette (the same one --grade-tier-*
-// above picks five of) continuously by grade rank, so every grade in
-// the window gets a distinct, monotonic shade in the warm red->gold
-// family. Continuous rather than a discrete "2-3 steps per tier":
-// tiers vary in width (Intermediate is 6 grades, Elite is 4), so a
-// fixed per-tier sub-palette differentiates unevenly depending where
-// the window lands -- interpolating by rank guarantees adjacent bars
-// always differ. Only the pyramid uses this; every other view shows
-// enough grades at once that gradeColor()'s tier banding reads fine.
+// The pyramid spans about four grades, so it interpolates the full palette to keep bars distinct.
 const FIERY_RED_SUNSET = [
   "#03071e", "#370617", "#6a040f", "#9d0208", "#d00000",
   "#dc2f02", "#e85d04", "#f48c06", "#faa307", "#ffba08",
 ];
 
-// #702 -- scale-aware siblings of gradeRank/gradeTier/gradeColor above,
-// added alongside them (Global Constraints: the 2-arg forms keep their
-// exact current behavior unchanged) -- these new 3-arg forms are what
-// B/C/E/F build on once entries can genuinely carry a scale other than
-// each discipline's implicit default. The 2-arg gradePyramidColor() this
-// section originally sat alongside is gone -- every real caller had
-// already migrated to gradePyramidColorForScale below by the time of
-// this review; removed as dead code, found in review 2026-09-14,
-// confirmed zero callers outside its own now-deleted test. gradeRank/
-// gradeTier/gradeColor's own 2-arg forms are still real and still used
-// (client/entries.js, climbing-entries-table.js) -- only the pyramid-
-// color one had no caller left.
-
-// "Rank unknown as harder than everything" fallback -- same INTENT as
-// today's gradeRank()'s own `?? 99`, but NOT the same literal sentinel:
-// gradeRank()'s 99 is only ever safe because BOULDER_ORDER/LEAD_ORDER
-// are small, bounded arrays (~45 entries) that can never reach it. The
-// canonical ordinal gradeOrdinal() resolves through has no such bound --
-// French/Sport's own real max grade ("9c+") is ordinal 106, already past
-// 99 -- so a hardcoded 99 here would sort an unrecognized grade as
-// EASIER than several real, valid Sport grades, the opposite of the
-// documented intent (confirmed via a real code-review finding,
-// 2026-09-14). `Infinity` is the actual "harder than everything, no
-// matter how the canonical range grows" value; nothing downstream
-// treats this as a real ordinal to do arithmetic on (only ever compared
-// via `>=`), so there's no representability concern.
+// Infinity, not 99: sport ordinals already pass 100.
 export function gradeRankForScale(grade, scaleId, type) {
   return gradeOrdinal(grade, scaleId) ?? Infinity;
 }
@@ -739,20 +415,11 @@ export function gradeRankForScale(grade, scaleId, type) {
 export function gradeTierForScale(grade, scaleId, type) {
   const resolvedType = type ?? "boulder";
   const thresholds = GRADE_TIER_THRESHOLDS[resolvedType] ?? GRADE_TIER_THRESHOLDS.boulder;
-  // Thresholds are still expressed as labels in the discipline's own
-  // primary scale (Font-standard / French-standard) -- resolve those
-  // through that scale, and compare against the grade being classified
-  // via the shared canonical ordinal both sides now share (Task 1's
-  // whole point) regardless of which scale the grade itself is in.
   const primaryScaleId = resolvedType === "boulder" ? "font" : "french";
   const r = gradeOrdinal(grade, scaleId) ?? Infinity;
   let tier = thresholds[0][0];
   for (const [name, fromGrade] of thresholds) {
-    // A threshold's own `fromGrade` is always a real hardcoded label
-    // (never expected to fail to resolve) -- Infinity here means a
-    // broken threshold definition fails closed (unreachable) rather
-    // than failing open (trivially satisfied by everything), same
-    // "unknown sorts as harder/never-satisfied" direction as above.
+    // A broken threshold fails closed.
     if (fromGrade !== null && r >= (gradeOrdinal(fromGrade, primaryScaleId) ?? Infinity)) tier = name;
   }
   return tier;
@@ -767,11 +434,6 @@ export function gradePyramidColorForScale(grade, scaleId, type) {
   const primaryScaleId = resolvedType === "boulder" ? "font" : "french";
   const list = resolvedType === "boulder" ? FONT_STANDARD_LABELS : FRENCH_STANDARD_LABELS;
   const maxRank = gradeOrdinal(list[list.length - 1], primaryScaleId);
-  // Infinity, not 0 -- same "unknown sorts as harder than everything"
-  // direction gradeRankForScale/gradeTierForScale use (an unparseable
-  // grade previously fell through to the palette's DARKEST/easiest-
-  // looking end here, the opposite convention from its own sibling
-  // functions, an unexplained inconsistency found in review 2026-09-14).
   const r = gradeOrdinal(grade, scaleId) ?? Infinity;
   const frac = Math.min(1, Math.max(0, r / maxRank));
   const pos = frac * (FIERY_RED_SUNSET.length - 1);
