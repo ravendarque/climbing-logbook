@@ -1,21 +1,4 @@
-/**
- * #774 -- @cloudflare/vite-plugin selects which wrangler.jsonc environment
- * a production build targets via the CLOUDFLARE_ENV environment variable,
- * not `wrangler deploy --env=X` (that flag has no effect once a build is
- * Vite-produced -- confirmed against Cloudflare's own docs). Confirmed
- * empirically (2026-09-16) that omitting CLOUDFLARE_ENV entirely doesn't
- * error at all -- it silently falls back to wrangler.jsonc's top-level
- * config, which happens to BE production's real bindings, so a deploy
- * meant for beta or preview would silently ship with production's D1
- * database and vars instead. wrangler.jsonc's own env.production/env.beta/
- * env.preview sections make an unrecognized *name* fail loudly (a typo
- * throws), but nothing makes an *absent* CLOUDFLARE_ENV fail at all -- this
- * script is that missing check, run before every deploy build
- * (`pnpm run deploy:build`, package.json) regardless of which workflow or
- * person invokes it, so there's exactly one place this is enforced rather
- * than three copies of the same shell check across deploy.yml/promote.yml/
- * preview.yml.
- */
+// Without CLOUDFLARE_ENV the Vite build silently uses production's bindings, so refuse to build.
 const VALID_ENVIRONMENTS = ["production", "beta", "preview", "e2e"];
 
 const value = process.env.CLOUDFLARE_ENV;

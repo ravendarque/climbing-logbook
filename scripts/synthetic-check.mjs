@@ -1,34 +1,7 @@
-/**
- * Synthetic production check (#361): catches the exact class of bug that
- * shipped undetected in #354 -- a session cookie the server issues that a
- * real browser would never actually send cross-subdomain, because its
- * Domain attribute doesn't match the requesting hostname. A script that
- * just blindly re-sends whatever cookie sign-in returned would pass even
- * when a real user's browser wouldn't -- this replicates the browser's
- * own Domain-matching instead of trusting the raw header.
- *
- * Narrowly scoped to climbinglogbook.com/my.climbinglogbook.com session
- * sharing, not general app testing -- the Playwright E2E suite already
- * covers that, but only ever against PR previews on a single origin
- * (ADR-0011), which is exactly why this class of bug got through.
- *
- * Requires SYNTHETIC_USER_EMAIL / SYNTHETIC_USER_PASSWORD in the
- * environment -- a dedicated account (logbook_public: false) created
- * once by hand, see infra/README.md's "Synthetic monitoring account"
- * section. Never written to by this script (no entries/places/locations
- * are ever created), read-only against production.
- *
- * Usage: node scripts/synthetic-check.mjs
- *
- * APEX_URL/APP_URL env vars override the production defaults below,
- * letting this script's request/response plumbing be exercised against a
- * local `wrangler dev` before ever running it for real. Locally both
- * resolve to the same single origin
- * (no real subdomain split), so Better Auth issues a host-only cookie
- * with no Domain attribute at all -- the Domain-matching check below
- * will correctly refuse to reuse it, which is the check doing its job,
- * not a bug.
- */
+// Signs in on the apex and checks the session cookie really reaches my., matching Domain like a browser.
+// Needs SYNTHETIC_USER_EMAIL and SYNTHETIC_USER_PASSWORD (infra/README.md). Read-only.
+// APEX_URL/APP_URL override the hosts; locally the cookie is host-only, so the check rightly refuses it.
+//   node scripts/synthetic-check.mjs
 
 const APEX = process.env.APEX_URL || "https://climbinglogbook.com";
 const APP = process.env.APP_URL || "https://my.climbinglogbook.com";
@@ -39,10 +12,6 @@ function requireEnv(name) {
   return value;
 }
 
-// Parses one Set-Cookie header down to the name=value pair and its
-// Domain attribute -- same attribute-parsing shape as
-// scripts/lib/dev-session.mjs's toPlaywrightCookie(), narrowed to just
-// what this check needs.
 function parseSetCookie(setCookieHeader) {
   const [pair, ...attrs] = setCookieHeader.split(";").map(s => s.trim());
   const attrMap = Object.fromEntries(
@@ -54,12 +23,7 @@ function parseSetCookie(setCookieHeader) {
   return { pair, domain: attrMap.domain };
 }
 
-// Real Domain-attribute matching (RFC 6265 §5.1.3): a cookie scoped to
-// example.com is sent to example.com and any subdomain of it, never to
-// an unrelated host, and never at all if the cookie has no Domain
-// attribute (host-only, single-origin only). This is the actual browser
-// behavior #354's bug depended on nothing checking -- the manual check
-// that missed it just glanced at the app and moved on.
+// RFC 6265 §5.1.3 domain matching, as a browser does it.
 function cookieAppliesTo(cookieDomain, requestHostname) {
   if (!cookieDomain) return false;
   const normalized = cookieDomain.replace(/^\./, "");
