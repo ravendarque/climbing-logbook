@@ -1,21 +1,6 @@
-// #1015 -- generates the brand lockup (mark, title, tagline and Logbook
-// Beta's tag) as ONE SVG, static/-/brand-lockup.svg, so the whole header
-// scales and renders as a single image. Separately laid-out HTML boxes
-// each snapped to the pixel grid and read the font's ascent metrics their
-// own way, so the parts drifted against each other with zoom level and
-// platform (#1012).
-//
-// The text is Bebas Neue glyph outlines, laid out by fontkit with the
-// font's own kerning plus the header's `tracking-wide` (0.025em), so the
-// SVG never depends on the web font or on how a browser reads its metrics.
-// The committed SVG is the source of truth; run this only after changing
-// the text, the font or the geometry below:
-//
+// Writes static/-/brand-lockup.svg from Bebas Neue outlines (so it never depends on the web font)
+// and the generated block in climbing-header.js. Run after changing the text, font or geometry.
 //   node scripts/generate-brand-lockup.mjs
-//
-// It also rewrites the generated block in climbing-header.js (the two
-// viewBox sizes and the "or not" button's box), which
-// test/scripts/brand-lockup.test.js checks against the SVG.
 import { openSync } from "fontkit";
 import { readFileSync, writeFileSync } from "node:fs";
 
@@ -23,10 +8,7 @@ const FONT = "static/-/fonts/BebasNeue-Regular.woff2";
 const SVG_OUT = "static/-/brand-lockup.svg";
 const HEADER = "static/-/components/climbing-header.js";
 
-// Geometry, in units of 1/1000 of --brand-scale (the title's font size),
-// so the title's glyphs are drawn at their native 1000 units per em. The
-// ratios are the header's own from #208/#789: mark 1.4133 x 1.1042, gap
-// 0.1083, tagline 0.3547 of the title's size.
+// Units of 1/1000 of --brand-scale, the title's font size.
 const TITLE = "CLIMBING LOGBOOK";
 const TITLE_RUNS = [["accent", 0, 8], ["foreground", 8, 16]];
 const TAGLINE = "LOG YOUR CLIMBS, VISUALISE YOUR PROGRESS (OR NOT)";
@@ -39,18 +21,13 @@ const MARK_H = 1104.2;
 const GAP = 108.3;
 const TEXT_X = MARK_W + GAP;
 
-// Logbook Beta's tag (#956, #1012): Raven's draft, in its own 722 x 268
-// space, leaning 1 across per 2 down like the K's arm, BETA centred.
-// Placed with its top on the capitals' line and #1013's gap to the K.
 const TAG_W = 762.5;
 const TAG_SCALE = TAG_W / 722;
 const TAG_OFFSET_X = 6072.9; // from the title's first pen position
 
 const font = openSync(FONT);
 
-// Pen positions for a string: fontkit's advances (kerning included) plus
-// the tracking after every character, which is what CSS letter-spacing
-// does.
+// fontkit advances plus tracking after every character, as CSS letter-spacing does.
 function layout(text) {
   const run = font.layout(text);
   let x = 0;
@@ -62,8 +39,6 @@ function layout(text) {
   return { glyphs, width: x };
 }
 
-// One path per colour run, in font units with y up; the <g> around it
-// flips and scales it into place.
 function runPath(glyphs, from, to) {
   return glyphs.slice(from, to)
     .map(({ glyph, x }) => glyph.path.translate(x, 0).toSVG())
@@ -72,7 +47,6 @@ function runPath(glyphs, from, to) {
     .replace(/(\d+\.\d{2})\d+/g, "$1");
 }
 
-// Ink bounds of a run in lockup units, for the viewBox and the button.
 function inkBox(glyphs, from, to, originX, baseline, scale) {
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
   for (const { glyph, x } of glyphs.slice(from, to)) {
@@ -90,8 +64,7 @@ const title = layout(TITLE);
 const tagline = layout(TAGLINE);
 const titleInk = inkBox(title.glyphs, 0, TITLE.length, TEXT_X, 0, 1);
 
-// #208: the mark's top sits on the title's ink top, its bottom on the
-// tagline's baseline. The title's baseline is y = 0.
+// The mark's top sits on the title's ink top, its bottom on the tagline's baseline.
 const markTop = titleInk.minY;
 const taglineBaseline = markTop + MARK_H;
 const taglineScale = TAGLINE_SIZE / 1000;
@@ -114,7 +87,6 @@ const runGroup = (layoutResult, runs, x, baseline, scale) => runs
   .join("\n    ")
   .replace(/^/, `<g transform="translate(${round(x)} ${round(baseline)}) scale(${scale} ${-scale})">\n    `) + "\n  </g>";
 
-// BETA, laid out the same way, centred in the tag at the #1013 size.
 const beta = layout("BETA");
 const betaScale = 0.235;
 const betaX = (134 / 2 + 588 / 2) - (beta.width - TRACKING) * betaScale / 2;
@@ -149,8 +121,6 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg">
 `;
 writeFileSync(SVG_OUT, svg);
 
-// The header needs the sizes to lay out the <svg> that <use>s a symbol,
-// and the "or not" box for its button, as fractions of the lockup.
 const pct = n => Math.round(n * 10000) / 10000;
 const generated = `  // BEGIN GENERATED (scripts/generate-brand-lockup.mjs)
   var LOCKUP = { width: ${box.w}, betaWidth: ${box.betaW}, height: ${box.h}, orNot: { x: ${round(orNotInk.minX)}, y: ${round(orNotInk.minY - box.y)}, width: ${round(orNotInk.maxX - orNotInk.minX)}, height: ${round(orNotInk.maxY - orNotInk.minY)} } };

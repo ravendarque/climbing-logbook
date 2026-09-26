@@ -1,7 +1,4 @@
-// Minifies the hand-written scripts 11ty copies from static/ into the build,
-// so none of their comments ship. Top-level names survive (esbuild doesn't
-// rename them outside a bundle), which these classic scripts rely on to
-// share globals across <script> tags.
+// Top-level names survive, which the classic scripts rely on to share globals.
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { transformSync } from "esbuild";
