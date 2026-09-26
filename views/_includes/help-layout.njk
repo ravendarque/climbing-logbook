@@ -3,7 +3,7 @@ layout: app-layout.njk
 title: Help – Climbing Logbook
 bundle: help
 ---
-<!-- #876 -- chained layout (this file's own front matter sets `layout:
+{# #876 -- chained layout (this file's own front matter sets `layout:
      app-layout.njk` above), not a standalone <html>/<head>/<body> shell
      like the very first pass here -- Raven's call, 2026-09-20: /help
      should use the exact same header row every other app page does
@@ -11,9 +11,9 @@ bundle: help
      menu for navigating back out), not a bespoke narrower shell of its
      own. app-layout.njk's own trailing bundle-script tag is now
      conditional specifically so this chain works -- see that file's
-     own comment. -->
+     own comment. #}
 
-<!-- #876 -- Pagefind's Component UI assets + theme-variable overrides,
+{# #876 -- Pagefind's Component UI assets + theme-variable overrides,
      placed here (inside <body>, at the top of this page's own content)
      rather than in app-layout.njk's <head> -- a chained layout's content
      only ever lands inside {{ content }}, past the point <head> is
@@ -22,7 +22,7 @@ bundle: help
      See the file's own git history (first pass, before this restructure)
      for why the bundle-path config below is explicit rather than relying
      on the Component UI's documented (but not, in practice, working in
-     this setup) auto-detection from the script's own src. -->
+     this setup) auto-detection from the script's own src. #}
 <link rel="stylesheet" href="/help/pagefind/pagefind-component-ui.css">
 <script src="/help/pagefind/pagefind-component-ui.js" type="module"></script>
 <style>
@@ -55,21 +55,21 @@ bundle: help
 </style>
 
 <div class="max-w-[960px] mx-auto">
-  <!-- menu = "help" (#882): the help family's own burger menu rows
+  {# menu = "help" (#882): the help family's own burger menu rows
        (Report an issue / Tell us what you think / Climbing Logbook /
        theme + socials) live in views/_includes/menu-help.njk. Help is
-       reachable logged out, so no session-dependent rows exist here. -->
+       reachable logged out, so no session-dependent rows exist here. #}
   {% set menu = "help" %}{% include "page-header.njk" %}
 
-  <!-- #876 -- two-column help view starts below the header row, per
+  {# #876 -- two-column help view starts below the header row, per
        Raven's own instruction (2026-09-20) -- not part of the header
        row itself the way climbing-tab-bar sits on other pages.
        max-[600px]:flex-col: same breakpoint climbing-grade-pyramid.js/
        the Performance Insights hub's own tile grid already collapse at
        for narrow viewports -- the sidebar stacks above the article
-       full-width on mobile rather than being squeezed beside it. -->
+       full-width on mobile rather than being squeezed beside it. #}
   <div class="flex gap-8 mt-6 max-[600px]:flex-col" id="help-layout">
-    <!-- #876 -- built from eleventyNavigation's own collection API, not
+    {# #876 -- built from eleventyNavigation's own collection API, not
          a hand-rolled tree: every views/help/** page contributes itself
          via its own front matter (`eleventyNavigation: { key, parent,
          order }`), so adding a new help page never means editing this
@@ -78,8 +78,8 @@ bundle: help
          viewport width the way the 2-column report grids elsewhere in
          this app deliberately do (those grids hold peer content of
          equal weight; a nav rail and its article are not peers). Full
-         width once stacked (max-[600px]:flex-[0_0_auto]). -->
-    <!-- flex flex-col gap-8 (not a margin on pagefind-searchbox itself)
+         width once stacked (max-[600px]:flex-[0_0_auto]). #}
+    {# flex flex-col gap-8 (not a margin on pagefind-searchbox itself)
          -- Pagefind's own pagefind-component-ui.css sets `all: initial`
          directly on the pagefind-searchbox element, in an unlayered
          stylesheet; per the CSS Cascade Layers spec, unlayered CSS
@@ -91,11 +91,11 @@ bundle: help
          `gap` on this element's own PARENT sidesteps the problem
          entirely: it's not a property Pagefind's per-element reset can
          touch. pagefind-config contributes nothing to the gap since
-         Pagefind's own CSS sets it display:none. -->
+         Pagefind's own CSS sets it display:none. #}
     <nav class="flex flex-col gap-8 flex-[0_0_14rem] max-[600px]:flex-[0_0_auto] min-w-0" id="help-nav" aria-label="Help topics">
-      <!-- pagefind-config: see this file's own top-of-content comment. -->
+      {# pagefind-config: see this file's own top-of-content comment. #}
       <pagefind-config bundle-path="/help/pagefind/"></pagefind-config>
-      <!-- pagefind-searchbox is a self-registering custom element (the
+      {# pagefind-searchbox is a self-registering custom element (the
            module script above defines it) -- no init call needed,
            unlike the older Default UI's `new PagefindUI(...)`.
            hide-shortcut + an unreachable shortcut combo: Raven's call
@@ -104,11 +104,11 @@ bundle: help
            hide-shortcut only hides the hint pill, it doesn't stop the
            listener itself; there's no documented "disable the binding"
            attribute, so an effectively-unreachable combo is the
-           pragmatic equivalent of off. -->
+           pragmatic equivalent of off. #}
       <pagefind-searchbox hide-shortcut shortcut="ctrl+alt+shift+meta+f24"></pagefind-searchbox>
-      <!-- #885 -- narrow mode only (see the <style> block above): the topic
+      {# #885 -- narrow mode only (see the <style> block above): the topic
            list collapses behind this toggle instead of stacking above the
-           article. Wired in client/help-main.js. Search stays visible. -->
+           article. Wired in client/help-main.js. Search stays visible. #}
       <button type="button" class="btn w-full justify-between" id="help-nav-btn" aria-expanded="false" aria-controls="help-nav-list">
         <span>Help topics</span>
         <svg class="w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
@@ -126,11 +126,11 @@ bundle: help
       </ul>
     </nav>
 
-    <!-- data-pagefind-body: without it, Pagefind indexes every <body>
+    {# data-pagefind-body: without it, Pagefind indexes every <body>
          element on the page (confirmed live -- its own build output
          warns "Did not find a data-pagefind-body element... Indexing
          all <body> elements"), which would surface sidebar link text
-         and the header row in search results, not just real content. -->
+         and the header row in search results, not just real content. #}
     <article class="flex-1 min-w-0 max-w-[640px] help-article" data-pagefind-body>
       {{ content | safe }}
     </article>

@@ -14,7 +14,7 @@ staticShellNote: |-
          file at all.
 ---
 <div class="max-w-[960px] mx-auto">
-  <!-- admin-hidden (#351): login/Athlete Mode are never reachable on this
+  {# admin-hidden (#351): login/Athlete Mode are never reachable on this
        read-only page at all (no admin-auth.js/store.js session wiring
        exists in client/profile-main.js), so those rows are absent from
        the DOM entirely, not just CSS-hidden -- see that component's own
@@ -34,10 +34,10 @@ staticShellNote: |-
        page was originally scoped out of the #211/#465 redesign entirely,
        then brought back in once the resulting inconsistency (burger menu
        at a different vertical position than every other page) was
-       noticed. -->
+       noticed. #}
   {% set menu = "profile" %}{% include "page-header.njk" %}
 
-  <!-- Real WAI-ARIA Tabs (role=tablist/tab/tabpanel), not
+  {# Real WAI-ARIA Tabs (role=tablist/tab/tabpanel), not
        <climbing-tab-bar>'s nav-landmark links -- this switches between two
        panels *within* this one page, not between separate URLs, so the
        Tabs pattern is the correct one here (see climbing-tab-bar.js's own
@@ -59,14 +59,14 @@ staticShellNote: |-
        2026-09-05). mb-5 stays local to this div, not baked into the
        shared rule -- unlike climbing-tab-bar.js's <nav>, this container
        isn't a flex-item sibling of anything else, so it never hit that
-       margin-absorption bug and doesn't need the margin moved out. -->
+       margin-absorption bug and doesn't need the margin moved out. #}
   <div class="tab-nav mb-5" id="view-tabs" role="tablist" aria-label="View">
     <button type="button" class="tab-nav-item" id="view-tab-logbook" role="tab" data-view="logbook" aria-selected="true" aria-controls="panel-logbook">Logbook</button>
     <button type="button" class="tab-nav-item" id="view-tab-map" role="tab" data-view="map" aria-selected="false" aria-controls="panel-map">Map</button>
   </div>
 
   <div id="panel-logbook" role="tabpanel" aria-labelledby="view-tab-logbook">
-    <!-- Not `editable` -- readonly by construction, matching this page's
+    {# Not `editable` -- readonly by construction, matching this page's
          whole point. No entry-form.js/place-picker.js/offline-sync.js
          import anywhere in client/profile-main.js either ("security by
          absence", #344's decision), so there'd be nothing to wire an
@@ -84,18 +84,18 @@ staticShellNote: |-
          loading (#470): true from initial parse, before
          client/profile-main.js's own boot() has fetched the counts-only
          shell data -- see that attribute's own comment in the same
-         file. Cleared by boot() itself once that fetch resolves. -->
+         file. Cleared by boot() itself once that fetch resolves. #}
     <climbing-entries-table all-disciplines lazy loading></climbing-entries-table>
   </div>
 
-  <!-- Same markup shape as public/map/index.html's own #map-wrap block --
+  {# Same markup shape as public/map/index.html's own #map-wrap block --
        see that file's comments for what each id is for (client/map-view.js
        queries all of them directly, unaware of which page it's running
        on). #subtitle lives here (map-scoped stats), not page-level --
        map-view.js's own updateSubtitle() comment notes it's genuinely
        different data from any Logbook-tab subtitle, despite the similar
        name. #footer stays the single page-level element below (map-view.js
-       always clears it to "", a confirmed no-op either way). -->
+       always clears it to "", a confirmed no-op either way). #}
   <div id="panel-map" role="tabpanel" aria-labelledby="view-tab-map" hidden>
     <p class="text-[.95rem] mb-4" id="subtitle"></p>
     <div class="relative" id="map-wrap">
@@ -124,7 +124,7 @@ staticShellNote: |-
   <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>
 </div>
 
-<!-- #460 -- wider than public/map/index.html's own copy (max-w-[240px]):
+{# #460 -- wider than public/map/index.html's own copy (max-w-[240px]):
      this page's pin popover shows both disciplines' stat breakdown side
      by side above 600px (client/map-view.js's own allDisciplines mode),
      which doesn't fit in a single-discipline-width popover. Narrows back
@@ -139,5 +139,5 @@ staticShellNote: |-
      measured shrinking to ~214px regardless of the 420px cap, wrapping
      "Onsights"/"Redpoints" (Raven's own report, 2026-08-15). Confirmed
      via a live min-width-only patch that this fixes it before landing
-     the fix here. -->
+     the fix here. #}
 <div class="fixed z-30 bg-background border border-border rounded-app p-3 shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)] text-[.85rem] max-w-[420px] min-w-[420px] max-[600px]:max-w-[240px] max-[600px]:min-w-0" id="map-pin-popover" hidden role="group"></div>

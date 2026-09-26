@@ -7,10 +7,10 @@ eleventyNavigation:
   order: 13
 ---
 
-<!-- #925 -- was a "coming soon" placeholder (views/help/feedback/index.md).
+{# #925 -- was a "coming soon" placeholder (views/help/feedback/index.md).
      Converted from .md to .njk, same #924 precedent as views/help/
      report-an-issue/index.njk -- bundle: feedback (this page's own front
-     matter) overrides help-layout.njk's default `bundle: help`. -->
+     matter) overrides help-layout.njk's default `bundle: help`. #}
 
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad&render=explicit" async defer></script>
 
@@ -44,10 +44,10 @@ eleventyNavigation:
 
   <p class="mb-4 error-message" id="feedback-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>
 
-  <!-- #925 -- disclaimer copy, Raven's own wording (2026-09-23). Inline
+  {# #925 -- disclaimer copy, Raven's own wording (2026-09-23). Inline
        notice text, not an opt-in checkbox: submitting under this text is
        the consent (feedback_submissions.sharing_consent, migrations/0019,
-       is always 1). -->
+       is always 1). #}
   <p class="text-[.85rem] text-muted mb-4">By submitting this, you understand we might share your feedback publicly but anonymously, on the site or our socials.</p>
 
   <button type="submit" class="btn btn-primary px-8 disabled:opacity-[.45] disabled:cursor-not-allowed" id="feedback-submit-btn">Send feedback</button>
