@@ -71,6 +71,11 @@ resource "cloudflare_dns_record" "app_www" {
   ttl     = 1
   proxied = true
   comment = "#527 -- www redirects to the apex, doesn't serve traffic itself."
+
+  # #1075 -- same reason as dns.tf's records.
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 # #985 -- the apex's own pages. The app hosts (my./beta.) serve only the
