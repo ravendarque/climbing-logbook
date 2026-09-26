@@ -196,9 +196,11 @@ why Better Auth replaced Cloudflare Access as the mechanism itself.
 - **A comment that no longer matches the code is a bug.** Fix or delete it
   in the same change that makes it wrong, and cut any narrative comment
   you touch along the way.
-- **Nothing a user downloads should contain comments.** Vite minifies the
-  bundles, and templates use `{# #}`, never `<!-- -->` (enforced by
-  `test/scripts/template-comments.test.js`). Never spell out Nunjucks' own delimiters
+- **Nothing a user downloads contains comments.** Vite minifies the
+  bundles, `static/` scripts are minified as they're copied into the
+  build (`scripts/minify-static.mjs`), and templates use `{# #}`, never
+  `<!-- -->` (enforced by `test/scripts/template-comments.test.js`).
+  Never spell out Nunjucks' own delimiters
   literally in a template, even inside a comment: Nunjucks evaluates them
   (#943).
 - **Docs describe the current state.** They're maps of how things are,

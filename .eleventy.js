@@ -37,6 +37,7 @@
 // renders before the bundles exist.
 import eleventyNavigationPlugin from "@11ty/eleventy-navigation";
 import { execFileSync } from "node:child_process";
+import { minifyStaticScripts } from "./scripts/minify-static.mjs";
 import { gradeScaleMatrixHtml, gradeScaleSourcesHtml } from "./client/grade-scale-matrix.js";
 
 const ASSET_VERSION = String(Date.now());
@@ -100,6 +101,8 @@ export default function (eleventyConfig) {
   // during help-content work runs `pnpm run html:build` once separately.
   eleventyConfig.on("eleventy.after", () => {
     if (process.env.ELEVENTY_RUN_MODE === "watch") return;
+    const { before, after } = minifyStaticScripts("static", "public");
+    console.log(`[minify-static] static/ scripts: ${before} -> ${after} bytes`);
     execFileSync("npx", ["pagefind", "--site", "public/help", "--output-path", "public/help/pagefind"], {
       stdio: "inherit",
     });
