@@ -33,7 +33,7 @@ export function createPlacePicker({
   adminFetch,
   isAuthRedirect,
   getQueue,
-  setQueue,
+  enqueue,
   locationsWriteUrl,
   placesWriteUrl,
 }) {
@@ -221,7 +221,11 @@ export function createPlacePicker({
     const place = { id: crypto.randomUUID(), locationId: location.id, area };
 
     let authLapsed = false;
-    const queue = getQueue();
+    // #1076 -- collected here and appended to the stored queue at the end,
+    // not pushed onto a copy read before the awaits below: writing that
+    // copy back would erase anything a sync or another tab changed while
+    // these requests were in flight.
+    const queued = [];
 
     if (!matched) {
       try {
@@ -246,15 +250,15 @@ export function createPlacePicker({
         // Offline, server unreachable, or the Access session lapsed --
         // queue the location, and the place right behind it below, same
         // dependency order the online path itself writes in.
-        queue.push({ kind: "location", op: "add", record: location });
+        queued.push({ kind: "location", op: "add", record: location });
       }
     }
 
-    const locationQueued = queue.some(item => item.kind === "location" && item.record.id === location.id);
+    const locationQueued = [...getQueue(), ...queued].some(item => item.kind === "location" && item.record.id === location.id);
     if (locationQueued) {
       // Already know this session is offline -- don't bother attempting
       // the place online too, just queue it right behind the location.
-      queue.push({ kind: "place", op: "add", record: place });
+      queued.push({ kind: "place", op: "add", record: place });
     } else {
       try {
         const res = await adminFetch(placesWriteUrl, {
@@ -272,14 +276,14 @@ export function createPlacePicker({
         store.setPlaces(data.places);
       } catch (err) {
         if (err.message === "not-authenticated") authLapsed = true;
-        queue.push({ kind: "place", op: "add", record: place });
+        queued.push({ kind: "place", op: "add", record: place });
       }
     }
 
     if (authLapsed) {
       store.setLoggedIn(false); // Store mutation -- notify() covers the admin-bar update (#264)
     }
-    setQueue(queue);
+    if (queued.length) enqueue(...queued);
     store.applyPendingQueue(getQueue());
     setPlace(place.id);
     closeModal(addPlaceOverlay);

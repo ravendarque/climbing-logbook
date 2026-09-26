@@ -164,6 +164,7 @@ document.addEventListener("click", e => {
 const entryForm = createEntryForm({
   store, openModal, closeModal, adminFetch, isAuthRedirect,
   getQueue: offlineSync.getQueue, setQueue: offlineSync.setQueue,
+  enqueue: offlineSync.enqueue, syncPending: offlineSync.syncPending,
   entriesWriteUrl: ENTRIES_WRITE_URL, locationsWriteUrl: LOCATIONS_WRITE_URL, placesWriteUrl: PLACES_WRITE_URL,
   readOnly: IS_DEMO,
   // #791 -- gates the Performance data page (and the only way to reach

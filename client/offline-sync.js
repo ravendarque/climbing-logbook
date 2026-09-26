@@ -52,6 +52,20 @@ export function createOfflineSync({
     localStorage.setItem(queueKey, JSON.stringify(queue));
     updateSyncButton();
   }
+  // #1076 -- every change to the queue reads what's in storage at that
+  // moment and writes it straight back, with no await in between. A copy
+  // read before an await and written back after it would erase whatever
+  // the form or another tab queued in the meantime. Each item gets a qid
+  // so the replay loop can remove exactly that item once it syncs.
+  function enqueue(...items) {
+    setQueue([...getQueue(), ...items.map(item => ({ ...item, qid: crypto.randomUUID() }))]);
+  }
+  // Items queued before #1076 have no qid.
+  function assignMissingQids() {
+    const queue = getQueue();
+    if (queue.every(item => item.qid)) return;
+    setQueue(queue.map(item => (item.qid ? item : { ...item, qid: crypto.randomUUID() })));
+  }
   function updateSyncButton() {
     const n = getQueue().length;
     // A sync while logged out is a guaranteed no-op (no session to write
@@ -185,6 +199,10 @@ export function createOfflineSync({
   // concurrent syncPending() calls, each independently replaying the
   // same queued item against the server.
   let syncInFlight = false;
+  // #1077 -- a save made while this tab is already replaying goes to the
+  // back of the queue and asks for a sync. Returning early would leave it
+  // queued until the next click or reconnect, so run once more instead.
+  let syncAgain = false;
 
   // #490 -- when a queued "location"/"place" create gets deduped
   // server-side (server/lib/d1-resource.js's own createD1ResourceHandlers,
@@ -195,18 +213,98 @@ export function createOfflineSync({
   // substituted for the server's real id *before* it gets its own turn
   // in the replay loop below -- otherwise it fails validation outright
   // against an id that was never actually inserted (the dedup means
-  // nothing was created under it). Mutates `queue` in place (the exact
-  // array syncPending()'s own loop is iterating), which is what lets a
-  // location's own remap already be visible by the time a dependent
-  // place item further down the same queue reaches its own iteration.
+  // nothing was created under it). Mutates `queue` in place.
   function remapQueueReferences(queue, field, fromId, toId) {
     for (const item of queue) {
       if (item.record[field] === fromId) item.record[field] = toId;
     }
   }
 
+  function isStillQueued(qid) {
+    return getQueue().some(item => item.qid === qid);
+  }
+
+  // #1076 -- two tabs replaying the same queue would each send every
+  // item, so one tab could send an older edit after the other had sent a
+  // newer one. The lock makes a second tab wait, then replay only what's
+  // left. navigator.locks is missing only on old browsers; there the
+  // isStillQueued() check below still skips items another tab has synced.
+  function withReplayLock(fn) {
+    if (!navigator.locks) return fn();
+    return navigator.locks.request(`${queueKey}:replay`, fn);
+  }
+
+  // Replays the queue in order. Each item is removed from storage as soon
+  // as it succeeds, so anything queued while this runs is never touched.
+  async function replayQueue() {
+    assignMissingQids();
+    const queue = getQueue();
+    if (!queue.length) return;
+
+    let lastEntries = null, lastPlaces = null, lastLocations = null;
+    for (const item of queue) {
+      // Synced by another tab, or purged by a direct delete, since the
+      // queue was read.
+      if (!isStillQueued(item.qid)) continue;
+      let data;
+      try {
+        const res = await syncOne(item);
+        if (res.status === 401 || isAuthRedirect(res)) {
+          // Everything from here on stays queued, in order (#158).
+          store.setLoggedIn(false); // Store mutation -- notify() covers the admin-bar update (#264)
+          break;
+        }
+        if (!res.ok) continue;
+        data = await res.json();
+      } catch {
+        break; // still offline -- stop, the rest stay queued in order
+      }
+
+      let remap = null;
+      if (item.kind === "location") {
+        lastLocations = data.locations;
+        // #490 -- a location item's own kind-vs-field naming
+        // differs from place/entry: this device's originally-minted
+        // location id is `item.record.id` itself (not, say,
+        // `item.record.locationId`), and what references it further
+        // down the queue is a "place" item's own `locationId` field.
+        if (data.dedupedTo && data.dedupedTo !== item.record.id) {
+          remap = ["locationId", item.record.id, data.dedupedTo];
+        }
+      } else if (item.kind === "place") {
+        lastPlaces = data.places;
+        // Same idea, one level down -- a "place" item's own id is
+        // what an "entry" item's own `placeId` field references.
+        if (data.dedupedTo && data.dedupedTo !== item.record.id) {
+          remap = ["placeId", item.record.id, data.dedupedTo];
+        }
+      } else {
+        lastEntries = data.entries;
+      }
+
+      // One read-modify-write: drop the synced item, and remap what's
+      // stored (including anything queued since) as well as this loop's
+      // own copy.
+      const stored = getQueue().filter(queued => queued.qid !== item.qid);
+      if (remap) {
+        remapQueueReferences(stored, ...remap);
+        remapQueueReferences(queue, ...remap);
+      }
+      setQueue(stored);
+    }
+
+    if (lastLocations) store.setLocations(lastLocations);
+    if (lastPlaces) store.setPlaces(lastPlaces);
+    if (lastEntries) store.setEntries(lastEntries);
+    // Re-apply whatever's still queued on top of the just-confirmed
+    // server state, for any of the three arrays that changed.
+    if (lastLocations || lastPlaces || lastEntries) {
+      store.applyPendingQueue(getQueue());
+    }
+  }
+
   async function syncPending() {
-    if (syncInFlight) return;
+    if (syncInFlight) { syncAgain = true; return; }
     syncInFlight = true;
     syncBtn.disabled = true;
     syncBtnIcon.classList.add("animate-spin");
@@ -217,76 +315,15 @@ export function createOfflineSync({
       // root that constructs this factory) -- pullDeltas() is a
       // background reconcile too, not page content.
       await syncStatusIcon.track(pullDeltas());
-
-      const queue = getQueue();
-      if (!queue.length) return;
-
-      const remaining = [];
-      let lastEntries = null, lastPlaces = null, lastLocations = null;
-      for (let i = 0; i < queue.length; i++) {
-        const item = queue[i];
-        try {
-          const res = await syncOne(item);
-          if (res.status === 401 || isAuthRedirect(res)) {
-            // queue.slice(i), not [item] -- every item from here on was
-            // never attempted and must be preserved too, or a mid-sync
-            // 401/network failure silently drops the rest of the queue.
-            // This also naturally preserves a location/place/entry
-            // dependency chain's relative order in `remaining`, since
-            // they're always pushed onto the queue in that order to
-            // begin with (#158).
-            remaining.push(...queue.slice(i));
-            store.setLoggedIn(false); // Store mutation -- notify() covers the admin-bar update (#264)
-            break;
-          }
-          if (!res.ok) { remaining.push(item); continue; }
-          const data = await res.json();
-          if (item.kind === "location") {
-            lastLocations = data.locations;
-            // #490 -- a location item's own kind-vs-field naming
-            // differs from place/entry: this device's originally-minted
-            // location id is `item.record.id` itself (not, say,
-            // `item.record.locationId`), and what references it further
-            // down the queue is a "place" item's own `locationId` field.
-            if (data.dedupedTo && data.dedupedTo !== item.record.id) {
-              remapQueueReferences(queue, "locationId", item.record.id, data.dedupedTo);
-            }
-          } else if (item.kind === "place") {
-            lastPlaces = data.places;
-            // Same idea, one level down -- a "place" item's own id is
-            // what an "entry" item's own `placeId` field references.
-            if (data.dedupedTo && data.dedupedTo !== item.record.id) {
-              remapQueueReferences(queue, "placeId", item.record.id, data.dedupedTo);
-            }
-          } else {
-            lastEntries = data.entries;
-          }
-        } catch {
-          remaining.push(...queue.slice(i));
-          break; // still offline — stop, preserve order for next attempt
-        }
-      }
-
-      setQueue(remaining);
-      if (lastLocations) store.setLocations(lastLocations);
-      if (lastPlaces) store.setPlaces(lastPlaces);
-      if (lastEntries) store.setEntries(lastEntries);
-      // Re-apply whatever's still queued on top of the just-confirmed
-      // server state, for any of the three arrays that changed.
-      if (lastLocations || lastPlaces || lastEntries) {
-        store.applyPendingQueue(getQueue());
-      }
-      // No trailing render() call needed (#264) -- every branch that
-      // changes anything render() would reflect already went through a
-      // Store mutation above, each notifying on its own. The only paths
-      // that reach here without any Store mutation (every queued item
-      // failed with a non-401, non-network error) are also paths where
-      // nothing about the rendered entries/places/locations actually
-      // changed, so there'd be nothing for a render() to pick up anyway.
+      do {
+        syncAgain = false;
+        await withReplayLock(replayQueue);
+      } while (syncAgain && store.isLoggedIn());
     } finally {
       // syncBtn's own disabled/spin state is plain DOM, not Store-driven
       // -- reset directly, not via render().
       syncInFlight = false;
+      syncAgain = false;
       syncBtn.disabled = false;
       syncBtnIcon.classList.remove("animate-spin");
     }
@@ -295,5 +332,5 @@ export function createOfflineSync({
   syncBtn.addEventListener("click", syncPending);
   window.addEventListener("online", () => { if (store.isLoggedIn()) syncPending(); });
 
-  return { getQueue, setQueue, syncPending, updateSyncButton, reconcileEntries };
+  return { getQueue, setQueue, enqueue, syncPending, updateSyncButton, reconcileEntries };
 }
