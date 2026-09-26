@@ -1,22 +1,3 @@
-// Composition root for /:username/performance/trends (#15) -- bundled by
-// esbuild into public/-/performance-trends-app.js, same pattern as
-// client/map-main.js (see that file's own comment for the general "trimmed
-// from client/main.js" reasoning). Reuses store.js/admin-auth.js/
-// header-chrome.js unchanged.
-//
-// #111 -- this page no longer fetches raw entries or computes anything
-// itself. fetchVolume() returns the already-computed volume/intensity
-// data (server/api/performance.js running the shared volume-stats logic in
-// the Worker against the full D1 result set) -- store.js's entries/cache
-// machinery isn't used on this page at all any more, and there's
-// deliberately no offline fallback: performance insights are online-only
-// (Raven's own call, see the #performance-offline message in
-// public/performance/trends/index.html for the reasoning).
-//
-// No modal-utils.js/content-overlays.js here either, same reasoning as
-// map-main.js -- this page has no notes/footnote overlay of its own; its
-// own Sources section (#797, views/performance/trends/index.njk) is plain
-// inline content, not a popup needing wiring from here.
 import { createStore } from "./store.js";
 import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
@@ -33,9 +14,6 @@ import { registerServiceWorker } from "./register-sw.js";
 
 const SETTINGS_URL = "/-/api/settings";
 
-// Same opaqueredirect-detection reasoning as client/main.js's own
-// adminFetch/isAuthRedirect -- unchanged copy, not worth sharing a
-// two-line pair across a module boundary (same call map-main.js made).
 function adminFetch(url, options) {
   return fetch(url, { ...options, redirect: "manual" });
 }
@@ -43,22 +21,16 @@ function isAuthRedirect(res) {
   return res.type === "opaqueredirect";
 }
 
-// /:username/performance/trends -- same single-segment extraction as map-main.js.
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
-// #251 -- one of the three seeded, publicly-viewable demo accounts.
 const IS_DEMO = isDemoUsername(USERNAME);
 
 const store = createStore();
 const syncStatusIcon = createSyncStatusIcon();
 store.subscribe(render);
-// Deliberately NOT store.setActiveView(...) here -- same temporal-dead-zone
-// hazard map-main.js's own comment documents (a real crash caught during
-// #348's manual verification of that page). Set inside boot() instead.
 
 const tabBar = document.querySelector("climbing-tab-bar");
 tabBar.setAttribute("username", USERNAME);
 
-// #601
 document.getElementById("back-to-performance-link").href = `/${encodeURIComponent(USERNAME)}/performance`;
 
 const trendsRootEl = document.getElementById("trends-root");
@@ -68,18 +40,9 @@ const offlineEl = document.getElementById("performance-offline");
 
 let latestVolumeData = null;
 
-// A rapid preset switch, or the two Custom date inputs firing `change`
-// back-to-back, can let an earlier, now-stale fetchVolume() resolve after
-// a later one -- same hazard class client/performance-strengths-main.js's
-// own onAnchorChange() guards against (see that file's own comment), just
-// scoped to this file's own onChange callback instead of a <select>.
+// Drop a response that a newer request has overtaken.
 let latestVolumeRequestId = 0;
 
-// #704 -- which scale this page currently renders grades in, one
-// preference shared across every report page (not #703's own,
-// per-add/edit-form preference). Constructed after `store` exists
-// (below) since its onChange re-renders through this file's own
-// renderTrends().
 const gradeScalePicker = createReportGradeScalePicker({
   containerEl: reportGradeScaleRootEl,
   getType: () => store.getActiveType(),
@@ -92,17 +55,6 @@ function renderTrends() {
   const { buckets, sendCounts, maxGradeByBucket } = latestVolumeData[type];
   const viewScaleId = gradeScalePicker.getScaleId();
 
-  // #704 -- positionKey is the canonical ordinal, not a raw grade
-  // string -- scale-independent by construction (#702), so a point
-  // plots correctly regardless of which scale its own displayLabel
-  // renders in. #717 -- each bucket's own winner is a real
-  // { grade, gradeScale } pair now (shared/volume-stats.js's own
-  // volumeByBucket()), not a bare string assumed to be in the
-  // discipline's primary scale -- resolves correctly regardless of
-  // which of the discipline's real scales that particular send was
-  // logged in. #733 -- a null point (not just a null label) when the
-  // chosen view scale can't represent that grade at all, rather than
-  // showing it as something it isn't.
   const points = maxGradeByBucket.map(pair => reportGradePoint(pair, type, viewScaleId));
 
   trendsRootEl.innerHTML = renderComboChartHtml({
@@ -120,9 +72,6 @@ function render() {
   renderTrends();
 }
 
-// #111 -- a plain fetch, not fetch-json.js's loadResource(): this endpoint
-// takes start/end query params and returns a shape keyed by discipline, not
-// a single `{ [key]: array }` list.
 async function fetchVolume(start, end) {
   const res = await fetch(`${demoDataUrl(USERNAME, "/-/api/performance/volume", "performance/volume")}?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -137,9 +86,6 @@ const adminAuth = createAdminAuth({
   store, adminFetch, isAuthRedirect,
   settingsUrl: SETTINGS_URL,
   updateAdminBar,
-  // #847 follow-up -- lets checkSession()/fetchSettings() report a
-  // genuine fetch timeout through to the shell sync/offline indicator
-  // (see admin-auth.js/sync-status-icon.js own comments).
   onFetchTimeout: syncStatusIcon.reportTimeout,
 });
 
@@ -151,10 +97,7 @@ const headerChrome = createHeaderChrome({
 async function boot() {
   store.setActiveView("performance-trends");
 
-  // Renders the shell (tab bar, header) from cached state before any network
-  // call. The Athlete Mode redirect below deliberately waits for the real
-  // settings fetch: a cached "on" can be stale if Athlete Mode was turned off
-  // on another device, and nothing would re-check it once the fetch lands.
+  // The Athlete Mode redirect waits for real settings: a cached "on" may be stale.
   adminAuth.setInitialActiveType();
 
   const sessionPromise = syncStatusIcon.track(adminAuth.checkSession());
@@ -162,20 +105,6 @@ async function boot() {
 
   await adminAuth.reconcileActiveType(sessionPromise, settingsPromise);
 
-  // Performance Insights require BOTH being logged in AND Athlete Mode on
-  // (#151, carried forward from /logbook's own updateAdminBar() rule, and
-  // already encoded in <climbing-tab-bar>'s show-performance attribute --
-  // see that component's TABS comment). owned-routes.js already guarantees
-  // "logged in as this page's own owner" before this bundle ever loads, so
-  // the only remaining case to handle here is the owner visiting their own
-  // /performance directly with Athlete Mode off -- same fallback
-  // client/main.js's updateAdminBar() applies when the tab disappears out
-  // from under an active performance-trends view (setActiveView("logbook")),
-  // redirect to this page's own equivalent "somewhere with real content" --
-  // /log.
-  // #251 -- skipped entirely for the three reserved demo usernames, same
-  // "not auth-gated" treatment owned-routes.js's isDemoPerformancePage
-  // already gives the page itself.
   if (!IS_DEMO && !adminAuth.isAthleteMode()) {
     location.href = `/${encodeURIComponent(USERNAME)}/log`;
     return;
@@ -183,11 +112,7 @@ async function boot() {
 
   render();
 
-  // #111 -- online-only, deliberately no offline fallback (see this
-  // file's own header comment). A failed fetch (offline, or any other
-  // network/server error) shows the "needs a connection" message instead
-  // of attempting to render anything -- never a locally-computed or
-  // stale-cached number.
+  // Online-only: never show a stale or locally computed number.
   try {
     createTimeWindowControl({
       containerEl: timeWindowRootEl,
@@ -213,12 +138,7 @@ async function boot() {
   }
 }
 
-// #952/#960 -- boots only for the signed-in owner of this page and, on
-// beta.<domain>, only if they're enrolled (client/boot-gate.js).
 pageAllowsBoot().then(allowed => {
   if (!allowed) return;
-  // #947/#948 -- the service worker, once boot's own fetches have settled
-  // and the page has gone idle: its install downloads every owner page, so
-  // it must never compete with them on a bad connection.
   registerServiceWorker({ after: boot() });
 });

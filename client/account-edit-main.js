@@ -1,20 +1,4 @@
-// Composition root for /:username/account/edit (#302) -- bundled by
-// esbuild into public/-/account-edit-app.js. Same "no
-// header-chrome.js, reimplement narrowly" reasoning as
-// client/account-main.js (see that file's own header comment) -- the two
-// share no other code, this is a genuinely separate page/bundle, not a
-// shared internal route within one.
-//
-// Three independently-submittable rows (username/email/password), each
-// its own request against Better Auth's own update-user/change-password/
-// change-email endpoints -- deliberately not one combined form. Raven's
-// own call, 2026-08-11: resubmitting fields you didn't touch reads as
-// risky even when harmless, and these three endpoints already don't
-// depend on each other server-side (confirmed against the installed
-// better-auth source), so the UI doesn't invent a dependency between them
-// either. wireEditableRow() below is the one shared shape all three
-// follow (view/form toggle, submit, disable-while-saving, error display);
-// what actually happens on submit is each row's own callback.
+// Three separate forms: resubmitting fields you didn't touch reads as risky.
 import { createStore } from "./store.js";
 import { createAdminAuth } from "./admin-auth.js";
 import { createDisclosure } from "./modal-utils.js";
@@ -33,17 +17,12 @@ function isAuthRedirect(res) {
   return res.type === "opaqueredirect";
 }
 
-// /:username/account/edit -- same single-segment extraction as every
-// other composition root's USERNAME constant.
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 
 const store = createStore();
 
 document.getElementById("back-to-account-link").href = `/${encodeURIComponent(USERNAME)}/account`;
 
-// #445 -- menu-username is the one real signal now, same fix
-// header-chrome.js's own updateMenuDivider() and client/account-main.js's
-// copy already made.
 const menuUsername = document.getElementById("menu-username");
 const headerMenuBottomRow = document.getElementById("header-menu-bottom-row");
 function updateMenuDivider() {
@@ -66,11 +45,6 @@ const adminAuth = createAdminAuth({
 createDisclosure(document.getElementById("header-menu-btn"), document.getElementById("header-menu-popover"), "#header-menu-wrap");
 createThemeToggle();
 
-// Posts straight to Better Auth's own endpoints, same standalone-request
-// pattern as public/register/register.js -- `data?.message || fallback`
-// on failure, same generic error-surfacing convention that file already
-// established (Better Auth's APIError responses are always `{message,
-// code}`, confirmed against the installed source during #379).
 async function authPost(path, body) {
   const res = await fetch(`${AUTH_BASE}${path}`, {
     method: "POST",
@@ -82,11 +56,6 @@ async function authPost(path, body) {
   return data;
 }
 
-// Shared view/form toggle + submit/error/disable-while-saving shape for
-// all three rows below -- see this file's own header comment for why
-// they're not one combined form. onSubmit does the row's own request and
-// returns the view's new text (or throws, shown in the row's own error
-// paragraph).
 function wireEditableRow({ prefix, onSubmit }) {
   const view = document.getElementById(`${prefix}-view`);
   const form = document.getElementById(`${prefix}-form`);
@@ -95,15 +64,9 @@ function wireEditableRow({ prefix, onSubmit }) {
   const cancelBtn = document.getElementById(`${prefix}-cancel-btn`);
   const saveBtn = document.getElementById(`${prefix}-save-btn`);
   const errorEl = document.getElementById(`${prefix}-error`);
-  // Only username/email follow the `${prefix}-input` id shape -- password
-  // has two separate inputs (current-password-input/new-password-input),
-  // neither of which should ever be pre-filled with a real password.
   const inputEl = document.getElementById(`${prefix}-input`);
 
   function open() {
-    // #457 -- pre-populate with the current value rather than opening a
-    // blank field; the value's already right there in valueEl, just not
-    // being reused.
     if (inputEl) inputEl.value = valueEl.textContent;
     errorEl.hidden = true;
     view.hidden = true;
@@ -140,12 +103,7 @@ wireEditableRow({
   onSubmit: async formData => {
     const username = formData.get("username");
     await authPost("/update-user", { username });
-    // Full navigation, not an in-place display update -- every link on
-    // this page (back-to-account, the menu bar's own My account link) is
-    // built from this page's own URL segment (USERNAME above), which is
-    // now stale the moment the username actually changes server-side.
-    // Landing on the fresh URL re-derives all of them correctly, and
-    // doubles as visible confirmation the change took.
+    // Navigate: every link on the page is built from the old username in the URL.
     location.href = `/${encodeURIComponent(username)}/account/edit`;
   },
 });
@@ -154,13 +112,7 @@ wireEditableRow({
   prefix: "email",
   onSubmit: async formData => {
     await authPost("/change-email", { newEmail: formData.get("email"), callbackURL: `/${encodeURIComponent(USERNAME)}/account/edit` });
-    // This app always requires (and already has) a verified email
-    // (requireEmailVerification: true, server/lib/auth.js), so change-email
-    // always takes Better Auth's confirm-via-link branch server-side --
-    // a 200 here never means the email actually changed yet, only that a
-    // confirmation link was sent to the new address. The displayed email
-    // deliberately isn't updated until that link is clicked (a real page
-    // load against a different session, outside this bundle entirely).
+    // A 200 means the confirmation link was sent, not that the email changed.
     const pending = document.getElementById("email-pending");
     pending.textContent = `Confirmation sent to ${formData.get("email")}. Your email won't change until you click the link.`;
     pending.hidden = false;
@@ -186,12 +138,7 @@ async function boot() {
   updateAdminBar();
 }
 
-// #952/#960 -- boots only for the signed-in owner of this page and, on
-// beta.<domain>, only if they're enrolled (client/boot-gate.js).
 pageAllowsBoot().then(allowed => {
   if (!allowed) return;
-  // #947/#948 -- the service worker, once boot's own fetches have settled
-  // and the page has gone idle: its install downloads every owner page, so
-  // it must never compete with them on a bad connection.
   registerServiceWorker({ after: boot() });
 });

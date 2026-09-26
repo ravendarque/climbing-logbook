@@ -281,7 +281,7 @@ export function createPlacePicker({
     }
 
     if (authLapsed) {
-      store.setLoggedIn(false); // Store mutation -- notify() covers the admin-bar update (#264)
+      store.setLoggedIn(false);
     }
     if (queued.length) enqueue(...queued);
     store.applyPendingQueue(getQueue());

@@ -1,11 +1,3 @@
-// Composition root for /:username/account/beta (#953, ADR-0029 decision
-// 5) -- bundled into public/-/account-beta-app.js. Joining and
-// leaving the beta: a short explanation of what changes, then one button
-// that writes the setting and takes you to the right app. Replaced the
-// <beta-opt-in-modal> the account hub used to open.
-//
-// Same "no header-chrome.js, reimplement narrowly" reasoning as
-// client/account-main.js (see that file's own header comment).
 import { createStore } from "./store.js";
 import { createAdminAuth } from "./admin-auth.js";
 import { createDisclosure } from "./modal-utils.js";
@@ -17,7 +9,6 @@ import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
 
 const SETTINGS_URL = "/-/api/settings";
-// This origin's offline queue (client/log-main.js's QUEUE_KEY).
 const QUEUE_KEY = userKey("logbook_pending_queue");
 
 function adminFetch(url, options) {
@@ -33,7 +24,6 @@ const LOG_PATH = `/${encodeURIComponent(USERNAME)}/log`;
 const store = createStore();
 
 document.getElementById("back-to-account-link").href = `/${encodeURIComponent(USERNAME)}/account`;
-// Help is an apex page; app hosts serve only the app.
 document.getElementById("beta-help-link").href = resolveApexUrl(location.hostname, "/help/beta-channel/");
 
 const menuUsername = document.getElementById("menu-username");
@@ -57,7 +47,6 @@ const errorEl = document.getElementById("beta-error");
 
 let saving = false;
 
-// Changes waiting to sync from this device, on this address.
 function pendingChangeCount(storage = localStorage) {
   try {
     const queue = JSON.parse(storage.getItem(QUEUE_KEY));
@@ -103,7 +92,6 @@ function showError(message) {
   errorEl.focus();
 }
 
-// Resolves to an error message, or null once the setting is saved.
 async function saveEnrollment(join) {
   try {
     const result = await adminAuth.setBetaOptIn(join);
@@ -128,10 +116,7 @@ confirmBtn.addEventListener("click", async () => {
     showError(error);
     return;
   }
-  // Join: to this page's owner's log in the beta. Leave: to the main
-  // app's. Same-origin paths locally and on previews, where there's no
-  // separate beta/my pair to switch between. The button stays disabled
-  // while the next page loads.
+  // Same-origin locally and on previews, where there's no separate beta and my. pair.
   location.href = join ? resolveBetaXUrl(location.hostname, LOG_PATH) : resolveMyXUrl(location.hostname, LOG_PATH);
 });
 
@@ -147,12 +132,7 @@ async function boot() {
   render();
 }
 
-// #952/#960 -- boots only for the signed-in owner of this page and, on
-// beta.<domain>, only if they're enrolled (client/boot-gate.js): someone
-// not enrolled is sent to the main app's copy of this page to join.
 pageAllowsBoot().then(allowed => {
   if (!allowed) return;
-  // #947/#948 -- the service worker, once boot's own fetches have settled
-  // and the page has gone idle.
   registerServiceWorker({ after: boot() });
 });

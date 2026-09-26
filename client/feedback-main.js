@@ -1,12 +1,4 @@
-// #925 -- own dedicated bundle (vite.entries.mjs), same "form only exists
-// on this one page" reasoning as report-issue-main.js (#924). Identical
-// Turnstile explicit-render + fetch/submit pattern, posting to
-// /-/api/feedback (server/api/feedback.js) instead.
-//
-// bundle: feedback REPLACES help-main.js entirely (11ty's data cascade),
-// so this page needs report-issue-main.js's own fix for the same gap
-// (burger menu/theme toggle/mobile topic-list collapse otherwise dead) --
-// see that file's own comment.
+// This bundle replaces help-main.js on this page, so it wires the menu and theme too.
 import { createDisclosure } from "./modal-utils.js";
 import { createThemeToggle } from "./theme-toggle.js";
 
@@ -26,22 +18,13 @@ const submitBtn = document.getElementById("feedback-submit-btn");
 const successEl = document.getElementById("feedback-success");
 const messageEl = document.getElementById("feedback-message");
 
-// report-issue-main.js's own precedent -- errorEl carries role="alert"/
-// aria-live="assertive" in the template, so a screen reader announces it
-// once its text/visibility change; tabindex="-1" (template) makes it
-// programmatically focusable so a sighted keyboard user also notices it.
 function showError(message) {
   errorEl.textContent = message;
   errorEl.hidden = false;
   errorEl.focus();
 }
 
-// #311's own precedent -- the real widget (infra/turnstile.tf) is
-// domain-restricted to a fixed allowlist; everywhere else (local dev,
-// e2e, CI, PR previews) uses Cloudflare's own public "always passes"
-// test sitekey instead. Duplicated (not shared) with report-issue-main.js's
-// own identical constants -- that file's own comment explains why (Vite
-// bundling means each entry gets its own copy either way).
+// Cloudflare's always-passes test sitekey off the widget's domains.
 const REAL_SITEKEY = "0x4AAAAAAEH3RghUN6KSc-uy";
 const TEST_SITEKEY = "1x00000000000000000000AA";
 const REAL_SITEKEY_HOSTNAMES = ["climbinglogbook.com", "beta.climbinglogbook.com"];
@@ -52,8 +35,6 @@ window.onTurnstileLoad = () => {
   turnstileWidgetId = window.turnstile.render("#turnstile-widget", { sitekey });
 };
 
-// report-issue-main.js's own precedent -- document.referrer is fixed for
-// the lifetime of this page load, captured once into a const for clarity.
 const sourcePage = document.referrer || undefined;
 
 form.addEventListener("submit", async (event) => {
@@ -61,9 +42,6 @@ form.addEventListener("submit", async (event) => {
   errorEl.hidden = true;
   submitBtn.disabled = true;
 
-  // report-issue-main.js's own precedent -- form carries novalidate
-  // (template), replaced by this styled error element instead of the
-  // browser's native tooltip.
   if (!messageEl.value.trim()) {
     showError('Please fill in the "What do you think?" field.');
     submitBtn.disabled = false;
@@ -102,8 +80,7 @@ form.addEventListener("submit", async (event) => {
     showError("Network error -- check your connection and try again.");
   } finally {
     submitBtn.disabled = false;
-    // Turnstile tokens are single-use -- a failed submit needs a fresh
-    // one for the retry.
+    // Tokens are single-use, so a failed submit needs a fresh one.
     window.turnstile?.reset(turnstileWidgetId);
   }
 });

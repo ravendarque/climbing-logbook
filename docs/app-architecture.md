@@ -262,8 +262,36 @@ Features:
 - `client/combo-chart.js`, `client/time-window.js` and
   `client/report-grade-scale-picker.js` for the performance reports.
 
-Web Components (`client/components/`): `climbing-entries-table`,
-`climbing-grade-pyramid`, `climbing-tab-bar`. The header components
+Web Components (`client/components/`) take their data as properties and
+attributes from the page's composition root and never import the store,
+so the public profile can use them without any write-capable module in
+its bundle:
+
+- `climbing-entries-table` owns its own view state: search, filters,
+  per-section sort, collapse and how many rows are revealed. Its markup is
+  built by the pure functions in `entries-table-html.js`. Attributes:
+  - `editable`: without it, there are no edit buttons at all;
+  - `all-disciplines`: the public profile's combined view, one section per
+    location and discipline;
+  - `lazy`: the public profile starts with a count per location and fires
+    `location-expand` to fetch a location's rows when it's opened;
+  - `loading`: set in the shell's markup and cleared by `boot()`, so a
+    returning visitor never sees "nothing logged" before their data arrives.
+
+  Property changes within one tick produce a single render (a microtask),
+  so a page setting entries, then places, then locations never shows a
+  half-joined table. Each render restores focus to the control the user
+  was on. Sections start collapsed once, when data first arrives; after
+  that, the user's choices stand. On `/log` the data is already complete
+  locally, so "Show more" only reveals rows, in steps of 100.
+- `climbing-grade-pyramid` renders the server-computed pyramid for both
+  disciplines, so switching discipline needs no fetch.
+- `climbing-tab-bar` is a navigation landmark with `aria-current`, not an
+  ARIA tablist, because each tab is a different page. It renders once, when
+  the page calls `markReady()` after the settings load, so the Performance
+  tab doesn't pop in afterwards.
+
+The header components
 (`static/-/components/`) are classic scripts, not modules, because they
 must run before first paint; `climbing-header.js` also injects the design
 tokens.

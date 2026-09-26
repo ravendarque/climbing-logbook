@@ -1,14 +1,3 @@
-// Composition root for /:username/performance (#575, epic #5 Phase 2) --
-// the hub page listing every Performance Insight as a tile. Bundled by
-// esbuild into public/-/performance-hub-app.js, same pattern as
-// every other owned page's composition root. Reuses store.js/admin-
-// auth.js/header-chrome.js unchanged, same as client/performance-
-// pyramid-main.js.
-//
-// Same Athlete-Mode-off redirect rule as the pyramid page it replaced at
-// this bare path (#151) -- a visitor with Athlete Mode off has nowhere
-// real to land here, same fallback every owned page with a hide-if-off
-// tab applies.
 import { createStore } from "./store.js";
 import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
@@ -23,9 +12,6 @@ import { registerServiceWorker } from "./register-sw.js";
 
 const SETTINGS_URL = "/-/api/settings";
 
-// Each entry becomes one tile. Only #12 (grade pyramid) exists today --
-// #15/#13/#14/#38/#39 each add their own entry here when they land, per
-// epic #5's own Phase 2 delivery sequence.
 const INSIGHTS = [
   {
     id: "insight-pyramid",
@@ -53,13 +39,6 @@ const INSIGHTS = [
   },
   {
     id: "insight-gap",
-    // #599 -- discipline-aware: this view's own content already switches
-    // between Flash/Send (boulder) and Onsight/Redpoint (lead)
-    // terminology (client/status.js, established in #14), but the hub
-    // tile linking to it had a fixed literal title that never matched
-    // Boulder. Function instead of a plain string -- the only entry
-    // here that needs this, so renderTiles() calls it if present rather
-    // than making every entry support a title function for one case.
     title: type => `${sendLabel(type)} / ${flashLabel(type)} Gap`,
     description: "Compare your first-try sends against what you eventually send once you've worked a climb, and see how many attempts it typically takes.",
     route: "gap",
@@ -80,7 +59,6 @@ function isAuthRedirect(res) {
 }
 
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
-// #251 -- one of the three seeded, publicly-viewable demo accounts.
 const IS_DEMO = isDemoUsername(USERNAME);
 
 const store = createStore();
@@ -105,9 +83,6 @@ function renderTiles() {
 function render() {
   headerChrome.updateDisciplinePicker();
   updateAdminBar();
-  // #599 -- the gap tile's title depends on the active discipline, so
-  // this needs to re-run on every store notification (discipline
-  // switches included), not just once from boot().
   renderTiles();
 }
 
@@ -119,9 +94,6 @@ const adminAuth = createAdminAuth({
   store, adminFetch, isAuthRedirect,
   settingsUrl: SETTINGS_URL,
   updateAdminBar,
-  // #847 follow-up -- lets checkSession()/fetchSettings() report a
-  // genuine fetch timeout through to the shell sync/offline indicator
-  // (see admin-auth.js/sync-status-icon.js own comments).
   onFetchTimeout: syncStatusIcon.reportTimeout,
 });
 
@@ -133,10 +105,7 @@ const headerChrome = createHeaderChrome({
 async function boot() {
   store.setActiveView("performance-hub");
 
-  // Renders the shell (tab bar, header) from cached state before any network
-  // call. The Athlete Mode redirect below deliberately waits for the real
-  // settings fetch: a cached "on" can be stale if Athlete Mode was turned off
-  // on another device, and nothing would re-check it once the fetch lands.
+  // The Athlete Mode redirect waits for real settings: a cached "on" may be stale.
   adminAuth.setInitialActiveType();
 
   const sessionPromise = syncStatusIcon.track(adminAuth.checkSession());
@@ -144,9 +113,6 @@ async function boot() {
 
   await adminAuth.reconcileActiveType(sessionPromise, settingsPromise);
 
-  // #251 -- skipped entirely for the three reserved demo usernames, same
-  // "not auth-gated" treatment owned-routes.js's isDemoPerformancePage
-  // already gives the page itself.
   if (!IS_DEMO && !adminAuth.isAthleteMode()) {
     location.href = `/${encodeURIComponent(USERNAME)}/log`;
     return;
@@ -155,12 +121,7 @@ async function boot() {
   render();
 }
 
-// #952/#960 -- boots only for the signed-in owner of this page and, on
-// beta.<domain>, only if they're enrolled (client/boot-gate.js).
 pageAllowsBoot().then(allowed => {
   if (!allowed) return;
-  // #947/#948 -- the service worker, once boot's own fetches have settled
-  // and the page has gone idle: its install downloads every owner page, so
-  // it must never compete with them on a bad connection.
   registerServiceWorker({ after: boot() });
 });
