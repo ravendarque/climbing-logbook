@@ -4,7 +4,7 @@
 // so does a baseline entry that's been fixed, so the list only ever shrinks.
 // ADRs are exempt: they're never edited after acceptance (docs/adr/README.md).
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -18,6 +18,7 @@ const SCANNED = /\.(?:js|mjs|cjs|njk|md|yml|yaml|css|sql|tf|jsonc|html)$/;
 const EXEMPT = ["docs/adr/", "test/scripts/dead-path-references"];
 
 const tracked = execFileSync("git", ["ls-files"], { cwd: ROOT, encoding: "utf8" }).split("\n").filter(Boolean);
+const trackedFiles = new Set(tracked);
 
 // "client/store.js/admin-auth.js" names two files; the second is relative to
 // the first's directory unless it starts with a top-level directory itself.
@@ -27,11 +28,25 @@ function splitJoined(token) {
   return parts.map((part, i) => (i === 0 || TOP_LEVEL.some(d => part.startsWith(`${d}/`)) ? part : dir + part));
 }
 
-// A token without an extension is often a path wrapped across a comment line
-// ("shared/entry-" then "schema.js"), so a prefix of a real path counts.
+// Decided from git, not the filesystem, so a clean checkout and a local one
+// agree: a path is live if git tracks it (or a file under it), or if it's
+// gitignored generated output (public/, e2e/.auth/). A token without an
+// extension is often a path wrapped across a comment line ("shared/entry-"
+// then "schema.js"), so a prefix of a tracked path counts too.
+function isGitIgnored(path) {
+  try {
+    execFileSync("git", ["check-ignore", "--no-index", "-q", path], { cwd: ROOT });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function isLive(path) {
-  if (existsSync(join(ROOT, path))) return true;
-  return !EXTENSION.test(path) && tracked.some(file => file.startsWith(path));
+  const trimmed = path.replace(/\/$/, "");
+  if (trackedFiles.has(trimmed) || tracked.some(file => file.startsWith(`${trimmed}/`))) return true;
+  if (!EXTENSION.test(trimmed) && tracked.some(file => file.startsWith(trimmed))) return true;
+  return isGitIgnored(trimmed);
 }
 
 function deadReferences() {
