@@ -1,7 +1,4 @@
-// Shared combo-chart component (#15, epic #5 Phase 2) -- resolved
-// 2026-08-28 alongside #569 (docs/superpowers/specs/2026-08-27-
-// performance-insights-ui-design.md's "Shared combo-chart component"
-// section): hand-rolled SVG, one plain JS module (not a Custom Element,
+// Shared combo chart: hand-rolled SVG, one plain JS module (not a Custom Element,
 // deliberately not `climbing-`-prefixed -- that prefix is reserved for
 // this app's real registered Custom Elements), N bar series + M line
 // series over one shared time axis, real axis labels, data labels on

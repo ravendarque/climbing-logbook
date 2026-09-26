@@ -2,7 +2,9 @@
 // A ratchet: dead-path-references.baseline.json lists the references that
 // already existed when this check was added. A new dead reference fails, and
 // so does a baseline entry that's been fixed, so the list only ever shrinks.
-// ADRs are exempt: they're never edited after acceptance (docs/adr/README.md).
+// ADRs and migrations are exempt: ADRs are never edited after acceptance
+// (docs/adr/README.md), and any change under migrations/, even a comment,
+// makes the next release deploy straight to production (deploy.yml).
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -15,7 +17,7 @@ const TOP_LEVEL = ["client", "server", "shared", "static", "views", "docs", "scr
 const PATH_TOKEN = new RegExp(`(?<![\\w/.@-])((?:${TOP_LEVEL.map(d => d.replace(".", "\\.")).join("|")})\\/[\\w./-]*\\w)`, "g");
 const EXTENSION = /\.(?:js|mjs|cjs|json|jsonc|md|njk|html|css|sql|tf|yml|yaml|txt|svg|png)$/;
 const SCANNED = /\.(?:js|mjs|cjs|njk|md|yml|yaml|css|sql|tf|jsonc|html)$/;
-const EXEMPT = ["docs/adr/", "test/scripts/dead-path-references"];
+const EXEMPT = ["docs/adr/", "migrations/", "test/scripts/dead-path-references"];
 
 const tracked = execFileSync("git", ["ls-files"], { cwd: ROOT, encoding: "utf8" }).split("\n").filter(Boolean);
 const trackedFiles = new Set(tracked);

@@ -22,8 +22,7 @@
 // deploy straight from `dist/` instead -- Cloudflare's own documented
 // behavior ("wrangler deploy recognizes that you have generated a Vite
 // build ... deploys your application directly without any additional
-// bundling"). See docs/superpowers/specs/
-// 2026-09-15-vite-production-build-design.md for the full design.
+// bundling"). ADR-0021 records the decision.
 //
 // Environment selection happens at BUILD time, via the CLOUDFLARE_ENV
 // variable -- NOT `wrangler deploy --env=X`/`wrangler versions upload

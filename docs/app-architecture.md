@@ -1478,9 +1478,6 @@ its source, and every label between two anchors is spaced evenly — a
 documented best-effort, not settled fact (see the design spec's "Matrix
 authority" note).
 
-Design spec: `docs/superpowers/specs/2026-09-10-configurable-grade-systems-design.md`.
-Implementation plan: `docs/superpowers/plans/2026-09-11-grade-canonical-model.md`.
-
 **Sub-issue E (#705) — the "Grade scales & conversion" reference page**
 lives at `/help/grade-scales/` (`views/help/grade-scales/index.njk`,
 #190/#879) -- public and logged-out-reachable, since it renders no

@@ -151,8 +151,7 @@ function painMoveRowToJson(row) {
   return { id: row.id, limb: row.limb, side: row.side, holdType: row.hold_type, movementStyle: row.movement_style, wallAngle: row.wall_angle };
 }
 
-// Diff-and-replace (design doc's own term, docs/superpowers/specs/2026-08-
-// 27-performance-insights-ui-design.md "Offline" section): the whole
+// Diff-and-replace: the whole
 // current list from the client is authoritative for this entry, so every
 // write clears and rebuilds rather than trying to reconcile individual
 // row changes. One env.LOGBOOK_DB.batch() call, not sequential awaits --

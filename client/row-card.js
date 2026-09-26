@@ -5,8 +5,7 @@
 // performance hub's own tiles (client/performance-hub-main.js).
 //
 // Deliberately NOT used by the account page's athlete-mode-row/
-// public-logbook-row migration (see docs/superpowers/plans/
-// 2026-08-28-performance-hub-page.md, Task 2) -- those are static-shell
+// public-logbook-row -- those are static-shell
 // content with already-working id-based wiring in client/account-main.js;
 // routing them through a JS-render call would mean reordering that
 // module's existing top-level getElementById calls for no benefit, since
