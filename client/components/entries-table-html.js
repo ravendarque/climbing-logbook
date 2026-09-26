@@ -91,41 +91,12 @@ export function shellHtml(allDisciplines) {
   </div>
 
   <div class="flex items-center justify-between mb-2">
-    <!-- Empty unless a consuming page's own composition root reparents
-         external action buttons in here (e.g. client/log-main.js's
-         Add/Sync buttons, owned by entry-form.js/offline-sync.js, not
-         this component) -- same slot position/classes as /logbook's own
-         hand-authored equivalent row (public/-/index.html), so a
-         page that fills it gets an identical layout, and a page that
-         doesn't (the read-only public profile page) just sees an empty,
-         invisible div next to collapse-all-btn. Found via Raven's
-         production report, 2026-08-11: log-main.js's own Add/Sync
-         buttons were left as page-level siblings positioned above the
-         search/filter row instead of here. -->
     <div class="flex flex-wrap items-center gap-2" id="entries-table-actions"></div>
     <button type="button" class="bg-transparent border-0 text-muted text-[.8rem] font-semibold cursor-pointer px-[.3rem] py-[.2rem] hover:text-accent" id="collapse-all-btn">Expand all</button>
   </div>
 
   <div id="sections"></div>
 
-  <!-- #425 -- notes view modal. #516 -- its own focus-trap/Escape/
-       backdrop-click now reuses client/modal-utils.js's own
-       createModalHelpers(), scoped to just this one overlay id rather
-       than /log's own default full-page list -- that factory already
-       took overlayIds as a real parameter, not the fixed list an
-       earlier version of this comment (and climbing-grade-pyramid.js's
-       own matching one) assumed it was hardwired to, so the two
-       components' own hand-rolled duplicate of the exact same open/
-       close/focus-trap mechanics was never actually necessary (found
-       via code review, 2026-08-22). Reads this.#entries
-       directly (see #openNotesFor below) -- the component already holds
-       the full entry data as its own state, so no store/entries lookup
-       needs injecting from outside for something this purely a display
-       concern. Was previously duplicated per-page (client/log-main.js's
-       own markup + client/content-overlays.js wiring) and simply missing
-       entirely on the public profile page (#425 -- the actual bug: the
-       notes-btn above always rendered, unconditionally, with nothing to
-       open when clicked there). -->
   <div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-center justify-center px-4 py-6 overflow-y-auto" id="notes-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="notes-modal-title" tabindex="-1">
     <div class="bg-background border border-border rounded-app p-5 w-full max-w-[380px]">
       <div class="flex items-center justify-between mb-4">

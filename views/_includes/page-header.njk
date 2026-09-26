@@ -1,4 +1,3 @@
-{#- #882 -- the shared header row every app page uses: brand left, burger menu right. Set `menu` ("owned" default, "profile", "help") and optionally `headerClass` before including. -#}
 {% from "burger-menu.njk" import burgerMenu %}
 <climbing-page-header{% if headerClass %} class="{{ headerClass }}"{% endif %}>
   <climbing-header variant="brand" align-left></climbing-header>

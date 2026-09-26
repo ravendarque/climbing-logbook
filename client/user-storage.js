@@ -6,7 +6,7 @@ import { matchOwnerRoute } from "../shared/owner-routes.js";
 // ownership check (client/ownership-guard.js) compares an owner page's
 // URL against, offline included. Written by admin-auth.js's session
 // check, the login page, and a server-authorised page load; cleared on
-// logout. static/login/login.js writes the same key by name.
+// logout. static/-/login/login.js writes the same key by name.
 export const SIGNED_IN_USER_KEY = "logbook_signed_in_user";
 
 // Every key holding one user's data. Each module still owns its own key

@@ -4,18 +4,6 @@
     connectedCallback() {
       this.innerHTML = `
   <div class="relative" id="discipline-wrap">
-    <!-- #722 -- a solid triangle glyph, not a line-drawn chevron SVG,
-         matching climbing-entries-table.js's own place-header collapse
-         indicator (the "log table" arrow Raven's own comment refers
-         to) exactly: same "▾" character, same closed=pointing-right/
-         open=pointing-down orientation scheme. The actual rotation
-         toggle is a plain, ID-scoped rule in styles/tailwind.css (see
-         that file's own comment) rather than two competing Tailwind
-         rotate-* utilities on the same element -- confirmed empirically
-         that two same-layer utility rules toggling the same rotate
-         property via an aria-expanded arbitrary variant didn't reliably
-         override each other regardless of selector specificity, a real
-         Tailwind v4 utility-composition quirk this sidesteps entirely. -->
     <button type="button" class="group inline-flex items-center gap-[.35rem] h-[var(--field-h)] px-[.8rem] bg-surface border border-border rounded-app text-foreground text-[.85rem] font-semibold cursor-pointer hover:border-accent" id="discipline-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Discipline: Boulder">
       <span id="discipline-btn-label">Boulder</span>
       <span class="chevron-icon text-[.8rem] shrink-0" aria-hidden="true">▾</span>

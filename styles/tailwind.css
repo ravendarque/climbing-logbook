@@ -1,8 +1,4 @@
-/* Deliberately importing only the theme and utilities layers, not
-   tailwindcss/preflight's full normalization set (form-element resets,
-   heading sizes, etc.) — the app already has its own explicit styling
-   for every element, and preflight would change things beyond just the
-   handful of specific resets below that this app actually depends on. */
+/* Theme and utilities only, not preflight: every element is styled explicitly already. */
 @layer theme, base, utilities;
 
 @import "tailwindcss/theme" layer(theme);
@@ -11,74 +7,22 @@
 @source "../public/-/**/*.html";
 @source "../client/**/*.js";
 
-/* This has to live in a layer, not a plain unlayered rule (which is
-   where it lived before #51) — unlayered CSS always wins the cascade
-   over ANY layered CSS regardless of specificity or source order, so
-   an unlayered `margin: 0` silently nullifies every margin/padding
-   utility Tailwind generates, app-wide. Confirmed empirically (#51):
-   removing the unlayered version made a `mb-6` utility start working.
-   `base` is declared between `theme` and `utilities` above so utility
-   classes still win over this reset when both apply to the same
-   element, same as Tailwind's own preflight would behave. */
+/* In a layer: unlayered CSS beats every layered utility, whatever the specificity. */
 @layer base {
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  /* button/input/select/textarea don't inherit font-family from their
-     ancestors by default in any browser's UA stylesheet -- they fall
-     back to the browser's own form-control font (Arial, in Chromium)
-     instead of picking up font-sans from <body> the way every other
-     element does. Explicitly setting font-sans on every single control
-     would work too, but this is the same fix in one place instead of
-     N -- and utility classes like grade-select's font-mono still win
-     over it when both apply, same as the box-sizing reset above. */
+  /* Form controls don't inherit font-family by default. */
   button, input, select, textarea { font-family: inherit; }
 
-  /* <button> defaults to appearance: auto (native OS chrome) in every
-     browser's UA stylesheet -- Firefox renders that native theming far
-     more visibly than Chromium does (a 3D bevel border, a background that
-     can ignore an ancestor's border-radius/overflow: hidden clip, and a
-     slightly larger native min-size), which is exactly what #87 turned
-     out to be: toggle-btn's first button showing square corners despite
-     its container's rounded-app + overflow-hidden, a bevel seam between
-     buttons, and the row overflowing its container. grade-select already
-     sets this explicitly for the same reason (native <select> chrome) --
-     this is that same fix, generalized to every button instead of
-     leaving it as a one-off. */
+  /* No native button chrome: Firefox's bevel ignores border-radius. */
   button { appearance: none; }
 
-  /* <a href> defaults to text-decoration: underline in every browser's
-     UA stylesheet. This app never wants that -- every real link is
-     already distinguished by text-accent or its own card/button
-     chrome -- but without a global reset, each one needs its own
-     no-underline override or the browser default leaks through
-     (climbing-tab-bar.js's own no-underline class exists for exactly
-     this reason, found via a 2026-08-10 production report; #457 found
-     it recurring on public/account/index.html's edit-account-link,
-     which had no override at all). Fixing it here once, the same
-     "generalize instead of N one-offs" reasoning as the button resets
-     above, rather than auditing every <a> in the app by hand. */
-  /* color: inherit -- no link is ever the browser's default blue/visited
-     purple; blue is off-limits site-wide until a deliberate decision to
-     use it (Raven, 2026-09-22). Any link that wants a colour sets one. */
+  /* Links are marked by colour or chrome, never underlines. */
+  /* No blue anywhere; a link that wants a colour sets one. */
   a { color: inherit; text-decoration: none; }
 }
 
-/* ── Theme tokens ──────────────────────────────────────────────────
-   Aliases to the app's actual design tokens, defined once in
-   public/-/index.html's `:root` (not duplicated here as literal
-   values, which would create a second source of truth that can drift).
-   This works because Tailwind compiles @theme into `@layer theme`, and
-   a layered declaration always loses the cascade to the unlayered
-   `:root` rule in index.html — so `var(--color-accent)` here resolves
-   to index.html's actual value, not a copy of it. Verified empirically
-   (see #50) rather than assumed.
-
-   Token names on the left are Tailwind's public vocabulary (what a
-   class name reads as, e.g. `bg-background`/`text-foreground`/
-   `text-muted` — the common background/foreground/muted/accent naming
-   convention used across the Tailwind ecosystem) and don't have to
-   match index.html's own `--color-*` names on the right, which stay
-   as they are. */
+/* Aliases to the design tokens defined in climbing-header.js, not copies. */
 @theme {
   --color-background:        var(--color-bg);
   --color-surface:           var(--color-surface);
@@ -87,21 +31,10 @@
   --color-accent:            var(--color-accent);
   --color-accent-foreground: var(--color-accent-text);
   --color-border:            var(--color-border);
-  /* #807 -- form-error text, a distinct theme-adapted red (see
-     public/-/components/climbing-header.js's own token comment)
-     from --color-accent, which is a fixed brand red rather than
-     something that adapts per theme for contrast. */
   --color-error:             var(--color-error-text);
 
-  /* #797 -- --color-tier-peer/--color-tier-community removed along with
-     the retired evidence-tier chip UI they only ever colored;
-     --color-tier-heuristic stays for combo-chart.js/climbing-grade-
-     pyramid.js's own unrelated uses of that same amber token. */
   --color-tier-heuristic:    var(--tier-heuristic);
 
-  /* #516 -- <climbing-grade-pyramid>'s own status-icon colors, moved
-     off raw hex onto the same aliasing pattern as every other themeable
-     color above. */
   --color-pyramid-good:      var(--pyramid-status-good);
   --color-pyramid-missing:   var(--pyramid-status-missing);
   --color-pyramid-promoted:  var(--pyramid-status-promoted);
@@ -111,16 +44,6 @@
   --font-display:            var(--font-display);
 }
 
-/* ── Composite utilities ───────────────────────────────────────────
-   Patterns Tailwind's own utility set has no direct equivalent for
-   (stacked gradients/shadows, currentColor-driven color-mix). Authored
-   via @utility (Tailwind v4's custom-utility mechanism) rather than a
-   separate hand-rolled stylesheet, so they still live in Tailwind's
-   layer system and compose with variants normally. */
-/* #696 -- the grade tier colour is the pill *background* now (set inline
-   from gradeColor(), climbing-entries-table.js), not the text. Text is a
-   single uniform dark ink that reads on all five bright warm-palette
-   tiers, both themes. */
 @utility grade-badge {
   font-family: monospace;
   font-weight: 700;
@@ -131,25 +54,6 @@
   white-space: nowrap;
 }
 
-/* Same treatment as grade-badge above, for the entry form's grade
-   <select> -- its background comes from an inline style set in JS
-   (selectGradeByIndex), same as grade-badge's does from render().
-   Not monospace: that was inherited from the original hand-rolled CSS,
-   not an actual design choice, and <select> doesn't inherit font-family
-   from its ancestors by default in any browser (same as every other
-   form control) -- inherit explicitly rather than relying on landing in
-   the same layer-cascade order as the app-wide form-control fix.
-   font-size matches Name/Place/Date's own 1rem (Raven, 2026-09-12) --
-   previously .85rem, same as grade-badge's, but that's this row's own
-   *display* size, not a reason for the entry-form's INPUT controls to
-   run smaller than every sibling field. The smaller font pulled the
-   line box short too: with identical py-[.65rem] padding, its "normal"
-   line-height rendered ~3px shorter than Name/Place/Date's own
-   1rem-driven height (41.6px), which read as the whole row being too
-   short even though the vertical padding was always correct. Not bold
-   either (Raven, 2026-09-12) -- grade-badge's own 700 weight was carried
-   over unquestioned, but Name/Place/Date are all regular weight; these
-   are still input controls, not the display badges grade-badge is. */
 @utility grade-select {
   border: 1px solid color-mix(in srgb, var(--grade-badge-ink) 22%, transparent);
   border-radius: var(--radius-app);
@@ -164,15 +68,6 @@
   appearance: none;
 }
 
-/* #754 -- the "app-wide form-control fix" grade-select's own comment
-   above already references (bg-surface/border/rounded-app/px-[.85rem]/
-   py-[.65rem]/text-foreground/text-[1rem]/outline-none/focus:border-
-   accent) was itself never given a name -- 11 hand-copied occurrences
-   across public/log/index.html and public/login//register//
-   reset-password/index.html, found in review. Named text-input rather
-   than input (Tailwind reserves bare element-name utilities) or
-   text-field (already reads as a different, more form-library-ish
-   concept than this app uses anywhere). */
 @utility text-input {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -215,14 +110,7 @@
   transition: transform .15s ease;
 }
 
-/* "On" (aria-checked="true") states for the switch, applied via
-   Tailwind's group-aria-checked: variant on a `.switch.group` parent
-   (see #51). Authored as @utility (not Tailwind's built-in translate-x-*
-   etc.) because switch-thumb's base transform is a single hard-coded
-   translateY(-50%), not composed via Tailwind's own --tw-translate-*
-   variables — mixing the two would just have one clobber the other in
-   the cascade rather than combine. Keeping the "on" transform as one
-   complete value here avoids that pitfall entirely. */
+/* @utility, not translate-x-*: the thumb's transform is one shorthand the variants would fight. */
 @utility switch-track-on {
   background: linear-gradient(to bottom, color-mix(in srgb, var(--color-accent) 70%, black), var(--color-accent));
   box-shadow: inset 0 2px 3px rgba(0, 0, 0, .5);
@@ -232,32 +120,6 @@
   transform: translate(.75rem, -50%);
 }
 
-/* #715 -- popover listbox scrollbars (place-listbox, grade-value/scale
-   pickers, add-place-country-listbox), previously the browser's own
-   unstyled default. Deliberately flat, not the switch-track/switch-
-   thumb gradient+shadow treatment above -- Raven's call (2026-09-19):
-   Chromium's ::-webkit-scrollbar-* supports arbitrary gradients/shadows,
-   but Firefox's scrollbar-color only ever takes two flat colors, so a
-   literal skeuomorphic thumb would only exist in one engine. One flat
-   --color-border thumb on a transparent track, fed to both APIs, reads
-   identically everywhere rather than looking "finished" in one browser
-   and "unstyled" in the other. Static -- no hover/drag color change --
-   since switch-track/switch-thumb alone (without their own -on
-   variants) don't change color on interaction either; this only
-   changes what the listbox itself already reflects (scroll position),
-   nothing state the app tracks.
-   12px, not the first pass's 8px (Raven, same day): the thumb still
-   needs to be *grabbable* by a mouse/trackpad drag, not just visible --
-   8px read as too fine a target. Not widened further toward WCAG 2.5.8's
-   24px pointer-target minimum: that guideline targets primary
-   interactive controls, and this thumb is a supplementary affordance,
-   not the only way to scroll or select an option here --
-   modal-utils.js's own ArrowUp/ArrowDown/Enter listbox navigation (its
-   createSearchableListbox()) already calls scrollIntoView() on the
-   active option regardless of thumb width, so keyboard users (including
-   anyone who'd struggle most with a thin drag target) never depend on
-   this thumb at all; mouse-wheel and touch scrolling don't either. 12px
-   is a deliberate middle ground given that real risk is narrow. */
 @utility listbox-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: var(--color-border) transparent;
@@ -280,12 +142,6 @@
   }
 }
 
-/* ── Reusable component utilities ──────────────────────────────────
-   Unlike the composite utilities above, nothing here is beyond plain
-   Tailwind utilities individually — these exist purely to avoid
-   repeating the same ~10 utility classes across every button instance
-   in a template-string-based app with no component/framework layer to
-   extract them into otherwise. */
 @utility btn {
   display: inline-flex;
   align-items: center;
@@ -312,14 +168,6 @@
   border-color: var(--color-accent);
 }
 
-/* #913 -- back navigation ("Performance Insights", "My Account", "My
-   Climbing Logbook") isn't a call to action, so it shouldn't carry a
-   CTA's visual weight -- deliberately NOT .btn: no fill, no border. A
-   bare-muted-text version of this was tried on the My Account page and
-   reverted (#457) for reading as "not visibly a button" at all; this
-   keeps enough weight to still register as interactive without a
-   button's box -- an icon, semibold text-foreground (not text-muted),
-   and a real hover/focus state, same as any other in-page link. */
 @utility back-link {
   display: inline-flex;
   align-items: center;
@@ -335,21 +183,7 @@
   }
 }
 
-/* #722 -- the discipline picker's own collapse/expand indicator glyph,
-   plain CSS rather than two competing rotate-* Tailwind utilities on
-   the same element: confirmed empirically that toggling the `rotate`
-   property between an unconditional utility class and an
-   aria-expanded:[&_...] arbitrary-variant utility class didn't reliably
-   override the base value regardless of selector specificity (both
-   land in the same @layer utilities, and CSS's own specificity rules
-   say the aria-expanded rule -- one extra attribute selector -- should
-   win, but it didn't in practice; a real Tailwind v4 utility-
-   composition quirk with this specific combination, not something
-   worth spending more time root-causing when a plain, ID-scoped rule
-   sidesteps it entirely and is easy to reason about). Closed = pointing
-   right (-90deg from the glyph's own down-pointing default); open =
-   pointing down (0deg) -- same "▾" character and orientation scheme as
-   climbing-entries-table.js's own place-header collapse indicator. */
+/* Plain CSS: two competing rotate-* utilities on one element don't cascade as expected. */
 #discipline-btn .chevron-icon {
   rotate: -90deg;
   transition: rotate .15s;
@@ -358,18 +192,6 @@
   rotate: 0deg;
 }
 
-/* #894 -- a form failure's visible treatment, one definition instead of
-   three copies of the same literal class string (client/entry-form.js's
-   own ERROR_MSG_CLASS, hand-copied into client/place-picker.js's
-   showAddPlaceError per that file's own comment) plus a third, visibly
-   different bare-paragraph treatment the auth pages used for the same
-   semantic. The bordered box, not the bare paragraph, is the one that
-   survives: it's more prominent and pairs better with #806's
-   role="alert" focus target than plain colored text does. No margin
-   baked in -- call sites keep their own spacing (entry-form.js/place-
-   picker.js use a leading mt-[.85rem] inside a modal; the auth pages
-   use a trailing mb-4 between stacked fields), same as row-card below
-   leaves its own margin to each consumer. */
 @utility error-message {
   padding: .75rem 1rem;
   border-radius: var(--radius-app);
@@ -379,13 +201,6 @@
   color: var(--color-error);
 }
 
-/* #457 -- the same box (bg-surface/border/rounded-app/px-4/py-3) was
-   getting hand-repeated verbatim on every row of both account pages
-   (edit-account-link, the two "Coming soon" placeholders, athlete-mode-
-   row, public-logbook-row, username/email/password-row -- eight
-   occurrences before this existed) -- extracted once rather than kept
-   as a copy-pasted utility string per occurrence, same reasoning as
-   btn above. */
 @utility row-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -393,14 +208,6 @@
   padding: .75rem 1rem;
 }
 
-/* brand-style section heading (matching <climbing-header>'s own h1
-   treatment: font-display, uppercase, tracking-wide) -- the base style
-   for a real page/report section title: Sources headings (via
-   sources-heading below), Performance Insights report page titles, and
-   /help page titles (via help-article's own h1 rule). No indent -- these
-   sit directly above their own section's content, not aligned against a
-   row-card list. card-section-heading (below) derives from this and adds
-   the indent that DOES need one. */
 @utility section-heading {
   font-family: var(--font-display);
   font-weight: 400;
@@ -411,34 +218,16 @@
   margin-bottom: 1rem;
 }
 
-/* page-title -- section-heading, bigger: the title of a whole page (a
-   /help page, a Performance Insights report), as opposed to a section
-   within one. */
 @utility page-title {
   @apply section-heading;
   font-size: 1.8rem;
 }
 
-/* #457 -- same treatment as section-heading, plus the indent that
-   aligns the heading text with row-card's own inner text -- used by
-   every "My account"/"Settings"/"Edit account details"/"Import entries"
-   heading across the account pages, each one sitting directly above a
-   row-card list. See public/account/index.html's own comment (git
-   history) on why that indent, and its flush-left back-button, exist
-   together. */
 @utility card-section-heading {
   @apply section-heading;
   padding-left: 1rem;
 }
 
-/* Sources heading -- a thin hairline above the heading (Raven's call,
-   2026-09-21) makes a page's Sources section read as a references list,
-   visually distinct from the content sections above it, same idea as a
-   citations block at the bottom of an article. Reusable utility rather
-   than each page hand-copying `section-heading mt-7 mb-3` (the pattern
-   every Performance Insights report page and client/grade-scale-
-   matrix.js used before this existed) -- one style to update if the
-   treatment ever changes, not six-plus call sites. */
 @utility sources-heading {
   @apply section-heading;
   margin-top: 1.75rem;
@@ -447,27 +236,12 @@
   border-top: 1px solid var(--color-border);
 }
 
-/* #457 -- the settings-card title text style (Athlete Mode/Public
-   Logbook's own span, and now username/email/password's row labels on
-   the edit page) -- kept separate from row-card since not every
-   row-card consumer wants a title styled this way (the "Coming soon"
-   placeholders don't use it at all). */
 @utility row-card-title {
   color: var(--color-foreground);
   font-size: .9rem;
   font-weight: 600;
 }
 
-/* #876/#878 -- long-form prose typography for /help article content
-   (views/help/**, rendered from plain Markdown, which carries no classes
-   of its own on its h1/h2/p tags -- this is the first genuinely
-   long-form-prose surface in the app, everywhere else is UI chrome/
-   short labels). h1 is the page title (page-title) and h2 a section heading
-   (section-heading) -- the same styles the rest of the app uses, not
-   bespoke ones just for /help (Raven, 2026-09-22). Sizes confirmed live (Raven's report,
-   2026-09-20): the raw, unstyled Markdown output was reading as
-   noticeably too large and too tight against its own title, both fixed
-   here rather than left to default browser UA styles. */
 @utility help-article {
   & h1 {
     @apply page-title;

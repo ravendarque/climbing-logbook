@@ -11,11 +11,6 @@ staticShellNote: |-
          being templated.
 ---
 <div class="max-w-[960px] mx-auto">
-  {# Picker/menu row before the brand row, and align-left on
-       <climbing-header> -- matches /logbook's own layout (left-aligned
-       brand row below the header row, not centered above it). Found via
-       Raven's production report, 2026-08-10 -- see climbing-header.js's
-       own comment on the align-left attribute. #}
   {% include "page-header.njk" %}
 
   <div class="flex items-end gap-3 mb-5" id="picker-tabs-row">
@@ -23,25 +18,8 @@ staticShellNote: |-
     <climbing-tab-bar active-page="log"></climbing-tab-bar>
   </div>
 
-  {# add-btn/sync-btn are owned by client/entry-form.js/client/
-       offline-sync.js, not <climbing-entries-table> itself -- declared
-       here as plain markup (no layout classes needed; the component's
-       own SHELL owns that), then reparented by client/log-main.js into
-       the component's #entries-table-actions slot once it's connected,
-       landing in the same row as its own collapse-all-btn (matching
-       /logbook's own layout -- found via Raven's production report,
-       2026-08-11: these used to sit in their own row above the search/
-       filter bar instead). #}
   <button type="button" class="btn btn-primary min-w-24 justify-center" id="add-btn" hidden>
-    {# #721 -- relative top-[-1px]: .btn's flexbox align-items:center
-         centers the icon and the text SPAN's own bounding boxes
-         perfectly (confirmed via getBoundingClientRect() -- both boxes'
-         centerY exactly match the button's), but "Add" has no
-         descenders, so its actual glyph ink sits in the upper portion
-         of its own line box, not centered on it -- the icon (whose ink
-         IS centered in its own box, a symmetric rounded-square-plus
-         glyph) reads as sitting lower than the text's own visual
-         center as a result. A 1px optical nudge, not a layout bug. #}
+    {# Nudged up a pixel: "Add" has no descenders, so its ink sits high in the line box. #}
     <svg class="relative top-[-1px] w-4 h-4 stroke-current fill-none shrink-0" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M8 12h8"></path><path d="M12 8v8"></path></svg>
     <span>Add</span>
   </button>
@@ -50,16 +28,11 @@ staticShellNote: |-
     <span id="sync-btn-label">Sync</span>
   </button>
 
-  {# loading (#470): true from initial parse, before client/log-main.js's
-       own boot() has read/fetched real data -- see that attribute's own
-       comment in client/components/climbing-entries-table.js. Cleared by
-       boot() itself once real data has resolved. #}
   <climbing-entries-table editable loading></climbing-entries-table>
 
   <div class="text-center text-muted text-[.78rem] mt-8" id="footer"></div>
 </div>
 
-{# ══ Add / edit entry modal ════════════════════════════════════════ #}
 <div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-start justify-center px-4 py-6 overflow-y-auto" id="entry-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="entry-modal-title" tabindex="-1">
   <div class="bg-background border border-border rounded-app p-5 w-full max-w-[460px]">
     <div class="flex items-center justify-between mb-4">
@@ -68,28 +41,6 @@ staticShellNote: |-
     </div>
 
     <form id="entry-form" autocomplete="off">
-    {# #791 -- two swipeable pages (Athlete Mode only -- entry-form.js's
-         own open() hides #entry-nav-forward and pins the form on page 1
-         for a logbook-only user, so the page-2 content, while present in
-         the DOM, is never reachable there). #entry-pages-viewport clips
-         to whichever page is active; #entry-pages-track is the sliding
-         flex row both pages are laid out in, translateX'd by
-         entry-form.js's own showPage(). Both pages stay inside this ONE
-         form (not two separate forms) -- either page's own "Save &
-         close" submits the whole entry, both pages' field values
-         included, exactly like today's single-page submit.
-         items-start (not flex's own default align-items:stretch) -- a
-         real bug found live, not a guess: without it, BOTH pages were
-         being stretched to match whichever one's content was taller
-         (confirmed via getBoundingClientRect(): both reported the exact
-         same height regardless of their genuinely different content),
-         which made entry-form.js's own scrollHeight-based height
-         measurement in showPage() meaningless (both "old" and "new"
-         heights read identical), and left real dead space below
-         whichever page's own actual content was shorter than its
-         stretched box (the "Delete entry button is way down after a lot
-         of dead space" report). items-start lets each page size to its
-         own real content instead. #}
     <div class="overflow-hidden" id="entry-pages-viewport">
       <div class="flex items-start transition-[transform,height] duration-300 ease-out motion-reduce:transition-none" id="entry-pages-track">
       <div class="w-full shrink-0" id="entry-page-1" tabindex="-1">
@@ -116,13 +67,6 @@ staticShellNote: |-
         </div>
       </div>
 
-      {# Grade/Date were both flex-1 (equal 50/50 split) -- Date's own
-           content (a YYYY-MM-DD string + the calendar button) never
-           needed half the row, leaving real dead space there while
-           Grade's own value button (esp. Font's own "8A+/V17"-shaped
-           label+V-scale hint) was visibly cramped. Date now takes a
-           fixed, content-sized share (Raven, 2026-09-12); Grade (still
-           flex-1) grows to fill whatever's left. #}
       <div class="flex flex-wrap gap-[.6rem] mb-3 mt-[1.1rem]">
         <div class="flex-1 min-w-[9rem]">
           <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Grade</div>
@@ -130,14 +74,6 @@ staticShellNote: |-
             <button type="button" class="flex-[0_0_2.6rem] flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent active:scale-[.94]" id="grade-prev" aria-label="Previous grade">
               <svg class="w-[.8rem] h-[.8rem] fill-current" viewBox="0 0 24 24"><polygon points="16 5 6 12 16 19"></polygon></svg>
             </button>
-            {# #703 -- button + popover listbox, not a native <select> --
-                 a native select's own OPEN dropdown panel is OS/browser-
-                 rendered chrome that plain CSS can't restyle to match this
-                 app's own popover convention (rounded-app border, the
-                 top-[calc(100%+.4rem)] gap, the shadow) the way every
-                 other picker in this app already does (place picker,
-                 discipline picker, header menu -- client/modal-utils.js's
-                 createDisclosure). #}
             <div class="relative flex-1 min-w-0" id="grade-value-wrap">
               <button type="button" class="grade-select w-full py-[.65rem]" id="grade-value-btn" aria-haspopup="listbox" aria-expanded="false"></button>
               <div class="absolute top-[calc(100%+.4rem)] left-0 z-20 bg-background border border-border rounded-app p-[.35rem] min-w-full w-max max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="grade-value-popover" role="listbox" aria-label="Grade" hidden>
@@ -147,42 +83,21 @@ staticShellNote: |-
             <button type="button" class="flex-[0_0_2.6rem] flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent active:scale-[.94]" id="grade-next" aria-label="Next grade">
               <svg class="w-[.8rem] h-[.8rem] fill-current" viewBox="0 0 24 24"><polygon points="8 5 18 12 8 19"></polygon></svg>
             </button>
-            {# structured number/letter/modifier input, shown instead of
-                 the prev/value/next group above when a Non-standard scale
-                 is chosen (real Font/French guidebooks use letters/
-                 modifiers inconsistently, so this covers the full
-                 combinatorial space rather than a flat list --
-                 shared/grade-data.js's nonStandardOrdinal). Hidden by
-                 default; client/entry-form.js toggles which group shows
-                 based on the chosen scale. #}
             <div class="flex flex-1 min-w-0 gap-2" id="grade-ns-fields" hidden>
               <div class="relative flex-1 min-w-[2.6rem]" id="grade-ns-number-wrap">
                 <button type="button" class="grade-select w-full py-[.65rem]" id="grade-ns-number-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Grade number"></button>
-                {# min-w-[3.5rem] (56px) was too narrow once the row's
-                     own padding/gap/checkmark are accounted for -- the
-                     checkmark SVG has no explicit width of its own
-                     (only a min-h/w from renderOptionList's own utility
-                     classes), so a cramped popover collapsed it to 0
-                     visible width instead of clipping the text. Same
-                     5rem floor as the letter/modifier popovers below,
-                     for the same reason (Raven, 2026-09-12). #}
                 <div class="absolute top-[calc(100%+.4rem)] left-0 z-20 bg-background border border-border rounded-app p-[.35rem] w-full min-w-[5rem] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="grade-ns-number-popover" role="listbox" aria-label="Grade number" hidden>
                   <ul class="max-h-[10rem] overflow-y-auto listbox-scrollbar m-0 p-0 list-none" id="grade-ns-number-listbox"></ul>
                 </div>
               </div>
               <div class="relative flex-[0_0_3.2rem]" id="grade-ns-letter-wrap">
                 <button type="button" class="grade-select w-full py-[.65rem]" id="grade-ns-letter-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Grade letter"></button>
-                {# w-16 (64px) was too narrow once "n/a" (Raven,
-                     2026-09-12, replacing the old "–") is the widest
-                     option label -- same collapsed-checkmark issue as
-                     the number popover above, fixed the same way. #}
                 <div class="absolute top-[calc(100%+.4rem)] left-0 z-20 bg-background border border-border rounded-app p-[.35rem] w-20 shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="grade-ns-letter-popover" role="listbox" aria-label="Grade letter" hidden>
                   <ul class="m-0 p-0 list-none" id="grade-ns-letter-listbox"></ul>
                 </div>
               </div>
               <div class="relative flex-[0_0_3.2rem]" id="grade-ns-modifier-wrap">
                 <button type="button" class="grade-select w-full py-[.65rem]" id="grade-ns-modifier-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Grade modifier"></button>
-                {# w-16 -> w-20, same reason as the letter popover above. #}
                 <div class="absolute top-[calc(100%+.4rem)] left-0 z-20 bg-background border border-border rounded-app p-[.35rem] w-20 shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="grade-ns-modifier-popover" role="listbox" aria-label="Grade modifier" hidden>
                   <ul class="m-0 p-0 list-none" id="grade-ns-modifier-listbox"></ul>
                 </div>
@@ -190,20 +105,10 @@ staticShellNote: |-
             </div>
             <div class="relative flex-[0_0_2.6rem]" id="grade-scale-wrap">
               <button type="button" class="w-full h-full flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent active:scale-[.94]" id="grade-scale-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Change grade scale">
-                {# Raven, 2026-09-12: "ruler-dimension-line" (Lucide) --
-                     reads as "measure/convert this grade" more directly
-                     than the old swap-arrows glyph. #}
                 <svg class="w-[1.05rem] h-[1.05rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v-3"></path><path d="M14 15v-3"></path><path d="M18 15v-3"></path><path d="M2 8V4"></path><path d="M22 6H2"></path><path d="M22 8V4"></path><path d="M6 15v-3"></path><rect x="2" y="12" width="20" height="8" rx="2"></rect></svg>
               </button>
               <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 bg-background border border-border rounded-app p-[.35rem] w-56 max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="grade-scale-popover" role="listbox" aria-label="Grade scale" hidden>
                 <ul class="m-0 p-0 list-none" id="grade-scale-listbox"></ul>
-                {# #705 -- href set client-side in client/log-main.js once
-                     USERNAME is known, same pattern as #back-to-performance-
-                     link on every Performance Insights page. Gated by
-                     Athlete Mode like the reference page itself is -- a
-                     visitor without it on lands on /log after following
-                     this, the same redirect any other /performance/* link
-                     would give them. #}
                 <a class="block text-[.72rem] text-accent text-center pt-[.4rem] mt-[.2rem] border-t border-border hover:brightness-90" id="grade-scale-reference-link" data-apex-link href="#">What's this?</a>
               </div>
             </div>
@@ -213,59 +118,12 @@ staticShellNote: |-
           <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Date</div>
           <div class="flex items-stretch gap-2">
             <input type="text" class="text-input flex-1 min-w-0" id="entry-date">
-            {# #703-review -- a real month-grid popover, same button+
-                 popover convention as every other picker in this app
-                 (createDisclosure, rounded-app border, the
-                 top-[calc(100%+.4rem)] gap, the shadow), replacing the
-                 native <input type="date"> + showPicker() this used
-                 before -- that native picker panel is OS/browser chrome,
-                 unstylable, the exact class of problem this whole
-                 button+popover pattern exists to solve. Only ever needs to
-                 produce a full YYYY-MM-DD (a calendar day grid has no way
-                 to represent "just a month"), same real limit the native
-                 date input already had -- the free-text field above is
-                 still how a YYYY-MM-only date gets entered.
-                 #736 -- markup is rendered by client/calendar-date-
-                 picker.js (calendarDatePickerHtml("date-picker")) rather
-                 than hand-authored here, so client/time-window.js's own
-                 Custom-range date pickers can share the exact same
-                 markup+behavior instead of a second hand-rolled copy.
-                 Same ids as before (idPrefix "date-picker"), so nothing
-                 downstream (e2e/log-page.spec.js's own #date-picker-*
-                 assertions) needed to change. This is a plain mount
-                 point, not itself "the wrap" -- calendarDatePickerHtml
-                 already generates its own id="date-picker-wrap" element
-                 with its own layout classes; giving this anchor the same
-                 id would nest two elements sharing one id.
-                 #790 -- flex-[0_0_2.75rem] IS needed here, though,
-                 despite the injected #date-picker-wrap carrying the
-                 identical class itself: THIS mount div, not the wrap it
-                 injects one level deeper, is the real direct child of
-                 the Date field's own "flex items-stretch gap-2" row
-                 (the free-text input's sibling) -- a flex-basis/
-                 flex-shrink class on a non-flex-item child is simply
-                 inert. Without it, this mount had no sizing of its own
-                 at all and collapsed to shrink-wrap its button's own
-                 icon content (measured ~19px, barely bigger than the
-                 icon itself -- exactly the "tiny calendar icon" report,
-                 which was really an undersized button, not an
-                 undersized icon) instead of matching the Grade row's
-                 own #grade-scale-wrap sibling's real 2.6rem square.
-                 Also flex (align-items defaults to stretch) so the
-                 injected #date-picker-wrap -- itself just a plain block
-                 with no height of its own -- fills this mount's now-
-                 correct height too, rather than shrinking to its
-                 button's own intrinsic content height. #}
             <div class="flex-[0_0_2.75rem] flex" id="date-picker-mount"></div>
           </div>
           <div class="text-[.75rem] text-muted mt-[.3rem]">YYYY-MM or YYYY-MM-DD</div>
         </div>
       </div>
 
-      {# #643 -- Lead/Top-Rope, shown only for a Sport entry (client/
-           entry-form.js's updateSportStyleVisibility()) -- hidden by
-           default here so it never flashes visible before the form's own
-           JS runs. #}
       <div class="mt-[1.1rem]" id="sport-style-field" hidden>
         <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2" id="sport-style-label">Style</div>
         <fieldset class="border border-border rounded-app overflow-x-auto flex flex-nowrap w-full mb-3 min-w-0" id="sport-style-group" aria-labelledby="sport-style-label">
@@ -314,33 +172,13 @@ staticShellNote: |-
         <input type="url" class="text-input w-full" id="entry-video">
       </div>
 
-      {# #791 -- hidden entirely (not just inert) for a logbook-only
-           user -- entry-form.js's own open().
-           whitespace-nowrap + max-[400px]:text-[.85rem] -- these two
-           buttons split the modal's own content width (max-w-[460px]
-           minus p-5 padding) in half, and at 1rem/bold, "Performance →"
-           wrapped onto two lines at narrow phone widths (a real report,
-           not a guess) -- same max-[400px] breakpoint convention
-           climbing-header.js's own brand title uses for the identical
-           "shrink the text at the narrowest realistic widths" reason. #}
+      {# No wrapping at narrow widths: the two buttons share half the modal each. #}
       <div class="flex items-center justify-between gap-3 mt-4">
         <button type="submit" class="flex-1 bg-accent text-accent-foreground border-none rounded-app py-[.9rem] text-[1rem] max-[400px]:text-[.85rem] font-bold cursor-pointer whitespace-nowrap disabled:opacity-[.45] disabled:cursor-not-allowed" id="entry-submit-btn">Save &amp; close</button>
         <button type="button" class="flex-1 bg-surface text-foreground border border-border rounded-app py-[.9rem] text-[1rem] max-[400px]:text-[.85rem] font-bold cursor-pointer whitespace-nowrap hover:border-accent" id="entry-nav-forward">Performance →</button>
       </div>
       </div>
 
-      {# #791 -- was a collapsible <details id="performance-insights-
-           section">; the page split itself now supersedes needing a
-           second, in-page collapse -- see #792 (parked) for whether
-           these sub-sections should become individually collapsible
-           again, with that state persisted, a separate decision from
-           this one. Athlete Mode only -- entry-form.js's own open()
-           hides #entry-nav-forward (the only way to reach this page) for
-           a logbook-only user, so this content is never shown, but it
-           stays in the DOM (not removed) since the same underlying
-           fields/values are still part of every submitted entry either
-           way (always their default/empty state for a user who never
-           reaches this page). #}
       <div class="w-full shrink-0" id="entry-page-2" tabindex="-1">
         <div class="mt-2" id="exertion-field" hidden>
           <h3 class="section-heading" id="exertion-field-label">Exertion</h3>
@@ -351,23 +189,10 @@ staticShellNote: |-
 
         <div class="mt-6">
           <h3 class="section-heading">Attempts</h3>
-          {# #738 -- was hardcoded to sport's own onsight/redpoint
-               wording regardless of which discipline is actually
-               active; text set dynamically by entry-form.js's
-               updateFormStatusLabels() (same discipline-aware
-               flashLabel()/sendLabel() helpers the Flash/Send status
-               buttons above already use), matching boulder's own
-               flash/send wording here as the static fallback. #}
           <p class="text-[.75rem] text-muted mb-2" id="attempts-gap-hint">Feeds your flash/send gap view.</p>
           <div class="flex items-center justify-start gap-3">
             <button type="button" class="flex-[0_0_var(--field-h)] h-[var(--field-h)] flex items-center justify-center border border-border rounded-app bg-surface text-foreground text-[1.2rem] cursor-pointer hover:border-accent active:scale-[.94] disabled:opacity-[.45] disabled:cursor-not-allowed" id="attempts-minus" aria-label="Decrease attempts">−</button>
-            {# #597 -- no `pattern` attribute: the displayed value is "–"
-                 at 0 (see client/entry-form.js's renderAttempts()), which
-                 doesn't match a digits-only pattern -- the browser's own
-                 native constraint validation would silently block form
-                 submission whenever attempts is unset. inputmode alone
-                 still gets the numeric keyboard on mobile; digit-only
-                 sanitization happens in JS on every keystroke instead. #}
+            {# No pattern: the unset value shows a dash, which would block native validation. #}
             <input type="text" inputmode="numeric" class="w-[3ch] text-center font-bold text-[1.1rem] bg-transparent border-none text-foreground outline-none" id="attempts-count" aria-label="Attempts" value="–">
             <button type="button" class="flex-[0_0_var(--field-h)] h-[var(--field-h)] flex items-center justify-center border border-border rounded-app bg-surface text-foreground text-[1.2rem] cursor-pointer hover:border-accent active:scale-[.94]" id="attempts-plus" aria-label="Increase attempts">+</button>
           </div>
@@ -392,8 +217,6 @@ staticShellNote: |-
           <button type="button" class="text-[.85rem] font-semibold text-accent bg-transparent border-0 cursor-pointer p-0" id="pain-moves-add" aria-label="Add a pain/injury move">+ Add a move</button>
         </div>
 
-        {# #791 -- same whitespace-nowrap + max-[400px]:text-[.85rem]
-             as page 1's own button row, for the identical reason. #}
         <div class="flex items-center justify-between gap-3 mt-6">
           <button type="button" class="flex-1 bg-surface text-foreground border border-border rounded-app py-[.9rem] text-[1rem] max-[400px]:text-[.85rem] font-bold cursor-pointer whitespace-nowrap hover:border-accent" id="entry-nav-back">← Log entry</button>
           <button type="submit" class="flex-1 bg-accent text-accent-foreground border-none rounded-app py-[.9rem] text-[1rem] max-[400px]:text-[.85rem] font-bold cursor-pointer whitespace-nowrap disabled:opacity-[.45] disabled:cursor-not-allowed" id="entry-submit-btn-2">Save &amp; close</button>
@@ -408,9 +231,6 @@ staticShellNote: |-
   </div>
 </div>
 
-{# ══ Add place modal (#158) ═══════════════════════════════════════════
-     Stacks on top of entry-overlay -- see /logbook's own copy of this
-     comment for the full z-index/inheritance rationale, unchanged here. #}
 <div class="fixed inset-0 z-[110] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-start justify-center px-4 py-6 overflow-y-auto" id="add-place-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="add-place-modal-title" tabindex="-1">
   <div class="bg-background border border-border rounded-app p-5 w-full max-w-[380px]">
     <div class="flex items-center justify-between mb-4">

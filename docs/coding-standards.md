@@ -24,7 +24,7 @@ Adopt all five simultaneously; let each surface issues within their domain.
   the architecture is actually idiomatic for the platform vs. fighting it.
 
 - **Web architecture generalist** — overall structure of the app (routing,
-  data flow, client/server boundary), API design (REST semantics, status
+  data flow, client-server boundary), API design (REST semantics, status
   codes, error shapes, idempotency), state management on the client, coupling
   between modules/files, and whether the architecture will scale gracefully
   as features are added.
@@ -278,7 +278,7 @@ CI-enforced check.
 - For anything user-facing, verify in an actual browser (or `wrangler dev` +
   the preview tools), not just by reading the code — type-checking and unit
   tests confirm correctness, not that the feature works.
-- For anything infra/platform-specific, verify empirically (a real request,
+- For anything infrastructure- or platform-specific, verify empirically (a real request,
   a real deploy) rather than trusting docs alone.
 
 ---

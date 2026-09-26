@@ -38,7 +38,7 @@ jobs:
               - '.github/actions/setup-node-pnpm/**'
               # #827 -- e2e's own webServer (playwright.config.js) runs
               # `pnpm run html:build` (11ty) before starting `wrangler
-              # dev`, so a views/-only or .eleventy.js-only change
+              # dev`, so a change only under views/ or .eleventy.js-only change
               # directly affects every served page's HTML. Without these,
               # such a PR's e2e check silently reports "skipping" instead
               # of actually exercising Playwright against the real

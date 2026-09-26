@@ -30,9 +30,6 @@ export function createReportGradeScalePicker({ containerEl, getType, onChange })
       </button>
       <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 bg-background border border-border rounded-app p-[.35rem] min-w-full w-max max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="report-grade-scale-popover" role="listbox" aria-label="Grade scale" hidden>
         <ul class="max-h-[13rem] overflow-y-auto listbox-scrollbar m-0 p-0 list-none" id="report-grade-scale-listbox"></ul>
-        <!-- #705/#876 -- same "What's this?" link as #703's own entry-form
-             picker (public/log/index.html), pointing at the (now public,
-             static) reference page. -->
         <a class="block text-[.72rem] text-accent text-center pt-[.4rem] mt-[.2rem] border-t border-border hover:brightness-90" id="report-grade-scale-reference-link" data-apex-link href="#">What's this?</a>
       </div>
     </div>`;
