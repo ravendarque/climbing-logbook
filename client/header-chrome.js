@@ -76,7 +76,7 @@ export function createHeaderChrome({
         body: JSON.stringify({ activeDiscipline: store.getActiveType() }),
       });
       if (res.status === 401 || isAuthRedirect(res)) {
-        store.setLoggedIn(false); // Store mutation -- notify() covers the admin-bar update (#264)
+        store.setLoggedIn(false);
       }
     } catch {
       // Offline or network error -- local switch already applied.

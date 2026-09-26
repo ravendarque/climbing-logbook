@@ -695,7 +695,7 @@ export function createEntryForm({
       // few extra harmless replayed requests cost nothing worth the
       // collapsing logic's complexity.
       if (err.message === "not-authenticated") {
-        store.setLoggedIn(false); // Store mutation -- notify() covers the admin-bar update (#264)
+        store.setLoggedIn(false);
       }
       enqueue({ kind: "entry", op, record: entry });
       store.applyPendingQueue(getQueue());
@@ -758,7 +758,7 @@ export function createEntryForm({
       // replays in order and resolves correctly: the add creates it,
       // then the delete removes it, on the next sync.
       if (err.message === "not-authenticated") {
-        store.setLoggedIn(false); // Store mutation -- notify() covers the admin-bar update (#264)
+        store.setLoggedIn(false);
       }
       enqueue({ kind: "entry", op: "delete", record: entrySnapshot ?? { id } });
       store.applyPendingQueue(getQueue());

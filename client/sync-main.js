@@ -1,17 +1,3 @@
-// Composition root for /:username/sync (#498, ADR-0019) -- bundled by
-// esbuild into public/-/sync-app.js, same pattern as client/
-// log-main.js's own header comment for the general "trimmed from
-// client/main.js" reasoning. This page has exactly one job: get this
-// device's local dataset to a complete, correct state (locations,
-// places, every entry), write it to the cache client/log-main.js's own
-// boot() reads from, mark that done (client/sync-status.js), then
-// redirect on to wherever the user was actually headed.
-//
-// No adminFetch/isAuthRedirect -- unlike /log this page never writes
-// anything, and owned-routes.js already guarantees a real session
-// before this shell is ever served, so a plain same-origin fetch is
-// enough (same reasoning client/profile-main.js's own header comment
-// gives for a different page).
 import { createStore } from "./store.js";
 import { isSynced, markSynced } from "./sync-status.js";
 import { getCursor, setCursor } from "./sync-cursors.js";
@@ -24,27 +10,12 @@ const PLACES_URL = "/-/api/places";
 const LOCATIONS_URL = "/-/api/locations";
 const ENTRIES_URL = "/-/api/entries";
 
-// #498 -- larger than /log's own 20-row UI page size on purpose: this is
-// a one-off bulk transfer, not a per-click UI page, so it's sized for a
-// reasonable round-trip count at the 10k-entry scale target (~20
-// requests, not ~500) rather than a comfortable single table's worth.
+// A bulk transfer, sized for about 20 requests at 10,000 entries.
 const CHUNK_SIZE = 500;
 
-// /:username/sync -- same single-segment extraction as every other
-// composition root's USERNAME constant.
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 
-// Never trust an arbitrary redirect target from a query param -- only a
-// same-username, known-owned-page path is honored; anything else (or
-// nothing at all) falls back to /log. Reconstructed from the validated,
-// whitelisted match groups rather than returning the raw query-param
-// string itself (even once it's matched) -- CodeQL flagged the earlier
-// version (returning `raw` directly) as a client-side URL redirect /
-// XSS sink, since a regex check alone isn't credited as sanitizing the
-// tainted value it was run against; rebuilding the URL from `USERNAME`
-// (trusted, page-derived) and an exact OWNED_PAGES membership check
-// breaks that taint chain entirely -- the output can only ever be one
-// of three fixed strings.
+// Rebuilt from fixed parts rather than returning the query value, so it can only be one of these paths.
 const OWNED_PAGES = ["log", "map", "performance"];
 function safeReturnTo() {
   const raw = new URL(location.href).searchParams.get("returnTo");
@@ -77,14 +48,6 @@ async function fetchJson(url) {
   return res.json();
 }
 
-// #500 -- places/locations are small enough that they never needed
-// #498's chunking treatment, so both cold and warm sync go through the
-// exact same delta request: `since=0` on a never-synced device returns
-// everything in one response (the cold case, for these two tables), and
-// a genuinely warm device just passes its own last-known cursor
-// instead. Loads whatever's already cached first -- a no-op on a cold
-// device (nothing cached yet), but gives the warm case a real base for
-// mergeDelta() to upsert onto rather than silently discarding it.
 async function syncSmallTable(table, url, loadFromCache, getCurrent, setCurrent) {
   loadFromCache();
   const since = getCursor(table);
@@ -93,25 +56,14 @@ async function syncSmallTable(table, url, loadFromCache, getCurrent, setCurrent)
   setCursor(table, cursor);
 }
 
-// Cold path -- entries alone still needs #498's chunked fetch (the
-// 10k-entry scale target this app is sized for), so this stays a
-// straight replace via store.setEntries(), not a merge. `cursor` --
-// server/api/entries.js's own MAX(sync_cursor) OVER() on this same
-// query -- is the same value on every chunk (a window function over the
-// *whole* matching set, independent of this chunk's own LIMIT/OFFSET),
-// but Math.max across every chunk seen is taken anyway rather than
-// trusting only the last one, in case a row lands mid-loop with a
-// higher cursor than an earlier chunk already reported.
+// Takes the highest cursor seen across chunks, in case a row lands mid-loop.
 async function syncEntriesCold(store) {
   let entries = [];
   let offset = 0;
   let total = 0;
   let cursor = 0;
   setProgress(0, 0);
-  // Stops as soon as a chunk comes back shorter than requested -- never
-  // issues an offset past the true total (see server/api/entries.js's
-  // own comment on why COUNT(*) OVER() can't report a real total once
-  // that happens).
+  // Stops at a short chunk: an offset past the end can't report the total.
   for (;;) {
     const chunk = await fetchJson(`${ENTRIES_URL}?limit=${CHUNK_SIZE}&offset=${offset}`);
     entries = entries.concat(chunk.entries);
@@ -126,10 +78,6 @@ async function syncEntriesCold(store) {
   setCursor("entries", cursor);
 }
 
-// Warm path -- a single delta request, merged onto whatever's already
-// cached, same shape as syncSmallTable() above but kept separate since
-// entries is the one table with a cold path that isn't just "the same
-// request with since=0" (see syncEntriesCold's own comment).
 async function syncEntriesWarm(store) {
   store.loadEntriesFromCache();
   const since = getCursor("entries");
@@ -139,20 +87,11 @@ async function syncEntriesWarm(store) {
 }
 
 async function runSync(store) {
-  // isSynced() -- the same marker client/log-main.js's own boot() check
-  // already trusts as "has this device done a real full sync" -- decides
-  // cold vs. warm here too, rather than inventing a second, redundant
-  // signal (e.g. "is the entries cursor still 0") that could drift out
-  // of sync with it: a forced full resync (SYNC_VERSION bump) must take
-  // the cold path even if a stale cursor from before the bump is still
-  // sitting in storage.
+  // isSynced(), not a zero cursor: a forced resync must take the cold path.
   const warm = isSynced();
   setProgress(0, 0);
 
-  // places/locations always resolve before entries starts (#500's own
-  // multi-table ordering requirement) -- entries reference placeId, so
-  // a delta merge that set entries first could leave them pointing at a
-  // place/location this device doesn't know about yet.
+  // Places and locations first: entries reference them.
   await Promise.all([
     syncSmallTable("places", PLACES_URL, store.loadPlacesFromCache, store.getPlaces, store.setPlaces),
     syncSmallTable("locations", LOCATIONS_URL, store.loadLocationsFromCache, store.getLocations, store.setLocations),
@@ -178,16 +117,9 @@ async function boot() {
 
 document.getElementById("sync-retry-btn").addEventListener("click", () => location.reload());
 
-// #952/#960 -- boots only for the signed-in owner of this page and, on
-// beta.<domain>, only if they're enrolled (client/boot-gate.js).
-// #985 -- this page has no header chrome, so it points the footer's
-// help links at the apex itself.
 pointApexLinksAtApex();
 
 pageAllowsBoot().then(allowed => {
   if (!allowed) return;
-  // #947/#948 -- the service worker, once boot's own fetches have settled
-  // and the page has gone idle: its install downloads every owner page, so
-  // it must never compete with them on a bad connection.
   registerServiceWorker({ after: boot() });
 });

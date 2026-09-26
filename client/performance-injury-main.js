@@ -1,21 +1,3 @@
-// Composition root for /:username/performance/injury (#39) -- bundled by esbuild
-// into public/-/performance-injury-app.js, same pattern as client/map-main.js
-// (see that file's own comment for the general "trimmed from client/main.js"
-// reasoning). Reuses store.js/admin-auth.js/header-chrome.js unchanged.
-//
-// #111 -- this page no longer fetches raw entries or computes anything
-// itself. INJURY_URL returns the already-computed injury log/cluster
-// (server/api/performance.js running shared/injury-stats.js in the Worker
-// against the full D1 result set) -- store.js's entries/cache machinery
-// isn't used on this page at all any more, and there's deliberately no
-// offline fallback: performance insights are online-only (Raven's own
-// call, see the #performance-offline message in
-// public/performance/injury/index.html for the reasoning).
-//
-// No modal-utils.js/content-overlays.js here either, same reasoning as
-// map-main.js -- this page has no notes/footnote overlay of its own; its
-// own Sources section (#797, views/performance/injury/index.njk) is plain
-// inline content, not a popup needing wiring from here.
 import { createStore } from "./store.js";
 import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
@@ -31,9 +13,6 @@ import { registerServiceWorker } from "./register-sw.js";
 
 const SETTINGS_URL = "/-/api/settings";
 
-// Same opaqueredirect-detection reasoning as client/main.js's own
-// adminFetch/isAuthRedirect -- unchanged copy, not worth sharing a
-// two-line pair across a module boundary (same call map-main.js made).
 function adminFetch(url, options) {
   return fetch(url, { ...options, redirect: "manual" });
 }
@@ -41,23 +20,17 @@ function isAuthRedirect(res) {
   return res.type === "opaqueredirect";
 }
 
-// /:username/performance/injury -- same single-segment extraction as map-main.js.
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
-// #251 -- one of the three seeded, publicly-viewable demo accounts.
 const IS_DEMO = isDemoUsername(USERNAME);
 const INJURY_URL = demoDataUrl(USERNAME, "/-/api/performance/injury", "performance/injury");
 
 const store = createStore();
 const syncStatusIcon = createSyncStatusIcon();
 store.subscribe(render);
-// Deliberately NOT store.setActiveView(...) here -- same temporal-dead-zone
-// hazard map-main.js's own comment documents (a real crash caught during
-// #348's manual verification of that page). Set inside boot() instead.
 
 const tabBar = document.querySelector("climbing-tab-bar");
 tabBar.setAttribute("username", USERNAME);
 
-// #601
 document.getElementById("back-to-performance-link").href = `/${encodeURIComponent(USERNAME)}/performance`;
 
 const injuryRootEl = document.getElementById("injury-log-root");
@@ -68,10 +41,6 @@ function render() {
   updateAdminBar();
 }
 
-// #111 -- a plain fetch, not fetch-json.js's loadResource(): that helper
-// assumes a single `{ [key]: array }` shape (defaulting to `[]` on a
-// missing key), but this endpoint returns both the log and the cluster in
-// one object, not a list.
 async function fetchInjuryLog() {
   const res = await fetch(INJURY_URL);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -86,9 +55,6 @@ const adminAuth = createAdminAuth({
   store, adminFetch, isAuthRedirect,
   settingsUrl: SETTINGS_URL,
   updateAdminBar,
-  // #847 follow-up -- lets checkSession()/fetchSettings() report a
-  // genuine fetch timeout through to the shell sync/offline indicator
-  // (see admin-auth.js/sync-status-icon.js own comments).
   onFetchTimeout: syncStatusIcon.reportTimeout,
 });
 
@@ -108,13 +74,6 @@ function logRowHtml(entry) {
   </div>`;
 }
 
-// No evidence-tier chip here (unlike the pyramid's citations/evidence
-// overlays) -- design doc's own explicit call: this is the app's own data
-// overlay, not a sourced external claim. The caveat line below is
-// required regardless of that, though -- research doc's own framing
-// ("a pattern-noticing tool, not medical advice") applies to the whole
-// view, not just the headline, so it's rendered unconditionally, not only
-// alongside a cluster.
 const CAVEAT_HTML = `<p class="text-[.75rem] text-muted mb-3" id="injury-caveat">A pattern-noticing tool, not medical advice.</p>`;
 
 function renderInjuryLog({ log, cluster }) {
@@ -132,10 +91,7 @@ function renderInjuryLog({ log, cluster }) {
 async function boot() {
   store.setActiveView("performance-injury");
 
-  // Renders the shell (tab bar, header) from cached state before any network
-  // call. The Athlete Mode redirect below deliberately waits for the real
-  // settings fetch: a cached "on" can be stale if Athlete Mode was turned off
-  // on another device, and nothing would re-check it once the fetch lands.
+  // The Athlete Mode redirect waits for real settings: a cached "on" may be stale.
   adminAuth.setInitialActiveType();
 
   const sessionPromise = syncStatusIcon.track(adminAuth.checkSession());
@@ -143,20 +99,6 @@ async function boot() {
 
   await adminAuth.reconcileActiveType(sessionPromise, settingsPromise);
 
-  // Performance Insights require BOTH being logged in AND Athlete Mode on
-  // (#151, carried forward from /logbook's own updateAdminBar() rule, and
-  // already encoded in <climbing-tab-bar>'s show-performance attribute --
-  // see that component's TABS comment). owned-routes.js already guarantees
-  // "logged in as this page's own owner" before this bundle ever loads, so
-  // the only remaining case to handle here is the owner visiting their own
-  // /performance directly with Athlete Mode off -- same fallback
-  // client/main.js's updateAdminBar() applies when the tab disappears out
-  // from under an active performance-injury view (setActiveView("logbook")),
-  // redirect to this page's own equivalent "somewhere with real content" --
-  // /log.
-  // #251 -- skipped entirely for the three reserved demo usernames, same
-  // "not auth-gated" treatment owned-routes.js's isDemoPerformancePage
-  // already gives the page itself.
   if (!IS_DEMO && !adminAuth.isAthleteMode()) {
     location.href = `/${encodeURIComponent(USERNAME)}/log`;
     return;
@@ -164,11 +106,7 @@ async function boot() {
 
   render();
 
-  // #111 -- online-only, deliberately no offline fallback (see this
-  // file's own header comment). A failed fetch (offline, or any other
-  // network/server error) shows the "needs a connection" message instead
-  // of attempting to render anything -- never a locally-computed or
-  // stale-cached number.
+  // Online-only: never show a stale or locally computed number.
   try {
     const data = await fetchInjuryLog();
     offlineEl.hidden = true;
@@ -180,12 +118,7 @@ async function boot() {
   }
 }
 
-// #952/#960 -- boots only for the signed-in owner of this page and, on
-// beta.<domain>, only if they're enrolled (client/boot-gate.js).
 pageAllowsBoot().then(allowed => {
   if (!allowed) return;
-  // #947/#948 -- the service worker, once boot's own fetches have settled
-  // and the page has gone idle: its install downloads every owner page, so
-  // it must never compete with them on a bad connection.
   registerServiceWorker({ after: boot() });
 });

@@ -251,7 +251,7 @@ export function createOfflineSync({
         const res = await syncOne(item);
         if (res.status === 401 || isAuthRedirect(res)) {
           // Everything from here on stays queued, in order (#158).
-          store.setLoggedIn(false); // Store mutation -- notify() covers the admin-bar update (#264)
+          store.setLoggedIn(false);
           break;
         }
         if (!res.ok) continue;

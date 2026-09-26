@@ -1,22 +1,3 @@
-// Composition root for /:username/performance/strengths (#13) -- bundled by
-// esbuild into public/-/performance-strengths-app.js, same pattern as
-// client/map-main.js (see that file's own comment for the general "trimmed
-// from client/main.js" reasoning). Reuses store.js/admin-auth.js/
-// header-chrome.js unchanged.
-//
-// #111 -- this page no longer fetches raw entries or computes anything
-// itself. STRENGTHS_URL returns the already-computed strengths/weaknesses
-// data (server/api/performance.js running shared/strengths-stats.js in the
-// Worker against the full D1 result set) -- store.js's entries/cache
-// machinery isn't used on this page at all any more, and there's
-// deliberately no offline fallback: performance insights are online-only
-// (Raven's own call, see the #performance-offline message in
-// public/performance/strengths/index.html for the reasoning).
-//
-// No modal-utils.js/content-overlays.js here either, same reasoning as
-// map-main.js -- this page has no notes/footnote overlay of its own; its
-// own Sources section (#797, views/performance/strengths/index.njk) is
-// plain inline content, not a popup needing wiring from here.
 import { createStore } from "./store.js";
 import { createAdminAuth } from "./admin-auth.js";
 import { createHeaderChrome } from "./header-chrome.js";
@@ -31,9 +12,6 @@ import { registerServiceWorker } from "./register-sw.js";
 
 const SETTINGS_URL = "/-/api/settings";
 
-// Same opaqueredirect-detection reasoning as client/main.js's own
-// adminFetch/isAuthRedirect -- unchanged copy, not worth sharing a
-// two-line pair across a module boundary (same call map-main.js made).
 function adminFetch(url, options) {
   return fetch(url, { ...options, redirect: "manual" });
 }
@@ -41,23 +19,17 @@ function isAuthRedirect(res) {
   return res.type === "opaqueredirect";
 }
 
-// /:username/performance/strengths -- same single-segment extraction as map-main.js.
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
-// #251 -- one of the three seeded, publicly-viewable demo accounts.
 const IS_DEMO = isDemoUsername(USERNAME);
 const STRENGTHS_URL = demoDataUrl(USERNAME, "/-/api/performance/strengths", "performance/strengths");
 
 const store = createStore();
 const syncStatusIcon = createSyncStatusIcon();
 store.subscribe(render);
-// Deliberately NOT store.setActiveView(...) here -- same temporal-dead-zone
-// hazard map-main.js's own comment documents (a real crash caught during
-// #348's manual verification of that page). Set inside boot() instead.
 
 const tabBar = document.querySelector("climbing-tab-bar");
 tabBar.setAttribute("username", USERNAME);
 
-// #601
 document.getElementById("back-to-performance-link").href = `/${encodeURIComponent(USERNAME)}/performance`;
 
 const strengthsRootEl = document.getElementById("strengths-root");
@@ -68,11 +40,6 @@ function render() {
   updateAdminBar();
 }
 
-// #111 -- a plain fetch, not fetch-json.js's loadResource(): that helper
-// assumes a single `{ [key]: array }` shape (defaulting to `[]` on a
-// missing key), but this endpoint returns different top-level shapes
-// depending on the query params (see handleGetStrengthsWeaknesses in
-// server/api/performance.js), not a single list.
 async function fetchStrengths() {
   const res = await fetch(STRENGTHS_URL);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -87,9 +54,6 @@ const adminAuth = createAdminAuth({
   store, adminFetch, isAuthRedirect,
   settingsUrl: SETTINGS_URL,
   updateAdminBar,
-  // #847 follow-up -- lets checkSession()/fetchSettings() report a
-  // genuine fetch timeout through to the shell sync/offline indicator
-  // (see admin-auth.js/sync-status-icon.js own comments).
   onFetchTimeout: syncStatusIcon.reportTimeout,
 });
 
@@ -98,11 +62,6 @@ const headerChrome = createHeaderChrome({
   settingsUrl: SETTINGS_URL,
 });
 
-// #614 -- same shared humanize()-based convention as shared/
-// strengths-stats.js's own limbSideLabel()/availableAnchors(), not an
-// independent local capitalize() -- this used to render "Toe-hook"
-// (hyphen intact) where the anchor picker right above it on this same
-// page rendered a differently-cased label for the identical value.
 function cellRowHtml(cell) {
   const pct = Math.round(cell.score * 100);
   const label = `${humanize(`${cell.side}-${cell.limb}`)} · ${humanize(cell.holdType)} · ${humanize(cell.movementStyle)} · ${humanize(cell.wallAngle)}`;
@@ -120,11 +79,7 @@ async function fetchRankedForAnchor(dimension, value) {
 
 let latestAnchorRequestId = 0;
 
-// A rapid re-selection (reachable via keyboard arrow-key navigation through
-// the native <select>, which fires `change` per option in Chrome/Firefox)
-// can let an earlier, now-stale fetch resolve after a later one -- this
-// request-token guard makes sure only the response matching the
-// currently-selected value ever reaches the DOM.
+// Drop a response that a newer request has overtaken.
 async function onAnchorChange(select) {
   const rankedListEl = document.getElementById("strengths-ranked-list");
   const [dimension, value] = select.value.split(":");
@@ -167,13 +122,7 @@ function renderStrengths({ headline, anchors }) {
     ? `<p class="text-[.95rem] font-semibold text-foreground mb-4" id="strengths-headline">${escapeHtml(headline.text)}</p>`
     : `<p class="text-[.85rem] text-muted mb-4" id="strengths-headline">Not enough data yet to spot a pattern -- keep tagging moves as you climb.</p>`;
 
-  // #604 -- gated on `headline`, not `anchors.length`: showing the
-  // drill-down picker only when there's a real, confidence-gate-clearing
-  // headline result keeps the picker consistent with what the headline
-  // text itself claims. `anchors.length > 0` alone just means the user
-  // has tagged *some* moves, which can be true even when no single
-  // combination has cleared MIN_TAG_COUNT yet -- offering a drill-down
-  // right next to a "not enough data yet" message read as contradictory.
+  // On headline, not anchors: some tags can exist before any combination clears the gate.
   const pickerHtml = headline
     ? `<div class="mb-4">
         <label class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 block" for="strengths-anchor-select">Drill into</label>
@@ -194,10 +143,7 @@ function renderStrengths({ headline, anchors }) {
 async function boot() {
   store.setActiveView("performance-strengths");
 
-  // Renders the shell (tab bar, header) from cached state before any network
-  // call. The Athlete Mode redirect below deliberately waits for the real
-  // settings fetch: a cached "on" can be stale if Athlete Mode was turned off
-  // on another device, and nothing would re-check it once the fetch lands.
+  // The Athlete Mode redirect waits for real settings: a cached "on" may be stale.
   adminAuth.setInitialActiveType();
 
   const sessionPromise = syncStatusIcon.track(adminAuth.checkSession());
@@ -205,20 +151,6 @@ async function boot() {
 
   await adminAuth.reconcileActiveType(sessionPromise, settingsPromise);
 
-  // Performance Insights require BOTH being logged in AND Athlete Mode on
-  // (#151, carried forward from /logbook's own updateAdminBar() rule, and
-  // already encoded in <climbing-tab-bar>'s show-performance attribute --
-  // see that component's TABS comment). owned-routes.js already guarantees
-  // "logged in as this page's own owner" before this bundle ever loads, so
-  // the only remaining case to handle here is the owner visiting their own
-  // /performance directly with Athlete Mode off -- same fallback
-  // client/main.js's updateAdminBar() applies when the tab disappears out
-  // from under an active performance-strengths view (setActiveView("logbook")),
-  // redirect to this page's own equivalent "somewhere with real content" --
-  // /log.
-  // #251 -- skipped entirely for the three reserved demo usernames, same
-  // "not auth-gated" treatment owned-routes.js's isDemoPerformancePage
-  // already gives the page itself.
   if (!IS_DEMO && !adminAuth.isAthleteMode()) {
     location.href = `/${encodeURIComponent(USERNAME)}/log`;
     return;
@@ -226,11 +158,7 @@ async function boot() {
 
   render();
 
-  // #111 -- online-only, deliberately no offline fallback (see this
-  // file's own header comment). A failed fetch (offline, or any other
-  // network/server error) shows the "needs a connection" message instead
-  // of attempting to render anything -- never a locally-computed or
-  // stale-cached number.
+  // Online-only: never show a stale or locally computed number.
   try {
     const data = await fetchStrengths();
     offlineEl.hidden = true;
@@ -242,12 +170,7 @@ async function boot() {
   }
 }
 
-// #952/#960 -- boots only for the signed-in owner of this page and, on
-// beta.<domain>, only if they're enrolled (client/boot-gate.js).
 pageAllowsBoot().then(allowed => {
   if (!allowed) return;
-  // #947/#948 -- the service worker, once boot's own fetches have settled
-  // and the page has gone idle: its install downloads every owner page, so
-  // it must never compete with them on a bad connection.
   registerServiceWorker({ after: boot() });
 });
