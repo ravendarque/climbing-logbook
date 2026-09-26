@@ -7,37 +7,15 @@ eleventyNavigation:
   order: 12
 ---
 
-{# #924 -- was a "coming soon" placeholder (views/help/report-an-issue/
-     index.md). Converted from .md to .njk, same precedent as
-     views/help/grade-scales/index.njk, since a real form needs more
-     structure than markdown prose -- bundle: report-issue (this page's own
-     front matter) overrides help-layout.njk's default `bundle: help`,
-     11ty's own data cascade (child front matter wins over the layout it
-     chains through), so this page loads its own dedicated client bundle
-     instead of the generic shared one every other /help page uses. #}
-
-{# #311's own precedent (views/register/index.njk) -- placed in this
-     page's own content, not app-layout.njk's <head>: a chained layout's
-     content only ever lands inside {{ content }}, past the point <head>
-     is already closed (help-layout.njk's own comment on its Pagefind
-     tags makes the same point). A script tag works identically wherever
-     it sits in the document. #}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad&render=explicit" async defer></script>
 
 <h1>Report an issue</h1>
 
 <p class="text-muted mb-4">Found a bug, or something that isn't working right? Let us know below.</p>
 
-{# #930 -- novalidate: the browser's own native "fill out this field"
-     tooltip is replaced by report-issue-main.js's own required-field
-     check, shown through this form's existing styled error-message
-     element instead (British English copy, "Please fill in this
-     field" -- the native message can't be reworded any other way). #}
+{# novalidate: the native tooltip can't be reworded, so the page shows its own message. #}
 <form id="report-issue-form" novalidate>
-  {# #930 -- red asterisk beside every required field's label
-       (aria-hidden -- the real semantic is the required attribute
-       itself, already announced to a screen reader without this glyph
-       repeating it). Only "What happened?" is actually required here. #}
+  {# The asterisk is aria-hidden; the required attribute is what's announced. #}
   <label class="block text-sm text-muted mb-1" for="report-issue-message">What happened? <span class="text-accent" aria-hidden="true">*</span></label>
   <textarea
     class="text-input w-full mb-4 min-h-[8rem]"
@@ -59,17 +37,10 @@ eleventyNavigation:
     <option value="help">Help pages</option>
   </select>
 
-  {# Turnstile bot check (#311's own precedent, #924 reuses the same
-       explicit-render pattern) -- rendered by report-issue-main.js, not a
-       static attribute here, since the real sitekey is a runtime,
-       hostname-dependent decision (see that file's own comment). #}
   <div id="turnstile-widget" class="mb-4"></div>
 
   <p class="mb-4 error-message" id="report-issue-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>
 
-  {# #930 -- was w-full, filled the entire ~640px article column; a
-       single submit action doesn't need that much width, same "sensible
-       width, not full" call Raven made here. #}
   <button type="submit" class="btn btn-primary px-8 disabled:opacity-[.45] disabled:cursor-not-allowed" id="report-issue-submit-btn">Send report</button>
 </form>
 

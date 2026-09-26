@@ -46,8 +46,39 @@ user's contains a hyphen and can never collide with one:
   app-host login (`/-/login/`) and the installed app's start page
   (`/-/launch/`).
 
-`shared/username-policy.js` decides every username (format, reserved names,
-blocked terms).
+### Usernames
+
+`shared/username-policy.js` decides whether a name can be registered or
+changed to. Better Auth's username plugin runs it on sign-up, on user
+update and in the user database hooks, so every path goes through it. The
+rules, in order:
+
+1. **Format:** lowercase letters, digits, `.` and `_`, 1–30 characters
+   (Instagram's rules, so people can reuse a handle). Never a hyphen.
+2. **Not a demo account** (`shared/demo-personas.js`).
+3. **Not reserved, and not a lookalike of a reserved name**
+   (`shared/reserved-usernames.js`): apex page names, which on `my.` would
+   look like the site's own pages; infrastructure names; names that read as
+   the site speaking; the brand. Names are compared by skeleton: lowercase,
+   separators dropped, leet digits read as letters (`1` as both `i` and
+   `l`), and `rn`/`vv` read as `m`/`w`.
+4. **No authority word as a part** of the name split on `.` and `_`
+   (`admin_raven`), matched as a whole part so `badmintonfan` passes.
+5. **No brand anywhere** in the name, lookalikes included.
+6. **No slur or hate-speech term** (`shared/blocked-username-terms.js`),
+   matched by the `obscenity` library through leet, lookalike Unicode and
+   repeated letters. Its version is pinned exactly, so an update can't
+   silently change what's blocked. Scope: slurs and hate speech only; not
+   swearing, and not political or identity terms in themselves.
+   Neo-Nazi number codes are matched on the raw name, since the matcher
+   would read digits as letters. `88` and `14` alone are allowed: they're
+   mostly birth years and grades.
+
+To add a reserved name or blocked term: a PR with a test covering the term
+and an innocent name containing its letters, then run
+`scripts/audit-usernames.mjs` against production to find existing accounts
+that already have it. A rejection only ever shows as "unavailable", so the
+lists can't be probed rule by rule.
 
 ## Repository layout
 
@@ -97,6 +128,34 @@ else, including `/service-worker.js`, keeps the platform default.
 
 Nothing shipped contains developer comments: Vite minifies the bundles,
 templates use `{# #}`, and `static/` scripts are minified on copy.
+
+### Generated data
+
+These are committed outputs, not build steps. Regenerate them by hand when
+their source changes:
+
+| Output | Script |
+|---|---|
+| `client/countries.js`'s `COUNTRIES` | `scripts/generate-countries.mjs` (prints it; paste it in) |
+| `static/-/world-map-*.json` | `scripts/generate-world-map.mjs` |
+| `static/-/brand-lockup.svg` and its size block in `climbing-header.js` | `scripts/generate-brand-lockup.mjs` |
+| Logbook Beta's PNG icons | `scripts/generate-beta-icons.mjs` |
+
+- **Countries** come from the `world-countries` package. Russia, Belarus
+  and Israel are excluded, as they are from world climbing events
+  (`scripts/lib/country-exclusions.mjs`, shared by both generators so a
+  map pin always has a country to join against). Palestine is included. A
+  pin sits on a country's geographic centre, not its capital.
+- **The world map** is Equal Earth, in three variants centred on
+  Greenwich, the Americas and Oceania. Projection happens at generation
+  time with d3-geo, so no mapping library ships. Each variant fits its
+  scale to the landmass minus the few slivers that straddle its seam, which
+  would otherwise waste about 10% of the scale, then draws everything.
+  A synthetic meridian on the seam draws it on both edges. Pins carry only
+  `{ name, x, y }`; the rest of each country's record stays in
+  `COUNTRIES`. The printed uncompressed sizes go into `client/map-view.js`'s
+  `MAP_VARIANT_SIZES`: the download progress bar needs them, and gzip hides
+  `Content-Length`.
 
 ## Request routing
 
@@ -203,8 +262,36 @@ Features:
 - `client/combo-chart.js`, `client/time-window.js` and
   `client/report-grade-scale-picker.js` for the performance reports.
 
-Web Components (`client/components/`): `climbing-entries-table`,
-`climbing-grade-pyramid`, `climbing-tab-bar`. The header components
+Web Components (`client/components/`) take their data as properties and
+attributes from the page's composition root and never import the store,
+so the public profile can use them without any write-capable module in
+its bundle:
+
+- `climbing-entries-table` owns its own view state: search, filters,
+  per-section sort, collapse and how many rows are revealed. Its markup is
+  built by the pure functions in `entries-table-html.js`. Attributes:
+  - `editable`: without it, there are no edit buttons at all;
+  - `all-disciplines`: the public profile's combined view, one section per
+    location and discipline;
+  - `lazy`: the public profile starts with a count per location and fires
+    `location-expand` to fetch a location's rows when it's opened;
+  - `loading`: set in the shell's markup and cleared by `boot()`, so a
+    returning visitor never sees "nothing logged" before their data arrives.
+
+  Property changes within one tick produce a single render (a microtask),
+  so a page setting entries, then places, then locations never shows a
+  half-joined table. Each render restores focus to the control the user
+  was on. Sections start collapsed once, when data first arrives; after
+  that, the user's choices stand. On `/log` the data is already complete
+  locally, so "Show more" only reveals rows, in steps of 100.
+- `climbing-grade-pyramid` renders the server-computed pyramid for both
+  disciplines, so switching discipline needs no fetch.
+- `climbing-tab-bar` is a navigation landmark with `aria-current`, not an
+  ARIA tablist, because each tab is a different page. It renders once, when
+  the page calls `markReady()` after the settings load, so the Performance
+  tab doesn't pop in afterwards.
+
+The header components
 (`static/-/components/`) are classic scripts, not modules, because they
 must run before first paint; `climbing-header.js` also injects the design
 tokens.
@@ -227,6 +314,21 @@ Tables (see `migrations/` for columns and constraints):
 - **IDs are minted by the client** (`crypto.randomUUID()`), so a queued
   offline write keeps its identity until it syncs; a repeated `POST` of
   the same id is an idempotent replay, and deleting a missing id succeeds.
+  `server/lib/d1-resource.js` holds the create path. Two concurrent creates
+  of one id race past the existence check, so the losing `INSERT`'s
+  unique-constraint error is treated as a replay too. A create that lands
+  on a soft-deleted id brings the row back with the new data instead of
+  being dropped.
+- **Places and locations are deduplicated by name** (case-insensitive,
+  plus the area for a place). A create that matches an existing row
+  returns `dedupedTo: <id>`, and the offline queue remaps anything still
+  queued against the id it minted. Two offline devices adding the same crag
+  converge on one row.
+- **Delta sync** returns every row with `sync_cursor >= since`, deletions
+  included, plus the new cursor. It's `>=` because cursors can collide
+  within a millisecond, and merging by id makes a repeat harmless. Each
+  table keeps its own cursor: one shared cursor could skip changes in
+  whichever table's cursors run lower.
 - **Writes are allowlisted.** `buildRow()` in each API module builds the row
   from known fields only; the request body is never spread into storage.
   `shared/entry-schema.js` validates entries on both sides.
@@ -284,6 +386,44 @@ Tables (see `migrations/` for columns and constraints):
 - **Already logged in:** the apex home and login page send a signed-in
   visitor straight to their log (`static/-/session-redirect.js`).
 
+### Better Auth configuration
+
+`server/lib/auth.js` builds one Better Auth instance per hostname and caches
+it for the isolate's lifetime.
+
+- **Trusted origins** are the CSRF boundary: a state-changing request from
+  any other origin is a 403. The plain-`http` production origins are there
+  because `wrangler dev` rewrites a request's origin to the first production
+  route but keeps `http`. Real traffic never has them: the edge redirects
+  HTTP to HTTPS first. `http://localhost:*` is listed explicitly because
+  Better Auth's own derivation from `allowedHosts` doesn't produce the `http`
+  form of a wildcard host.
+- **Allowed hosts** are the production and beta hosts, PR previews
+  (`*.ravendarque.workers.dev`), local dev, and `example.com` (the Vitest
+  base URL). Vite's dev server reads the same list, so a host missing here is
+  rejected before it reaches the Worker.
+- **Cookies** span `climbinglogbook.com` and its subdomains, because sign-in
+  happens on the apex. Everywhere else is one origin; a `Domain` that doesn't
+  match the host would be rejected by the browser.
+- **Rate limiting** is stored in D1: in-memory counters are per isolate, so
+  they never trip. It's switched on by `RATE_LIMITING_ENABLED`, which only
+  real deployments set. Local dev and tests have no `cf-connecting-ip`, so
+  every request would share one bucket and the suites would hit 429s.
+- **Client IP** comes from `cf-connecting-ip`; Cloudflare never sends
+  `x-forwarded-for`, Better Auth's default. Proxy headers are not trusted
+  for host derivation, because the Worker sits directly behind the edge.
+- **Schema validation is off**: `migrations/` owns the schema, and the check
+  runs D1 queries each time an instance is built.
+- **Email** verification is required before first login and signs the user in
+  when they click the link. Changing email needs confirmation from the
+  current, verified address.
+- **Usernames** follow `shared/username-policy.js`: Instagram's charset
+  (lowercase letters, digits, `.` and `_`) and length (1–30), with the demo
+  accounts and reserved names and their lookalikes refused. No username
+  contains a hyphen, which is what keeps `/-/` and `/service-worker.js` from
+  colliding with a profile path (`test/username.test.js`).
+- **No social login**, deliberately (`docs/ui-stack-evaluation.md`).
+
 ## Local development
 
 `pnpm dev` runs Vite's dev server with `@cloudflare/vite-plugin`, plus the
@@ -302,3 +442,45 @@ in dev.
   by `vite preview`. Most page tests use mocked API responses
   (`e2e/mock-api.js`); some run against the real Worker and D1.
 - [ADR-0011](adr/0011-three-layer-test-pyramid.md) records the test pyramid.
+
+### End-to-end tests
+
+`e2e/global-setup.js` applies migrations, resets the database, seeds the
+dev user's data and saves that session for every test. It resets on every
+run, because seeding only adds missing rows and a changed setting would
+otherwise carry over. The Worker under test is built with
+`CLOUDFLARE_ENV=preview`, so setup targets the preview database.
+
+Three kinds of test:
+
+| Kind | How | Used for |
+|---|---|---|
+| Component harness | `e2e/fixtures/*-entry.js`, built by `pnpm run e2e:build-fixtures` into `/e2e-fixtures/`, mount a real component against made-up data | Component behaviour: map zoom, the pyramid |
+| Page harness | A copy of a built shell at `/e2e-fixtures/pages/<page>.html`, running its real bundle, with `/-/api/*` faked by `e2e/mock-api.js` | Most page tests |
+| Real route | `my.localhost` via `ownedRouteUrl()` and `addOwnedRouteSessionCookie()` (`e2e/owned-route-url.js`), against the real Worker and D1 | Routing, sessions, the service worker, per-user storage |
+
+In the page harness the first path segment is `e2e-fixtures`, so links built
+from the URL use that as the username, and navigation to another page is
+stubbed with `page.route()`. `mockApi()` keeps writes for the length of a
+test, clears localStorage on every navigation, and seeds a warm device's
+caches unless `synced: false`.
+
+Things that have caught this suite out:
+
+- A route glob without a trailing `*` doesn't match a URL with a query
+  string, so `DELETE …/entries?id=` falls through to the real network.
+- `context.setOffline()` doesn't affect `route.fulfill()`. Fail a write with
+  `route.abort("failed")` instead.
+- `page.unroute(pattern)` removes every handler for that pattern, including
+  `mockApi()`'s. Toggle a flag inside one handler, and pass everything else
+  on with `route.fallback()` (not `continue()`, which goes to the network).
+- `toBeVisible()` can't see clipping by a transformed ancestor; assert
+  `inert` for the entry form's off-screen page.
+- `force: true` skips the actionability checks, so it can click mid-animation.
+  Click the visible label instead.
+- Hold a response open with a promise the test resolves, never a timer.
+- A real sign-out ends the suite's shared session; stub it.
+- A first visit to `/log` goes through `/sync` and back; wait for it to
+  settle before touching storage.
+- `vite preview` doesn't compress like the edge does, so load timing under
+  throttling is a manual check against a real deploy.

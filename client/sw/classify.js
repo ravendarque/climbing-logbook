@@ -1,8 +1,4 @@
-// #962, ADR-0028 -- which handling a request gets from the service worker,
-// as a pure function (unit-tested in test/client/sw/classify.test.js).
-// The runtime (#947) maps each kind to a strategy; anything classified
-// "passthrough" gets no respondWith at all, so the browser handles it
-// exactly as if there were no worker.
+// passthrough means no respondWith, as if there were no worker.
 import { matchOwnerRoute } from "../../shared/owner-routes.js";
 
 export const LAUNCH_PATH = "/-/launch/";

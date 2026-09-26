@@ -1,19 +1,3 @@
-// The Map tab: World Map rendering (#17/#169), zoom/pan/drag interaction
-// (#168), and the pin popover (#18) -- #236, part of #233's modularization
-// epic. Reads store only for activeType/activeView (#497 moved pin/
-// popover/subtitle data off store.getEntries() entirely -- see
-// setCounts()'s own comment); everything else (viewBox arithmetic) comes
-// from client/map-geometry.js's pure functions.
-//
-// A factory, same reasoning as client/logbook-view.js: this owns DOM refs
-// and event listeners, not just pure logic. Its dependency list is
-// shorter than logbook-view.js's, though -- unlike table interactions,
-// nothing here ever needs to trigger a full top-level app re-render;
-// every internal state change just re-invokes this module's own render()
-// (or applyMapView() for a pan/zoom, which doesn't need a full repaint).
-// No createDisclosure either -- the pin popover has its own purpose-built
-// open/close/outside-click/Escape logic, predating that shared helper,
-// left as-is rather than unified here (out of scope for this extraction).
 import { escapeHtml } from "./escape-html.js";
 import { combinedFlashLabel, combinedSendLabel, disciplineLabel, flashLabel, sendLabel } from "./status.js";
 import { STATUS_ICONS } from "./status-icons.js";
@@ -38,20 +22,8 @@ const MAP_VARIANTS = {
   americas: { label: "Americas" },
   oceania: { label: "Oceania" },
 };
-// Each variant's exact UNCOMPRESSED byte size, printed by
-// generate-world-map.mjs on every regeneration -- the client needs its own
-// copy of this number because the response's Content-Length header isn't a
-// usable source for it: any real browser fetch sends Accept-Encoding: gzip,
-// and this server (both wrangler dev locally and Cloudflare's edge in
-// production -- streaming gzip can't know its own compressed size upfront)
-// responds Transfer-Encoding: chunked with no Content-Length at all once
-// compression kicks in (confirmed via curl -H "Accept-Encoding: gzip").
-// What IS reliably available is the DEcompressed byte count
-// fetchWithProgress's reader loop measures -- fetch()'s body stream is
-// always already-decompressed, browsers transparently undo
-// Content-Encoding before JS ever sees the bytes -- so comparing that
-// running count against this known-upfront total gives a real percentage,
-// with no header dependency at all.
+// Uncompressed sizes, for the progress bar: gzip responses carry no Content-Length, and the
+// body stream is already decompressed.
 const MAP_VARIANT_SIZES = {"greenwich":83027,"americas":82148,"oceania":82354};
 const MAP_VARIANT_STORAGE_KEY = "mapProjectionVariant";
 
@@ -59,26 +31,8 @@ const PIN_BASE_R = 9;
 const PIN_BASE_STROKE = 1.5;
 const PIN_BASE_FONT = 9;
 
-// #460 -- allDisciplines (default false, only ever set by
-// client/profile-main.js) switches every discipline-scoped computation
-// below (pin counts, the subtitle stat line, the map's own aria-label)
-// from "whichever discipline is currently active" to "every discipline
-// combined" -- the public profile has no single active discipline
-// anymore. The owner's own /map page (client/map-main.js) never passes
-// this, so its behavior is unchanged byte-for-byte. The one exception is
-// the pin popover's own status breakdown (see renderPinPopoverContent),
-// which always shows a per-discipline breakdown when allDisciplines is
-// set, rather than one combined count -- that's the one place "combined"
-// would actually lose information Raven specifically wanted kept
-// (2026-08-14: "breakdown the statuses by discipline when we click on
-// the pin").
+// allDisciplines combines counts, except the pin popover, which splits by discipline.
 export function createMapView({ store, allDisciplines = false }) {
-  // #497 -- the server's own per-(country, discipline) aggregate
-  // ({ total, flash, send, project }, server/api/map.js), not raw
-  // entries -- this factory no longer reads store.getEntries() at all.
-  // Starts empty (same "nothing loaded yet" state a fresh store's own
-  // getEntries() used to have); the composition root calls setCounts()
-  // once its own fetch (or offline-cache fallback) resolves.
   let mapCounts = {};
 
   function setCounts(counts) {
@@ -86,20 +40,10 @@ export function createMapView({ store, allDisciplines = false }) {
     render();
   }
 
-  // Which discipline keys of mapCounts count toward pins/subtitle stats
-  // -- both in allDisciplines mode, just the active discipline's own
-  // otherwise. Not used by the pin popover, which always splits by
-  // discipline regardless of this flag (see this factory's own header
-  // comment).
   function disciplinesInPlay() {
     return allDisciplines ? ["boulder", "sport"] : [store.getActiveType()];
   }
 
-  // Discipline keys actually present (non-zero) anywhere in mapCounts,
-  // in canonical (boulder, lead) order -- drives the combined-label
-  // wording below without hardcoding "boulder and lead" anywhere. A
-  // future third discipline (#429/#430) needs no change here, same
-  // reasoning as status.js's own combinedFlashLabel/combinedSendLabel.
   function presentDisciplines() {
     const present = new Set();
     for (const byDiscipline of Object.values(mapCounts)) {
@@ -110,15 +54,7 @@ export function createMapView({ store, allDisciplines = false }) {
     return ["boulder", "sport"].filter(t => present.has(t));
   }
 
-  // Best-effort only -- picks a reasonable *default* the first time the
-  // map's opened; the user can always switch explicitly afterward, and
-  // that choice then persists (see getActiveMapVariant). Buckets the
-  // browser's current local UTC offset into whichever of the three
-  // central meridians (0deg/-90deg/150deg) is geographically closest,
-  // using today's actual offset (Date's own getTimezoneOffset, not a full
-  // IANA timezone->region table) so DST is naturally accounted for. Wrong
-  // for plenty of real timezones near the bucket edges -- fine, it's only
-  // ever a starting point.
+  // A first guess from the UTC offset; the user's own choice then persists.
   function guessMapVariant() {
     const offsetHours = -new Date().getTimezoneOffset() / 60;
     if (offsetHours >= -3 && offsetHours < 5) return "greenwich";
@@ -133,10 +69,7 @@ export function createMapView({ store, allDisciplines = false }) {
 
   function setActiveMapVariant(name) {
     localStorage.setItem(MAP_VARIANT_STORAGE_KEY, name);
-    // Pixel coordinates from the old variant mean nothing under the new
-    // projection -- reset to the new variant's own default view instead
-    // of carrying over a viewBox that would point at the wrong part of
-    // the map (or land outside it entirely).
+    // The old viewBox means nothing under a new projection.
     mapUserHasInteracted = false;
     mapView = null;
     render();
@@ -148,10 +81,6 @@ export function createMapView({ store, allDisciplines = false }) {
   let mapLoadProgress = null; // 0-1, or null while total size is unknown
   let mapLoadError = null;
 
-  // Reads the response body as it streams in (rather than the simpler
-  // `res.json()`) so onProgress can report real bytes-loaded against the
-  // known total -- see MAP_VARIANT_SIZES for why that total has to be
-  // passed in rather than read off the response.
   async function fetchWithProgress(url, total, onProgress) {
     const res = await fetch(url);
     if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
@@ -163,10 +92,7 @@ export function createMapView({ store, allDisciplines = false }) {
       if (done) break;
       chunks.push(value);
       loaded += value.length;
-      // Clamped, not just divided -- MAP_VARIANT_SIZES is a snapshot from
-      // whenever generate-world-map.mjs last ran, so a rounding quirk or
-      // stale value could in principle put loaded a byte or two past
-      // total before the stream itself reports done.
+      // Clamped: the recorded size can be a byte or two stale.
       onProgress(total ? Math.min(1, loaded / total) : null);
     }
     return JSON.parse(await new Blob(chunks).text());
@@ -178,9 +104,6 @@ export function createMapView({ store, allDisciplines = false }) {
     const label = document.getElementById("map-load-progress-label");
     if (!bar || !label) return; // loading UI isn't the one currently painted
     if (frac === null) {
-      // Only reachable if MAP_VARIANT_SIZES is ever missing an entry --
-      // every real variant has a known size, so this is a defensive
-      // fallback, not the expected path.
       bar.style.width = "100%";
       bar.classList.add("animate-pulse");
       label.textContent = "Loading map…";
@@ -191,11 +114,7 @@ export function createMapView({ store, allDisciplines = false }) {
     label.textContent = `Loading map… ${Math.round(frac * 100)}%`;
   }
 
-  // Kicks off (or joins) a variant's fetch without blocking the caller --
-  // render() calls this and then immediately paints a loading/error
-  // state, re-rendering for real once the promise below settles. Guarded
-  // by mapLoadingVariants so switching tabs back and forth, or re-picking
-  // the same variant, never starts a second concurrent fetch for it.
+  // Joins an in-flight fetch rather than starting a second.
   function ensureMapVariantLoading(variant) {
     if (mapLoadingVariants.has(variant)) return;
     mapLoadingVariants.add(variant);
@@ -215,20 +134,8 @@ export function createMapView({ store, allDisciplines = false }) {
 
   async function loadMapVariant(name) {
     if (mapDataCache.has(name)) return mapDataCache.get(name);
-    // Absolute path (#348), not relative -- this was only ever safe on
-    // the old /logbook/ page because that page's own URL and the data
-    // files' real location (then public/logbook/) happened to be the same
-    // directory.
-    // client/map-main.js (client/components/climbing-tab-bar.js's
-    // /:username/map, more precisely) reuses this function unchanged from
-    // a different page, where the relative form resolved to a 404 (caught
-    // during manual verification, not hypothetical) -- absolute is a
-    // no-op there (resolves to the exact same path) and correct
-    // everywhere else.
     const data = await fetchWithProgress(`/-/world-map-${name}.json`, MAP_VARIANT_SIZES[name] ?? 0, frac => {
-      // A background fetch for a variant the user's since switched away
-      // from shouldn't fight the currently-displayed one for the shared
-      // progress UI.
+      // A background fetch for a variant no longer shown mustn't drive the progress bar.
       if (getActiveMapVariant() === name) updateMapLoadProgressUI(frac);
     });
     data.pinsByName = new Map(data.pins.map(p => [p.name, p]));
@@ -236,26 +143,9 @@ export function createMapView({ store, allDisciplines = false }) {
     return data;
   }
 
-  // Viewport aspect (#17 follow-up): showing the *entire* world by default
-  // means most of a typical user's actual pins (clustered in one region)
-  // render tiny, surrounded by ocean/continents nobody's ever climbed in,
-  // which read as dead space around the sides (especially pronounced on a
-  // narrow mobile viewport, where the rendered map is short as well as
-  // letterboxed). Instead the viewport keeps its own fixed aspect --
-  // narrower/taller on narrow viewports, wider/shorter on wide ones,
-  // matching the app's existing 600px narrow/wide breakpoint -- and the
-  // *default* (max zoomed-out) view shows the full vertical extent (pole
-  // to pole) but only a horizontal slice, centered, panned left/right to
-  // see the rest. This trades "see the whole world at once" for "see your
-  // own region at a readable size by default," which is the actually
-  // useful default for a personal climbing map.
+  // A fixed viewport aspect showing pole to pole and a horizontal slice, so your own region reads
+  // at a useful size.
   const mapNarrowQuery = window.matchMedia("(max-width: 600px)");
-  // Thin wrappers over client/map-geometry.js's pure functions -- they
-  // close over mapData/mapNarrowQuery so every existing call site below
-  // keeps calling these same zero-arg names. Only callable once mapData
-  // has loaded -- every caller below is reachable only from the "loaded"
-  // render path or from interactions the loading/error states don't
-  // expose (the zoom/pan controls stay hidden until then).
   function mapViewportAspect() {
     return mapViewportAspectPure(mapNarrowQuery.matches);
   }
@@ -263,28 +153,12 @@ export function createMapView({ store, allDisciplines = false }) {
     return mapMaxWPure(mapData.height, mapViewportAspect());
   }
 
-  // Default view: full height, width set by the current viewport aspect
-  // (see above), horizontally centered on the world (not on the current
-  // discipline's pinned countries -- tried that per #17/#169, but it
-  // meant every projection switch, and even a plain default load, could
-  // clamp hard to an edge depending on where your pins happened to land
-  // under that rotation, reading as a broken/panned map rather than
-  // "here's this projection." World-centered is simple and predictable
-  // regardless of your data or which variant is active.)
   function defaultMapView() {
     return defaultMapViewPure(MAP_WIDTH, mapMaxW(), mapViewportAspect());
   }
-  // Deliberately not initialized to defaultMapView() here -- that needs
-  // mapData.height, which isn't available until the active variant has
-  // loaded. render() computes it lazily on first successful load (and
-  // again on every variant switch, see setActiveMapVariant).
+  // Needs the variant's height, so it's computed on first load.
   let mapView = null;
-  // Sticks at false until the user's first real zoom/pan (see
-  // setMapView) -- render() re-centers on the current pins every time
-  // while this is still false (so switching discipline before ever
-  // touching the map re-centers on that discipline's own pins too), then
-  // leaves mapView alone once the user's taken control, consistent with
-  // the "never reset on re-render" behavior described above.
+  // Recentres on the pins until the user first zooms or pans.
   let mapUserHasInteracted = false;
   let mapDrag = null; // { pointerId, lastClientX, lastClientY } while a drag is in progress
 
@@ -336,12 +210,7 @@ export function createMapView({ store, allDisciplines = false }) {
     closePinPopover();
   }
 
-  // Crossing the narrow/wide breakpoint (window resize, orientation
-  // change) changes mapMaxW()/mapViewportAspect() -- reset to the fresh
-  // default for the new shape rather than leaving mapView locked to
-  // whatever aspect was current when the user last zoomed/panned, which
-  // would otherwise never self-correct. No-op before any variant has ever
-  // loaded (mapData null) -- nothing to resize yet.
+  // Crossing the breakpoint changes the aspect, so reset the view.
   mapNarrowQuery.addEventListener("change", () => {
     if (!mapData) return;
     mapView = defaultMapView();
@@ -349,11 +218,6 @@ export function createMapView({ store, allDisciplines = false }) {
     closePinPopover();
   });
 
-  // Keeps (cx, cy) fixed in place on screen while the view scales around
-  // it -- centered zoom for the buttons (cx/cy omitted below), cursor-
-  // anchored zoom for the wheel (cx/cy = pointer position), same as any
-  // map UI. See client/map-geometry.js's computeZoomedView for the
-  // over-zoom-drift rationale behind clamping inline before applying it.
   function zoomMapBy(factor, cx, cy) {
     if (cx === undefined) cx = mapView.x + mapView.w / 2;
     if (cy === undefined) cy = mapView.y + mapView.h / 2;
@@ -368,10 +232,6 @@ export function createMapView({ store, allDisciplines = false }) {
     setMapView(panView(mapView, dx, dy));
   }
 
-  // Client-pixel <-> viewBox-user-space conversions, both needed because
-  // the map scales with its container (w-full h-auto) and the ratio
-  // between rendered pixels and user-space units changes with both
-  // viewport width and the current zoom level.
   function mapClientDeltaToUserSpace(svg, dxClient, dyClient) {
     return mapClientDeltaToUserSpacePure(svg.getBoundingClientRect(), mapView, dxClient, dyClient);
   }
@@ -385,10 +245,7 @@ export function createMapView({ store, allDisciplines = false }) {
     const svg = getMapSvg();
     if (svg) { svg.classList.remove("cursor-grabbing"); svg.classList.add("cursor-grab"); }
   }
-  // Bound once at module scope, not inside render() -- a drag can
-  // legitimately move the pointer outside the SVG's bounds mid-gesture,
-  // so these have to listen on the document rather than the (regularly
-  // recreated) SVG element itself.
+  // On the document: a drag can leave the SVG, and the SVG is re-created on render.
   document.addEventListener("pointermove", e => {
     if (!mapDrag || e.pointerId !== mapDrag.pointerId) return;
     const svg = getMapSvg();
@@ -411,22 +268,11 @@ export function createMapView({ store, allDisciplines = false }) {
   const mapVariantSelect = document.getElementById("map-variant-select");
   mapVariantSelect.addEventListener("change", () => setActiveMapVariant(mapVariantSelect.value));
 
-  // ── Pin popover (#18) ──────────────────────────────────────────────────
-  // Reuses the exact same flash/send/project categories the subtitle stat
-  // line shows (flashLabel/sendLabel included), just scoped to one
-  // country instead of every logged entry. Takes an explicit type rather
-  // than reading store.getActiveType() -- #460's allDisciplines mode
-  // calls this once per discipline, always both, regardless of the
-  // owner-only single-active-discipline concept this factory otherwise
-  // still has.
   function countryStatusBreakdown(countryName, type) {
     const c = mapCounts[countryName]?.[type];
     return { flashes: c?.flash ?? 0, sends: c?.send ?? 0, projects: c?.project ?? 0 };
   }
 
-  // Reuses STATUS_ICONS/STATUS_ICON_CLASS's icon markup, same as the
-  // table's own statusBadge() -- just a smaller icon size to fit a
-  // compact popover row.
   function statRow(icon, title, n, singular, plural) {
     return `
       <div class="flex items-center gap-[.45rem]">
@@ -447,14 +293,6 @@ export function createMapView({ store, allDisciplines = false }) {
 
   function renderPinPopoverContent(countryName) {
     const c = COUNTRY_BY_NAME[countryName];
-    // #460 -- always both disciplines' own breakdown side by side (above
-    // the app's existing 600px breakpoint, stacked below it), never one
-    // combined count -- Raven's own call, 2026-08-14: this is the one
-    // place in allDisciplines mode where combining would actually lose
-    // information ("breakdown the statuses by discipline when we click
-    // on the pin"). The owner's own /map page (allDisciplines unset)
-    // keeps today's single-block-for-the-active-discipline layout,
-    // unchanged.
     const body = allDisciplines
       ? `<div class="flex gap-4 max-[600px]:flex-col max-[600px]:gap-[.6rem]">
           ${["boulder", "sport"].map(type => `
@@ -523,28 +361,10 @@ export function createMapView({ store, allDisciplines = false }) {
     }
   });
 
-  // The "your Boulder/Lead stats" caption line above the map -- lives in
-  // #subtitle, which sits inside each map-having page's own markup
-  // (public/map/index.html, public/profile/index.html), not any Logbook
-  // tab's, despite the similarly-named data. Discovered while scoping
-  // #235; deferred here. #460: combined across disciplines (both the
-  // counts and the flash/send wording) when allDisciplines is set.
   function updateSubtitle() {
-    // Falls back to every known discipline when there's nothing logged
-    // yet at all -- presentDisciplines() would otherwise return an empty
-    // list, and combinedFlashLabel/combinedSendLabel of an empty list is
-    // an empty string, which would render as a bare "0 " with no label.
     const disciplines = presentDisciplines().length > 0 ? presentDisciplines() : ["boulder", "sport"];
     const inPlay = disciplinesInPlay();
 
-    // Distinct countries with at least one entry in a discipline that's
-    // in play -- `total`, not flash/send/project, so a country with only
-    // e.g. checkout/archived entries still counts (matches the old raw-
-    // entries computation, which didn't filter by status here either).
-    // Falsy/empty country excluded, same as the old code's own
-    // `.filter(Boolean)`. flash/send/project stay summed across every
-    // country including the empty one, also matching the old behavior
-    // (those totals were never country-scoped).
     const countriesWithEntries = new Set();
     let flashes = 0, sends = 0, projects = 0;
     for (const [country, byDiscipline] of Object.entries(mapCounts)) {
@@ -573,9 +393,6 @@ export function createMapView({ store, allDisciplines = false }) {
       stat(sends, sendLabelText, sendLabelPlural),
       stat(projects, "Project", "Projects"),
     ].join(`<span class="text-muted"> · </span>`);
-    // Always empty -- no code writes #footer otherwise (confirmed via
-    // grep); left as-is rather than removed, out of scope for this
-    // extraction to also clean up.
     document.getElementById("footer").textContent = "";
   }
 
@@ -588,9 +405,6 @@ export function createMapView({ store, allDisciplines = false }) {
 
     const inPlay = disciplinesInPlay();
 
-    // Pin count badge -- `total` (every entry regardless of status,
-    // matching the old raw-entries count this replaces), summed across
-    // whichever discipline(s) are in play.
     const countsByCountry = new Map();
     for (const [country, byDiscipline] of Object.entries(mapCounts)) {
       if (!country) continue;
@@ -603,33 +417,14 @@ export function createMapView({ store, allDisciplines = false }) {
     const zoomControls = document.getElementById("map-zoom-controls");
     const panControls = document.getElementById("map-pan-controls");
 
-    // #226 -- no special-cased empty state here. The pin-rendering path
-    // below already handles a zero-length pinnedCountries array fine (an
-    // empty pins/srList string, real SVG landmass still rendered) -- the
-    // previous version replaced the whole map with a one-line text
-    // message instead, which collapsed #map-container's height while
-    // leaving #map-variant-picker (absolutely positioned, a sibling
-    // outside #map-container, never hidden by this branch) still visible,
-    // overlapping the description text/footer below it once the
-    // container it's positioned against had nothing left to size against.
+    // No special empty state: an empty map with no pins works, and replacing it broke the layout.
 
-    // #169: the active variant's data might not be loaded yet -- kick off
-    // (or join) its fetch and paint a loading/error state in the
-    // meantime rather than the map itself. ensureMapVariantLoading()
-    // re-invokes render() once the fetch settles.
     if (!mapDataCache.has(variant)) {
       mapData = null;
       zoomControls.hidden = true;
       panControls.hidden = true;
 
-      // A previous attempt's failure is a stopping point, not a retry
-      // trigger -- only the explicit Retry click below clears
-      // mapLoadError and re-enters the fetch branch. Calling
-      // ensureMapVariantLoading() unconditionally here would restart the
-      // fetch on every single render() call this error state's own
-      // render() triggers (any state change repaints the whole app),
-      // which very quickly becomes an unthrottled retry loop hammering
-      // the server -- confirmed while testing this exact failure path.
+      // A failure waits for Retry; retrying on every render hammered the server.
       if (mapLoadError) {
         container.innerHTML = `
           <div class="bg-surface border border-border rounded-app p-6 mb-5 text-center">
@@ -673,17 +468,11 @@ export function createMapView({ store, allDisciplines = false }) {
         </g>`;
     }).join("");
 
-    // The pins carry the same info visually via <title> tooltips, but
-    // <title> on an SVG <g> isn't reliably exposed by screen readers the
-    // way alt text is -- a plain sr-only list gives that a guaranteed,
-    // simple text equivalent instead of depending on tooltip support.
+    // An sr-only list: SVG <title> isn't reliably announced.
     const srList = pinnedCountries.map(c =>
       `<li>${escapeHtml(c.name)}: ${countsByCountry.get(c.name)} ${countsByCountry.get(c.name) === 1 ? "entry" : "entries"}</li>`
     ).join("");
 
-    // #460 -- generic wording in allDisciplines mode (no single active
-    // discipline to name); today's exact discipline-specific wording
-    // otherwise, unchanged.
     const mapAriaLabel = allDisciplines
       ? "World map of logged climbing entries by country"
       : `World map of logged ${disciplineLabel(store.getActiveType()).toLowerCase()} entries by country`;
@@ -699,20 +488,11 @@ export function createMapView({ store, allDisciplines = false }) {
       </div>
       <ul class="sr-only">${srList}</ul>`;
 
-    // Re-bound every call since container.innerHTML above just replaced
-    // the SVG element outright -- unlike the static zoom/pan buttons and
-    // the document-level drag listeners above, this element genuinely
-    // doesn't survive a re-render.
+    // Re-bound: the SVG was just replaced.
     const svg = getMapSvg();
     svg.addEventListener("pointerdown", e => {
       if (e.button !== 0) return;
-      // Starting a drag here would call setPointerCapture, which
-      // retargets the pointer's later mouseup/click to the SVG itself --
-      // that silently ate every pin click (the click handler's
-      // e.target.closest("[data-pin-country]") never matched, since
-      // e.target was the SVG, not the pin) until this check was added.
-      // Skipping capture when the press starts on a pin lets that click
-      // reach the pin-popover handler instead of beginning a map drag.
+      // Pointer capture would retarget the click away from the pin.
       if (e.target.closest("[data-pin-country]")) return;
       svg.setPointerCapture(e.pointerId);
       mapDrag = { pointerId: e.pointerId, lastClientX: e.clientX, lastClientY: e.clientY };

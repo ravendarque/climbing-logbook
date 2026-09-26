@@ -1,27 +1,11 @@
-// Exercises the two generic extension hooks (afterWrite, decorateRows)
-// added for #575 Phase 2's entry-data plan -- entries.js (server/api/
-// entries.js) is their real consumer, but these hooks are table-agnostic
-// infrastructure, worth testing against a throwaway table rather than only
-// indirectly through entries' own much larger test file.
 import { env } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createD1ResourceHandlers } from "../server/lib/d1-resource.js";
 import { createAuthedSession, resetAuthTables } from "./support.js";
 
-// createAuthedSession's own doc comment requires this -- it signs up
-// without an invite code, so the beta gate must be off for the duration
-// of this file, same pattern as test/auth.test.js/logbook.test.js/
-// map.test.js.
 beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
 afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
 
-// "places" already exists as a real D1 table (server/api/places.js's own
-// table, migrations/0003_app_data.sql) with a minimal enough shape (id,
-// user_id, location_id, area, sync_cursor, created_at, updated_at -- NO
-// `name` column; a place is identified by its location + area only) to
-// drive through this factory directly without a fixture table of our
-// own -- location_id has a NOT NULL FK, so tests seed a real location
-// first via the same pattern test/places.test.js already uses.
 async function seedLocation(userId) {
   const id = crypto.randomUUID();
   await env.LOGBOOK_DB.prepare("INSERT INTO locations (id, user_id, name, country) VALUES (?, ?, ?, ?)")

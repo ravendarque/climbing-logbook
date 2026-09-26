@@ -1,7 +1,4 @@
-// #947/#948, ADR-0028 -- the service worker, end to end against the
-// production build on the app origin (my.localhost). context.setOffline() cuts the
-// worker's own fetches too in Chromium (spike #957 Q3), so "offline" here
-// is real.
+// In Chromium, setOffline() also cuts the service worker's own fetches, so offline here is real.
 import { expect, test } from "@playwright/test";
 import { DEV_USER } from "../scripts/lib/dev-session.mjs";
 import { addOwnedRouteSessionCookie, ownedRouteUrl } from "./owned-route-url.js";
@@ -9,10 +6,7 @@ import { SHELL_PATHS } from "../shared/owner-routes.js";
 
 const ORIGIN = "http://my.localhost:8787";
 
-// Visit an owner page, wait for the worker to take control, then load the
-// page once more under its control so its shell and assets are cached.
-// (A fresh device's first /log goes via /sync and back, so wait until the
-// page has settled on its own URL before reloading.)
+// A fresh device's first /log goes via /sync, so wait until it settles.
 async function warm(page, path) {
   const url = ownedRouteUrl(DEV_USER.username, path);
   await page.goto(url);
@@ -47,11 +41,6 @@ test("offline cold launch: a fresh navigation to a visited owner page renders fr
   await context.setOffline(false);
 });
 
-// #948 -- the install pre-caches every owner page and what it loads, so
-// visiting /log once is enough for every other page to open offline. Each
-// page's own offline treatment (e.g. a performance report's "you need to
-// be online" message, ADR-0018) is the page's business; what's asserted
-// is that the worker served the document and every static file it loaded.
 test("after visiting only /log, every owner page opens offline", async ({ page, context }) => {
   const url = ownedRouteUrl(DEV_USER.username, "/log");
   await page.goto(url);
@@ -59,12 +48,7 @@ test("after visiting only /log, every owner page opens offline", async ({ page, 
   await page.evaluate(() => navigator.serviceWorker.ready);
   await context.setOffline(true);
 
-  // Only the pages' own requests count: the worker's background refresh of
-  // a font fails offline by design. Chromium fetches favicons itself,
-  // outside any service worker, so those fail offline whatever's cached.
-  // And the world-map data is fetched on demand and deliberately online-only
-  // (the map shows its own "you need to be online" state; see
-  // docs/app-architecture.md), like the API.
+  // Online-only by design: the API, map data, and favicons (Chromium fetches those outside the worker).
   const onlineOnly = ["/-/api/", "/-/favicon-", "/-/world-map-"];
   const failed = [];
   context.on("requestfailed", req => {
@@ -103,8 +87,6 @@ test("an interrupted install keeps what it fetched, and the retry fetches only t
   const url = ownedRouteUrl(DEV_USER.username, "/log");
   await page.goto(url);
   await page.waitForURL(url);
-  // The first install fails on the manifest; nothing activates, but the
-  // rest is in this build's cache.
   await expect.poll(() => workerFetches.includes("/-/manifest.json")).toBe(true);
   await expect.poll(() => page.evaluate(async () => {
     const registration = await navigator.serviceWorker.getRegistration();
@@ -113,12 +95,9 @@ test("an interrupted install keeps what it fetched, and the retry fetches only t
   const firstAttempt = workerFetches.length;
   expect(firstAttempt).toBeGreaterThan(40);
 
-  // The retry (the next owner page load re-registers) fetches only the
-  // manifest, then activates.
   failManifest = false;
   await page.reload();
   await page.evaluate(() => navigator.serviceWorker.ready);
-  // (/service-worker.js is the browser's own update check of the worker script.)
   expect(workerFetches.slice(firstAttempt).filter(path => path !== "/service-worker.js")).toEqual(["/-/manifest.json"]);
 });
 
@@ -156,15 +135,10 @@ test("API responses never end up in the worker's cache", async ({ page }) => {
   });
   expect(cachedUrls.length).toBeGreaterThan(0);
   expect(cachedUrls.filter(p => p.startsWith("/-/api/"))).toEqual([]);
-  // Shells are cached by page type, never under a user's URL.
   expect(cachedUrls).toContain("/log/index.html");
   expect(cachedUrls.filter(p => p.startsWith(`/${DEV_USER.username}/`))).toEqual([]);
 });
 
-// What must not outlive the session on a shared device is a cached *owner
-// shell* (#80's scenario). Logout deletes every logbook-* cache; the login
-// page it lands on may then re-cache its own public static assets (CSS,
-// the header component), which is harmless and expected.
 async function cachedPaths(page) {
   return page.evaluate(async () => {
     const paths = [];
@@ -180,12 +154,8 @@ test("logging out deletes the worker's caches: no owner shell survives the sessi
   await warm(page, "/log");
   expect(await cachedPaths(page)).toContain("/log/index.html");
 
-  // Stubbed: a real sign-out would end the shared dev session the rest of
-  // the suite uses. What's under test is what the page clears locally.
-  // Because the stub leaves the real session alive, the login page's own
-  // "already signed in?" check (static/session-redirect.js) is also told
-  // there's no session -- as it would be after a real sign-out -- or it
-  // would bounce straight back to /log.
+  // Stubbed: a real sign-out would end the shared dev session. The login page's session check is told
+  // there's none, as after a real sign-out, or it would bounce back to /log.
   await page.route("**/-/api/auth/sign-out", route => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }));
   await page.locator("#header-menu-btn").click();
   await page.route("**/-/api/auth/get-session", route => route.fulfill({ status: 200, contentType: "application/json", body: "null" }));
@@ -198,12 +168,7 @@ test("logging out deletes the worker's caches: no owner shell survives the sessi
   expect(after.filter(p => !p.startsWith("/-/"))).toEqual([]);
 });
 
-// #983 -- the worker moved from /sw.js (a valid username) to
-// /service-worker.js. A device still registered at /sw.js switches over
-// on its next owner-page load: same scope, one registration, no unregister.
 test("a device registered at the old /sw.js switches to /service-worker.js on its next owner-page load", async ({ page, context }) => {
-  // The old script is gone from the build; stand in for the one the device
-  // installed back then.
   await context.route("**/sw.js", route => route.fulfill({ contentType: "text/javascript", body: "self.addEventListener('fetch', () => {});" }));
   await page.goto(`${ORIGIN}/${DEV_USER.username}`);
   await page.evaluate(async () => {
@@ -218,9 +183,6 @@ test("a device registered at the old /sw.js switches to /service-worker.js on it
   })).toEqual([["/", "/service-worker.js"]]);
 });
 
-// #992 -- every resource read needs a session: a lapsed one gets a 401,
-// never an empty 200, so a worker-served page keeps showing the device's
-// cached logbook instead of replacing it with "no entries".
 test("a lapsed session: reads 401 and the worker-served page keeps the cached logbook", async ({ page, context }) => {
   await warm(page, "/log");
   const places = await page.locator(".place-header[data-location-id]").count();

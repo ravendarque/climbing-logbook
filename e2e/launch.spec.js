@@ -1,7 +1,3 @@
-// #949 -- the installed app's start_url (/launch/, static/-/
-// manifest.json) sends whoever last signed in on this device to their own
-// logbook, and nobody to login. Exercised on the app origin (my.localhost)
-// against the production build.
 import { expect, test } from "@playwright/test";
 import { DEV_USER } from "../scripts/lib/dev-session.mjs";
 import { addOwnedRouteSessionCookie, ownedRouteUrl } from "./owned-route-url.js";
@@ -19,7 +15,6 @@ test("the manifest names no user and starts at /-/launch/", async ({ page }) => 
 
 test("opening the app lands the signed-in user on their own logbook", async ({ page, context }) => {
   await addOwnedRouteSessionCookie(context);
-  // Any owner page load records who's signed in on this device (#960).
   await page.goto(ownedRouteUrl(DEV_USER.username, "/map"));
   await expect.poll(() => page.evaluate(() => localStorage.getItem("logbook_signed_in_user"))).toBe(DEV_USER.username.toLowerCase());
 

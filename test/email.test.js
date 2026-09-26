@@ -1,10 +1,3 @@
-// Exercises the transactional-email flows (#308) through the real Worker
-// entrypoint. Real D1, not mocked -- see test/apply-migrations.js. The one
-// thing that IS stubbed here is the outbound network call to Resend's own
-// API (https://api.resend.com) -- that's a third-party boundary, not this
-// app's own runtime, so intercepting it is a normal test boundary, not the
-// kind of mocking this project's test philosophy avoids (KV/D1 stay real
-// everywhere else in this suite).
 import { env } from "cloudflare:workers";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchJson, jsonRequest, resetAuthTables } from "./support.js";
@@ -12,19 +5,11 @@ import { createEmailSender } from "../server/lib/email.js";
 
 beforeEach(resetAuthTables);
 
-// This file exercises email verification/reset, not the beta gate (#296) --
-// that has its own dedicated test/beta-gate.test.js. Disabled here for the
-// whole file, same reasoning/pattern as test/auth.test.js.
 beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
 afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
 
 const SIGNUP = { email: "nix@example.com", password: "correct-horse-battery-staple", name: "Nix", username: "nix", turnstileToken: "test-token" };
 
-// Captures every Resend call this test file makes without hitting the real
-// network -- resolves with a fake-but-plausible success response, same
-// shape Resend's own `emails.send()` expects back. Also stubs Turnstile's
-// siteverify endpoint (#311), always passing -- this file isn't testing
-// the bot check itself.
 let resendCalls;
 beforeEach(() => {
   resendCalls = [];
@@ -70,9 +55,6 @@ describe("sign-up with email verification required", () => {
     await signUp();
     const token = extractToken(resendCalls[0].body.html, "token=");
 
-    // verify-email is a plain GET (the link a user clicks from their email
-    // client) -- fetchJson() directly, not jsonRequest(), which always
-    // attaches a JSON body/Content-Type that a bodyless GET doesn't need.
     const res = await fetchJson(`/-/api/auth/verify-email?token=${token}`);
     expect([200, 302]).toContain(res.status);
 
@@ -86,8 +68,6 @@ describe("sign-up with email verification required", () => {
 
 describe("password reset", () => {
   it("sends a reset email and the token round-trips to a new password", async () => {
-    // Verification isn't required to request/complete a password reset --
-    // only to sign in normally -- so skip straight to requesting one.
     await signUp();
     resendCalls.length = 0; // only care about the reset email from here
 
@@ -124,27 +104,12 @@ describe("password reset", () => {
   });
 });
 
-// Better Auth's emailed links carry the token either as a `?token=` query
-// param (verification) or as a `/reset-password/<token>` path segment
-// (reset) -- pull whichever shape is present out of the HTML body's link.
 function extractToken(html, marker) {
-  // Excludes `?` too, not just `"`/`&`/`<` -- the reset-password link's
-  // token is a path segment immediately followed by `?callbackURL=...`
-  // (no `&` before it, since it's the query string's first param), so
-  // without this a captured token silently absorbed the whole trailing
-  // query string too.
   const match = html.match(new RegExp(`${marker}([^"&<?]+)`));
   if (!match) throw new Error(`Couldn't find a token in the emailed HTML: ${html}`);
   return decodeURIComponent(match[1]);
 }
 
-// #754 -- unit-level, calling createEmailSender() directly rather than
-// through the full sign-up/change-email HTTP flow: Better Auth's own Zod
-// validation rejects HTML metacharacters in a real newEmail before this
-// module ever sees them, so a malicious value can't reach here through
-// the app's real request path today. This is defense in depth, tested
-// as such -- confirming the escaping mechanism itself works, independent
-// of whether the current call path can trigger it.
 describe("createEmailSender HTML escaping (defense in depth, #754)", () => {
   const sender = createEmailSender(env);
 

@@ -1,16 +1,3 @@
-// #302 -- composition-root-wiring coverage for /:username/account/edit.
-// Same fixture-harness pattern as e2e/log-page.spec.js (see that file's
-// own header comment) -- the real client/account-edit-main.js ->
-// account-edit-app.js bundle against a verbatim copy of
-// public/account/edit/index.html, with fabricated /-/api/auth/*
-// responses (mock-api.js's own #302 additions).
-//
-// Username save deliberately isn't asserted past "the right request was
-// sent" -- a successful save navigates the real browser to
-// /:username/account/edit under the *new* username (see
-// client/account-edit-main.js's own comment on why), which is a real page
-// load outside this composition root's own bundle entirely, not something
-// this fixture-harness page can meaningfully render.
 import { expect, test } from "@playwright/test";
 import { mockApi } from "./mock-api.js";
 
@@ -18,18 +5,10 @@ test("shows the current username/email, and each row is independently editable",
   await mockApi(page, { username: "nix", email: "nix@example.com" });
   await page.goto("/e2e-fixtures/pages/account-edit.html");
 
-  // username/email values are session-derived (adminAuth's own
-  // getUsername()/getEmail(), from the mocked get-session response) --
-  // "nix"/"nix@example.com" here are real.
   await expect(page.locator("#username-value")).toHaveText("nix");
   await expect(page.locator("#email-value")).toHaveText("nix@example.com");
-  // #back-to-account-link, like every other composition root's internal
-  // links, is built from THIS PAGE's own URL instead -- see
-  // e2e/account-page.spec.js's own comment on #edit-account-link for why
-  // "e2e-fixtures" (the harness's synthetic path segment) is correct here.
   await expect(page.locator("#back-to-account-link")).toHaveAttribute("href", "/e2e-fixtures/account");
 
-  // Opening one row's form never touches the other two.
   await page.locator("#email-edit-btn").click();
   await expect(page.locator("#email-form")).toBeVisible();
   await expect(page.locator("#username-form")).toBeHidden();
@@ -66,8 +45,6 @@ test("email row: saving shows the pending-confirmation state, doesn't change the
 
   await expect(page.locator("#email-pending")).toBeVisible();
   await expect(page.locator("#email-pending")).toContainText("new@example.com");
-  // Still the OLD email -- nothing changes until the confirmation link
-  // (sent to the old address, server/lib/email.js's own comment) is clicked.
   await expect(page.locator("#email-value")).toHaveText("nix@example.com");
   await expect(page.locator("#email-form")).toBeHidden();
 });

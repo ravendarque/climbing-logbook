@@ -9,15 +9,6 @@ eleventyExcludeFromCollections: true
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Climbing Logbook</title>
   <meta name="theme-color" content="#ff2727">
-  {# #949 -- the installed app's start_url (static/-/manifest.json).
-       The manifest is one static file shared by every user, so it can't
-       name anyone's logbook; this page does it instead, on the device:
-       whoever last signed in here (logbook_signed_in_user, written by
-       client/user-storage.js's callers and the login page, #960) goes to
-       their own /log, and nobody signed in goes to this origin's login.
-       No network needed, so it works offline once the service worker
-       caches it (#947/#948). Plain inline script, no bundle: it has one
-       job and runs before anything paints. #}
   <script>
     (function () {
       var user = null;

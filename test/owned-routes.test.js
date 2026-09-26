@@ -1,29 +1,8 @@
-// #347 -- my.<domain>/:username/{log,map,performance}, the authenticated
-// owner's own routes. Session's own user id must match the user id the
-// URL's :username resolves to, else redirect to login -- the per-user
-// equivalent of what Cloudflare Access used to do for the single, global
-// /logbook URL. Exercised via the real Worker entrypoint with an explicit
-// Host header, same "public HTTP contract" philosophy as
-// test/public-profile.test.js.
-//
-// #857 -- every `src="/-/<name>-app.js"` assertion below is a
-// regex tolerating an optional trailing `?v=<digits>`, not an exact
-// string match: .eleventy.js's own assetVersion appends that query to
-// the real built HTML this test reads (via env.ASSETS.fetch(), the
-// same file html:build produced), and the value is a genuinely
-// non-deterministic build-time timestamp -- an exact match broke the
-// instant that query started existing.
 import { env, exports } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, resetAuthTables } from "./support.js";
 import { SHELL_HEADER, SHELL_PATHS } from "../shared/owner-routes.js";
 
-// #443/#548 -- sets the raw beta_opt_in column directly (NULL included)
-// (not via the PATCH endpoint) so each test can set up exactly the state
-// it wants to assert against, independent of the settings API's own
-// coverage (test/handlers.test.js). Upsert, same shape as server/api/
-// settings.js's own handlePatchSettings -- a user's settings row may not
-// exist yet (only created on their first PATCH in real usage).
 async function setBetaOptIn(userId, value) {
   await env.LOGBOOK_DB
     .prepare(`INSERT INTO settings (user_id, beta_opt_in) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET beta_opt_in = excluded.beta_opt_in`)
@@ -88,11 +67,6 @@ describe("owned route authorization", () => {
     }
   });
 
-  // #348 -- all three pages now have real shells (fetched via the ASSETS
-  // binding, see server/api/owned-routes.js's SHELL_PATHS). Asserting each
-  // real shell's actual content here (not just a 200, which the test
-  // above already covers) is what would have caught the shell/bundle
-  // wiring being wrong even though the auth decision itself was right.
   it("serves the real static shell for map", async () => {
     const { cookie } = await createAuthedSession({ username: "mapshelluser", hostname: "climbinglogbook.com" });
     const res = await fetchOwnedRoute("mapshelluser", "map", { cookie });
@@ -103,9 +77,6 @@ describe("owned route authorization", () => {
   });
 
   it("serves the real static shell for performance", async () => {
-    // #575 -- bare /performance is the Performance Insights hub now (one
-    // tile per insight, id="insight-tiles"), not the Grade Pyramid itself
-    // (that moved to its own /performance/pyramid sub-page under #348).
     const { cookie } = await createAuthedSession({ username: "performanceshelluser", hostname: "climbinglogbook.com" });
     const res = await fetchOwnedRoute("performanceshelluser", "performance", { cookie });
     expect(res.status).toBe(200);
@@ -210,15 +181,6 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(404);
   });
 
-  // #190 -- a real, found regression: the grade-scales page moved off this
-  // owned/gated route to a public /help page, but this router's own regex
-  // kept matching "performance/grades" for a while after SHELL_PATHS'
-  // matching entry was removed, so a request here fell all the way through
-  // to `env.ASSETS.fetch(new URL(undefined, request.url))` instead of a
-  // clean 404 -- harmless in effect (ASSETS still 404s on a nonexistent
-  // "undefined" path) but not the intended, direct 404 this page's own
-  // absence should produce. Guards against `grades` (or anything else that
-  // no longer has a SHELL_PATHS entry) silently reappearing in the regex.
   it("falls through (404) for the old grade-scales route, now that it's a public /help page instead", async () => {
     const { cookie } = await createAuthedSession({ username: "oldgradesrouteuser", hostname: "climbinglogbook.com" });
     const res = await fetchOwnedRoute("oldgradesrouteuser", "performance/grades", { cookie });
@@ -231,8 +193,6 @@ describe("owned route authorization", () => {
     expect(res.headers.get("Location")).toBe("https://my.localhost/-/login/?returnTo=%2Fsomeone%2Flog");
   });
 
-  // #955, ADR-0029 -- login stays on the app's own origin (never the apex),
-  // and returnTo carries the full path including any query string.
   it("keeps the page's query string in returnTo", async () => {
     const res = await exports.default.fetch("https://my.climbinglogbook.com/someone/performance/rpe?window=90", { redirect: "manual" });
     expect(res.status).toBe(302);
@@ -243,11 +203,6 @@ describe("owned route authorization", () => {
   });
 });
 
-// #443/#548 -- beta.<domain>'s owned routes. #952, ADR-0029: served exactly
-// like my.x's (session + ownership check only) whatever the user's beta
-// enrollment -- enrollment is checked by the page itself
-// (client/channel-guard.js), since a service-worker-cached shell never
-// reaches the server.
 describe("beta.x owned routes", () => {
   it("enrolled -- serves the real page shell, same as my.x would", async () => {
     const { cookie, userId } = await createAuthedSession({ username: "betainuser", hostname: "climbinglogbook.com" });
@@ -305,13 +260,6 @@ describe("beta.x owned routes", () => {
   });
 });
 
-// #251 -- the three seeded demo accounts' performance pages, reachable
-// with no session at all. Deliberately doesn't call createAuthedSession()
-// for these usernames -- server/lib/auth.js's registration validator now
-// rejects them outright (they're reserved), so there's no real user row to
-// create here; the bypass itself needs none either (see
-// server/api/owned-routes.js's isDemoPerformancePage -- it serves the
-// shell directly, no DB lookup at all).
 describe("demo account owned pages (#251)", () => {
   it("serves log/map/performance and every performance sub-page shell with no session", async () => {
     for (const page of ["log", "map", "performance", "performance/pyramid", "performance/injury", "performance/strengths", "performance/trends", "performance/gap", "performance/rpe"]) {
@@ -342,10 +290,6 @@ describe("demo account owned pages (#251)", () => {
   });
 });
 
-// #959, ADR-0028 -- every owner shell response names its page in
-// SHELL_HEADER; nothing else served at an owner URL does. The service
-// worker (#947) relies on this to never cache a non-shell response (the
-// beta gate page, a login redirect, an error) as a page's shell.
 describe("shell identity header (#959)", () => {
   it("marks every SHELL_PATHS page on my.x with its own page key, body unchanged", async () => {
     const { cookie } = await createAuthedSession({ username: "shellheaderuser", hostname: "climbinglogbook.com" });

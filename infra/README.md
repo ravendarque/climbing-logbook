@@ -119,5 +119,5 @@ If the account/project is lost entirely:
 2. Merge/push to `infra/**` — Terraform recreates the D1 database, and
    `wrangler.jsonc` is updated automatically.
 3. Manually trigger the "Deploy" workflow (its sync commit from step 2
-   is tagged `[skip ci]` to avoid an infra/deploy trigger loop, so this
+   is tagged `[skip ci]` so Infra and Deploy don't trigger each other in a loop, so this
    one step isn't automatic).

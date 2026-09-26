@@ -1,14 +1,6 @@
-// Extracted from client/main.js (#206).
 import { STATUS_ICONS } from "./status-icons.js";
 
-// "Flash"/"Send" are bouldering terms; the equivalent sport terms are
-// "Onsight"/"Redpoint" (same underlying status/flash data either way,
-// see #98) -- icons stay the same, only the label text differs.
-//
-// #430 -- Lead renamed to Sport, covering Lead and Top Rope alike. 'lead'
-// briefly lived alongside 'sport' here (#649) while historical entries
-// still carried it; removed now that #646's data cutover converted every
-// real entry away from it.
+// Sport's terms for the same statuses.
 const FLASH_LABEL = { boulder: ["Flash", "Flashes"], sport: ["Onsight", "Onsights"] };
 const SEND_LABEL  = { boulder: ["Send", "Sends"],    sport: ["Redpoint", "Redpoints"] };
 const NAME_LABEL  = { boulder: "Problem name", sport: "Route name" };
@@ -17,19 +9,8 @@ const DISCIPLINE_LABEL = { boulder: "Boulder", sport: "Sport" };
 export const flashLabel = (type, plural) => FLASH_LABEL[type ?? "boulder"][plural ? 1 : 0];
 export const sendLabel  = (type, plural) => SEND_LABEL[type ?? "boulder"][plural ? 1 : 0];
 export const nameLabel  = type => NAME_LABEL[type ?? "boulder"];
-// Was duplicated verbatim in map-view.js/header-chrome.js/
-// climbing-grade-pyramid.js -- centralized here (#460) once a fourth
-// consumer (climbing-entries-table.js's combined-discipline mode) needed
-// the same lookup.
 export const disciplineLabel = type => DISCIPLINE_LABEL[type ?? "boulder"];
 
-// #460 -- combined wording for a filter/stat that spans multiple
-// disciplines at once (e.g. a "Flash" checkbox that now also needs to
-// match a Lead entry's "Onsight"). Driven by whichever discipline keys
-// are actually passed in, not hardcoded to exactly two -- a future third
-// discipline (#429/#430) only needs its own FLASH_LABEL/SEND_LABEL entry
-// above, nothing here changes. De-duplicates identical wording (two
-// disciplines that happened to share a term wouldn't show it twice).
 const combinedLabel = (labelFn, types, plural) => [...new Set(types.map(t => labelFn(t, plural)))].join(" / ");
 export const combinedFlashLabel = (types, plural) => combinedLabel(flashLabel, types, plural);
 export const combinedSendLabel  = (types, plural) => combinedLabel(sendLabel, types, plural);
@@ -48,17 +29,7 @@ export function statusBadge(entry) {
   return `<span class="${STATUS_ICON_CLASS}" title="Check out">${STATUS_ICONS.checkout}</span>`;
 }
 
-// #63 -- fills every `data-icon` placeholder under `root` with its real
-// STATUS_ICONS SVG (used by toggle-button markup -- entry-form.js's own
-// status radios, climbing-entries-table.js's filter panel -- where the
-// icon is injected after the fact rather than inlined via statusBadge()
-// above). Takes an explicit root and is called by each consumer scoped to
-// its own container, not document-wide: a prior version of this lived
-// only in entry-form.js against `document`, which happened to also
-// hydrate climbing-entries-table.js's filter-panel icons *when* a page
-// also loaded entry-form.js (true on /log) but silently left them
-// unhydrated on pages that don't (the read-only /profile page never
-// imports entry-form.js at all -- confirmed live, 2026-08-16).
+// Scoped to a root: each consumer hydrates its own container.
 export function hydrateStatusIcons(root) {
   root.querySelectorAll("[data-icon]").forEach(el => {
     el.innerHTML = STATUS_ICONS[el.dataset.icon];

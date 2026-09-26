@@ -1,10 +1,4 @@
 // @vitest-environment happy-dom
-//
-// Unlike server-side tests, this module renders real DOM (select options,
-// row cards) and needs a document -- the Cloudflare Workers pool
-// (vitest.config.js's default for test/**/*.test.js) has none. happy-dom
-// is already a project dependency (confirmed via package.json) used the
-// same way by other client-side DOM tests in test/client/.
 import { beforeEach, describe, expect, it } from "vitest";
 import { createMoveRowList } from "../../client/move-tagging.js";
 
@@ -51,9 +45,6 @@ describe("createMoveRowList", () => {
     expect(widget.getRows()).toHaveLength(1);
   });
 
-  // #805 -- render() rewrites the whole list's innerHTML on every change,
-  // destroying the exact control a keyboard user just activated (both
-  // the remove button and, on a limb change, the limb <select> itself).
   describe("focus restoration after a re-render (#805)", () => {
     it("focuses the row that shifted into a removed row's position", () => {
       const widget = createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
@@ -128,8 +119,6 @@ describe("createMoveRowList", () => {
     expect(widget.getRows()).toEqual([]);
   });
 
-  // #597 -- every dropdown renders sentence case, not Title Case or the
-  // raw hyphenated vocabulary value verbatim.
   it("renders the Limb dropdown's options in sentence case", () => {
     const widget = createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
     addBtnEl.click();

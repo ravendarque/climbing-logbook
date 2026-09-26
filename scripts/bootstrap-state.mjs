@@ -1,11 +1,4 @@
-/**
- * Ensures the R2 bucket backing Terraform's remote state exists.
- * Idempotent — safe to re-run any time, including full disaster recovery
- * (recreates the bucket only if it's actually missing).
- *
- * Requires CLOUDFLARE_API_TOKEN (Workers R2 Storage: Edit) and
- * CLOUDFLARE_ACCOUNT_ID in the environment.
- */
+// Creates the Terraform state bucket if missing. Needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.
 
 const BUCKET_NAME = "climbing-logbook-tfstate";
 const CF_BASE = "https://api.cloudflare.com/client/v4";

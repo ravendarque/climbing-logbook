@@ -1,19 +1,6 @@
-// Shared cascading-dropdown row-list widget (#575 Phase 2 entry-data
-// plan) -- one implementation, two instances on the entry form: Move
-// difficulty's Hardest/Easiest lists (hasDifficulty: true, one instance
-// each) and Pain/injury's single list (hasDifficulty: false). Per the
-// design doc's own "Pain / injury" section: "the cascading-dropdown UI
-// component... is reused as-is, same code, DRY."
-//
-// The "Limb" dropdown combines limb+side into six options (see this
-// plan's own Global Constraints ruling) -- the design doc's 4-visible-
-// field grid (Limb, Hold type, Movement, Wall angle) only reconciles with
-// the 5-column schema (limb+side both always required) this way.
+// One widget for three lists. "Limb" combines limb and side into six options.
 import { escapeHtml } from "./escape-html.js";
 import { HOLD_TYPES_BY_LIMB, MOVEMENT_STYLES_BY_LIMB, VALID_WALL_ANGLES } from "../shared/entry-schema.js";
-// #614 -- moved to shared/tag-stats-helpers.js since shared/
-// strengths-stats.js and client/performance-strengths-main.js need the
-// exact same sentence-case convention for the same tag vocabulary.
 import { humanize } from "../shared/tag-stats-helpers.js";
 
 const LIMB_SIDE_OPTIONS = [
@@ -23,10 +10,7 @@ const LIMB_SIDE_OPTIONS = [
   { value: "foot-right", limb: "foot", side: "right" },
   { value: "knee-left", limb: "knee", side: "left" },
   { value: "knee-right", limb: "knee", side: "right" },
-// humanize() is run over the whole "side-limb" string as one unit, not
-// each half separately -- humanizing side and limb independently would
-// capitalize both words (Title Case again, e.g. "Left Hand"), when the
-// goal is sentence case with only the first word capitalized.
+// Humanised as one string, or both words would be capitalised.
 ].map(o => ({ ...o, label: humanize(`${o.side}-${o.limb}`) }));
 
 function limbSideOption(value) {
@@ -89,14 +73,7 @@ export function createMoveRowList({ listEl, addBtnEl, hasDifficulty, defaultDiff
     return Array.from(listEl.children).indexOf(el.closest("[data-move-row]"));
   }
 
-  // #805 -- render() above always rewrites the *whole* list's innerHTML,
-  // destroying every row's DOM node on every call, including whichever
-  // one the user just interacted with -- a keyboard user loses focus to
-  // <body> on every edit. Restored here by index (rows have no stable id
-  // of their own, but the array itself doesn't reorder except by
-  // deletion, so "the row at this position" is a good enough identity
-  // for a re-render triggered by that same row's own change) -- look up
-  // the equivalent new element after render() and focus it.
+  // render() replaces every row, so focus is restored by index.
   function focusRowField(index, field) {
     const rowEl = listEl.children[index];
     const el = field === "remove" ? rowEl?.querySelector("[data-remove-row]") : rowEl?.querySelector(`[data-field="${field}"]`);
@@ -109,10 +86,7 @@ export function createMoveRowList({ listEl, addBtnEl, hasDifficulty, defaultDiff
     const index = rowIndexOf(removeBtn);
     rows.splice(index, 1);
     render();
-    // The removed row's own control is gone -- focus the row that
-    // shifted into its position (lets a user remove several rows in a
-    // row without re-tabbing), the previous row if this was the last
-    // one, or the Add button if the list is now empty.
+    // Focus the row that moved up, the previous one, or Add when the list is empty.
     const focusIndex = Math.min(index, rows.length - 1);
     if (focusIndex >= 0) focusRowField(focusIndex, "remove");
     else addBtnEl.focus();

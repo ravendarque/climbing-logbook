@@ -1,6 +1,3 @@
-// #952, ADR-0029 -- client/channel-guard.js, the beta channel's one
-// enrollment check. Runs in the client-dom (happy-dom) project: it renders
-// the "not enrolled" message into a real document.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SETTINGS_CACHE_KEY, enrollmentAllowsBoot, isBetaHost, readCachedEnrollment } from "../../client/channel-guard.js";
 

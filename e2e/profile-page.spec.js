@@ -1,10 +1,3 @@
-// #413 (Tier 2 follow-up to #407) -- composition-root-wiring coverage for
-// the public, read-only /:username page. Same fixture-harness pattern as
-// e2e/log-page.spec.js (see that file's own header comment) -- the real
-// client/profile-main.js -> profile-app.js bundle against a verbatim copy
-// of public/profile/index.html, with fabricated /-/api/public/*
-// responses (mockApi() glob-matches these regardless of the harness's own
-// synthetic :username).
 import { expect, test } from "@playwright/test";
 import { mockApi } from "./mock-api.js";
 
@@ -14,9 +7,6 @@ const SEED = {
   locations: [{ id: "l1", name: "Test Crag", country: "United Kingdom" }],
 };
 
-// #460 -- both disciplines at the same location, so the combined-view
-// tests below can exercise the real "Location (Boulder)"/"Location
-// (Sport)" split rather than just a single-discipline location.
 const MIXED_SEED = {
   entries: [
     { id: "e1", placeId: "p1", type: "boulder", status: "send", firstAttempt: true, grade: "6A", date: "2026-05-01", name: "Boulder Seed" },
@@ -33,10 +23,6 @@ test("renders the shared chrome readonly -- no edit affordances or admin rows an
   await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
   await expect(page.locator("climbing-entries-table")).toBeVisible();
 
-  // "Security by absence" (#344) -- these controls don't exist in the DOM
-  // at all on this page, not just hidden, since entry-form.js/
-  // place-picker.js/offline-sync.js/admin-auth.js are never imported by
-  // client/profile-main.js in the first place.
   await expect(page.locator("#add-btn")).toHaveCount(0);
   await expect(page.locator("#sync-btn")).toHaveCount(0);
   await expect(page.locator(".edit-btn")).toHaveCount(0);
@@ -57,11 +43,6 @@ test("Grade Pyramid is never present -- no <climbing-tab-bar>, no pyramid markup
   await page.goto("/e2e-fixtures/pages/profile.html");
   await expect(page.locator("climbing-entries-table")).toBeVisible();
 
-  // #view-tabs (Logbook/Map, #333) is a real, plain in-page tablist, not
-  // the <climbing-tab-bar> custom element (that one's real links between
-  // separate pages -- see public/profile/index.html's own comment on why
-  // that's the wrong pattern here), so this page gets neither that
-  // element nor the pyramid the owner's own pages render.
   await expect(page.locator("climbing-tab-bar")).toHaveCount(0);
   await expect(page.locator("climbing-grade-pyramid")).toHaveCount(0);
   expect(requests.some(url => url.includes("performance-pyramid-app.js") || url.includes("performance-hub-app.js"))).toBe(false);
@@ -77,7 +58,6 @@ test("Map tab (#333) switches to a real read-only map and back, without a page n
 
   await expect(page.locator("#panel-logbook")).toBeHidden();
   await expect(page.locator('#view-tabs [data-view="map"]')).toHaveAttribute("aria-selected", "true");
-  // A real map, not the "you need to be online" fallback.
   await expect(page.locator("#map-container svg")).toBeVisible();
   await expect(page.locator("#map-load-retry")).toHaveCount(0);
   await expect(page.locator("#subtitle")).not.toHaveText("");
@@ -92,14 +72,8 @@ test("no discipline picker anymore -- combined view shows both disciplines as se
   await page.goto("/e2e-fixtures/pages/profile.html");
   await expect(page.locator("climbing-entries-table")).toBeVisible();
 
-  // #460 -- discipline selection moved into the entries-table's own
-  // filter panel; the header picker is gone entirely on this page.
   await expect(page.locator("#discipline-btn")).toHaveCount(0);
 
-  // #494 -- collapsed shells by default now (lazy mode); one location-
-  // scoped fetch loads both disciplines' real rows for "Test Crag" at
-  // once (counts are per-*location*, not per-discipline), after which
-  // the normal per-discipline split renders on its own.
   await page.locator("#collapse-all-btn").click();
 
   await expect(page.locator("#sections")).toContainText("Test Crag (Boulder)");
@@ -113,18 +87,10 @@ test("discipline filter (#460) narrows to just the checked discipline's table se
   await page.goto("/e2e-fixtures/pages/profile.html");
   await expect(page.locator("climbing-entries-table")).toBeVisible();
 
-  // #494 -- expand the (still-lazy) shell first so there's real data to
-  // filter at all.
   await page.locator("#collapse-all-btn").click();
   await expect(page.locator("#sections")).toContainText("Sport Seed");
 
   await page.locator("#filter-btn").click();
-  // Both disciplines start checked (#63) -- narrowing to just Sport means
-  // unchecking Boulder, not checking Sport (already checked). The
-  // checkbox itself is sr-only (same toggle-btn pattern the status
-  // filter already uses) -- click its wrapping <label>, standard native
-  // label-toggles-input behavior, rather than trying to .uncheck() a
-  // visually-hidden element directly.
   await page.locator('#filter-discipline-group label:has(input[data-discipline="boulder"])').click();
 
   await expect(page.locator("#sections")).toContainText("Sport Seed");
@@ -132,9 +98,6 @@ test("discipline filter (#460) narrows to just the checked discipline's table se
   await expect(page.locator("#sections")).not.toContainText("Test Crag (Boulder)");
 });
 
-// #430/#645 -- Lead/Top-Rope filter, combined all-disciplines view. Same
-// "expand the lazy shell first" harness pattern as the discipline filter
-// test above.
 test("Style filter is hidden until Sport is in view, and narrows the combined table", async ({ page }) => {
   await mockApi(page, {
     ...MIXED_SEED,
@@ -152,20 +115,14 @@ test("Style filter is hidden until Sport is in view, and narrows the combined ta
 
   await page.locator("#filter-btn").click();
   await expect(page.locator("#filter-sport-style-wrap")).toBeVisible();
-  // Both styles start checked (#63), same convention every other filter
-  // facet in this component uses.
   await expect(page.locator('#filter-sport-style-group input[data-sport-style="lead"]')).toBeChecked();
   await expect(page.locator('#filter-sport-style-group input[data-sport-style="top_rope"]')).toBeChecked();
 
   await page.locator('#filter-sport-style-group label:has(input[data-sport-style="top_rope"])').click();
   await expect(page.locator("#sections")).toContainText("Sport Seed");
   await expect(page.locator("#sections")).not.toContainText("Top Rope Seed");
-  // Boulder's own section is unaffected by a Sport-only facet.
   await expect(page.locator("#sections")).toContainText("Boulder Seed");
 
-  // Both checkboxes are inside #filter-panel (unlike log-page.spec.js's
-  // separate, standalone #discipline-btn picker), so unchecking Sport
-  // here doesn't close the popover as an "outside click" would.
   await page.locator('#filter-discipline-group label:has(input[data-discipline="sport"])').click();
   await expect(page.locator("#filter-sport-style-wrap")).toBeHidden();
 
@@ -181,10 +138,6 @@ test("combined status filter labels span both disciplines, and there's no grade-
   await page.locator("#filter-btn").click();
   await expect(page.locator("#filter-flash-label")).toHaveText("Flash / Onsight");
   await expect(page.locator("#filter-send-label")).toHaveText("Send / Redpoint");
-  // #460/#708 -- no per-discipline tier facet wired into allDisciplines
-  // mode yet, deliberately out of scope; the tier filter isn't just
-  // hidden, it's absent from the DOM entirely (client/components/
-  // climbing-entries-table.js's own shellHtml(allDisciplines)).
   await expect(page.locator("#filter-grade-tier-group")).toHaveCount(0);
 });
 
@@ -210,9 +163,6 @@ test("map pin popover (#460) shows both disciplines' own status breakdown togeth
   await expect(popover).toBeVisible();
   await expect(popover).toContainText("Boulder");
   await expect(popover).toContainText("Sport");
-  // Boulder Seed is a flash (firstAttempt: true), Sport Seed a send
-  // (firstAttempt: false) -- confirms the breakdown is genuinely
-  // per-discipline, not one combined count.
   await expect(popover).toContainText("Flash");
   await expect(popover).toContainText("Send");
 });
@@ -234,9 +184,6 @@ test("notes overlay shows the entry's real notes text (#425 -- previously did no
   await expect(page.locator("#notes-overlay")).toBeHidden();
 });
 
-// #494 (ADR-0017) -- the shell-then-expand behavior itself: collapsed by
-// default with just the count badge, real rows only fetched once,
-// expanding again after a collapse doesn't re-fetch.
 test("shell-then-expand: collapsed with a count badge by default, expands to real rows on one fetch, doesn't re-fetch on re-expand", async ({ page }) => {
   await mockApi(page, SEED);
 
@@ -248,8 +195,6 @@ test("shell-then-expand: collapsed with a count badge by default, expands to rea
   await page.goto("/e2e-fixtures/pages/profile.html");
   await expect(page.locator("climbing-entries-table")).toBeVisible();
 
-  // Collapsed shell: the location name and its count badge render, but
-  // no entry row content at all yet -- no network request for it either.
   await expect(page.locator("#sections")).toContainText("Test Crag");
   await expect(page.locator("#sections")).not.toContainText("Boulder Seed");
   expect(entriesRequests).toHaveLength(0);
@@ -261,10 +206,6 @@ test("shell-then-expand: collapsed with a count badge by default, expands to rea
   expect(entriesRequests).toHaveLength(1);
   expect(entriesRequests[0]).toContain("locationId=l1");
 
-  // Re-collapse, then re-expand -- the data's already loaded (real rows,
-  // not a shell anymore, so collapsing just CSS-hides the table rather
-  // than removing them from the DOM -- toBeHidden/toBeVisible, not
-  // toContainText, which sees hidden text too), so no second fetch.
   await placeHeader.click();
   await expect(page.getByText("Boulder Seed")).toBeHidden();
   await placeHeader.click();
@@ -278,11 +219,6 @@ test("shows the entries table's own empty state when the target user has no data
   await expect(page.locator("#sections")).toContainText("Nothing to show here");
 });
 
-// #470 -- same fix as e2e/log-page.spec.js's own test, applied to this
-// page's boot() (client/profile-main.js), which clears `loading` once
-// the counts-only shell fetch resolves rather than once full entries
-// arrive (see that attribute's own comment in
-// client/components/climbing-entries-table.js).
 test("#470 -- shows a loading state before the counts-only shell fetch resolves, then flips to the real empty state once confirmed", async ({ page }) => {
   let resolveCounts;
   const countsDelay = new Promise(resolve => { resolveCounts = resolve; });

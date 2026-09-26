@@ -1,10 +1,3 @@
-// #351 -- the read-only JSON data client/profile-main.js fetches for one
-// target user's entries/places/locations, at
-// /-/api/public/:username/{entries,places,locations}. Not
-// hostname-gated (unlike test/public-profile.test.js's own shell route --
-// see server/api/public-data.js's own comment on why), so exercised here
-// against a plain https://example.com origin, same as every other
-// /-/api/* test file.
 import { env, exports } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
@@ -81,9 +74,6 @@ describe("public data API", () => {
     expect(notFoundRes.status).toBe(404);
   });
 
-  // #494 (ADR-0017) -- the public profile's own lazy-load shell data:
-  // locations + places + a per-location *count* of live entries, no
-  // entry rows at all -- feeds <climbing-entries-table>'s lazy mode.
   describe("entries/counts (#494)", () => {
     it("returns per-location counts of live entries, plus locations/places, for a public user", async () => {
       const { cookie } = await createAuthedSession({ username: "countsuser" });
@@ -157,14 +147,6 @@ describe("public data API", () => {
     expect(entriesB.map(e => e.name)).toEqual(["User B's Send"]);
   });
 
-  // #511 -- server/api/entries.js's own `?since=` delta branch (#500,
-  // built for the *owner's* /sync page) is shared unchanged with this
-  // public route -- unfiltered, it would let anyone read a soft-deleted
-  // entry's full content off a public profile via `?since=0`, since the
-  // owner-facing delta path deliberately surfaces tombstones. This is
-  // the actual leak #511 found; server/api/public-data.js now strips
-  // `since` before dispatching, so the public route always falls back to
-  // the normal (non-delta) shape regardless of what's requested.
   describe("?since= is neutralized on the public route (#511)", () => {
     it("a soft-deleted entry's content never appears publicly via ?since=, even at cursor 0", async () => {
       const { cookie } = await createAuthedSession({ username: "sincedeleteduser" });
@@ -175,9 +157,6 @@ describe("public data API", () => {
       const res = await fetchPublic("sincedeleteduser", "entries?since=0");
       expect(res.status).toBe(200);
       const body = await res.json();
-      // The plain "everything" shape (no `cursor` field, no tombstoned
-      // rows at all) -- proves `since` was actually stripped, not just
-      // that this one entry happens to be excluded.
       expect(body).toEqual({ entries: [] });
     });
 
@@ -213,13 +192,6 @@ describe("public data API", () => {
     expect(entries[0].name).toBe("Private Beta");
   });
 
-  // #430/#645/#669 -- unlike rpe/attemptsToSend/moves/painMoves above,
-  // sportStyle is public info (exactly as public as grade/status/type
-  // already are) -- omitting it from publicRowToJson wasn't a privacy
-  // choice, it was a real regression: the public profile's own Style
-  // filter (#645) defaults to both styles checked, but an entry with no
-  // sportStyle at all matches neither, so every Sport entry silently
-  // vanished from the combined public view the moment #645 shipped.
   it("returns sportStyle for a public Sport entry, unlike the deliberately-excluded fields above", async () => {
     const { cookie } = await createAuthedSession({ username: "sportstyleuser" });
     const placeId = await seedPlace(cookie);
@@ -233,11 +205,6 @@ describe("public data API", () => {
     expect(entries[0].sportStyle).toBe("top_rope");
   });
 
-  // #251 -- performance-insight data (Grade Pyramid, injury log, etc.) is a
-  // deliberate, narrow carve-out over the same public-data route shape,
-  // gated on settings.is_demo rather than logbook_public alone -- a real
-  // user's performance data must stay exactly as unreachable as it was
-  // before this route existed, even with logbook_public on.
   describe("performance-insight data is demo-only (#251)", () => {
     it("404s a real (non-demo) public user's performance data, even though their logbook data is public", async () => {
       await createAuthedSession({ username: "realpublicuser" });
@@ -250,10 +217,6 @@ describe("public data API", () => {
       await jsonRequest("PATCH", "/-/api/settings", {}, { Cookie: cookie }); // creates the settings row
       await env.LOGBOOK_DB.prepare(`UPDATE settings SET is_demo = 1 WHERE user_id = (SELECT id FROM "user" WHERE username = 'demoflaguser')`).run();
 
-      // volume/gap/rpe additionally require start/end query params
-      // (server/api/performance.js's own date-range validation, unrelated
-      // to this test's own is_demo gating) -- present here so this test
-      // isolates the one thing it's actually checking.
       for (const resource of ["performance/pyramid", "performance/injury", "performance/strengths"]) {
         const res = await fetchPublic("demoflaguser", resource);
         expect(res.status, `${resource} should 200 for an is_demo user`).toBe(200);

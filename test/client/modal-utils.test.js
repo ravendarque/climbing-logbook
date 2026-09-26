@@ -1,12 +1,4 @@
 // @vitest-environment happy-dom
-// Focused on createDisclosure's destroy() (#736) -- the mechanism itself
-// (open/close/outside-click/Escape) already has solid indirect coverage
-// through every real consumer's own e2e tests (discipline picker, header
-// menu, place picker, filter panel, the grade/scale pickers, and now
-// client/calendar-date-picker.js's own dedicated unit tests), unchanged
-// by this addition. destroy() is new behavior with no other test surface
-// at all, since no existing caller ever needed to tear one down before
-// this.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createDisclosure } from "../../client/modal-utils.js";
 
@@ -63,12 +55,7 @@ describe("createDisclosure destroy()", () => {
   });
 
   it("does not leak a growing number of document listeners across repeated create+destroy cycles", () => {
-    // createDisclosure attaches two document-level listeners per call
-    // (outside-click, and Escape via the default escapeTarget=document)
-    // -- every one of them needs a matching removal, or they'd
-    // accumulate forever across repeated create+destroy cycles (exactly
-    // what client/time-window.js's Custom range does on every state
-    // change, see that file's own comment).
+    // Each createDisclosure() adds two document listeners; every one must be removed.
     const addSpy = vi.spyOn(document, "addEventListener");
     const removeSpy = vi.spyOn(document, "removeEventListener");
     for (let i = 0; i < 5; i++) {

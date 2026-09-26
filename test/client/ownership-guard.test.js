@@ -1,5 +1,3 @@
-// #960 -- the page-side ownership check (client/ownership-guard.js).
-// happy-dom project: it renders into a real document.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ownershipAllowsBoot } from "../../client/ownership-guard.js";
 

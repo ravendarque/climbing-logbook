@@ -1,58 +1,14 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "climbing-logbook",
-  // #869 -- explicit, not left to wrangler's own account auto-resolution
-  // (getOrSelectAccountId, which calls the /memberships API and needs a
-  // User-scoped "Memberships: Read" permission neither of this project's
-  // API tokens has ever been granted). Found live (2026-09-20): bumping
-  // wrangler from 4.121.0 to 4.135.0 broke `wrangler d1 migrations apply`
-  // in CI with "The given account is not valid or is not authorized to
-  // access this service" -- every prior CI run on 4.121.0 had succeeded,
-  // and nothing about this repo's token permissions changed at the same
-  // time, so this points at a behavior change in account resolution
-  // somewhere in that version range. Setting the (single, already-known --
-  // it's been in every error message this investigation produced)
-  // account id directly skips that resolution step entirely, which fixes
-  // it regardless of which exact wrangler-side change caused it.
+  // Explicit: account auto-resolution needs a Memberships permission the tokens don't have.
   "account_id": "4f63d74beb21402b8622361525ab4868",
   "main": "server/index.js",
   "compatibility_date": "2026-07-01",
-  // Better Auth (#20) depends on Node.js built-ins (e.g. node:crypto) not
-  // natively available in the Workers runtime otherwise.
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
-  // binding: "ASSETS" (#348) -- lets server/api/owned-routes.js fetch a
-  // fixed-path static shell (e.g. public/log/index.html) from inside the
-  // Worker for the dynamic-:username routes Static Assets can't match by
-  // itself (it only matches literal paths). Doesn't change routing
-  // priority for any other static file: without run_worker_first (left
-  // unset, default false), a request that DOES match a real static file
-  // is still served directly without invoking the Worker at all, exactly
-  // as before -- confirmed against Cloudflare's own docs, not assumed.
-  //
-  // run_worker_first (#407): the shell files above were also incidentally
-  // reachable directly at their own literal disk path (/log, /map,
-  // /performance, /profile, with no :username segment) -- asset-first
-  // serving doesn't know these files are meant only to be fetched
-  // internally via the ASSETS binding, from inside the session-checked
-  // routes above. #302 adds /account, /account/edit to this same list --
-  // same bare-path-reachability gap, since owned-routes.js's SHELL_PATHS
-  // now serves those too. #799 adds /sync, /sync/* -- #498 added `sync` to
-  // SHELL_PATHS and the owned-route regex without extending this array,
-  // so public/sync/index.html was reachable directly with no session
-  // check at all (a signed-out visitor, stale tab, or bookmarked /sync
-  // URL got the raw app shell instead of a redirect to /login). Scoped to
-  // just these paths (an array, not the global `true`) so every other
-  // static file keeps today's free asset-first perf/cost -- confirmed the
-  // array form is supported at the pinned wrangler version (4.115.0) via
-  // node_modules/wrangler/config-schema.json, not assumed. Forcing these
-  // through the Worker is enough on its own: server/index.js has no route
-  // matching a bare "/log"/"/map"/"/performance"/"/profile"/"/account"/
-  // "/sync" pathname (the dynamic my.<domain>/:username/{log,map,
-  // performance,account(/edit)?,sync} regex always requires a username
-  // segment first), so these now simply fall through to the same final
-  // "Not found" 404 every other unmatched path gets -- no new
-  // route-matching code needed.
+  // Shell paths go through the Worker so a shell is only served after its session check
+  // (test/wrangler-run-worker-first.test.js). Everything else is served straight from assets.
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
@@ -63,61 +19,19 @@
       "/profile", "/profile/*",
       "/account", "/account/*",
       "/sync", "/sync/*",
-      // #956 -- served per host (server/api/app-identity.js).
       "/-/manifest.json", "/-/apple-touch-icon.png"
     ]
   },
-  // Better Auth (#20) + the eventual multi-tenant app data (#21) -- id is a
-  // placeholder until infra/d1.tf's Terraform apply provisions the real
-  // database and infra.yml's sync step rewrites it. Placeholder is
-  // harmless for local dev/Vitest -- both run against a local
-  // Miniflare-simulated D1, which doesn't need the id to correspond to a
-  // real remote database.
+  // The id is a placeholder until the Infra workflow writes the real one; keep these three keys adjacent for its regex.
   "d1_databases": [
     { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook", "database_id": "8f094438-520c-4a67-a685-aee3db6198ad", "migrations_dir": "migrations" }
   ],
-  // Beta invite/registration gate (#296) -- not a secret, so `vars` (not
-  // `.dev.vars`) is the right place. Flipping this to "false" here is the
-  // entire "go fully public" mechanism once the beta period ends (#296) --
-  // no code change needed. Explicitly duplicated into env.preview below,
-  // not left to inherit -- `vars` is NOT inherited by named environments
-  // (confirmed via `wrangler deploy --dry-run`'s own warning, 2026-08-06;
-  // a prior version of this comment claimed the opposite, which appears
-  // to have meant every PR preview silently ran with BETA_GATE_ENABLED
-  // undefined -- falsy, so the gate was never actually enforced there).
-  // RATE_LIMITING_ENABLED (#889, ADR-0027): Better Auth's own rate
-  // limiting is only genuinely useful (a real client IP to key on,
-  // behind Cloudflare's real edge) on a real deployment. This top-level
-  // copy is what the vitest-pool-workers unit-test pool actually
-  // inherits by default (it targets no named environment) -- overridden
-  // back off there via vitest.config.js's own miniflare.bindings, same
-  // "synthetic test-only binding" pattern that file already uses for
-  // TURNSTILE_SECRET_KEY/RESEND_API_KEY. env.production/env.beta/
-  // env.preview each carry their OWN "true" copy below (not inherited
-  // from here, same as BETA_GATE_ENABLED) since that's what real deploys
-  // actually build against; env.e2e explicitly omits it. Not simply left
-  // to Better Auth's own isProduction default -- this Worker never sets
-  // NODE_ENV anywhere, so that default is always false regardless of
-  // which real environment is actually running.
+  // Named environments don't inherit vars, so each one repeats them. Rate limiting only on real
+  // deployments: elsewhere there's no client IP (docs/app-architecture.md, Better Auth configuration).
   "vars": {
     "BETA_GATE_ENABLED": "true",
     "RATE_LIMITING_ENABLED": "true"
   },
-  // #295 -- climbinglogbook.com/my.climbinglogbook.com are the real
-  // routes. The ravendarque.com/logbook* Workers Route that used to sit
-  // alongside them is gone (#453) -- it was already confirmed dead for
-  // real traffic (infra/redirects.tf's own Terraform-managed, zone-level
-  // redirect ruleset runs ahead of Workers Routes at the edge and always
-  // wins, so this entry never actually served anything once that
-  // ruleset existed), and once #316 narrowed CLOUDFLARE_API_TOKEN's
-  // scope back to climbinglogbook.com only, `wrangler deploy`'s routine
-  // per-deploy route reconciliation against the ravendarque.com zone
-  // started failing outright on every deploy (confirmed: the token can
-  // no longer authenticate for that zone at all). Removing the entry
-  // stops wrangler from ever needing to touch that zone again -- no
-  // Terraform change needed, nothing depended on this Workers Route
-  // existing (confirmed via grep: no cloudflare_workers_route resource
-  // anywhere, redirects.tf only mentions it in a comment).
   "routes": [
     { "pattern": "climbinglogbook.com/*", "zone_name": "climbinglogbook.com" },
     { "pattern": "my.climbinglogbook.com/*", "zone_name": "climbinglogbook.com" }
@@ -125,77 +39,12 @@
   "observability": {
     "enabled": true
   },
-  // PR preview deployments (#222) -- `wrangler versions upload --env preview`
-  // in CI (see .github/workflows/preview.yml) uploads a version of a
-  // *separate* Worker script (Wrangler appends the environment name --
-  // this becomes "climbing-logbook-preview", not "climbing-logbook") bound
-  // to its own D1 database, never the production one. `routes` is
-  // explicitly overridden rather than left to inherit from the top level
-  // -- routes/workers_dev are inheritable by default, and while `versions
-  // upload` (unlike `deploy`) never actually attaches a route to traffic,
-  // there's no reason to leave the production route pattern sitting in
-  // the preview env's config at all.
+  // A separate Worker (climbing-logbook-preview) with its own database; routes overridden so nothing attaches.
   "env": {
-    // #774 -- exists so "production" is a real, validated environment
-    // name once the Worker is Vite-built, not an implicit fallback.
-    // @cloudflare/vite-plugin selects environments at BUILD time via
-    // CLOUDFLARE_ENV, not `wrangler deploy --env=X` (that flag has no
-    // effect on a Vite-built deploy, confirmed against Cloudflare's own
-    // docs) -- and confirmed empirically (2026-09-16) that omitting
-    // CLOUDFLARE_ENV entirely silently falls back to the top-level
-    // config with no error, while setting it to an unrecognized name
-    // (one with no matching `env.X` section here) throws immediately.
-    // Adding this block turns "someone forgot to set CLOUDFLARE_ENV"
-    // from a silent wrong-environment build into a loud one -- paired
-    // with the explicit CLOUDFLARE_ENV requirement enforced in
-    // deploy.yml/promote.yml's own build steps (that's the piece that
-    // actually catches a plain omission; this block only catches a
-    // typo'd or unrecognized name). `vars`/`d1_databases` are
-    // duplicated from the top level rather than left to inherit,
-    // matching env.preview/env.beta's own established convention below
-    // (`vars` is confirmed NOT inherited by named environments; explicit
-    // `d1_databases` was added to both after a real incident where an
-    // inherited-and-left-alone d1_databases silently pointed env.preview
-    // at production's database). `routes` is deliberately left to
-    // inherit -- unlike `vars`/`d1_databases`, routes ARE documented and
-    // confirmed to inherit correctly, and production's own routes here
-    // are already identical to the top level's real ones, so
-    // duplicating them would just be a second copy to keep in sync for
-    // no safety benefit. This does mean wrangler.jsonc now has THREE
-    // copies of the production D1 database id (top level, here, and
-    // env.beta below) instead of two -- infra.yml's own D1-id sync step
-    // only auto-updates the first (the top-level block, unaffected by
-    // this addition since it comes first in the file regardless of
-    // where inside `env` this block sits); both `env` copies already
-    // needed manual updates on a database recreation before this change
-    // (see env.beta's own comment), this just adds a second manual spot
-    // rather than introducing the pattern.
-    //
-    // #864 -- `name` is NOT left to inherit, unlike `routes` above:
-    // inheriting `routes` only carries over the same route *patterns*,
-    // it says nothing about which Worker *script* they attach to, and
-    // Wrangler auto-derives a named environment's script name as
-    // "<top-level name>-<env name>" when none is given -- silently
-    // "climbing-logbook-production" here, a different script from the
-    // top-level "climbing-logbook" Worker that already holds these exact
-    // routes live. Found the hard way (2026-09-19): a real promote.yml
-    // run uploaded that second script successfully, then failed outright
-    // on the route-attach step ("routes are assigned to another
-    // worker"), because Cloudflare won't let two different Worker
-    // scripts claim the same route. Explicit `name` here makes
-    // env.production deploy to the SAME script the top-level config
-    // already targets, not a parallel one.
+    // So a typo'd CLOUDFLARE_ENV fails loudly. name is explicit, or Wrangler deploys a second
+    // "climbing-logbook-production" script. Infra syncs only the top-level D1 id: update the env copies by hand.
     "production": {
       "name": "climbing-logbook",
-      // RATE_LIMITING_ENABLED (#889): same value/reasoning as the
-      // top-level `vars` above -- not inherited. Genuinely required here,
-      // not redundant with the top-level block: CLOUDFLARE_ENV=production
-      // (deploy.yml/promote.yml) makes @cloudflare/vite-plugin build
-      // against THIS block's own bindings, not the top-level ones --
-      // `wrangler deploy --env=""` afterward only decides which already-
-      // built script to upload to (this block's own explicit `name`
-      // above makes that resolve to the same script either way), it
-      // doesn't pull the top-level `vars` back in.
       "vars": {
         "BETA_GATE_ENABLED": "true",
         "RATE_LIMITING_ENABLED": "true"
@@ -207,57 +56,16 @@
     "preview": {
       "workers_dev": true,
       "routes": [],
-      // BETA_GATE_ENABLED: same value as the top-level `vars` above,
-      // duplicated deliberately -- `vars` is not inherited by named
-      // environments (see that block's own comment for how this was
-      // discovered).
-      //
-      // TURNSTILE_SECRET_KEY (#311): Cloudflare's own public "always
-      // passes" test secret, not the real production one -- preview
-      // deployments are disposable/test data anyway (same reasoning as
-      // the preview D1 database below), and committing this specific
-      // value is safe since Cloudflare documents it publicly for exactly
-      // this purpose (never do this with the real secret). Deliberately
-      // has no equivalent at the top level -- production gets the real
-      // value via `wrangler secret put` only, no `vars` default.
-      // RATE_LIMITING_ENABLED (#889): same value/reasoning as the
-      // top-level `vars` above -- not inherited. A real PR preview is a
-      // real Cloudflare deployment behind the real edge (cf-connecting-ip
-      // genuinely resolves there, confirmed empirically against #906's
-      // own preview), unlike env.e2e below, which shares this same
-      // env.preview D1 database but is never actually deployed to
-      // Cloudflare at all.
       "vars": {
         "BETA_GATE_ENABLED": "true",
         "TURNSTILE_SECRET_KEY": "1x0000000000000000000000000000000AA",
         "RATE_LIMITING_ENABLED": "true"
       },
-      // Own D1 database, disposable preview data -- manually bootstrapped
-      // (`wrangler d1 create climbing-logbook-preview`), not
-      // Terraform-managed (unlike production's own `infra/d1.tf`). Was
-      // previously missing entirely: `d1_databases` isn't
-      // inheritable-but-overridden like `vars`/`routes` are documented to
-      // be here, it's inheritable-and-left-alone, which silently pointed
-      // every PR preview at the *production* database once #21 gave
-      // LOGBOOK_DB a real id (harmless placeholder before that; a real
-      // shared-data risk after). Caught 2026-08-05 when Raven asked for
-      // #320's PR preview login credentials -- there weren't any, and
-      // signing up there would have written into production.
       "d1_databases": [
         { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook-preview", "database_id": "845753a5-abfc-4d74-995b-94d802b4964e", "migrations_dir": "migrations" }
       ]
     },
-    // #889 -- e2e's own environment, split off from env.preview: both
-    // used to share it, which meant no way to tell "a real PR preview,
-    // reachable via Cloudflare's real edge" apart from "e2e's local
-    // `vite preview` process, never actually deployed to Cloudflare at
-    // all" -- and Better Auth's rate limiter genuinely needs to behave
-    // differently between the two (see RATE_LIMITING_ENABLED's own
-    // comment above). Otherwise identical to env.preview, including its
-    // D1 database -- e2e only ever reaches it through Miniflare's local
-    // simulation (confirmed: nothing in this project's e2e tooling passes
-    // `--remote`), so sharing the id is harmless; env.e2e isn't a real,
-    // independently-deployable environment, just a config split.
+    // Like preview, but never deployed, so no rate limiting (no real client IP).
     "e2e": {
       "workers_dev": true,
       "routes": [],
@@ -269,32 +77,10 @@
         { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook-preview", "database_id": "845753a5-abfc-4d74-995b-94d802b4964e", "migrations_dir": "migrations" }
       ]
     },
-    // Beta environment (#443, ADR-0020) -- a real, opt-in-gated deploy
-    // target at beta.climbinglogbook.com, distinct from env.preview's
-    // disposable per-PR previews above. Deliberately shares production's
-    // own LOGBOOK_DB id/binding rather than getting one of its own --
-    // ADR-0020's whole point is that beta and production see the exact
-    // same data, so there's no "beta's schema is ahead of production's"
-    // class of bug to design around, only which Worker code is deployed
-    // differs between the two. infra.yml's D1-id sync step only rewrites
-    // the FIRST "binding": "LOGBOOK_DB" match in this file (a non-global
-    // regex, deliberately -- see that workflow's own comment), which is
-    // the top-level production block above, not this one -- if
-    // production's D1 database is ever recreated (its id changes), this
-    // id needs updating by hand too.
     "beta": {
       "routes": [
         { "pattern": "beta.climbinglogbook.com/*", "zone_name": "climbinglogbook.com" }
       ],
-      // Same BETA_GATE_ENABLED value as the top-level `vars` -- not
-      // inherited by named environments (see the top-level block's own
-      // comment for how that was discovered). TURNSTILE_SECRET_KEY is
-      // NOT duplicated here (unlike env.preview) -- beta serves real
-      // users with real data, so it needs the real production secret via
-      // `wrangler secret put --env=beta`, not the public test key.
-      // RATE_LIMITING_ENABLED (#889): same value/reasoning as the
-      // top-level `vars` above -- not inherited, see that block's own
-      // comment.
       "vars": {
         "BETA_GATE_ENABLED": "true",
         "RATE_LIMITING_ENABLED": "true"

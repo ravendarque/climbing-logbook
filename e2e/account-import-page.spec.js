@@ -1,14 +1,3 @@
-// #224 phases 2-4 -- composition-root-wiring coverage for
-// /:username/account/import. Same fixture-harness pattern as
-// e2e/account-edit-page.spec.js (see that file's own header comment) --
-// the real client/account-import-main.js -> account-import-app.js bundle
-// against a verbatim copy of public/account/import/index.html, with
-// fabricated /-/api/* responses (mock-api.js's own import route).
-// The real CSV/JSON (#639) parsing/validation/location-resolution logic
-// is Vitest's job (test/entries-import.test.js, test/shared/
-// csv-import.test.js) -- this file only proves the client's own wiring:
-// template download, file upload -> request (including which Content-Type
-// a JSON vs. CSV upload sets), success/error panel toggling.
 import { expect, test } from "@playwright/test";
 import { mockApi } from "./mock-api.js";
 
@@ -45,12 +34,6 @@ test("uploads a valid CSV and shows the success summary", async ({ page }) => {
   await expect(page.locator("#import-errors")).toBeHidden();
 });
 
-// #639 -- JSON import, parity with "Export as JSON". Same client-wiring
-// scope as the CSV test above -- proves the upload sets Content-Type:
-// application/json (client/account-import-main.js's own extension-based
-// detection) and the request/response flow renders success, not the real
-// parsing logic (Vitest's job, test/shared/csv-import.test.js/
-// test/entries-import.test.js).
 test("uploads a valid JSON export and shows the success summary, with the right Content-Type", async ({ page }) => {
   await mockApi(page);
   await page.goto("/e2e-fixtures/pages/account-import.html");
@@ -123,8 +106,5 @@ test("back-to-account-link is built from this page's own URL", async ({ page }) 
   await mockApi(page);
   await page.goto("/e2e-fixtures/pages/account-import.html");
 
-  // Same "e2e-fixtures" synthetic-path-segment caveat as every other
-  // composition root's own internal links -- see
-  // e2e/account-page.spec.js's own comment on #edit-account-link for why.
   await expect(page.locator("#back-to-account-link")).toHaveAttribute("href", "/e2e-fixtures/account");
 });

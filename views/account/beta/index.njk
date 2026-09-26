@@ -16,11 +16,6 @@ staticShellNote: |-
     My Account
   </a>
 
-  {# #953, ADR-0029 decision 5 -- joining and leaving the beta: a short
-       explanation of what changes, then one button to confirm. The long
-       version is /help/beta-channel/ (#954). Which half shows depends on
-       the saved setting (client/account-beta-main.js); both start hidden
-       so nothing flashes before it's known. #}
   <div class="max-w-[560px]">
     <h2 class="card-section-heading">Check our beta</h2>
     <p class="text-[.9rem] text-accent pl-4 mb-3" id="beta-status" hidden></p>
@@ -45,9 +40,7 @@ staticShellNote: |-
       </ul>
     </div>
 
-    {# Advisory, never a block: changes made offline wait on the device
-         they were made on, so switching before they sync strands them
-         here until this address is opened again. #}
+    {# Advisory only: offline changes stay on the device that made them until they sync. #}
     <div class="row-card border-accent mt-2" id="beta-queue-warning" hidden>
       <p class="text-[.9rem]" id="beta-queue-count"></p>
       <p class="text-[.85rem] text-muted mt-1">Sync them before you switch. Other devices you've used offline need to sync on their own.</p>

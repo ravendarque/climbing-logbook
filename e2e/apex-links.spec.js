@@ -1,8 +1,3 @@
-// #985 -- app pages never link to one of the apex's own pages on their own
-// host: every such link is marked data-apex-link, which client/apex-links.js
-// points at the apex on my./beta. (and leaves alone here, on my.localhost,
-// where there's no apex to point at). Against the real production build and
-// server. The app hosts' 301 (infra/tls-hardening.tf) backs this up.
 import { expect, test } from "@playwright/test";
 import { DEV_USER } from "../scripts/lib/dev-session.mjs";
 import { addOwnedRouteSessionCookie, ownedRouteUrl } from "./owned-route-url.js";

@@ -4,14 +4,11 @@ import { buildMatrixRows, gradeScaleMatrixHtml, gradeScaleSourcesHtml } from "..
 describe("buildMatrixRows", () => {
   it("returns one row per Boulder reference-scale (Font) label, plus the below-range aggregate row", () => {
     const rows = buildMatrixRows("boulder");
-    // FONT_STANDARD_LABELS has 25 entries (shared/grade-data.js), +1 for
-    // the below-Font-3 aggregate row (Boulder only).
     expect(rows).toHaveLength(26);
   });
 
   it("returns one row per Sport reference-scale (French) label -- no aggregate row, French-standard already labels its lowest numbers", () => {
     const rows = buildMatrixRows("sport");
-    // FRENCH_STANDARD_LABELS has 38 entries (shared/grade-data.js).
     expect(rows).toHaveLength(38);
   });
 
@@ -28,8 +25,6 @@ describe("buildMatrixRows", () => {
     const row = rows.find(r => r.cells.font === "6A");
     const grouped = row.cells["font-non-standard"].split(", ");
     expect(grouped).toContain("6a");
-    // The whole point of the fix: more than just "6a" itself groups in
-    // here (6a- rounds closer to 6A than to the previous row, 5+).
     expect(grouped.length).toBeGreaterThan(1);
   });
 
@@ -99,11 +94,6 @@ describe("gradeScaleMatrixHtml", () => {
   });
 
   it("escapes grade labels rather than injecting them raw", () => {
-    // Sanity check against the general escapeHtml policy every other
-    // client/*.js template-string module in this codebase follows --
-    // real grade labels never contain HTML metacharacters, so this just
-    // confirms the escaping call is actually wired in, not that any
-    // particular label needs it today.
     const html = gradeScaleMatrixHtml("boulder");
     expect(html).not.toContain("undefined");
   });
@@ -120,8 +110,6 @@ describe("gradeScaleSourcesHtml", () => {
 
   it("is one shared list across both disciplines, not split per discipline", () => {
     const html = gradeScaleSourcesHtml();
-    // Exactly one Sources heading -- not "Sources — Boulder"/"Sources —
-    // Sport" as two separate sections.
     expect(html.match(/sources-heading/g)).toHaveLength(1);
     expect(html).not.toContain("Sources —");
   });

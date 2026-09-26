@@ -1,4 +1,3 @@
-// #947 -- what the service worker may cache (client/sw/responses.js).
 import { describe, expect, it } from "vitest";
 import { isCacheableAsset, isCacheableShell, shellCacheKey } from "../../../client/sw/responses.js";
 

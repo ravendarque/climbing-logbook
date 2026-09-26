@@ -1,10 +1,3 @@
-// Exercises the Turnstile bot check (#311) through the real Worker
-// entrypoint. Real D1, not mocked -- see test/apply-migrations.js. The
-// beta gate (#296) is disabled here, same reasoning as test/auth.test.js
-// -- this file tests Turnstile specifically, not the gate layered behind
-// it (own dedicated test/beta-gate.test.js already covers that, and
-// confirms the two compose correctly -- Turnstile stubbed to pass there
-// so the beta-gate assertions underneath it are reachable at all).
 import { env } from "cloudflare:workers";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { jsonRequest, resetAuthTables } from "./support.js";
@@ -64,9 +57,6 @@ it("allows sign-up through when siteverify reports success", async () => {
   expect(res.status).toBe(200);
 });
 
-// #802 -- verifySiteverify's fetch()/.json() call had no try/catch, so a
-// Turnstile-side timeout or outage threw an uncaught exception straight
-// out of the auth hook instead of failing closed with a clean error.
 describe("siteverify itself is unreachable (#802)", () => {
   it("fails closed (403, not an unhandled 500) when the fetch to siteverify throws", async () => {
     vi.stubGlobal("fetch", vi.fn(async (input) => {

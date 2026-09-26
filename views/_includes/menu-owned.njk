@@ -1,5 +1,4 @@
 {% from "burger-menu.njk" import themeToggle %}
-{#- Identity rows and login/logout are revealed at runtime by admin-auth.js / header-chrome.js once the session is known -- both start hidden. The bottom row's border-t divider is toggled by updateMenuDivider() (client/header-chrome.js) depending on whether menu-username is showing. -#}
 <div class="self-start max-w-[11rem] truncate text-[.9rem] font-bold text-accent text-left" id="menu-username" hidden></div>
 <a class="self-start text-[.9rem] font-semibold text-foreground text-left" id="my-account-link" href="#" hidden>My account</a>
 <div class="flex flex-col gap-2 self-stretch pt-2 mt-1 border-t border-border" id="header-menu-bottom-row">

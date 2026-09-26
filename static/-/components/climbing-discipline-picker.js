@@ -1,51 +1,9 @@
-// <climbing-discipline-picker> (#211/#465): split out of the former
-// <climbing-menu-bar> (#346, classic-scripted in #626), which bundled this
-// picker together with the burger menu into one row. That shape stopped
-// working once the layout redesign asked for the picker to sit beside
-// <climbing-tab-bar> while the burger menu moves to align with the brand
-// logo instead -- two different, non-adjacent locations on the same page,
-// which one combined component can't render into.
-//
-// The split cost nothing for climbing-menu-bar's other consumers: every
-// page except /log, /map, /performance(+subpages) already opted out of the
-// picker half via the old no-discipline attribute, so this component only
-// ever gets used on the pages that were already asking for it. See
-// climbing-burger-menu.js for the other half.
-//
-// Markup-only, no behavior -- same reasoning as the component this was
-// split from (see this file's git history / climbing-burger-menu.js's own
-// comment for the fuller "why markup-only" rationale). client/header-
-// chrome.js wires the actual discipline-switching behavior from outside,
-// purely via getElementById("discipline-btn" / "discipline-popover" /
-// "discipline-btn-label") and the "#discipline-wrap" selector passed to
-// createDisclosure() -- none of that cares where in the document this
-// element's markup physically lives.
-//
-// #430/#649 -- "Lead" option renamed to "Sport" (data-discipline="lead"
-// -> "sport"), covering both Lead and Top Rope going forward (#643 adds
-// the Lead/Top-Rope sub-choice on the entry form itself). Deliberately
-// the FIRST client-facing piece of the rename to land, ahead of the data
-// cutover (#646): entry-form.js's `type: store.getActiveType()` reads
-// directly from whichever discipline this picker last selected, so the
-// picker must stop offering "lead" before the DB stops accepting it, or
-// a real user creating a new entry in that gap gets a 500.
+// Markup only: client/header-chrome.js wires the behaviour by element id.
 (function () {
   class ClimbingDisciplinePicker extends HTMLElement {
     connectedCallback() {
       this.innerHTML = `
   <div class="relative" id="discipline-wrap">
-    <!-- #722 -- a solid triangle glyph, not a line-drawn chevron SVG,
-         matching climbing-entries-table.js's own place-header collapse
-         indicator (the "log table" arrow Raven's own comment refers
-         to) exactly: same "▾" character, same closed=pointing-right/
-         open=pointing-down orientation scheme. The actual rotation
-         toggle is a plain, ID-scoped rule in styles/tailwind.css (see
-         that file's own comment) rather than two competing Tailwind
-         rotate-* utilities on the same element -- confirmed empirically
-         that two same-layer utility rules toggling the same rotate
-         property via an aria-expanded arbitrary variant didn't reliably
-         override each other regardless of selector specificity, a real
-         Tailwind v4 utility-composition quirk this sidesteps entirely. -->
     <button type="button" class="group inline-flex items-center gap-[.35rem] h-[var(--field-h)] px-[.8rem] bg-surface border border-border rounded-app text-foreground text-[.85rem] font-semibold cursor-pointer hover:border-accent" id="discipline-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Discipline: Boulder">
       <span id="discipline-btn-label">Boulder</span>
       <span class="chevron-icon text-[.8rem] shrink-0" aria-hidden="true">▾</span>

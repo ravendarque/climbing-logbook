@@ -2,31 +2,6 @@ import { getCursor, setCursor } from "./sync-cursors.js";
 import { mergeDelta } from "./delta-merge.js";
 import { BACKGROUND_FETCH_TIMEOUT_MS } from "./sync-status-icon.js";
 
-// The offline-queue *orchestration* half (#262, first piece of #261's
-// "complete the gold-standard modularization" follow-up to #233):
-// localStorage read/write, the sync-button UI, and replaying queued writes
-// against the server. Paired with client/offline-queue.js, which owns only
-// the pure merge logic (applyPendingQueue) -- that split happened back in
-// #206 and this is the other half finally getting the same treatment,
-// deferred until now as "not testable without solving a browser
-// environment too" (the Vitest Workers pool has no localStorage global,
-// same reasoning store.js's own `storage` param exists for).
-//
-// A factory, same reasoning as every other #233/#261 module -- owns DOM
-// refs (the sync button) and a document-level `online` listener, so it
-// needs `store` injected. `render`/`updateAdminBar` used to be injected
-// too, but aren't anymore (#264) -- every store mutation below (via
-// store.setLoggedIn()/setLocations()/setPlaces()/setEntries()/
-// applyPendingQueue()) notifies main.js's render() (the Store's sole
-// subscriber) on its own. applyPendingQueue itself moved from a plain
-// import here to a store.js method for the same reason (#264) -- see
-// store.js's own comment on why it lives there now.
-//
-// entriesUrl/placesUrl/locationsUrl (#500) -- the read URLs (the same
-// routes as the write ones for a real user since #992; a demo page reads
-// its public equivalents) -- pullDeltas() below reads through them
-// to catch this device up on drift from another device/session before
-// replaying its own queue on top.
 export function createOfflineSync({
   store,
   adminFetch,
@@ -52,15 +27,11 @@ export function createOfflineSync({
     localStorage.setItem(queueKey, JSON.stringify(queue));
     updateSyncButton();
   }
-  // #1076 -- every change to the queue reads what's in storage at that
-  // moment and writes it straight back, with no await in between. A copy
-  // read before an await and written back after it would erase whatever
-  // the form or another tab queued in the meantime. Each item gets a qid
-  // so the replay loop can remove exactly that item once it syncs.
+  // Read and write storage with no await between, or a concurrent change is lost. qid identifies an item.
   function enqueue(...items) {
     setQueue([...getQueue(), ...items.map(item => ({ ...item, qid: crypto.randomUUID() }))]);
   }
-  // Items queued before #1076 have no qid.
+  // Items queued by older builds have no qid.
   function assignMissingQids() {
     const queue = getQueue();
     if (queue.every(item => item.qid)) return;
@@ -68,19 +39,11 @@ export function createOfflineSync({
   }
   function updateSyncButton() {
     const n = getQueue().length;
-    // A sync while logged out is a guaranteed no-op (no session to write
-    // under) -- same rule as addBtn in admin-bar.js's syncAdminBar(). The
-    // pending entries themselves still show their own badges, so this
-    // doesn't hide the fact that changes are queued, just the button that
-    // can't act on them yet.
+    // Hidden while logged out: a sync needs a session.
     syncBtn.hidden = n === 0 || !store.isLoggedIn();
     syncBtnLabel.textContent = n ? `Sync (${n})` : "Sync";
   }
 
-  // One request for a single queue item, whichever kind it is -- kept
-  // separate from the replay loop below so that loop stays readable
-  // regardless of how many kinds of queueable write this app ends up
-  // with.
   function syncOne(item) {
     if (item.kind === "location") {
       return adminFetch(locationsWriteUrl, {
@@ -105,33 +68,7 @@ export function createOfflineSync({
         });
   }
 
-  // #500 -- catches this device up on drift from another device/session
-  // (e.g. a bulk import elsewhere) before syncPending() below replays
-  // this device's own queue on top -- reduces (per #500's own scope
-  // note, doesn't eliminate) the #490 duplicate-creation window a stale
-  // local view could otherwise widen. Plain fetch, not adminFetch --
-  // same reasoning client/fetch-json.js's own header comment gives for
-  // every other read in this app (no opaqueredirect concept on a GET; a
-  // 401 is just a non-OK response, #992). A
-  // failure here (offline, network error, non-OK response) is swallowed
-  // -- the queue-replay loop below already has its own offline handling,
-  // and a missed delta catch-up this pass just means it's retried again
-  // on the next reconnect/click, same as any other transient failure.
-  //
-  // #514 -- merges onto `loadFromCache()`'s freshly-reloaded, on-disk
-  // state, not `getCurrent()` as first written -- getCurrent() can
-  // already be augmented in memory with this device's own OWN pending
-  // queue items (store.applyPendingQueue, never persisted -- see
-  // store.js's own "only server-confirmed data persists" comment).
-  // Merging a delta onto that augmented state and persisting the result
-  // via setCurrent() baked a _pending/_pendingDelete flag straight into
-  // the on-disk cache, and could silently clear a queued item's own
-  // pending-delete flag if the delta happened to touch the same row
-  // before the flag was ever reapplied. Reloading first guarantees the
-  // merge (and what gets persisted) is always clean; pullDeltas() below
-  // unconditionally re-applies the current queue right after, so the
-  // in-memory *view* is never left without its pending flags, even
-  // momentarily.
+  // Merges onto the clean stored cache, not the in-memory view, so pending flags never get persisted.
   async function pullDelta(url, table, getCurrent, setCurrent, loadFromCache) {
     try {
       const res = await fetch(`${url}?since=${getCursor(table)}`, { signal: AbortSignal.timeout(BACKGROUND_FETCH_TIMEOUT_MS) });
@@ -141,79 +78,35 @@ export function createOfflineSync({
       setCurrent(mergeDelta(getCurrent(), rows));
       setCursor(table, cursor);
     } catch (err) {
-      // offline/network error -- silently skip, see this function's own
-      // header comment. #847 follow-up -- a genuine timeout (checked via
-      // err.name, same as admin-auth.js's own two call sites) also
-      // reports through to the shell's sync/offline indicator, since
-      // navigator.onLine can legitimately still read true on a
-      // connection that's technically up but functionally dead or just
-      // extremely slow.
+      // Offline: skip. A real timeout flags the indicator, since onLine can read true on a dead link.
       if (err.name === "TimeoutError") syncStatusIcon.reportTimeout();
     }
   }
 
   async function pullDeltas() {
-    // places/locations before entries -- #500's own multi-table
-    // ordering requirement (entries reference placeId), same reasoning
-    // client/sync-main.js's own runSync() follows.
+    // Places and locations first: entries reference them.
     await Promise.all([
       pullDelta(placesUrl, "places", store.getPlaces, store.setPlaces, store.loadPlacesFromCache),
       pullDelta(locationsUrl, "locations", store.getLocations, store.setLocations, store.loadLocationsFromCache),
     ]);
     await pullDelta(entriesUrl, "entries", store.getEntries, store.setEntries, store.loadEntriesFromCache);
 
-    // #514 -- unconditional, not just when the queue-replay loop further
-    // down happens to change something: restores this device's own
-    // pending/pendingDelete view on top of whatever pullDelta just
-    // loaded-clean-and-merged, immediately -- see pullDelta's own
-    // comment above for why this can no longer be skipped.
+    // Always re-apply the queue on top of the clean merge.
     store.applyPendingQueue(getQueue());
   }
 
-  // #939 -- boot()-time entries-only reconcile (client/log-main.js),
-  // deliberately narrower than pullDeltas() above: that function also
-  // delta-fetches places/locations, which boot() already refreshes via
-  // its own full-list loadResource() calls (client/fetch-json.js) on
-  // every load -- calling pullDeltas() there too would fire a second,
-  // redundant places/locations request every single time. Entries has
-  // no equivalent full-refetch-on-boot path (#498/ADR-0019 made avoiding
-  // a full re-fetch on every load the whole point for entries
-  // specifically), which is exactly the gap a real incident (#939)
-  // fell through: nothing ever re-checked entries against the server
-  // except a sync-button click or an online-reconnect event -- a device
-  // simply reloaded (or left open) across an offline session at the crag
-  // kept showing whatever it last had, indefinitely. Same
-  // applyPendingQueue() re-apply pullDeltas() itself does, for the same
-  // reason: this device's own queued-but-unsynced rows must stay visible
-  // on top of whatever the fetch just merged in.
+  // Entries only: boot() already refreshes places and locations.
   async function reconcileEntries() {
     await syncStatusIcon.track(pullDelta(entriesUrl, "entries", store.getEntries, store.setEntries, store.loadEntriesFromCache));
     store.applyPendingQueue(getQueue());
   }
 
-  // #514 -- syncBtn.disabled only blocks a second *button click* (a
-  // disabled button doesn't fire click events); the `online` listener
-  // below has no such protection, so flapping connectivity firing
-  // multiple `online` events in quick succession (or one firing while a
-  // button-triggered sync is still mid-flight) could previously run two
-  // concurrent syncPending() calls, each independently replaying the
-  // same queued item against the server.
+  // A disabled button stops a second click, but not repeated online events.
   let syncInFlight = false;
-  // #1077 -- a save made while this tab is already replaying goes to the
-  // back of the queue and asks for a sync. Returning early would leave it
-  // queued until the next click or reconnect, so run once more instead.
+  // A save queued mid-replay asks for another pass rather than waiting for the next trigger.
   let syncAgain = false;
 
-  // #490 -- when a queued "location"/"place" create gets deduped
-  // server-side (server/lib/d1-resource.js's own createD1ResourceHandlers,
-  // `dedupedTo` in its response) to an id different from the one this
-  // device originally minted, any OTHER still-queued item that
-  // references the client's original id (a "place" item's own
-  // locationId, or an "entry" item's own placeId) needs that reference
-  // substituted for the server's real id *before* it gets its own turn
-  // in the replay loop below -- otherwise it fails validation outright
-  // against an id that was never actually inserted (the dedup means
-  // nothing was created under it). Mutates `queue` in place.
+  // When a create is deduplicated, later queued items still point at the id this device minted.
   function remapQueueReferences(queue, field, fromId, toId) {
     for (const item of queue) {
       if (item.record[field] === fromId) item.record[field] = toId;
@@ -224,18 +117,13 @@ export function createOfflineSync({
     return getQueue().some(item => item.qid === qid);
   }
 
-  // #1076 -- two tabs replaying the same queue would each send every
-  // item, so one tab could send an older edit after the other had sent a
-  // newer one. The lock makes a second tab wait, then replay only what's
-  // left. navigator.locks is missing only on old browsers; there the
-  // isStillQueued() check below still skips items another tab has synced.
+  // One tab replays at a time; without navigator.locks, isStillQueued() skips what another tab sent.
   function withReplayLock(fn) {
     if (!navigator.locks) return fn();
     return navigator.locks.request(`${queueKey}:replay`, fn);
   }
 
-  // Replays the queue in order. Each item is removed from storage as soon
-  // as it succeeds, so anything queued while this runs is never touched.
+  // In order; each item leaves storage as it succeeds, so newly queued items are untouched.
   async function replayQueue() {
     assignMissingQids();
     const queue = getQueue();
@@ -243,15 +131,14 @@ export function createOfflineSync({
 
     let lastEntries = null, lastPlaces = null, lastLocations = null;
     for (const item of queue) {
-      // Synced by another tab, or purged by a direct delete, since the
-      // queue was read.
+      // Synced by another tab, or purged by a delete, since the queue was read.
       if (!isStillQueued(item.qid)) continue;
       let data;
       try {
         const res = await syncOne(item);
         if (res.status === 401 || isAuthRedirect(res)) {
-          // Everything from here on stays queued, in order (#158).
-          store.setLoggedIn(false); // Store mutation -- notify() covers the admin-bar update (#264)
+          // The rest stay queued, in order.
+          store.setLoggedIn(false);
           break;
         }
         if (!res.ok) continue;
@@ -263,18 +150,13 @@ export function createOfflineSync({
       let remap = null;
       if (item.kind === "location") {
         lastLocations = data.locations;
-        // #490 -- a location item's own kind-vs-field naming
-        // differs from place/entry: this device's originally-minted
-        // location id is `item.record.id` itself (not, say,
-        // `item.record.locationId`), and what references it further
-        // down the queue is a "place" item's own `locationId` field.
+        // A location item's own id is what later place items reference.
         if (data.dedupedTo && data.dedupedTo !== item.record.id) {
           remap = ["locationId", item.record.id, data.dedupedTo];
         }
       } else if (item.kind === "place") {
         lastPlaces = data.places;
-        // Same idea, one level down -- a "place" item's own id is
-        // what an "entry" item's own `placeId` field references.
+        // A place item's own id is what later entry items reference.
         if (data.dedupedTo && data.dedupedTo !== item.record.id) {
           remap = ["placeId", item.record.id, data.dedupedTo];
         }
@@ -282,9 +164,7 @@ export function createOfflineSync({
         lastEntries = data.entries;
       }
 
-      // One read-modify-write: drop the synced item, and remap what's
-      // stored (including anything queued since) as well as this loop's
-      // own copy.
+      // One read-modify-write: drop this item and remap stored references too.
       const stored = getQueue().filter(queued => queued.qid !== item.qid);
       if (remap) {
         remapQueueReferences(stored, ...remap);
@@ -296,8 +176,7 @@ export function createOfflineSync({
     if (lastLocations) store.setLocations(lastLocations);
     if (lastPlaces) store.setPlaces(lastPlaces);
     if (lastEntries) store.setEntries(lastEntries);
-    // Re-apply whatever's still queued on top of the just-confirmed
-    // server state, for any of the three arrays that changed.
+    // Re-apply what's still queued on top of the confirmed data.
     if (lastLocations || lastPlaces || lastEntries) {
       store.applyPendingQueue(getQueue());
     }
@@ -310,18 +189,12 @@ export function createOfflineSync({
     syncBtnIcon.classList.add("animate-spin");
 
     try {
-      // #762 -- reported on the shell's own sync/offline status icon,
-      // same as checkSession()/fetchSettings() (see the composition
-      // root that constructs this factory) -- pullDeltas() is a
-      // background reconcile too, not page content.
       await syncStatusIcon.track(pullDeltas());
       do {
         syncAgain = false;
         await withReplayLock(replayQueue);
       } while (syncAgain && store.isLoggedIn());
     } finally {
-      // syncBtn's own disabled/spin state is plain DOM, not Store-driven
-      // -- reset directly, not via render().
       syncInFlight = false;
       syncAgain = false;
       syncBtn.disabled = false;

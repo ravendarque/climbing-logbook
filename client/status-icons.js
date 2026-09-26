@@ -42,17 +42,7 @@
  * Used by logbook/index.html (list badges, stats bar, and the entry form).
  */
 
-// #794 -- flash/send/project's own artwork bounding box nearly fills (or,
-// for send/project, actually exceeds -- silently clipped by the default
-// SVG viewport overflow:hidden) their originally-declared viewBox, while
-// checkout/archived's artwork sits well inside theirs (~2/3 of its
-// height). Rendered at the same fixed CSS box size everywhere these are
-// used (24px status-group buttons, 1.4rem statusBadge() icons), that
-// mismatch reads as flash/send/project looking taller than checkout/
-// archived. The three viewBoxes below are widened (padding only -- no
-// path data touched) so each icon's own ink occupies the same ~2/3-height
-// fraction of its box as checkout/archived already do, measured via
-// getBBox() against the live rendered form on 2026-09-17.
+// viewBoxes padded so every icon's ink fills the same share of its box.
 export const STATUS_ICONS = {
   flash: `<svg width="14" height="14" viewBox="-42.6 -25 150 150" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
     <g transform="matrix(1,0,0,1,-17.61265,-0)">

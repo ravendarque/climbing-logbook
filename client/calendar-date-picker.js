@@ -1,32 +1,4 @@
-// Shared calendar date-picker (#736): a button + month-grid popover, the
-// same button+popover convention as every other picker in the app
-// (createDisclosure, rounded-app border, the top-[calc(100%+.4rem)] gap,
-// the shadow -- see modal-utils.js's createListPicker for the sibling
-// extraction this follows). Extracted from client/entry-form.js's own
-// #703-review date picker (built to replace the native
-// <input type="date"> + showPicker() there, unstylable OS/browser chrome
-// being the same class of problem createListPicker's own extraction
-// solved for the grade/scale pickers) -- client/time-window.js's Custom
-// range used exactly that native-input pattern the entry-form's own fix
-// had already replaced, confirmed live during #717/#733 review.
-//
-// Two exports, same "markup generator + separate behavior wiring" split
-// modal-utils.js's renderOptionList/createListPicker pair already
-// established: `calendarDatePickerHtml(idPrefix)` renders the button+
-// popover markup (idPrefix-scoped ids, so more than one instance can
-// coexist in the same document -- time-window.js's Custom range needs
-// two, start and end), `createCalendarDatePicker(...)` wires up the
-// interaction against markup already in the DOM (either injected via the
-// html generator, or -- entry-form.js's own choice -- pre-rendered
-// static markup in the page's own HTML using the same ids).
-//
-// `getValue`/`onSelect`: the caller owns the actual stored value (a text
-// field's own .value for entry-form.js, a plain closure variable for
-// time-window.js), same "caller owns state" shape createListPicker's
-// setRender/setOnSelect already established -- this module holds no
-// state of its own beyond the popover's own calendar-view position
-// (which month is currently showing), which is genuinely private to the
-// widget and never needs to be owned by a caller.
+// Markup and behaviour are separate: idPrefix lets several pickers share a page, and the caller owns the value.
 import { escapeHtml } from "./escape-html.js";
 import { createDisclosure } from "./modal-utils.js";
 
@@ -41,14 +13,6 @@ const CALENDAR_ICON = `<svg class="w-[1.1rem] h-[1.1rem] stroke-current" viewBox
   <line x1="16" y1="3" x2="16" y2="7"></line>
 </svg>`;
 
-// Renders the button+popover markup, every element id prefixed by
-// `idPrefix` (e.g. "date-picker" -> "date-picker-btn",
-// "date-picker-popover", ...). `buttonContent`/`buttonClasses`/
-// `wrapClasses` let a caller with a different visual context (time-
-// window.js's Custom range has no adjacent free-text field showing the
-// picked value, unlike entry-form.js's icon-only button -- see that
-// file's own comment) supply their own trigger button shape while
-// reusing the exact same popover/grid structure and behavior.
 export function calendarDatePickerHtml(idPrefix, {
   label = "Pick a date",
   wrapClasses = "relative flex-[0_0_2.75rem]",
@@ -77,10 +41,6 @@ export function calendarDatePickerHtml(idPrefix, {
     </div>`;
 }
 
-// Accepts the same two shapes a free-text date field itself might
-// (YYYY-MM-DD, YYYY-MM) -- an unparseable or empty value falls back to
-// today's own month, same fallback entry-form.js's original inline
-// version had.
 function parseDateValue(value) {
   const m = /^(\d{4})-(\d{2})(?:-(\d{2}))?$/.exec((value ?? "").trim());
   if (m) return { year: +m[1], month: +m[2] - 1, day: m[3] ? +m[3] : null };
@@ -88,15 +48,6 @@ function parseDateValue(value) {
   return { year: today.getFullYear(), month: today.getMonth(), day: null };
 }
 
-// Wires up the interaction for markup already in the DOM under
-// `containerEl` (either injected via calendarDatePickerHtml(idPrefix)
-// above, or pre-rendered static HTML using the same ids -- entry-form.js
-// keeps its own static markup in public/log/index.html unchanged, so the
-// existing e2e coverage asserting against #date-picker-btn etc. keeps
-// passing verbatim). `getValue()`/`onSelect(dateStr)` are the only
-// contract with the caller -- this module never reads or writes a field
-// directly, so it works identically whether the caller's own value lives
-// in a text input's .value or a plain closure variable.
 export function createCalendarDatePicker({ containerEl, idPrefix, getValue, onSelect }) {
   const p = idPrefix;
   const btn = containerEl.querySelector(`#${p}-btn`);
@@ -107,10 +58,7 @@ export function createCalendarDatePicker({ containerEl, idPrefix, getValue, onSe
   const prevMonthBtn = containerEl.querySelector(`#${p}-prev-month`);
   const nextMonthBtn = containerEl.querySelector(`#${p}-next-month`);
 
-  // The view can navigate away from whatever getValue() currently
-  // returns (Prev/Next month) without that being a real selection --
-  // kept as its own state, only re-seeded from getValue() each time the
-  // popover opens (onOpen below), not on every render.
+  // The view month moves without selecting; it re-seeds from getValue() on open.
   let viewYear, viewMonth; // month is 0-indexed, Date's own convention
 
   function render() {
@@ -120,13 +68,7 @@ export function createCalendarDatePicker({ containerEl, idPrefix, getValue, onSe
 
     const startWeekday = new Date(viewYear, viewMonth, 1).getDay(); // 0 = Sunday
     const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-    // Local-time, matching every other date built in this function
-    // (`new Date(viewYear, viewMonth, ...)` above/below) -- toISOString()
-    // is always UTC, so a viewer behind UTC (e.g. UTC-8, evening) would
-    // get "today" marked one calendar day ahead of the locally-visible
-    // date (found in review, 2026-09-14: this bug predates the #736
-    // extraction, copied verbatim from entry-form.js's own original
-    // inline version).
+    // Local time: toISOString() is UTC, which marks the wrong day as today behind UTC.
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
@@ -161,20 +103,11 @@ export function createCalendarDatePicker({ containerEl, idPrefix, getValue, onSe
     const cell = e.target.closest("button[data-date]");
     if (!cell) return;
     onSelect(cell.dataset.date);
-    // A caller whose onSelect() rebuilds this same containerEl's own
-    // markup (time-window.js's full re-render on every state change,
-    // see that file's own comment) leaves btn/popover as now-detached
-    // nodes by this point -- close()/focus() on a detached node is a
-    // harmless no-op, not an error, so this is safe either way.
+    // A caller may have replaced this markup already; closing a detached node is harmless.
     close();
     btn.focus();
   });
 
-  // destroy() (#736) only needs to forward to the disclosure's own
-  // destroy() -- prevMonthBtn/nextMonthBtn/gridEl's own listeners are
-  // attached directly to elements scoped to containerEl, so replacing
-  // containerEl's own markup (a caller's onSelect rebuilding its whole
-  // container, e.g. time-window.js) already discards them for free.
-  // Only createDisclosure's document-level listeners outlive that.
+  // Only the disclosure's document listeners outlive a markup replacement.
   return { close, destroy };
 }

@@ -1,12 +1,5 @@
-// #956 -- rasterises Logbook Beta's icon sources (static/-/beta/
-// icon.svg and icon-maskable.svg) to the PNG sizes its manifest and the
-// apple-touch-icon need, with Playwright's Chromium. The PNGs are committed;
-// run this only after changing an SVG:
-//
+// Rasterises static/-/beta/icon*.svg to the committed PNGs. CHROMIUM_PATH overrides the browser.
 //   node scripts/generate-beta-icons.mjs
-//
-// CHROMIUM_PATH points it at a specific Chromium build when Playwright's
-// own download isn't installed.
 import { chromium } from "@playwright/test";
 import { readFileSync } from "node:fs";
 

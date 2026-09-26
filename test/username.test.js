@@ -1,8 +1,3 @@
-// #983, #982 -- app hosts (my.x, beta.x) serve /:username/* alongside the
-// app's own non-user routes. Those routes are collision-proof only because
-// no username can contain a hyphen: /service-worker.js at the root, and
-// everything under /-/. If the username charset is ever widened, this
-// fails before a user can register a name that shadows an app route.
 import { describe, expect, it } from "vitest";
 import { isValidUsername } from "../server/lib/auth.js";
 

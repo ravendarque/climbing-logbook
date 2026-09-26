@@ -1,9 +1,3 @@
-// Exercises the normalized D1 app-data schema (#21) directly via
-// env.LOGBOOK_DB -- there's no HTTP API for these tables yet (that's
-// #297's resource-handler/authorization layer), so this is schema-level
-// verification: seeded lookup tables, FK/CHECK constraints, cascade
-// behavior, and column defaults. Real D1, not mocked -- see
-// test/apply-migrations.js.
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
 import { resetAuthTables } from "./support.js";
@@ -41,9 +35,6 @@ async function seedPlace(userId, locationId, id = "place-1") {
 describe("lookup tables", () => {
   it("seeds disciplines", async () => {
     const { results } = await env.LOGBOOK_DB.prepare(`SELECT id, name FROM disciplines ORDER BY id`).all();
-    // #430/#646 -- 'lead' fully retired now that the cutover migration
-    // has run (migrations/0013_cutover_lead_to_sport.sql) -- 'sport'
-    // covers Lead and Top Rope alike.
     expect(results).toEqual([
       { id: "boulder", name: "Boulder" },
       { id: "sport", name: "Sport" },
@@ -250,7 +241,7 @@ describe("entry_moves (#36)", () => {
     ).rejects.toThrow(/CHECK/);
   });
 
-  it("allows lockoff for hand but not for foot/knee, and static/dynamic for every limb", async () => {
+  it("allows lockoff for hand but not for foot/knee, and static and dynamic for every limb", async () => {
     const userId = await seedUser();
     const locationId = await seedLocation(userId);
     const placeId = await seedPlace(userId, locationId);
