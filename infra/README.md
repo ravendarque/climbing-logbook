@@ -1,13 +1,12 @@
 # Infrastructure
 
-Terraform-managed: the Workers KV namespace, the D1 database, DNS, the
-Turnstile widget, and (#527/#528/#529) zone-level TLS/DNS settings,
-Cache Rules, and WAF custom rules. Everything here is declarative,
+Terraform-managed: the D1 database, DNS, the Turnstile widget, and
+zone-level TLS/DNS settings, Cache Rules, and WAF custom rules. Everything here is declarative,
 repeatable, and idempotent — re-running `terraform apply` with no
 changes is always a no-op.
 
 The only thing *not* managed here, by design: the logbook's actual data
-(KV/D1 values).
+(D1 rows).
 
 ## One-time setup (per Cloudflare account)
 
@@ -34,7 +33,7 @@ The only thing *not* managed here, by design: the logbook's actual data
 
 4. **Merge a PR touching `infra/**`** (or push to `main` directly) —
    the "Infra" workflow runs `terraform apply` and keeps
-   `wrangler.jsonc`'s KV namespace id in sync automatically.
+   `wrangler.jsonc`'s D1 database id in sync automatically.
 
 5. **Synthetic monitoring account** (#361) — a dedicated user the
    "Synthetic production check" workflow signs in as after every deploy
@@ -117,8 +116,8 @@ When a delete really is intended (say, a WAF rule being retired):
 
 If the account/project is lost entirely:
 1. Re-run "Bootstrap Terraform state bucket" (recreates the state bucket).
-2. Merge/push to `infra/**` — Terraform recreates the KV namespace and D1
-   database, and `wrangler.jsonc` is updated automatically.
+2. Merge/push to `infra/**` — Terraform recreates the D1 database, and
+   `wrangler.jsonc` is updated automatically.
 3. Manually trigger the "Deploy" workflow (its sync commit from step 2
-   is tagged `[skip ci]` to avoid an infra/deploy trigger loop, so this
+   is tagged `[skip ci]` so Infra and Deploy don't trigger each other in a loop, so this
    one step isn't automatic).
