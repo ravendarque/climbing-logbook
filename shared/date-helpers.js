@@ -1,5 +1,3 @@
-// Extracted from client/main.js (#206).
-
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 export function formatDate(d) {

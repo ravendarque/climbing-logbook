@@ -1,9 +1,3 @@
-// #251 -- the three reserved, seeded demo accounts a visitor can explore
-// before signing up. Single source of truth for both server code (reserving
-// the usernames at registration, gating public performance-insight data)
-// and client code (the apex page's persona picker, the public profile
-// page's demo-only affordances) -- one list, not three independently
-// maintained copies.
 export const DEMO_PERSONAS = [
   {
     username: "beginnerdemo",

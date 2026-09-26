@@ -1,24 +1,6 @@
-// #15 (epic #5 Phase 2) -- pure, DOM-free time-bucketing/aggregation over
-// entries data, computed server-side (server/api/performance.js) same
-// "online-only" convention as shared/pyramid-stats.js/shared/injury-
-// stats.js/shared/strengths-stats.js. Sends only -- same scoping
-// shared/pyramid-stats.js's own pyramidCounts() already applies for this
-// exact kind of aggregate.
 import { BOULDER_GRADES, gradeRank, gradeOrdinal, V_SCALE, SCALES, FONT_STANDARD, FRENCH_STANDARD } from "./grade-data.js";
 
-// #600 -- replaces the old calendar-month bucketing (monthBuckets/
-// bucketLabel): a real send log has no reason to snap to calendar-month
-// boundaries, and doing so produced a genuine bug Raven reported -- a
-// "3 months" window spanning parts of 4 distinct calendar months
-// rendered as 4 buckets, not 3. Buckets are now rolling, day-based
-// windows ending on `end` and walking backward, with a width chosen so
-// the whole [start, end] range divides into roughly TARGET_BUCKET_COUNT
-// buckets, rounded to a whole number of weeks. This alone makes the two
-// real callers (client/time-window.js's 12-week and 52-week presets)
-// land on exactly 1-week and 4-week-wide buckets respectively (12/13
-// rounds to 1, 52/13 is exactly 4) with no special-casing needed here
-// for either preset, and an arbitrary Custom-mode range gets a
-// reasonable width automatically instead of a hardcoded default.
+// Rolling, day-based buckets, rounded to whole weeks: 12 weeks gives 1-week buckets, 52 gives 4.
 const TARGET_BUCKET_COUNT = 13;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -29,15 +11,7 @@ function toISODate(d) {
   return d.toISOString().slice(0, 10);
 }
 
-// Each bucket is a { start, end, weeksAgo } object -- start/end are
-// inclusive ISO dates, weeksAgo is how many weeks before `end` this
-// bucket's own (later) edge sits, used for both the chart label
-// (weekBucketLabel below) and (for the 52-week/4-week-wide preset) the
-// UI's own axis-thinning decision. Walking backward from `end` means any
-// remainder from a non-evenly-dividing range shortens the OLDEST bucket
-// (the first one built, at the far/start end) rather than truncating the
-// newest one -- every view's "most recent" reads (headlines, the latest
-// data point) stay on a full-width bucket.
+// Built backwards from end, so any remainder shortens the oldest bucket.
 export function weekBuckets(start, end) {
   const startDate = parseISODate(start);
   const endDate = parseISODate(end);
@@ -57,46 +31,15 @@ export function weekBuckets(start, end) {
   return buckets.map((b, i) => ({ ...b, weeksAgo: (buckets.length - i) * bucketWidthWeeks }));
 }
 
-// e.g. "-1w", "-12w", "-52w" -- Raven's own framing (relative week count,
-// not a calendar date), confirmed 2026-09-02.
 export function weekBucketLabel(bucket) {
   return `-${bucket.weeksAgo}w`;
 }
 
-// Linear scan -- bucket counts here are always small (~TARGET_BUCKET_COUNT),
-// so this is simpler and plenty fast; the old O(1) string-prefix lookup
-// monthBuckets' callers used can't work for a date-range key.
 export function bucketIndexForDate(date, buckets) {
   return buckets.findIndex(b => date >= b.start && date <= b.end);
 }
 
-// #717 -- each bucket's own "best grade so far" used to be tracked as a
-// bare grade string, compared via the 2-arg gradeRank(entry.grade, type)
-// -- correct only under the assumption every entry in the discipline is
-// in one single implicit scale. #703 already lets a send be logged in
-// any of the discipline's real scales, so that assumption is no longer
-// safe: a Boulder climb logged in V-scale ("V8") ranked via gradeRank
-// falls through to that function's own `?? 99` "unknown, harder than
-// everything" fallback, capable of silently winning a bucket's own "max
-// grade" it never actually earned.
-//
-// Fixed the same way #728 fixed shared/pyramid-stats.js's own identical
-// disease: compare via the shared canonical ordinal
-// (gradeOrdinal(entry.grade, entry.gradeScale)), not gradeRank. Each
-// bucket's own winner is now a real { grade, gradeScale } pair -- the
-// "as logged" representation #702's storage model is built around --
-// not a bare string, so a caller can always resolve its own real
-// canonical ordinal or display label later without having to guess
-// which scale it came from.
-//
-// `entry.gradeScale` is expected on every real row today (#702's
-// migration backfilled it, server/api/entries.js's defaultGradeScale()
-// guarantees every future write sets one) -- the discipline's own
-// primary stored scale (matching #702's own migration backfill:
-// font-non-standard for Boulder, french for Sport) is used only as a
-// defensive fallback if that's ever violated. One shared constant --
-// reportGradeOrdinal/reportGradeLabel below use the identical fallback,
-// no reason for two names for the same thing.
+// Fallback only: every real row has a gradeScale.
 const PRIMARY_SCALE_BY_TYPE = { boulder: "font-non-standard", sport: "french" };
 
 function bestGradeOrdinal(entry, type) {
@@ -123,62 +66,18 @@ export function volumeByBucket(entries, buckets, type) {
   return { sendCounts, maxGradeByBucket };
 }
 
-// Boulder's V-grade text isn't 1:1 with its internal grade codes (e.g.
-// both "5B" and "5C" display as "V1"/"V2" individually but are genuinely
-// different grades) -- this is display-only; positioning a chart point
-// correctly still needs the real internal code (see client/combo-
-// chart.js's own positionKey/displayLabel split, this plan's own Global
-// Constraints ruling).
-//
-// The original 2-arg gradeDisplayLabel(grade, type) this was built
-// alongside is gone (#702's own Global Constraints kept it around
-// unchanged at the time, but it never gained a real caller once every
-// site migrated straight to this scale-aware form -- removed as dead
-// code, found in review 2026-09-14, confirmed zero callers outside its
-// own now-deleted test).
-// Same V-scale display quirk (Boulder's V-grade text isn't 1:1 with Font
-// internally), generalized: for Boulder, always render the V-scale label
-// regardless of which scale `grade` was logged in, by converting through
-// the shared canonical ordinal (gradeOrdinal) rather than a direct
-// BOULDER_GRADES string match, which only worked because every grade
-// used to be in one implicit scale.
+// Boulder always shows V-scale here, whatever it was logged in.
 export function gradeDisplayLabelForScale(grade, scaleId, type) {
   if (type !== "boulder") return grade;
   const ordinal = gradeOrdinal(grade, scaleId);
   return ordinal === null ? grade : V_SCALE.toLabel(ordinal);
 }
 
-// #717 -- takes the entry's own real gradeScale now (as produced by
-// volumeByBucket/gapByBucket/effortByBucket's own { grade, gradeScale }
-// pairs above), not an assumption that every entry is in the
-// discipline's primary stored scale. `gradeScale` defaults to that
-// primary scale when omitted -- backward-compatible for any caller
-// still passing a bare grade string, and the same defensive fallback
-// bestGradeOrdinal() above already uses.
 export function reportGradeOrdinal(grade, gradeScale, type) {
   return gradeOrdinal(grade, gradeScale ?? PRIMARY_SCALE_BY_TYPE[type] ?? PRIMARY_SCALE_BY_TYPE.boulder);
 }
 
-// Converts a report-computed grade into whichever scale the viewer
-// currently has the report displayed in -- the #704 scale picker's whole
-// point. Falls back to the raw grade string only when resolution itself
-// fails (an unrecognized scale id, or a viewScaleId this build doesn't
-// know about) -- a genuine "we don't know what this is" case, same
-// "never throw, degrade to the raw value" stance gradeDisplayLabel/
-// gradeDisplayLabelForScale above already take.
-//
-// #733 -- a null from scale.toLabel() is DIFFERENT from those and must
-// propagate as null, not fall back to the raw grade: it means the
-// chosen view scale legitimately has no representation for this grade
-// at all (e.g. a Font-non-standard "2+" viewed in Font-standard, whose
-// real floor is "3") -- falling back to the raw un-converted string was
-// exactly the live bug Raven caught (Font showing grades that don't
-// exist in Font), and clamping it up to the scale's lowest label instead
-// would be grade inflation, not a fix (Raven, 2026-09-12). Every caller
-// of this function already treats a null grade/label as "no point here"
-// (the same convention volumeByBucket/gapByBucket/effortByBucket use for
-// a bucket with no data at all), so this grade is simply excluded from
-// that scale's view rather than shown as something it isn't.
+// null means the view scale can't express the grade: excluded, never clamped (docs/grade-model.md).
 export function reportGradeLabel(grade, gradeScale, type, viewScaleId) {
   const ordinal = reportGradeOrdinal(grade, gradeScale, type);
   if (ordinal === null) return grade;
@@ -187,30 +86,13 @@ export function reportGradeLabel(grade, gradeScale, type, viewScaleId) {
   return scale.toLabel(ordinal);
 }
 
-// #733 -- shared by every report chart's point-building (performance-
-// trends/gap/rpe-main.js): a bucket's { grade, gradeScale } pair becomes
-// a null POINT (not a point with a null/undefined displayLabel) when the
-// chosen view scale has no representation for that grade at all -- same
-// "null means no point here" convention combo-chart.js already renders
-// as a gap, one place instead of four separate null-checks.
 export function reportGradePoint(pair, type, viewScaleId) {
   if (!pair) return null;
   const displayLabel = reportGradeLabel(pair.grade, pair.gradeScale, type, viewScaleId);
   return displayLabel ? { positionKey: reportGradeOrdinal(pair.grade, pair.gradeScale, type), displayLabel } : null;
 }
 
-// Ascending canonical-ordinal range spanning the discipline's real
-// picker -- client/combo-chart.js's own positionOrder, generalized to
-// work regardless of which scale a report is currently displaying in:
-// ordinal position is scale-independent by construction (#702's whole
-// point), so a chart point plots correctly no matter which scale its own
-// displayLabel happens to be rendered in. Deliberately FONT_STANDARD/
-// FRENCH_STANDARD here, not REPORT_PRIMARY_SCALE's own Non-standard
-// scales above -- font-non-standard/french don't have a `.labels` array
-// at all (they're the structured-field scales, not a flat list -- see
-// #703), but they share the exact same canonical ordinal space as
-// Font-standard/French-standard, so either pair spans the identical
-// real range regardless of which one supplies it.
+// Ordinal positions are scale-independent, so a point plots correctly whatever its label's scale.
 export function reportPositionOrder(type) {
   const scale = type === "boulder" ? FONT_STANDARD : FRENCH_STANDARD;
   return scale.labels.map(label => scale.toOrdinal(label));
@@ -220,7 +102,5 @@ export function volumeHeadline(sendCounts) {
   const total = sendCounts.reduce((a, b) => a + b, 0);
   if (total === 0) return "No sends logged in this window yet.";
   const busiest = Math.max(...sendCounts);
-  // #600 -- "period" not "month": buckets are week-wide (short preset) or
-  // 4-week-wide (long preset), never a calendar month anymore.
   return `${total} send${total === 1 ? "" : "s"} logged in this window, busiest period had ${busiest}.`;
 }
