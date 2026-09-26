@@ -1,8 +1,3 @@
-// #38 (epic #5 Phase 2) -- composition-root-wiring coverage for
-// /:username/performance/rpe, same fixture-harness pattern as e2e/
-// performance-gap-page.spec.js. athleteMode: true is required in the
-// mocked settings response -- client/performance-rpe-main.js redirects
-// to /log otherwise (#151's rule).
 import { expect, test } from "@playwright/test";
 import { mockApi } from "./mock-api.js";
 
@@ -12,16 +7,11 @@ test("shows the confidence-gate message, time-window control, and Sources sectio
 
   await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
   await expect(page.locator("climbing-tab-bar a", { hasText: "Performance" })).toHaveAttribute("aria-current", "page");
-  // #601
   await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", "/e2e-fixtures/performance");
   await expect(page.locator("#view-explainer")).toContainText("Exertion slider");
-  // #620 -- the standalone #effort-caveat element was removed; its
-  // "less reliable" content is now folded into #view-explainer's own copy.
   await expect(page.locator("#view-explainer")).toContainText("less reliable");
   await expect(page.locator('[data-window="12w"]')).toBeVisible();
   await expect(page.locator("#rpe-root")).toContainText("Not enough data yet for a reliable read");
-  // #797 -- replaces the old evidence-tier chip + popup with an inline,
-  // always-visible citation.
   await expect(page.locator("body")).toContainText("Gajdošík");
 });
 
@@ -32,9 +22,6 @@ test("renders the exertion bars and grade-labeled line once the confidence gate 
       boulder: {
         buckets: ["-3w", "-2w", "-1w"],
         maxGradeByBucket: [null, { grade: "6B", gradeScale: "font-non-standard" }, { grade: "6C", gradeScale: "font-non-standard" }],
-        // #603 -- the first bucket has no grade data either, so its
-        // exertion bar is null too, not a genuine 0 (same rule as
-        // performance-gap-page.spec.js).
         avgExertionByBucket: [null, 70, 85],
         headline: "Your effort is rising alongside your grade -- sounds like it's paying off.",
       },
@@ -45,16 +32,11 @@ test("renders the exertion bars and grade-labeled line once the confidence gate 
 
   await expect(page.locator("#rpe-root")).toContainText("sounds like it's paying off");
   await expect(page.locator("#rpe-root svg")).toBeVisible();
-  // #704 -- default report scale is Font, not V-scale -- Font's own native
-  // label for these two grades is unchanged from the seeded raw grade.
   await expect(page.locator("#rpe-root")).toContainText("6B");
   await expect(page.locator("#rpe-root")).toContainText("6C");
-  // #603 -- the first bucket's null exertion value renders as a dash, not a rect.
   await expect(page.locator("#rpe-root svg")).toContainText("–");
 });
 
-// #704 -- proves the scale picker actually changes what a chart renders,
-// not just that a default label appears.
 test("switching the report grade scale relabels the chart's grade point", async ({ page }) => {
   await mockApi(page, {
     settings: { athleteMode: true, activeDiscipline: "boulder" },
@@ -85,11 +67,7 @@ test("switching the time window to 52w re-fetches with a wider range", async ({ 
     return route.fulfill({ json: { boulder: { buckets: [], maxGradeByBucket: [], avgExertionByBucket: [], headline: null }, lead: { buckets: [], maxGradeByBucket: [], avgExertionByBucket: [], headline: null } } });
   });
   await page.goto("/e2e-fixtures/pages/performance-rpe.html");
-  // Same race #15's own performance-trends-page.spec.js documents:
-  // boot()'s initial fetchEffort() call fires only after checkSession()/
-  // fetchSettings() resolve (concurrent, not sequential -- see admin-
-  // auth.js's own comment), which completes reliably later than
-  // page.goto()'s own "load" event.
+  // The first fetch waits for the session and settings, so it lands after load.
   await expect.poll(() => lastRequestUrl).not.toBeNull();
   const initialUrl = lastRequestUrl;
 

@@ -1,11 +1,3 @@
-// #352 -- public/session-redirect.js's shared "already logged in? skip
-// straight to /log" check, on both its real consumers (apex marketing
-// page, /login/). Same limitation as every other #348/#351-adjacent spec:
-// the actual /:username/log destination is gated on the real
-// my.<domain> hostname (owned-routes.js), unreachable locally -- these
-// tests only prove the redirect *fires* with the right target
-// (waitForURL), same "target, not destination" scoping e2e/login.spec.js's
-// own redirect assertion already uses.
 import { expect, test } from "@playwright/test";
 import { DEV_USER } from "../scripts/lib/dev-session.mjs";
 

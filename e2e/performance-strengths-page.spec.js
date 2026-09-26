@@ -1,8 +1,3 @@
-// #13 (epic #5 Phase 2) -- composition-root-wiring coverage for
-// /:username/performance/strengths, same fixture-harness pattern as
-// e2e/performance-injury-page.spec.js. athleteMode: true is required in
-// the mocked settings response -- client/performance-strengths-main.js
-// redirects to /log otherwise (#151's rule).
 import { expect, test } from "@playwright/test";
 import { mockApi } from "./mock-api.js";
 
@@ -15,22 +10,16 @@ test("shows the not-enough-data message and Sources section with no tagged moves
 
   await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
   await expect(page.locator("climbing-tab-bar a", { hasText: "Performance" })).toHaveAttribute("aria-current", "page");
-  // #601
   await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", "/e2e-fixtures/performance");
   await expect(page.locator("#view-explainer")).toContainText("Move difficulty tags");
   await expect(page.locator("#strengths-headline")).toContainText("Not enough data yet");
   await expect(page.locator("#strengths-anchor-select")).toHaveCount(0);
-  // #797 -- the inline, always-visible citation this page ends on.
   await expect(page.locator("body")).toContainText("MacLeod");
 });
 
 test("#604 -- hides the drill-down picker when anchors exist but no cell clears the confidence gate", async ({ page }) => {
   await mockApi(page, {
     settings: { athleteMode: true, activeDiscipline: "boulder" },
-    // Real state Raven hit in beta testing: some moves tagged (anchors
-    // non-empty) but no single 5-value combination has cleared
-    // MIN_TAG_COUNT yet (headline null) -- the picker must not show
-    // alongside a "not enough data yet" message.
     strengthsData: { headline: null, anchors: [{ dimension: "holdType", value: "crimp", label: "crimp" }] },
   });
   await page.goto("/e2e-fixtures/pages/performance-strengths.html");
@@ -54,8 +43,6 @@ test("renders the headline and drill-down picker, and re-ranks on anchor change"
 
   await expect(page.locator("#strengths-headline")).toHaveText("Your left hand on overhanging crimps looks like a key weakness.");
   await page.locator("#strengths-anchor-select").selectOption("holdType:crimp");
-  // #614 -- sentence case via the shared humanize() convention (#597), not
-  // the old Title Case.
   await expect(page.locator("#strengths-ranked-list .row-card-title")).toContainText("Left hand");
   await expect(page.locator("#strengths-ranked-list")).toContainText("100% hardest (5/5)");
 });

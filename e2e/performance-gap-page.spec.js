@@ -1,8 +1,3 @@
-// #14 (epic #5 Phase 2) -- composition-root-wiring coverage for
-// /:username/performance/gap, same fixture-harness pattern as e2e/
-// performance-trends-page.spec.js. athleteMode: true is required in the
-// mocked settings response -- client/performance-gap-main.js redirects
-// to /log otherwise (#151's rule).
 import { expect, test } from "@playwright/test";
 import { mockApi } from "./mock-api.js";
 
@@ -12,13 +7,10 @@ test("shows the zero-sends headline, time-window control, and Sources section wi
 
   await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
   await expect(page.locator("climbing-tab-bar a", { hasText: "Performance" })).toHaveAttribute("aria-current", "page");
-  // #601
   await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", "/e2e-fixtures/performance");
   await expect(page.locator("#view-explainer")).toContainText("Attempts count and Flash selection");
   await expect(page.locator('[data-window="12w"]')).toBeVisible();
   await expect(page.locator("#gap-root")).toContainText("No sends logged in this window yet.");
-  // #797 -- replaces the old "Community data" evidence-tier chip + popup
-  // with an inline, always-visible citation.
   await expect(page.locator("body")).toContainText("Climbstat");
 });
 
@@ -30,16 +22,8 @@ test("renders both grade-labeled line series and the attempts bar", async ({ pag
         buckets: ["-3w", "-2w", "-1w"],
         flashMaxByBucket: [null, { grade: "6B", gradeScale: "font-non-standard" }, null],
         sendMaxByBucket: [null, { grade: "6B", gradeScale: "font-non-standard" }, { grade: "6C", gradeScale: "font-non-standard" }],
-        // #603 -- the first bucket has no data at all (both grade series
-        // null that period), so its own attempts bar is null too, not a
-        // genuine 0.
         avgAttemptsByBucket: [null, 1.5, 3],
-        // #733 -- dead field: performance-gap-main.js's own renderGap()
-        // now recomputes the headline client-side via the real
-        // gapHeadline() (shared/gap-stats.js) so it responds to the
-        // scale picker, rather than trusting this mocked server value
-        // verbatim -- left here only so this fixture's own shape still
-        // matches the real server response, never actually read.
+        // Unused: the page recomputes the headline for the chosen scale.
         headline: "unused -- recomputed client-side, see #733",
       },
       lead: { buckets: ["-3w", "-2w", "-1w"], flashMaxByBucket: [null, null, null], sendMaxByBucket: [null, null, null], avgAttemptsByBucket: [null, null, null], headline: "No sends logged in this window yet." },
@@ -47,22 +31,14 @@ test("renders both grade-labeled line series and the attempts bar", async ({ pag
   });
   await page.goto("/e2e-fixtures/pages/performance-gap.html");
 
-  // Font-standard's real sequence has 6B+ between 6B and 6C, so this is
-  // genuinely 2 named grade-steps apart, not 1 (stepIndex/
-  // reportPositionOrder walk real named steps, not a raw ordinal
-  // difference -- see shared/gap-stats.js's own stepIndex comment).
+  // 6B+ sits between them: two named steps, not one.
   await expect(page.locator("#gap-root")).toContainText("2 grade-steps ahead");
   await expect(page.locator("#gap-root svg")).toBeVisible();
-  // #704 -- default report scale is Font, not V-scale -- Font's own native
-  // label for these two grades is unchanged from the seeded raw grade.
   await expect(page.locator("#gap-root")).toContainText("6B");
   await expect(page.locator("#gap-root")).toContainText("6C");
-  // #603 -- the first bucket's null attempts value renders as a dash, not a rect.
   await expect(page.locator("#gap-root svg")).toContainText("–");
 });
 
-// #704 -- proves the scale picker actually changes what a chart renders,
-// not just that a default label appears.
 test("switching the report grade scale relabels both grade line series", async ({ page }) => {
   await mockApi(page, {
     settings: { athleteMode: true, activeDiscipline: "boulder" },
@@ -94,10 +70,6 @@ test("switching the time window to 52w re-fetches with a wider range", async ({ 
     return route.fulfill({ json: { boulder: { buckets: [], flashMaxByBucket: [], sendMaxByBucket: [], avgAttemptsByBucket: [], headline: "No sends logged in this window yet." }, lead: { buckets: [], flashMaxByBucket: [], sendMaxByBucket: [], avgAttemptsByBucket: [], headline: "No sends logged in this window yet." } } });
   });
   await page.goto("/e2e-fixtures/pages/performance-gap.html");
-  // Same race #15's own performance-trends-page.spec.js documents: boot()'s
-  // initial fetchGap() call fires only after checkSession()/fetchSettings()
-  // resolve (concurrent, not sequential -- see admin-auth.js's own comment),
-  // which completes reliably later than page.goto()'s own "load" event.
   await expect.poll(() => lastRequestUrl).not.toBeNull();
   const initialUrl = lastRequestUrl;
 

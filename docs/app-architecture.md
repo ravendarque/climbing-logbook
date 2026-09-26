@@ -414,3 +414,45 @@ in dev.
   by `vite preview`. Most page tests use mocked API responses
   (`e2e/mock-api.js`); some run against the real Worker and D1.
 - [ADR-0011](adr/0011-three-layer-test-pyramid.md) records the test pyramid.
+
+### End-to-end tests
+
+`e2e/global-setup.js` applies migrations, resets the database, seeds the
+dev user's data and saves that session for every test. It resets on every
+run, because seeding only adds missing rows and a changed setting would
+otherwise carry over. The Worker under test is built with
+`CLOUDFLARE_ENV=preview`, so setup targets the preview database.
+
+Three kinds of test:
+
+| Kind | How | Used for |
+|---|---|---|
+| Component harness | `e2e/fixtures/*-entry.js`, built by `pnpm run e2e:build-fixtures` into `/e2e-fixtures/`, mount a real component against made-up data | Component behaviour: map zoom, the pyramid |
+| Page harness | A copy of a built shell at `/e2e-fixtures/pages/<page>.html`, running its real bundle, with `/-/api/*` faked by `e2e/mock-api.js` | Most page tests |
+| Real route | `my.localhost` via `ownedRouteUrl()` and `addOwnedRouteSessionCookie()` (`e2e/owned-route-url.js`), against the real Worker and D1 | Routing, sessions, the service worker, per-user storage |
+
+In the page harness the first path segment is `e2e-fixtures`, so links built
+from the URL use that as the username, and navigation to another page is
+stubbed with `page.route()`. `mockApi()` keeps writes for the length of a
+test, clears localStorage on every navigation, and seeds a warm device's
+caches unless `synced: false`.
+
+Things that have caught this suite out:
+
+- A route glob without a trailing `*` doesn't match a URL with a query
+  string, so `DELETE …/entries?id=` falls through to the real network.
+- `context.setOffline()` doesn't affect `route.fulfill()`. Fail a write with
+  `route.abort("failed")` instead.
+- `page.unroute(pattern)` removes every handler for that pattern, including
+  `mockApi()`'s. Toggle a flag inside one handler, and pass everything else
+  on with `route.fallback()` (not `continue()`, which goes to the network).
+- `toBeVisible()` can't see clipping by a transformed ancestor; assert
+  `inert` for the entry form's off-screen page.
+- `force: true` skips the actionability checks, so it can click mid-animation.
+  Click the visible label instead.
+- Hold a response open with a promise the test resolves, never a timer.
+- A real sign-out ends the suite's shared session; stub it.
+- A first visit to `/log` goes through `/sync` and back; wait for it to
+  settle before touching storage.
+- `vite preview` doesn't compress like the edge does, so load timing under
+  throttling is a manual check against a real deploy.

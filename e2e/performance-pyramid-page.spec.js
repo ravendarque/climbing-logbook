@@ -1,34 +1,8 @@
-// #413 (Tier 2 follow-up to #407) -- composition-root-wiring coverage for
-// /:username/performance/pyramid. Same fixture-harness pattern as
-// e2e/log-page.spec.js (see that file's own header comment) -- the real
-// client/performance-pyramid-main.js -> performance-pyramid-app.js bundle
-// against a verbatim copy of public/performance/pyramid/index.html, with
-// fabricated /-/api/* responses. athleteMode: true is required in
-// the mocked settings response -- client/performance-pyramid-main.js
-// redirects to /log otherwise (#151's rule: Grade Pyramid needs both
-// login AND Athlete Mode). The component's own inline Sources section
-// (climbing-grade-pyramid.js's own rendering, not this composition
-// root's) is covered separately by e2e/component-harnesses.spec.js
-// (#407 Tier 1) -- not duplicated here.
-//
-// #111 -- this page fetches an already-computed pyramid, not raw entries
-// (see mock-api.js's own pyramidData option). Expected shapes are built
-// here via the real pyramidSplitRows() (shared/pyramid-stats.js, the
-// same function server/api/performance.js runs) rather than hand-
-// computed literals, so a future change to the pyramid algorithm can't
-// silently desync this file's expectations from reality.
 import { expect, test } from "@playwright/test";
 import { mockApi } from "./mock-api.js";
 import { pyramidSplitRows } from "../shared/pyramid-stats.js";
 
 const today = new Date().toISOString().slice(0, 10);
-// #430/#649 -- 'sport' (Lead being renamed to Sport), not 'lead' -- this
-// mocked response shape gets ahead of the real server's own response key
-// (server/api/performance.js still returns 'lead' until #642's own
-// cutover-dependent rename), but the client only ever reads the response
-// keyed by whatever discipline it's currently switched to, so testing
-// that behavior against 'sport' now is exactly what this component needs
-// to work correctly for once #642 lands.
 const PYRAMID_DATA = {
   boulder: pyramidSplitRows("boulder", [{ type: "boulder", status: "send", grade: "6A", date: today }]),
   sport: pyramidSplitRows("sport", [{ type: "sport", status: "send", grade: "6a", date: today }]),
@@ -42,11 +16,7 @@ test("renders the shared chrome and a real grade pyramid, and switches disciplin
   await page.goto("/e2e-fixtures/pages/performance-pyramid.html");
 
   await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
-  // "Performance", not "Grade Pyramid" -- the tab label covers the whole
-  // hub now (#575), not just this one sub-page. Shortened from
-  // "Performance Insights" in #211.
   await expect(page.locator("climbing-tab-bar a", { hasText: "Performance" })).toHaveAttribute("aria-current", "page");
-  // #601
   await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", "/e2e-fixtures/performance");
   await expect(page.locator("#view-explainer")).toContainText("every send's grade");
 
@@ -63,16 +33,8 @@ test("renders the shared chrome and a real grade pyramid, and switches disciplin
   await expect(page.locator("#discipline-btn-label")).toHaveText("Boulder");
 });
 
-// #111 -- online-only, deliberately no offline fallback (Raven's own
-// call). A failed fetch (offline, or any other network/server error)
-// shows the "needs a connection" message instead of attempting to render
-// anything -- never a locally-computed or stale-cached number.
 test("shows the offline message instead of a pyramid when the fetch fails", async ({ page }) => {
   await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
-  // #737 -- trailing ** (not an exact-path match): the real request now
-  // carries ?boulderScale=&sportScale= query params, same convention
-  // e2e/performance-{trends,gap}-page.spec.js's own volume/gap route
-  // mocks already use for their own query-param-bearing endpoints.
   await page.route("**/-/api/performance/pyramid**", route => route.fulfill({ status: 500 }));
   await page.goto("/e2e-fixtures/pages/performance-pyramid.html");
 
@@ -80,8 +42,6 @@ test("shows the offline message instead of a pyramid when the fetch fails", asyn
   await expect(page.locator("climbing-grade-pyramid")).toBeHidden();
 });
 
-// #151's rule applies here like every other Performance Insights page --
-// this spec was the only one of the seven missing its own coverage of it.
 test("redirects to /log when Athlete Mode is off", async ({ page }) => {
   await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder" } });
   await page.goto("/e2e-fixtures/pages/performance-pyramid.html");

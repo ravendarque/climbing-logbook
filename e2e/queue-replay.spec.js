@@ -1,7 +1,4 @@
-// #992 -- a write queued offline before an API rename still syncs after it.
-// The queue stores what to do ({ kind, op, record }), never a URL:
-// client/offline-sync.js's syncOne() picks the route at replay time. Against
-// the real production build and server on an owner route (my.localhost).
+// The queue stores { kind, op, record }, never a URL, so a queued write survives an API rename.
 import { expect, test } from "@playwright/test";
 import { DEV_USER } from "../scripts/lib/dev-session.mjs";
 import { addOwnedRouteSessionCookie, ownedRouteUrl } from "./owned-route-url.js";
@@ -16,8 +13,6 @@ test("a queued add and delete, in the pre-#992 shape, replay to /-/api/entries",
 
   const placeId = await page.evaluate(async () => (await (await fetch("/-/api/places")).json()).places[0].id);
   const record = { id: `queued-before-992-${Date.now()}`, name: "Queued before #992", grade: "6B", placeId, type: "boulder", status: "send" };
-  // Exactly what entry-form.js queued before #992: an add, then a delete
-  // of the same entry, which also leaves the shared dev data unchanged.
   await page.evaluate(({ owner, record }) => localStorage.setItem(`logbook_pending_queue:${owner}`, JSON.stringify([
     { kind: "entry", op: "add", record },
     { kind: "entry", op: "delete", record: { id: record.id } },
@@ -42,8 +37,6 @@ test("a queued add and delete, in the pre-#992 shape, replay to /-/api/entries",
 const queueKey = owner => `logbook_pending_queue:${owner}`;
 const isEntryEdit = req => new URL(req.url()).pathname === "/-/api/entries" && req.method() === "PUT";
 
-// #1076 -- the replay loop used to write its own leftover list back over
-// the queue when it finished, erasing anything queued while it ran.
 test("a write queued while a sync is in flight is still queued afterwards", async ({ page }) => {
   await page.goto(ownedRouteUrl(DEV_USER.username, "/log"));
   await expect(page.locator("climbing-entries-table")).toBeVisible();
@@ -85,8 +78,6 @@ test("a write queued while a sync is in flight is still queued afterwards", asyn
   await expect(page.locator("#sync-btn")).toBeHidden();
 });
 
-// #1077 -- a save used to go straight to the server even with older
-// writes still queued, so the next sync replayed an older edit over it.
 test("a save made while an older edit is queued is sent after it, and wins", async ({ page }) => {
   await page.goto(ownedRouteUrl(DEV_USER.username, "/log"));
   await expect(page.locator("climbing-entries-table")).toBeVisible();
