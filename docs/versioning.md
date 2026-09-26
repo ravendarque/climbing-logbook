@@ -146,6 +146,42 @@ workflows (see #197).
 as a manual override, for a corrective release or anything unusual that
 doesn't fit the normal PR-merge flow.
 
+## Database migrations: expand and contract
+
+Migrations run before the new code deploys, against the one D1 database
+that beta and production share (ADR-0020). That includes beta-only tags:
+a tag headed only for beta still changes production's schema, and the
+production Worker keeps running its old code until a production deploy
+follows. So every migration has to be safe for the code that's live
+*right now*, not just for the code that's about to ship.
+
+**Migrations are additive.** New tables, new columns that are nullable or
+have a default, new indexes, and backfills that don't remove data are all
+fine at any time.
+
+**Dropping or renaming takes two releases:**
+
+1. Release the code that no longer needs the old table or column. For a
+   rename, that's code that reads and writes the new name, after a
+   migration that adds the new column and backfills it. Promote it to
+   production.
+2. Only then, in a later release, add the migration that drops or renames.
+   Its first line says why it's safe now:
+   `-- destructive-migration: nothing reads entries.video since v2.70.0`.
+
+`test/scripts/migration-safety.test.js` fails on any `DROP` (table,
+column, view, trigger) or `RENAME` in a migration after `0020` that lacks
+that line. Dropping an index is allowed, since no running code depends on
+one existing.
+
+**Restore point.** Every deploy and promote run logs the database's Time
+Travel bookmark just before migrating ("Record D1 restore point before
+migrating"). To roll the database back to that moment, copy the command
+from the log: `wrangler d1 time-travel restore climbing-logbook
+--bookmark=<bookmark>`. This rewinds every user's data, including writes
+made since, so it's for a migration that has actually broken production,
+not for undoing a schema change you've changed your mind about.
+
 ## This project's version history bootstrap
 
 Versioning was introduced after the fact, on an already-shipped project —
