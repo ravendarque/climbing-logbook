@@ -393,7 +393,6 @@ export function createMapView({ store, allDisciplines = false }) {
       stat(sends, sendLabelText, sendLabelPlural),
       stat(projects, "Project", "Projects"),
     ].join(`<span class="text-muted"> · </span>`);
-    document.getElementById("footer").textContent = "";
   }
 
   function render() {
