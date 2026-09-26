@@ -75,6 +75,8 @@
   "docs/superpowers/specs/2026-09-15-vite-production-build-design.md: client/beta-gate-main.js",
   "docs/superpowers/specs/2026-09-15-vite-production-build-design.md: client/performance-grades-main.js",
   "docs/superpowers/specs/2026-09-15-vite-production-build-design.md: scripts/vendor-floating-ui.mjs",
+  "e2e/global-setup.js: e2e/.auth",
+  "e2e/global-setup.js: e2e/.auth/dev-session.json",
   "e2e/global-setup.js: migrations/reset/seed",
   "e2e/offline-launch.spec.js: static/session-redirect.js",
   "infra/README.md: infra/deploy",

@@ -33,9 +33,11 @@ function splitJoined(token) {
 // gitignored generated output (public/, e2e/.auth/). A token without an
 // extension is often a path wrapped across a comment line ("shared/entry-"
 // then "schema.js"), so a prefix of a tracked path counts too.
+// Asks about a file inside the path too: a directory rule ("e2e/.auth/")
+// only matches the bare path when that directory exists on disk.
 function isGitIgnored(path) {
   try {
-    execFileSync("git", ["check-ignore", "--no-index", "-q", path], { cwd: ROOT });
+    execFileSync("git", ["check-ignore", "--no-index", "-q", path, `${path}/_`], { cwd: ROOT });
     return true;
   } catch {
     return false;
