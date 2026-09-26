@@ -36,8 +36,6 @@
   "docs/coding-standards.md: infra/platform-specific",
   "docs/infra-architecture.md: infra/access.tf",
   "docs/infra-architecture.md: infra/redirects.tf",
-  "e2e/global-setup.js: migrations/reset/seed",
-  "e2e/offline-launch.spec.js: static/session-redirect.js",
   "infra/README.md: infra/deploy",
   "infra/variables.tf: infra/redirects.tf",
   "test/app-schema.test.js: static/dynamic",

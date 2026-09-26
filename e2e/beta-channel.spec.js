@@ -1,9 +1,3 @@
-// #952, ADR-0029 -- beta enrollment is checked by the page itself
-// (client/channel-guard.js), not the server: on beta.<domain>, only an
-// enrolled user's owner page boots; anyone else gets a "not enrolled"
-// message linking to My account, with the page header (menu) kept.
-// Exercised against the real production build on beta.localhost, which
-// Chromium resolves to loopback and server/index.js routes as a beta host.
 import { expect, test } from "@playwright/test";
 import { DEV_USER } from "../scripts/lib/dev-session.mjs";
 
@@ -50,17 +44,12 @@ test.describe("beta channel enrollment check", () => {
     await page.goto(`${BETA}/${DEV_USER.username}/map`);
     await expect(page.locator("#beta-not-enrolled")).toHaveCount(0);
 
-    // Leave the beta (as if from another device), then open a beta page
-    // again: it boots from the cached "enrolled" first, then the check's
-    // background read corrects it and reloads once.
     await setEnrollment(page, false);
     await page.goto(`${BETA}/${DEV_USER.username}/map`);
     await expect(page.locator("#beta-not-enrolled")).toBeVisible();
   });
 });
 
-// #956 -- Logbook Beta is its own app: a Beta tag and yellow chrome on
-// beta.<domain> only, with its own manifest.
 test.describe("Logbook Beta's identity", () => {
   test.beforeEach(async ({ context }) => { await useSessionOnBeta(context); });
 
@@ -69,7 +58,6 @@ test.describe("Logbook Beta's identity", () => {
     await expect(page.locator("#brand-lockup use")).toHaveAttribute("href", /#lockup-beta$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Climbing Logbook Beta");
     await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#ffcc00");
-    // (Fetched by the page: Chromium resolves *.localhost, Node doesn't.)
     const manifest = await page.evaluate(async () => (await fetch("/-/manifest.json")).json());
     expect(manifest.short_name).toBe("Logbook Beta");
   });

@@ -1,15 +1,3 @@
-// #413 (Tier 2 follow-up to #407) -- composition-root-wiring coverage for
-// /:username/log, restoring the assertions the original e2e/log-page.spec.js
-// had before #407 closed the bare /log/ path this file used to reach the
-// bundle through. Exercises the real, unmodified public/log/index.html
-// shell + client/log-main.js -> log-app.js bundle (a verbatim copy of the
-// shell, made by `pnpm run e2e:build-fixtures`, served from a path #407's
-// run_worker_first fix doesn't block -- see e2e/mock-api.js's own header
-// comment) against fabricated /-/api/* responses (mockApi()), not a
-// real backend. Component-level behavior this composition root delegates
-// to a shared Web Component (grade-pyramid citations overlay, map zoom/
-// pan) is covered separately, in e2e/component-harnesses.spec.js (#407
-// Tier 1) -- not duplicated here.
 import { expect, test } from "@playwright/test";
 import { mockApi } from "./mock-api.js";
 
@@ -28,15 +16,6 @@ async function gotoLogHarness(page, seed = SEED) {
   await expect(page.locator("climbing-entries-table")).toBeVisible();
 }
 
-// #470 -- proves the fix, not just the end state: without it,
-// <climbing-entries-table>'s own real empty state ("Nothing to show
-// here") rendered immediately on connect, before boot() had fetched
-// anything, then flashed to the real content/empty state a moment
-// later. Seeded genuinely empty so the only thing distinguishing
-// "loading" from "confirmed empty" is the loading attribute itself --
-// with real seeded entries, the empty-state branch wouldn't render at
-// all once entries arrive, and this test would only ever be able to
-// observe the very first (pre-data) render, not the actual transition.
 test("#470 -- shows a loading state before real data resolves, then flips to the real empty state once confirmed", async ({ page }) => {
   let resolvePlaces;
   const placesDelay = new Promise(resolve => { resolvePlaces = resolve; });
@@ -74,45 +53,20 @@ test("renders the shared chrome and a real entries table, and switches disciplin
   await expect(page.locator("#discipline-btn-label")).toHaveText("Boulder");
 });
 
-// #939 follow-up (Raven, 2026-09-24) -- reported as jank: sections
-// rendered expanded, then all collapsed once "loaded". Root cause was
-// client/log-main.js's own boot() never reading places/locations from
-// cache the way it already did entries (#762/ADR-0023) -- every entry's
-// placeId was unresolvable on the very first render (entries.js's own
-// placeOf() falls back to an empty "" locationId), so everything grouped
-// into one unlabeled section, expanded by default (<climbing-entries-
-// table>'s own #maybeInitCollapse() can't seed real per-location collapse
-// state without real places either), then completely restructured into
-// the real per-crag sections, correctly collapsed, the instant the
-// places/locations network fetch resolved. e2e/mock-api.js's own
-// `synced` seed now also seeds the places/locations caches (mirroring
-// what store.js's setPlaces()/setLocations() actually persist on every
-// real fetch) precisely so this test can exercise the realistic warm-
-// device path, not the network-fetch-dependent one.
 test("#939 follow-up -- location sections start collapsed on the very first paint, no expand-then-collapse flash", async ({ page }) => {
   await gotoLogHarness(page);
 
-  // The real per-crag section is there. renderLocationSectionHtml
-  // (entries-table-html.js) always renders a section's rows into the
-  // DOM regardless of collapse state -- only a "hidden" class on the
-  // wrapper and the header's own aria-expanded toggle visibility -- so
-  // this checks aria-expanded and real visibility, not mere text
-  // presence (toContainText would find "Boulder Seed" either way).
   const header = page.locator(".place-header", { hasText: "Test Crag" });
   await expect(header).toHaveAttribute("aria-expanded", "false");
   const row = page.locator("tr", { has: page.getByText("Boulder Seed", { exact: true }) });
   await expect(row).toBeHidden();
 
-  // Expanding it reveals the row -- proves it's genuinely collapsed via
-  // the real toggle mechanism, not just coincidentally not rendered.
   await header.click();
   await expect(header).toHaveAttribute("aria-expanded", "true");
   await expect(row).toBeVisible();
 });
 
 test("#501 -- a table past one page shows Show more/Show all, both reveal the rest client-side (no fetch)", async ({ page }) => {
-  // #606 -- PAGE_SIZE raised from 20 to 100; seed counts scaled to match
-  // (was 25 entries against a page size of 20).
   const manyEntries = Array.from({ length: 125 }, (_, i) => ({
     id: `many-${i}`, placeId: "p1", type: "boulder", status: "send", grade: "6A", date: "2026-05-01", name: `Many Seed ${i}`,
   }));
@@ -123,17 +77,11 @@ test("#501 -- a table past one page shows Show more/Show all, both reveal the re
   await expect(page.locator(".show-more-btn")).toBeVisible();
   await expect(page.locator(".show-all-btn")).toBeVisible();
 
-  // No network request for the entries this reveals -- #entries is
-  // already the complete, locally-synced dataset (ADR-0019); the button
-  // just raises how many already-loaded rows render.
   const entriesRequests = [];
   page.on("request", req => { if (req.url().includes("/-/api/entries") && req.method() === "GET") entriesRequests.push(req.url()); });
 
   await page.locator(".show-more-btn").click();
   await expect(page.locator("tbody tr")).toHaveCount(125);
-  // Fully revealed -- the whole footer (both buttons AND the "N of Total
-  // shown" text) disappears entirely once hasMore is false, not just
-  // the button that was clicked.
   await expect(page.locator(".show-more-btn")).toHaveCount(0);
   await expect(page.locator(".show-all-btn")).toHaveCount(0);
   await expect(page.locator("#sections")).not.toContainText("shown");
@@ -141,8 +89,6 @@ test("#501 -- a table past one page shows Show more/Show all, both reveal the re
 });
 
 test("#501 -- Show all reveals the exact remainder client-side, no fetch", async ({ page }) => {
-  // #606 -- PAGE_SIZE raised from 20 to 100; seed count scaled to match
-  // (was 43 entries against a page size of 20).
   const manyEntries = Array.from({ length: 130 }, (_, i) => ({
     id: `many-${i}`, placeId: "p1", type: "boulder", status: "send", grade: "6A", date: "2026-05-01", name: `Many Seed ${i}`,
   }));
@@ -169,19 +115,12 @@ test("archived climbs are hidden by default (#63), shown once explicitly filtere
   await expect(page.locator("#sections")).not.toContainText("Archived Seed");
 
   await page.locator("#filter-btn").click();
-  // Default state should genuinely reflect what's shown, not just look
-  // untouched: the four non-archived statuses read as checked, archived
-  // doesn't.
   await expect(page.locator('#filter-status-group input[data-filter="flash"]')).toBeChecked();
   await expect(page.locator('#filter-status-group input[data-filter="send"]')).toBeChecked();
   await expect(page.locator('#filter-status-group input[data-filter="project"]')).toBeChecked();
   await expect(page.locator('#filter-status-group input[data-filter="checkout"]')).toBeChecked();
   await expect(page.locator('#filter-status-group input[data-filter="archived"]')).not.toBeChecked();
-  // Class-selector, not a class-string regex -- #filter-btn's base
-  // Tailwind classes literally contain the substring "active" as part of
-  // an arbitrary-variant selector ([&.active]:border-accent), which a
-  // loose /active/ regex against the whole class string false-matches
-  // regardless of whether the real "active" token is actually toggled on.
+  // A class selector: the base classes contain "active" inside an arbitrary variant.
   await expect(page.locator("#filter-btn.active")).toHaveCount(0);
 
   await page.locator('#filter-status-group label:has(input[data-filter="archived"])').click();
@@ -194,17 +133,11 @@ test("archived climbs are hidden by default (#63), shown once explicitly filtere
   await expect(page.locator('#filter-status-group input[data-filter="flash"]')).toBeChecked();
 });
 
-// #708 -- replaces the old min/max grade-range slider with a multi-
-// select grade-tier filter, and extends the free-text search to also
-// match the as-logged grade label.
 test("grade-tier filter narrows the table by tier, and Clear restores every tier", async ({ page }) => {
   await gotoLogHarness(page, {
     ...SEED,
     entries: [
       ...SEED.entries,
-      // "9A" is Boulder's Hyper Elite tier (shared/grade-data.js's own
-      // GRADE_TIER_THRESHOLDS); "6A" (Boulder Seed, already in SEED) is
-      // Intermediate.
       { id: "e3", placeId: "p1", type: "boulder", status: "send", grade: "9A", gradeScale: "font", date: "2026-05-04", name: "Elite Roof" },
     ],
   });
@@ -213,8 +146,6 @@ test("grade-tier filter narrows the table by tier, and Clear restores every tier
   await expect(page.locator("#sections")).toContainText("Elite Roof");
 
   await page.locator("#filter-btn").click();
-  // Every tier starts checked -- "means exactly what it contains," same
-  // convention as the Status group's own default-checked rows above.
   await expect(page.locator('#filter-grade-tier-group input[data-grade-tier="intermediate"]')).toBeChecked();
   await expect(page.locator('#filter-grade-tier-group input[data-grade-tier="hyper-elite"]')).toBeChecked();
 
@@ -237,10 +168,6 @@ test("search matches an as-logged grade label, case-insensitively, per the modif
     ],
   });
 
-  // No trailing modifier -- matches the base regardless of the entry's
-  // own modifier: bare "6a" matches bare "6A" (Boulder Seed) and does not
-  // pull in "7A+" (a different base entirely); "7a" matches "7A+" (same
-  // base, modifier stripped) even though the search text carries no "+".
   await page.locator("#search").fill("6a");
   await expect(page.locator("#sections")).toContainText("Boulder Seed");
   await expect(page.locator("#sections")).not.toContainText("Plus Route");
@@ -249,7 +176,6 @@ test("search matches an as-logged grade label, case-insensitively, per the modif
   await expect(page.locator("#sections")).toContainText("Plus Route");
   await expect(page.locator("#sections")).not.toContainText("Boulder Seed");
 
-  // Trailing modifier -- matches the full label only, not the bare base.
   await page.locator("#search").fill("7a+");
   await expect(page.locator("#sections")).toContainText("Plus Route");
 
@@ -287,11 +213,6 @@ test("adds and then deletes an entry via the Add/Edit modal", async ({ page }) =
   await expect(page.locator("#sections")).not.toContainText(entryName);
 });
 
-// #703-review, Raven 2026-09-12 -- the date field's own calendar
-// popover, replacing the native <input type="date"> + showPicker() this
-// used before (real month-grid markup, same button+popover convention as
-// every other picker in this form -- see public/log/index.html's own
-// comment on this markup).
 test("date picker: opens on the field's current month, navigates, selects a day, and re-syncs on reopen", async ({ page }) => {
   await gotoLogHarness(page);
   await page.locator("#add-btn").click();
@@ -305,8 +226,6 @@ test("date picker: opens on the field's current month, navigates, selects a day,
 
   await page.locator("#date-picker-next-month").click();
   await expect(page.locator("#date-picker-month-label")).toHaveText("September 2026");
-  // Navigating away from the selected month is a view change, not a new
-  // selection -- nothing in September should read as selected.
   await expect(page.locator('#date-picker-grid button[aria-selected="true"]')).toHaveCount(0);
 
   await page.locator("#date-picker-prev-month").click();
@@ -315,28 +234,19 @@ test("date picker: opens on the field's current month, navigates, selects a day,
   await expect(page.locator("#date-picker-popover")).toBeHidden();
   await expect(page.locator("#entry-date")).toHaveValue("2026-08-03");
 
-  // Reopening re-syncs the view to whatever the field now holds, not
-  // wherever navigation last left it.
   await page.locator("#date-picker-btn").click();
   await expect(page.locator("#date-picker-month-label")).toHaveText("August 2026");
   await expect(page.locator('#date-picker-grid button[data-date="2026-08-03"]')).toHaveAttribute("aria-selected", "true");
 });
 
-// #430/#643 -- Lead/Top-Rope style control, shown only for a Sport entry.
-// Same gotoLogHarness/mockApi harness and #add-btn/#entry-overlay pattern
-// as the modal test above.
 test("Style control is hidden for Boulder, shown+required for Sport, and pre-fills on edit", async ({ page }) => {
   await gotoLogHarness(page);
 
-  // Boulder is the default active discipline -- the control never even
-  // shows up for a Boulder entry.
   await page.locator("#add-btn").click();
   await expect(page.locator("#entry-overlay")).toBeVisible();
   await expect(page.locator("#sport-style-field")).toBeHidden();
   await page.locator("#entry-close").click();
 
-  // Switch to Sport -- the control appears, defaulting to Lead (same
-  // "always a real selection" reasoning Status's own default-to-Send has).
   await page.locator("#discipline-btn").click();
   await page.locator('.discipline-option[data-discipline="sport"]').click();
   await page.locator("#add-btn").click();
@@ -347,8 +257,6 @@ test("Style control is hidden for Boulder, shown+required for Sport, and pre-fil
   await page.locator("#entry-name").fill(entryName);
   await page.locator("#place-btn").click();
   await page.locator('#place-listbox li[data-key="p1"]').click();
-  // sr-only radio backed by a styled label, same `force: true` reasoning
-  // the Exertion/Status tests above already use for this kind of control.
   await page.locator('#sport-style-group input[value="top_rope"]').check({ force: true });
 
   const [postReq] = await Promise.all([
@@ -358,7 +266,6 @@ test("Style control is hidden for Boulder, shown+required for Sport, and pre-fil
   expect(postReq.postDataJSON().sportStyle).toBe("top_rope");
   await expect(page.locator("#entry-overlay")).toBeHidden();
 
-  // Editing the just-saved entry pre-fills the style it was saved with.
   await page.locator("#collapse-all-btn").click();
   const row = page.locator("tr", { has: page.getByText(entryName, { exact: true }) });
   await row.locator(".edit-btn").click();
@@ -366,12 +273,6 @@ test("Style control is hidden for Boulder, shown+required for Sport, and pre-fil
   await expect(page.locator('#sport-style-group input[value="top_rope"]')).toBeChecked();
 });
 
-// #738 -- was hardcoded to sport's own "onsight/redpoint" wording
-// regardless of which discipline is actually active. Same
-// #discipline-btn/.discipline-option switch pattern as the Style-control
-// test above. #791 -- athleteMode: true + a page-2 nav on each open --
-// the Attempts field (and every other Performance-data field) now lives
-// on the form's second, Athlete-Mode-only page.
 test("Attempts field's gap-view hint matches the active discipline's own status wording", async ({ page }) => {
   await gotoLogHarness(page, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
 
@@ -387,9 +288,6 @@ test("Attempts field's gap-view hint matches the active discipline's own status 
   await expect(page.locator("#attempts-gap-hint")).toHaveText("Feeds your onsight/redpoint gap view.");
 });
 
-// #430/#644 -- Lead/Top-Rope filter, owner /log view only, active only for
-// Sport. Same #filter-btn/#filter-*-group harness pattern the archived-
-// status filter test above already uses.
 test("Style filter is hidden for Boulder, shown for Sport, and narrows the table", async ({ page }) => {
   await gotoLogHarness(page, {
     ...SEED,
@@ -399,14 +297,8 @@ test("Style filter is hidden for Boulder, shown for Sport, and narrows the table
     ],
   });
 
-  // Boulder is the default active discipline -- the filter group doesn't
-  // even exist visibly yet.
   await page.locator("#filter-btn").click();
   await expect(page.locator("#filter-sport-style-wrap")).toBeHidden();
-  // Closed again before switching discipline -- createDisclosure's own
-  // outside-click-closes behavior (any click outside .filter-wrap) would
-  // otherwise close this panel the moment #discipline-btn below is
-  // clicked, same as clicking anywhere else on the page would.
   await page.locator("#filter-btn").click();
 
   await page.locator("#discipline-btn").click();
@@ -416,7 +308,6 @@ test("Style filter is hidden for Boulder, shown for Sport, and narrows the table
 
   await page.locator("#filter-btn").click();
   await expect(page.locator("#filter-sport-style-wrap")).toBeVisible();
-  // Default state reflects what's shown -- both styles start checked.
   await expect(page.locator('#filter-sport-style-group input[data-sport-style="lead"]')).toBeChecked();
   await expect(page.locator('#filter-sport-style-group input[data-sport-style="top_rope"]')).toBeChecked();
 
@@ -430,37 +321,15 @@ test("Style filter is hidden for Boulder, shown for Sport, and narrows the table
   await expect(page.locator('#filter-sport-style-group input[data-sport-style="top_rope"]')).toBeChecked();
 });
 
-// #575 Phase 2 entry-data plan (Task 6) -- end-to-end coverage for the
-// Exertion slider, Attempts stepper, and Move difficulty/Pain-injury
-// cascading-dropdown sections client/entry-form.js's own open()/submit
-// wiring added on top of client/move-tagging.js (Tasks 4/5 of the same
-// plan). Same gotoLogHarness/mockApi harness and #add-btn/#entry-overlay
-// open pattern as every other entry-modal test above.
-// #791 -- Status (page 1) and Exertion (page 2, Athlete Mode only) are on
-// different pages of the split form now -- #entry-page-1 is inert (real
-// browser-level non-interactive, not just visually hidden) while page 2
-// is active, so a status radio can't be changed without navigating back
-// to page 1 first. Each status change is its own page-1 -> page-2 round
-// trip rather than one continuous page-2 session.
 test("Exertion is visible for Send/Flash and hidden for Project/Check out/Archived", async ({ page }) => {
   await gotoLogHarness(page, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
   await page.locator("#add-btn").click();
   await expect(page.locator("#entry-overlay")).toBeVisible();
 
-  // Send is the status radio checked by default (entry-form.js's own
-  // open()) -- Exertion starts visible with no interaction at all.
   await page.locator("#entry-nav-forward").click();
   await expect(page.locator("#exertion-field")).toBeVisible();
 
-  // #791 -- clicking the visible LABEL (same pattern the filter-status
-  // group already uses above), not force-checking the sr-only radio
-  // directly: a real, un-forced click waits for Playwright's normal
-  // actionability/stability check, which a force:true click explicitly
-  // skips -- skipping it here raced the page-1 slide-back transition on
-  // a loaded CI runner (confirmed live: a force click landed and
-  // reported "done", but the radio's own checked state never actually
-  // flipped, meaning it hit stale coordinates mid-animation). The label
-  // is real, on-screen, and not sr-only, so it needs no force at all.
+  // Click the label, not a forced radio check: force skips actionability and raced the slide.
   await page.locator("#entry-nav-back").click();
   await page.locator('#status-group label:has(input[value="project"])').click();
   await page.locator("#entry-nav-forward").click();
@@ -476,9 +345,6 @@ test("Exertion is visible for Send/Flash and hidden for Project/Check out/Archiv
   await page.locator("#entry-nav-forward").click();
   await expect(page.locator("#exertion-field")).toBeHidden();
 
-  // Flash isn't its own status value (isFlash flag on top of status
-  // "send") -- checking it still resolves to selectedStatus === "send",
-  // so Exertion reappears.
   await page.locator("#entry-nav-back").click();
   await page.locator('#status-group label:has(input[value="flash"])').click();
   await page.locator("#entry-nav-forward").click();
@@ -489,12 +355,8 @@ test("Attempts stepper increments/decrements and cannot go below 0", async ({ pa
   await gotoLogHarness(page, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
   await page.locator("#add-btn").click();
   await expect(page.locator("#entry-overlay")).toBeVisible();
-  // #791 -- Attempts lives on the form's second, Athlete-Mode-only page.
   await page.locator("#entry-nav-forward").click();
 
-  // #597 -- attempts-count is a typable <input>, and 0 renders as a dash
-  // rather than the literal digit (see client/entry-form.js's own
-  // renderAttempts() comment).
   await expect(page.locator("#attempts-count")).toHaveValue("–");
   await expect(page.locator("#attempts-minus")).toBeDisabled();
 
@@ -509,11 +371,9 @@ test("Attempts stepper increments/decrements and cannot go below 0", async ({ pa
   await expect(page.locator("#attempts-count")).toHaveValue("–");
   await expect(page.locator("#attempts-minus")).toBeDisabled();
 
-  // Clicking a disabled button is a no-op -- still floored at 0, not -1.
   await page.locator("#attempts-minus").click({ force: true });
   await expect(page.locator("#attempts-count")).toHaveValue("–");
 
-  // #597 -- directly typable, digits only.
   await page.locator("#attempts-count").fill("7");
   await expect(page.locator("#attempts-count")).toHaveValue("7");
   await expect(page.locator("#attempts-minus")).toBeEnabled();
@@ -522,11 +382,6 @@ test("Attempts stepper increments/decrements and cannot go below 0", async ({ pa
 test("adding a move and saving submits it in the entry payload", async ({ page }) => {
   await gotoLogHarness(page, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
 
-  // Registered after gotoLogHarness (same layering the offline-queue
-  // describe block above uses for its own page.route() overrides) --
-  // this intercept wins over mockApi()'s own stateful entries write
-  // handler and lets the test assert on the exact payload the form
-  // built, not just the client-rendered end state.
   let submittedBody;
   await page.route("**/-/api/entries*", async route => {
     if (route.request().method() !== "POST") return route.fallback();
@@ -540,10 +395,6 @@ test("adding a move and saving submits it in the entry payload", async ({ page }
   await page.locator("#place-btn").click();
   await page.locator('#place-listbox li[data-key="p1"]').click();
 
-  // #791 -- Move difficulty lives on page 2; submitting from page 2's own
-  // "Save & close" (not page 1's, now inert/off-screen) proves either
-  // page's button saves the whole entry, both pages' field values
-  // included -- exactly the acceptance criterion the issue itself states.
   await page.locator("#entry-nav-forward").click();
   await page.locator("#hardest-moves-add").click();
   await page.locator('#hardest-moves-list [data-field="limbSide"]').selectOption("foot-right");
@@ -577,7 +428,6 @@ test("editing an entry pre-populates its existing moves into the right list", as
   const row = page.locator("tr", { has: page.getByText("Move Seed", { exact: true }) });
   await row.locator(".edit-btn").click();
   await expect(page.locator("#entry-overlay")).toBeVisible();
-  // #791 -- Move difficulty/pain-move lists live on page 2 now.
   await page.locator("#entry-nav-forward").click();
 
   await expect(page.locator("#hardest-moves-list [data-move-row]")).toHaveCount(1);
@@ -585,35 +435,14 @@ test("editing an entry pre-populates its existing moves into the right list", as
   await expect(page.locator("#pain-moves-list [data-move-row]")).toHaveCount(1);
 });
 
-// #791 -- the Performance data page (Exertion/Attempts/Move difficulty/
-// Pain-injury) was previously visible to every user regardless of
-// Athlete Mode -- a real, pre-existing bug (entry-form.js/log-main.js
-// never checked isAthleteMode() at all) found while scoping this issue.
-//
-// .inert (toHaveJSProperty), not toBeVisible()/toBeHidden(), for the
-// page-1/page-2 checks in this and the next two tests: the inactive
-// page is a real, laid-out element clipped out of view by its
-// translateX'd ancestor + the viewport's overflow-hidden, not
-// display:none'd or visibility:hidden -- Playwright's toBeVisible()
-// only checks the element's own CSS visibility/display/size, not
-// whether an ancestor's transform+overflow clips it out of the visible
-// area, so it reports a real but off-screen element as "visible"
-// regardless (confirmed empirically: this exact assertion failed
-// against a page verified, by direct screenshot, to not be on screen).
-// .inert is the real, Playwright-checkable state that actually answers
-// "can a user reach this" -- entry-form.js's own showPage()/open() set
-// it as the authoritative reachability flag for exactly this reason,
-// not just for its real browser-level non-interactivity.
+// inert, not toBeVisible: the inactive page is clipped by a transformed ancestor, which
+// toBeVisible can't see.
 test("the Performance data page is only reachable in Athlete Mode", async ({ page }) => {
   await gotoLogHarness(page, { ...SEED, settings: { athleteMode: false, activeDiscipline: "boulder" } });
   await page.locator("#add-btn").click();
   await expect(page.locator("#entry-overlay")).toBeVisible();
 
   await expect(page.locator("#entry-nav-forward")).toBeHidden();
-  // The fields still exist (still part of every submitted entry, always
-  // at their default/empty state for a user who can never reach them --
-  // see the template's own comment on why they aren't removed outright)
-  // but stay unreachable -- #entry-page-2 is inert with no way in.
   await expect(page.locator("#entry-page-2")).toHaveJSProperty("inert", true);
 });
 
@@ -634,10 +463,6 @@ test("Performance -> and <- Log entry slide between the form's two pages", async
   await expect(page.locator("#entry-page-2")).toHaveJSProperty("inert", true);
 });
 
-// A real regression guard, not a speculative one -- open() originally
-// only reset editingId/field values, not which page was showing, so
-// reopening the modal right after a page-2 visit would have silently
-// stayed on page 2.
 test("reopening the form after navigating to page 2 starts back on page 1", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await gotoLogHarness(page, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
@@ -651,9 +476,6 @@ test("reopening the form after navigating to page 2 starts back on page 1", asyn
   await expect(page.locator("#entry-page-2")).toHaveJSProperty("inert", true);
 });
 
-// #703 -- entry-form grade scale picker (sub-issue B of #183). Same
-// gotoLogHarness/mockApi harness and #add-btn/#entry-overlay open
-// pattern as every other entry-modal test above.
 test("Boulder defaults to the Font scale (button + popover), and the picker lists Boulder's 3 scales", async ({ page }) => {
   await gotoLogHarness(page);
   await page.locator("#add-btn").click();
@@ -661,9 +483,6 @@ test("Boulder defaults to the Font scale (button + popover), and the picker list
 
   await expect(page.locator("#grade-value-btn")).toBeVisible();
   await expect(page.locator("#grade-ns-fields")).toBeHidden();
-  // Font's own real range starts at "3" -- V0 is its own V-scale hint
-  // (gradeDisplayLabelForScale), same "6A/V3"-style convenience #463
-  // already established.
   await expect(page.locator("#grade-value-btn")).toHaveText("3/VB");
 
   await page.locator("#grade-scale-btn").click();
@@ -689,18 +508,13 @@ test("choosing Font (Non-standard) switches to the number/letter/modifier fields
   await page.locator('#grade-scale-listbox [role="option"]', { hasText: "Font (Non-standard)" }).click();
   await expect(page.locator("#grade-value-wrap")).toBeHidden();
   await expect(page.locator("#grade-ns-fields")).toBeVisible();
-  // Raven, 2026-09-12 -- "no letter"/"no modifier" reads as "n/a",
-  // lowercase, both on the trigger and as the popover's own first option.
   await expect(page.locator("#grade-ns-letter-btn")).toHaveText("n/a");
   await expect(page.locator("#grade-ns-modifier-btn")).toHaveText("n/a");
   await page.locator("#grade-ns-letter-btn").click();
   await expect(page.locator('#grade-ns-letter-listbox [role="option"][data-key=""]')).toHaveText("n/a");
   await page.locator("#grade-ns-letter-btn").click();
 
-  // Exact data-key match, not hasText -- a substring match on "a" now
-  // also matches the "n/a" (Raven, 2026-09-12) no-value option, the same
-  // strict-mode-violation class every other picker in this file avoids
-  // by keying on data-key instead.
+  // data-key, not hasText: "a" also matches "n/a".
   await page.locator("#grade-ns-number-btn").click();
   await page.locator('#grade-ns-number-listbox [role="option"][data-key="6"]').click();
   await page.locator("#grade-ns-letter-btn").click();
@@ -721,8 +535,7 @@ test("switching scale preserves the equivalent grade via the shared canonical or
   await gotoLogHarness(page);
   await page.locator("#add-btn").click();
   await page.locator("#grade-value-btn").click();
-  // Exact data-key match -- a substring hasText match on "6A" also
-  // catches "6A+" (rendered as "6A+/V3").
+  // data-key, not hasText: "6A" also matches "6A+".
   await page.locator('#grade-value-listbox [role="option"][data-key="6A"]').click();
 
   await page.locator("#grade-scale-btn").click();
@@ -736,10 +549,7 @@ test("the entry-form grade scale preference persists to localStorage", async ({ 
   await page.locator("#grade-scale-btn").click();
   await page.locator('#grade-scale-listbox [role="option"]', { hasText: "V-scale" }).click();
 
-  // Checks the persisted value directly rather than reloading -- see the
-  // theme-toggle test above's own comment on why (mockApi()'s
-  // addInitScript(() => localStorage.clear()) re-fires on a mid-test
-  // reload too, wiping the just-set preference first).
+  // mockApi clears localStorage on every navigation, so check the stored value, not a reload.
   expect(await page.evaluate(() => localStorage.getItem("logbook_grade_scale_entry_boulder"))).toBe("v-scale");
 });
 
@@ -752,8 +562,6 @@ test("editing an entry shows its own actual gradeScale, not the current entry-fo
     ],
   });
 
-  // Sets the entry-form preference to V-scale first, so it genuinely
-  // differs from the seeded entry's own gradeScale below.
   await page.locator("#add-btn").click();
   await page.locator("#grade-scale-btn").click();
   await page.locator('#grade-scale-listbox [role="option"]', { hasText: "V-scale" }).click();
@@ -764,7 +572,6 @@ test("editing an entry shows its own actual gradeScale, not the current entry-fo
   await row.locator(".edit-btn").click();
   await expect(page.locator("#entry-overlay")).toBeVisible();
 
-  // Shows the entry's own font-non-standard fields, not V-scale.
   await expect(page.locator("#grade-ns-fields")).toBeVisible();
   await expect(page.locator("#grade-value-wrap")).toBeHidden();
   await expect(page.locator("#grade-ns-number-btn")).toHaveText("6");
@@ -794,7 +601,6 @@ test("add-place modal: brand-new location leaves the country field open", async 
     page.locator("#add-place-submit-btn").click(),
   ]);
   await expect(page.locator("#add-place-overlay")).toBeHidden();
-  // Selecting the new place commits it into the entry form's place picker.
   await expect(page.locator("#place-btn")).toContainText(locationName);
 });
 
@@ -807,9 +613,6 @@ test("add-place modal: an existing location name locks the country field", async
   await page.locator("#place-btn").click();
   await page.locator("#place-add-new-btn").click();
 
-  // Exact, case-insensitive match against a seeded location (#158's
-  // matching rule) -- country auto-fills and locks rather than staying
-  // editable, since it's inherited from the location, not re-askable.
   await page.locator("#add-place-location").fill("fontainebleau");
   await expect(page.locator("#add-place-country-btn")).toBeDisabled();
   await expect(page.locator("#add-place-country-hint")).toBeVisible();
@@ -818,7 +621,6 @@ test("add-place modal: an existing location name locks the country field", async
   const areaName = `E2E Sector ${Date.now()}`;
   await page.locator("#add-place-area").fill(areaName);
   await Promise.all([
-    // No new location this time (already exists) -- only a places POST.
     page.waitForResponse(res => res.url().includes("/-/api/places") && res.request().method() === "POST"),
     page.locator("#add-place-submit-btn").click(),
   ]);
@@ -834,9 +636,6 @@ test("edits an existing entry via the table's Edit button", async ({ page }) => 
   await row.locator(".edit-btn").click();
   await expect(page.locator("#entry-overlay")).toBeVisible();
 
-  // "Edited" first, not appended -- an appended edit ("Boulder Seed
-  // Edited...") would still contain "Boulder Seed" as a substring, making
-  // the "old name is gone" assertion below meaningless.
   const editedName = `Edited Boulder ${Date.now()}`;
   await page.locator("#entry-name").fill(editedName);
   await Promise.all([
@@ -848,12 +647,6 @@ test("edits an existing entry via the table's Edit button", async ({ page }) => 
   await expect(page.locator("#sections")).not.toContainText("Boulder Seed");
 });
 
-// createDisclosure (client/modal-utils.js, shared by every popover on this
-// page -- discipline picker, header menu, place picker, add-place country
-// picker, filter panel) is one implementation, so its Escape/outside-click
-// behavior only needs proving against one real instance, not re-proven per
-// popover. The discipline picker is the simplest -- no login or modal
-// nesting.
 test.describe("Shared popover behavior (createDisclosure)", () => {
   test("Escape closes the popover and refocuses the trigger", async ({ page }) => {
     await gotoLogHarness(page);
@@ -876,23 +669,11 @@ test.describe("Shared popover behavior (createDisclosure)", () => {
     await trigger.click();
     await expect(popover).toBeVisible();
 
-    // Clicks the page's outer margin (outside the centered content
-    // column) -- clearly outside #discipline-wrap without risking a click
-    // on some other interactive element the popover itself doesn't own.
     await page.mouse.click(1270, 10);
     await expect(popover).toBeHidden();
   });
 });
 
-// #561 -- log-main.js shares this click handler with every other owned
-// composition root (client/admin-auth.js's own createAdminAuth() factory),
-// so proving it here once is enough -- same "one implementation" reasoning
-// the popover tests above already use. Can only prove the client-side half
-// locally (the navigation itself) -- the real my.<domain> server-side gate
-// this redirect matters for isn't reachable from this fixture harness at
-// all (see mock-api.js's own header comment), so the "can no longer reach
-// this page" half of #561 stays covered by owned-routes.js already working
-// correctly; nothing new to prove there.
 test("#561 -- logging out navigates away instead of leaving the visitor stranded on an owner-only page", async ({ page }) => {
   await gotoLogHarness(page);
   await page.locator("#header-menu-btn").click();
@@ -915,47 +696,12 @@ test("theme toggle flips data-theme and persists to localStorage", async ({ page
   await page.locator("#theme-toggle-btn").click();
   await expect(html).toHaveAttribute("data-theme", next);
 
-  // Checks the persisted value directly rather than reloading -- mockApi()'s
-  // own addInitScript(() => localStorage.clear()) (fresh, isolated storage
-  // per test) re-fires on every navigation, including a mid-test reload,
-  // which would wipe the just-set preference before the reloaded page's
-  // own bootstrap script ever got to read it back. That's a fixture-harness
-  // interaction, not a real persistence bug -- the actual write is what
-  // this asserts.
+  // mockApi clears localStorage on every navigation, so check the stored value, not a reload.
   expect(await page.evaluate(() => localStorage.getItem("logbook_theme"))).toBe(next);
 });
 
-// context.setOffline() does NOT reach page.route()-fulfilled requests at
-// all -- confirmed empirically (not assumed): route.fulfill() never
-// touches the real network stack, so a mocked POST succeeds instantly
-// regardless of simulated offline state, and entry-form.js's own
-// try/catch around adminFetch never sees a failure to queue. The correct
-// way to simulate a failed write against a mocked backend is aborting the
-// specific route instead (route.abort("failed")), which genuinely rejects
-// the fetch() the same way a real network failure would.
-//
-// A toggleable `failing` flag inside ONE route handler (route.fallback()
-// when false), not a second page.route() call unrouted later -- also
-// confirmed empirically: page.unroute(pattern) with no handler reference
-// removes *every* handler registered for that pattern, including
-// mockApi()'s own underlying one, not just this file's. That left "back
-// online" hitting the real (unmocked) dev backend with this fixture's
-// fake ids, which correctly rejected them -- the item never left the
-// queue, not because sync didn't run, but because the request it sent
-// wasn't the one this test meant to simulate at all.
-//
-// #992 -- reads and writes share each resource's URL now, so these
-// overrides fail only the writes (non-GET), exactly as the old admin/-only
-// routes did: the tests simulate a write that can't reach the server.
-//
-// The route pattern itself has a trailing `**`, not just
-// ".../entries" -- the DELETE request appends `?id=...`, and a glob
-// pattern with no wildcard after the path doesn't match a URL with a
-// query string tacked on. Without it, the delete-while-offline test's own
-// DELETE silently missed this route entirely and hit mockApi()'s real
-// handler instead, succeeding outright instead of queuing -- the entry
-// vanished locally rather than staying marked pending-delete, which is
-// what actually failed the test, not the sync/replay logic itself.
+// Writes fail via route.abort: setOffline doesn't reach fulfilled routes. One toggled handler,
+// because unroute(pattern) also removes mockApi's; and ** so DELETE's ?id= still matches.
 test.describe("Offline queue (client/offline-sync.js)", () => {
   test("queues an entry while offline, then syncs it once back online", async ({ page }) => {
     await gotoLogHarness(page);
@@ -971,15 +717,10 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await page.locator('#place-listbox li[data-key="p1"]').click();
     await page.locator("#entry-submit-btn").click();
 
-    // Queued and rendered optimistically, no successful network call
-    // involved.
     await expect(page.locator("#entry-overlay")).toBeHidden();
     await expect(page.locator("#sections")).toContainText(entryName);
     await expect(page.locator("#sync-btn")).toBeVisible();
 
-    // "Back online" -- mockApi()'s own handler now runs again (via
-    // fallback()), and a real `online` event triggers log-main.js's own
-    // auto-sync listener, same as a genuine connectivity change would.
     const responsePromise = page.waitForResponse(
       res => res.url().includes("/-/api/entries") && res.request().method() === "POST",
     );
@@ -1007,9 +748,6 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await expect(page.locator("#entry-overlay")).toBeHidden();
     await expect(page.locator("#sections")).toContainText(entryName);
 
-    // Delete it before it's ever had a chance to sync -- the route's still
-    // aborting, so this queues a second event rather than reaching the
-    // server.
     await page.locator("#collapse-all-btn").click();
     const row = page.locator("tr", { has: page.getByText(entryName, { exact: true }) });
     await row.locator(".edit-btn").click();
@@ -1017,10 +755,6 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await page.locator("#entry-delete-btn").click();
     await expect(page.locator("#entry-overlay")).toBeHidden();
 
-    // #268: no more queuedAdd short-circuit -- both the add and the delete
-    // are genuinely queued as separate events, so the entry stays visible
-    // (marked pending-delete) rather than vanishing locally the moment
-    // it's deleted.
     await expect(page.locator("#sections")).toContainText(entryName);
 
     const requestMethods = [];
@@ -1031,50 +765,26 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     failing = false;
     await page.evaluate(() => window.dispatchEvent(new Event("online")));
 
-    // Final state once both replayed requests land: the entry is gone
-    // (created, then deleted, in order) and nothing's left queued.
     await expect(page.locator("#sections")).not.toContainText(entryName);
     await expect(page.locator("#sync-btn")).toBeHidden();
 
-    // The actual proof of #268's behavior change: a genuine event-driven
-    // replay hits the server twice, in order (create, then delete) --
-    // the old collapsing behavior would have dropped this to zero network
-    // calls via the queuedAdd short-circuit.
     expect(requestMethods).toEqual(["POST", "DELETE"]);
   });
 
-  // #514 -- offline-sync.js's own reconnect flow (client/sync-cursors.js's
-  // ?since= delta pull, followed by the queue-replay loop) used to merge
-  // a delta onto whatever was already in memory -- which can include this
-  // device's own not-yet-synced _pending/_pendingDelete-flagged rows --
-  // and persist the merged result straight to localStorage, baking that
-  // flag into the on-disk cache; it could also silently clear a queued
-  // pending-delete's flag if the delta happened to touch the same row
-  // before the queue replay got to it. This drives both at once: a queued
-  // delete for "Boulder Seed", plus a concurrent edit to the SAME entry
-  // landing on the server (via a page-initiated fetch, not through this
-  // test's own currently-aborting admin route -- simulating "another
-  // device already changed this row" independently of the queued delete).
   test("reconnect drift: a queued pending delete still executes when the same entry was edited on another device first", async ({ page }) => {
     await gotoLogHarness(page);
 
     let failing = true;
     await page.route("**/-/api/entries**", route => (failing && route.request().method() !== "GET" ? route.abort("failed") : route.fallback()));
 
-    // Queue a delete for the seeded "Boulder Seed" entry while offline.
     await page.locator("#collapse-all-btn").click();
     const row = page.locator("tr", { has: page.getByText("Boulder Seed", { exact: true }) });
     await row.locator(".edit-btn").click();
     page.once("dialog", dialog => dialog.accept());
     await page.locator("#entry-delete-btn").click();
     await expect(page.locator("#entry-overlay")).toBeHidden();
-    // Still visible, marked pending-delete (#268) -- not actually gone yet.
     await expect(page.locator("#sections")).toContainText("Boulder Seed");
 
-    // Simulate "another device" editing the same entry on the server --
-    // briefly un-fail the route for this one page-initiated request only,
-    // then restore it so the queued delete itself still can't reach the
-    // server yet.
     failing = false;
     await page.evaluate(() => fetch("/-/api/entries", {
       method: "PUT",
@@ -1083,8 +793,6 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     }).then(res => res.json()));
     failing = true;
 
-    // Reconnect -- pullDeltas() picks up the drift edit first, then the
-    // queued delete replays.
     const deleteResponsePromise = page.waitForResponse(
       res => res.url().includes("/-/api/entries") && res.request().method() === "DELETE",
     );
@@ -1092,24 +800,14 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await page.evaluate(() => window.dispatchEvent(new Event("online")));
     await deleteResponsePromise;
 
-    // The delete still wins -- neither "Boulder Seed" nor the drifted
-    // "Edited By Other Device" name is left showing.
     await expect(page.locator("#sections")).not.toContainText("Boulder Seed");
     await expect(page.locator("#sections")).not.toContainText("Edited By Other Device");
     await expect(page.locator("#sync-btn")).toBeHidden();
 
-    // No _pending/_pendingDelete flag survives into the persisted cache --
-    // the reconnect flow's own delta merge must always merge onto a
-    // freshly-reloaded, clean on-disk snapshot, never onto whatever
-    // pending-augmented state happened to be sitting in memory.
     const cached = await page.evaluate(() => JSON.parse(localStorage.getItem("logbook_entries_cache") || "[]"));
     expect(cached.some(e => e._pending || e._pendingDelete)).toBe(false);
   });
 
-  // #514 -- syncBtn.disabled only blocks a second button *click*; the
-  // `online` listener itself had no re-entrancy guard, so two `online`
-  // events firing in quick succession could run two concurrent
-  // syncPending() calls, each independently POSTing the same queued item.
   test("reconnect re-entrancy: two online events in quick succession don't double-POST a queued item", async ({ page }) => {
     await gotoLogHarness(page);
 
@@ -1141,26 +839,9 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     expect(postRequests).toHaveLength(1);
   });
 
-  // #490 -- server-side dedup-on-write alone isn't enough: if the
-  // client doesn't also remap any OTHER still-queued item that
-  // referenced the id it originally minted for the now-deduped location/
-  // place, those dependent items fail outright on replay against an id
-  // that was never actually inserted. This drives the whole chain at
-  // once (location -> place -> entry, all queued offline), with the
-  // drifted "Existing Crag" simulating a location another device
-  // already created -- deliberately unknown to this device's own local
-  // store (same reasoning e2e/sync-page.spec.js's own "warm with drift"
-  // test uses), so the add-place modal's own client-side match-or-create
-  // can't catch it locally and genuinely queues a colliding create.
   test("#490 -- an offline-created place/location dedups against a same-named row from another device, with the queued entry correctly remapped to it", async ({ page }) => {
     await gotoLogHarness(page, { entries: [], places: [], locations: [] });
 
-    // A real id, minted the same way a genuine client would (place-
-    // picker.js's own crypto.randomUUID()) -- unlike the real server,
-    // e2e/mock-api.js's own admin routes don't mint one for a request
-    // that omits it, so leaving this out would silently make the
-    // dedup match below return an id-less row and the whole point of
-    // this test (proving the *remap*, keyed by that id) untestable.
     await page.evaluate(() => fetch("/-/api/locations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1179,9 +860,6 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await page.locator("#place-add-new-btn").click();
     await expect(page.locator("#add-place-overlay")).toBeVisible();
 
-    // Different casing from the drifted location's own real name --
-    // proves the dedup match is genuinely case-insensitive, not just a
-    // literal-string coincidence.
     await page.locator("#add-place-location").fill("existing crag");
     await page.locator("#add-place-area").fill("Sector 1");
     await page.locator("#add-place-country-btn").click();
@@ -1199,35 +877,13 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await page.evaluate(() => window.dispatchEvent(new Event("online")));
     await expect(page.locator("#sync-btn")).toBeHidden();
 
-    // The entry survived the full replay chain and is still attached to
-    // a real place -- not silently dropped or orphaned against a
-    // location/place id that was never actually inserted server-side.
     await expect(page.locator("#sections")).toContainText(entryName);
-    // Only ONE "Existing Crag" section exists -- the offline-created
-    // location deduped onto the drifted one instead of creating a
-    // second, and the place created under it deduped/attached correctly
-    // too (a failed remap would either orphan the entry under a
-    // never-inserted id, or -- if the place item's own locationId
-    // remap were skipped -- fail its own create and leave the entry
-    // queued forever).
     await expect(page.locator(".place-header", { hasText: "Existing Crag" })).toHaveCount(1);
   });
 
-  // #939 -- a real, confirmed incident: an entry added on another device
-  // never showed up here even after a real reload, because nothing in
-  // boot() (client/log-main.js) ever re-checked entries against the
-  // server -- only a sync-button click or an `online` event did (both
-  // exercised by the tests above). This is the missing case: a plain
-  // reload, no online event, no button click. Proves client/offline-
-  // sync.js's new reconcileEntries() (client/log-main.js's own boot())
-  // is what closes the gap, not a regression back to the click/online-only
-  // behavior.
   test("#939 -- reloading the page alone picks up an entry added on another device, no click or online event needed", async ({ page }) => {
     await gotoLogHarness(page);
 
-    // Simulate "another device" adding a brand-new entry directly against
-    // the mocked backend -- same pattern as the "reconnect drift" test
-    // above, bypassing this page's own form entirely.
     const entryName = `E2E boot reconcile ${Date.now()}`;
     await page.evaluate(name => fetch("/-/api/entries", {
       method: "POST",
@@ -1235,34 +891,14 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
       body: JSON.stringify({ id: crypto.randomUUID(), placeId: "p1", type: "boulder", status: "send", grade: "6A", gradeScale: "font", date: "2026-05-03", name }),
     }), entryName);
 
-    // Not visible yet -- this device's own cache still only has the
-    // original seed, and nothing has told it to check the server.
     await expect(page.locator("#sections")).not.toContainText(entryName);
 
-    // A plain reload -- deliberately no `online` event dispatch and no
-    // sync-button click anywhere in this test.
     await page.reload();
     await expect(page.locator("climbing-entries-table")).toBeVisible();
 
     await expect(page.locator("#sections")).toContainText(entryName);
   });
 
-  // #939 follow-up (Raven, 2026-09-24) -- a real question about the fix
-  // above: reconcileEntries() and boot()'s own places/locations fetch are
-  // now two genuinely independent network calls. entries.js's own
-  // placeOf() falls back to an empty "" locationId for a placeId it can't
-  // resolve, so if a new entry's own delta had landed in the store before
-  // its brand-new place/location did, it would have grouped under an
-  // empty/unknown section, then jumped to its real one a moment later --
-  // exactly the flash ADR-0023 exists to prevent. client/log-main.js's
-  // boot() now fires reconcileEntries() only after the places/locations
-  // block above it has already applied its result to the store (comment
-  // there explains the ordering), so this is a structural guarantee, not
-  // a network-timing coincidence -- proven here by adding both a new
-  // location+place AND an entry that references them together (the
-  // realistic case: a new crag visited and logged in one session), then
-  // asserting the entry lands under its own real location's header, with
-  // no stray/empty section ever left in the DOM once the page settles.
   test("#939 -- a new entry and its new place, both added on another device together, group under the real location after reload (no empty/unknown section)", async ({ page }) => {
     await gotoLogHarness(page);
 
@@ -1292,61 +928,26 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await expect(page.locator("climbing-entries-table")).toBeVisible();
     await expect(page.locator("#sections")).toContainText(entryName);
 
-    // The new entry's own section is headed by its real location's name --
-    // never landed (even transiently in a way that left a trace) under an
-    // empty-locationId section.
     const row = page.locator("tr", { has: page.getByText(entryName, { exact: true }) });
     const section = row.locator("xpath=ancestor::div[@data-location-id][1]");
     await expect(section.locator(".place-header")).toContainText("New Crag");
 
-    // No section anywhere is headed by blank/empty text -- the specific
-    // shape a placeOf() fallback (locationId "") would have produced.
     await expect(page.locator(".place-header[data-location-id='']")).toHaveCount(0);
   });
 
-  // #939 follow-up (Raven, 2026-09-24) -- the other half of the same
-  // report: "on a slow connection, I can open a table to browse it and
-  // then when some trigger fires ... it collapses again." Root cause was
-  // shared with the initial-flash bug above: <climbing-entries-table>'s
-  // own #maybeInitCollapse() only actually seeds collapse state once
-  // places/locations are non-empty, which (before boot()'s own
-  // cache-first fix) could still be moments after first paint on a slow
-  // connection -- long enough for a user to manually expand a section,
-  // only to have that one-time seed silently overwrite it. Proven here
-  // via the `online` event, the same background reconcile trigger
-  // (offlineSync.pullDeltas(), which calls store.setEntries()/
-  // setPlaces()/setLocations()) Raven's own report pointed at.
   test("#939 -- a manually expanded section survives a later background reconcile (online event)", async ({ page }) => {
     await gotoLogHarness(page);
 
-    // Starts collapsed (the fix above) -- expand it manually.
-    // renderLocationSectionHtml always renders a section's rows into the
-    // DOM regardless of collapse state (only a "hidden" class toggles),
-    // so this checks real visibility, not mere text presence.
     const row = page.locator("tr", { has: page.getByText("Boulder Seed", { exact: true }) });
     await expect(row).toBeHidden();
     await page.locator(".place-header", { hasText: "Test Crag" }).click();
     await expect(row).toBeVisible();
 
-    // A background reconcile -- same trigger offlineSync.js's own
-    // `online` listener uses, re-applying store.setEntries()/
-    // setPlaces()/setLocations() with (here) the exact same seeded data.
-    // <climbing-entries-table>'s #collapseInitialized guard means this
-    // must not re-touch collapse state at all.
     await page.evaluate(() => window.dispatchEvent(new Event("online")));
     await expect(row).toBeVisible();
   });
 });
 
-// #403 -- deliberately data-agnostic: neither test hardcodes which
-// specific place/country is "first" or "second", both just read whatever
-// the listbox actually rendered and assert the keyboard interactions move
-// between and commit those real rows. ACTIVE_CLASS matches only the
-// dynamically-toggled active-descendant highlight (bg-[...]_16%...) --
-// every row's static class list also always contains a similarly-shaped
-// hover:bg-[...]_8%...] class, so a broader "does the class list contain
-// any bg-[color-mix" match would pass on every row regardless of which
-// one is actually active.
 const ACTIVE_CLASS = /bg-\[color-mix\(in_srgb,var\(--color-accent\)_16%,transparent\)\]/;
 
 test("place picker: ArrowDown/ArrowUp/Enter navigate and commit a real row", async ({ page }) => {
@@ -1365,7 +966,6 @@ test("place picker: ArrowDown/ArrowUp/Enter navigate and commit a real row", asy
   const firstId = await options.nth(0).getAttribute("id");
   const secondId = await options.nth(1).getAttribute("id");
 
-  // Opens with the first row already active (render()'s own default).
   await expect(page.locator("#place-search")).toHaveAttribute("aria-activedescendant", firstId);
   await expect(options.nth(0)).toHaveClass(ACTIVE_CLASS);
 
@@ -1380,9 +980,6 @@ test("place picker: ArrowDown/ArrowUp/Enter navigate and commit a real row", asy
   await page.locator("#place-search").press("Enter");
   await expect(page.locator("#place-popover")).toBeHidden();
   await expect(page.locator("#place-btn")).toHaveAttribute("aria-label", new RegExp(`^Place: `));
-  // The committed row's own text is now reflected in the trigger label --
-  // proves Enter committed the row that was actually active (the first
-  // one, after the Down/Up round-trip above), not just closed the popover.
   const committedText = await options.first().locator("span.truncate").textContent();
   await expect(page.locator("#place-btn-label")).toHaveText(committedText);
 });
@@ -1394,8 +991,6 @@ test("add-place country picker: ArrowDown/ArrowUp/Enter navigate and commit a re
   await page.locator("#place-add-new-btn").click();
   await expect(page.locator("#add-place-overlay")).toBeVisible();
 
-  // A brand-new location name (#158's matching rule) -- the country field
-  // must stay enabled/editable for this test to reach the picker at all.
   await page.locator("#add-place-location").fill(`E2E kbd-nav ${Date.now()}`);
   await expect(page.locator("#add-place-country-btn")).toBeEnabled();
 
@@ -1444,39 +1039,8 @@ test("notes overlay shows the entry's real notes text, closes via Escape or its 
   await expect(page.locator("#notes-overlay")).toBeHidden();
 });
 
-// #787 -- regression test for a real bug that shipped with zero e2e
-// coverage: an injected CSS ID selector beat the browser's own
-// `[hidden] { display: none }` UA rule regardless of the `hidden`
-// attribute's actual value, so client/sync-status-icon.js's own
-// inFlight tracking kept toggling state correctly while the icon it
-// drove stayed visibly stuck. A jsdom-based unit test can't catch this
-// class of bug (jsdom doesn't apply real CSS cascade/specificity to
-// injected <style> tags) -- only a real browser's computed style does,
-// which is what this test checks (toHaveCSS("opacity", ...)), not just
-// an attribute's presence. #847 moved the indicator itself from a
-// standalone icon to a ring drawn around the burger menu button
-// (climbing-burger-menu.js's own #header-menu-btn[data-sync-state]),
-// but the same regression risk applies to its opacity toggle, so this
-// test moved with it rather than being retired.
-//
-// not.toHaveCSS("opacity", "0"), not toHaveCSS("opacity", "1") --
-// found failing on this test's own first full-suite run (confirmed via
-// an isolated rerun with the full error trace): the "working" ring
-// pulses continuously (climbing-header.js's own menu-sync-pulse
-// keyframes, opacity .4 to 1 and back), so it is only ever AT exactly
-// 1 for an instant -- asserting that exact value races the animation
-// and fails most of the time. "not 0" is what actually matters here
-// (the same class of bug #787 caught would leave it stuck at 0
-// forever) and holds regardless of where in the pulse cycle the
-// assertion lands.
 test("#847 -- the sync status ring actually disappears (not just the data attribute) once background reconcile settles", async ({ page }) => {
   await mockApi(page, SEED);
-  // Delay get-session specifically, after mockApi's own route registration
-  // -- Playwright resolves a re-registered route pattern against the
-  // most-recently-added handler, so this overrides the plain instant
-  // fulfillment above for this test only, creating a real, observable
-  // "still working" window without needing to fake timers or reach into
-  // the page's own internals.
   await page.route("**/-/api/auth/get-session", async route => {
     await new Promise(r => setTimeout(r, 400));
     await route.fulfill({ json: { session: { id: "s1" }, user: { id: "u1", username: "e2euser", email: "e2e@example.com" } } });
@@ -1488,11 +1052,6 @@ test("#847 -- the sync status ring actually disappears (not just the data attrib
   await expect(ring).toHaveCSS("opacity", "0", { timeout: 5000 });
 });
 
-// #847 -- the burger menu's own status row (below the divider, next to
-// the new Help link) needs to actually open the popover to be visible
-// at all -- the ring alone (previous test) only proves the background-
-// activity signal reaches the button, not that a user opening the menu
-// during that window sees a real explanation of what's happening.
 test("#847 -- the burger menu shows a status row while syncing; #878 -- Help is always present regardless; #893 -- the sync live region announces start and completion", async ({ page }) => {
   await mockApi(page, SEED);
   await page.route("**/-/api/auth/get-session", async route => {
@@ -1501,11 +1060,6 @@ test("#847 -- the burger menu shows a status row while syncing; #878 -- Help is 
   });
   await page.goto("/e2e-fixtures/pages/log.html");
 
-  // #893 -- asserted with the menu still CLOSED (no click yet): the live
-  // region lives outside #header-menu-popover specifically so it
-  // announces while the menu is closed, which is when a background sync
-  // actually happens. Asserting this before the click below is the
-  // whole point of the test, not an oversight.
   await expect(page.locator("#menu-sync-announce")).toHaveText("Syncing…");
 
   await page.locator("#header-menu-btn").click();
@@ -1515,8 +1069,6 @@ test("#847 -- the burger menu shows a status row while syncing; #878 -- Help is 
 
   await expect(page.locator("#menu-status-row")).toBeHidden({ timeout: 5000 });
   await expect(page.locator("#menu-sync-announce")).toHaveText("Synced.");
-  // #878 -- unlike menu-status-row above, Help never depended on sync
-  // state -- still there and still pointing at /help once syncing ends.
   await expect(page.locator("#menu-help-link")).toBeVisible();
 });
 
@@ -1530,34 +1082,12 @@ test("#847 -- going offline turns the burger menu ring solid red and updates the
     await page.locator("#header-menu-btn").click();
     await expect(page.locator("#menu-status-text")).toHaveText("Status: Offline");
   } finally {
-    // Real browser-level connectivity, not a route mock -- must be
-    // restored regardless of assertion outcome, or every later test in
-    // this worker's context inherits a simulated offline network.
+    // Restore connectivity even on failure, or later tests in this worker inherit it.
     await page.context().setOffline(false);
   }
 });
 
-// #893 -- a same-state setSyncState("working") call (multiple in-flight
-// promises settling independently while at least one is still pending)
-// must NOT re-announce -- only a real transition should. Forces that by
-// racing two background fetches: the sync status icon calls
-// setSyncState("working") once when the first starts, and would call it
-// again when the second settles if it only tracked in-flight count
-// naively, but the burger menu's own transition check (previous !==
-// state) is what actually stops the re-announce -- this test exercises
-// that specific guard, not just the icon's own counter.
-//
-// Event-driven, not time-driven (found genuinely flaky, 2026-09-22, not
-// a one-off: an earlier version gated the two mocked routes on fixed
-// setTimeout delays -- 300ms/600ms -- and asserted the announcement was
-// still empty at a fixed 400ms wait, betting that real wall-clock
-// scheduling would reliably land inside that 300ms gap. It didn't,
-// reproducibly, under real test-runner load. Each route below is held
-// open by its own Node-side deferred promise instead, resolved by the
-// test on demand -- "has the session fetch settled but not settings" is
-// then a guaranteed fact, not a timing bet, and page.waitForResponse()
-// (already this file's own established pattern elsewhere) confirms each
-// real settlement rather than sleeping past it.
+// Routes are held open by deferred promises, not timers, so the ordering is guaranteed.
 test("#893 -- the live region doesn't re-announce while already syncing", async ({ page }) => {
   let releaseSession, releaseSettings;
   const sessionGate = new Promise(r => { releaseSession = r; });
@@ -1575,19 +1105,11 @@ test("#893 -- the live region doesn't re-announce while already syncing", async 
   await page.goto("/e2e-fixtures/pages/log.html");
 
   await expect(page.locator("#menu-sync-announce")).toHaveText("Syncing…");
-  // Clear it so a spurious re-announce (the bug this test guards
-  // against) would be visible as the text coming back, not just staying
-  // put by coincidence.
   await page.evaluate(() => { document.getElementById("menu-sync-announce").textContent = ""; });
 
   const sessionSettled = page.waitForResponse(res => res.url().includes("/-/api/auth/get-session"));
   releaseSession();
   await sessionSettled;
-  // Settings is still held open (releaseSettings() hasn't been called) --
-  // if setSyncState("working") fired again on the session settling
-  // (inFlight still >0 from settings), the cleared text above would come
-  // back. Guaranteed by construction, not a wait long enough to probably
-  // catch it.
   await expect(page.locator("#menu-sync-announce")).toHaveText("");
 
   const settingsSettled = page.waitForResponse(res => res.url().includes("/-/api/settings"));

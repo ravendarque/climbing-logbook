@@ -1,9 +1,3 @@
-// #953, ADR-0029 -- /:username/account/beta, joining and leaving the beta.
-// Same fixture-harness pattern as e2e/account-page.spec.js: the real
-// client/account-beta-main.js bundle against a copy of the built shell,
-// with fabricated /-/api/* responses. The page's "username" is the
-// harness's own path segment, e2e-fixtures, so the log it sends you to is
-// /e2e-fixtures/log -- same-origin here, as on every non-production host.
 import { expect, test } from "@playwright/test";
 import { mockApi } from "./mock-api.js";
 

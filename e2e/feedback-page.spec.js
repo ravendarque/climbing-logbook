@@ -1,14 +1,8 @@
-// #925 -- exercises /help/feedback/ itself: form rendering, Turnstile
-// wiring, and the success/error state swap. Same UI-layer-only split as
-// e2e/report-issue-page.spec.js.
 import { expect, test } from "@playwright/test";
 import { mockTurnstile } from "./mock-turnstile.js";
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
-// register.spec.js's own precedent -- the test sitekey auto-completes
-// with no interaction needed once mockTurnstile's stub fires, so waiting
-// for getResponse() to go truthy is all that's needed.
 async function waitForTurnstile(page) {
   await page.waitForFunction(() => window.turnstile?.getResponse());
 }
