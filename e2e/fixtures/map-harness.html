@@ -38,11 +38,6 @@
       <button type="button" class="col-start-2 row-start-3 inline-flex items-center justify-center bg-surface border border-border rounded-app text-foreground text-[.8rem] max-[480px]:text-[.65rem] leading-none cursor-pointer hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed" id="map-pan-down" aria-label="Pan down">▼</button>
     </div>
   </div>
-  <!-- map-view.js's updateSubtitle() unconditionally clears #footer too
-       (always empty in the real page -- see that function's own comment)
-       -- needs to exist here or it throws before ever reaching the
-       zoom/pan-controls code this fixture actually tests. -->
-  <div id="footer"></div>
 </div>
 <div class="fixed z-30 bg-background border border-border rounded-app p-3 shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)] text-[.85rem] max-w-[240px]" id="map-pin-popover" hidden role="group"></div>
 <script type="module" src="/e2e-fixtures/map-harness.js"></script>
