@@ -16,9 +16,9 @@ Used both for manual review and by the automated PR code-review routine.
 Adopt all five simultaneously; let each surface issues within their domain.
 
 - **Cloudflare platform specialist** — Worker routing correctness (including
-  interaction with Workers Static Assets' asset-vs-Worker precedence), KV
-  usage patterns (consistency model, blob-vs-per-key tradeoffs, read/write
-  cost and latency), Workers runtime constraints (no Node APIs unless
+  interaction with Workers Static Assets' asset-vs-Worker precedence), D1
+  usage patterns (read-replica consistency, batch/transaction atomicity,
+  query cost and latency), Workers runtime constraints (no Node APIs unless
   `nodejs_compat` is enabled, CPU time limits, cold start behavior), caching
   headers and edge cache behavior, environment/secret handling, and whether
   the architecture is actually idiomatic for the platform vs. fighting it.
@@ -109,13 +109,13 @@ quietly reversed without someone re-deciding on purpose.
   explicit confirmation a dependent step (e.g. infra apply) succeeded.
 
 ### Infrastructure
-- **All Cloudflare infra is Terraform-managed** — KV namespaces, the D1
-  database, DNS, redirect rulesets, Turnstile, and anything else
+- **All Cloudflare infra is Terraform-managed** — the D1 database, DNS,
+  rulesets, zone settings, Turnstile, and anything else
   provisionable — declarative, repeatable, idempotent. The *only* thing
   that lives outside that: the logbook's actual data. See
   `docs/infra-architecture.md`.
 - **Least-privilege token scoping**, split by resource type: most Workers/
-  KV/R2/D1 permissions are Account-scoped only (no zone option exists);
+  R2/D1 permissions are Account-scoped only (no zone option exists);
   Workers Routes and DNS are Zone-scoped. Scope each permission row to the
   narrowest resource that actually has that option — don't default to
   "all zones"/"all accounts" out of convenience.
@@ -173,15 +173,31 @@ why Better Auth replaced Cloudflare Access as the mechanism itself.
   offline queue and server-side collision-renaming; UUIDs make collisions
   vanishingly rare and let the server treat a duplicate-ID write as an
   idempotent replay instead of needing rename logic.
-- **KV as a single JSON blob per logical resource** (not per-entry keys) is
-  a deliberate tradeoff at current scale — cheap, simple, no pagination
-  needed. Revisit only with actual evidence of scale (thousands of entries,
-  concurrent-writer contention), not preemptively.
 - **`Cache-Control: no-store`** on API responses backing frequently-mutated
   data — don't add caching back in without a measured reason.
 - **Service workers must only cache `res.ok` responses** — caching a
   transient error response means that error gets served on the next
   genuinely-offline visit.
+
+### Comments and docs
+- **A comment says why the code is the way it is now**: a constraint, an
+  invariant, a workaround for a specific platform bug, a behaviour that
+  would surprise a reader. Not what the code does (the names should say
+  that), and not how it got here.
+- **History lives in commits, PR descriptions and ADRs, not in comments.**
+  No "#123 -- this used to be X, then Y, found while doing Z" narrative. An
+  issue or ADR number belongs in a comment only when the reader needs that
+  context to understand the code as it is today.
+- **A comment that no longer matches the code is a bug.** Fix or delete it
+  in the same change that makes it wrong, and fix any stale comment you
+  touch along the way.
+- **Template comments use `{# #}`, not `<!-- -->`**, so they don't ship in
+  the page. Never spell out Nunjucks' own delimiters literally in a
+  template, even inside a comment: Nunjucks evaluates them (#943).
+- **Docs describe the current state.** `docs/app-architecture.md` and
+  friends are maps of how things are, with links to ADRs for the reasons,
+  not a log of every change. Update them in the same PR as the change
+  that makes them wrong.
 
 ### Connectivity resilience
 
@@ -223,12 +239,24 @@ decision and why it's an ongoing constraint, not a single shipped feature.
   this principle is part of.
 
 ### Accessibility
-- Custom interactive elements (collapse toggles, sortable headers) need
-  `role="button"`, `tabindex="0"`, and an Enter/Space keydown handler —
-  not just a click handler.
+- **Use a real `<button>` for anything clickable**, so focus, Enter/Space
+  and the button role come for free. Put `role="button"` + `tabindex="0"`
+  + an Enter/Space keydown handler on a non-button element only when a
+  button genuinely can't be used, and never on an element whose own role
+  matters.
+- **Sortable table headers follow the WAI-ARIA APG sortable table
+  pattern**: `aria-sort` on the `<th>` (it's only valid on column and row
+  headers) and a `<button>` inside it. Never `role="button"` on the `<th>`
+  itself: that replaces the column header role, so the header and its
+  sort state stop being announced (#1098).
+- **Every column header has an accessible name.** An icon-only column
+  gets visually hidden text ("Notes", "Video", "Edit"), not an empty
+  `<th>`.
 - Modals need `role="dialog"`, `aria-modal="true"`, a focus trap, and
   Escape-to-close.
-- Toggle/filter buttons need `aria-pressed` reflecting actual state.
+- **A button that opens or closes something uses `aria-expanded`; a
+  button that switches a setting on or off uses `aria-pressed`.** Never
+  both on the same button.
 - Don't reuse alarming "error" styling for a non-error empty state (e.g. "no
   results match your filters") — it reads as something being broken.
 
@@ -250,7 +278,8 @@ CI-enforced check.
 ## References
 
 - [OWASP XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html)
-- [Cloudflare KV: how it works (consistency model)](https://developers.cloudflare.com/kv/concepts/how-kv-works/)
+- [Cloudflare D1: read replication and consistency](https://developers.cloudflare.com/d1/best-practices/read-replication/)
 - [Cloudflare Workers Static Assets routing](https://developers.cloudflare.com/workers/static-assets/routing/)
 - [WAI-ARIA Authoring Practices — Dialog (Modal)](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/)
+- [WAI-ARIA Authoring Practices — Sortable Table](https://www.w3.org/WAI/ARIA/apg/patterns/table/examples/sortable-table/)
 - [MDN — SameSite cookies](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie#samesitesamesite-value)

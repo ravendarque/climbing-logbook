@@ -76,6 +76,16 @@ plain read.
   GraphQL directly over GitHub MCP-server tools for board work — MCP-based
   GitHub tools have had confirmed Projects v2 access gaps.
 
+## Comments
+
+Follow the comment rule in `docs/coding-standards.md` (Part 2, Comments
+and docs): a comment says **why the code is the way it is now**, never
+its history. **Don't match the comment density of the surrounding code**
+— much of this repo is over-commented with issue-by-issue narrative
+(#1088), and copying that style is how it keeps growing. Write to the
+rule, and when you touch a comment that's stale or narrates history,
+fix or cut it in the same change.
+
 ## Development workflow
 
 - **Propose before implementing** for open design questions — discuss the

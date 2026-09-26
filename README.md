@@ -1,20 +1,19 @@
 # Climbing Logbook
 
-A personal climbing logbook — browse, add, and edit sends/projects, works
-offline, installable as a PWA. Served at
-[ravendarque.com/logbook](https://ravendarque.com/logbook).
-
-A standalone Cloudflare Worker, independently deployed from
-[my-limn](https://github.com/ravendarque/my-limn) (the personal site it's
-linked from) even though both share the `ravendarque.com` domain.
+A climbing logbook: log, edit and browse your climbs, works offline, and
+installs as a PWA. The site is at
+[climbinglogbook.com](https://climbinglogbook.com); each user's app and
+public profile live at `my.climbinglogbook.com/<username>` (ADR-0010), with
+an opt-in beta at `beta.climbinglogbook.com` (ADR-0020).
 
 ## Stack
 
-Cloudflare Workers (Static Assets + a small API), Workers KV + D1 for
+One Cloudflare Worker (Static Assets plus the API, ADR-0007), D1 for
 storage, Better Auth for authentication, Terraform for infrastructure,
-GitHub Actions for CI/CD. No framework, no JS bundler — plain ES modules.
-Tailwind is used for styling (a CSS-only build step, see
-`docs/app-architecture.md`).
+GitHub Actions for CI/CD. No UI framework: native Web Components and ES
+modules (ADR-0003, ADR-0012), bundled by Vite (ADR-0021), page shells
+templated by 11ty (ADR-0022), styled with Tailwind (ADR-0004). A service
+worker makes the owner app open offline (ADR-0028).
 
 ## Local development
 
@@ -23,21 +22,21 @@ pnpm install
 pnpm dev
 ```
 
-Runs `vite dev` (via `@cloudflare/vite-plugin`) and the Tailwind watcher
-together (#468 -- not plain `wrangler dev`, which can't honor a
-`my.`-prefixed hostname and silently rewrites the request origin against
-a `routes`-configured Worker, breaking Better Auth locally). Serves at
-`http://localhost:5173`.
+Runs `vite dev` (through `@cloudflare/vite-plugin`), the Tailwind watcher
+and the 11ty watcher together, at `http://localhost:5173`. Owner pages
+need the `my.` host: `http://my.localhost:5173/<username>/log`. Plain
+`wrangler dev` doesn't work here: it can't serve a `my.` host and rewrites
+the request origin, which breaks Better Auth.
 
 See `docs/app-architecture.md` for local auth setup — the `/-/api/`
 resource routes require a real Better Auth session, same as production.
 
 ## Deploying
 
-Pushing to `main` deploys automatically via GitHub Actions
-(`.github/workflows/deploy.yml`). Infra changes (`infra/**`) apply via a
-separate workflow — see `docs/infra-architecture.md` before touching
-anything there, since ordering matters (state bucket → apply → deploy).
+Merging to `main` doesn't deploy anything. A `vX.Y.Z` tag does: see
+`docs/versioning.md` for what counts as a release and how to cut one.
+Infra changes (`infra/**`) apply through their own workflow on merge; see
+`infra/README.md` and `docs/infra-architecture.md` before touching them.
 
 ## Documentation
 
