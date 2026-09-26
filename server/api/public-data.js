@@ -10,59 +10,20 @@ import {
   handleGetStrengthsWeaknesses, handleGetVolume,
 } from "./performance.js";
 
-// #351 -- the read-only data feeding client/profile-main.js's
-// <climbing-entries-table>, at /-/api/public/:username/{entries,
-// places,locations}. Not hostname-gated (unlike server/api/owned-routes.js/
-// this file's own sibling handlePublicProfile) -- same reasoning every
-// other /-/api/* route already has: the client bundle that calls
-// this always does so same-origin, regardless of which hostname served
-// the page itself.
-//
-// Reuses server/api/{places,locations}.js's existing handleGet completely
-// unchanged, and server/api/entries.js's handlePublicGet (a thin wrapper
-// over its own handleGet, Task 7 -- see that file for why: the raw
-// handleGet's rowToJson/attachChildRows leaked rpe/attemptsToSend/
-// entry_moves/entry_pain_moves to anonymous callers) -- server/lib/
-// d1-resource.js's own handleGet(request, env, userId) already treats
-// userId as an opaque parameter (its own comment: "GET is reachable
-// without a session -- userId may be null, which just means 'no rows'"),
-// so passing the *target* user's id instead of the *caller's own*
-// session-derived one is exactly the shape it was already built for --
-// no new query logic needed, just a different id source in front of it.
-//
-// Same anti-enumeration gate as the profile page itself (resolvePublicUser,
-// #113) -- a private or nonexistent username gets the same generic 404
-// here too, not a distinguishable response an attacker could use to probe
-// which usernames are real accounts.
+// A private or unknown username gets the same 404, so accounts can't be enumerated.
 const HANDLERS = {
   entries: handlePublicGet,
   places: handleGetPlaces,
   locations: handleGetLocations,
-  // #497 -- handleGetMapCounts already takes a plain userId with no
-  // session-derived assumptions baked in, same reasoning the three
-  // reuses above already rely on.
   "map/counts": handleGetMapCounts,
-  // #494 -- the profile page's own lazy-load shell data (ADR-0017).
   "entries/counts": handleGetProfileCounts,
 };
 
-// #251 -- performance-insight data (Grade Pyramid, injury log,
-// strengths/weaknesses, volume/trends, gap, RPE/effort) reuses
-// server/api/performance.js's existing handlers exactly like HANDLERS
-// above reuses entries/places/locations -- each already takes a plain
-// userId with no session-derived assumptions baked in. Kept in a separate
-// map (not merged into HANDLERS) because it's gated by target.isDemo,
-// below -- real users' performance data stays owner-only regardless of
-// logbook_public, #8's decision. This is a deliberate, narrow carve-out for
-// the three seeded demo accounts' synthetic data only.
+// Real users' performance data stays owner-only even with a public logbook.
 const DEMO_ONLY_HANDLERS = {
   "performance/pyramid": handleGetPyramid,
   "performance/injury": handleGetInjuryLog,
   "performance/strengths": handleGetStrengthsWeaknesses,
-  // "volume", not "trends" -- matches the real session-scoped endpoint's
-  // own name (/-/api/performance/volume, server/index.js's
-  // RESOURCE_ROUTES), which predates and differs from the page route's
-  // own name (/performance/trends, #15).
   "performance/volume": handleGetVolume,
   "performance/gap": handleGetGap,
   "performance/rpe": handleGetEffort,
@@ -73,28 +34,11 @@ export async function handlePublicResource(request, env, username, resource) {
   if (!target) return json({ error: "Not found" }, 404, { "Cache-Control": "no-store" });
 
   if (resource in DEMO_ONLY_HANDLERS) {
-    // Same generic 404 as "no such username" -- a real (non-demo) public
-    // user's performance data must be exactly as unreachable as if this
-    // route didn't exist at all, not distinguishably "forbidden".
     if (!target.isDemo) return json({ error: "Not found" }, 404, { "Cache-Control": "no-store" });
     return DEMO_ONLY_HANDLERS[resource](request, env, target.id);
   }
 
-  // #511 -- strip ?since= before dispatching: every HANDLERS entry above
-  // is a server/api/*.js handleGet shared unchanged with an owner-only
-  // route that also supports a delta-sync `?since=` mode (server/lib/
-  // d1-resource.js's createD1ResourceHandlers, and entries.js's own
-  // bespoke branch) -- built for the owner's own /sync page (#500), and
-  // for entries specifically, surfacing a soft-deleted row's *full
-  // content* (name, grade, notes, video) flagged `deleted: true` so the
-  // owner's own client can remove it locally. Reused unmodified here
-  // (this file's own header comment), it would let anyone read that
-  // same tombstone content off a public profile via `?since=0` --
-  // confirmed as a real leak during #344's full-repo review (#511) --
-  // not a mode this route should ever expose. Stripped here, once,
-  // rather than teaching every individual handler "am I being called
-  // publicly" -- the same "reuse the handler, adapt what it sees" seam
-  // this function already uses for the *target* user id substitution.
+  // Owner-only: a delta response carries soft-deleted rows in full.
   const url = new URL(request.url);
   if (url.searchParams.has("since")) {
     url.searchParams.delete("since");

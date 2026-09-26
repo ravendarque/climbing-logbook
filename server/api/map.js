@@ -1,37 +1,6 @@
 import { json } from "../lib/json.js";
 
-// #497 -- computes Map's own aggregate server-side instead of shipping
-// every raw entry for the client to re-derive counts from itself. Reading
-// client/map-view.js in full (2026-08-21) confirmed the tab's entire
-// data need reduces to counts per (country, discipline): a raw `total`
-// (every entry regardless of status -- drives the pin's own count badge
-// and, just as importantly, whether a pin shows at all: a country with
-// only "checkout"/"archived" entries still needs its pin, so this can't
-// be derived from flash+send+project alone) plus the flash/send/project
-// breakdown the pin popover and subtitle stat line both already show.
-// Nothing here reads name/grade/date/notes/video/place-level detail, and
-// pin *positions* come from a static world-map asset, independent of
-// entries -- so a raw-entries fetch was never actually required, just
-// convenient in the old single-SPA architecture where the array happened
-// to already be in memory. Same server-side-aggregation pattern
-// server/api/performance.js's handleGetPyramid already established
-// (ADR-0018).
-//
-// One query, not fetch-then-reduce-in-JS: the join (entries -> places ->
-// locations) and the count-per-status grouping both happen in D1, so the
-// response is bounded by country x discipline regardless of how many
-// entries the user actually has -- confirmed empirically against a real
-// seeded dataset, not assumed. Deliberately does NOT filter out an empty
-// `country` (a location with no country set) -- client/map-view.js
-// itself already skips falsy countries for pin rendering, but keeping
-// the "" bucket here lets the client's own subtitle totals (summed
-// across every bucket, including "") still count entries whose location
-// has no country, matching what the old raw-entries-based computation
-// counted.
-//
-// userId is the session's own user (server/index.js) or a public
-// profile's target user (public-data.js); a null one just gets an empty
-// object back, same convention as handleGet in ./entries.js.
+// Keeps the empty-country bucket: the subtitle totals count those entries too.
 export async function handleGetMapCounts(request, env, userId) {
   if (!userId) return json({}, 200, { "Cache-Control": "no-store" });
 
