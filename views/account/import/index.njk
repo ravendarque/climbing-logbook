@@ -9,15 +9,15 @@ staticShellNote: |-
          location.pathname itself rather than this file being templated.
 ---
 <div class="max-w-[960px] mx-auto">
-  <!-- #754 -- combined into one row (was a separate #header-row above a
+  {# #754 -- combined into one row (was a separate #header-row above a
        standalone <climbing-header>), matching /log//map//performance's
        own #brand-row layout -- see public/account/index.html's own
-       identical comment for the full reasoning. -->
+       identical comment for the full reasoning. #}
   {% set headerClass = "mb-6" %}{% include "page-header.njk" %}
 
-  <!-- #224 (updated #913) -- same treatment as public/account/edit/
+  {# #224 (updated #913) -- same treatment as public/account/edit/
        index.html's back-to-account-link: the back-link utility
-       (styles/tailwind.css), with the same mt-4/mb-5 spacing. -->
+       (styles/tailwind.css), with the same mt-4/mb-5 spacing. #}
   <a class="back-link mt-4 mb-5" id="back-to-account-link" href="#">
     <svg class="w-[.9rem] h-[.9rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
     My Account
@@ -25,13 +25,13 @@ staticShellNote: |-
 
   <h2 class="card-section-heading">Import entries</h2>
 
-  <!-- #224 -- a one-off workflow (Raven's own framing, most likely used
+  {# #224 -- a one-off workflow (Raven's own framing, most likely used
        once when a new user brings existing data in), so it's a linear
        three-step page rather than a form buried among other settings:
        download the template, fill it in, upload it back. All-or-nothing
        server-side (server/api/entries-import.js) -- nothing is written until
        every row validates, so #import-errors below always lists every
-       problem row at once, not one at a time across repeated uploads. -->
+       problem row at once, not one at a time across repeated uploads. #}
   <div class="max-w-[520px] flex flex-col gap-4" id="import-steps">
 
     <div class="row-card">

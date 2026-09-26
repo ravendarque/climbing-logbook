@@ -10,11 +10,11 @@ staticShellNote: |-
          location.pathname itself rather than this file being templated.
 ---
 <div class="max-w-[960px] mx-auto">
-  <!-- Picker/menu row before the brand row, and align-left on
+  {# Picker/menu row before the brand row, and align-left on
        <climbing-header> -- matches /logbook's own layout (left-aligned
        brand row below the header row, not centered above it). Found via
        Raven's production report, 2026-08-10 -- see climbing-header.js's
-       own comment on the align-left attribute. -->
+       own comment on the align-left attribute. #}
   {% include "page-header.njk" %}
 
   <div class="flex items-end gap-3 mb-2" id="picker-tabs-row">
@@ -22,9 +22,9 @@ staticShellNote: |-
     <climbing-tab-bar active-page="performance"></climbing-tab-bar>
   </div>
 
-  <!-- #913 -- back-link utility (styles/tailwind.css), same pattern
+  {# #913 -- back-link utility (styles/tailwind.css), same pattern
        across every report page and My Account's own back links; href set
-       client-side in client/performance-trends-main.js once USERNAME is known. -->
+       client-side in client/performance-trends-main.js once USERNAME is known. #}
   <a class="back-link mt-4 mb-5" id="back-to-performance-link" href="#">
     <svg class="w-[.9rem] h-[.9rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
     Performance Insights
@@ -32,23 +32,23 @@ staticShellNote: |-
 
   <h1 class="page-title">Volume / Intensity</h1>
 
-  <!-- #620 -- report-style prose, not a bordered/background card --
+  {# #620 -- report-style prose, not a bordered/background card --
        same <climbing-grade-pyramid>'s own #window-note pattern (flowing
        paragraphs, inline <strong> emphasis, no box). The mirror image of
        #597's own per-field entry-form captions: this names which field
-       feeds this view. -->
+       feeds this view. #}
   <div class="mb-5" id="view-explainer">
     <p class="text-[.95rem] text-foreground leading-[1.7]">How much you're climbing and how hard, together — send count and peak grade by time period.</p>
     <p class="text-[.82rem] text-muted leading-[1.7] mt-2">Bars are climbs logged per period; the overlaid line marks the toughest grade sent that period, labeled directly on its points. Built from every logged <strong class="text-foreground font-semibold">send</strong>'s grade -- a send-log proxy for training load, not a measure of real training stimulus (this app has no visibility into gym or hangboard training).</p>
   </div>
 
-  <!-- #111 -- Performance insights are online-only, deliberately, not a
+  {# #111 -- Performance insights are online-only, deliberately, not a
        client-side fallback computed from possibly-stale cached entries
        (Raven's own call: at the crag with poor/no connection, the
        priority is reading/updating the logbook, not reviewing aggregate
        stats -- a "review later" activity). Shown instead of the
        volume/intensity trend view when the initial fetch fails; starts
-       hidden, toggled in performance-trends-main.js's own boot(). -->
+       hidden, toggled in performance-trends-main.js's own boot(). #}
   <div class="row-card text-center max-w-[420px] mx-auto" id="performance-offline" hidden>
     <p class="text-[.9rem] text-foreground">Performance insights need a connection.</p>
     <p class="text-[.82rem] text-muted mt-2">Reconnect and reload this page to see your volume/intensity trend.</p>
@@ -56,8 +56,8 @@ staticShellNote: |-
 
   <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
     <div id="time-window-root"></div>
-    <!-- #704 -- which of this discipline's scales the chart/headline
-         below render grades in; client/report-grade-scale-picker.js. -->
+    {# #704 -- which of this discipline's scales the chart/headline
+         below render grades in; client/report-grade-scale-picker.js. #}
     <div id="report-grade-scale-root"></div>
   </div>
   <div id="trends-root"></div>
