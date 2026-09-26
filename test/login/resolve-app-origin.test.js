@@ -1,7 +1,3 @@
-// Pure logic extracted from static/login/login.js (#443/#547, ADR-0020)
-// specifically so it's unit-testable -- login.js itself can't be
-// imported into a test (this project's only Vitest pool is workerd, no
-// DOM at all).
 import { describe, expect, it } from "vitest";
 import { needsChannelChoice, resolveAppOrigin, resolvePostLoginTarget, safeReturnTo } from "../../static/-/login/resolve-app-origin.js";
 
@@ -25,7 +21,6 @@ describe("resolveAppOrigin", () => {
   });
 });
 
-// #955, ADR-0029 -- same-origin login for app pages, with returnTo.
 describe("safeReturnTo", () => {
   const origin = "https://my.climbinglogbook.com";
 

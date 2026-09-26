@@ -31,10 +31,6 @@ describe("createReportGradeScalePicker", () => {
     expect(containerEl.querySelector("#report-grade-scale-reference-link").getAttribute("href")).toBe("/help/grade-scales/");
   });
 
-  // #796 -- font-non-standard excluded: Performance Insights reports
-  // only ever offer the standard scale per discipline, never the
-  // as-logged-only Non-standard ones the entry-form's own picker still
-  // supports.
   it("opens the popover on click and lists only the standard scales for the active discipline", () => {
     mount();
     containerEl.querySelector("#report-grade-scale-btn").click();
@@ -80,10 +76,6 @@ describe("createReportGradeScalePicker", () => {
     expect(picker.getScaleIdFor("sport")).toBe("french");
   });
 
-  // #796 -- a preference saved before this restriction existed (or a
-  // tampered value) is a real, valid scale id, just not one reports may
-  // display any more -- must fall back exactly like any other
-  // unrecognized id, not silently keep honoring it.
   it("falls back to the discipline default for a stored Non-standard preference", () => {
     localStorage.setItem("logbook_grade_scale_reports_boulder", "font-non-standard");
     localStorage.setItem("logbook_grade_scale_reports_sport", "french-non-standard");
@@ -94,9 +86,6 @@ describe("createReportGradeScalePicker", () => {
 
   it("refresh() updates the trigger label and fires onChange when the discipline switch changes the resolved scale", () => {
     localStorage.setItem("logbook_grade_scale_reports_boulder", "v-scale");
-    // Sport has no stored pref, so it resolves to its own default -- which
-    // differs from Boulder's custom "v-scale" pref, making the switch a
-    // real scale change.
     const onChange = vi.fn();
     const picker = mount(onChange);
     expect(picker.getScaleId()).toBe("v-scale");
@@ -109,7 +98,6 @@ describe("createReportGradeScalePicker", () => {
   });
 
   it("refresh() does NOT fire onChange when the switch resolves to the same scale id", () => {
-    // Neither discipline has a stored pref -- both resolve to their own defaults, and switching disciplines is still, semantically, "a different scale" only if the id differs. Use two disciplines whose defaults are the same id to prove refresh() compares by value, not by "did the discipline change".
     const onChange = vi.fn();
     const picker = mount(onChange);
     activeType = "boulder"; // same as construction-time active type

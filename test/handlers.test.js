@@ -1,6 +1,3 @@
-// Exercises places.js/locations.js/settings.js through the real Worker
-// entrypoint, same rationale as logbook.test.js: the public HTTP contract
-// is what's under test, not module internals.
 import { env } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables } from "./support.js";
@@ -25,22 +22,12 @@ function patchJson(path, body, extraCookie = cookie) {
   return jsonRequest("PATCH", path, body, { Cookie: extraCookie });
 }
 
-// A real location, owned by the current `cookie`'s user -- places needs
-// one to reference (#297's real ownership check, not just FK existence).
-// `name` is overridable (default "Magic Wood") -- #490's own dedup-on-write
-// means two same-named calls for the *same* user now correctly collapse
-// onto one location, so a test that genuinely needs two distinct
-// locations for the same user must pass different names.
 async function seedLocation(extraCookie = cookie, name = "Magic Wood") {
   const res = await postJson("/-/api/locations", { name, country: "Switzerland" }, extraCookie);
   const { locations } = await res.json();
   return locations.at(-1).id;
 }
 
-// places and locations are structurally identical resources (create + list,
-// one required field, one optional field defaulting to "", idempotent
-// create-by-id) -- a single parameterized suite covers both instead of two
-// hand-copied describe blocks that can silently drift apart.
 describe.each([
   {
     resource: "places",
@@ -128,24 +115,6 @@ describe.each([
     expect(body[listKey]).toHaveLength(1);
   });
 
-  // #801 -- findOwnedRow (scoped to the caller's own user_id) and the
-  // subsequent insertRow used to race: two concurrent creates for the
-  // same client-minted id (a real offline-queue-retry scenario) could
-  // both pass the "not found" check before either's INSERT landed, and
-  // the loser threw an unhandled UNIQUE-constraint 500 instead of the
-  // idempotent 200 this id scheme exists to guarantee.
-  //
-  // A genuinely concurrent Promise.all against this test environment's
-  // D1 simulation doesn't reliably reproduce the interleaving (confirmed
-  // by hand: the same test, fired that way, passed even with the #801
-  // fix reverted -- a false-confidence test, not a real regression
-  // guard). This reproduces the exact same failure mode deterministically
-  // instead: findOwnedRow correctly scopes by user_id (never sees another
-  // user's row), but `id` is a single global PRIMARY KEY across every
-  // user's rows -- so a second user creating with an id that already
-  // belongs to someone else hits the identical "not found, then INSERT
-  // collides" path, without needing real request-timing luck. It's the
-  // same catch branch either way.
   it("resolves an id collision with another user's existing row instead of a 500", async () => {
     const { cookie: otherCookie } = await createAuthedSession();
     const otherBody = { ...(await validBody(otherCookie)), id: "fixed-id-cross-user" };
@@ -156,9 +125,6 @@ describe.each([
     const second = await postJson(createPath, ownBody, cookie);
     expect(second.status).toBe(200);
     const body = await second.json();
-    // Nothing was actually created for this user -- the colliding id
-    // belongs to someone else, and ownership isolation means it's simply
-    // absent from this user's own list, not duplicated or overwritten.
     expect(body[listKey]).toHaveLength(0);
   });
 
@@ -170,12 +136,6 @@ describe.each([
     });
   }
 
-  // #500 -- ?since= gets this shared factory's own delta path for free
-  // (server/lib/d1-resource.js's createD1ResourceHandlers), covered here
-  // once for both resources rather than hand-copied in a places-only and
-  // locations-only file. Neither resource has a deleted_at column
-  // (#159/#160 -- no delete capability yet), so unlike entries there's no
-  // tombstone/`deleted` case to cover here.
   describe("?since= (#500 delta sync)", () => {
     function getSince(since, extraCookie = cookie) {
       return fetchJson(`${listPath}?since=${since}`, { headers: { Cookie: extraCookie } });
@@ -213,10 +173,6 @@ describe.each([
     });
   });
 
-  // #490 -- two independently-offline devices can each mint a brand-new
-  // place/location for the same real-world crag (neither having synced
-  // the other's write yet); once both eventually reach the server, they
-  // must converge onto one row, not silently duplicate.
   describe("dedup-on-write (#490)", () => {
     it("a second create matching an existing row's name (case-insensitively) reuses it instead of duplicating", async () => {
       const locationId = needsLocation ? await seedLocation() : undefined;
@@ -230,8 +186,6 @@ describe.each([
       expect(second.status).toBe(200);
       const secondBody = await second.json();
       expect(secondBody.dedupedTo).toBe(originalId);
-      // Still just the one row -- the dedup hit means nothing new was
-      // ever inserted, not that a duplicate was inserted then merged.
       expect(secondBody[listKey]).toHaveLength(1);
       expect(secondBody[listKey][0].id).toBe(originalId);
     });
@@ -252,12 +206,6 @@ describe.each([
         const locationIdA = await seedLocation(cookie, "Magic Wood");
         await postJson(createPath, buildValidBody(locationIdA));
 
-        // A genuinely different location name -- otherwise #490's own
-        // location-level dedup would collapse this second seedLocation()
-        // call onto locationIdA (same user, same name), defeating the
-        // point of this test (proving *place* dedup is scoped per
-        // location, not proving location dedup, which has its own test
-        // above).
         const locationIdB = await seedLocation(cookie, "Fontainebleau");
         const res = await postJson(createPath, buildValidBody(locationIdB));
         expect(res.status).toBe(201);
@@ -266,9 +214,6 @@ describe.each([
     }
   });
 
-  // The one genuinely new security boundary #297 introduces -- see
-  // test/entries.test.js's own "cross-user isolation" describe block for
-  // the fuller rationale.
   describe("cross-user isolation", () => {
     it(`a second user's own GET never sees the first user's ${listKey}`, async () => {
       await postJson(createPath, await validBody());
@@ -290,13 +235,6 @@ describe.each([
   });
 });
 
-// #754 -- locations-only: `name` is a required free string, unlike
-// places'/locations' other required field (`locationId`, an FK
-// reference id whose own "does it exist and is it yours" check already
-// covers the non-string case via a plain lookup miss). Found in review,
-// 2026-09-14: a non-string name used to flow unmodified into a D1
-// .bind() call (only null/number/string/boolean/ArrayBuffer allowed),
-// throwing an unhandled error instead of a clean 400.
 describe("locations name validation", () => {
   it("rejects a non-string name with a 400, not an unhandled error", async () => {
     const res = await jsonRequest("POST", "/-/api/locations", { name: { x: 1 } }, { Cookie: cookie });
@@ -317,8 +255,6 @@ describe("settings", () => {
     expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: false });
   });
 
-  // #952 -- the session-only read client/channel-guard.js uses, so "no
-  // session" (401) is never mistaken for "not enrolled".
   it("rejects an unauthenticated read of the admin settings", async () => {
     const res = await fetchJson("/-/api/settings");
     expect(res.status).toBe(401);
@@ -393,8 +329,6 @@ describe("settings", () => {
     expect((await res.json()).error).toBe("activeDiscipline must be one of: boulder, sport");
   });
 
-  // #430/#641 -- 'sport' added alongside 'lead' (Lead being renamed to
-  // Sport, transitional per shared/entry-schema.js's own comment).
   it("accepts an activeDiscipline of sport", async () => {
     const res = await patchJson("/-/api/settings", { activeDiscipline: "sport" });
     expect(res.status).toBe(200);
@@ -406,9 +340,6 @@ describe("settings", () => {
     expect((await res.json()).error).toBe("logbookPublic must be a boolean");
   });
 
-  // #443/#546, ADR-0020 -- tri-state, not the same NOT NULL boolean shape
-  // as athleteMode/logbookPublic. The default-settings tests above already
-  // cover the null ("never decided") case; these cover setting it true/false.
   it("updates betaOptIn to true on the happy path", async () => {
     const res = await patchJson("/-/api/settings", { betaOptIn: true });
     expect(res.status).toBe(200);

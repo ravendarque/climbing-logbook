@@ -1,9 +1,4 @@
-// #985 -- the app hosts (my./beta.) 301 the apex's own pages to the apex,
-// via a Cloudflare redirect rule (infra/tls-hardening.tf). The rule is an
-// allowlist, so a new top-level apex page must be added to it, or the app
-// hosts would serve their own copy. This fails if one is missing: every
-// top-level page under views/ and file under static/ that isn't part of
-// the app must be covered.
+// The apex redirect rule is an allowlist: every top-level apex page must be in it.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -16,9 +11,7 @@ const list = name => JSON.parse(terraform.match(new RegExp(`${name}\\s*=\\s*(\\[
 const EXACT = list("apex_only_exact_paths");
 const PREFIXES = list("apex_only_path_prefixes");
 
-// Not apex pages: the owner shells (served per user by the Worker), the
-// public profile shell, the installed app's start page (built to
-// /-/launch/), the app's own namespace, and build-only entries.
+// Not apex pages: owner and profile shells, the launch page, /-/, and build-only entries.
 const APP_OR_BUILD = new Set([
   ...Object.values(SHELL_PATHS).map(path => path.split("/")[1]),
   "profile", "launch", "-", "_includes", "_headers", "e2e-fixtures",

@@ -1,4 +1,3 @@
-// #960 -- per-user localStorage namespacing (client/user-storage.js).
 import { describe, expect, it } from "vitest";
 import { adoptLegacyUserData, ownerOfPath, PER_USER_KEYS, readSignedInUser, SIGNED_IN_USER_KEY, userKey, writeSignedInUser, clearSignedInUser } from "../../client/user-storage.js";
 

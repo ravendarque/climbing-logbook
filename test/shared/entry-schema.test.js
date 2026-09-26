@@ -1,9 +1,3 @@
-// Direct unit coverage for the schema itself (#224) -- test/entries.test.js
-// covers the same rules indirectly through the real HTTP contract (and
-// stays the source of truth for "does the admin write path still behave
-// the same"), but this file is what future bulk-import/export work checks
-// against directly, and is faster to iterate against than a full Worker
-// round-trip.
 import { describe, expect, it } from "vitest";
 import { entrySchema, validateEntryShape, VALID_GRADES, VALID_STATUSES, VALID_TYPES } from "../../shared/entry-schema.js";
 import { BOULDER_GRADES, LEAD_GRADES } from "../../shared/grade-data.js";
@@ -52,30 +46,18 @@ describe("validateEntryShape", () => {
     expect(validateEntryShape(validEntry({ type: "trad" }))).toMatch(/^type must be one of/);
   });
 
-  // #703 -- "6a" is no longer a meaningful cross-discipline-leak test:
-  // it's now genuinely valid for Boulder too, via font-non-standard's
-  // identical number+letter+modifier shape (both Non-standard scales
-  // share the same combinatorial space -- shared/grade-data.js's
-  // nonStandardOrdinal). Documented explicitly, not an oversight.
   it("accepts \"6a\" for boulder now -- valid under font-non-standard, ambiguous by design when no gradeScale is given", () => {
     expect(validateEntryShape(validEntry({ type: "boulder", grade: "6a" }))).toBeNull();
   });
 
   it("rejects a grade not valid for the entry's type in any of its scales", () => {
-    // "VI+" is UIAA notation -- a Sport-only scale, no Boulder scale
-    // (font/font-non-standard/v-scale) recognizes it at all.
     expect(validateEntryShape(validEntry({ type: "boulder", grade: "VI+" }))).toMatch(/^grade is not a valid grade for/);
   });
 
-  // #430 -- Lead renamed to Sport.
   it("accepts a grade valid for the sport type", () => {
     expect(validateEntryShape(validEntry({ type: "sport", grade: "6a", sportStyle: "lead" }))).toBeNull();
   });
 
-  // #702 -- gradeScale is optional, not required: client/entry-form.js
-  // doesn't send it yet (sub-issue #703 adds the picker that will).
-  // Validated only when present, so every current entry create/edit
-  // keeps working completely unchanged until #703 ships.
   it("accepts an entry with no gradeScale at all", () => {
     expect(validateEntryShape(validEntry())).toBeNull();
   });
@@ -85,7 +67,6 @@ describe("validateEntryShape", () => {
   });
 
   it("rejects a gradeScale that doesn't belong to the entry's discipline", () => {
-    // "french" is a Sport scale, entry is Boulder
     expect(validateEntryShape(validEntry({ gradeScale: "french" }))).toMatch(/^gradeScale must be one of/);
   });
 
@@ -105,8 +86,6 @@ describe("validateEntryShape", () => {
     expect(validateEntryShape(validEntry({ type: "sport", grade: "6a", sportStyle }))).toBeNull();
   });
 
-  // #643 -- sportStyle is required for a sport entry (the entry form's own
-  // Style control always submits one), unlike #641's original scope.
   it.each([undefined, null, ""])("rejects a sport entry with sportStyle %p (missing, not just falsy)", sportStyle => {
     expect(validateEntryShape(validEntry({ type: "sport", grade: "6a", sportStyle }))).toBe("Missing required field: sportStyle");
   });
@@ -145,18 +124,11 @@ describe("validateEntryShape", () => {
     expect(validateEntryShape(validEntry({ video: null }))).toBeNull();
   });
 
-  // #513 -- placeId/name were only checked for truthiness, and
-  // date/video/notes weren't type-checked at all (DATE_SHAPE.test()/
-  // `new URL()` both silently coerce a non-string to a string first) --
-  // a truthy non-string value passed validation and crashed downstream
-  // at the D1 .bind() boundary as an unhandled 500 instead of a 400.
   it.each(["placeId", "name"])("rejects a non-string %s", field => {
     expect(validateEntryShape(validEntry({ [field]: ["not-a-string"] }))).toBe(`${field} must be a string`);
   });
 
   it("rejects a non-string date, even one whose string form looks valid", () => {
-    // ["2026"].toString() === "2026", which DATE_SHAPE.test() alone
-    // would have silently accepted -- the type check must run first.
     expect(validateEntryShape(validEntry({ date: ["2026"] }))).toBe("date must be a string");
   });
 
@@ -181,10 +153,6 @@ describe("validateEntryShape", () => {
 
 describe("entrySchema (bulk-import's own future entry point, #224 phase 3)", () => {
   it("v.safeParse reports every row's issues, not just the first, when asked to", () => {
-    // validateEntryShape() deliberately only surfaces one message (the
-    // admin write path's own established contract) -- bulk import wants
-    // all of them at once, which the underlying schema already supports
-    // via a normal v.safeParse() call; this just proves that's available.
     const result = v.safeParse(entrySchema, { name: "" });
     expect(result.success).toBe(false);
     expect(result.issues.length).toBeGreaterThan(0);
@@ -199,11 +167,6 @@ describe("exported constants (for CSV template generation / future reuse)", () =
     expect(VALID_GRADES.sport.length).toBeGreaterThan(0);
   });
 
-  // #129 -- VALID_GRADES used to be its own hand-copied list, independent
-  // of BOULDER_GRADES/LEAD_GRADES (shared/grade-data.js) -- extending one
-  // without the other would silently reject every new grade at the
-  // server even though the client picker offered it. Now derived
-  // directly, so this just has to prove the two never diverge again.
   it("derives boulder/sport grades directly from BOULDER_GRADES/LEAD_GRADES, never a separate copy", () => {
     expect(VALID_GRADES.boulder).toEqual(BOULDER_GRADES.map(x => x.g));
     expect(VALID_GRADES.sport).toEqual(LEAD_GRADES.map(x => x.g));

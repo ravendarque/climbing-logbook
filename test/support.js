@@ -1,35 +1,14 @@
-// Shared by every test/*.test.js file -- single source of truth for
-// request-building and D1/auth-table reset, instead of each file
-// reimplementing its own fetch wrapper.
 import { env, exports } from "cloudflare:workers";
 import { vi } from "vitest";
 import { checkUsername } from "../shared/username-policy.js";
 
 export const BASE_URL = "https://example.com";
 
-// D1 (#20) is isolated per test file the same way KV used to be (Cloudflare's
-// documented behaviour for @cloudflare/vitest-pool-workers), but unlike
-// KV -- one shared blob per resource, trivially overwritten -- D1 rows
-// accumulate across every it() in a file (e.g. two signups in the same
-// file would otherwise collide on a real unique-email constraint), so any
-// file with more than one auth test needs this between them. `better-
-// auth.session_token` cookies from an earlier test also stop resolving to
-// anything once their session row is gone, same as a real logout would do.
+// D1 rows persist across tests within a file, so reset between auth tests.
 const AUTH_TABLES = ["session", "account", "verification", "user"];
 
-// locations/places/entries/settings (#21) all reference user(id) ON
-// DELETE CASCADE, so clearing "user" already cascades them away -- no
-// separate reset needed for the app-data tables themselves.
 export async function resetAuthTables() {
-  // beta_invites (#296) references user too -- clear it first, or deleting
-  // "user" below fails its FOREIGN KEY constraint against any invite still
-  // pointing at a user this call is about to remove (confirmed empirically
-  // -- SQLITE_CONSTRAINT_FOREIGNKEY, not a hypothetical).
   await env.LOGBOOK_DB.prepare(`DELETE FROM beta_invites`).run();
-  // Delete in dependency order (child rows first) -- session/account both
-  // reference user via ON DELETE CASCADE, so this isn't strictly required
-  // for correctness, but avoids relying on cascade semantics in a reset
-  // helper whose only job is "leave every table empty."
   for (const table of AUTH_TABLES) {
     await env.LOGBOOK_DB.prepare(`DELETE FROM "${table}"`).run();
   }
@@ -47,21 +26,7 @@ export function jsonRequest(method, path, body, headers = {}) {
   });
 }
 
-// Signs up + verifies a real Better Auth user (#297) and returns a usable
-// session cookie -- the fastest real path to an authenticated request for
-// tests that aren't themselves testing signup/verification (that's
-// test/auth.test.js's job). Stubs the outbound Resend and Turnstile-
-// siteverify calls for the duration of this one signup only -- both are
-// third-party network boundaries, not this app's own runtime, same
-// reasoning as test/email.test.js.
-//
-// Callers must disable the beta gate for their file (`env.BETA_GATE_ENABLED
-// = "false"` in beforeAll/afterAll, matching test/auth.test.js's pattern)
-// since this doesn't supply an invite code.
-// #1011 -- a random name can spell something the username policy (#997)
-// rejects: "user1488c4d2f1", or "ab33d" read through leet. About 1 in
-// 6,000 did, and with hundreds of sessions per run that failed a few
-// percent of CI runs. Draw again until the policy accepts it.
+// Needs the beta gate off (no invite code); names are redrawn until the policy accepts them.
 function randomUsername() {
   for (;;) {
     const name = `user${crypto.randomUUID().replace(/-/g, "").slice(0, 10)}`;
@@ -72,15 +37,6 @@ function randomUsername() {
 export async function createAuthedSession({
   email = `user-${crypto.randomUUID()}@example.com`,
   username = randomUsername(),
-  // #468 -- signing up on a real climbinglogbook.com-family hostname
-  // (rather than the default example.com) exercises the same
-  // crossSubDomainCookies-enabled cookie-naming path a real apex signup
-  // goes through in production. Needed by callers (e.g.
-  // test/owned-routes.test.js) that reuse the returned cookie against a
-  // *different* climbinglogbook.com-family hostname -- example.com isn't
-  // a "real domain" for crossSubDomainCookies purposes, so a session
-  // created there gets a differently-prefixed cookie name than one
-  // created on the real domain family, and the two don't match.
   hostname,
 } = {}) {
   const base = hostname ? `https://${hostname}` : BASE_URL;
@@ -122,10 +78,6 @@ export async function createAuthedSession({
   return { cookie, userId: user.id };
 }
 
-// Creates a real, owned location + place via the actual admin API (#297)
-// for tests that need a valid placeId to attach entries to -- exercises
-// the real create flow rather than inserting rows directly, matching this
-// suite's "public HTTP contract, not module internals" philosophy.
 export async function seedPlace(cookie, { locationName = "Magic Wood", country = "Switzerland", area = "Sector 1" } = {}) {
   const locRes = await jsonRequest(
     "POST",

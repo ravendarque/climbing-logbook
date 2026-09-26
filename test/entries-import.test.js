@@ -1,7 +1,3 @@
-// Exercises server/api/entries-import.js through the real Worker entrypoint
-// (real routing + real D1 binding), same "public HTTP contract" reasoning
-// as test/entries.test.js -- a CSV body rather than JSON is the one real
-// difference from that file's own request-building.
 import { env } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { CSV_COLUMNS } from "../shared/csv-import.js";
@@ -62,9 +58,6 @@ describe("handleImport", () => {
     expect((await res.json()).error).toMatch(/^CSV header doesn't match the template/);
   });
 
-  // #800 -- bounds env.LOGBOOK_DB.batch()'s own statement count and this
-  // request's CPU time, checked before resolveLocationsAndPlaces() does
-  // any DB reads on an oversized file.
   it("rejects a file with more than 500 rows", async () => {
     const rows = Array.from({ length: 501 }, () => csvRow());
     const res = await importCsv(rows);
@@ -127,12 +120,6 @@ describe("handleImport", () => {
     expect(errors[0].error).toMatch(/^discipline must be one of/);
   });
 
-  // #703 -- "6a" is no longer a meaningful invalid-Boulder-grade case: it's
-  // genuinely valid now, via font-non-standard's identical
-  // number+letter+modifier shape (both Non-standard scales share the same
-  // combinatorial space). "VI+" (UIAA notation, Sport-only) is still
-  // invalid for Boulder under any of its scales -- see shared/entry-
-  // schema.test.js's own equivalent fix for the full reasoning.
   it("reports every invalid row, not just the first", async () => {
     const res = await importCsv([csvRow({ grade: "VI+" }), csvRow({ status: "flashed" })]);
     expect(res.status).toBe(400);
@@ -170,9 +157,6 @@ describe("handleImport", () => {
     expect(locations.locations).toHaveLength(1);
   });
 
-  // #639 -- CSV_COLUMNS never had sportStyle until this fix, so a CSV
-  // import of a Sport row has been silently broken since #643 made
-  // sportStyle required (same bug, same fix, as the JSON-path test below).
   it("imports a Sport row with its sportStyle column, requiring it same as the single-entry form (#643)", async () => {
     const res = await importCsv([csvRow({ discipline: "sport", grade: "6a", sportStyle: "lead" })]);
     expect(res.status).toBe(201);
@@ -186,8 +170,6 @@ describe("handleImport", () => {
     expect((await res.json()).errors).toEqual([{ row: 2, error: "Missing required field: sportStyle" }]);
   });
 
-  // #476/#884 -- same "column added, needs its own coverage" precedent as
-  // sportStyle above.
   it("imports attemptsToSend/rpe/gradeScale when given", async () => {
     const res = await importCsv([csvRow({ attemptsToSend: "3", rpe: "80", gradeScale: "font-non-standard" })]);
     expect(res.status).toBe(201);
@@ -215,10 +197,6 @@ describe("handleImport", () => {
   });
 });
 
-// #639 -- JSON import, parity with the "Export as JSON" button. Content-
-// Type is what dispatches to the JSON parser (server/api/entries-
-// import.js's own parserFor()) -- every test below sets it explicitly,
-// same as importCsv's own "text/csv" above.
 function jsonEntry(overrides = {}) {
   return {
     name: "La Marie-Rose", grade: "6B", discipline: "boulder", status: "send",
@@ -281,10 +259,6 @@ describe("handleImport (JSON, #639)", () => {
   });
 
   it("round-trips this app's own JSON export shape end-to-end", async () => {
-    // Exactly what shared/csv-import.js's resolveExportRows() + "Export as
-    // JSON" would hand a user -- confirming the real, deployed export
-    // format is genuinely re-importable, not just parseJsonText's own
-    // narrower unit-level round-trip (test/shared/csv-import.test.js).
     const exportedShape = {
       name: "Redpoint Route", grade: "6a", discipline: "sport", status: "send",
       firstAttempt: true, date: "2026-08-01", location: "Kalymnos",
@@ -296,13 +270,6 @@ describe("handleImport (JSON, #639)", () => {
     expect(entries[0]).toMatchObject({ name: "Redpoint Route", grade: "6a", type: "sport", status: "send", firstAttempt: true, sportStyle: "lead" });
   });
 
-  // #639 -- a real, independent bug found while building this feature:
-  // CSV_COLUMNS never got sportStyle added when #643 made it required for
-  // a "sport" discipline, so importing (via either format) a Sport entry
-  // has been silently broken since #643 merged -- confirmed by reverting
-  // this fix locally and watching this exact test fail with "Missing
-  // required field: sportStyle". Covers both formats since the bug (and
-  // the fix) is shared, format-agnostic pipeline code.
   it("imports a Sport entry, requiring sportStyle same as the single-entry form (#643)", async () => {
     const res = await importJson([jsonEntry({ discipline: "sport", grade: "6a", sportStyle: "top_rope" })]);
     expect(res.status).toBe(201);
@@ -316,8 +283,6 @@ describe("handleImport (JSON, #639)", () => {
     expect((await res.json()).errors).toEqual([{ row: 1, error: "Missing required field: sportStyle" }]);
   });
 
-  // #476/#884 -- JSON-path mirror of the CSV coverage above; same
-  // format-agnostic draftEntry()/entrySchema pipeline either way.
   it("imports attemptsToSend/rpe/gradeScale when given", async () => {
     const res = await importJson([jsonEntry({ attemptsToSend: 3, rpe: 80, gradeScale: "font-non-standard" })]);
     expect(res.status).toBe(201);

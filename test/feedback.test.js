@@ -1,6 +1,3 @@
-// #925 -- exercises server/api/feedback.js through the real Worker
-// entrypoint, same "public HTTP contract" philosophy as
-// test/report-issue.test.js.
 import { env } from "cloudflare:workers";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createAuthedSession, fetchJson, resetAuthTables } from "./support.js";
@@ -10,8 +7,6 @@ const FEEDBACK_URL = "/-/api/feedback";
 beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
 afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
 
-// user_id is ON DELETE SET NULL (migrations/0019), not CASCADE -- same
-// reasoning as test/report-issue.test.js's own reset.
 beforeEach(async () => {
   await resetAuthTables();
   await env.LOGBOOK_DB.prepare(`DELETE FROM feedback_submissions`).run();
@@ -19,7 +14,6 @@ beforeEach(async () => {
 });
 afterEach(() => { vi.unstubAllGlobals(); });
 
-// test/turnstile.test.js's own exact stubbing pattern.
 function stubSiteverify(success) {
   vi.stubGlobal("fetch", vi.fn(async (input) => {
     const url = typeof input === "string" ? input : input.url;

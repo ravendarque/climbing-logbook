@@ -10,7 +10,6 @@ import {
   resolveScaleId, DEFAULT_SCALE_BY_TYPE,
 } from "../../shared/grade-data.js";
 
-// The canonical grade model (#702).
 describe("nonStandardOrdinal", () => {
   it("orders the 12 sub-positions within one number correctly -- bare -/plain at the bottom, lettered positions in the middle, bare + at the very top (corrected 2026-09-11, see Raven's worked example below)", () => {
     const ordinals = [
@@ -51,10 +50,6 @@ describe("nonStandardOrdinal", () => {
   });
 
   it("matches the worked example: N-, N, Na-, Na, Na+, Nb-, Nb, Nb+, Nc-, Nc, Nc+, N+", () => {
-    // number=1 (base offset 0): 1-=0, 1=1, 1a-=2, 1a=3, 1a+=4, 1b-=5,
-    // 1b=6, 1b+=7, 1c-=8, 1c=9, 1c+=10, 1+=11 -- "+" on the BARE number
-    // moves to the very end, not right after bare "1", per Raven's own
-    // ordering ("2a+" must sort between bare "2" and bare "2+").
     expect(nonStandardOrdinal(1, null, "-")).toBe(0);
     expect(nonStandardOrdinal(1, null, null)).toBe(1);
     expect(nonStandardOrdinal(1, "a", "-")).toBe(2);
@@ -137,34 +132,14 @@ describe("FONT_STANDARD", () => {
     for (let i = 1; i < ordinals.length; i++) expect(ordinals[i]).toBeGreaterThan(ordinals[i - 1]);
   });
   it("matches the hand-computed anchor from the plan: 6A is ordinal 63", () => {
-    // number=6, letter="a", modifier=null -> subPosition 3 (SUB_POSITION_ORDER:
-    // [null,-]=0, [null,null]=1, [a,-]=2, [a,null]=3, ...) -> (6-1)*12+3 = 63.
     expect(FONT_STANDARD.toOrdinal("6A")).toBe(63);
   });
 
-  // #733 -- a Non-standard grade with no exact Font-standard equivalent
-  // (Font-standard only has "5"/"5+" at that number, none of the
-  // letter/modifier sub-positions Non-standard allows) degrades to its
-  // closest real Font-standard step instead of returning null (which
-  // used to leak the raw, un-converted grade text straight through
-  // reportGradeLabel's own `?? grade` fallback -- the live bug Raven
-  // caught: Font (Standard) showing grades that don't exist in Font at
-  // all). Worked out by hand against Raven's own example (2026-09-12):
-  // ties (equidistant from both neighbors) round DOWN to the lower one.
-  // #733 -- closestParsedLabel() restricts the search to Font-standard's
-  // OWN labels within the same number first ("5-" is number 5's own low
-  // edge, per SUB_POSITION_ORDER's own comment -- never compared against
-  // "4+", a different number, even though it happens to sit one ordinal-
-  // step closer in the raw combined space). Matches Raven's own worked
-  // example exactly (2026-09-12).
   it("degrades an unrepresentable Non-standard grade to its closest real Font-standard step, within the same number", () => {
     const closestTo5 = ["5-", "5a-", "5a", "5a+", "5b-"];
     for (const g of closestTo5) {
       expect(FONT_STANDARD.toLabel(gradeOrdinal(g, "font-non-standard"))).toBe("5");
     }
-    // "5b" sits exactly 5 ordinal-steps from both "5" and "5+" -- a
-    // genuine tie within the same number, rounds down to the lower/
-    // earlier-registered step.
     expect(FONT_STANDARD.toLabel(gradeOrdinal("5b", "font-non-standard"))).toBe("5");
     const closestTo5Plus = ["5b+", "5c-", "5c", "5c+"];
     for (const g of closestTo5Plus) {
@@ -172,11 +147,6 @@ describe("FONT_STANDARD", () => {
     }
   });
 
-  // #733 -- Raven, 2026-09-12: clamping a grade below Font-standard's
-  // own floor up to "3" is grade inflation (it makes a genuinely easier
-  // climb read as harder than it is), not a real conversion -- it's
-  // simply excluded (null) instead, same as returning the raw grade
-  // unconverted was also wrong (the original live bug).
   it("returns null for a grade below Font-standard's own floor, rather than clamping it up or leaking it through unconverted", () => {
     expect(FONT_STANDARD.toLabel(gradeOrdinal("1", "font-non-standard"))).toBeNull();
     expect(FONT_STANDARD.toLabel(gradeOrdinal("2+", "font-non-standard"))).toBeNull();
@@ -198,10 +168,6 @@ describe("FRENCH_STANDARD", () => {
     expect(FRENCH_STANDARD.toOrdinal("6a")).toBe(FONT_STANDARD.toOrdinal("6A"));
   });
 
-  // #733 -- same closest-step degrade as FONT_STANDARD above, for a
-  // Sport discipline example: French-standard's "3a"/"3b" pair has
-  // nothing between them, but French-non-standard's own 12-per-number
-  // combinatorial space does.
   it("degrades an unrepresentable Non-standard grade to its closest real French-standard step", () => {
     expect(FRENCH_STANDARD.toLabel(gradeOrdinal("3a+", "french-non-standard"))).toBe("3a");
     expect(FRENCH_STANDARD.toLabel(gradeOrdinal("3b-", "french-non-standard"))).toBe("3b");
@@ -275,18 +241,12 @@ describe("SCALES / SCALES_BY_DISCIPLINE", () => {
       "norwegian","uiaa","v-scale","yds",
     ]);
   });
-  // #703 -- every scale needs a human-readable display name for the
-  // entry-form/reports pickers (and, later, the reference page).
   it("every scale has a real, non-empty display name", () => {
     for (const scale of Object.values(SCALES)) {
       expect(typeof scale.name).toBe("string");
       expect(scale.name.length).toBeGreaterThan(0);
     }
   });
-  // #703 -- the 7 data-driven scales expose their own ordered label list
-  // (for the entry-form/reports pickers' dropdowns); the 2 Non-standard
-  // scales don't need one -- pickers use the structured field UI for
-  // those instead, never a flat dropdown.
   it("every data-driven scale exposes its own ordered, non-empty labels array", () => {
     for (const scale of Object.values(SCALES)) {
       if (scale.id === "font-non-standard" || scale.id === "french-non-standard") continue;
@@ -301,10 +261,6 @@ describe("SCALES / SCALES_BY_DISCIPLINE", () => {
   });
 });
 
-// #754 -- extracted from 3 independent hand-copies (server/api/
-// performance.js's resolveViewScale, client/entry-form.js's
-// loadGradeScalePref, client/report-grade-scale-picker.js's loadPref) --
-// tested directly here rather than only indirectly through each caller.
 describe("resolveScaleId", () => {
   it("returns the requested id when it's a real scale for that discipline", () => {
     expect(resolveScaleId("boulder", "v-scale", "font")).toBe("v-scale");
@@ -321,10 +277,6 @@ describe("resolveScaleId", () => {
     expect(resolveScaleId("boulder", null, "font")).toBe("font");
     expect(resolveScaleId("boulder", undefined, "font")).toBe("font");
   });
-  // #796 -- the optional 4th param lets a caller validate against a
-  // narrower list than every real scale for the discipline (Performance
-  // Insights reports: standard scales only) without duplicating this
-  // function's own logic.
   it("validates against an explicit `scales` list when given one, ignoring every other real scale for that discipline", () => {
     expect(resolveScaleId("boulder", "v-scale", "font", STANDARD_SCALES_BY_DISCIPLINE.boulder)).toBe("v-scale");
     expect(resolveScaleId("boulder", "font-non-standard", "font", STANDARD_SCALES_BY_DISCIPLINE.boulder)).toBe("font");
@@ -355,9 +307,6 @@ describe("gradeOrdinal / gradeRankForScale / gradeTierForScale / gradeColorForSc
     expect(gradeOrdinal("not-a-grade", "font")).toBeNull();
   });
   it("gradeRankForScale ranks two grades in different scales correctly, same discipline", () => {
-    // V4 (boulder, Font 6B) should rank above V1 (Font 5) -- proves
-    // cross-scale ranking actually works, not just parroting one scale's
-    // own order.
     const v4 = gradeRankForScale("V4", "v-scale", "boulder");
     const v1 = gradeRankForScale("V1", "v-scale", "boulder");
     expect(v4).toBeGreaterThan(v1);
@@ -372,12 +321,6 @@ describe("gradeOrdinal / gradeRankForScale / gradeTierForScale / gradeColorForSc
     }
   });
 
-  // Found in review, 2026-09-14: French/Sport's own real max grade ("9c+")
-  // resolves to canonical ordinal 106 -- past the `?? 99` sentinel these
-  // functions used to fall back to for an unrecognized grade, meaning an
-  // unparseable Sport grade used to rank/tier as EASIER than several real,
-  // valid Sport grades (9a+/9b/9b+/9c/9c+), the opposite of the documented
-  // "unknown sorts as harder than everything" intent. Fixed to `?? Infinity`.
   it("an unparseable grade ranks harder than every real grade, even Sport's own top grade", () => {
     expect(gradeRankForScale("not-a-real-grade", "french", "sport")).toBeGreaterThan(gradeRankForScale("9c+", "french", "sport"));
   });
@@ -406,10 +349,6 @@ describe("gradeRank", () => {
     expect(gradeRank("not-a-grade")).toBe(99);
   });
 
-  // #461 -- the regression this issue exists to fix: a flat, Boulder-only
-  // order meant every Sport grade fell through to the `?? 99` fallback
-  // unless it happened to share notation with a Boulder string. These
-  // Sport grades never existed in the old list at all.
   it("ranks Sport grades in ascending difficulty order, using Sport's own order", () => {
     expect(gradeRank("6a", "sport")).toBeLessThan(gradeRank("6a+", "sport"));
     expect(gradeRank("6c+", "sport")).toBeLessThan(gradeRank("7a", "sport"));
@@ -421,9 +360,6 @@ describe("gradeRank", () => {
     expect(gradeRank("4b", "sport")).toBeLessThan(gradeRank("4c", "sport"));
   });
 
-  // #698 -- regression: BOULDER_ORDER is hand-maintained separately from
-  // BOULDER_GRADES and had drifted -- 3A-4C were added to the Boulder
-  // picker by #129 but not to BOULDER_ORDER, so all six mis-ranked as 99.
   it("ranks every grade the Boulder picker offers -- BOULDER_ORDER stays a superset", () => {
     for (const { g } of BOULDER_GRADES) expect(gradeRank(g, "boulder")).not.toBe(99);
     for (const { g } of LEAD_GRADES) expect(gradeRank(g, "sport")).not.toBe(99);
@@ -441,32 +377,16 @@ describe("gradeRank", () => {
   });
 
   it("ranks a grade against the wrong discipline's order differently -- type is not cosmetic", () => {
-    // "6A" isn't a Sport-notation grade at all (Sport uses lowercase
-    // "6a"), but gradeRank() is case-insensitive by design -- ranking it
-    // as Sport still has to resolve against Sport's own order, not
-    // Boulder's, proving `type` actually changes which table is used.
     expect(gradeRank("6A", "boulder")).not.toBe(gradeRank("6A", "sport"));
   });
 });
 
-// #463 -- gradeColor() is now purely gradeTier()-based: no more
-// per-grade curated `c` field on BOULDER_GRADES/LEAD_GRADES, no more
-// fractional-banding fallback for out-of-picker grades. Every grade
-// (in-picker or not) goes through the exact same path.
 describe("gradeColor", () => {
   it("colors a grade by its tier, matching gradeTier()'s own classification", () => {
     expect(gradeColor("6A", "boulder")).toBe(gradeColor("6B", "boulder")); // both intermediate
     expect(gradeColor("6A", "boulder")).not.toBe(gradeColor("7A", "boulder")); // intermediate vs advanced
   });
 
-  // #430/#649 -- regression test for a real, older bug: the pre-#463
-  // ternary silently routed any type that wasn't literally "lead"
-  // (including "sport") to BOULDER_GRADES instead. Confirmed here at
-  // the tier level: the two disciplines' own thresholds genuinely
-  // diverge (Sport's "7A" isn't a real Sport grade -- it's "7a" -- so
-  // resolving it as Sport should NOT match resolving the real Boulder
-  // "7A"'s color if type routing were broken and silently fell back to
-  // Boulder for "sport").
   it("does not silently fall back to Boulder's tiers for a sport grade", () => {
     expect(gradeColor("4a", "sport")).toBe(gradeColor("5C", "boulder")); // both beginner
     expect(gradeColor("4a", "sport")).not.toBe(gradeColor("6A", "boulder")); // beginner vs intermediate
@@ -486,7 +406,6 @@ describe("gradeColor", () => {
   });
 
   it("returns a real CSS custom-property reference for every tier, not undefined", () => {
-    // One real grade per tier, in ascending order.
     expect(gradeColor("5C", "boulder")).toMatch(/^var\(--grade-tier-/);
     expect(gradeColor("6A", "boulder")).toMatch(/^var\(--grade-tier-/);
     expect(gradeColor("7A", "boulder")).toMatch(/^var\(--grade-tier-/);
@@ -495,50 +414,24 @@ describe("gradeColor", () => {
   });
 });
 
-// #698 -- the Grade Pyramid's own per-grade shade across the full
-// 10-colour palette, distinct from gradeColor()'s flat per-tier colour.
-// gradePyramidColorForScale is the live, scale-aware form -- the 2-arg
-// gradePyramidColor() this suite originally tested was removed as dead
-// code (zero real callers, found in review 2026-09-14); ported to the
-// live function rather than deleted outright, since this is the only
-// coverage anywhere of the palette-interpolation algorithm's own real
-// properties (monotonicity, distinct-shade guarantee, clamping,
-// color-mix format) -- the function's own existing test only checked it
-// "doesn't throw."
 describe("gradePyramidColorForScale", () => {
   it("returns the exact palette endpoint for the discipline's own hardest grade", () => {
-    // gradePyramidColorForScale's own maxRank is defined as this exact
-    // grade's ordinal (the last FONT_STANDARD_LABELS/FRENCH_STANDARD_LABELS
-    // entry), so frac lands on exactly 1 for it by construction -- unlike
-    // the OLD BOULDER_GRADES-array-index-based gradePyramidColor this
-    // test originally covered, there's no equivalent guaranteed-exact
-    // LOWEST endpoint here: the canonical ordinal space starts well below
-    // FONT_STANDARD's/FRENCH_STANDARD's own first real label ("3"/"1"
-    // isn't ordinal 0), so frac for the easiest real grade is small but
-    // not exactly 0.
     expect(gradePyramidColorForScale(FONT_STANDARD.labels.at(-1), "font", "boulder")).toBe("#ffba08");
     expect(gradePyramidColorForScale(FRENCH_STANDARD.labels.at(-1), "french", "sport")).toBe("#ffba08");
   });
 
   it("gives adjacent grades distinct shades -- the whole point, since a pyramid window can sit entirely in one tier", () => {
-    // A 4-grade window entirely within Advanced (all one tier, so
-    // gradeColorForScale() would return one flat colour for all four).
     const window = ["7A", "7A+", "7B", "7B+"].map(g => gradePyramidColorForScale(g, "font", "boulder"));
     expect(new Set(window).size).toBe(4);
   });
 
   it("is monotonic -- a harder grade never maps to an earlier palette position", () => {
     const PALETTE = ["#03071e", "#370617", "#6a040f", "#9d0208", "#d00000", "#dc2f02", "#e85d04", "#f48c06", "#faa307", "#ffba08"];
-    // Effective continuous palette position: an exact hex is its own
-    // index; a color-mix "lo X%, hi" sits at loIdx + (1 - X/100).
     function palettePos(c) {
       if (c.startsWith("#")) return PALETTE.indexOf(c);
       const [, loHex, pct] = c.match(/#([0-9a-f]{6})\s+(\d+)%/);
       return PALETTE.indexOf(`#${loHex}`) + (1 - Number(pct) / 100);
     }
-    // Real FONT_STANDARD labels (that scale starts at "3", not "1" --
-    // unlike the old BOULDER_GRADES-based picker range this test
-    // originally used).
     const grades = ["3", "4", "5", "6B", "7A", "7C+", "8B", "9A"];
     const positions = grades.map(g => palettePos(gradePyramidColorForScale(g, "font", "boulder")));
     for (let i = 1; i < positions.length; i++) {
@@ -547,13 +440,10 @@ describe("gradePyramidColorForScale", () => {
   });
 
   it("returns a color-mix() for grades that land between palette stops", () => {
-    // Some mid-range grade that won't land exactly on a 1/9 boundary.
     expect(gradePyramidColorForScale("6B+", "font", "boulder")).toMatch(/^color-mix\(in srgb, #[0-9a-f]{6} \d+%, #[0-9a-f]{6}\)$/);
   });
 });
 
-// #129 -- Boulder extended down to 1/1A and up to 9A; Sport extended down
-// to French 1 and up to 9c+.
 describe("BOULDER_GRADES/LEAD_GRADES (#129 range extension)", () => {
   it("Boulder's new low end ranks below its existing V0 threshold, and both notations coexist", () => {
     expect(gradeRank("1A", "boulder")).toBeLessThan(gradeRank("5", "boulder"));
@@ -563,8 +453,6 @@ describe("BOULDER_GRADES/LEAD_GRADES (#129 range extension)", () => {
   it("Boulder's new low end is labeled VB, not a reused V0", () => {
     expect(BOULDER_GRADES.find(x => x.g === "1A").v).toBe("VB");
     expect(BOULDER_GRADES.find(x => x.g === "4C").v).toBe("VB");
-    // V0 still means exactly what it always did -- extending the range
-    // downward doesn't relabel the existing cutoff.
     expect(BOULDER_GRADES.find(x => x.g === "5").v).toBe("V0");
   });
 
@@ -585,22 +473,12 @@ describe("BOULDER_GRADES/LEAD_GRADES (#129 range extension)", () => {
     expect(gradeRank("9c", "sport")).toBeLessThan(gradeRank("9c+", "sport"));
   });
 
-  // #463 -- BOULDER_GRADES/LEAD_GRADES no longer carry a per-grade `c`
-  // field at all; colouring is gradeColor()/gradeTier()-based now, which
-  // resolves every grade through gradeRank() regardless of whether it's
-  // in either list -- this just proves that holds for #129's new
-  // low/high-end grades specifically, not just the pre-existing ones.
   it("every new low/high-end grade in both lists still colors correctly via gradeColor()", () => {
     for (const g of BOULDER_GRADES) expect(gradeColor(g.g, "boulder")).toMatch(/^var\(--grade-tier-/);
     for (const g of LEAD_GRADES) expect(gradeColor(g.g, "sport")).toMatch(/^var\(--grade-tier-/);
   });
 });
 
-// #462 -- five-tier headline classification, decided 2026-09-09. Every
-// boundary tested at both edges (the grade just below it, and the grade
-// itself) for both disciplines, since the boundaries are Raven's own
-// felt-sense decision, not a derived formula -- there's no shortcut to
-// "these five numbers are right" other than pinning down every edge.
 describe("gradeTier", () => {
   it.each([
     ["5C", "beginner"], ["6A", "intermediate"],
@@ -612,8 +490,6 @@ describe("gradeTier", () => {
     expect(gradeTier(grade, "boulder")).toBe(tier);
   });
 
-  // #710 -- Sport's own boundaries, no longer Boulder's letters applied
-  // verbatim past Intermediate (see grade-data.js's own comment for why).
   it.each([
     ["5c", "beginner"], ["6a", "intermediate"],
     ["7a", "intermediate"], ["7a+", "advanced"],
@@ -638,10 +514,6 @@ describe("gradeTier", () => {
   });
 
   it("the same numeral/letter grade resolves independently per discipline, not cross-checked against the other", () => {
-    // "6A" (Boulder, uppercase) and "6a" (Sport, lowercase) both start
-    // Intermediate in their own discipline's decided range -- this isn't
-    // gradeTier() treating them as equivalent, each is resolved purely
-    // against its own discipline's thresholds.
     expect(gradeTier("6A", "boulder")).toBe(gradeTier("6a", "sport"));
   });
 

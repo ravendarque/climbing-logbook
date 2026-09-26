@@ -1,5 +1,3 @@
-// Pure logic for the beta.x/my.x cross-hostname redirects (#443/#548,
-// #557, ADR-0020).
 import { describe, expect, it } from "vitest";
 import { resolveApexUrl, resolveBetaXUrl, resolveMyXUrl } from "../../client/resolve-cross-hostname-url.js";
 
