@@ -38,7 +38,8 @@ Process rules for how Claude works in this repository. Code-level standards
 
 Every PR needs a `release: major/minor/patch/none` label before merge
 (enforced by a required check) — see `docs/versioning.md` for what
-qualifies. **Open every PR as a draft, add its release label, then mark it
+qualifies. **Work through `docs/definition-of-done.md` before marking a PR
+ready.** **Open every PR as a draft, add its release label, then mark it
 ready for review** — the label check skips drafts and runs on
 ready-for-review, so it first runs with the label already on. Opening a
 non-draft PR and labelling it afterwards leaves a stale failed check on
