@@ -30,7 +30,14 @@ test("pre-#960 data is adopted by the user the server authorised, not left globa
   // A device from before this change: data under the old global keys,
   // nobody recorded as signed in.
   await page.goto(ownedRouteUrl(DEV_USER.username, "/log"));
+  // Wait out the first visit's cold sync: rewriting mid-boot lets it record the user and skip adoption.
+  await page.waitForURL(`**/${DEV_USER.username}/log`);
   await expect(page.locator("climbing-entries-table")).toBeVisible();
+  await expect.poll(async () => {
+    const keys = await storageSnapshot(page).catch(() => ({}));
+    return keys.logbook_signed_in_user === OWNER && !!keys[`logbook_entries_cache:${OWNER}`];
+  }).toBe(true);
+  await page.waitForLoadState("networkidle");
   await page.evaluate(owner => {
     for (const k of Object.keys(localStorage)) {
       if (k.endsWith(`:${owner}`)) {
