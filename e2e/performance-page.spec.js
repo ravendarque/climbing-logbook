@@ -1,7 +1,3 @@
-// #575 -- composition-root-wiring coverage for the /:username/performance
-// hub page. Same fixture-harness pattern as e2e/log-page.spec.js. Pyramid-
-// specific coverage lives in e2e/performance-pyramid-page.spec.js now that
-// the pyramid moved to its own sub-page.
 import { expect, test } from "@playwright/test";
 import { mockApi } from "./mock-api.js";
 

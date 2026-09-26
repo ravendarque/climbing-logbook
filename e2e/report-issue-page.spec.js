@@ -1,17 +1,8 @@
-// #924 -- exercises /help/report-an-issue/ itself: form rendering,
-// Turnstile wiring, and the success/error state swap. The real submit/
-// validation mechanics (rate limiting, Turnstile verification, D1
-// storage) are already covered by test/report-issue.test.js against the
-// real API -- this is UI-layer coverage only, same split e2e/register.spec.js
-// already established for /register/.
 import { expect, test } from "@playwright/test";
 import { mockTurnstile } from "./mock-turnstile.js";
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
-// register.spec.js's own precedent -- the test sitekey auto-completes
-// with no interaction needed once mockTurnstile's stub fires, so waiting
-// for getResponse() to go truthy is all that's needed.
 async function waitForTurnstile(page) {
   await page.waitForFunction(() => window.turnstile?.getResponse());
 }

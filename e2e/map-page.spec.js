@@ -1,10 +1,3 @@
-// #413 (Tier 2 follow-up to #407) -- composition-root-wiring coverage for
-// /:username/map. Same fixture-harness pattern as e2e/log-page.spec.js
-// (see that file's own header comment) -- the real client/map-main.js ->
-// map-app.js bundle against a verbatim copy of public/map/index.html,
-// with fabricated /-/api/* responses. Zoom/pan-controls behavior
-// (map-view.js's own, not this composition root's) is covered separately
-// by e2e/component-harnesses.spec.js (#407 Tier 1) -- not duplicated here.
 import { expect, test } from "@playwright/test";
 import { mockApi } from "./mock-api.js";
 
@@ -21,7 +14,6 @@ test("renders the shared chrome, a real map, and switches discipline (persisted 
 
   await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
 
-  // A real map, not the "you need to be online" fallback.
   await expect(page.locator("#map-container svg")).toBeVisible();
   await expect(page.locator("#map-load-retry")).toHaveCount(0);
   await expect(page.locator("#subtitle")).not.toHaveText("");
