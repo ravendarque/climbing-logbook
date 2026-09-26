@@ -78,13 +78,13 @@ plain read.
 
 ## Comments
 
-Follow the comment rule in `docs/coding-standards.md` (Part 2, Comments
-and docs): a comment says **why the code is the way it is now**, never
-its history. **Don't match the comment density of the surrounding code**
-— much of this repo is over-commented with issue-by-issue narrative
-(#1088), and copying that style is how it keeps growing. Write to the
-rule, and when you touch a comment that's stale or narrates history,
-fix or cut it in the same change.
+Follow `docs/coding-standards.md` (Part 2, Comments and docs): **code
+documents itself, and the default is no comment.** A comment is one line,
+for a "why" the code can't express. Anything longer goes in `docs/`;
+history goes in commits and PRs. **Don't match the comment density of the
+surrounding code**: much of this repo is over-commented with
+issue-by-issue narrative (#1088), and copying it is how it grows. When
+you touch a narrative or stale comment, cut it in the same change.
 
 ## Development workflow
 

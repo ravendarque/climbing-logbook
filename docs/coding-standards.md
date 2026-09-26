@@ -180,24 +180,30 @@ why Better Auth replaced Cloudflare Access as the mechanism itself.
   genuinely-offline visit.
 
 ### Comments and docs
-- **A comment says why the code is the way it is now**: a constraint, an
-  invariant, a workaround for a specific platform bug, a behaviour that
-  would surprise a reader. Not what the code does (the names should say
-  that), and not how it got here.
-- **History lives in commits, PR descriptions and ADRs, not in comments.**
-  No "#123 -- this used to be X, then Y, found while doing Z" narrative. An
-  issue or ADR number belongs in a comment only when the reader needs that
-  context to understand the code as it is today.
+- **Code documents itself.** Clear names, small functions and obvious data
+  flow come first. The default is no comment.
+- **A comment is the exception: one line, for a "why" the code can't
+  express.** A platform workaround, a subtle invariant, a behaviour that
+  would surprise a reader. Never what the code does, and never how it got
+  here.
+- **Anything longer than a line goes in `docs/`.** Design and context
+  belong in `docs/app-architecture.md` (or its siblings) or an ADR, and the
+  one-line comment can point there. History belongs in commits and PR
+  descriptions.
+- **No sidecar notes files.** A second file that has to track the code
+  drifts silently; keep the "why" next to the code (one line) or in the
+  docs, where it's reviewed as documentation.
 - **A comment that no longer matches the code is a bug.** Fix or delete it
-  in the same change that makes it wrong, and fix any stale comment you
-  touch along the way.
-- **Template comments use `{# #}`, not `<!-- -->`**, so they don't ship in
-  the page. Never spell out Nunjucks' own delimiters literally in a
-  template, even inside a comment: Nunjucks evaluates them (#943).
-- **Docs describe the current state.** `docs/app-architecture.md` and
-  friends are maps of how things are, with links to ADRs for the reasons,
-  not a log of every change. Update them in the same PR as the change
-  that makes them wrong.
+  in the same change that makes it wrong, and cut any narrative comment
+  you touch along the way.
+- **Nothing a user downloads should contain comments.** Vite minifies the
+  bundles, and templates use `{# #}`, never `<!-- -->` (enforced by
+  `test/scripts/template-comments.test.js`). Never spell out Nunjucks' own delimiters
+  literally in a template, even inside a comment: Nunjucks evaluates them
+  (#943).
+- **Docs describe the current state.** They're maps of how things are,
+  with links to ADRs for the reasons, not a log of every change. Update
+  them in the same PR as the change that makes them wrong.
 
 ### Connectivity resilience
 
