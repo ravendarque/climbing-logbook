@@ -129,6 +129,34 @@ else, including `/service-worker.js`, keeps the platform default.
 Nothing shipped contains developer comments: Vite minifies the bundles,
 templates use `{# #}`, and `static/` scripts are minified on copy.
 
+### Generated data
+
+These are committed outputs, not build steps. Regenerate them by hand when
+their source changes:
+
+| Output | Script |
+|---|---|
+| `client/countries.js`'s `COUNTRIES` | `scripts/generate-countries.mjs` (prints it; paste it in) |
+| `static/-/world-map-*.json` | `scripts/generate-world-map.mjs` |
+| `static/-/brand-lockup.svg` and its size block in `climbing-header.js` | `scripts/generate-brand-lockup.mjs` |
+| Logbook Beta's PNG icons | `scripts/generate-beta-icons.mjs` |
+
+- **Countries** come from the `world-countries` package. Russia, Belarus
+  and Israel are excluded, as they are from world climbing events
+  (`scripts/lib/country-exclusions.mjs`, shared by both generators so a
+  map pin always has a country to join against). Palestine is included. A
+  pin sits on a country's geographic centre, not its capital.
+- **The world map** is Equal Earth, in three variants centred on
+  Greenwich, the Americas and Oceania. Projection happens at generation
+  time with d3-geo, so no mapping library ships. Each variant fits its
+  scale to the landmass minus the few slivers that straddle its seam, which
+  would otherwise waste about 10% of the scale, then draws everything.
+  A synthetic meridian on the seam draws it on both edges. Pins carry only
+  `{ name, x, y }`; the rest of each country's record stays in
+  `COUNTRIES`. The printed uncompressed sizes go into `client/map-view.js`'s
+  `MAP_VARIANT_SIZES`: the download progress bar needs them, and gzip hides
+  `Content-Length`.
+
 ## Request routing
 
 Workers Static Assets serves any request that matches a file under

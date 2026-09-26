@@ -1,26 +1,5 @@
-/**
- * Regenerates the COUNTRIES dataset in client/countries.js (see #153;
- * moved out of index.html into its own module at #242) from the
- * `world-countries` package. Prints a JS array literal to stdout — paste
- * it in manually, replacing that file's existing COUNTRIES constant. Not
- * wired into the build; countries change rarely enough that on-demand
- * regeneration is simpler than a live pipeline.
- *
- * Deliberate overrides applied regardless of what the source package says,
- * per #153/#6 -- see scripts/lib/country-exclusions.mjs (shared with
- * generate-world-map.mjs) for the exclusion list itself and why it's
- * shared. Palestine is included (already present in world-countries as a
- * non-UN-member state, so no extra work there beyond not filtering it
- * out).
- *
- * `lat`/`lng` are each country's geographic center (world-countries'
- * `latlng` field), not its capital city -- e.g. France is [46, 2], not
- * Paris -- which is what a country-level map pin should sit on. Rounded to
- * 2 decimal places (~1km precision, far more than a world-overview pin
- * needs) to keep the bundled dataset small.
- *
- * Usage: node scripts/generate-countries.mjs > /tmp/countries.js
- */
+// Prints the COUNTRIES array for client/countries.js; paste it in. Pins sit on geographic centres.
+//   node scripts/generate-countries.mjs > /tmp/countries.js
 
 import countries from "world-countries";
 import { EXCLUDED_CCA2 } from "./lib/country-exclusions.mjs";
