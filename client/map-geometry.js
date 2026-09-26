@@ -1,15 +1,3 @@
-// Extracted from client/main.js (#206). Pure viewBox/coordinate math for
-// the World Map tab (#17, #168, #169) -- zoom, pan, clamping, and screen-
-// to-map-space conversion. Every function takes its inputs (current view,
-// map height, viewport aspect, a DOMRect-shaped object) as explicit
-// parameters instead of reading module-global mapView/mapData/
-// mapNarrowQuery directly, so none of it needs a browser environment to
-// test. client/map-view.js (#236) keeps thin same-named wrapper functions
-// that close over those globals -- moved there along with all the
-// loading (fetch/localStorage/progress UI) and DOM-touching code
-// (applyMapView, applyPinScale, getMapSvg, the drag/wheel event
-// listeners) this file deliberately never owned.
-
 export const MAP_WIDTH = 960; // fixed across all variants -- only height varies per variant, see generate-world-map.mjs
 export const MAP_NARROW_ASPECT = 3 / 4; // width:height on narrow (<=600px) viewports -- taller than wide
 export const MAP_WIDE_ASPECT   = 4 / 3; // width:height on wide (>600px) viewports -- wider than tall, but still short of the full world's ~1.9:1
@@ -20,22 +8,12 @@ export function mapViewportAspect(isNarrow) {
   return isNarrow ? MAP_NARROW_ASPECT : MAP_WIDE_ASPECT;
 }
 
-// The widest (shortest-zoomed) the viewport can ever go: full height (of
-// the active variant) tall, however wide that makes it at the current
-// aspect. Zooming out further would mean showing more than pole-to-pole
-// vertically, which doesn't exist.
+// Full height is the widest view: there's nothing beyond pole to pole.
 export function mapMaxW(mapHeight, viewportAspect) {
   return mapHeight * viewportAspect;
 }
 
-// Default view: full height, width set by the current viewport aspect,
-// horizontally centered on the world (not on the current discipline's
-// pinned countries -- tried that per #17/#169, but it meant every
-// projection switch, and even a plain default load, could clamp hard to
-// an edge depending on where your pins happened to land under that
-// rotation, reading as a broken/panned map rather than "here's this
-// projection." World-centered is simple and predictable regardless of
-// your data or which variant is active.)
+// Centred on the world, not on your pins, so every variant opens the same way.
 export function defaultMapView(mapWidth, maxW, viewportAspect) {
   const x = (mapWidth - maxW) / 2;
   return { x, y: 0, w: maxW, h: maxW / viewportAspect };
@@ -53,18 +31,7 @@ export function panView(view, dx, dy) {
   return { ...view, x: view.x + dx, y: view.y + dy };
 }
 
-// Keeps (cx, cy) fixed in place on screen while the view scales around
-// it -- centered zoom for the buttons (cx/cy = view's own center),
-// cursor-anchored zoom for the wheel (cx/cy = pointer position), same as
-// any map UI. Width is clamped inline (matching the original code) before
-// relX/relY get applied -- clamped to the same bounds the caller's own
-// clampMapView will enforce BEFORE using it below, not after, or every
-// further zoom tick past a limit would keep computing x/y against a
-// hypothetical (never-applied) unclamped width, drifting the pan offset a
-// little further each time even though the zoom itself is pinned. That
-// drift is exactly what scrolling to zoom past the max on a trackpad
-// looked like: the map appearing to pan on its own once it couldn't zoom
-// in any further.
+// Width is clamped before computing the offset, or zooming past a limit drifts the pan.
 export function computeZoomedView(view, factor, cx, cy, { maxW, minW, viewportAspect }) {
   const relX = (cx - view.x) / view.w;
   const relY = (cy - view.y) / view.h;
@@ -73,12 +40,7 @@ export function computeZoomedView(view, factor, cx, cy, { maxW, minW, viewportAs
   return { x: cx - relX * newW, y: cy - relY * newH, w: newW, h: newH };
 }
 
-// Client-pixel <-> viewBox-user-space conversions, both needed because
-// the map scales with its container (w-full h-auto) and the ratio
-// between rendered pixels and user-space units changes with both
-// viewport width and the current zoom level. Takes a DOMRect-shaped
-// object (not the SVG element itself, which is what getBoundingClientRect
-// needs a real browser for) so this stays pure.
+// Take a DOMRect-shaped object, so this stays pure.
 export function mapClientDeltaToUserSpace(rect, view, dxClient, dyClient) {
   return { dx: (dxClient / rect.width) * view.w, dy: (dyClient / rect.height) * view.h };
 }

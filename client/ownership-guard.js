@@ -1,17 +1,5 @@
-// #960, ADR-0028 decision 7 -- the page-side check that an owner page
-// (/:username/...) is only ever shown to that username's own signed-in
-// user. The server has always checked this (owned-routes.js), but once the
-// service worker serves owner shells from its cache (#947), a navigation
-// no longer reaches the server -- so the page checks it too. Without it,
-// signed in as alice, a cached /bob/log would boot and show alice's
-// session data under bob's URL.
-//
-// Never blocks the chrome on the network (ADR-0023). The decision is
-// synchronous whenever the page load itself came from the network: then
-// the server already authorised this URL's user, and that's recorded as
-// who's signed in on this device. Only a page served by the service
-// worker for a user this device hasn't recorded needs a network check,
-// and offline that's refused rather than guessed.
+// In the page too, because a worker-served shell never reaches the server. Synchronous when the
+// page came from the network; otherwise it asks, and refuses when offline.
 import { isDemoUsername } from "./demo-mode.js";
 import { renderBlockedPage } from "./blocked-page.js";
 import { loginPageUrl } from "./login-url.js";

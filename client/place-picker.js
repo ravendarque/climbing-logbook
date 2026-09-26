@@ -1,27 +1,5 @@
-// The entry form's Place picker (#158) -- #238, part of #233's
-// modularization epic. Includes the "add a new place" modal, not split
-// into its own file: the two are one workflow, not two independent
-// concerns -- add-place-modal has exactly one caller (this picker's "Add
-// new place" button) and its success path calls straight back into this
-// module's own setPlace(), the same direct coupling the pre-#238 code
-// had. Splitting them would mean inventing a callback interface to
-// re-create a relationship the code already expresses more simply as one
-// module owning both.
-//
-// A factory with a wide injected-dependency list -- not a design smell
-// introduced by this extraction, but this workflow's real, pre-existing
-// surface: it touches auth (adminFetch/isAuthRedirect, still main.js-local
-// -- #242 kept them there, real cross-cutting infrastructure the
-// composition root reasonably owns and hands out) and the offline queue.
-// `applyPendingQueue`/`updateAdminBar` used to be injected here too, but
-// aren't anymore (#264) -- store.applyPendingQueue() and store.setLoggedIn()
-// are both Store mutations now, so main.js's render() (the Store's sole
-// subscriber) picks up the resulting change on its own; nothing here needs
-// to trigger it manually. openModal/closeModal (client/modal-utils.js,
-// #241) stay injected, not imported -- unlike createDisclosure (stateless,
-// safe to call independently from anywhere), they share one
-// `lastFocusedEl` across the whole app, so every caller needs the same
-// instance from main.js's single createModalHelpers() call, not its own.
+// The add-place modal lives here: it has one caller and one workflow. openModal/closeModal are
+// injected because they share one lastFocusedEl across the page.
 import { escapeHtml } from "./escape-html.js";
 import { COUNTRY_BY_NAME, COUNTRIES } from "./countries.js";
 import { createSearchableListbox } from "./modal-utils.js";
@@ -48,9 +26,6 @@ export function createPlacePicker({
   const PLACE_PLACEHOLDER_ICON = `<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20Z"></path></svg>`;
   let placeCommittedValue = ""; // the committed placeId, "" if none
 
-  // Every selectable Place, joined against its Location, sorted by
-  // location then area -- rebuilt on each render rather than cached,
-  // since the place/location lists are nowhere near COUNTRIES' 247 rows.
   function joinedPlaces() {
     return store.getPlaces().map(p => {
       const loc = store.locationOf(p);
@@ -58,7 +33,6 @@ export function createPlacePicker({
     }).sort((a, b) => a.location.localeCompare(b.location) || a.area.localeCompare(b.area));
   }
 
-  // Reflects the committed value into the trigger button.
   function setPlace(placeId) {
     const p = store.getPlaces().find(x => x.id === placeId);
     placeCommittedValue = p ? placeId : "";
@@ -101,17 +75,7 @@ export function createPlacePicker({
     openAddPlaceModal();
   });
 
-  // ── Add-place modal (#158) ────────────────────────────────────────────
-  // Stacks on top of entry-overlay. Branches on whether the typed
-  // Location exactly matches (case-insensitive) an existing one: if so,
-  // Country auto-fills and locks -- inherited, not re-askable, which is
-  // the entire reason Location was split out from Place (a location's
-  // country can now only ever be set once, never re-typed per area, so
-  // it can't drift again). If not, Country stays open for picking, same
-  // interaction pattern as the place picker's own (search + listbox with
-  // a checkmark on the selected row), just shown in full "[flag] name"
-  // text rather than icon-only -- these fields are stacked vertically
-  // with no width constraint forcing that compromise.
+  // A matching location locks its country: it can be set only once, so it can't drift.
   const addPlaceOverlay = document.getElementById("add-place-overlay");
   const addPlaceForm = document.getElementById("add-place-form");
   const addPlaceLocationInput = document.getElementById("add-place-location");
@@ -144,12 +108,7 @@ export function createPlacePicker({
     addPlaceCountryLabel.classList.toggle("text-muted", !c);
   }
 
-  // No explicit addPlaceCountryBtn.disabled guard needed here -- a real
-  // disabled <button> never dispatches click events in the first place,
-  // so createSearchableListbox's internal trigger listener (via
-  // createDisclosure) simply never fires while it's locked (see
-  // setAddPlaceCountry/updateAddPlaceLocationMatch for where .disabled
-  // gets toggled).
+  // A disabled button never fires click, so no extra guard is needed.
   const { close: closeAddPlaceCountryPopover } = createSearchableListbox({
     trigger: addPlaceCountryBtn, popover: addPlaceCountryPopover, containerSelector: "#add-place-country-wrap",
     searchInput: addPlaceCountrySearch, listboxEl: addPlaceCountryListbox, idPrefix: "add-place-country-option",
@@ -170,10 +129,7 @@ export function createPlacePicker({
     } else {
       addPlaceCountryBtn.disabled = false;
       addPlaceCountryHint.hidden = true;
-      // Doesn't reset a country the user may have already picked before
-      // the match broke (e.g. a typo mid-edit) -- still a normal
-      // editable field at that point, not a locked one, so leaving it in
-      // place is less disruptive than wiping it and forcing a re-pick.
+      // Keeps a country already picked when the match breaks mid-edit.
     }
   }
   addPlaceLocationInput.addEventListener("input", updateAddPlaceLocationMatch);
@@ -192,13 +148,6 @@ export function createPlacePicker({
   document.getElementById("add-place-close").addEventListener("click", () => closeModal(addPlaceOverlay));
   addPlaceOverlay.addEventListener("click", e => { if (e.target === addPlaceOverlay) closeModal(addPlaceOverlay); });
 
-  // #806 -- addPlaceMsg carries role="alert"/aria-live="assertive" in the
-  // template (views/log/index.njk), so a screen reader announces it once
-  // its text/visibility change; tabindex="-1" (template) makes it
-  // programmatically focusable so a sighted keyboard user also notices
-  // it, same reasoning as entry-form.js's own showEntryError.
-  // #894 -- error-message (styles/tailwind.css), shared with
-  // entry-form.js's own ERROR_MSG_CLASS instead of a hand-copied literal.
   function showAddPlaceError(text) {
     addPlaceMsg.textContent = text;
     addPlaceMsg.className = "mt-[.85rem] error-message";
@@ -214,9 +163,7 @@ export function createPlacePicker({
     const area = addPlaceAreaInput.value.trim();
     const matched = findMatchingLocation(locationName);
 
-    // Minted up front regardless of online/offline outcome -- same
-    // rationale as entry IDs: an offline-queued write needs a stable
-    // identity from the moment it's created, not just once it syncs.
+    // Minted up front, like entry ids, so a queued write keeps its identity.
     const location = matched ?? { id: crypto.randomUUID(), name: locationName, country: addPlaceCountryCommitted };
     const place = { id: crypto.randomUUID(), locationId: location.id, area };
 
@@ -237,9 +184,7 @@ export function createPlacePicker({
         if (isAuthRedirect(res)) throw new Error("not-authenticated");
         const data = await res.json();
         if (!res.ok) {
-          // The server is reachable and rejected this -- a real
-          // validation problem, not connectivity, so don't queue
-          // something that would just fail again identically on retry.
+          // A real rejection, not connectivity: queueing would fail the same way.
           showAddPlaceError(data.error ?? `Error ${res.status}`);
           addPlaceSubmitBtn.disabled = false;
           return;
@@ -247,17 +192,13 @@ export function createPlacePicker({
         store.setLocations(data.locations);
       } catch (err) {
         if (err.message === "not-authenticated") authLapsed = true;
-        // Offline, server unreachable, or the Access session lapsed --
-        // queue the location, and the place right behind it below, same
-        // dependency order the online path itself writes in.
+        // Queued in dependency order: the location, then its place.
         queued.push({ kind: "location", op: "add", record: location });
       }
     }
 
     const locationQueued = [...getQueue(), ...queued].some(item => item.kind === "location" && item.record.id === location.id);
     if (locationQueued) {
-      // Already know this session is offline -- don't bother attempting
-      // the place online too, just queue it right behind the location.
       queued.push({ kind: "place", op: "add", record: place });
     } else {
       try {

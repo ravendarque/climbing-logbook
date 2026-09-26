@@ -1,27 +1,10 @@
-// #952, ADR-0029 -- the beta channel's one enrollment check. Every owner
-// page's composition root awaits enrollmentAllowsBoot() before its own
-// boot(): on beta.<domain>, only an enrolled user's page boots; everyone
-// else sees a short "not enrolled" message instead, with a link to join
-// from My account on my.<domain>. Off the beta host it's a no-op.
-//
-// It lives in the page, not the server, because once the service worker
-// serves owner shells from its cache (#947, ADR-0028) a navigation never
-// reaches server code -- a server-side gate would silently stop applying.
-//
-// Never blocks the chrome on the network (ADR-0023): the decision comes
-// synchronously from the settings admin-auth.js already caches locally,
-// and the settings fetch runs in the background only to correct it (then
-// the page reloads once, with the cache now right). Only a device that has
-// never cached settings (first visit on it) waits for the network, and a
-// page there has no local data to show yet anyway.
+// In the page, because a worker-served shell never reaches the server. The cache decides; the network corrects.
 import { resolveMyXUrl } from "./resolve-cross-hostname-url.js";
 import { renderBlockedPage } from "./blocked-page.js";
 import { userKey } from "./user-storage.js";
 
-// Same key admin-auth.js reads and writes (its SETTINGS_CACHE_KEY).
 export const SETTINGS_CACHE_KEY = userKey("logbook_settings_cache");
-// The session-only read (401 without a session): a missing or expired
-// session is "no information", never "not enrolled".
+// A 401 means "no information", never "not enrolled".
 const SETTINGS_URL = "/-/api/settings";
 
 export function isBetaHost(hostname) {
@@ -44,8 +27,7 @@ function writeCachedEnrollment(storage, enrolled) {
   try { storage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({ ...cached, betaOptIn: enrolled })); } catch { /* storage full or blocked */ }
 }
 
-// true/false, or undefined when there's no session (401) to answer for.
-// Throws when offline or on a server error.
+// undefined without a session; throws offline or on a server error.
 async function fetchEnrollment(fetchImpl) {
   const res = await fetchImpl(SETTINGS_URL, { credentials: "same-origin" });
   if (res.status === 401) return undefined;
@@ -53,7 +35,6 @@ async function fetchEnrollment(fetchImpl) {
   return (await res.json()).betaOptIn === true;
 }
 
-// The "not enrolled" / "can't check" message (client/blocked-page.js).
 export function renderNotEnrolled(doc, { reason, joinUrl }) {
   if (reason === "unknown") {
     renderBlockedPage(doc, {
@@ -71,7 +52,6 @@ export function renderNotEnrolled(doc, { reason, joinUrl }) {
   }
 }
 
-// Resolves true when the page should boot normally.
 export async function enrollmentAllowsBoot({
   loc = window.location,
   storage = window.localStorage,
@@ -82,7 +62,6 @@ export async function enrollmentAllowsBoot({
   if (!isBetaHost(loc.hostname)) return true;
 
   const username = loc.pathname.split("/").filter(Boolean)[0] ?? "";
-  // Joining happens on the main app's Beta channel page (#953).
   const joinUrl = resolveMyXUrl(loc.hostname, `/${encodeURIComponent(username)}/account/beta`);
   const cached = readCachedEnrollment(storage);
 
@@ -94,8 +73,7 @@ export async function enrollmentAllowsBoot({
       renderNotEnrolled(doc, { reason: "unknown", joinUrl });
       return false;
     }
-    // No session: nothing to decide -- boot, and let the page's own
-    // session handling send the visitor to login.
+    // No session: boot, and the page's own session handling sends them to login.
     if (enrolled === undefined) return true;
     writeCachedEnrollment(storage, enrolled);
     if (!enrolled) renderNotEnrolled(doc, { reason: "not-enrolled", joinUrl });

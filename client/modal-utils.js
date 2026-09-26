@@ -1,46 +1,7 @@
-// Shared popover/modal utilities (#241, eighth piece of #233's
-// modularization epic): disclosure popovers (trigger + panel, open/close/
-// outside-click/Escape) and modal overlays (focus trap, Escape-to-close).
-// Pure DOM utilities -- no state coupling beyond what's passed in, so this
-// could have landed independently of the Store (#234) or any other module
-// in the epic.
 import { escapeHtml } from "./escape-html.js";
 
-// Common trigger-button + panel interaction shared by every dropdown-style
-// popover in the app -- discipline picker, header menu, place picker,
-// add-place country picker, and the status filter panel. Extracted (#171)
-// after a code review found five near-identical hand-rolled copies, one of
-// which (the filter panel) had silently diverged and dropped its Escape
-// handler entirely.
-//
-// escapeTarget defaults to `document`, correct for popovers that aren't
-// nested inside a modal (discipline picker, header menu, filter panel).
-// Pass a specific element -- in practice the popover's own search input --
-// for a popover that lives inside a modal (place picker, add-place country
-// picker): Escape has to bind there instead, with stopPropagation/
-// preventDefault, so it closes only this popover rather than also reaching
-// the modal's own document-level Escape handler. (Separate document
-// keydown listeners all fire independently of each other regardless of
-// stopPropagation on the event itself -- binding at document level here
-// would close the whole modal too, not just this popover.)
-//
-// onOpen is an optional extra callback for popovers that do more than just
-// reveal the panel on open (the two search-based pickers reset their
-// query, re-render options, and refocus the search input).
-// `destroy()` (#736) removes every listener this call attached --
-// needed by any caller whose own trigger/panel get discarded and
-// recreated repeatedly (client/calendar-date-picker.js, when used from
-// client/time-window.js's Custom range: that control's render() fully
-// rebuilds its own containerEl.innerHTML on every state change, so a
-// fresh createDisclosure() call on every rebuild would otherwise pile up
-// document-level click/keydown listeners forever, each one keeping its
-// own now-detached trigger/panel alive too -- a real, growing leak, not
-// a hypothetical one, since a report page's Custom-range picker can be
-// opened and re-picked many times in one page visit). Every other
-// existing caller (discipline picker, header menu, place picker, filter
-// panel, grade/scale pickers) constructs its trigger/panel once per page
-// load and never calls destroy() at all -- purely additive, no existing
-// behavior changes.
+// Inside a modal, pass escapeTarget: a document-level Escape would also close the modal.
+// destroy() is for callers that rebuild their markup, or document listeners pile up.
 export function createDisclosure(trigger, panel, containerSelector, { escapeTarget = document, onOpen } = {}) {
   function open() {
     panel.hidden = false;
@@ -72,26 +33,7 @@ export function createDisclosure(trigger, panel, containerSelector, { escapeTarg
   return { open, close, destroy };
 }
 
-// Searchable single-select combobox popover (#403): filter a list, render
-// role="option" rows with active-descendant highlighting, ArrowUp/
-// ArrowDown/Enter navigation, click-to-select -- extracted from
-// client/place-picker.js's two structurally identical copies (the entry
-// form's place picker, the add-place modal's country picker), found via
-// code review (2026-08-09), split out from #399 into its own issue (#403)
-// since it's a single-file internal refactor of accessibility-critical
-// keyboard-nav code, not cross-file boilerplate -- see that issue's own
-// body for the e2e keyboard-nav coverage added as a prerequisite
-// (e2e/place-picker-keyboard-nav.spec.js) before this extraction, so the
-// refactor is verified against tests that actually exercise the behavior
-// being moved, not just "still renders."
-//
-// Composes createDisclosure above for the open/close/outside-click/
-// Escape mechanics -- trigger/panel/containerSelector/escapeTarget are
-// passed straight through. onSelect receives the selected item's key
-// (getItemKey(item)'s return value), not the item itself: both real call
-// sites only ever needed the key (setPlace(placeId)/
-// setAddPlaceCountry(countryName) both take a plain string), so there's
-// no reason to make every caller re-derive it back out of an item object.
+// onSelect gets the item's key, not the item: callers only need the key.
 export function createSearchableListbox({
   trigger, popover, containerSelector, searchInput, listboxEl, idPrefix,
   filterItems,       // (query: string) => item[] -- caller owns the data source and match predicate
@@ -162,18 +104,7 @@ export function createSearchableListbox({
   return { close };
 }
 
-// #703/#704 -- simple disclosure-backed single-select list picker: a
-// trigger button + popover listbox, no search (unlike
-// createSearchableListbox above, for lists short enough that filtering
-// isn't worth the extra UI -- entry-form.js's grade/scale pickers,
-// #704's report scale picker). Same role="option"/data-key/checkmark
-// rendering convention as createSearchableListbox's own render() and
-// the discipline picker's static options
-// (public/-/components/climbing-discipline-picker.js) -- one
-// shared implementation instead of near-identical copies per caller.
-// `render`/`onSelect` are set after construction (setRender/
-// setOnSelect), not passed in up front, since most callers need to
-// close over state that isn't settled until later in their own factory.
+// render and onSelect are set later: callers close over state that isn't ready yet.
 export function createListPicker({ trigger, popover, listbox, containerSelector }) {
   let render = () => {};
   let onSelect = () => {};
@@ -194,10 +125,6 @@ export function createListPicker({ trigger, popover, listbox, containerSelector 
   };
 }
 
-// Renders a list of items as role="option" rows into `listboxEl` --
-// shared by every createListPicker consumer (and reusable directly by
-// createSearchableListbox-style callers too, though that one still
-// renders its own rows inline for its "No matches" empty state).
 export function renderOptionList(listboxEl, items, { getKey, getLabel, isSelected }) {
   listboxEl.innerHTML = items.map(item => `
     <li role="option" data-key="${escapeHtml(getKey(item))}" aria-selected="${isSelected(item)}" class="flex items-center justify-between gap-[.5rem] px-[.6rem] py-[.5rem] rounded-[calc(var(--radius-app)-2px)] cursor-pointer text-[.85rem] text-foreground hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible">
@@ -206,33 +133,12 @@ export function renderOptionList(listboxEl, items, { getKey, getLabel, isSelecte
     </li>`).join("");
 }
 
-// Exported (not just used internally below) -- climbing-grade-pyramid.js
-// (#374) has its own self-contained overlay open/close/focus-trap logic
-// (deliberately not sharing createModalHelpers() itself, see that
-// component's own comment on why), but this specific stateless piece has
-// no dependency on createModalHelpers()'s overlay-coordination logic and
-// was hand-copied byte-for-byte rather than imported (found via code
-// review, 2026-08-09).
 export function focusableEls(overlay) {
   return [...overlay.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
     .filter(el => !el.disabled && el.offsetParent !== null);
 }
 
-// openModal/closeModal: focus trap + Escape-to-close for every full-page
-// overlay/modal in the app. A factory (not bare exports) since the
-// Escape/Tab-trap keydown handler needs `lastFocusedEl`, shared state
-// across every openModal/closeModal call site regardless of which module
-// calls them.
-// Default list -- every overlay /logbook's own page has, in
-// stacking-priority order -- NOT the same as DOM source order (confirmed:
-// add-place-overlay's markup actually comes *after* entry-overlay's), so
-// this can't be simplified to a generic `[id$="-overlay"]` query without
-// also reproducing the priority by z-index. add-place-overlay is listed
-// first because it's the one real case where two can be open at once --
-// opened from the place picker without closing the entry form behind it,
-// stacking on top (z-[110] vs entry-overlay's z-[100]) -- so Escape needs
-// to close the topmost one first, not whichever happens to appear first
-// in the markup.
+// Stacking order, not DOM order: add-place sits above the entry form, so Escape closes it first.
 const DEFAULT_OVERLAY_IDS = ["add-place-overlay", "entry-overlay", "notes-overlay", "footnote-overlay"];
 
 export function createModalHelpers(overlayIds = DEFAULT_OVERLAY_IDS) {
@@ -250,13 +156,7 @@ export function createModalHelpers(overlayIds = DEFAULT_OVERLAY_IDS) {
   }
 
   document.addEventListener("keydown", e => {
-    // filter(Boolean), not a bare map -- every real call site passes its
-    // own narrower list scoped to overlays that actually exist on its
-    // page (e.g. no notes-overlay outside climbing-entries-table.js, no
-    // footnote-overlay since <climbing-header> already owns that one
-    // itself), but getElementById returning null for an id that's never
-    // going to exist on any given page shouldn't throw on the next
-    // line's .hidden access.
+    // filter(Boolean): each page passes only the overlays it has.
     const overlays = overlayIds.map(id => document.getElementById(id)).filter(Boolean);
     const openOverlay = overlays.find(o => !o.hidden);
     if (!openOverlay) return;

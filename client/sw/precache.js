@@ -1,14 +1,4 @@
-// #948, ADR-0028 -- fills this build's cache with every owner page and the
-// files they load (the list scripts/precache-list.mjs generated), so the
-// first offline launch works whatever was opened beforehand.
-//
-// Resumable and delta-aware, never one all-or-nothing cache.addAll(): on a
-// flaky connection that would throw away everything downloaded so far.
-// Each item is independent -- already in this build's cache: skipped;
-// unchanged since a previous build (a content-addressed URL, or the same
-// SHA-256 as the build's list says it should have): copied across with no
-// download; otherwise fetched. Whatever succeeds stays, so the next attempt
-// only fetches what's still missing.
+// Resumable and delta-aware, never addAll(): a flaky connection would lose everything so far.
 import { classifyRequest } from "./classify.js";
 import { isBuildCache } from "./caches.js";
 import { isCacheableAsset, isCacheableShell, shellCacheKey } from "./responses.js";
@@ -19,19 +9,13 @@ const CONCURRENCY = 4;
 // Same reason as index.js: a stored `Vary: Origin` mustn't hide a copy.
 const MATCH = { ignoreVary: true };
 
-// The username a shell can be fetched for, from a page's URL: the owner of
-// an owner page, never a demo account (served with no session, so its
-// sync/account shells redirect to login). Left as it appears in the URL.
+// Never a demo account: with no session, its shells redirect to login.
 export function precacheUsername(url) {
   const route = matchOwnerRoute(new URL(url).pathname);
   return route && !DEMO_USERNAMES.includes(route.username) ? route.username : null;
 }
 
-// Each item: `key` is what the cache stores it under, `url` what to fetch,
-// `hash` the content it must have (absent on content-addressed URLs).
-// Shells are stored under their page-type key (#947) but fetched through
-// the owner URL: shell files aren't directly fetchable (spike #957 Q7).
-// With no username, the shells wait for a later attempt.
+// Shells are stored by page but fetched via the owner URL: shell files aren't directly fetchable.
 export function precacheItems(list, origin, username) {
   const assets = list.assets.map(({ url, hash }) => {
     const key = new URL(url, origin).href;
@@ -49,10 +33,7 @@ export async function sha256Hex(response) {
   return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
 }
 
-// A previous build's copy of `item` that is certainly still right: any
-// copy of a content-addressed URL, else one whose bytes hash to what this
-// build's list says. The URL alone proves nothing for a shell or the
-// manifest, whose content changes under the same URL.
+// Reused only when the URL is content-addressed or the bytes match the list's hash.
 async function previousCopy(cachesImpl, currentName, item) {
   for (const name of await cachesImpl.keys()) {
     if (name === currentName || !isBuildCache(name)) continue;
@@ -77,8 +58,7 @@ export async function fillPrecache({ list, cacheName, origin, username, cachesIm
       return;
     }
     try {
-      // Only content-addressed files may come from the HTTP cache: anything
-      // else could be the last build's copy under the same URL.
+      // Only content-addressed files may come from the HTTP cache.
       const response = await fetchImpl(item.url, { credentials: "same-origin", cache: item.immutable ? "default" : "no-cache" });
       const cacheable = item.page ? isCacheableShell(response, item.page) : isCacheableAsset(response);
       if (!cacheable) throw new Error(`${item.url}: ${response.status}`);

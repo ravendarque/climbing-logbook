@@ -1,7 +1,4 @@
-// #962, ADR-0028 -- one Cache Storage cache per build. The name carries the
-// build ID, so a deploy switches the whole worker cache at once; activation
-// keeps the current and previous build's caches (an open tab from the last
-// build keeps working) and deletes every other logbook-* cache.
+// One cache per build; activation keeps this build's and the previous one's.
 const PREFIX = "logbook-";
 
 export function cacheNameFor(buildId) {
@@ -20,10 +17,7 @@ export function isBuildCache(name) {
   return BUILD_CACHE.test(name);
 }
 
-// Names to delete on activate: every logbook-* cache except the current
-// one and the most recent *build* cache before it (so an open tab from the
-// last build keeps working). `keys` is caches.keys(), which returns names
-// in creation order. Caches that aren't ours are never touched.
+// Everything logbook-* except this build and the previous build; others' caches untouched.
 export function cachesToDelete(keys, currentName) {
   const others = keys.filter(name => isWorkerCache(name) && name !== currentName);
   const previous = others.filter(isBuildCache).at(-1);

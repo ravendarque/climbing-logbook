@@ -1,13 +1,5 @@
-// #960, ADR-0028 decision 7 -- local data belongs to one user. Every
-// per-user localStorage key is namespaced by the owner page's username
-// (logbook_entries_cache:raven), so on a shared device one user's cached
-// logbook, settings or unsynced queue can never be read by another user's
-// pages. The data isn't deleted on logout: an unsynced queue stays
-// attributed to its owner (never silently discarded), and signing back in
-// doesn't force a cold sync (ADR-0019).
-//
-// Device-level keys (theme, grade-scale preferences, the logged-in hint)
-// stay global.
+// Per-user keys are namespaced by username; device-level keys (theme, scale choices) stay global.
+// Nothing is deleted at logout: an unsynced queue stays with its owner.
 import { matchOwnerRoute } from "../shared/owner-routes.js";
 
 // Who last signed in on this origin -- the identity the page-side
