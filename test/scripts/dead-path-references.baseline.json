@@ -34,8 +34,6 @@
   "client/user-storage.js: static/login/login.js",
   "docs/coding-standards.md: client/server",
   "docs/coding-standards.md: infra/platform-specific",
-  "docs/infra-architecture.md: infra/access.tf",
-  "docs/infra-architecture.md: infra/redirects.tf",
   "e2e/global-setup.js: migrations/reset/seed",
   "e2e/offline-launch.spec.js: static/session-redirect.js",
   "infra/README.md: infra/deploy",
