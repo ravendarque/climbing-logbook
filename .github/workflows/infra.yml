@@ -32,13 +32,29 @@ jobs:
 
       - run: terraform init
 
-      - name: Plan (PRs only)
-        if: github.event_name == 'pull_request'
-        run: terraform plan -no-color
+      # #1075 -- apply runs unattended on every push to main, so the plan is
+      # the only thing a human ever reads. Plan to a file on every event,
+      # refuse any delete (a replacement is delete+create, so this catches
+      # those too), then apply exactly the plan that was checked -- never a
+      # fresh one computed after the check. On a PR the same guard turns the
+      # check red before merge. A deliberate removal isn't done here: run it
+      # locally with the plan in front of you (infra/README.md).
+      - name: Plan
+        run: terraform plan -no-color -input=false -out=tfplan
+
+      - name: Refuse deletes and replacements
+        run: |
+          DELETES=$(terraform show -json tfplan | jq -r '(.resource_changes // [])[] | select(.change.actions | index("delete")) | "\(.address) (\(.change.actions | join(", ")))"')
+          if [ -n "$DELETES" ]; then
+            echo "::error::This plan deletes or replaces resources. Unattended apply refuses to do that (#1075):"
+            echo "$DELETES"
+            exit 1
+          fi
+          echo "No deletes or replacements in this plan."
 
       - name: Apply (main only)
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-        run: terraform apply -auto-approve -no-color
+        run: terraform apply -no-color -input=false tfplan
 
       - name: Sync wrangler.jsonc D1 database id
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'

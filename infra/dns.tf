@@ -8,6 +8,10 @@
 # -- 192.0.2.1 is RFC 5737's TEST-NET-1, standard practice for a "this IP
 # is never actually contacted" placeholder, since the Worker Route answers
 # every request before Cloudflare would ever reach out to `content`.
+# #1075 -- every record here carries prevent_destroy: a destroy-then-create
+# (a renamed resource address, a provider schema change) takes the
+# hostname off the internet for the whole gap, and nothing in CI stops an
+# unattended apply from doing it.
 data "cloudflare_zone" "app" {
   filter = {
     name = var.app_zone_name
@@ -22,6 +26,10 @@ resource "cloudflare_dns_record" "app_apex" {
   ttl     = 1
   proxied = true
   comment = "Placeholder for the climbing-logbook Worker Route (#295) -- traffic never actually reaches this IP."
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "cloudflare_dns_record" "app_my_subdomain" {
@@ -32,6 +40,10 @@ resource "cloudflare_dns_record" "app_my_subdomain" {
   ttl     = 1
   proxied = true
   comment = "Placeholder for the climbing-logbook Worker Route (#295) -- traffic never actually reaches this IP."
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 # #543 -- beta.climbinglogbook.com (ADR-0020). Same placeholder-record
@@ -46,4 +58,8 @@ resource "cloudflare_dns_record" "app_beta_subdomain" {
   ttl     = 1
   proxied = true
   comment = "Placeholder for the beta Worker Route (#443) -- traffic never actually reaches this IP."
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
