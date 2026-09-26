@@ -17,7 +17,7 @@
 // binding.
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
-import { SHELL_PATHS } from "../server/api/owned-routes.js";
+import { SHELL_PATHS } from "../shared/owner-routes.js";
 
 describe("wrangler.jsonc run_worker_first covers every owned page family (#799)", () => {
   it("has a bare-path and wildcard entry for every top-level SHELL_PATHS family", () => {

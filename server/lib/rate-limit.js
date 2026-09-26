@@ -1,13 +1,4 @@
-// #924 -- generic, reusable D1-backed rate limiter for public,
-// unauthenticated write endpoints that never go through Better Auth's own
-// request pipeline (and therefore never get #889's own rate limiting --
-// see server/lib/auth.js's `rateLimit` config, entirely that library's
-// internal feature, not something this module reuses or replaces).
-// Fixed window, not sliding -- simple, and more than adequate for
-// "block obvious spam," not a precision-critical limit. `key` carries
-// its own bucket prefix (e.g. "report-issue:<ip>") so multiple unrelated
-// endpoints can share migrations/0018's one `rate_limits` table without
-// colliding.
+// Fixed window for public forms outside Better Auth; the key carries its own endpoint prefix.
 const WINDOW_MS = 60 * 60 * 1000;
 
 export async function checkRateLimit(env, key, limit) {
