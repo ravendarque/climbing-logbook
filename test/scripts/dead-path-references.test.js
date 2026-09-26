@@ -37,7 +37,7 @@ function splitJoined(token) {
 // only matches the bare path when that directory exists on disk.
 function isGitIgnored(path) {
   try {
-    execFileSync("git", ["check-ignore", "--no-index", "-q", path, `${path}/_`], { cwd: ROOT });
+    execFileSync("git", ["check-ignore", "--no-index", path, `${path}/_`], { cwd: ROOT, stdio: "ignore" });
     return true;
   } catch {
     return false;
