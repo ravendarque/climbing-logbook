@@ -1,11 +1,3 @@
-// #924 -- exercises server/api/report-issue.js through the real Worker
-// entrypoint, same "public HTTP contract" philosophy as every other
-// test/*.test.js file. Real Cloudflare siteverify calls never reach a
-// real network in tests -- stubSiteverify() below is test/turnstile.test.js's
-// own exact stubbing pattern (vitest.config.js's TURNSTILE_SECRET_KEY is
-// a plain placeholder string, not one of Cloudflare's real dummy-key
-// literals, so unlike local dev/.dev.vars there's no short-circuit inside
-// server/lib/turnstile.js itself here -- fetch() has to be intercepted).
 import { env } from "cloudflare:workers";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createAuthedSession, fetchJson, resetAuthTables } from "./support.js";
@@ -15,11 +7,6 @@ const REPORT_URL = "/-/api/report-issue";
 beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
 afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
 
-// user_id is ON DELETE SET NULL (migrations/0018), not CASCADE, so
-// resetAuthTables()'s own "user" cleanup doesn't clear rows here -- this
-// file's own reset, same "each file manages what it needs" pattern
-// public-data.test.js and others already use for tables outside
-// resetAuthTables()'s own AUTH_TABLES list.
 beforeEach(async () => {
   await resetAuthTables();
   await env.LOGBOOK_DB.prepare(`DELETE FROM issue_reports`).run();
@@ -27,7 +14,6 @@ beforeEach(async () => {
 });
 afterEach(() => { vi.unstubAllGlobals(); });
 
-// test/turnstile.test.js's own exact stubbing pattern.
 function stubSiteverify(success) {
   vi.stubGlobal("fetch", vi.fn(async (input) => {
     const url = typeof input === "string" ? input : input.url;

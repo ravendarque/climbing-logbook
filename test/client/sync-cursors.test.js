@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getCursor, setCursor } from "../../client/sync-cursors.js";
 
-// Same fake-storage pattern as test/client/sync-status.test.js -- the
-// Workers pool Vitest runs client/ tests under has no localStorage
-// global.
+// The Workers pool has no localStorage global.
 function fakeStorage() {
   const map = new Map();
   return {
@@ -23,9 +21,6 @@ describe("getCursor/setCursor", () => {
     expect(getCursor("entries", storage)).toBe(12345);
   });
 
-  // #500 -- each table's own sync_cursor sequence is independent
-  // (server/lib/d1-resource.js's own reasoning) -- setting one table's
-  // cursor must never disturb another's.
   it("tracks each table's cursor independently", () => {
     const storage = fakeStorage();
     setCursor("entries", 100, storage);

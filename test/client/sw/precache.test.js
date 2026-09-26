@@ -1,4 +1,3 @@
-// #948 -- the resumable, delta-aware pre-cache fill (client/sw/precache.js).
 import { describe, expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";
 import { fillPrecache, precacheItems, precacheUsername, sha256Hex } from "../../../client/sw/precache.js";
@@ -7,7 +6,6 @@ const ORIGIN = "https://my.climbinglogbook.com";
 const CURRENT = "logbook-bbbbbbbbbbbbbbbb";
 const PREVIOUS = "logbook-aaaaaaaaaaaaaaaa";
 const hashOf = body => createHash("sha256").update(body).digest("hex");
-// What this build serves at each URL (a shell's body names its page).
 const BODY = url => `body of ${url}`;
 const LIST = {
   shells: [{ page: "log", hash: hashOf(BODY("/raven/log")) }, { page: "account/import", hash: hashOf(BODY("/raven/account/import")) }],
@@ -20,7 +18,6 @@ const LIST = {
 };
 const abs = url => new URL(url, ORIGIN).href;
 
-// Just enough of CacheStorage for the fill.
 function fakeCaches(initial = {}) {
   const stores = new Map(Object.entries(initial).map(([name, entries]) => [name, new Map(Object.entries(entries))]));
   return {
@@ -41,7 +38,6 @@ const response = ({ status = 200, type = "basic", redirected = false, shell, bod
   arrayBuffer: async () => new TextEncoder().encode(body).buffer,
 });
 
-// Serves every URL; a shell URL carries its page's shell header.
 function server(overrides = {}) {
   return vi.fn(async url => {
     if (url in overrides) {

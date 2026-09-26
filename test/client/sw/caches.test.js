@@ -1,6 +1,3 @@
-// #962, ADR-0028 -- per-build cache naming and which caches activation
-// deletes (keep current + previous build, nothing else of ours, never
-// anyone else's).
 import { describe, expect, it } from "vitest";
 import { cacheNameFor, cachesToDelete, isWorkerCache } from "../../../client/sw/caches.js";
 

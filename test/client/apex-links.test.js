@@ -1,5 +1,3 @@
-// #985 -- app pages point their apex links (data-apex-link) at the apex on
-// the production app hosts, and leave them alone everywhere else.
 import { describe, expect, it } from "vitest";
 import { pointApexLinksAtApex } from "../../client/apex-links.js";
 

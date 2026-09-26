@@ -1,23 +1,10 @@
-// Exercises server/api/entries.js through the real Worker entrypoint (real
-// routing + real D1 binding), not by importing validateFields/buildRow
-// directly -- they're module-private, and testing through the public HTTP
-// contract means these tests keep passing across any internal refactor
-// that preserves behavior.
 import { env } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
-// Task 7 -- this one test block exercises handlePublicGet/publicRowToJson
-// directly rather than through fetchJson/jsonRequest (this file's usual
-// HTTP-contract testing philosophy, see header comment above): it's the
-// exact same (request, env, userId) signature server/api/public-data.js
-// calls it with, not a new testing style for the rest of the file.
 import { handlePublicGet, publicRowToJson } from "../server/api/entries.js";
 
 const ENTRIES_URL = "/-/api/entries";
 
-// Beta gate (#296) is orthogonal to what this file tests -- disabled here
-// the same way test/auth.test.js/test/email.test.js do, since
-// createAuthedSession() doesn't supply an invite code.
 beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
 afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
 
@@ -33,11 +20,6 @@ beforeEach(async () => {
   locationId = await locationIdOf(placeId);
 });
 
-// #111 -- seedPlace() only ever returns placeId (its own established
-// contract, many existing call sites across the suite depend on that
-// exact shape) -- this looks up the locationId a seeded place actually
-// belongs to via the real API, rather than widening seedPlace()'s own
-// return shape for the sake of this one file's new tests.
 async function locationIdOf(id, extraCookie = cookie) {
   const { places } = await (await fetchJson("/-/api/places", { headers: { Cookie: extraCookie } })).json();
   return places.find(p => p.id === id).locationId;
@@ -81,8 +63,6 @@ describe("handleGet", () => {
     expect(entries[0].name).toBe("La Marie-Rose");
   });
 
-  // #499 -- a soft-deleted entry stays a real row in D1, but the
-  // "everything" endpoint (like every other read path) excludes it.
   it("excludes a soft-deleted entry", async () => {
     const created = await (await post(validEntry())).json();
     await del(created.entries[0].id);
@@ -120,9 +100,6 @@ describe("attemptsToSend / rpe", () => {
   });
 });
 
-// #498 -- /sync's own flat (not per-location) chunked fetch: opt-in via
-// `limit` alone (no locationId), keeping the plain describe("handleGet")
-// block above's "everything, no params" contract completely unchanged.
 describe("handleGet (flat limit/offset, no locationId -- #498 chunked full sync)", () => {
   function getChunk(params, extraCookie = cookie) {
     const qs = new URLSearchParams(params).toString();
@@ -145,12 +122,6 @@ describe("handleGet (flat limit/offset, no locationId -- #498 chunked full sync)
     expect(last.total).toBe(5);
   });
 
-  // total falls back to 0 here, not the real count -- COUNT(*) OVER()
-  // can only be read off a row this query actually returns, and an
-  // offset past the end returns none. Not a real problem for /sync's
-  // own chunk loop (client/sync-main.js): it always stops as soon as a
-  // chunk comes back shorter than requested, so it never issues a
-  // request that overshoots the total in normal operation.
   it("offset past the end returns an empty (not error) chunk", async () => {
     await post(validEntry());
     const res = await getChunk({ limit: "20", offset: "50" });
@@ -170,11 +141,6 @@ describe("handleGet (flat limit/offset, no locationId -- #498 chunked full sync)
     expect(await res.json()).toEqual({ entries: [], total: 0, cursor: 0 });
   });
 
-  // #500 -- the max sync_cursor across every matching row, independent of
-  // this chunk's own LIMIT/OFFSET (same "whole matching set, not just this
-  // page" reasoning as `total`) -- /sync's cold path (client/sync-main.js)
-  // needs this to record entries' starting cursor for a future warm delta
-  // fetch, without a separate request.
   it("reports the max sync_cursor across every matching row, the same value on every chunk", async () => {
     for (let i = 0; i < 3; i++) await post({ ...validEntry(), name: `Route ${i}` });
     const ids = (await (await get()).json()).entries.map(e => e.id);
@@ -195,8 +161,6 @@ describe("handleGet (flat limit/offset, no locationId -- #498 chunked full sync)
     expect(entries.map(e => e.name)).toEqual(["Only Route"]);
   });
 
-  // #499 -- excludes a soft-deleted entry, and its true total drops
-  // accordingly (not just filtered out of the returned rows).
   it("excludes a soft-deleted entry from both the chunk and its total", async () => {
     const created = await (await post(validEntry())).json();
     await post({ ...validEntry(), name: "Still Here" });
@@ -208,12 +172,6 @@ describe("handleGet (flat limit/offset, no locationId -- #498 chunked full sync)
   });
 });
 
-// #111 -- /log's own per-*table* (location) "Show more"/"Show all"
-// follow-ups (Raven's own correction: pagination is per-table, and a
-// table is one location, which can combine several places/areas under
-// it -- not per-place). Doesn't touch the no-locationId "everything"
-// contract above at all -- covered separately here so a regression in
-// one can't hide behind the other's passing tests.
 describe("handleGet (locationId -- #111 per-table pagination)", () => {
   function getLocation(id, params = {}, extraCookie = cookie) {
     const qs = new URLSearchParams({ locationId: id, ...params }).toString();
@@ -221,8 +179,6 @@ describe("handleGet (locationId -- #111 per-table pagination)", () => {
   }
 
   it("returns only that location's entries, across every place under it", async () => {
-    // A second place under the SAME location -- proves this aggregates
-    // across places, not just one.
     const secondPlaceId = (await (await jsonRequest("POST", "/-/api/places", { locationId, area: "Second Area" }, { Cookie: cookie })).json()).places.at(-1).id;
     const otherLocationPlaceId = await seedPlace(cookie, { locationName: "Other Crag" });
     await post(validEntry());
@@ -251,7 +207,6 @@ describe("handleGet (locationId -- #111 per-table pagination)", () => {
     expect(entries).toHaveLength(20);
   });
 
-  // #499 -- excludes a soft-deleted entry from a per-location page too.
   it("excludes a soft-deleted entry", async () => {
     const created = await (await post(validEntry())).json();
     await del(created.entries[0].id);
@@ -279,12 +234,6 @@ describe("handleGet (locationId -- #111 per-table pagination)", () => {
   });
 });
 
-// #500 -- `?since=<cursor>` switches /log's own GET to the delta-sync
-// path: "everything changed since cursor X", including tombstoned
-// deletes (via `deleted: true`), for /sync's warm-boot catch-up. A
-// genuinely different contract from every describe block above (which
-// all cover the "everything live" shapes) -- covered separately so a
-// regression in one can't hide behind the other's passing tests.
 describe("handleGet (?since= -- #500 delta sync)", () => {
   function getSince(since, extraCookie = cookie) {
     return fetchJson(`${ENTRIES_URL}?since=${since}`, { headers: { Cookie: extraCookie } });
@@ -405,27 +354,17 @@ describe("handlePost", () => {
     expect((await res.json()).error).toMatch(/^type must be one of/);
   });
 
-  // #703 -- "6a" is now genuinely valid for Boulder too, via
-  // font-non-standard's identical number+letter+modifier shape -- see
-  // shared/entry-schema.test.js's own equivalent test for the reasoning.
   it("rejects a grade not valid for the entry's type in any of its scales", async () => {
-    // "VI+" is UIAA notation -- a Sport-only scale, no Boulder scale
-    // recognizes it at all.
     const res = await post({ ...validEntry(), type: "boulder", grade: "VI+" });
     expect(res.status).toBe(400);
     expect((await res.json()).error).toMatch(/^grade is not a valid grade for/);
   });
 
-  // #430/#646 -- 'lead' fully retired now (this test used to cover it
-  // directly; superseded by the 'sport' case below once the cutover
-  // migration made 'lead' permanently uncreatable at the DB layer, even
-  // though VALID_TYPES won't drop the string itself until #642).
   it("accepts a grade valid for the sport type", async () => {
     const res = await post({ ...validEntry(), type: "sport", grade: "6a", sportStyle: "lead" });
     expect(res.status).toBe(201);
   });
 
-  // #702 -- gradeScale round-trips when the client sends it explicitly...
   it("creates an entry with an explicit gradeScale, and reports it back", async () => {
     const res = await post({ ...validEntry(), gradeScale: "font-non-standard" });
     expect(res.status).toBe(201);
@@ -433,11 +372,6 @@ describe("handlePost", () => {
     expect(entries[0].gradeScale).toBe("font-non-standard");
   });
 
-  // ...and the server defaults it sensibly when the client omits it --
-  // client/entry-form.js sends this on every submit today (#703's picker
-  // shipped), but any other/older write path that omits it (an import,
-  // a direct API call) must keep working and still get a real, usable
-  // gradeScale back.
   it("defaults gradeScale to font-non-standard for a Boulder entry when the client omits it", async () => {
     const res = await post(validEntry());
     const { entries } = await res.json();
@@ -450,10 +384,6 @@ describe("handlePost", () => {
     expect(entries[0].gradeScale).toBe("french");
   });
 
-  // #754 -- LEGACY_SPORT_NON_STANDARD_GRADES's own comment says it
-  // "MUST stay in sync" with migrations/0016_add_grade_scale.sql's WHERE
-  // clause, but had no test of its own -- only the "current low end"
-  // (french) branch above was covered.
   it.each(["1", "1+", "2", "2+", "3", "3+"])(
     "defaults gradeScale to french-non-standard for a Sport entry at the legacy pre-correction low end (grade %s)",
     async grade => {
@@ -525,11 +455,6 @@ describe("handlePost", () => {
     expect(entries).toHaveLength(1);
   });
 
-  // #515 -- an id that belonged to a since-soft-deleted row used to
-  // silently no-op here (findOwnedRow's own idempotent-replay check is
-  // deliberately not excludeDeleted-scoped, so it still recognized the
-  // tombstoned row and treated a genuinely NEW create as a replay) --
-  // 200 OK, but never actually (re)created. Now resurrects it instead.
   it("resurrects a soft-deleted row when a create reuses its id, rather than silently no-op'ing", async () => {
     const entryWithId = { ...validEntry(), id: "resurrect-id-1" };
     const created = await post(entryWithId);
@@ -554,9 +479,6 @@ describe("handlePost", () => {
     const first = await post(entryWithId);
     expect(first.status).toBe(201);
 
-    // Replaying with different field values doesn't overwrite anything --
-    // same "the first write wins, this is purely a dedup no-op" contract
-    // the pre-#515 behavior already had for a still-live row.
     const second = await post({ ...validEntry(), id: "still-live-id-1", name: "Should Not Apply" });
     expect(second.status).toBe(200);
     const { entries } = await second.json();
@@ -576,19 +498,12 @@ describe("handlePost", () => {
     expect(entries[0].firstAttempt).toBe(false);
   });
 
-  // #430/#641 -- sportStyle round-trips like any other field once it's
-  // valid for the entry's type; entrySchema is what actually enforces the
-  // type=sport requirement (covered in test/shared/entry-schema.test.js),
-  // this just confirms the write path persists and returns it.
   it("persists and returns sportStyle for a sport entry", async () => {
     const res = await post({ ...validEntry(), type: "sport", grade: "6a", sportStyle: "top_rope" });
     const { entries } = await res.json();
     expect(entries[0].sportStyle).toBe("top_rope");
   });
 
-  // #643 -- sportStyle is required for a sport entry (entrySchema's own
-  // rule, covered directly in test/shared/entry-schema.test.js); this just
-  // confirms the write path actually enforces it, not just accepts it.
   it("rejects a sport entry with no sportStyle at all", async () => {
     const res = await post({ ...validEntry(), type: "sport", grade: "6a" });
     expect(res.status).toBe(400);
@@ -603,10 +518,6 @@ describe("handlePost", () => {
     expect(entries[0].notes).toBeNull();
   });
 
-  // #499 -- app-level Date.now(), not a column DEFAULT (D1 rejects a
-  // non-constant DEFAULT on ALTER TABLE ADD COLUMN) -- confirms the real
-  // insert path actually populates it, not just the migration's own
-  // one-time backfill of pre-existing rows.
   it("populates sync_cursor on create", async () => {
     const before = Date.now();
     const res = await post(validEntry());
@@ -654,9 +565,6 @@ describe("handlePut", () => {
     expect((await res.json()).error).toMatch(/^status must be one of/);
   });
 
-  // #499 -- a soft-deleted entry is rejected as "not found," same as if
-  // it never existed -- editing it should never resurrect it with new
-  // field values.
   it("404s when the id belongs to a soft-deleted entry", async () => {
     const created = await (await post(validEntry())).json();
     const id = created.entries[0].id;
@@ -703,9 +611,6 @@ describe("handleDelete", () => {
   });
 
   it("is idempotent when the id doesn't exist, rather than erroring (#268)", async () => {
-    // Mirrors handlePost's duplicate-id idempotency -- the client's
-    // offline queue replays a delete unconditionally now, including for
-    // an entry that only ever existed as a queued, never-synced add.
     const res = await del("does-not-exist");
     expect(res.status).toBe(200);
     const { entries } = await res.json();
@@ -723,9 +628,6 @@ describe("handleDelete", () => {
     expect(entries.find(e => e.id === id)).toBeDefined();
   });
 
-  // #499 -- soft delete (a deleted_at tombstone), not a real DELETE, so a
-  // future delta fetch (#500) can learn a row disappeared instead of a
-  // deleted row just silently never showing up again with no record why.
   it("soft-deletes -- the row still exists in D1, just excluded from reads", async () => {
     const created = await (await post(validEntry())).json();
     const id = created.entries[0].id;
@@ -812,22 +714,6 @@ describe("entry_moves / entry_pain_moves", () => {
     expect(body.error).toBe("moves[0].wallAngle must be one of: slab, vert, overhang, roof");
   });
 
-  // Regression test for a D1 bound-parameter overflow: attachChildRows()
-  // used to build one `IN (?,?,...)` query with one bound param per row,
-  // and D1 (SQLite) hard-caps a statement at 100 bound params -- verified
-  // empirically, 101 params throws D1_ERROR: too many SQL variables. 105
-  // entries is enough to exercise more than one full 90-id chunk plus a
-  // remainder (see CHUNK_SIZE in server/api/entries.js) without slowing the
-  // suite down further than needed to prove the chunking works. Before the
-  // chunk-and-merge fix, this GET throws/500s once past 100 entries; after
-  // it, every entry's moves/painMoves come back (empty arrays here, since
-  // none of these entries have any child rows).
-  // 105 sequential real HTTP+D1 round trips run well under the suite's
-  // default 20s testTimeout in isolation (~1s), but the full suite's
-  // parallel Workers-pool instances contend for the same resources, which
-  // this test's unusually large number of awaited requests feels more than
-  // any other single test in the file -- a longer explicit timeout, not a
-  // change to the shared default, absorbs that contention.
   it("a plain GET succeeds and returns every entry once entry count crosses the 100-bound-parameter chunk boundary", async () => {
     for (let i = 0; i < 105; i++) await post({ ...validEntry(), name: `Route ${i}` });
 
@@ -842,10 +728,6 @@ describe("entry_moves / entry_pain_moves", () => {
   }, 60000);
 });
 
-// The one genuinely new security boundary #297 introduces -- no existing
-// precedent to extend from. User A's entries must be completely invisible
-// and unreachable to user B, even when B knows (or guesses/forges) A's
-// real ids.
 describe("cross-user isolation", () => {
   it("a second user's own GET never sees the first user's entries", async () => {
     await post(validEntry());
@@ -864,7 +746,6 @@ describe("cross-user isolation", () => {
     const res = await put({ ...validEntry(), placeId: placeIdB, id, name: "Hijacked" }, userB.cookie);
     expect(res.status).toBe(404);
 
-    // The original entry, read back by its real owner, is untouched.
     const stillOwned = await (await get()).json();
     expect(stillOwned.entries[0].name).toBe("La Marie-Rose");
   });

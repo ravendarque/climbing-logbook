@@ -1,9 +1,4 @@
 // @vitest-environment happy-dom
-//
-// #605 -- covers the render-gating fix (this file had no dedicated unit
-// test before). happy-dom, same reasoning test/client/move-tagging.test.js
-// gives: this component renders real DOM and needs a document, which the
-// Cloudflare Workers pool (vitest.config.js's default) doesn't have.
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import "../../client/components/climbing-tab-bar.js";
 

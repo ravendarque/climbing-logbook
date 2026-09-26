@@ -1,5 +1,3 @@
-// #997 -- the username policy: reserved names, their lookalikes, authority
-// words and the brand are rejected; innocent near-misses are not.
 import { describe, expect, it } from "vitest";
 import { checkUsername, skeletons } from "../../shared/username-policy.js";
 import { AUTHORITY_TOKENS, RESERVED_USERNAMES } from "../../shared/reserved-usernames.js";
@@ -61,7 +59,6 @@ describe("checkUsername", () => {
     }
   });
 
-  // #997 phase 2 -- slurs and hate speech only (Raven, 2026-09-25).
   describe("slurs and hate speech", () => {
     it("rejects every listed phrase as written", () => {
       for (const word of [...OBSCENITY_PHRASES, ...Object.keys(EXTRA_PATTERNS), ...RAW_TERMS]) {

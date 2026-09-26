@@ -1,15 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { SHELL_PATHS, matchOwnerRoute } from "../../shared/owner-routes.js";
 
-// #958 -- matchOwnerRoute replaced two hand-copied regexes in
-// server/index.js. This is that regex, verbatim from before the change,
-// kept here only as the reference the equivalence test below checks
-// against -- not used anywhere in app code.
 const PRE_958_REGEX = /^\/([^/]+)\/(log|map|performance(?:\/(?:pyramid|injury|strengths|trends|gap|rpe))?|sync|account(?:\/edit|\/import)?)\/?$/;
 
 const PAGES = Object.keys(SHELL_PATHS);
-// Pages added since #958, which the old regex never knew about. The first
-// test below covers them; the equivalence check leaves them out.
 const ADDED_SINCE_958 = ["account/beta"];
 
 describe("matchOwnerRoute (#958)", () => {
@@ -53,9 +47,6 @@ describe("matchOwnerRoute (#958)", () => {
     expect(matchOwnerRoute("/devuser/hasOwnProperty")).toBeNull();
   });
 
-  // No behaviour change: for every path in a corpus built from the page
-  // list plus the edge cases above, the new matcher and the old regex agree
-  // on match/no-match and on the captured username and page.
   it("agrees with the pre-#958 regex on every path in the corpus", () => {
     const usernames = ["devuser", "a", "j%C3%B6rg", "user.name", "user-name_1"];
     const pre958Pages = PAGES.filter(p => !ADDED_SINCE_958.includes(p));

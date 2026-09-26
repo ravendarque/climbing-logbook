@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { isSynced, markSynced } from "../../client/sync-status.js";
 
-// Same fake-storage pattern as test/client/store.test.js -- the Workers
-// pool Vitest runs client/ tests under has no localStorage global.
+// The Workers pool has no localStorage global.
 function fakeStorage() {
   const map = new Map();
   return {

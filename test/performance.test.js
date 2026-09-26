@@ -1,9 +1,3 @@
-// Exercises server/api/performance.js through the real Worker entrypoint
-// (real routing + real D1 binding) -- proves the HTTP wiring (auth
-// resolution, both disciplines in one response, cross-user isolation).
-// The pyramid math itself (send-counting, 8-4-2-1 promotion) is already
-// thoroughly covered directly against the pure functions in
-// test/shared/pyramid-stats.test.js -- not re-verified exhaustively here.
 import { env } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
@@ -38,9 +32,6 @@ function postEntry(overrides = {}, extraCookie = cookie) {
 function getInjuryLog(extraCookie = cookie) {
   return fetchJson(INJURY_URL, { headers: { Cookie: extraCookie } });
 }
-// Matches test/entries.test.js's own del() convention exactly (#499's
-// soft-delete DELETE ?id= route) -- needed here to prove a soft-deleted
-// entry's pain moves drop out of both the log and the cluster count.
 function del(id, extraCookie = cookie) {
   const path = id === undefined ? ENTRIES_URL : `${ENTRIES_URL}?id=${encodeURIComponent(id)}`;
   return fetchJson(path, { method: "DELETE", headers: { Cookie: extraCookie } });
@@ -65,15 +56,6 @@ describe("handleGetPyramid", () => {
     expect(sport.top4.some(r => r.grade === "6a" && r.count === 1)).toBe(true);
   });
 
-  // #430/#651's "merges a legacy lead-typed entry into the sport bucket"
-  // test lived here -- removed in #646: the cutover migration retired the
-  // 'lead' discipline row entirely, so postEntry({ type: "lead" }) can no
-  // longer succeed via the real API at all (every environment converts
-  // its data exactly once and never has a 'lead' row again afterward).
-  // server/api/performance.js's asSport() remap stays in place regardless
-  // -- a permanent no-op once no 'lead' rows can exist -- but there's no
-  // longer a way to construct the scenario it used to guard against.
-
   it("excludes non-send statuses and out-of-window dates, same rules as the pure function", async () => {
     await postEntry({ status: "project" });
     await postEntry({ date: "2020-01-01" }); // over a year old
@@ -97,10 +79,6 @@ describe("handleGetPyramid", () => {
     });
   });
 
-  // #737 -- ?boulderScale/?sportScale: the picker's whole point is that
-  // the row STRUCTURE itself changes with the chosen scale, not just its
-  // label text (Raven, 2026-09-12) -- verified here end-to-end through
-  // the real HTTP route, not just the pure function.
   it("builds rows from the requested view scale, not just the native default", async () => {
     await postEntry({ type: "boulder", grade: "6A", gradeScale: "font-non-standard" });
     const res = await fetchJson(`${PYRAMID_URL}?boulderScale=v-scale`, { headers: { Cookie: cookie } });
@@ -116,31 +94,17 @@ describe("handleGetPyramid", () => {
     const { boulder: bogusBoulder } = await bogus.json();
     expect(bogusBoulder.top4.some(r => r.grade === "6B" && r.count === 1)).toBe(true);
 
-    // "french" is a real scale id, just not one of Boulder's own -- must
-    // not be accepted as Boulder's view scale either.
     const crossDiscipline = await fetchJson(`${PYRAMID_URL}?boulderScale=french`, { headers: { Cookie: cookie } });
     expect(crossDiscipline.status).toBe(200);
     const { boulder: crossBoulder } = await crossDiscipline.json();
     expect(crossBoulder.top4.some(r => r.grade === "6B" && r.count === 1)).toBe(true);
   });
 
-  // #796 -- font-non-standard/french-non-standard are real, valid scale
-  // ids (an entry can still be LOGGED in one via the entry-form's own
-  // #703 picker), just never a valid REPORT view scale -- a
-  // ?boulderScale=font-non-standard request must fall back the same way
-  // an unrecognized id does, not be honored just because the id itself
-  // is real. Regression guard for the gap #796 closed: before this fix,
-  // resolveViewScale validated against every real scale id, so this
-  // request would have been accepted.
   it("rejects a non-standard scale id as a report view scale, falling back to the native default", async () => {
     await postEntry({ type: "boulder", grade: "6A", gradeScale: "font-non-standard" });
     const noScale = await fetchJson(PYRAMID_URL, { headers: { Cookie: cookie } });
     const nonStandard = await fetchJson(`${PYRAMID_URL}?boulderScale=font-non-standard`, { headers: { Cookie: cookie } });
     expect(nonStandard.status).toBe(200);
-    // Same fallback (ROW_SCALE_BY_TYPE.boulder) either way -- a real,
-    // valid scale id being rejected specifically because it's a
-    // non-standard one looks identical to no scale id being supplied at
-    // all, not to some third, distinct outcome.
     expect(await nonStandard.json()).toEqual(await noScale.json());
   });
 });
@@ -224,9 +188,6 @@ describe("handleGetStrengthsWeaknesses", () => {
   it("lists available anchors once moves are tagged", async () => {
     await postEntry({ moves: [{ difficulty: "hardest", limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "slab" }] });
     const { anchors } = await (await getStrengths()).json();
-    // #614 -- sentence case via humanize() now, not the raw value/old
-    // Title Case (see shared/strengths-stats.test.js for the dedicated
-    // humanize() coverage).
     expect(anchors).toContainEqual({ dimension: "holdType", value: "toe-hook", label: "Toe hook" });
     expect(anchors).toContainEqual({ dimension: "limbSide", value: "foot-right", label: "Right foot" });
   });
@@ -267,12 +228,6 @@ function getVolume(params, extraCookie = cookie) {
   return fetchJson(`${VOLUME_URL}?${qs}`, { headers: { Cookie: extraCookie } });
 }
 
-// #600 -- a 21-day window (2026-01-01..2026-01-21) is short enough that
-// weekBuckets() picks a 1-week bucket width (matching the old 3-monthly-
-// bucket tests' own shape: 3 buckets, "the middle one" as the target for
-// a real entry). The middle bucket covers 2026-01-08..2026-01-14 -- entries
-// use 2026-01-10 (was 2026-02-10 under the old calendar-month scheme) as
-// "falls in the middle bucket".
 const WINDOW = { start: "2026-01-01", end: "2026-01-21" };
 
 describe("handleGetVolume", () => {
@@ -286,19 +241,11 @@ describe("handleGetVolume", () => {
     expect((await getVolume({ start: WINDOW.start, end: "not-a-date" })).status).toBe(400);
   });
 
-  // Found in review, 2026-09-14: DATE_SHAPE only checks digit shape, not
-  // real calendar validity -- "2026-99-99" passed it, and the naive
-  // daysBetween() on an Invalid Date silently produced NaN, which is
-  // never `> MAX_WINDOW_DAYS`, so this used to fall through to a 200
-  // with weekBuckets() computing over garbage instead of a 400.
   it("returns 400 for a same-shape but calendar-invalid date", async () => {
     expect((await getVolume({ start: "2026-99-99", end: WINDOW.end })).status).toBe(400);
     expect((await getVolume({ start: WINDOW.start, end: "2026-13-40" })).status).toBe(400);
   });
 
-  // Found in review, 2026-09-14: a reversed range gives daysBetween() a
-  // negative number, also never `> MAX_WINDOW_DAYS` -- same silent-200
-  // gap as the invalid-date case above.
   it("returns 400 when start is after end", async () => {
     const res = await getVolume({ start: WINDOW.end, end: WINDOW.start });
     expect(res.status).toBe(400);
@@ -360,8 +307,6 @@ describe("handleGetGap", () => {
     expect((await getGap({ start: "not-a-date", end: WINDOW.end })).status).toBe(400);
   });
 
-  // Same shared validateDateRange() as handleGetVolume -- see that
-  // describe block's own comment for why these two cases matter.
   it("returns 400 for a same-shape but calendar-invalid date", async () => {
     expect((await getGap({ start: "2026-99-99", end: WINDOW.end })).status).toBe(400);
   });
@@ -385,10 +330,6 @@ describe("handleGetGap", () => {
     await postEntry({ type: "boulder", grade: "6B", date: "2026-01-10", firstAttempt: true });
     await postEntry({ type: "sport", grade: "6a", date: "2026-01-12", firstAttempt: false, sportStyle: "lead" });
     const body = await (await getGap(WINDOW)).json();
-    // #717 -- each bucket's own winner is a real { grade, gradeScale }
-    // pair now, not a bare string -- defaultGradeScale() (server/api/
-    // entries.js) infers font-non-standard/french here since neither
-    // postEntry() call above sets gradeScale explicitly.
     expect(body.boulder.flashMaxByBucket).toEqual([null, { grade: "6B", gradeScale: "font-non-standard" }, null]);
     expect(body.sport.flashMaxByBucket).toEqual([null, null, null]);
     expect(body.sport.sendMaxByBucket).toEqual([null, { grade: "6a", gradeScale: "french" }, null]);
@@ -430,8 +371,6 @@ describe("handleGetEffort", () => {
     expect((await getEffort({ start: "not-a-date", end: WINDOW.end })).status).toBe(400);
   });
 
-  // Same shared validateDateRange() as handleGetVolume -- see that
-  // describe block's own comment for why these two cases matter.
   it("returns 400 for a same-shape but calendar-invalid date", async () => {
     expect((await getEffort({ start: "2026-99-99", end: WINDOW.end })).status).toBe(400);
   });
@@ -447,7 +386,6 @@ describe("handleGetEffort", () => {
     await postEntry({ date: "2026-01-10", rpe: 70 });
     const { boulder } = await (await getEffort(WINDOW)).json();
     expect(boulder.headline).toBeNull();
-    // #603 -- null (not 0) for a bucket with no rpe data at all.
     expect(boulder.avgExertionByBucket).toEqual([null, 70, null]);
   });
 

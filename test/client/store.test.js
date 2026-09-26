@@ -1,9 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createStore } from "../../client/store.js";
 
-// The Workers pool Vitest runs client/ tests under has no localStorage
-// global (see store.js's comment on createStore's `storage` param) --
-// this fake is what makes the module testable at all outside a browser.
+// The Workers pool has no localStorage global.
 function fakeStorage() {
   const map = new Map();
   return {
@@ -53,8 +51,6 @@ describe("entries/places/locations", () => {
   });
 
   it("persists unconditionally, including a delete down to an empty array", () => {
-    // Regression coverage for the one pre-Store call site (queued-unsynced-
-    // add delete) that used to skip the cache write -- see store.js.
     store.setEntries(ENTRIES);
     store.setEntries([]);
     expect(JSON.parse(storage.getItem("logbook_entries_cache"))).toEqual([]);
@@ -151,13 +147,6 @@ describe("activeView", () => {
   });
 });
 
-// #63 -- status filters/gradeRange/search/sort/collapsed state (and their
-// tests) used to live here, but that state itself was removed from
-// store.js -- climbing-entries-table.js has carried its own independent,
-// live copies for a while now (see store.js's own updated header
-// comment), and nothing outside store.js's tests still called these
-// methods.
-
 describe("subscribe/notify (#264)", () => {
   it("calls every subscriber once per mutating call", () => {
     let calls = 0;
@@ -213,9 +202,6 @@ describe("applyPendingQueue (#264)", () => {
   });
 
   it("does not write the merged result to the entries cache", () => {
-    // Deliberate: only server-confirmed data (via setEntries) should ever
-    // persist to the cache -- see store.js's applyPendingQueue comment for
-    // why caching optimistic/pending state would be a real bug.
     const before = storage.getItem("logbook_entries_cache");
     store.applyPendingQueue([{ kind: "entry", op: "add", record: { id: "e3", grade: "6A" } }]);
     expect(storage.getItem("logbook_entries_cache")).toBe(before);
@@ -231,11 +217,6 @@ describe("applyPendingQueue (#264)", () => {
 });
 
 describe("join delegation to client/entries.js", () => {
-  // Thin coverage only -- client/entries.js's own test file exhaustively
-  // covers the underlying pure logic. This just proves the Store wires
-  // its own held data through to it. filter/sort/group delegation used
-  // to be covered here too, until that state (and these wrapper methods)
-  // was removed from store.js (#63) -- see this file's own note above.
   beforeEach(() => {
     store.setEntries(ENTRIES);
     store.setPlaces(PLACES);

@@ -79,16 +79,6 @@ describe("createSyncStatusIcon", () => {
     expect(() => createSyncStatusIcon()).not.toThrow();
   });
 
-  // #847 follow-up -- replaces the old fixed-15s stale-timeout test
-  // (removed along with the mechanism itself, 2026-09-19): nothing about
-  // this shell reconcile blocks the user, so cutting "working" off after
-  // a fixed duration regardless of whether the underlying fetch was
-  // still genuinely in flight misrepresented real, if slow, connections
-  // (confirmed live under devtools GPRS throttling). The real timeout
-  // moved to the actual fetches (admin-auth.js/offline-sync.js, each via
-  // AbortSignal.timeout(BACKGROUND_FETCH_TIMEOUT_MS)) -- reportTimeout()
-  // is what they call when that specific signal fires, tested here in
-  // isolation from that plumbing.
   it("reports offline once every tracked call settles if any of them called reportTimeout()", async () => {
     const icon = createSyncStatusIcon();
     let resolveA, resolveB;
@@ -97,11 +87,6 @@ describe("createSyncStatusIcon", () => {
     icon.track(a);
     icon.track(b);
 
-    // b's own caller (e.g. admin-auth.js's fetchSettings()) caught a
-    // genuine AbortSignal.timeout() and reported it, then resolved
-    // normally anyway (every real call site swallows its own fetch
-    // errors and resolves) -- reportTimeout() alone must not change the
-    // reported state while a is still genuinely pending.
     icon.reportTimeout();
     resolveB();
     await b;

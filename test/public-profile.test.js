@@ -1,18 +1,3 @@
-// #113/#351 -- my.<domain>/:username, the read-only public profile page.
-// Exercised via a constructed request with an explicit Host header
-// against the real Worker entrypoint (exports.default.fetch), the same
-// "public HTTP contract, not module internals" philosophy as every other
-// test/*.test.js file -- no real DNS/route is needed since this calls the
-// exported fetch() handler directly.
-//
-// #351 replaced the original server-rendered implementation with a
-// genuinely static shell (env.ASSETS.fetch(), same pattern
-// test/owned-routes.test.js already exercises for the owner-only pages) +
-// a separate JSON data API (test/public-data.test.js). This file now only
-// covers the routing/visibility/anti-enumeration gate in front of that
-// shell -- entry/place/location content assertions live in
-// test/public-data.test.js instead, since that's the layer that actually
-// carries the data now.
 import { env, exports } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
@@ -59,12 +44,6 @@ describe("public profile visibility", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("<climbing-entries-table");
-    // #857 -- (\?v=\d+)? tolerates the real, non-deterministic
-    // cache-busting query .eleventy.js's own assetVersion appends to
-    // this exact URL in every build except dev (ELEVENTY_RUN_MODE=watch,
-    // not the case for whatever built the file this test's own
-    // env.ASSETS.fetch() reads) -- an exact string match broke the
-    // instant that query started existing.
     expect(html).toMatch(/src="\/-\/profile-app\.js(\?v=\d+)?"/);
   });
 
