@@ -23,7 +23,7 @@ deploy)
 │                      Since #352, an already-logged-in visitor is
 │                      redirected straight to their own my.climbinglogbook
 │                      .com/:username/log instead -- see
-│                      docs/app-architecture.md's "Authentication flow")
+│                      docs/app-architecture.md's "Authentication")
 ├── /register         → climbing-logbook (public/register/, #22/#295)
 ├── /login            → climbing-logbook (public/login/, #320/#295 --
 │                      same #352 already-logged-in redirect as the apex)
