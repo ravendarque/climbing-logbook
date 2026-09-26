@@ -14,4 +14,13 @@ resource "cloudflare_d1_database" "logbook" {
   read_replication = {
     mode = "auto"
   }
+
+  # #1075 -- every user's logbook lives here, and a deleted D1 database
+  # can't be restored (Time Travel only restores in place). Any change
+  # that would force a replacement (a rename, a provider schema change, a
+  # moved address) must fail the plan, not destroy-then-create. Removing
+  # this is a deliberate, reviewed act, never a side effect.
+  lifecycle {
+    prevent_destroy = true
+  }
 }

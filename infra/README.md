@@ -94,6 +94,25 @@ terraform init
 terraform plan
 ```
 
+## Deleting or replacing a resource (#1075)
+
+The Infra workflow applies unattended, so it refuses any plan that deletes
+or replaces a resource. The PR check goes red, and so does the run on
+`main`, before anything is applied. On top of that, the D1 database, every
+DNS record and the Turnstile widget have `lifecycle { prevent_destroy =
+true }`, so Terraform itself refuses to plan their destruction at all.
+
+When a delete really is intended (say, a WAF rule being retired):
+
+1. Merge the change with the check red only if you've read the plan and
+   the delete is the whole point. Otherwise fix the change.
+2. Run it locally (above) with `terraform plan -out=tfplan`, read the
+   plan, then `terraform apply tfplan`.
+3. For a `prevent_destroy` resource, removing the `lifecycle` block is its
+   own reviewed change first. A deleted D1 database can't be restored
+   (Time Travel only restores in place): export it first
+   (`wrangler d1 export`).
+
 ## Disaster recovery
 
 If the account/project is lost entirely:

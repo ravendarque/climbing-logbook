@@ -23,4 +23,13 @@ resource "cloudflare_turnstile_widget" "register" {
   # plan, masking real changes.
   domains = sort([var.app_zone_name, "beta.${var.app_zone_name}"])
   mode    = "managed"
+
+  # #1075 -- a replaced widget gets a new sitekey and secret. The sitekey
+  # syncs through infra.yml, but the secret is set by hand with `wrangler
+  # secret put` per environment (outputs.tf), so a replacement would break
+  # sign-up and the report/feedback forms on both hosts until someone
+  # noticed.
+  lifecycle {
+    prevent_destroy = true
+  }
 }
