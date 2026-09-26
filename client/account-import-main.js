@@ -1,16 +1,4 @@
-// Composition root for /:username/account/import (#224 phases 2-4) --
-// bundled by esbuild into public/-/account-import-app.js. Same "no
-// header-chrome.js, reimplement narrowly" reasoning as
-// client/account-main.js/account-edit-main.js (see either file's own
-// header comment) -- this is a genuinely separate page/bundle, sharing no
-// other code with them.
-//
-// Deliberately not part of the offline-sync architecture client/
-// entry-form.js's own add/edit flow uses -- a bulk import needs a live
-// round-trip to resolve locations/places server-side and validate every
-// row before anything is written, so there's no meaningful way to queue
-// one offline. A lapsed session or network failure here is just a
-// displayed error, not a queued retry.
+// Not queued offline: an import needs the server to resolve places and validate every row.
 import { createStore } from "./store.js";
 import { createAdminAuth } from "./admin-auth.js";
 import { createDisclosure } from "./modal-utils.js";
@@ -31,18 +19,12 @@ function isAuthRedirect(res) {
   return res.type === "opaqueredirect";
 }
 
-// /:username/account/import -- same single-segment extraction as every
-// other composition root's USERNAME constant.
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 
 const store = createStore();
 
 document.getElementById("back-to-account-link").href = `/${encodeURIComponent(USERNAME)}/account`;
 
-// Same divider rule as client/header-chrome.js's own updateMenuDivider()
-// (border only makes sense when menu-username occupies the row above it),
-// reimplemented directly rather than imported -- see client/account-main.js's
-// own header comment for why that factory can't be used on these pages.
 const menuUsername = document.getElementById("menu-username");
 const headerMenuBottomRow = document.getElementById("header-menu-bottom-row");
 function updateMenuDivider() {
@@ -65,9 +47,6 @@ const adminAuth = createAdminAuth({
 createDisclosure(document.getElementById("header-menu-btn"), document.getElementById("header-menu-popover"), "#header-menu-wrap");
 createThemeToggle();
 
-// ── Step 1: template download ───────────────────────────────────────────
-// No network round-trip -- the template is just CSV_COLUMNS's header row
-// (shared/csv-import.js), generated and downloaded entirely client-side.
 document.getElementById("download-template-btn").addEventListener("click", () => {
   const blob = new Blob([buildTemplateCsv()], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
@@ -78,7 +57,6 @@ document.getElementById("download-template-btn").addEventListener("click", () =>
   URL.revokeObjectURL(url);
 });
 
-// ── Step 2: upload + import ──────────────────────────────────────────────
 const importForm = document.getElementById("import-form");
 const importFileInput = document.getElementById("import-file-input");
 const importSubmitBtn = document.getElementById("import-submit-btn");
@@ -114,11 +92,7 @@ importForm.addEventListener("submit", async e => {
   importStatus.textContent = "Validating and importing…";
   importStatus.hidden = false;
 
-  // #639 -- JSON import, parity with the "Export as JSON" button.
-  // Extension-based, not file.type -- a browser's own MIME-sniffed type
-  // for a local .json file is inconsistent across platforms (empty
-  // string is common), where the extension the user themself chose when
-  // saving/downloading the file is reliable either way.
+  // By extension: browsers' MIME type for a local .json file is unreliable.
   const contentType = file.name.toLowerCase().endsWith(".json") ? "application/json" : "text/csv";
 
   try {
@@ -132,10 +106,6 @@ importForm.addEventListener("submit", async e => {
     const data = await res.json();
     importStatus.hidden = true;
     if (!res.ok) {
-      // Per-row validation failures (400 { errors: [...] }) and structural
-      // failures (400 { error: "..." }, e.g. a header that doesn't match
-      // the template) share the same list panel -- both are "here's what
-      // to fix before re-uploading."
       showRowErrors(data.errors ?? [{ error: data.error ?? `Error ${res.status}` }]);
       return;
     }
@@ -156,12 +126,7 @@ async function boot() {
   updateAdminBar();
 }
 
-// #952/#960 -- boots only for the signed-in owner of this page and, on
-// beta.<domain>, only if they're enrolled (client/boot-gate.js).
 pageAllowsBoot().then(allowed => {
   if (!allowed) return;
-  // #947/#948 -- the service worker, once boot's own fetches have settled
-  // and the page has gone idle: its install downloads every owner page, so
-  // it must never compete with them on a bad connection.
   registerServiceWorker({ after: boot() });
 });
