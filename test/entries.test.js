@@ -106,8 +106,8 @@ describe("handleGet (flat limit/offset, no locationId -- #498 chunked full sync)
     return fetchJson(`${ENTRIES_URL}?${qs}`, { headers: { Cookie: extraCookie } });
   }
 
-  it("returns a capped, offset slice ordered the same way listForUser() would, plus the true total", async () => {
-    for (let i = 0; i < 5; i++) await post({ ...validEntry(), name: `Route ${i}` });
+  it("still serves a legacy offset slice, plus the true total", async () => {
+    for (let i = 0; i < 5; i++) await post({ ...validEntry(), id: `e${i}`, name: `Route ${i}` });
 
     const first = await (await getChunk({ limit: "2" })).json();
     expect(first.entries.map(e => e.name)).toEqual(["Route 0", "Route 1"]);
@@ -126,7 +126,7 @@ describe("handleGet (flat limit/offset, no locationId -- #498 chunked full sync)
     await post(validEntry());
     const res = await getChunk({ limit: "20", offset: "50" });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ entries: [], total: 0, cursor: 0 });
+    expect(await res.json()).toEqual({ entries: [], total: 0, cursor: 0, next: null });
   });
 
   it("401s an anonymous caller (#992)", async () => {
@@ -138,7 +138,7 @@ describe("handleGet (flat limit/offset, no locationId -- #498 chunked full sync)
     await post(validEntry());
     const otherUser = await createAuthedSession();
     const res = await getChunk({ limit: "20" }, otherUser.cookie);
-    expect(await res.json()).toEqual({ entries: [], total: 0, cursor: 0 });
+    expect(await res.json()).toEqual({ entries: [], total: 0, cursor: 0, next: null });
   });
 
   it("reports the max sync_cursor across every matching row, the same value on every chunk", async () => {
@@ -152,6 +152,31 @@ describe("handleGet (flat limit/offset, no locationId -- #498 chunked full sync)
     const second = await (await getChunk({ limit: "2", offset: "2" })).json();
     expect(first.cursor).toBe(maxCursor);
     expect(second.cursor).toBe(maxCursor);
+  });
+
+  it("pages by key, so a delete mid-sync skips no live row", async () => {
+    for (let i = 0; i < 5; i++) await post({ ...validEntry(), id: `e${i}`, name: `Route ${i}` });
+
+    const first = await (await getChunk({ limit: "2" })).json();
+    expect(first.entries.map(e => e.id)).toEqual(["e0", "e1"]);
+    await del("e0");
+
+    const names = [];
+    for (let next = first.next; next; ) {
+      const chunk = await (await getChunk({ limit: "2", afterCreatedAt: next.createdAt, afterId: next.id })).json();
+      names.push(...chunk.entries.map(e => e.id));
+      next = chunk.next;
+    }
+    expect(names).toEqual(["e2", "e3", "e4"]);
+
+    const { entries } = await (await fetchJson(`${ENTRIES_URL}?since=${first.cursor}`, { headers: { Cookie: cookie } })).json();
+    expect(entries.find(e => e.id === "e0")?.deleted).toBe(true);
+  });
+
+  it("returns no next key on the last chunk", async () => {
+    await post(validEntry());
+    const chunk = await (await getChunk({ limit: "2" })).json();
+    expect(chunk.next).toBeNull();
   });
 
   it("defaults offset to 0 when omitted", async () => {
@@ -518,12 +543,26 @@ describe("handlePost", () => {
     expect(entries[0].notes).toBeNull();
   });
 
-  it("populates sync_cursor on create", async () => {
-    const before = Date.now();
-    const res = await post(validEntry());
-    const { entries } = await res.json();
-    const row = await env.LOGBOOK_DB.prepare(`SELECT sync_cursor FROM entries WHERE id = ?`).bind(entries[0].id).first();
-    expect(row.sync_cursor).toBeGreaterThanOrEqual(before);
+  it("gives each create a cursor above every existing one", async () => {
+    await post({ ...validEntry(), id: "first" });
+    await post({ ...validEntry(), id: "second" });
+    const first = await env.LOGBOOK_DB.prepare(`SELECT sync_cursor FROM entries WHERE id = ?`).bind("first").first();
+    const second = await env.LOGBOOK_DB.prepare(`SELECT sync_cursor FROM entries WHERE id = ?`).bind("second").first();
+    expect(first.sync_cursor).toBeGreaterThan(0);
+    expect(second.sync_cursor).toBe(first.sync_cursor + 1);
+  });
+
+  it("never lets a later write fall behind a cursor a device has already seen", async () => {
+    await post({ ...validEntry(), id: "ahead" });
+    const clockAhead = Date.now() + 60_000;
+    await env.LOGBOOK_DB.prepare(`UPDATE entries SET sync_cursor = ? WHERE id = ?`).bind(clockAhead, "ahead").run();
+    const pulled = await (await fetchJson(`${ENTRIES_URL}?since=0`, { headers: { Cookie: cookie } })).json();
+    expect(pulled.cursor).toBe(clockAhead);
+
+    await post({ ...validEntry(), id: "later" });
+
+    const { entries } = await (await fetchJson(`${ENTRIES_URL}?since=${pulled.cursor}`, { headers: { Cookie: cookie } })).json();
+    expect(entries.map(e => e.id)).toContain("later");
   });
 });
 
@@ -583,7 +622,7 @@ describe("handlePut", () => {
     await put({ ...validEntry(), id, name: "Renamed" });
 
     const after = await env.LOGBOOK_DB.prepare(`SELECT sync_cursor FROM entries WHERE id = ?`).bind(id).first();
-    expect(after.sync_cursor).toBeGreaterThanOrEqual(before.sync_cursor);
+    expect(after.sync_cursor).toBeGreaterThan(before.sync_cursor);
   });
 });
 
@@ -647,8 +686,8 @@ describe("handleDelete", () => {
     await del(id);
 
     const after = await env.LOGBOOK_DB.prepare(`SELECT sync_cursor, deleted_at FROM entries WHERE id = ?`).bind(id).first();
-    expect(after.sync_cursor).toBeGreaterThanOrEqual(before.sync_cursor);
-    expect(after.sync_cursor).toBe(after.deleted_at);
+    expect(after.sync_cursor).toBeGreaterThan(before.sync_cursor);
+    expect(after.deleted_at).not.toBeNull();
   });
 });
 

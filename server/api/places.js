@@ -22,7 +22,6 @@ export function buildRow(place, id, userId) {
     user_id: userId,
     location_id: place.locationId,
     area: place.area ?? "",
-    sync_cursor: Date.now(),
   };
 }
 

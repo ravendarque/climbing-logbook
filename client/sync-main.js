@@ -56,23 +56,20 @@ async function syncSmallTable(table, url, loadFromCache, getCurrent, setCurrent)
   setCursor(table, cursor);
 }
 
-// Takes the highest cursor seen across chunks, in case a row lands mid-loop.
+// Keeps the first chunk's cursor, so the next delta re-covers anything that changed mid-load.
 async function syncEntriesCold(store) {
   let entries = [];
-  let offset = 0;
-  let total = 0;
-  let cursor = 0;
+  let cursor = null;
+  let next = null;
   setProgress(0, 0);
-  // Stops at a short chunk: an offset past the end can't report the total.
-  for (;;) {
-    const chunk = await fetchJson(`${ENTRIES_URL}?limit=${CHUNK_SIZE}&offset=${offset}`);
+  do {
+    const after = next ? `&afterCreatedAt=${encodeURIComponent(next.createdAt)}&afterId=${encodeURIComponent(next.id)}` : "";
+    const chunk = await fetchJson(`${ENTRIES_URL}?limit=${CHUNK_SIZE}${after}`);
     entries = entries.concat(chunk.entries);
-    offset += chunk.entries.length;
-    total = chunk.total;
-    cursor = Math.max(cursor, chunk.cursor);
-    setProgress(entries.length, total);
-    if (chunk.entries.length < CHUNK_SIZE) break;
-  }
+    cursor ??= chunk.cursor;
+    next = chunk.next;
+    setProgress(entries.length, chunk.total);
+  } while (next);
 
   store.setEntries(entries);
   setCursor("entries", cursor);
