@@ -1,11 +1,6 @@
 import { json, parseJsonBody } from "../lib/json.js";
 import { VALID_TYPES } from "../../shared/entry-schema.js";
 
-// logbookPublic default matches the schema's own DEFAULT 1 (migrations/
-// 0003_app_data.sql) -- an anonymous caller or a logged-in user who's
-// never touched settings both see the same effective default server/api/
-// public-profile.js's own resolvePublicUser() already falls back to.
-// betaOptIn defaults to false (not enrolled) -- ADR-0029's two states.
 const DEFAULT_SETTINGS = { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: false };
 
 function rowToJson(row) {
@@ -13,16 +8,10 @@ function rowToJson(row) {
     athleteMode: !!row.athlete_mode,
     activeDiscipline: row.active_discipline,
     logbookPublic: !!row.logbook_public,
-    // #952, ADR-0029 -- two states: enrolled or not. NULL (a row created by
-    // a write that never mentioned beta_opt_in, or pre-migration-0020 data)
-    // means not enrolled, same as 0.
     betaOptIn: !!row.beta_opt_in,
   };
 }
 
-// #992 -- reachable only with a session (server/index.js 401s without
-// one), so userId is always real. No row yet (a user who's never changed
-// a setting) reads as the defaults.
 export async function handleGetSettings(request, env, userId) {
   const row = await env.LOGBOOK_DB.prepare(`SELECT * FROM settings WHERE user_id = ?`).bind(userId).first();
   return new Response(JSON.stringify(row ? rowToJson(row) : DEFAULT_SETTINGS), {
@@ -33,22 +22,13 @@ export async function handleGetSettings(request, env, userId) {
   });
 }
 
-// Same: server/index.js 401s before dispatching here without a session,
-// so userId is always real.
-//
-// PATCH, not PUT (#137) -- merges onto the existing stored settings rather
-// than replacing them wholesale, since callers only ever send the one
-// field they're changing (e.g. just `activeDiscipline` when switching
-// disciplines); a blind overwrite would silently wipe out whichever field
-// wasn't included.
+// PATCH merges: callers send only the field they change.
 export async function handlePatchSettings(request, env, userId) {
   const parsed = await parseJsonBody(request);
   if (!parsed.ok) return parsed.response;
   const body = parsed.body;
 
-  // request.json() only fails to parse malformed text -- `null`, `42`, or
-  // `"a string"` all parse fine but aren't objects, and `"x" in body` throws
-  // on those (TypeError, not a validation error) if this guard isn't here.
+  // null, 42 and "text" parse as JSON but aren't objects.
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
     return json({ error: "Invalid JSON" }, 400);
   }
@@ -56,26 +36,17 @@ export async function handlePatchSettings(request, env, userId) {
   if ("athleteMode" in body && typeof body.athleteMode !== "boolean") {
     return json({ error: "athleteMode must be a boolean" }, 400);
   }
-  // #430/#641 -- VALID_TYPES (shared/entry-schema.js), not a hand-kept
-  // duplicate list -- 'sport' added there alongside 'lead' for the same
-  // reason; this check picks it up automatically rather than needing its
-  // own separate update.
   if ("activeDiscipline" in body && !VALID_TYPES.includes(body.activeDiscipline)) {
     return json({ error: `activeDiscipline must be one of: ${VALID_TYPES.join(", ")}` }, 400);
   }
   if ("logbookPublic" in body && typeof body.logbookPublic !== "boolean") {
     return json({ error: "logbookPublic must be a boolean" }, 400);
   }
-  // No "never decided" (null) case here -- a PATCH is always a deliberate
-  // choice (#546's modal only ever submits true or false), never a reset
-  // back to the unset state.
   if ("betaOptIn" in body && typeof body.betaOptIn !== "boolean") {
     return json({ error: "betaOptIn must be a boolean" }, 400);
   }
 
-  // Upsert: #21's schema doesn't create a settings row at signup, only a
-  // DEFAULT clause for once a row exists -- a user's first PATCH is what
-  // actually creates their row.
+  // No row exists until a user's first PATCH.
   await env.LOGBOOK_DB
     .prepare(`INSERT INTO settings (user_id) VALUES (?) ON CONFLICT(user_id) DO NOTHING`)
     .bind(userId)

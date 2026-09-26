@@ -1,46 +1,10 @@
 import { json } from "./json.js";
 
-// Beta invite/registration gate (#296) -- a temporary layer in front of
-// Better Auth's sign-up/email endpoint, not part of Better Auth's own
-// schema (see migrations/0002_beta_invites.sql).
-//
-// Enforcement is gated by a single env var (BETA_GATE_ENABLED) -- flipping
-// it to anything other than "true" is the entire "go fully public"
-// mechanism once the beta period ends, no code change needed.
-//
-// Handled as a request-level wrapper in server/index.js (not a Better Auth
-// `hooks.before` middleware, unlike server/lib/turnstile.js's own hook) --
-// #379 found that a `hooks.before` implementation can't reliably release
-// a claimed code when a *later* validation step fails (bad username
-// format, duplicate username, weak password): a LATER hook's own failure
-// still propagates straight out of the whole dispatch, skipping
-// `hooks.after` entirely, regardless of which stage it came from
-// (confirmed against the installed better-auth@1.7.4 source,
-// node_modules/better-auth/dist/api/dispatch.mjs's runBeforeHooks --
-// re-verified 2026-09-14, #754, after the 1.6.25->1.7.4 bump: the loop
-// now wraps each hook's own matcher/handler call in a try/catch, unlike
-// 1.6.25's bare sequential loop, but every catch still re-throws --
-// matcher failures become an APIError and are re-thrown, handler
-// failures are re-thrown as-is after annotating the stack on an
-// APIError -- so the end-to-end behavior this design depends on is
-// unchanged, only the literal internal mechanism is). Since this
-// project's own `hooks.before` always runs *before* any plugin's, an
-// after-hook-based "release on failure" design would only ever catch a
-// failure inside the endpoint's own core logic, never a plugin
-// before-hook's -- which is exactly the failure mode #379 reported (an
-// invalid username format, thrown by the username plugin's own
-// before-hook). Checking the real HTTP response after calling Better
-// Auth's own handler sidesteps this entirely -- correct regardless of
-// which internal stage failed, without duplicating the username
-// plugin's own validation logic or fighting Better Auth's hook
-// ordering.
+// Wraps Better Auth's handler: a failing plugin before-hook skips hooks.after, so only
+// the real response can say whether to release the claimed code.
 export async function handleBetaGatedSignUp(request, env, auth) {
   if (env.BETA_GATE_ENABLED !== "true") return auth.handler(request);
 
-  // request's body can only be read once -- auth.handler() below needs
-  // the same bytes, so this reads them itself and forwards a fresh
-  // Request built from the same bytes, rather than the original
-  // (now-consumed) one.
   const bodyText = await request.text();
   let body;
   try {
@@ -66,27 +30,15 @@ export async function handleBetaGatedSignUp(request, env, auth) {
     return json({ message: "This invite code is not valid for this email address.", code: "INVALID_INVITE_CODE" }, 403);
   }
 
-  // Only reset back to NULL on release if this request is the one that
-  // set it -- an already-pinned code's own email is never cleared, only
-  // ever an email this same claim just wrote via the COALESCE below.
+  // Release clears only an email pin this claim wrote, never a pre-pinned one.
   const claimedEmailPin = !invite.email;
 
-  // Atomic claim: `AND used_at IS NULL` (checked via the write's own
-  // affected-row count below, not a separate SELECT) closes the race the
-  // preliminary SELECT above can't fully rule out -- two concurrent
-  // requests for the same code could both pass that SELECT, but only one
-  // of these UPDATEs actually matches a row. `email` is recorded even
-  // for a not-originally-pinned code (COALESCE keeps an existing pin
-  // untouched), so every used code has a real audit trail regardless of
-  // whether it started pinned -- companion createBetaGateAfterHook below
-  // backfills `used_by` once the user row actually exists.
+  // The used_at IS NULL guard makes the claim atomic against a concurrent sign-up.
   const claim = await env.LOGBOOK_DB
     .prepare(`UPDATE beta_invites SET used_at = datetime('now'), email = COALESCE(email, ?) WHERE code = ? AND used_at IS NULL`)
     .bind(body?.email ?? null, code)
     .run();
   if (claim.meta.changes === 0) {
-    // Lost a race to a concurrent request claiming the same code between
-    // the SELECT above and this UPDATE.
     return json({ message: "Invalid or already-used invite code.", code: "INVALID_INVITE_CODE" }, 403);
   }
 
@@ -107,12 +59,6 @@ export async function handleBetaGatedSignUp(request, env, auth) {
   return response;
 }
 
-// Companion to handleBetaGatedSignUp -- wired into server/lib/auth.js's
-// `databaseHooks.user.create.after`, which fires once the user row is
-// actually created (with a real id to backfill `used_by` with). Guarded on
-// `context?.body?.code` being present so this is a no-op for any future
-// user-creation path that isn't sign-up/email (nothing else creates users
-// today, but this shouldn't silently assume that stays true forever).
 export function createBetaGateAfterHook(env) {
   return async (user, context) => {
     const code = context?.body?.code;

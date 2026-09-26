@@ -258,6 +258,21 @@ Tables (see `migrations/` for columns and constraints):
 - **IDs are minted by the client** (`crypto.randomUUID()`), so a queued
   offline write keeps its identity until it syncs; a repeated `POST` of
   the same id is an idempotent replay, and deleting a missing id succeeds.
+  `server/lib/d1-resource.js` holds the create path. Two concurrent creates
+  of one id race past the existence check, so the losing `INSERT`'s
+  unique-constraint error is treated as a replay too. A create that lands
+  on a soft-deleted id brings the row back with the new data instead of
+  being dropped.
+- **Places and locations are deduplicated by name** (case-insensitive,
+  plus the area for a place). A create that matches an existing row
+  returns `dedupedTo: <id>`, and the offline queue remaps anything still
+  queued against the id it minted. Two offline devices adding the same crag
+  converge on one row.
+- **Delta sync** returns every row with `sync_cursor >= since`, deletions
+  included, plus the new cursor. It's `>=` because cursors can collide
+  within a millisecond, and merging by id makes a repeat harmless. Each
+  table keeps its own cursor: one shared cursor could skip changes in
+  whichever table's cursors run lower.
 - **Writes are allowlisted.** `buildRow()` in each API module builds the row
   from known fields only; the request body is never spread into storage.
   `shared/entry-schema.js` validates entries on both sides.
@@ -314,6 +329,44 @@ Tables (see `migrations/` for columns and constraints):
   `cf-connecting-ip` ([ADR-0027](adr/0027-database-backed-rate-limiting-on-sign-in.md)).
 - **Already logged in:** the apex home and login page send a signed-in
   visitor straight to their log (`static/-/session-redirect.js`).
+
+### Better Auth configuration
+
+`server/lib/auth.js` builds one Better Auth instance per hostname and caches
+it for the isolate's lifetime.
+
+- **Trusted origins** are the CSRF boundary: a state-changing request from
+  any other origin is a 403. The plain-`http` production origins are there
+  because `wrangler dev` rewrites a request's origin to the first production
+  route but keeps `http`. Real traffic never has them: the edge redirects
+  HTTP to HTTPS first. `http://localhost:*` is listed explicitly because
+  Better Auth's own derivation from `allowedHosts` doesn't produce the `http`
+  form of a wildcard host.
+- **Allowed hosts** are the production and beta hosts, PR previews
+  (`*.ravendarque.workers.dev`), local dev, and `example.com` (the Vitest
+  base URL). Vite's dev server reads the same list, so a host missing here is
+  rejected before it reaches the Worker.
+- **Cookies** span `climbinglogbook.com` and its subdomains, because sign-in
+  happens on the apex. Everywhere else is one origin; a `Domain` that doesn't
+  match the host would be rejected by the browser.
+- **Rate limiting** is stored in D1: in-memory counters are per isolate, so
+  they never trip. It's switched on by `RATE_LIMITING_ENABLED`, which only
+  real deployments set. Local dev and tests have no `cf-connecting-ip`, so
+  every request would share one bucket and the suites would hit 429s.
+- **Client IP** comes from `cf-connecting-ip`; Cloudflare never sends
+  `x-forwarded-for`, Better Auth's default. Proxy headers are not trusted
+  for host derivation, because the Worker sits directly behind the edge.
+- **Schema validation is off**: `migrations/` owns the schema, and the check
+  runs D1 queries each time an instance is built.
+- **Email** verification is required before first login and signs the user in
+  when they click the link. Changing email needs confirmation from the
+  current, verified address.
+- **Usernames** follow `shared/username-policy.js`: Instagram's charset
+  (lowercase letters, digits, `.` and `_`) and length (1–30), with the demo
+  accounts and reserved names and their lookalikes refused. No username
+  contains a hyphen, which is what keeps `/-/` and `/service-worker.js` from
+  colliding with a profile path (`test/username.test.js`).
+- **No social login**, deliberately (`docs/ui-stack-evaluation.md`).
 
 ## Local development
 

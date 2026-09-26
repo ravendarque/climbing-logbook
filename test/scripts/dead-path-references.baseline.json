@@ -40,7 +40,6 @@
   "e2e/offline-launch.spec.js: static/session-redirect.js",
   "infra/README.md: infra/deploy",
   "infra/variables.tf: infra/redirects.tf",
-  "server/api/owned-routes.js: static/login/login.js",
   "static/-/components/climbing-header.js: client/content-overlays.js",
   "static/-/components/climbing-header.js: client/grade-data.js",
   "static/-/login/resolve-app-origin.js: client/shared",

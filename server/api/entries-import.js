@@ -7,46 +7,17 @@ import { attachChildRows, buildRow as buildEntryRow, rowToJson as entryRowToJson
 import { buildRow as buildLocationRow } from "./locations.js";
 import { buildRow as buildPlaceRow } from "./places.js";
 
-// #224 phase 3 -- CSV bulk import. All-or-nothing (the issue's own scope
-// note): every row is validated *before* anything is written, and a
-// single invalid row aborts the whole file rather than importing a
-// partial set. This is why resolveLocationsAndPlaces() below only ever
-// builds a plan (in-memory row objects with fresh ids, not yet written)
-// -- the actual INSERTs only happen once every row has passed
-// entrySchema too, further down in handleImport().
-//
-// #800 -- validation alone isn't "all-or-nothing" on its own: the writes
-// themselves used to be three separate loops of sequential, individually
-// -awaited INSERTs, so a D1 transient error, CPU-time limit, or Workers
-// subrequest-limit hit partway through could leave a half-imported
-// logbook with no rollback, contradicting this exact comment. Every
-// location/place/entry insert is now one real env.LOGBOOK_DB.batch()
-// transaction (D1's own atomic-batch primitive -- see
-// server/api/entries.js's replaceChildRows for the existing precedent),
-// so a mid-import failure now rolls back everything, matching what this
-// header always claimed.
+// All or nothing: every row is validated before anything is written, then one batch writes it all.
 const MAX_IMPORT_ROWS = 500;
 
-// entrySchema's own messages name internal field/entry keys (placeId,
-// type) that don't exist in the CSV a user actually typed into --
-// they see "location"/"discipline" columns. Translating just these two
-// keeps everything else (grade/status/date/video/name) as entrySchema's
-// own real message, one source of truth for what's valid, with only the
-// display layer adjusted for the two names that genuinely differ.
+// entrySchema names internal keys; the file's columns are location and discipline.
 function toCsvFieldNames(message) {
   if (message === "Missing required field: placeId") return "Missing required field: location";
   if (message.startsWith("type must be one of")) return message.replace("type must be one of", "discipline must be one of");
   return message;
 }
 
-// Ports client/place-picker.js's own match-or-create logic (case-
-// insensitive exact match on Location name; Place has no separate dedup
-// there today, every add-place mints a new row even against a matched
-// Location) server-side, since no server equivalent exists yet. Unlike
-// the single-entry form, a CSV commonly repeats the same crag+sector
-// across many rows, so this also dedups *within* the one import by
-// location+area, not just against what's already in D1 -- otherwise a
-// 50-row file for one crag would mint 50 near-duplicate Place rows.
+// Dedups within the file too, or a 50-row file for one crag would mint 50 places.
 async function resolveLocationsAndPlaces(env, userId, rows) {
   const { results: existingLocations } = await env.LOGBOOK_DB
     .prepare(`SELECT id, name, country FROM locations WHERE user_id = ?`)
@@ -60,11 +31,6 @@ async function resolveLocationsAndPlaces(env, userId, rows) {
 
   const newLocations = [];
   const newPlaces = [];
-  // One entry per CSV row, in order -- null where the row supplied no
-  // location text at all (left for entrySchema's own required-placeId
-  // check to catch, translated to "location" above, same "stop at first
-  // missing field" precedent entry-schema.js's own header comment
-  // documents for the single-entry path).
   const placeIds = [];
 
   for (const row of rows) {
@@ -98,45 +64,19 @@ function draftEntry(row, placeId) {
     grade: row.grade,
     type: row.discipline,
     status: row.status,
-    // CSV values are always strings -- a bare truthy check on the string
-    // "false" would incorrectly treat it as true, same trap
-    // client/entry-form.js's own checkbox doesn't have (it reads a real
-    // boolean from the DOM, never a string).
+    // CSV values are strings, so "false" is truthy.
     firstAttempt: row.firstAttempt.toLowerCase() === "true",
     date: row.date,
     video: row.video,
     notes: row.notes,
-    // #639 -- required by entrySchema for a "sport" discipline (#643),
-    // blank for "boulder" same as every other sport-only column here.
-    // `||`, not `??` -- a blank CSV cell/JSON "" both need to normalize
-    // to undefined ("missing"), matching entrySchema's own "empty string
-    // treated as missing" rule for every other required field, not just
-    // a genuinely-absent key.
+    // || so a blank cell counts as missing, like entrySchema's other fields.
     sportStyle: row.sportStyle || undefined,
-    // #476 -- blank/omitted normalizes to undefined, same as every other
-    // optional field here; a non-blank value is coerced from the CSV/
-    // JSON row's string shape to a real number so entrySchema's own
-    // Number.isInteger checks apply (a non-numeric value like "abc"
-    // becomes NaN, which those checks already correctly reject rather
-    // than silently coercing to 0).
     attemptsToSend: row.attemptsToSend ? Number(row.attemptsToSend) : undefined,
     rpe: row.rpe ? Number(row.rpe) : undefined,
-    // #884 -- same blank-normalizes-to-undefined pattern as sportStyle
-    // above; entrySchema validates it against the discipline's scales
-    // when given, and buildEntryRow (server/api/entries.js) already
-    // falls back to defaultGradeScale() when it's undefined -- the same
-    // fallback an entry created via the regular entry form gets.
     gradeScale: row.gradeScale || undefined,
   };
 }
 
-// #639 -- JSON import, parity with the "Export as JSON" button. Dispatched
-// on Content-Type, which client/account-import-main.js's own upload
-// handler sets from the file's extension -- same client-sets-the-header
-// convention the rest of this app's own POST bodies already use (e.g.
-// entry-form.js's "Content-Type: application/json" for a single entry).
-// Anything not recognized as JSON falls back to the CSV parser, unchanged
-// behavior for every caller that predates this.
 function parserFor(contentType) {
   return (contentType ?? "").includes("json") ? parseJsonText : parseCsvText;
 }
@@ -146,10 +86,6 @@ export async function handleImport(request, env, userId) {
   const isJson = (request.headers.get("Content-Type") ?? "").includes("json");
   const parsed = parserFor(request.headers.get("Content-Type"))(text);
   if (!parsed.ok) return json({ error: parsed.error }, 400);
-  // #800 -- bounds both the batch() call below (D1/Workers have their own
-  // limits on statement count and CPU time per request) and the
-  // resolveLocationsAndPlaces() read just below, before either does any
-  // real work on an oversized file.
   if (parsed.rows.length > MAX_IMPORT_ROWS) {
     return json({ error: `Import is limited to ${MAX_IMPORT_ROWS} rows per file (this file has ${parsed.rows.length}).` }, 400);
   }
@@ -157,33 +93,14 @@ export async function handleImport(request, env, userId) {
   const { newLocations, newPlaces, placeIds } = await resolveLocationsAndPlaces(env, userId, parsed.rows);
   const drafts = parsed.rows.map((row, i) => draftEntry(row, placeIds[i]));
 
-  // Every row checked up front -- entrySchema.rawCheck stops at each
-  // row's own first issue (same "one message per row" contract the
-  // single-entry form already has), but every *row* is still checked, so
-  // a user fixing only the errors shown still might not be done in one
-  // pass if their file has other issues an earlier row's error was
-  // masking -- same limitation the single-entry form has always had, not
-  // new here. toCsvFieldNames applies equally to a JSON-sourced draft --
-  // both parsers normalize into the same location/discipline-named row
-  // shape (see parseJsonText's own comment), so entrySchema's messages
-  // need the same placeId/type -> location/discipline translation either
-  // way.
   const rowErrors = [];
   drafts.forEach((draft, i) => {
     const result = v.safeParse(entrySchema, draft);
-    // CSV row 1 is the header, so its first *data* row is line 2, matching
-    // what a user sees opening the file in a spreadsheet app -- a JSON
-    // array has no header, so its first entry is simply 1 (matching
-    // parseJsonText's own "Entry 1" numbering for a structural error).
+    // Row 1 of a CSV is the header, so data starts at 2; a JSON array starts at 1.
     if (!result.success) rowErrors.push({ row: i + (isJson ? 1 : 2), error: toCsvFieldNames(result.issues[0].message) });
   });
   if (rowErrors.length > 0) return json({ errors: rowErrors }, 400);
 
-  // #800 -- one real transaction, not three loops of individually-awaited
-  // INSERTs. All three tables' rows go into the same batch() call (not
-  // one batch per table) so the whole import -- locations, places, and
-  // entries together -- rolls back as a unit on any failure, not just
-  // each table on its own.
   const statements = [
     ...newLocations.map(location => buildInsertStatement(env, "locations", buildLocationRow(location, location.id, userId))),
     ...newPlaces.map(place => buildInsertStatement(env, "places", buildPlaceRow({ locationId: place.location_id, area: place.area }, place.id, userId))),

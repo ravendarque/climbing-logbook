@@ -4,15 +4,7 @@ import { verifyTurnstile } from "../lib/turnstile.js";
 import { checkRateLimit } from "../lib/rate-limit.js";
 import { resolveUserId } from "../lib/session.js";
 
-// #924 -- kept in sync by hand with client/report-issue-main.js's own
-// <select> options; the client list is authoritative for wording (what a
-// user sees), this one for validation (what the server accepts) --
-// same "resolve/validate once, format per output" split every other
-// enum in this app already uses (e.g. shared/entry-schema.js's own
-// discipline/status lists), just not worth sharing as its own module for
-// one six-item list used in exactly two places. #930 -- "other" dropped
-// (Raven's own call): redundant with "Not sure / other" (the blank/
-// unselected value), which already covers that case.
+// Matches the section options in views/help/{report-an-issue,feedback}/index.njk.
 export const SECTIONS = ["logbook", "map", "performance", "account", "import_export", "help"];
 
 const RATE_LIMIT_PER_HOUR = 5;
@@ -25,12 +17,7 @@ const reportSchema = v.object({
   turnstileToken: v.string(),
 });
 
-// Public, unauthenticated POST -- same bare-if routing shape as sign-up
-// (server/index.js), not the RESOURCE_ROUTES lookup table, which
-// unconditionally requires a session this endpoint doesn't have. Rate
-// limit checked BEFORE the body is even parsed -- the cheapest possible
-// rejection for a flood of requests, before spending any work on JSON
-// parsing, validation, or a real Turnstile round-trip.
+// Rate limit first: the cheapest rejection, before parsing or Turnstile.
 export async function handleReportIssue(request, env) {
   const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
   const allowed = await checkRateLimit(env, `report-issue:${ip}`, RATE_LIMIT_PER_HOUR);
@@ -49,9 +36,7 @@ export async function handleReportIssue(request, env) {
   const verified = await verifyTurnstile(env, result.output.turnstileToken);
   if (!verified) return json({ error: "Bot verification failed. Please try again." }, 403);
 
-  // Best-effort, not required -- this form is reachable logged out
-  // (same as /help generally), so a null userId here is a normal,
-  // expected outcome, not an error state.
+  // Optional: the form works logged out.
   const userId = await resolveUserId(request, env);
 
   await env.LOGBOOK_DB.prepare(

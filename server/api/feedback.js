@@ -15,10 +15,6 @@ const feedbackSchema = v.object({
   turnstileToken: v.string(),
 });
 
-// #925 -- same public, unauthenticated shape as handleReportIssue
-// (server/api/report-issue.js), including reusing that same rate_limits
-// table (migrations/0018) with its own "feedback:<ip>" key prefix rather
-// than a second table.
 export async function handleFeedback(request, env) {
   const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
   const allowed = await checkRateLimit(env, `feedback:${ip}`, RATE_LIMIT_PER_HOUR);
