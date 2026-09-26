@@ -83,7 +83,11 @@ export async function mockApi(page, {
     if (limitParam !== null) {
       const limit = Number(limitParam);
       const cursor = _entries.reduce((max, e) => Math.max(max, cursorOf.get(e.id) ?? 0), 0);
-      return route.fulfill({ json: { entries: _entries.slice(offset, offset + limit), total: _entries.length, cursor } });
+      const afterId = url.searchParams.get("afterId");
+      const start = afterId ? _entries.findIndex(e => e.id === afterId) + 1 : 0;
+      const page = _entries.slice(start, start + limit);
+      const next = page.length === limit ? { createdAt: "", id: page.at(-1).id } : null;
+      return route.fulfill({ json: { entries: page, total: _entries.length, cursor, next } });
     }
     return route.fulfill({ json: { entries: _entries } });
   });

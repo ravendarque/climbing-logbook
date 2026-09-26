@@ -21,7 +21,6 @@ export function buildRow(location, id, userId) {
     user_id: userId,
     name:    location.name,
     country: location.country ?? "",
-    sync_cursor: Date.now(),
   };
 }
 

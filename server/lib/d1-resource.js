@@ -33,11 +33,16 @@ export async function listChangedForUser(env, table, userId, rowToJson, since) {
   return { rows: results.map(rowToJson), cursor };
 }
 
+// Assigned inside the write, so SQLite's single writer orders cursors by commit, not by Worker clock.
+export function nextCursorSql(table) {
+  return `(SELECT COALESCE(MAX(sync_cursor), 0) + 1 FROM ${table} WHERE user_id = ?)`;
+}
+
 export function buildInsertStatement(env, table, row) {
   const columns = Object.keys(row);
   return env.LOGBOOK_DB
-    .prepare(`INSERT INTO ${table} (${columns.join(", ")}) VALUES (${columns.map(() => "?").join(", ")})`)
-    .bind(...columns.map(c => row[c]));
+    .prepare(`INSERT INTO ${table} (${columns.join(", ")}, sync_cursor) VALUES (${columns.map(() => "?").join(", ")}, ${nextCursorSql(table)})`)
+    .bind(...columns.map(c => row[c]), row.user_id);
 }
 
 export async function insertRow(env, table, row) {
@@ -87,8 +92,8 @@ export function createD1ResourceHandlers({ table, resourceKey, validateFields, b
         const row = buildRow(record, id, userId);
         const columns = Object.keys(row).filter(c => c !== "id" && c !== "user_id");
         await env.LOGBOOK_DB
-          .prepare(`UPDATE ${table} SET ${columns.map(c => `${c} = ?`).join(", ")}, deleted_at = NULL WHERE id = ? AND user_id = ?`)
-          .bind(...columns.map(c => row[c]), id, userId)
+          .prepare(`UPDATE ${table} SET ${columns.map(c => `${c} = ?`).join(", ")}, deleted_at = NULL, sync_cursor = ${nextCursorSql(table)} WHERE id = ? AND user_id = ?`)
+          .bind(...columns.map(c => row[c]), userId, id, userId)
           .run();
         if (afterWrite) await afterWrite(env, id, record);
         const list = await listForUser(env, table, userId, rowToJson, { excludeDeleted });

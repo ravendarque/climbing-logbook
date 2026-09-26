@@ -1,5 +1,5 @@
 import { json, parseJsonBody } from "../lib/json.js";
-import { createD1ResourceHandlers, findOwnedRow, listChangedForUser, listForUser } from "../lib/d1-resource.js";
+import { createD1ResourceHandlers, findOwnedRow, listChangedForUser, listForUser, nextCursorSql } from "../lib/d1-resource.js";
 import { validateEntryShape } from "../../shared/entry-schema.js";
 
 // Must match migrations/0016_add_grade_scale.sql's backfill WHERE clause.
@@ -34,8 +34,6 @@ export function buildRow(entry, id, userId) {
     notes: entry.notes || null,
     attempts_to_send: entry.attemptsToSend ?? null,
     rpe: entry.rpe ?? null,
-    // Set here, not as a column DEFAULT: D1 rejects a non-constant DEFAULT on ADD COLUMN.
-    sync_cursor: Date.now(),
   };
 }
 
@@ -187,17 +185,30 @@ async function handleByLocation(locationId, url, env, userId, { shapeRow, includ
 async function handleChunked(url, env, userId, { shapeRow, includeChildRows }) {
   if (!userId) return json({ entries: [], total: 0, cursor: 0 }, 200, { "Cache-Control": "no-store" });
 
-  const limit = url.searchParams.get("limit");
+  const limit = Number(url.searchParams.get("limit"));
+  const afterCreatedAt = url.searchParams.get("afterCreatedAt") ?? "";
+  const afterId = url.searchParams.get("afterId") ?? "";
+  // Only clients cached from before keyset paging still send offset.
   const offset = Number(url.searchParams.get("offset")) || 0;
+  // Keyset, not offset alone: a delete mid-sync would shift later rows past the next page.
   const { results } = await env.LOGBOOK_DB
-    .prepare(`SELECT *, COUNT(*) OVER() AS total, MAX(sync_cursor) OVER() AS max_cursor FROM entries WHERE user_id = ? AND deleted_at IS NULL ORDER BY created_at LIMIT ? OFFSET ?`)
-    .bind(userId, Number(limit), offset)
+    .prepare(`
+      SELECT *,
+        (SELECT COUNT(*) FROM entries WHERE user_id = ? AND deleted_at IS NULL) AS total,
+        (SELECT MAX(sync_cursor) FROM entries WHERE user_id = ?) AS max_cursor
+      FROM entries
+      WHERE user_id = ? AND deleted_at IS NULL AND (created_at, id) > (?, ?)
+      ORDER BY created_at, id LIMIT ? OFFSET ?
+    `)
+    .bind(userId, userId, userId, afterCreatedAt, afterId, limit, offset)
     .all();
   const total = results[0]?.total ?? 0;
   const cursor = results[0]?.max_cursor ?? 0;
+  const last = results.at(-1);
+  const next = results.length === limit ? { createdAt: last.created_at, id: last.id } : null;
   const shaped = results.map(shapeRow);
   const decorated = includeChildRows ? await attachChildRows(shaped, env) : shaped;
-  return json({ entries: decorated, total, cursor }, 200, { "Cache-Control": "no-store" });
+  return json({ entries: decorated, total, cursor, next }, 200, { "Cache-Control": "no-store" });
 }
 
 async function handleAll(env, userId, { shapeRow, includeChildRows }) {
@@ -240,8 +251,8 @@ export async function handlePut(request, env, userId) {
   const row = buildRow(entry, entry.id, userId);
   const columns = Object.keys(row).filter(c => c !== "id" && c !== "user_id");
   await env.LOGBOOK_DB
-    .prepare(`UPDATE entries SET ${columns.map(c => `${c} = ?`).join(", ")}, updated_at = datetime('now') WHERE id = ? AND user_id = ?`)
-    .bind(...columns.map(c => row[c]), entry.id, userId)
+    .prepare(`UPDATE entries SET ${columns.map(c => `${c} = ?`).join(", ")}, sync_cursor = ${nextCursorSql("entries")}, updated_at = datetime('now') WHERE id = ? AND user_id = ?`)
+    .bind(...columns.map(c => row[c]), userId, entry.id, userId)
     .run();
   await replaceMovesAndPainMoves(env, entry.id, entry);
 
@@ -255,10 +266,9 @@ export async function handleDelete(request, env, userId) {
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return json({ error: "Missing required field: id" }, 400);
 
-  const now = Date.now();
   await env.LOGBOOK_DB
-    .prepare(`UPDATE entries SET deleted_at = ?, sync_cursor = ?, updated_at = datetime('now') WHERE id = ? AND user_id = ?`)
-    .bind(now, now, id, userId)
+    .prepare(`UPDATE entries SET deleted_at = ?, sync_cursor = ${nextCursorSql("entries")}, updated_at = datetime('now') WHERE id = ? AND user_id = ?`)
+    .bind(Date.now(), userId, id, userId)
     .run();
 
   const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });

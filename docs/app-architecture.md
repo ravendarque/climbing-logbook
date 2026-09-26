@@ -325,10 +325,18 @@ Tables (see `migrations/` for columns and constraints):
   queued against the id it minted. Two offline devices adding the same crag
   converge on one row.
 - **Delta sync** returns every row with `sync_cursor >= since`, deletions
-  included, plus the new cursor. It's `>=` because cursors can collide
-  within a millisecond, and merging by id makes a repeat harmless. Each
-  table keeps its own cursor: one shared cursor could skip changes in
-  whichever table's cursors run lower.
+  included, plus the new cursor. Every write sets its row's cursor inside
+  the statement to one more than the user's highest (`nextCursorSql()`),
+  so SQLite's single writer makes cursor order commit order; a cursor
+  taken from the Worker's clock let a slower commit land behind a cursor
+  a device had already recorded. A migration that changes rows must bump
+  their cursors the same way. `>=` re-sends the row at the cursor itself,
+  which merging by id makes harmless. Each table keeps its own cursor: one
+  shared cursor could skip changes in whichever table's cursors run lower.
+- **The cold sync pages by key** (`created_at, id`), not offset, so a
+  delete on another device mid-load can't shift a live row past the next
+  page. The device keeps the first chunk's cursor, so its next delta
+  re-covers anything that changed during the load.
 - **Writes are allowlisted.** `buildRow()` in each API module builds the row
   from known fields only; the request body is never spread into storage.
   `shared/entry-schema.js` validates entries on both sides.
