@@ -1,5 +1,3 @@
-// #962, ADR-0028 -- the service worker's request classification. Every row
-// of #947's routing table, plus the cases that must fall through untouched.
 import { describe, expect, it } from "vitest";
 import { classifyRequest } from "../../../client/sw/classify.js";
 

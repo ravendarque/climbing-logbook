@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { effortByBucket, effortHeadline } from "../../shared/effort-stats.js";
 
-// #717 -- gradeScale defaults to whichever discipline's own primary
-// scale matches this fixture's own default grade casing (font-non-
-// standard's real notation for Boulder, french for Sport) -- a test
-// exercising a specific scale passes its own gradeScale override.
 function entry(overrides = {}) {
   const type = overrides.type ?? "boulder";
   const gradeScale = type === "boulder" ? "font-non-standard" : "french";
@@ -15,9 +11,6 @@ function pair(grade, gradeScale = "font-non-standard") {
   return { grade, gradeScale };
 }
 
-// Test-only shorthand -- effortByBucket only cares about a bucket's
-// [start, end] range (see shared/volume-stats.js's own weekBuckets for
-// how a real bucket's weeksAgo label gets computed).
 function bucket(start, end) {
   return { start, end, weeksAgo: 0 };
 }
@@ -38,9 +31,6 @@ describe("effortByBucket", () => {
     expect(maxGradeByBucket).toEqual([pair("7A")]);
   });
 
-  // #461 -- regression: `type` used to be dropped entirely on the way
-  // into volumeByBucket()'s own gradeRank() calls, defaulting every
-  // discipline to Boulder's order.
   it("ranks Sport grades against Sport's own order, not Boulder's", () => {
     const entries = [entry({ grade: "4a", type: "sport" }), entry({ grade: "6a", type: "sport", date: "2026-01-20" })];
     const { maxGradeByBucket } = effortByBucket(entries, [JAN], "sport");
@@ -95,10 +85,6 @@ describe("effortByBucket", () => {
     expect(maxGradeByBucket).toEqual([pair("6B"), pair("7A")]);
   });
 
-  // #717 -- the real fix: a Boulder send logged in V-scale has no string
-  // in the old BOULDER_ORDER hybrid notation to rank against -- the old
-  // gradeRank()-based comparison fell through to its own `?? 99`
-  // fallback, silently "winning" regardless of its real difficulty.
   it("correctly compares a send logged in a non-primary scale against one in the primary scale", () => {
     const entries = [
       entry({ grade: "7c" }), // harder, font-non-standard
@@ -142,10 +128,6 @@ describe("effortHeadline", () => {
     expect(text).toContain("room to push harder");
   });
 
-  // #717 -- the trend comparison now resolves each bucket's own pair via
-  // its real canonical ordinal (reportGradeOrdinal), not gradeRank --
-  // confirms a V-scale-logged grade compares correctly against a
-  // font-non-standard one for trend-direction purposes.
   it("correctly detects a rising grade trend across a mix of real scales", () => {
     const text = effortHeadline([pair("V3", "v-scale"), pair("7A")], [60, 80], [2, 2], 70, 5, "boulder");
     expect(text).toContain("paying off");

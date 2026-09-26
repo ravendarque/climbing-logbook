@@ -1,6 +1,4 @@
-// #961 -- scripts/content-hash-asset-urls.mjs, against a real temporary
-// build directory (needs the filesystem, so it runs in the Node-based
-// client-dom project, not the Workers pool).
+// Needs the filesystem, so it runs in the client-dom project.
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";

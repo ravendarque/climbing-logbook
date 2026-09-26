@@ -1,6 +1,3 @@
-// #984, #982 -- app hosts log in on their own origin (#955) at /-/login/,
-// inside the collision-proof /-/ namespace; the apex keeps /login/. Both
-// are the same page, served here through the real Worker entrypoint.
 import { exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 
@@ -12,7 +9,6 @@ describe("/-/login/ on app hosts (#984)", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('id="login-submit-btn"');
-    // Absolute references, so the page works at /-/login/ as well as /login/.
     expect(html).toContain('src="/-/login/login.js"');
     expect(html).not.toMatch(/(src|href)="\.\.?\//);
   });

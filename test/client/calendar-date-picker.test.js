@@ -94,11 +94,6 @@ describe("createCalendarDatePicker", () => {
     expect(containerEl.querySelector("#date-picker-month-label").textContent).toBe("January 2027");
   });
 
-  // #754 -- only the forward (Dec->Jan) direction was tested; Prev's own
-  // wrap is a structurally separate branch (viewMonth < 0, not > 11) --
-  // a copy-paste slip reusing the next-month wrap constants (e.g.
-  // `viewYear++` instead of `viewYear--`) would pass the test above yet
-  // send Prev from January to the WRONG year's December.
   it("navigating past January/December wraps the year backward", () => {
     mount({ value: "2026-01-15" });
     containerEl.querySelector("#date-picker-btn").click();

@@ -1,8 +1,4 @@
-// #1015 -- the brand lockup is static/-/brand-lockup.svg plus a few sizes
-// generated into climbing-header.js by scripts/generate-brand-lockup.mjs.
-// This fails if the two drift apart (the SVG regenerated without the
-// header, or hand-edited), and if a page loses the preload link the header
-// takes the SVG's content-hashed URL from.
+// Fails if the SVG and climbing-header.js's generated sizes drift, or a page loses the preload link.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";

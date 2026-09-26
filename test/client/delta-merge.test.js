@@ -27,10 +27,6 @@ describe("mergeDelta", () => {
     expect(merged.map(r => r.id)).toEqual(["b"]);
   });
 
-  // #500 -- the `deleted` flag itself must never survive into a live
-  // row's stored shape, or an entry that passed through a delta merge
-  // would be shaped differently (deleted: false) from one that only
-  // ever came from a cold/chunked fetch (no such field at all).
   it("strips the deleted flag off a surviving row", () => {
     const merged = mergeDelta([], [{ id: "a", name: "New", deleted: false }]);
     expect(merged).toEqual([{ id: "a", name: "New" }]);

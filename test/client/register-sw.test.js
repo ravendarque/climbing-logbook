@@ -1,4 +1,3 @@
-// #947 -- client/register-sw.js.
 import { describe, expect, it, vi } from "vitest";
 import { registerServiceWorker, unregisterRetiredWorkers } from "../../client/register-sw.js";
 
@@ -33,7 +32,6 @@ describe("registerServiceWorker", () => {
     await registerServiceWorker({ win: fakeWindow("/raven/log", container) });
     expect(old.unregister).toHaveBeenCalled();
     expect(container.register).toHaveBeenCalledWith("/service-worker.js", { scope: "/" });
-    // #948 -- then asks the active worker to top up its pre-cache.
     expect(active.postMessage).toHaveBeenCalledWith({ type: "precache" });
   });
 

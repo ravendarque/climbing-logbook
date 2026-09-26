@@ -9,16 +9,6 @@ beforeEach(() => {
   containerEl = document.getElementById("container");
 });
 
-// #736 -- Custom range now uses two calendar-date-picker.js instances
-// instead of native <input type="date">s. This file tests the
-// INTEGRATION contract only (Custom mode wires two pickers to
-// customRange.start/end, selecting a day fires onChange with the
-// updated range) -- the calendar widget's own internals (month nav,
-// today/selected marking, value parsing) are already covered directly by
-// test/client/calendar-date-picker.test.js, not re-tested here. Picks
-// whatever day cell isn't already selected, rather than a hardcoded
-// date, so these tests don't depend on which month the picker's initial
-// value happens to open on relative to the current system time.
 function pickAnyOtherDay(idPrefix) {
   containerEl.querySelector(`#${idPrefix}-btn`).click();
   const cell = [...containerEl.querySelectorAll(`#${idPrefix}-grid button[data-date]`)]
@@ -80,10 +70,6 @@ describe("createTimeWindowControl", () => {
     expect(end).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  // #600 -- replaces the old calendar-month-clamping tests (subtractMonths
-  // is gone): a rolling day window has no month-boundary case to clamp at
-  // all, so the thing worth asserting now is that the span is always
-  // exactly N*7 days, regardless of where "today" falls in its own month.
   it("12w is always exactly 84 days (12*7), inclusive of both ends", () => {
     vi.setSystemTime(new Date("2026-05-31T00:00:00Z"));
     const onChange = vi.fn();
@@ -109,16 +95,11 @@ describe("createTimeWindowControl", () => {
   it("re-clicking the already-active Custom pill preserves the picked dates", () => {
     const onChange = vi.fn();
     createTimeWindowControl({ containerEl, onChange });
-    // Switch to Custom
     containerEl.querySelector('[data-window="custom"]').click();
-    // Update the dates
     const pickedStart = pickAnyOtherDay("time-window-start");
     const pickedEnd = pickAnyOtherDay("time-window-end");
-    // Clear the mock to count only calls after this point
     onChange.mockClear();
-    // Re-click Custom (should NOT reset to 12w range)
     containerEl.querySelector('[data-window="custom"]').click();
-    // Check that onChange was called but with the preserved dates
     const lastCall = onChange.mock.calls.at(-1)[0];
     expect(lastCall).toEqual({ start: pickedStart, end: pickedEnd });
   });
@@ -133,10 +114,6 @@ describe("createTimeWindowControl", () => {
   it("Custom range's picked-date labels set an explicit foreground text color (dark-mode readability, #600)", () => {
     createTimeWindowControl({ containerEl, onChange: () => {} });
     containerEl.querySelector('[data-window="custom"]').click();
-    // #736 -- the label showing the picked date replaced the old native
-    // date inputs (which needed this same explicit color fix, #600, so
-    // the value text wasn't invisible against a dark background) as the
-    // one thing in Custom mode displaying date text directly.
     const labels = containerEl.querySelectorAll(".flex.items-center.gap-2 > span.text-foreground");
     expect(labels).toHaveLength(2);
   });
@@ -150,30 +127,15 @@ describe("createTimeWindowControl", () => {
   });
 
   it("destroys the previous Custom pickers' listeners on every re-render, not just the DOM", () => {
-    // #736 -- render() fully rebuilds containerEl.innerHTML on every
-    // state change; without destroy()ing the previous pair of
-    // calendar-date-picker instances first, their document-level
-    // listeners (createDisclosure's outside-click/Escape handlers) would
-    // pile up forever across repeated picks, each one keeping its own
-    // now-detached button/popover alive too.
     const removeSpy = vi.spyOn(document, "removeEventListener");
     createTimeWindowControl({ containerEl, onChange: () => {} });
     containerEl.querySelector('[data-window="custom"]').click();
     removeSpy.mockClear();
     pickAnyOtherDay("time-window-start"); // triggers a re-render
-    // 2 pickers x 2 document-level listeners each (outside-click, Escape)
     expect(removeSpy.mock.calls.length).toBe(4);
     removeSpy.mockRestore();
   });
 
-  // #754 -- the test above only ever exercised a Custom->Custom
-  // re-render (picking a date while staying in Custom mode). Leaving
-  // Custom mode entirely (back to a preset) is the transition most
-  // likely to actually happen in real use, and is a structurally
-  // different code path: render()'s own `else { startPicker = null;
-  // endPicker = null; }` branch, not the `if (mode === "custom")` one
-  // the test above covers. A refactor that only destroy()s "when
-  // staying in Custom" would pass the test above yet leak here.
   it("also destroys the previous Custom pickers' listeners when leaving Custom mode for a preset", () => {
     const removeSpy = vi.spyOn(document, "removeEventListener");
     createTimeWindowControl({ containerEl, onChange: () => {} });

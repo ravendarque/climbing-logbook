@@ -8,8 +8,6 @@ describe("renderComboChartHtml", () => {
   });
 
   it("renders one bar <rect> per bar value", () => {
-    // Scoped to fill-accent (the real bars) -- #735's plot-frame rect is
-    // also a <rect>, so a bare /<rect/g count would double-count it.
     const html = renderComboChartHtml({ bucketLabels: ["Jan 2026", "Feb 2026"], bars: [{ label: "Sends", values: [3, 5] }], lines: [], headline: "h" });
     const rectCount = (html.match(/<rect[^>]*class="fill-accent"/g) || []).length;
     expect(rectCount).toBe(2);
@@ -23,11 +21,6 @@ describe("renderComboChartHtml", () => {
   });
 
   it("renders a border framing the full plot area, even when every bar is short", () => {
-    // #735 -- when every value in the current window is low, the plotted
-    // bars/lines cluster near the bottom axis and the mostly-empty upper
-    // plot area is visually indistinguishable from the chart not having
-    // rendered at all. A frame around the whole plot area makes the
-    // chart's own boundary visible regardless of where the data sits.
     const html = renderComboChartHtml({ bucketLabels: ["Jan 2026"], bars: [{ label: "Sends", values: [1] }], lines: [], headline: "h" });
     expect(html).toMatch(/<rect[^>]*class="fill-none stroke-border"/);
   });
@@ -71,22 +64,6 @@ describe("renderComboChartHtml", () => {
     expect(circles[1]).toBeLessThan(circles[0]); // "6C" (index 3) is higher on the chart than "5" (index 0) -- smaller SVG y
   });
 
-  // #620/#624 -- two line series used to render in the identical color
-  // (both hardcoded to stroke-foreground/fill-foreground), making Gap's
-  // Flash/Onsight vs Send/Redpoint lines impossible to tell apart. The
-  // first fix for this (#620/#622) used `class="fill-${color}"`/
-  // `class="stroke-${color}"` string interpolation, which shipped a real,
-  // live bug: Tailwind's build-time content scanner never generates a
-  // utility class for a dynamically-interpolated name unless the
-  // complete literal string ALSO appears verbatim somewhere in source --
-  // confirmed via a real build where `.fill-tier-peer` compiled
-  // (coincidentally, from unrelated literal text elsewhere) but
-  // `.stroke-tier-peer` never did, at all, leaving series 2's connecting
-  // line invisible (`stroke: none`) even though its dots rendered
-  // correctly-colored. Each series here needs >=2 points so a real
-  // <path> (not just <circle>s) actually renders -- the original test
-  // only ever gave each series one point, so it exercised fill but never
-  // the stroke path this bug lived in.
   it("renders each line series' connecting path and dots in a distinct, real (non-interpolated) color class", () => {
     const html = renderComboChartHtml({
       bucketLabels: ["Jan 2026", "Feb 2026"],
@@ -103,7 +80,6 @@ describe("renderComboChartHtml", () => {
     expect(html).toContain('class="stroke-tier-heuristic"');
     expect(html).toContain("fill-foreground");
     expect(html).toContain("fill-tier-heuristic");
-    // series 2's own label ("V5") sits in a fill-tier-heuristic text element, not fill-foreground.
     expect(html).toMatch(/fill-tier-heuristic text-\[10px\] font-bold">V5</);
   });
 
@@ -134,7 +110,6 @@ describe("renderComboChartHtml", () => {
 
   it("renders y-axis tick label text for a bar series with a real max value", () => {
     const html = renderComboChartHtml({ bucketLabels: ["Jan 2026"], bars: [{ label: "Sends", values: [10] }], lines: [], headline: "h" });
-    // ticks at 0, midpoint (5), and max (10)
     expect(html).toContain(">5<");
     expect(html).toContain(">10<");
   });
@@ -146,24 +121,15 @@ describe("renderComboChartHtml", () => {
       lines: [{ label: "Max grade", points: [{ positionKey: "6A", displayLabel: "V3" }], positionOrder: ["6A"] }],
       headline: "h",
     });
-    // only the pre-existing plot-area baseline <line> should be present, no axis gridlines
     const lineCount = (html.match(/<line/g) || []).length;
     expect(lineCount).toBe(1);
   });
 
   it("#603 -- renders a null bar value as a dash, not a zero-height rect", () => {
     const html = renderComboChartHtml({ bucketLabels: ["Jan 2026"], bars: [{ label: "Avg attempts", values: [null] }], lines: [], headline: "h" });
-    // Scoped to fill-accent -- #735's plot-frame rect always renders,
-    // regardless of bar values, so a bare /<rect/g count would no longer
-    // read as zero here.
     const rectCount = (html.match(/<rect[^>]*class="fill-accent"/g) || []).length;
     expect(rectCount).toBe(0);
     expect(html).toContain(">–<");
-    // Not asserting the whole SVG never contains ">0<" -- the y-axis's own
-    // legitimate baseline tick label (barYAxisHtml, unaffected by this
-    // fix) still renders "0" when maxValue defaults to 0 for an all-null
-    // series. This only checks the bar's own data-label slot specifically
-    // renders a dash instead of a number.
   });
 
   it("#603 -- a bucket with a null bar value and a real grade-line point renders both correctly", () => {
@@ -181,7 +147,6 @@ describe("renderComboChartHtml", () => {
 
   it("#603 -- a null bar value doesn't distort the y-axis scale computed from real values", () => {
     const html = renderComboChartHtml({ bucketLabels: ["Jan 2026", "Feb 2026"], bars: [{ label: "Avg attempts", values: [null, 10] }], lines: [], headline: "h" });
-    // ticks at 0, midpoint (5), and max (10) -- unaffected by the null bucket
     expect(html).toContain(">5<");
     expect(html).toContain(">10<");
   });

@@ -91,11 +91,6 @@ describe("filteredEntries", () => {
     { id: "e3", type: "sport", status: "send", firstAttempt: false, grade: "6a", gradeScale: "french", name: "Voie des Dalles", placeId: "p2", sportStyle: "lead" },
     { id: "e4", type: "sport", status: "send", firstAttempt: false, grade: "6b", gradeScale: "french", name: "Top-Rope Route", placeId: "p2", sportStyle: "top_rope" },
   ];
-  // #63 -- statusFilters has no "empty = show every status" shortcut, so
-  // a base fixture for tests that aren't themselves testing status
-  // filtering needs to explicitly list every status these entries use
-  // (flash+send+project cover all three above), not rely on an empty set
-  // meaning "no constraint."
   const baseFilters = { activeType: "boulder", statusFilters: new Set(["flash", "send", "project"]), gradeTiers: null, search: "" };
 
   it("filters to only the active discipline", () => {
@@ -113,11 +108,6 @@ describe("filteredEntries", () => {
     expect(result).toEqual([]);
   });
 
-  // #708 -- replaces the old min/max gradeRange facet with a tier Set,
-  // same "means exactly what it contains" convention as statusFilters.
-  // e1's "6A" (Font) is exactly Boulder's Intermediate threshold; e2's
-  // "7A" is exactly its Advanced threshold (shared/grade-data.js's own
-  // GRADE_TIER_THRESHOLDS).
   it("filters by grade tier, derived from (grade, gradeScale)", () => {
     expect(filteredEntries(entries, PLACES, { ...baseFilters, gradeTiers: new Set(["intermediate"]) }).map(e => e.id)).toEqual(["e1"]);
     expect(filteredEntries(entries, PLACES, { ...baseFilters, gradeTiers: new Set(["advanced"]) }).map(e => e.id)).toEqual(["e2"]);
@@ -136,14 +126,11 @@ describe("filteredEntries", () => {
     expect(filteredEntries(entries, PLACES, { ...baseFilters, search: "cuvier" }).map(e => e.id)).toEqual(["e1", "e2"]);
   });
 
-  // #708 -- as-logged grade-label search, case-insensitive, modifier-
-  // aware (see gradeMatchesSearch's own tests below for the full rule).
   it("filters by grade label search, alongside name/area", () => {
     expect(filteredEntries(entries, PLACES, { ...baseFilters, search: "6a" }).map(e => e.id)).toEqual(["e1"]);
     expect(filteredEntries(entries, PLACES, { ...baseFilters, activeType: "sport", statusFilters: new Set(["send"]), search: "6a" }).map(e => e.id)).toEqual(["e3"]);
   });
 
-  // #644 -- Lead/Top-Rope filter on the owner /log view.
   const sportFilters = { ...baseFilters, activeType: "sport", statusFilters: new Set(["send"]) };
 
   it("filters by sportStyle when active type is sport", () => {
@@ -183,8 +170,6 @@ describe("groupByPlace", () => {
   });
 
   it("orders groups by first appearance in allEntries, not in the filtered subset", () => {
-    // e2 (location l2) appears first in allEntries even though the
-    // filtered subset here only contains l1 entries.
     const filtered = [entries[0], entries[2]];
     const groups = groupByPlace(filtered, entries, PLACES);
     expect(groups.map(([locationId]) => locationId)).toEqual(["l1"]);
@@ -211,7 +196,6 @@ describe("sortEntries", () => {
   });
 
   it("sorts by area (joined via places)", () => {
-    // p1 -> "Bas Cuvier", p2 -> "New Base Camp" -- "Bas Cuvier" sorts first
     expect(sortEntries(entries, { col: "area", dir: "asc" }, PLACES).map(e => e.id)).toEqual(["e2", "e1"]);
   });
 
@@ -221,9 +205,6 @@ describe("sortEntries", () => {
     expect(entries).toEqual(original);
   });
 
-  // #461 -- regression: gradeRank() used to default to Boulder's order
-  // regardless of the entries' real discipline, silently mis-sorting any
-  // Sport grade whose real rank diverged from Boulder's own list.
   it("sorts Sport entries by grade against Sport's own order, not Boulder's", () => {
     const sportEntries = [
       { id: "s1", grade: "6a", date: "2025-01-01", name: "Zebra", placeId: "p2" },

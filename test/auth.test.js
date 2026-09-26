@@ -1,16 +1,3 @@
-// Exercises Better Auth (#20) through the real Worker entrypoint, same
-// rationale as every other test/*.test.js file here: the public HTTP
-// contract is what's under test. Real (Miniflare-backed) D1, not mocked --
-// see test/apply-migrations.js for why this file's first request always
-// runs against a freshly-migrated, empty `user` table.
-//
-// Covers the underlying sign-up/session/sign-in/sign-out machinery itself,
-// not the two things layered in front of it: the beta gate (#296, disabled
-// below, own dedicated test/beta-gate.test.js) and email verification
-// (#308, its own required-behavior tests live in test/email.test.js --
-// this file just uses verification as a means to reach a real logged-in
-// state for its own sign-in/sign-out tests, the same way any test setup
-// uses other already-tested features to reach the state under test).
 import { env } from "cloudflare:workers";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { BASE_URL, fetchJson, jsonRequest, resetAuthTables } from "./support.js";
@@ -22,11 +9,6 @@ afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
 
 const VALID_SIGNUP = { email: "nix@example.com", password: "correct-horse-battery-staple", name: "Nix", username: "nix", turnstileToken: "test-token" };
 
-// Stubs the outbound calls to Resend's API and Turnstile's siteverify
-// endpoint (both third-party boundaries, not this app's own runtime --
-// see test/email.test.js's own header comment for why that distinction
-// matters) so verification tokens can be extracted without a real Resend
-// account, and sign-up's #311 bot check always passes.
 let resendCalls;
 beforeEach(() => {
   resendCalls = [];
@@ -51,11 +33,7 @@ function signIn(email, password) {
   return jsonRequest("POST", "/-/api/auth/sign-in/email", { email, password });
 }
 
-// Better Auth issues a real session cookie via Set-Cookie -- fetchJson()
-// calls the Worker's fetch() directly rather than going through a browser,
-// so nothing carries that cookie to the next call automatically the way a
-// real browser's cookie jar would. Every authenticated call in this file
-// extracts it from the prior response and passes it back explicitly.
+// fetch() is called directly, so no cookie jar: each call passes the cookie back explicitly.
 function cookieFrom(response) {
   const setCookie = response.headers.get("set-cookie");
   if (!setCookie) throw new Error("Response had no Set-Cookie header");
@@ -65,19 +43,10 @@ function getSession(cookie) {
   return fetchJson("/-/api/auth/get-session", cookie ? { headers: { Cookie: cookie } } : undefined);
 }
 
-// update-user/change-password/change-email (#302) are all authenticated
-// state changes, same Origin-header requirement as sign-out above (Better
-// Auth's origin-check middleware, real CSRF protection -- see sign-out's
-// own comment for why a real browser's same-origin fetch() always sends
-// this anyway).
 function authedPost(path, body, cookie) {
   return jsonRequest("POST", path, body, { Cookie: cookie, Origin: BASE_URL });
 }
 
-// Signs up and clicks the emailed verification link -- see
-// test/email.test.js for dedicated coverage of the verification flow
-// itself; this just reaches a real logged-in state for tests below that
-// need one but aren't testing verification.
 async function signUpAndVerify(body = VALID_SIGNUP) {
   await signUp(body);
   const html = resendCalls.at(-1).body.html;
@@ -94,22 +63,14 @@ describe("sign-up", () => {
     expect(body.token).toBeNull();
     expect(body.user.email).toBe(VALID_SIGNUP.email);
     expect(body.user.username).toBe(VALID_SIGNUP.username);
-    // Password never echoed back in any form.
     expect(JSON.stringify(body)).not.toContain(VALID_SIGNUP.password);
   });
 
   it("returns a generic success for a duplicate email, without actually creating a second account", async () => {
-    // Deliberate anti-enumeration behavior (Better Auth's own
-    // `requireEmailVerification` implication) -- an attacker probing
-    // whether an email is already registered can't distinguish this from
-    // a genuine new signup by status code or shape alone.
     await signUp();
     const res = await signUp({ ...VALID_SIGNUP, username: "nix2" });
     expect(res.status).toBe(200);
 
-    // The real behavior that actually matters: "nix2" never became a real,
-    // usable account -- only the original signup's own verification link
-    // (the first Resend call) can ever complete a real login for this email.
     expect(resendCalls).toHaveLength(1);
   });
 
@@ -119,8 +80,6 @@ describe("sign-up", () => {
     expect(res.status).toBe(400);
   });
 
-  // #997 -- shared/username-policy.js, through the real route: the code
-  // is what static/register/register.js turns into "isn't available".
   it("rejects a reserved username and a lookalike of one, creating no account", async () => {
     for (const username of ["help", "he1p", "admin_raven"]) {
       const res = await signUp({ ...VALID_SIGNUP, username });
@@ -163,14 +122,6 @@ describe("session lifecycle", () => {
     const cookie = await signUpAndVerify();
     expect((await (await getSession(cookie)).json()).user.email).toBe(VALID_SIGNUP.email);
 
-    // Unlike sign-up/sign-in (no session to CSRF against yet), sign-out is
-    // an authenticated state change -- Better Auth's origin-check
-    // middleware requires a real Origin header on it (403
-    // MISSING_OR_NULL_ORIGIN otherwise), same as any real browser's
-    // fetch() would always send for a same-origin POST -- confirmed
-    // against a real browser hitting the real dev server, not just this
-    // Miniflare-backed test. It also requires a real (even empty) JSON
-    // body with a matching Content-Type -- a bodyless POST here 415s.
     const signOutRes = await fetchJson("/-/api/auth/sign-out", {
       method: "POST",
       headers: { Cookie: cookie, Origin: BASE_URL, "Content-Type": "application/json" },
@@ -178,19 +129,11 @@ describe("session lifecycle", () => {
     });
     expect(signOutRes.status).toBe(200);
 
-    // Better Auth's sign-out response carries its own Set-Cookie clearing
-    // the session -- using that (not the pre-sign-out cookie) is what
-    // actually proves the server-side session was invalidated, not just
-    // that the client forgot the cookie.
     const clearedCookie = cookieFrom(signOutRes);
     expect(await (await getSession(clearedCookie)).json()).toBeNull();
   });
 });
 
-// #302 -- the account-settings page's three independent server calls
-// (client/account-edit-main.js), all Better Auth's own built-in
-// endpoints, exercised here for real rather than assumed from reading the
-// installed source alone.
 describe("account settings (#302)", () => {
   it("changes the username, reusing the same uniqueness check as sign-up", async () => {
     const cookie = await signUpAndVerify();
@@ -199,7 +142,6 @@ describe("account settings (#302)", () => {
     const takenRes = await authedPost("/-/api/auth/update-user", { username: "taken" }, cookie);
     expect(takenRes.status).toBe(400);
 
-    // #997 -- the username policy applies to a change too.
     const reservedRes = await authedPost("/-/api/auth/update-user", { username: "l0gin" }, cookie);
     expect(reservedRes.status).toBe(400);
 
@@ -236,9 +178,6 @@ describe("account settings (#302)", () => {
     const res = await authedPost("/-/api/auth/change-email", { newEmail: "new@example.com" }, cookie);
     expect(res.status).toBe(200);
 
-    // Sent to the account's own (old) address -- server/lib/email.js's own
-    // comment on why -- not the new one, which never receives anything
-    // until this link is clicked.
     expect(resendCalls).toHaveLength(1);
     expect(resendCalls[0].body.to).toBe(VALID_SIGNUP.email);
     expect(resendCalls[0].body.html).toContain("new@example.com");

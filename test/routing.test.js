@@ -1,12 +1,3 @@
-// server/index.js's resource routing (#992): one table keyed by pathname,
-// then method. Every route requires a session for every method it
-// accepts, reads included, so no session is a 401, never an empty 200.
-// Anonymous reads exist only under /-/api/public/:username/*
-// (test/public-data.test.js).
-//
-// Method is checked before the session, so a method a route doesn't
-// accept is a 404 with or without one -- including PUT on settings, which
-// was the accepted method before the PATCH rename (#215).
 import { env } from "cloudflare:workers";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createAuthedSession, fetchJson, resetAuthTables } from "./support.js";
@@ -26,7 +17,6 @@ const ROUTES = {
   "/-/api/map/counts": ["GET"],
 };
 
-// Retired by #992: the `logbook` resource name and the admin/ split.
 const RETIRED_PATHS = [
   "/-/api/logbook",
   "/-/api/admin/logbook",
@@ -91,8 +81,6 @@ describe("resource routes with a session", () => {
   });
 });
 
-// #1000 -- Better Auth's username plugin would answer whether an account
-// exists; the router hides it like any unknown route.
 describe("username availability endpoint", () => {
   it("404s, so it can't be used to test whether an account exists", async () => {
     const res = await fetchJson("/-/api/auth/is-username-available", {

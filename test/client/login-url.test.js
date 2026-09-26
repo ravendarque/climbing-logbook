@@ -1,4 +1,3 @@
-// #955 -- the login URL every app page navigates to (client/login-url.js).
 import { describe, expect, it } from "vitest";
 import { LOGIN_PATH, loginPageUrl } from "../../client/login-url.js";
 

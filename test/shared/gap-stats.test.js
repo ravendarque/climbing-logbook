@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { gapByBucket, gapHeadline } from "../../shared/gap-stats.js";
 
-// #717 -- gradeScale defaults to whichever discipline's own primary
-// scale matches this fixture's own default grade casing (font-non-
-// standard's real notation for Boulder, french for Sport) -- a test
-// exercising a specific scale passes its own gradeScale override.
 function entry(overrides = {}) {
   const type = overrides.type ?? "boulder";
   const gradeScale = type === "boulder" ? "font-non-standard" : "french";
@@ -15,9 +11,6 @@ function pair(grade, gradeScale = "font-non-standard") {
   return { grade, gradeScale };
 }
 
-// Test-only shorthand -- gapByBucket only cares about a bucket's
-// [start, end] range (see shared/volume-stats.js's own weekBuckets for
-// how a real bucket's weeksAgo label gets computed).
 function bucket(start, end) {
   return { start, end, weeksAgo: 0 };
 }
@@ -44,11 +37,6 @@ describe("gapByBucket", () => {
     expect(sendMaxByBucket).toEqual([pair("7A")]);
   });
 
-  // #461 -- regression: without a real per-discipline order, "4a" (a
-  // grade #129 adds to Sport's low end, absent from Boulder's notation
-  // entirely) fell through gradeRank()'s `?? 99` fallback and tied with
-  // every other unrecognized grade at "hardest possible" -- silently
-  // inverting a Sport max-grade comparison like this one.
   it("ranks Sport grades against Sport's own order, not Boulder's", () => {
     const entries = [
       entry({ grade: "4a", type: "sport" }),
@@ -58,12 +46,6 @@ describe("gapByBucket", () => {
     expect(sendMaxByBucket).toEqual([pair("6a", "french")]);
   });
 
-  // #717 -- the real fix: a Boulder send logged in V-scale ("V3") has no
-  // string in the old BOULDER_ORDER hybrid notation to rank against --
-  // the old gradeRank()-based comparison fell through to its own `?? 99`
-  // fallback, silently "winning" regardless of its real difficulty.
-  // Compares via the shared canonical ordinal instead, so a V-scale
-  // send only wins the bucket when it's genuinely the harder one.
   it("correctly compares a send logged in a non-primary scale against one in the primary scale", () => {
     const entries = [
       entry({ grade: "7c" }), // harder, font-non-standard
@@ -116,9 +98,6 @@ describe("gapHeadline", () => {
   it("reports no flash/onsight sends yet when only sendMax data exists", () => {
     const text = gapHeadline([null, null], [pair("6B"), pair("7A")], "boulder");
     expect(text).toContain("No flash sends logged in this window yet");
-    // No viewScaleId passed -- defaults to DEFAULT_VIEW_SCALE_BY_TYPE's
-    // "font", same as the picker's own opening default, so "7A" (font-
-    // non-standard) round-trips through Font-standard as itself.
     expect(text).toContain("7A");
   });
 
@@ -138,22 +117,11 @@ describe("gapHeadline", () => {
     expect(text).toContain("matches or beats");
   });
 
-  // #717 -- the headline's own display resolves through each grade's
-  // real gradeScale via reportGradeLabel, not gradeRank's old scale-
-  // oblivious display -- a V-scale-logged best send still renders
-  // correctly once the viewer is actually viewing in V-scale.
   it("renders a V-scale-logged best send with its correct display label when viewing in V-scale", () => {
     const text = gapHeadline([null], [pair("V3", "v-scale")], "boulder", "v-scale");
     expect(text).toContain("V3");
   });
 
-  // #733 -- the real bug this fixes: gapHeadline used to call
-  // gradeDisplayLabelForScale, a DIFFERENT helper that always renders
-  // Boulder grades in V-scale regardless of any picker -- so switching
-  // the report's scale picker relabeled the chart's own points but never
-  // touched this headline text at all. Same entry, two different
-  // viewScaleId values, two different rendered labels -- proves the
-  // headline now actually responds to the picker.
   it("relabels its own grade mentions when the viewer's chosen scale changes, matching the chart's points", () => {
     const inFont = gapHeadline([null], [pair("V3", "v-scale")], "boulder", "font");
     const inVScale = gapHeadline([null], [pair("V3", "v-scale")], "boulder", "v-scale");
@@ -168,12 +136,6 @@ describe("gapHeadline", () => {
     expect(sportText).toContain("6a");
   });
 
-  // #733 -- a best send genuinely below Font-standard's own floor has no
-  // representation there at all (reportGradeLabel returns null) -- the
-  // prose can't just drop the mention the way a chart drops a point, so
-  // it falls back to the grade's own logged (Non-standard) scale for
-  // that one mention rather than a broken "(null)" or the raw-string bug
-  // this whole fix exists to close.
   it("falls back to the grade's own logged scale when the chosen view scale can't represent a below-floor best send", () => {
     const text = gapHeadline([null], [pair("2+", "font-non-standard")], "boulder", "font");
     expect(text).toContain("2+");

@@ -1,8 +1,3 @@
-// Direct unit coverage for the CSV template/parser (#224 phase 2/3) --
-// same reasoning as test/shared/entry-schema.test.js: faster to iterate
-// against than a full Worker round-trip, and this is what
-// server/api/entries-import.js's own tests build on for row-shape
-// assumptions.
 import { describe, expect, it } from "vitest";
 import { CSV_COLUMNS, buildEntriesCsv, buildTemplateCsv, parseCsvText, parseJsonText, resolveExportRows } from "../../shared/csv-import.js";
 
@@ -92,11 +87,6 @@ describe("parseCsvText", () => {
     expect(result.rows).toHaveLength(1);
   });
 
-  // #512 -- a bare (non-field-initial) quote used to incorrectly open
-  // quote-mode, silently swallowing every following comma/newline --
-  // including subsequent whole rows -- into that one field. A real
-  // regression: a notes value like `Worked a 6" crimp` (typed by hand,
-  // never RFC4180-quoted) previously corrupted the rest of the file.
   it("treats a bare quote inside an unquoted field as a literal character, not a quote-mode toggle", () => {
     const result = parseCsvText(`${HEADER}\n${row({ notes: 'Worked a 6" crimp hard' })}\n`);
     expect(result.ok).toBe(true);
@@ -226,13 +216,6 @@ describe("resolveExportRows (#27)", () => {
     expect(resolveExportRows([entry], places, locations)[0]).toMatchObject({ location: "", area: "", country: "" });
   });
 
-  // JSON.stringify's own escaping is never at risk -- what this proves is
-  // that resolveExportRows' plain object-building doesn't mangle special
-  // characters (truncate at a quote, choke on a backslash, etc.) before
-  // they ever reach it. A real JSON.stringify/JSON.parse round-trip, not
-  // just an equality check against the pre-stringify object, so a bug
-  // that only shows up in the actual serialized text (not the in-memory
-  // object) would still be caught.
   it("survives a real JSON.stringify/JSON.parse round-trip with quotes, a backslash, a newline, and unicode", () => {
     const entry = {
       name: 'Route "The Gift" (5.12a) \\ Área São Paulo\nSecond line',
@@ -277,9 +260,6 @@ describe("buildEntriesCsv (#27)", () => {
     expect(buildEntriesCsv(rows)).toContain('"Line one\nLine two"');
   });
 
-  // #487 -- CSV/formula injection: a field starting with one of these
-  // would otherwise be interpreted as a formula by Excel/Sheets/
-  // LibreOffice when the exported file is opened.
   it.each(["=1+1", "+1", "-1", "@SUM(A1)", "\tA1", "\rA1"])(
     "neutralizes a field starting with a formula-trigger character (%j)",
     notes => {
@@ -318,9 +298,6 @@ describe("buildEntriesCsv (#27)", () => {
     }]);
   });
 
-  // #476/#884 -- same trailing-append precedent as sportStyle's own
-  // round-trip test above, but with real (non-blank) values for all
-  // three new columns, not just their "" default.
   it("round-trips attemptsToSend/rpe/gradeScale through export then reimport", () => {
     const entries = [
       { name: "La Marie-Rose", grade: "6B", gradeScale: "font-non-standard", type: "boulder", status: "send", placeId: "place1", firstAttempt: true, attemptsToSend: 3, rpe: 80 },

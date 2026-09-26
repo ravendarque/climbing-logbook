@@ -1,7 +1,3 @@
-// Exercises server/api/map.js through the real Worker entrypoint (real
-// routing + real D1 binding) -- proves the join/aggregation query itself
-// (country x discipline x status, flash vs. plain send derived from
-// first_attempt) against real seeded rows, plus cross-user isolation.
 import { env } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
