@@ -1,7 +1,8 @@
 import { env } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
-import { handlePublicGet, publicRowToJson } from "../server/api/entries.js";
+import { buildRow, handlePublicGet, publicRowToJson } from "../server/api/entries.js";
+import { buildInsertStatement } from "../server/lib/d1-resource.js";
 
 const ENTRIES_URL = "/-/api/entries";
 
@@ -171,6 +172,11 @@ describe("handleGet (flat limit/offset, no locationId -- #498 chunked full sync)
 
     const { entries } = await (await fetchJson(`${ENTRIES_URL}?since=${first.cursor}`, { headers: { Cookie: cookie } })).json();
     expect(entries.find(e => e.id === "e0")?.deleted).toBe(true);
+  });
+
+  it.each(["0", "", "-1", "2.5", "abc"])("400s a limit of %j", async limit => {
+    const res = await getChunk({ limit });
+    expect(res.status).toBe(400);
   });
 
   it("returns no next key on the last chunk", async () => {
@@ -754,7 +760,8 @@ describe("entry_moves / entry_pain_moves", () => {
   });
 
   it("a plain GET succeeds and returns every entry once entry count crosses the 100-bound-parameter chunk boundary", async () => {
-    for (let i = 0; i < 105; i++) await post({ ...validEntry(), name: `Route ${i}` });
+    await env.LOGBOOK_DB.batch(Array.from({ length: 105 }, (_, i) =>
+      buildInsertStatement(env, "entries", buildRow({ ...validEntry(), name: `Route ${i}` }, crypto.randomUUID(), userId))));
 
     const res = await get();
     expect(res.status).toBe(200);
@@ -764,7 +771,7 @@ describe("entry_moves / entry_pain_moves", () => {
       expect(entry.moves).toEqual([]);
       expect(entry.painMoves).toEqual([]);
     }
-  }, 60000);
+  });
 });
 
 describe("cross-user isolation", () => {
