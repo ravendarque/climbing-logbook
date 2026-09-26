@@ -1,7 +1,4 @@
-// #952/#960 -- shared by the page-boot checks (client/channel-guard.js,
-// client/ownership-guard.js): replaces everything after the page header
-// (brand + menu, so the visitor can still log in/out or navigate) with a
-// short message, and the page's own boot() never runs.
+// Keeps the header, so the visitor can still log in or out.
 export function renderBlockedPage(doc, { id, heading, text, link }) {
   const header = doc.querySelector("climbing-page-header");
   const container = header?.parentElement ?? doc.body;
