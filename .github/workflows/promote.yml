@@ -48,6 +48,14 @@ jobs:
       # already applied via deploy.yml's own direct-path deploy. Beta and
       # production share the same D1 database (ADR-0020), so there's
       # nothing environment-specific about this step.
+      # Beta and production share this database (ADR-0020), so every tag
+      # migrates production. Logged first so the run itself records the
+      # restore point: `wrangler d1 time-travel restore climbing-logbook
+      # --bookmark=<bookmark>` (docs/versioning.md, Database migrations).
+      - name: Record D1 restore point before migrating
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm exec wrangler d1 time-travel info climbing-logbook
       - name: Apply D1 migrations
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
