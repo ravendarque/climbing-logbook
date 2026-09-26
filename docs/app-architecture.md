@@ -46,8 +46,39 @@ user's contains a hyphen and can never collide with one:
   app-host login (`/-/login/`) and the installed app's start page
   (`/-/launch/`).
 
-`shared/username-policy.js` decides every username (format, reserved names,
-blocked terms).
+### Usernames
+
+`shared/username-policy.js` decides whether a name can be registered or
+changed to. Better Auth's username plugin runs it on sign-up, on user
+update and in the user database hooks, so every path goes through it. The
+rules, in order:
+
+1. **Format:** lowercase letters, digits, `.` and `_`, 1–30 characters
+   (Instagram's rules, so people can reuse a handle). Never a hyphen.
+2. **Not a demo account** (`shared/demo-personas.js`).
+3. **Not reserved, and not a lookalike of a reserved name**
+   (`shared/reserved-usernames.js`): apex page names, which on `my.` would
+   look like the site's own pages; infrastructure names; names that read as
+   the site speaking; the brand. Names are compared by skeleton: lowercase,
+   separators dropped, leet digits read as letters (`1` as both `i` and
+   `l`), and `rn`/`vv` read as `m`/`w`.
+4. **No authority word as a part** of the name split on `.` and `_`
+   (`admin_raven`), matched as a whole part so `badmintonfan` passes.
+5. **No brand anywhere** in the name, lookalikes included.
+6. **No slur or hate-speech term** (`shared/blocked-username-terms.js`),
+   matched by the `obscenity` library through leet, lookalike Unicode and
+   repeated letters. Its version is pinned exactly, so an update can't
+   silently change what's blocked. Scope: slurs and hate speech only; not
+   swearing, and not political or identity terms in themselves.
+   Neo-Nazi number codes are matched on the raw name, since the matcher
+   would read digits as letters. `88` and `14` alone are allowed: they're
+   mostly birth years and grades.
+
+To add a reserved name or blocked term: a PR with a test covering the term
+and an innocent name containing its letters, then run
+`scripts/audit-usernames.mjs` against production to find existing accounts
+that already have it. A rejection only ever shows as "unavailable", so the
+lists can't be probed rule by rule.
 
 ## Repository layout
 

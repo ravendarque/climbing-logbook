@@ -1,24 +1,4 @@
-// #997 -- the one decision on whether a username can be registered or
-// changed to. server/lib/auth.js's usernameValidator calls it, and Better
-// Auth's username plugin runs that on sign-up, update-user and the user
-// create/update database hooks, so no path skips it.
-//
-// Rules, in order:
-// 1. Format (#341, #983): lowercase letters, digits, "." and "_", 1-30
-//    characters. No hyphen ever, which keeps /-/ and /service-worker.js
-//    collision-proof on the app hosts (#982).
-// 2. Not a demo account's name (#251).
-// 3. Not a reserved name or a lookalike of one (shared/reserved-usernames.js),
-//    compared by skeleton (below).
-// 4. No part of the name, split on "." and "_", is an authority word
-//    (admin_raven, raven.support).
-// 5. Doesn't contain the brand anywhere (the_climbinglogbook).
-// 6. Contains no slur or hate-speech term (shared/blocked-username-terms.js),
-//    read through leet, lookalikes and repeated letters, with "." and "_"
-//    treated both as word breaks (raven_spic) and as nothing (white_power).
-//
-// A rejection is reported only as "unavailable" to the person registering
-// (static/register/register.js), so the lists can't be probed rule by rule.
+// The rules are listed in docs/app-architecture.md, Usernames.
 import {
   DataSet, RegExpMatcher, englishDataset, englishRecommendedTransformers, parseRawPattern,
 } from "obscenity";
@@ -30,13 +10,9 @@ export const USERNAME_MIN_LENGTH = 1;
 export const USERNAME_MAX_LENGTH = 30;
 const FORMAT = /^[a-z0-9._]+$/;
 
-// Digits people use for letters. "1" reads as either i or l, so it's
-// resolved both ways (skeletons() below).
+// "1" is read as both i and l (skeletons()).
 const LEET = { 0: "o", 3: "e", 4: "a", 5: "s", 7: "t" };
 
-// The forms a name can be mistaken for: lowercase, separators dropped,
-// leet digits read as letters, and the two classic letter-pair lookalikes
-// (rn reads as m, vv as w). Two names with a skeleton in common look alike.
 export function skeletons(name) {
   const base = name
     .toLowerCase()
@@ -75,8 +51,7 @@ function containsHateTerm(candidate) {
     || HATE.hasMatch(joined);
 }
 
-// { ok: true } or { ok: false, reason } -- reason is for tests and
-// scripts/audit-usernames.mjs, never shown to the person registering.
+// The reason is for tests and scripts; the person registering only sees "unavailable".
 export function checkUsername(candidate) {
   if (typeof candidate !== "string" || !FORMAT.test(candidate)
     || candidate.length < USERNAME_MIN_LENGTH || candidate.length > USERNAME_MAX_LENGTH) {
