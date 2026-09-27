@@ -1,4 +1,4 @@
-// Classic script so it upgrades before first paint; children are looked up per call because it runs in <head>.
+// Draws nothing, so it's deferred; children are looked up per call rather than cached.
 (() => {
   var STATUS_LABELS = {
     working: "Status: Syncing…",

@@ -291,10 +291,12 @@ its bundle:
   the page calls `markReady()` after the settings load, so the Performance
   tab doesn't pop in afterwards.
 
-The header components
-(`static/-/components/`) are classic scripts, not modules, because they
-must run before first paint; `climbing-header.js` also injects the design
-tokens.
+The header components (`static/-/components/`) are classic scripts,
+not modules. `climbing-header.js` and `climbing-discipline-picker.js`
+draw markup while the page parses, so nothing shifts later; the burger
+menu and page header draw nothing and are deferred. The design tokens,
+both themes and the Bebas Neue `@font-face` live in `styles/tailwind.css`,
+unlayered so they beat every layered utility.
 
 ## Data model
 
