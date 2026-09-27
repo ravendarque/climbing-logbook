@@ -1008,7 +1008,7 @@ test("place picker: ArrowDown/ArrowUp/Enter navigate and commit a real row", asy
 
   await page.locator("#place-search").press("Enter");
   await expect(page.locator("#place-popover")).toBeHidden();
-  await expect(page.locator("#place-btn")).toHaveAttribute("aria-label", new RegExp(`^Place: `));
+  await expect(page.locator("#place-btn")).toHaveAttribute("aria-label", /^Place: /);
   const committedText = await options.first().locator("span.truncate").textContent();
   await expect(page.locator("#place-btn-label")).toHaveText(committedText);
 });

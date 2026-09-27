@@ -9,7 +9,7 @@ function devEntryRewrite(entries) {
   return {
     name: "logbook-dev-entry-rewrite",
     configureServer(server) {
-      server.middlewares.use((req, res, next) => {
+      server.middlewares.use((req, _res, next) => {
         const match = req.url?.match(/^\/-\/([\w-]+)-app\.js$/);
         const source = match && entries[match[1]];
         if (source) req.url = `/${source}`;

@@ -13,6 +13,7 @@ export function needsChannelChoice(hostname) {
 
 export function safeReturnTo(value, origin) {
   if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//")) return null;
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: rejecting control characters is the point.
   if (value.includes("\\") || /[\u0000-\u001f\u007f]/.test(value)) return null;
   let url;
   try { url = new URL(value, origin); } catch { return null; }

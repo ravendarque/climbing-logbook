@@ -1,5 +1,5 @@
 // A classic script, so the tokens exist before first paint (a module would be deferred).
-(function () {
+(() => {
   var TOKENS_STYLE_ID = "climbing-header-tokens";
 
   // The page's theme-color meta beats the manifest's, so beta switches it here.
@@ -11,7 +11,7 @@
   var LOCKUP = { width: 7781.3, betaWidth: 8357, height: 1146.8, orNot: { x: 6892.8, y: 852.4, width: 791, height: 255.4 } };
   // END GENERATED
   if (IS_BETA) {
-    var themeColor = document.querySelector('meta[name="theme-color"]');
+    const themeColor = document.querySelector('meta[name="theme-color"]');
     if (themeColor) themeColor.setAttribute("content", BETA_THEME_COLOR);
   }
 
@@ -161,7 +161,7 @@
   function brandHtml(alignLeft) {
     // One SVG, so the mark, title and tagline can't drift apart; the text is real but visually hidden.
     var width = IS_BETA ? LOCKUP.betaWidth : LOCKUP.width;
-    var pct = function (n, of) { return (n / of * 100).toFixed(3) + "%"; };
+    var pct = (n, of) => `${(n / of * 100).toFixed(3)}%`;
     var orNot = LOCKUP.orNot;
     return (
       '<div class="flex' + (alignLeft ? "" : " justify-center") + ' mb-4" id="brand-header-row">' +
@@ -192,7 +192,7 @@
 
   function focusableEls(overlay) {
     return [].slice.call(overlay.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'))
-      .filter(function (el) { return !el.disabled && el.offsetParent !== null; });
+      .filter((el) => !el.disabled && el.offsetParent !== null);
   }
 
   class ClimbingHeader extends HTMLElement {
@@ -221,20 +221,20 @@
 
       trigger.addEventListener("click", open);
       closeBtn.addEventListener("click", close);
-      overlay.addEventListener("click", function (e) {
+      overlay.addEventListener("click", (e) => {
         if (e.target === overlay) close();
       });
-      document.addEventListener("keydown", function (e) {
+      document.addEventListener("keydown", (e) => {
         if (overlay.hidden) return;
         if (e.key === "Escape") {
           close();
           return;
         }
         if (e.key === "Tab") {
-          var focusable = focusableEls(overlay);
+          const focusable = focusableEls(overlay);
           if (focusable.length === 0) return;
-          var first = focusable[0];
-          var last = focusable[focusable.length - 1];
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
           if (e.shiftKey && document.activeElement === first) {
             e.preventDefault();
             last.focus();

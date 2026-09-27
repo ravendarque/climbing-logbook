@@ -1,5 +1,5 @@
 // Classic script so it upgrades before first paint; children are looked up per call because it runs in <head>.
-(function () {
+(() => {
   var STATUS_LABELS = {
     working: "Status: Syncing…",
     offline: "Status: Offline",
@@ -21,7 +21,7 @@
       // data-sync-state doubles as the last announced state.
       var previous = button.getAttribute("data-sync-state") || "idle";
       if (previous !== state) {
-        var announce = this.querySelector("#menu-sync-announce");
+        const announce = this.querySelector("#menu-sync-announce");
         if (announce) announce.textContent = ANNOUNCEMENTS[state];
       }
       if (state === "idle") {

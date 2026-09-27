@@ -4,7 +4,7 @@ import { rowToJson as locationsRowToJson } from "./locations.js";
 import { rowToJson as placesRowToJson } from "./places.js";
 
 // Counts only; a table's rows are fetched when a visitor expands it (ADR-0017).
-export async function handleGetProfileCounts(request, env, userId) {
+export async function handleGetProfileCounts(_request, env, userId) {
   if (!userId) return json({ locations: [], places: [], counts: {} }, 200, { "Cache-Control": "no-store" });
 
   const [locations, places, countRows] = await Promise.all([

@@ -121,7 +121,7 @@ describe("pyramidCounts", () => {
       ];
       const { order, counts } = pyramidCounts("boulder", entries, "v-scale");
       expect(order.filter(g => g === "V3")).toHaveLength(1);
-      expect(counts["V3"]).toBe(2);
+      expect(counts.V3).toBe(2);
     });
 
     it("excludes a send whose grade has no representation in the chosen view scale, rather than inflating it onto the floor", () => {

@@ -1,7 +1,7 @@
 import { json } from "../lib/json.js";
 
 // Keeps the empty-country bucket: the subtitle totals count those entries too.
-export async function handleGetMapCounts(request, env, userId) {
+export async function handleGetMapCounts(_request, env, userId) {
   if (!userId) return json({}, 200, { "Cache-Control": "no-store" });
 
   const { results } = await env.LOGBOOK_DB.prepare(`

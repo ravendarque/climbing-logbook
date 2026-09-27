@@ -135,11 +135,13 @@ export async function attachChildRows(rows, env) {
     fetchChildRowsChunked(env, "entry_moves", ids),
     fetchChildRowsChunked(env, "entry_pain_moves", ids),
   ]);
-  const movesByEntry = {};
-  for (const row of movesRows) (movesByEntry[row.entry_id] ??= []).push(moveRowToJson(row));
-  const painByEntry = {};
-  for (const row of painRows) (painByEntry[row.entry_id] ??= []).push(painMoveRowToJson(row));
-  return rows.map(row => ({ ...row, moves: movesByEntry[row.id] ?? [], painMoves: painByEntry[row.id] ?? [] }));
+  const movesByEntry = Object.groupBy(movesRows, row => row.entry_id);
+  const painByEntry = Object.groupBy(painRows, row => row.entry_id);
+  return rows.map(row => ({
+    ...row,
+    moves: (movesByEntry[row.id] ?? []).map(moveRowToJson),
+    painMoves: (painByEntry[row.id] ?? []).map(painMoveRowToJson),
+  }));
 }
 
 const entryResource = createD1ResourceHandlers({
@@ -151,7 +153,7 @@ const entryResource = createD1ResourceHandlers({
   rowToJson,
   excludeDeleted: true,
   childStatements: moveStatements,
-  decorateRows: (env, userId, rows) => attachChildRows(rows, env),
+  decorateRows: (env, _userId, rows) => attachChildRows(rows, env),
 });
 
 export const { handlePost } = entryResource;

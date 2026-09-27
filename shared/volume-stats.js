@@ -1,4 +1,4 @@
-import { BOULDER_GRADES, gradeRank, gradeOrdinal, V_SCALE, SCALES, FONT_STANDARD, FRENCH_STANDARD } from "./grade-data.js";
+import { gradeOrdinal, V_SCALE, SCALES, FONT_STANDARD, FRENCH_STANDARD } from "./grade-data.js";
 
 // Rolling, day-based buckets, rounded to whole weeks: 12 weeks gives 1-week buckets, 52 gives 4.
 const TARGET_BUCKET_COUNT = 13;

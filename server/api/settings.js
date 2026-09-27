@@ -12,7 +12,7 @@ function rowToJson(row) {
   };
 }
 
-export async function handleGetSettings(request, env, userId) {
+export async function handleGetSettings(_request, env, userId) {
   const row = await env.LOGBOOK_DB.prepare(`SELECT * FROM settings WHERE user_id = ?`).bind(userId).first();
   return new Response(JSON.stringify(row ? rowToJson(row) : DEFAULT_SETTINGS), {
     headers: {

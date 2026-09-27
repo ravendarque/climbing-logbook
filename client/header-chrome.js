@@ -21,9 +21,9 @@ export function createHeaderChrome({
     document.getElementById("discipline-btn-label").textContent = disciplineLabel(store.getActiveType());
     // aria-label wins over visible text, and the label is hidden at narrow widths.
     disciplineBtn.setAttribute("aria-label", `Discipline: ${disciplineLabel(store.getActiveType())}`);
-    document.querySelectorAll(".discipline-option").forEach(opt =>
-      opt.setAttribute("aria-selected", String(opt.dataset.discipline === store.getActiveType()))
-    );
+    for (const opt of document.querySelectorAll(".discipline-option")) {
+      opt.setAttribute("aria-selected", String(opt.dataset.discipline === store.getActiveType()));
+    }
   }
 
   disciplinePopover.addEventListener("click", async e => {

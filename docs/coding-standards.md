@@ -104,6 +104,9 @@ quietly reversed without someone re-deciding on purpose.
   between a compromised dependency and its postinstall script running
   arbitrary code during `pnpm install` — don't blanket-approve a package
   here without knowing why it needs to run a build script.
+- **Lint with Biome** (`pnpm lint`): its recommended rules, with warnings
+  failing CI. A deliberate exception gets a `biome-ignore` comment that
+  says why.
 - **Feature branches + PRs, always** — no direct commits/pushes to `main`,
   even for small fixes, even from an agent. Merge only after review or
   explicit confirmation a dependent step (e.g. infra apply) succeeded.

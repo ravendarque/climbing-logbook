@@ -27,7 +27,7 @@ export function createStore({ storage = typeof localStorage !== "undefined" ? lo
     subscribers.push(fn);
   }
   function notify() {
-    subscribers.forEach(fn => fn());
+    for (const fn of subscribers) fn();
   }
 
   function setEntries(next) {
