@@ -9,7 +9,7 @@ import { isDemoUsername } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
-import { adminFetch, isAuthRedirect } from "./admin-fetch.js";
+import { apiFetch } from "./api-fetch.js";
 
 const SETTINGS_URL = "/-/api/settings";
 
@@ -90,8 +90,7 @@ function updateAdminBar() {
 
 const adminAuth = createAdminAuth({
   store,
-  adminFetch,
-  isAuthRedirect,
+  apiFetch,
   settingsUrl: SETTINGS_URL,
   updateAdminBar,
   onFetchTimeout: syncStatusIcon.reportTimeout,
@@ -99,8 +98,7 @@ const adminAuth = createAdminAuth({
 
 const headerChrome = createHeaderChrome({
   store,
-  adminFetch,
-  isAuthRedirect,
+  apiFetch,
   settingsUrl: SETTINGS_URL,
 });
 

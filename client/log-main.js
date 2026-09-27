@@ -15,7 +15,7 @@ import { pageAllowsBoot } from "./boot-gate.js";
 import { userKey } from "./user-storage.js";
 import { registerServiceWorker } from "./register-sw.js";
 import { resolveApexUrl } from "./resolve-cross-hostname-url.js";
-import { adminFetch, isAuthRedirect } from "./admin-fetch.js";
+import { apiFetch } from "./api-fetch.js";
 
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 const IS_DEMO = isDemoUsername(USERNAME);
@@ -39,8 +39,7 @@ const { openModal, closeModal } = createModalHelpers(["add-place-overlay", "entr
 
 const offlineSync = createOfflineSync({
   store,
-  adminFetch,
-  isAuthRedirect,
+  apiFetch,
   syncStatusIcon,
   entriesWriteUrl: ENTRIES_WRITE_URL,
   locationsWriteUrl: LOCATIONS_WRITE_URL,
@@ -76,8 +75,7 @@ function updateAdminBar() {
 
 const adminAuth = createAdminAuth({
   store,
-  adminFetch,
-  isAuthRedirect,
+  apiFetch,
   settingsUrl: SETTINGS_URL,
   updateAdminBar,
   onFetchTimeout: syncStatusIcon.reportTimeout,
@@ -85,8 +83,7 @@ const adminAuth = createAdminAuth({
 
 const headerChrome = createHeaderChrome({
   store,
-  adminFetch,
-  isAuthRedirect,
+  apiFetch,
   settingsUrl: SETTINGS_URL,
 });
 
@@ -102,8 +99,7 @@ const entryForm = createEntryForm({
   store,
   openModal,
   closeModal,
-  adminFetch,
-  isAuthRedirect,
+  apiFetch,
   getQueue: offlineSync.getQueue,
   setQueue: offlineSync.setQueue,
   enqueue: offlineSync.enqueue,

@@ -3,13 +3,13 @@
 import { escapeHtml } from "./escape-html.js";
 import { COUNTRY_BY_NAME, COUNTRIES } from "./countries.js";
 import { createSearchableListbox } from "./modal-utils.js";
+import { isUnauthorized } from "./api-fetch.js";
 
 export function createPlacePicker({
   store,
   openModal,
   closeModal,
-  adminFetch,
-  isAuthRedirect,
+  apiFetch,
   getQueue,
   enqueue,
   locationsWriteUrl,
@@ -192,12 +192,12 @@ export function createPlacePicker({
 
     if (!matched) {
       try {
-        const res = await adminFetch(locationsWriteUrl, {
+        const res = await apiFetch(locationsWriteUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(location),
         });
-        if (isAuthRedirect(res)) throw new Error("not-authenticated");
+        if (isUnauthorized(res)) throw new Error("not-authenticated");
         const data = await res.json();
         if (!res.ok) {
           // A real rejection, not connectivity: queueing would fail the same way.
@@ -222,12 +222,12 @@ export function createPlacePicker({
       queued.push({ kind: "place", op: "add", record: place });
     } else {
       try {
-        const res = await adminFetch(placesWriteUrl, {
+        const res = await apiFetch(placesWriteUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(place),
         });
-        if (isAuthRedirect(res)) throw new Error("not-authenticated");
+        if (isUnauthorized(res)) throw new Error("not-authenticated");
         const data = await res.json();
         if (!res.ok) {
           showAddPlaceError(data.error ?? `Error ${res.status}`);

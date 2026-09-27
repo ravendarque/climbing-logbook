@@ -857,6 +857,31 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await expect(page.locator("#sync-btn")).toBeHidden();
   });
 
+  test("queues a save the server answers with a 401, and shows the page as signed out", async ({ page }) => {
+    await gotoLogHarness(page);
+    await page.route("**/-/api/entries**", route =>
+      route.request().method() === "POST"
+        ? route.fulfill({ status: 401, json: { error: "Unauthorized" } })
+        : route.fallback(),
+    );
+
+    const entryName = `E2E 401 save ${Date.now()}`;
+    await page.locator("#add-btn").click();
+    await page.locator("#entry-name").fill(entryName);
+    await page.locator("#place-btn").click();
+    await page.locator('#place-listbox li[data-key="p1"]').click();
+    await page.locator("#entry-submit-btn").click();
+
+    await expect(page.locator("#entry-overlay")).toBeHidden();
+    await expect(page.locator("#sections")).toContainText(entryName);
+    const queue = await page.evaluate(
+      () => Object.entries(localStorage).find(([key]) => key.startsWith("logbook_pending_queue"))?.[1],
+    );
+    expect(JSON.parse(queue ?? "[]")).toHaveLength(1);
+    await page.locator("#header-menu-btn").click();
+    await expect(page.locator("#login-toggle-btn")).toHaveText("Log in");
+  });
+
   test("queues a save whose request hangs, once the write timeout passes", async ({ page }) => {
     await gotoLogHarness(page);
     await page.route("**/-/api/entries**", route =>

@@ -33,8 +33,7 @@ describe("settings cache", () => {
     );
     const adminAuth = createAdminAuth({
       store: makeStore(),
-      adminFetch: fetch,
-      isAuthRedirect: () => false,
+      apiFetch: fetch,
       settingsUrl: "/x",
       updateAdminBar: () => {},
     });
@@ -47,8 +46,7 @@ describe("settings cache", () => {
   it("falls back to the documented defaults when nothing is cached", () => {
     const adminAuth = createAdminAuth({
       store: makeStore(),
-      adminFetch: fetch,
-      isAuthRedirect: () => false,
+      apiFetch: fetch,
       settingsUrl: "/x",
       updateAdminBar: () => {},
     });
@@ -65,8 +63,7 @@ describe("settings cache", () => {
     );
     const adminAuth = createAdminAuth({
       store: makeStore(),
-      adminFetch: fetch,
-      isAuthRedirect: () => false,
+      apiFetch: fetch,
       settingsUrl: "/x",
       updateAdminBar: () => {},
     });
@@ -80,8 +77,7 @@ describe("settings cache", () => {
     });
     const adminAuth = createAdminAuth({
       store: makeStore(),
-      adminFetch: fetch,
-      isAuthRedirect: () => false,
+      apiFetch: fetch,
       settingsUrl: "/x",
       updateAdminBar: () => {},
     });
@@ -99,13 +95,12 @@ describe("settings cache", () => {
       "logbook_settings_cache",
       JSON.stringify({ athleteMode: true, logbookPublic: false, betaOptIn: true, activeDiscipline: "sport" }),
     );
-    const adminFetch = vi
+    const apiFetch = vi
       .fn()
       .mockResolvedValue({ ok: true, status: 200, type: "basic", json: async () => ({ betaOptIn: false }) });
     const adminAuth = createAdminAuth({
       store: makeStore(),
-      adminFetch,
-      isAuthRedirect: () => false,
+      apiFetch,
       settingsUrl: "/x",
       updateAdminBar: () => {},
     });
@@ -123,11 +118,10 @@ describe("settings cache", () => {
       "logbook_settings_cache",
       JSON.stringify({ athleteMode: false, logbookPublic: true, betaOptIn: true, activeDiscipline: null }),
     );
-    const adminFetch = vi.fn().mockResolvedValue({ ok: false, status: 500, type: "basic" });
+    const apiFetch = vi.fn().mockResolvedValue({ ok: false, status: 500, type: "basic" });
     const adminAuth = createAdminAuth({
       store: makeStore(),
-      adminFetch,
-      isAuthRedirect: () => false,
+      apiFetch,
       settingsUrl: "/x",
       updateAdminBar: () => {},
     });
@@ -143,8 +137,7 @@ describe("settings cache", () => {
     global.fetch = vi.fn().mockRejectedValue(new Error("offline"));
     const adminAuth = createAdminAuth({
       store: makeStore(),
-      adminFetch: fetch,
-      isAuthRedirect: () => false,
+      apiFetch: fetch,
       settingsUrl: "/x",
       updateAdminBar: () => {},
     });
@@ -159,8 +152,7 @@ describe("onFetchTimeout", () => {
     global.fetch = vi.fn().mockRejectedValue(new DOMException("The operation timed out.", "TimeoutError"));
     const adminAuth = createAdminAuth({
       store: makeStore(),
-      adminFetch: fetch,
-      isAuthRedirect: () => false,
+      apiFetch: fetch,
       settingsUrl: "/x",
       updateAdminBar: () => {},
       onFetchTimeout,
@@ -172,8 +164,7 @@ describe("onFetchTimeout", () => {
     global.fetch = vi.fn().mockRejectedValue(new Error("offline"));
     const adminAuth2 = createAdminAuth({
       store: makeStore(),
-      adminFetch: fetch,
-      isAuthRedirect: () => false,
+      apiFetch: fetch,
       settingsUrl: "/x",
       updateAdminBar: () => {},
       onFetchTimeout,
@@ -187,8 +178,7 @@ describe("onFetchTimeout", () => {
     global.fetch = vi.fn().mockRejectedValue(new DOMException("The operation timed out.", "TimeoutError"));
     const adminAuth = createAdminAuth({
       store: makeStore(),
-      adminFetch: fetch,
-      isAuthRedirect: () => false,
+      apiFetch: fetch,
       settingsUrl: "/x",
       updateAdminBar: () => {},
       onFetchTimeout,
@@ -200,8 +190,7 @@ describe("onFetchTimeout", () => {
     global.fetch = vi.fn().mockRejectedValue(new Error("offline"));
     const adminAuth2 = createAdminAuth({
       store: makeStore(),
-      adminFetch: fetch,
-      isAuthRedirect: () => false,
+      apiFetch: fetch,
       settingsUrl: "/x",
       updateAdminBar: () => {},
       onFetchTimeout,
@@ -214,8 +203,7 @@ describe("onFetchTimeout", () => {
     global.fetch = vi.fn().mockRejectedValue(new DOMException("The operation timed out.", "TimeoutError"));
     const adminAuth = createAdminAuth({
       store: makeStore(),
-      adminFetch: fetch,
-      isAuthRedirect: () => false,
+      apiFetch: fetch,
       settingsUrl: "/x",
       updateAdminBar: () => {},
     });
@@ -237,8 +225,7 @@ describe("checkSession() optimistic login hint", () => {
     const store = makeStore();
     const adminAuth = createAdminAuth({
       store,
-      adminFetch: fetch,
-      isAuthRedirect: () => false,
+      apiFetch: fetch,
       settingsUrl: "/x",
       updateAdminBar: () => {},
     });
@@ -255,8 +242,7 @@ describe("checkSession() optimistic login hint", () => {
     const store = makeStore();
     const adminAuth = createAdminAuth({
       store,
-      adminFetch: fetch,
-      isAuthRedirect: () => false,
+      apiFetch: fetch,
       settingsUrl: "/x",
       updateAdminBar: () => {},
     });
@@ -272,8 +258,7 @@ describe("setInitialActiveType()/reconcileActiveType()", () => {
     store.getEntries = () => [{ type: "boulder" }]; // heuristic would say "boulder" -- cache should win
     const adminAuth = createAdminAuth({
       store,
-      adminFetch: fetch,
-      isAuthRedirect: () => false,
+      apiFetch: fetch,
       settingsUrl: "/x",
       updateAdminBar: () => {},
     });
@@ -286,8 +271,7 @@ describe("setInitialActiveType()/reconcileActiveType()", () => {
     store.getEntries = () => [{ type: "sport" }];
     const adminAuth = createAdminAuth({
       store,
-      adminFetch: fetch,
-      isAuthRedirect: () => false,
+      apiFetch: fetch,
       settingsUrl: "/x",
       updateAdminBar: () => {},
     });
@@ -299,8 +283,7 @@ describe("setInitialActiveType()/reconcileActiveType()", () => {
     const store = makeStore();
     const adminAuth = createAdminAuth({
       store,
-      adminFetch: fetch,
-      isAuthRedirect: () => false,
+      apiFetch: fetch,
       settingsUrl: "/x",
       updateAdminBar: () => {},
     });
@@ -313,8 +296,7 @@ describe("setInitialActiveType()/reconcileActiveType()", () => {
     const store = makeStore();
     const adminAuth = createAdminAuth({
       store,
-      adminFetch: fetch,
-      isAuthRedirect: () => false,
+      apiFetch: fetch,
       settingsUrl: "/x",
       updateAdminBar: () => {},
     });

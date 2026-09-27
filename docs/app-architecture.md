@@ -372,8 +372,9 @@ Tables (see `migrations/` for columns and constraints):
   replayed in order by `syncPending()`. The queue syncs on the Sync
   button, on the `online` event, and straight away when a save joins it.
   A write that hasn't answered within 10 seconds is treated as offline
-  and queued (`client/admin-fetch.js`, shared by every page script).
-  A 401 stops the replay and keeps the queue. A new place created offline
+  and queued (`client/api-fetch.js`, shared by every page script). A 401
+  on a save queues it too and shows the page as signed out; during a
+  replay it stops and keeps the queue. A new place created offline
   queues its location, place and entry in dependency order.
 - **Sync.** A new device runs a full sync on `/:username/sync` (chunked);
   after that, each table syncs by delta since its last cursor

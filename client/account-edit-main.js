@@ -6,7 +6,7 @@ import { createThemeToggle } from "./theme-toggle.js";
 import { syncAdminBar } from "./admin-bar.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
-import { adminFetch, isAuthRedirect } from "./admin-fetch.js";
+import { apiFetch } from "./api-fetch.js";
 
 const SETTINGS_URL = "/-/api/settings";
 const AUTH_BASE = "/-/api/auth";
@@ -32,8 +32,7 @@ function updateAdminBar() {
 
 const adminAuth = createAdminAuth({
   store,
-  adminFetch,
-  isAuthRedirect,
+  apiFetch,
   settingsUrl: SETTINGS_URL,
   updateAdminBar,
 });
