@@ -77,14 +77,14 @@ jobs:
             }
           "
 
-      - name: Sync register.js Turnstile sitekey
+      - name: Sync the Turnstile sitekey
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         working-directory: .
         run: |
           SITEKEY=$(cd infra && terraform output -raw turnstile_sitekey)
           node -e "
             const fs = require('node:fs');
-            const path = 'static/register/register.js';
+            const path = 'client/turnstile-sitekey.js';
             const current = fs.readFileSync(path, 'utf8');
             const updated = current.replace(
               /const REAL_SITEKEY = \"[^\"]*\";/,
@@ -92,30 +92,9 @@ jobs:
             );
             if (updated !== current) {
               fs.writeFileSync(path, updated);
-              console.log('register.js updated with Turnstile sitekey ' + '${SITEKEY}');
+              console.log('turnstile-sitekey.js updated with ' + '${SITEKEY}');
             } else {
-              console.log('register.js already up to date');
-            }
-          "
-
-      - name: Sync report-issue-main.js Turnstile sitekey
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-        working-directory: .
-        run: |
-          SITEKEY=$(cd infra && terraform output -raw turnstile_sitekey)
-          node -e "
-            const fs = require('node:fs');
-            const path = 'client/report-issue-main.js';
-            const current = fs.readFileSync(path, 'utf8');
-            const updated = current.replace(
-              /const REAL_SITEKEY = \"[^\"]*\";/,
-              'const REAL_SITEKEY = \"${SITEKEY}\";'
-            );
-            if (updated !== current) {
-              fs.writeFileSync(path, updated);
-              console.log('report-issue-main.js updated with Turnstile sitekey ' + '${SITEKEY}');
-            } else {
-              console.log('report-issue-main.js already up to date');
+              console.log('turnstile-sitekey.js already up to date');
             }
           "
 
@@ -127,7 +106,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add wrangler.jsonc infra/.terraform.lock.hcl static/register/register.js client/report-issue-main.js
+          git add wrangler.jsonc infra/.terraform.lock.hcl client/turnstile-sitekey.js
           if git diff --cached --quiet; then
             echo "Nothing to commit."
             exit 0

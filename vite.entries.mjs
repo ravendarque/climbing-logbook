@@ -17,4 +17,8 @@ export const CLIENT_ENTRIES = {
   help: "client/help-main.js",
   "report-issue": "client/report-issue-main.js",
   feedback: "client/feedback-main.js",
+  home: "client/home-main.js",
+  login: "client/login-main.js",
+  register: "client/register-main.js",
+  "reset-password": "client/reset-password-main.js",
 };

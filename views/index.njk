@@ -48,10 +48,6 @@
       Currently in a closed beta — signing up needs an invite code.
     </p>
   </div>
-  <script type="module">
-    import { redirectIfLoggedIn } from "/-/session-redirect.js";
-    redirectIfLoggedIn(document.getElementById("page-content"));
-  </script>
-  <script type="module" src="./demo-picker.js"></script>
+  <script type="module" src="/-/home-app.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
 </body>
 </html>

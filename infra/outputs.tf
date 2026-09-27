@@ -4,7 +4,7 @@ output "d1_database_id" {
 }
 
 output "turnstile_sitekey" {
-  description = "Read by infra.yml to keep static/register/register.js's and client/report-issue-main.js's own REAL_SITEKEY constants in sync (#924/#932 -- both consume this same widget). Not secret -- sitekeys are meant to be embedded in public HTML/client-side JS."
+  description = "Written into client/turnstile-sitekey.js by infra.yml. Not secret: sitekeys are embedded in client-side JavaScript."
   value       = cloudflare_turnstile_widget.register.id
 }
 

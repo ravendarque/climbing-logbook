@@ -47,3 +47,11 @@
   Cache-Control: public, max-age=31556952, immutable
 /-/feedback-app.js
   Cache-Control: public, max-age=31556952, immutable
+/-/home-app.js
+  Cache-Control: public, max-age=31556952, immutable
+/-/login-app.js
+  Cache-Control: public, max-age=31556952, immutable
+/-/register-app.js
+  Cache-Control: public, max-age=31556952, immutable
+/-/reset-password-app.js
+  Cache-Control: public, max-age=31556952, immutable

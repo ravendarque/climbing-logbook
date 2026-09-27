@@ -2,11 +2,7 @@
 // Nothing is deleted at logout: an unsynced queue stays with its owner.
 import { matchOwnerRoute } from "../shared/owner-routes.js";
 
-// Who last signed in on this origin -- the identity the page-side
-// ownership check (client/ownership-guard.js) compares an owner page's
-// URL against, offline included. Written by admin-auth.js's session
-// check, the login page, and a server-authorised page load; cleared on
-// logout. static/-/login/login.js writes the same key by name.
+// Who last signed in on this origin: what the offline ownership check compares a page's owner against.
 export const SIGNED_IN_USER_KEY = "logbook_signed_in_user";
 
 // Every key holding one user's data. Each module still owns its own key

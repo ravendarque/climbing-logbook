@@ -1,6 +1,7 @@
 // This bundle replaces help-main.js on this page, so it wires the menu and theme too.
 import { createDisclosure } from "./modal-utils.js";
 import { createThemeToggle } from "./theme-toggle.js";
+import { turnstileSitekey } from "./turnstile-sitekey.js";
 
 createDisclosure(
   document.getElementById("header-menu-btn"),
@@ -28,12 +29,7 @@ function showError(message) {
   errorEl.focus();
 }
 
-// Cloudflare's always-passes test sitekey off the widget's domains. register.js keeps its own
-// copy: it isn't bundled, so it can't import this.
-const REAL_SITEKEY = "0x4AAAAAAEH3RghUN6KSc-uy";
-const TEST_SITEKEY = "1x00000000000000000000AA";
-const REAL_SITEKEY_HOSTNAMES = ["climbinglogbook.com", "beta.climbinglogbook.com"];
-const sitekey = REAL_SITEKEY_HOSTNAMES.includes(window.location.hostname) ? REAL_SITEKEY : TEST_SITEKEY;
+const sitekey = turnstileSitekey(window.location.hostname);
 
 let turnstileWidgetId;
 window.onTurnstileLoad = () => {

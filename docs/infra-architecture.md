@@ -88,9 +88,9 @@ Node and pnpm setup. A new workflow can only be dispatched once it's on
 
 **Generated config sync.** After apply, `infra.yml` writes Terraform's
 outputs into the repo: the D1 id into `wrangler.jsonc`, and the Turnstile
-sitekey into `static/register/register.js` and
-`client/report-issue-main.js`. When anything changed, it opens a PR,
-labels it `release: none`, waits for checks and merges it (`[skip ci]`).
+sitekey into `client/turnstile-sitekey.js`, which every Turnstile form
+imports. When anything changed, it opens a PR, labels it `release: patch`
+(the files ship), waits for checks and merges it (`[skip ci]`).
 Branch protection allows no direct pushes, even from the bot.
 
 ## Secrets and variables
