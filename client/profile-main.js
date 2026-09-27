@@ -28,9 +28,9 @@ const panelMap = document.getElementById("panel-map");
 
 function setActiveView(view) {
   store.setActiveView(view);
-  document.querySelectorAll("#view-tabs [role=tab]").forEach(t =>
-    t.setAttribute("aria-selected", String(t.dataset.view === view))
-  );
+  for (const t of document.querySelectorAll("#view-tabs [role=tab]")) {
+    t.setAttribute("aria-selected", String(t.dataset.view === view));
+  }
   panelLogbook.hidden = view !== "logbook";
   panelMap.hidden = view !== "map";
   if (view !== "map") mapView.closePinPopover();

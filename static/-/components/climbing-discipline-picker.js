@@ -1,5 +1,5 @@
 // Markup only: client/header-chrome.js wires the behaviour by element id.
-(function () {
+(() => {
   class ClimbingDisciplinePicker extends HTMLElement {
     connectedCallback() {
       this.innerHTML = `

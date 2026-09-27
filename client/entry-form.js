@@ -138,7 +138,7 @@ export function createEntryForm({
     saveGradeScalePref(type, newScaleId);
     renderGradeOptions();
     const preservedLabel = priorOrdinal !== null ? SCALES[newScaleId].toLabel(priorOrdinal) : null;
-    if (preservedLabel !== null) selectGradeByValue(preservedLabel, type, newScaleId);
+    if (preservedLabel !== null) selectGradeByValue(preservedLabel, newScaleId);
     else selectDefaultGrade();
   }
 
@@ -192,7 +192,7 @@ export function createEntryForm({
   }
 
   let selectedGrade = "";
-  let gradeScaleByType = { boulder: loadGradeScalePref("boulder"), sport: loadGradeScalePref("sport") };
+  const gradeScaleByType = { boulder: loadGradeScalePref("boulder"), sport: loadGradeScalePref("sport") };
 
   function updateGradeFieldVisibility() {
     const nonStandard = isNonStandardScaleId(currentGradeScaleId());
@@ -214,7 +214,7 @@ export function createEntryForm({
       getKey: g => g, getLabel: g => gradeOptionLabel(g, scaleId, type), isSelected: g => g === selectedGrade,
     });
   });
-  gradeValuePicker.setOnSelect(label => selectGradeByValue(label, store.getActiveType(), currentGradeScaleId()));
+  gradeValuePicker.setOnSelect(label => selectGradeByValue(label, currentGradeScaleId()));
 
   function renderGradeOptions() {
     updateGradeFieldVisibility();
@@ -227,7 +227,7 @@ export function createEntryForm({
     gradeValuePicker.trigger.textContent = gradeOptionLabel(g, currentGradeScaleId(), store.getActiveType());
     gradeValuePicker.trigger.style.backgroundColor = gradeColorForScale(g, currentGradeScaleId(), store.getActiveType());
   }
-  function selectGradeByValue(value, type, scaleId) {
+  function selectGradeByValue(value, scaleId) {
     if (isNonStandardScaleId(scaleId)) {
       setNonStandardFieldsFromLabel(value);
       return;
@@ -240,7 +240,7 @@ export function createEntryForm({
     else selectGradeByIndex(0);
   }
   function currentGradeIndex() {
-    const idx = SCALES[currentGradeScaleId()].labels.findIndex(g => g === selectedGrade);
+    const idx = SCALES[currentGradeScaleId()].labels.indexOf(selectedGrade);
     return idx === -1 ? 0 : idx;
   }
   gradePrev.addEventListener("click", () => selectGradeByIndex(currentGradeIndex() - 1));
@@ -383,7 +383,7 @@ export function createEntryForm({
       ? (entry.gradeScale ?? DEFAULT_SCALE_BY_TYPE[type])
       : loadGradeScalePref(type);
     renderGradeOptions();
-    if (entry) selectGradeByValue(entry.grade, type, activeGradeScaleId);
+    if (entry) selectGradeByValue(entry.grade, activeGradeScaleId);
     else selectDefaultGrade();
     updateFormStatusLabels();
     setStatusToggle(entry?.status ?? "send", Boolean(entry?.firstAttempt));

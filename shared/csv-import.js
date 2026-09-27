@@ -6,7 +6,7 @@ export const CSV_COLUMNS = [
 ];
 
 export function buildTemplateCsv() {
-  return CSV_COLUMNS.join(",") + "\n";
+  return `${CSV_COLUMNS.join(",")}\n`;
 }
 
 function parseRows(text) {
@@ -137,5 +137,5 @@ export function buildEntriesCsv(rows) {
   const lines = rows.map(row =>
     CSV_COLUMNS.map(col => escapeCsvField(col === "firstAttempt" ? (row.firstAttempt ? "true" : "false") : row[col])).join(",")
   );
-  return [CSV_COLUMNS.join(","), ...lines].join("\n") + "\n";
+  return `${[CSV_COLUMNS.join(","), ...lines].join("\n")}\n`;
 }

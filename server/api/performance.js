@@ -26,7 +26,7 @@ export async function handleGetPyramid(request, env, userId) {
   }, 200, { "Cache-Control": "no-store" });
 }
 
-export async function handleGetInjuryLog(request, env, userId) {
+export async function handleGetInjuryLog(_request, env, userId) {
   const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
   const entries = await attachChildRows(rows, env);
   return json({
@@ -61,7 +61,7 @@ const MAX_WINDOW_DAYS = 3653;
 // Round-trips through ISO, so 2026-99-99 and 2026-02-30 are rejected rather than read as NaN.
 function isValidCalendarDate(s) {
   const d = new Date(`${s}T00:00:00Z`);
-  return !isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
 }
 
 function daysBetween(start, end) {

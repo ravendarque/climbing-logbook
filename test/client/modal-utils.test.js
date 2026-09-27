@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createDisclosure } from "../../client/modal-utils.js";
 
-let trigger, panel, wrap;
+let trigger, panel;
 
 beforeEach(() => {
   document.body.innerHTML = `
@@ -10,7 +10,6 @@ beforeEach(() => {
       <button id="trigger"></button>
       <div id="panel" hidden></div>
     </div>`;
-  wrap = document.getElementById("wrap");
   trigger = document.getElementById("trigger");
   panel = document.getElementById("panel");
 });

@@ -53,7 +53,7 @@ export function findRow(env, table, id, userId) {
 }
 
 // childStatements join the row's own write in one batch, so a failure leaves nothing half written.
-export function createD1ResourceHandlers({ table, resourceKey, rowKey, validateFields, buildRow, rowToJson, excludeDeleted = false, findDuplicate, childStatements = () => [], decorateRows = (env, userId, rows) => rows }) {
+export function createD1ResourceHandlers({ table, resourceKey, rowKey, validateFields, buildRow, rowToJson, excludeDeleted = false, findDuplicate, childStatements = () => [], decorateRows = (_env, _userId, rows) => rows }) {
   async function handleGet(request, env, userId) {
     const since = new URL(request.url).searchParams.get("since");
     if (since !== null) {

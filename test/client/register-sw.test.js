@@ -43,7 +43,7 @@ describe("registerServiceWorker", () => {
 
   it("waits for the page's boot to settle before registering, even if boot fails", async () => {
     let finishBoot;
-    const after = new Promise((resolve, reject) => { finishBoot = reject; });
+    const after = new Promise((_resolve, reject) => { finishBoot = reject; });
     const container = { getRegistrations: vi.fn().mockResolvedValue([]), register: vi.fn().mockResolvedValue({}), ready: Promise.resolve({ active: null }) };
     const done = registerServiceWorker({ after, win: fakeWindow("/raven/log", container) });
     await new Promise(resolve => setTimeout(resolve, 0));

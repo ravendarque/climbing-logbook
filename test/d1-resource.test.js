@@ -71,7 +71,7 @@ describe("childStatements", () => {
 });
 
 describe("decorateRows", () => {
-  const decorateRows = async (e, uid, rows) => rows.map(r => ({ ...r, decorated: true }));
+  const decorateRows = async (_e, _uid, rows) => rows.map(r => ({ ...r, decorated: true }));
 
   it("decorates the list handleGet returns", async () => {
     const { handlePost, handleGet } = createD1ResourceHandlers({

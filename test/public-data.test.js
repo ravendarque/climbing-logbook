@@ -124,7 +124,7 @@ describe("public data API", () => {
       const placeIdA = await seedPlace(cookieA, { locationName: "Location A" });
       await jsonRequest("POST", "/-/api/entries", { placeId: placeIdA, name: "A's Send", grade: "7A", type: "boulder", status: "send" }, { Cookie: cookieA });
 
-      const { cookie: cookieB } = await createAuthedSession({ username: "countsuserb" });
+      await createAuthedSession({ username: "countsuserb" });
 
       const { locations } = await (await fetchPublic("countsuserb", "entries/counts")).json();
       expect(locations).toEqual([]);

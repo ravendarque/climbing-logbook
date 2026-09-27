@@ -28,7 +28,7 @@ function csvRow(overrides = {}) {
 }
 
 function importCsv(rows, extraCookie = cookie) {
-  const body = [HEADER, ...rows].join("\n") + "\n";
+  const body = `${[HEADER, ...rows].join("\n")}\n`;
   return fetchJson(IMPORT_URL, {
     method: "POST",
     headers: { "Content-Type": "text/csv", Cookie: extraCookie },

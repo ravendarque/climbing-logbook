@@ -44,7 +44,7 @@ export function createReportGradeScalePicker({ containerEl, getType, onChange })
     containerSelector: "#report-grade-scale-wrap",
   });
 
-  let scaleByType = { boulder: loadPref("boulder"), sport: loadPref("sport") };
+  const scaleByType = { boulder: loadPref("boulder"), sport: loadPref("sport") };
 
   function currentScaleId() {
     return scaleByType[getType()];

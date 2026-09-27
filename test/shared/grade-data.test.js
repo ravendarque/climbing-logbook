@@ -307,8 +307,8 @@ describe("gradeOrdinal / gradeRankForScale / gradeTierForScale / gradeColorForSc
     expect(gradeOrdinal("not-a-grade", "font")).toBeNull();
   });
   it("gradeRankForScale ranks two grades in different scales correctly, same discipline", () => {
-    const v4 = gradeRankForScale("V4", "v-scale", "boulder");
-    const v1 = gradeRankForScale("V1", "v-scale", "boulder");
+    const v4 = gradeRankForScale("V4", "v-scale");
+    const v1 = gradeRankForScale("V1", "v-scale");
     expect(v4).toBeGreaterThan(v1);
   });
   it("gradeTierForScale/gradeColorForScale/gradePyramidColorForScale don't throw and return sane shapes across every scale", () => {
@@ -322,7 +322,7 @@ describe("gradeOrdinal / gradeRankForScale / gradeTierForScale / gradeColorForSc
   });
 
   it("an unparseable grade ranks harder than every real grade, even Sport's own top grade", () => {
-    expect(gradeRankForScale("not-a-real-grade", "french", "sport")).toBeGreaterThan(gradeRankForScale("9c+", "french", "sport"));
+    expect(gradeRankForScale("not-a-real-grade", "french")).toBeGreaterThan(gradeRankForScale("9c+", "french"));
   });
   it("an unparseable Sport grade classifies as hyper-elite, not a lower tier it accidentally undercuts", () => {
     expect(gradeTierForScale("not-a-real-grade", "french", "sport")).toBe("hyper-elite");

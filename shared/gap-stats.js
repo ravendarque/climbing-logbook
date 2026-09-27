@@ -50,7 +50,7 @@ const SEND_TERM = { boulder: "send", sport: "redpoint" };
 
 // Counts real named steps, not ordinal distance: ordinals aren't evenly spaced (docs/grade-model.md).
 function stepIndex(ordinal, positionOrder) {
-  let idx = positionOrder.findIndex(o => o === ordinal);
+  const idx = positionOrder.indexOf(ordinal);
   if (idx !== -1) return idx;
   for (let i = positionOrder.length - 1; i >= 0; i--) {
     if (positionOrder[i] < ordinal) return i;

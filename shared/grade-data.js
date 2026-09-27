@@ -408,7 +408,7 @@ const FIERY_RED_SUNSET = [
 ];
 
 // Infinity, not 99: sport ordinals already pass 100.
-export function gradeRankForScale(grade, scaleId, type) {
+export function gradeRankForScale(grade, scaleId) {
   return gradeOrdinal(grade, scaleId) ?? Infinity;
 }
 

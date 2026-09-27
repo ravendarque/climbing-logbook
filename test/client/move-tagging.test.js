@@ -120,7 +120,7 @@ describe("createMoveRowList", () => {
   });
 
   it("renders the Limb dropdown's options in sentence case", () => {
-    const widget = createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
+    createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
     addBtnEl.click();
     const limbOptionText = Array.from(listEl.querySelectorAll('[data-field="limbSide"] option')).map(o => o.textContent);
     expect(limbOptionText).toContain("Left hand");
@@ -128,7 +128,7 @@ describe("createMoveRowList", () => {
   });
 
   it("renders raw hold-type/movement-style/wall-angle option text humanized, while keeping the raw value in the option's value attribute", () => {
-    const widget = createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
+    createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
     addBtnEl.click();
     const holdOption = listEl.querySelector('[data-field="holdType"] option[value="toe-hook"]');
     expect(holdOption).toBeNull(); // hand is the default limb -- toe-hook only appears once limb is foot
@@ -140,10 +140,10 @@ describe("createMoveRowList", () => {
   });
 
   it("every select in a row card has an explicit foreground text color (dark-mode readability, #597)", () => {
-    const widget = createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
+    createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
     addBtnEl.click();
     const selects = listEl.querySelectorAll("select");
     expect(selects.length).toBeGreaterThan(0);
-    selects.forEach(select => expect(select.className).toContain("text-foreground"));
+    for (const select of selects) expect(select.className).toContain("text-foreground");
   });
 });

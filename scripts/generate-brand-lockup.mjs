@@ -82,10 +82,10 @@ const round = n => Math.round(n * 10) / 10;
 const box = { y: round(top), h: round(bottom - top), w: round(right), betaW: round(betaRight) };
 
 const fill = token => `style="fill:var(--color-${token === "foreground" ? "text" : token === "muted" ? "text-muted" : "accent"})"`;
-const runGroup = (layoutResult, runs, x, baseline, scale) => runs
+const runGroup = (layoutResult, runs, x, baseline, scale) => `${runs
   .map(([token, from, to]) => `<path ${fill(token)} d="${runPath(layoutResult.glyphs, from, to)}"/>`)
   .join("\n    ")
-  .replace(/^/, `<g transform="translate(${round(x)} ${round(baseline)}) scale(${scale} ${-scale})">\n    `) + "\n  </g>";
+  .replace(/^/, `<g transform="translate(${round(x)} ${round(baseline)}) scale(${scale} ${-scale})">\n    `)}\n  </g>`;
 
 const beta = layout("BETA");
 const betaScale = 0.235;
@@ -126,7 +126,7 @@ const generated = `  // BEGIN GENERATED (scripts/generate-brand-lockup.mjs)
   var LOCKUP = { width: ${box.w}, betaWidth: ${box.betaW}, height: ${box.h}, orNot: { x: ${round(orNotInk.minX)}, y: ${round(orNotInk.minY - box.y)}, width: ${round(orNotInk.maxX - orNotInk.minX)}, height: ${round(orNotInk.maxY - orNotInk.minY)} } };
   // END GENERATED`;
 const header = readFileSync(HEADER, "utf8");
-const marked = /  \/\/ BEGIN GENERATED \(scripts\/generate-brand-lockup\.mjs\)\n[\s\S]*?  \/\/ END GENERATED/;
+const marked = / {2}\/\/ BEGIN GENERATED \(scripts\/generate-brand-lockup\.mjs\)\n[\s\S]*? {2}\/\/ END GENERATED/;
 if (!marked.test(header)) throw new Error(`${HEADER} has no generated block to replace`);
 writeFileSync(HEADER, header.replace(marked, generated));
 

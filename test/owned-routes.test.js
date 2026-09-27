@@ -73,7 +73,7 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("<climbing-tab-bar");
-    expect(html).toMatch(/src="\/-\/map\-app\.js(\?v=\d+)?"/);
+    expect(html).toMatch(/src="\/-\/map-app\.js(\?v=\d+)?"/);
   });
 
   it("serves the real static shell for performance", async () => {
@@ -82,7 +82,7 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('id="insight-tiles"');
-    expect(html).toMatch(/src="\/-\/performance\-hub\-app\.js(\?v=\d+)?"/);
+    expect(html).toMatch(/src="\/-\/performance-hub-app\.js(\?v=\d+)?"/);
   });
 
   it("serves the real static shell for performance/pyramid", async () => {
@@ -91,7 +91,7 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("<climbing-grade-pyramid");
-    expect(html).toMatch(/src="\/-\/performance\-pyramid\-app\.js(\?v=\d+)?"/);
+    expect(html).toMatch(/src="\/-\/performance-pyramid-app\.js(\?v=\d+)?"/);
   });
 
   it("serves the real static shell for performance/injury", async () => {
@@ -100,7 +100,7 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('id="injury-log-root"');
-    expect(html).toMatch(/src="\/-\/performance\-injury\-app\.js(\?v=\d+)?"/);
+    expect(html).toMatch(/src="\/-\/performance-injury-app\.js(\?v=\d+)?"/);
   });
 
   it("serves the real static shell for performance/strengths", async () => {
@@ -109,7 +109,7 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('id="strengths-root"');
-    expect(html).toMatch(/src="\/-\/performance\-strengths\-app\.js(\?v=\d+)?"/);
+    expect(html).toMatch(/src="\/-\/performance-strengths-app\.js(\?v=\d+)?"/);
   });
 
   it("serves the real static shell for performance/trends", async () => {
@@ -118,7 +118,7 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('id="trends-root"');
-    expect(html).toMatch(/src="\/-\/performance\-trends\-app\.js(\?v=\d+)?"/);
+    expect(html).toMatch(/src="\/-\/performance-trends-app\.js(\?v=\d+)?"/);
   });
 
   it("serves the real static shell for performance/gap", async () => {
@@ -127,7 +127,7 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('id="gap-root"');
-    expect(html).toMatch(/src="\/-\/performance\-gap\-app\.js(\?v=\d+)?"/);
+    expect(html).toMatch(/src="\/-\/performance-gap-app\.js(\?v=\d+)?"/);
   });
 
   it("serves the real static shell for performance/rpe", async () => {
@@ -136,7 +136,7 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('id="rpe-root"');
-    expect(html).toMatch(/src="\/-\/performance\-rpe\-app\.js(\?v=\d+)?"/);
+    expect(html).toMatch(/src="\/-\/performance-rpe-app\.js(\?v=\d+)?"/);
   });
 
   it("serves the real static shell for log", async () => {
@@ -145,7 +145,7 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("<climbing-entries-table");
-    expect(html).toMatch(/src="\/-\/log\-app\.js(\?v=\d+)?"/);
+    expect(html).toMatch(/src="\/-\/log-app\.js(\?v=\d+)?"/);
   });
 
   it("serves the real static shell for account", async () => {
@@ -154,7 +154,7 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("My account");
-    expect(html).toMatch(/src="\/-\/account\-app\.js(\?v=\d+)?"/);
+    expect(html).toMatch(/src="\/-\/account-app\.js(\?v=\d+)?"/);
   });
 
   it("serves the real static shell for account/edit", async () => {
@@ -163,7 +163,7 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("Edit account details");
-    expect(html).toMatch(/src="\/-\/account\-edit\-app\.js(\?v=\d+)?"/);
+    expect(html).toMatch(/src="\/-\/account-edit-app\.js(\?v=\d+)?"/);
   });
 
   it("serves the real static shell for account/import", async () => {
@@ -172,7 +172,7 @@ describe("owned route authorization", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("Import entries");
-    expect(html).toMatch(/src="\/-\/account\-import\-app\.js(\?v=\d+)?"/);
+    expect(html).toMatch(/src="\/-\/account-import-app\.js(\?v=\d+)?"/);
   });
 
   it("falls through (404) for a fourth path segment that isn't log/map/performance", async () => {
@@ -211,7 +211,7 @@ describe("beta.x owned routes", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("<climbing-entries-table");
-    expect(html).toMatch(/src="\/-\/log\-app\.js(\?v=\d+)?"/);
+    expect(html).toMatch(/src="\/-\/log-app\.js(\?v=\d+)?"/);
   });
 
   it.each([

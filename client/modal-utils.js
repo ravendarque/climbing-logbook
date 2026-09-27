@@ -49,8 +49,9 @@ export function createSearchableListbox({
 
   function updateActiveDescendant() {
     searchInput.setAttribute("aria-activedescendant", activeIndex >= 0 ? optionId(activeIndex) : "");
-    listboxEl.querySelectorAll("[role=option]").forEach((el, i) =>
-      el.classList.toggle("bg-[color-mix(in_srgb,var(--color-accent)_16%,transparent)]", i === activeIndex));
+    listboxEl.querySelectorAll("[role=option]").forEach((el, i) => {
+      el.classList.toggle("bg-[color-mix(in_srgb,var(--color-accent)_16%,transparent)]", i === activeIndex);
+    });
     listboxEl.querySelector(`#${optionId(activeIndex)}`)?.scrollIntoView({ block: "nearest" });
   }
 

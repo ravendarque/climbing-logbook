@@ -8,6 +8,7 @@ import { platform } from "node:os";
 const WIN = platform() === "win32";
 const READY_RE = /Local:\s+(https?:\/\/\S+)/;
 const READY_TIMEOUT_MS = 60_000;
+// biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escapes start with a control character.
 const ANSI_RE = /\x1b\[[0-9;]*m/g;
 const stripAnsi = s => s.replace(ANSI_RE, "");
 
