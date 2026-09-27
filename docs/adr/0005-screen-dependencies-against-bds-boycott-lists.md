@@ -54,3 +54,9 @@ costs, same as any other tradeoff — but it must be surfaced, not skipped.
   lists — irrelevant to any decision made so far, since nothing adopted
   is Microsoft-authored, but worth re-checking if a future dependency
   choice (e.g. TypeScript tooling) pulls one in.
+- **Exception: free, industry-standard tools with no viable alternative.**
+  Using a listed company's free tool doesn't pay that company, so where
+  nothing comparable exists it's allowed, and recorded where it's adopted.
+  GitHub (Microsoft) is one; TypeScript's `tsc` (Microsoft) is the second,
+  adopted in #1093 as a dev-only type checker, since no maintained
+  non-Microsoft JavaScript type checker exists.

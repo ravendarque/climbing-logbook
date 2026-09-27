@@ -77,7 +77,7 @@ function isValidCalendarDate(s) {
 }
 
 function daysBetween(start, end) {
-  return Math.round((new Date(`${end}T00:00:00Z`) - new Date(`${start}T00:00:00Z`)) / 86400000) + 1;
+  return Math.round((new Date(`${end}T00:00:00Z`).getTime() - new Date(`${start}T00:00:00Z`).getTime()) / 86400000) + 1;
 }
 
 function validateDateRange(start, end) {

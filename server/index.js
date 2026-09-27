@@ -53,7 +53,7 @@ export default {
     if (pathname === "/-/login" && (method === "GET" || method === "HEAD")) {
       const target = new URL(request.url);
       target.pathname = "/-/login/";
-      return Response.redirect(target, 301);
+      return Response.redirect(target.href, 301);
     }
     if (pathname === "/-/login/" && (method === "GET" || method === "HEAD")) {
       return env.ASSETS.fetch(new Request(new URL("/login/", request.url), request));
