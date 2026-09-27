@@ -9,7 +9,7 @@ describe("/-/login/ on app hosts (#984)", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('id="login-submit-btn"');
-    expect(html).toContain('src="/-/login/login.js"');
+    expect(html).toMatch(/src="\/-\/login-app\.js(\?v=\d+)?"/);
     expect(html).not.toMatch(/(src|href)="\.\.?\//);
   });
 

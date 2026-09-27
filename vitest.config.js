@@ -45,6 +45,7 @@ export default defineConfig({
             "test/scripts/template-comments.test.js",
             "test/scripts/minify-static.test.js",
             "test/scripts/headers-entries.test.js",
+            "test/client/turnstile.test.js",
           ],
           setupFiles: ["./test/apply-migrations.js"],
           // obscenity's ESM entry re-exports CommonJS, which workerd can't load unbundled.
@@ -100,6 +101,7 @@ export default defineConfig({
             "test/scripts/template-comments.test.js",
             "test/scripts/minify-static.test.js",
             "test/scripts/headers-entries.test.js",
+            "test/client/turnstile.test.js",
           ],
           environment: "happy-dom",
         },

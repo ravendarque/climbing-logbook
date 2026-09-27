@@ -1,6 +1,7 @@
 // This bundle replaces help-main.js on this page, so it wires the menu and theme too.
 import { createDisclosure } from "./modal-utils.js";
 import { createThemeToggle } from "./theme-toggle.js";
+import { renderTurnstile } from "./turnstile.js";
 
 createDisclosure(
   document.getElementById("header-menu-btn"),
@@ -28,17 +29,7 @@ function showError(message) {
   errorEl.focus();
 }
 
-// Cloudflare's always-passes test sitekey off the widget's domains. register.js keeps its own
-// copy: it isn't bundled, so it can't import this.
-const REAL_SITEKEY = "0x4AAAAAAEH3RghUN6KSc-uy";
-const TEST_SITEKEY = "1x00000000000000000000AA";
-const REAL_SITEKEY_HOSTNAMES = ["climbinglogbook.com", "beta.climbinglogbook.com"];
-const sitekey = REAL_SITEKEY_HOSTNAMES.includes(window.location.hostname) ? REAL_SITEKEY : TEST_SITEKEY;
-
-let turnstileWidgetId;
-window.onTurnstileLoad = () => {
-  turnstileWidgetId = window.turnstile.render("#turnstile-widget", { sitekey });
-};
+const turnstile = renderTurnstile("#turnstile-widget");
 
 // undefined, not "", so JSON.stringify omits it and the server sees it as absent.
 const sourcePage = document.referrer || undefined;
@@ -55,7 +46,7 @@ form.addEventListener("submit", async event => {
     return;
   }
 
-  const turnstileToken = window.turnstile?.getResponse(turnstileWidgetId);
+  const turnstileToken = turnstile.getResponse();
   if (!turnstileToken) {
     showError("Please complete the verification check.");
     submitBtn.disabled = false;
@@ -88,6 +79,6 @@ form.addEventListener("submit", async event => {
   } finally {
     submitBtn.disabled = false;
     // Tokens are single-use, so a failed submit needs a fresh one.
-    window.turnstile?.reset(turnstileWidgetId);
+    turnstile.reset();
   }
 });

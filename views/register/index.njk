@@ -63,6 +63,6 @@
     <p class="text-muted">We've sent a verification link to <strong id="register-success-email"></strong>. Click it to activate your account and log in.</p>
   </div>
 
-  <script type="module" src="./register.js"></script>
+  <script type="module" src="/-/register-app.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
 </body>
 </html>

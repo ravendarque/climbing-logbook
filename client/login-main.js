@@ -1,5 +1,8 @@
-// Outside the bundled app on purpose: a standalone page with no store.
 import { needsChannelChoice, resolvePostLoginTarget } from "./resolve-app-origin.js";
+import { redirectIfLoggedIn } from "./session-redirect.js";
+import { SIGNED_IN_USER_KEY } from "./user-storage.js";
+
+redirectIfLoggedIn(document.getElementById("page-content"));
 
 const RESET_PASSWORD_URL = `${window.location.origin}/reset-password/`;
 
@@ -46,7 +49,7 @@ form.addEventListener("submit", async event => {
       // Recorded on app hosts so the offline ownership check knows this user straight away.
       if (!needsChannelChoice(window.location.hostname)) {
         try {
-          localStorage.setItem("logbook_signed_in_user", data.user.username.toLowerCase());
+          localStorage.setItem(SIGNED_IN_USER_KEY, data.user.username.toLowerCase());
         } catch {
           /* storage blocked */
         }

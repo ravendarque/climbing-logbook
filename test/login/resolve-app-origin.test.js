@@ -4,7 +4,7 @@ import {
   resolveAppOrigin,
   resolvePostLoginTarget,
   safeReturnTo,
-} from "../../static/-/login/resolve-app-origin.js";
+} from "../../client/resolve-app-origin.js";
 
 describe("resolveAppOrigin", () => {
   it("returns beta.climbinglogbook.com for an opted-in user on the real apex", () => {

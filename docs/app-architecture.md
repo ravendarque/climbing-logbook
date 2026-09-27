@@ -197,8 +197,8 @@ the `performance` hub and its reports (`pyramid`, `trends`, `gap`, `rpe`,
 
 **Other pages:** the public profile (`client/profile-main.js`), `/help/*`
 (`client/help-main.js`, with its own bundles for the report-an-issue and
-feedback forms), and the apex's standalone pages, which use small
-unbundled scripts from `static/` rather than a composition root.
+feedback forms), and the apex's standalone pages, each its own small
+bundle: home (`client/home-main.js`), login, register and reset password.
 
 ### How an owner page boots
 
@@ -382,7 +382,7 @@ Tables (see `migrations/` for columns and constraints):
   after that, each table syncs by delta since its last cursor
   ([ADR-0019](adr/0019-local-first-sync-chunked-initial-load-and-delta.md)).
 - **Login and home pages** wait up to 3 seconds for the session check
-  before showing themselves (`static/-/session-redirect.js`), so a slow
+  before showing themselves (`client/session-redirect.js`), so a slow
   connection never leaves them blank; a signed-in visitor is still
   redirected when the check answers.
 - **Service worker** (`client/sw/`, [ADR-0028](adr/0028-service-worker-owns-the-owner-app-shell.md)).
@@ -419,7 +419,7 @@ Tables (see `migrations/` for columns and constraints):
 - **Rate limiting** is Better Auth's own, stored in D1 and keyed on
   `cf-connecting-ip` ([ADR-0027](adr/0027-database-backed-rate-limiting-on-sign-in.md)).
 - **Already logged in:** the apex home and login page send a signed-in
-  visitor straight to their log (`static/-/session-redirect.js`).
+  visitor straight to their log (`client/session-redirect.js`).
 
 ### Better Auth configuration
 

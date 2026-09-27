@@ -1,23 +1,8 @@
-// Copies shared/demo-personas.js by hand: this unbundled script can't import from shared/.
-const DEMO_PERSONAS = [
-  {
-    username: "beginnerdemo",
-    label: "Beginner",
-    description: "Just starting out -- early V-grade boulders, first leads on toprope and easy sport routes.",
-  },
-  {
-    username: "intermediatedemo",
-    label: "Intermediate",
-    description: "A season or two in -- consistent mid-grade sends, a few onsight/redpoint projects on the go.",
-  },
-  {
-    username: "advanceddemo",
-    label: "Advanced",
-    description: "Years of mileage -- hard boulder/lead grades, a long send history across disciplines.",
-  },
-];
+import { DEMO_PERSONAS } from "../shared/demo-personas.js";
+import { resolveAppOrigin } from "./resolve-app-origin.js";
+import { redirectIfLoggedIn } from "./session-redirect.js";
 
-import { resolveAppOrigin } from "/-/login/resolve-app-origin.js";
+redirectIfLoggedIn(document.getElementById("page-content"));
 
 const APP_ORIGIN = resolveAppOrigin(window.location.hostname, false);
 

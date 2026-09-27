@@ -1,5 +1,5 @@
 // The page waits briefly for this, since a flash then a redirect looks broken, but never for long.
-import { needsChannelChoice, resolvePostLoginTarget } from "./login/resolve-app-origin.js";
+import { needsChannelChoice, resolvePostLoginTarget } from "./resolve-app-origin.js";
 
 const SHOW_PAGE_AFTER_MS = 3000;
 

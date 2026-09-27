@@ -1,3 +1,5 @@
+import { renderTurnstile } from "./turnstile.js";
+
 const form = document.getElementById("register-form");
 const errorEl = document.getElementById("register-error");
 const submitBtn = document.getElementById("register-submit-btn");
@@ -13,16 +15,7 @@ function showError(message) {
 const params = new URLSearchParams(window.location.search);
 if (params.has("code")) codeInput.value = params.get("code");
 
-// Cloudflare's always-passes test sitekey off the widget's domains; infra.yml syncs the real one.
-const REAL_SITEKEY = "0x4AAAAAAEH3RghUN6KSc-uy";
-const TEST_SITEKEY = "1x00000000000000000000AA";
-const REAL_SITEKEY_HOSTNAMES = ["climbinglogbook.com", "beta.climbinglogbook.com"];
-const sitekey = REAL_SITEKEY_HOSTNAMES.includes(window.location.hostname) ? REAL_SITEKEY : TEST_SITEKEY;
-
-let turnstileWidgetId;
-window.onTurnstileLoad = () => {
-  turnstileWidgetId = window.turnstile.render("#turnstile-widget", { sitekey });
-};
+const turnstile = renderTurnstile("#turnstile-widget");
 
 form.addEventListener("submit", async event => {
   event.preventDefault();
@@ -32,7 +25,7 @@ form.addEventListener("submit", async event => {
   const email = document.getElementById("email").value;
   const username = document.getElementById("username").value;
 
-  const turnstileToken = window.turnstile?.getResponse(turnstileWidgetId);
+  const turnstileToken = turnstile.getResponse();
   if (!turnstileToken) {
     showError("Please complete the verification check.");
     submitBtn.disabled = false;
@@ -74,6 +67,6 @@ form.addEventListener("submit", async event => {
   } finally {
     submitBtn.disabled = false;
     // Tokens are single-use, so every failed submit needs a fresh one.
-    window.turnstile?.reset(turnstileWidgetId);
+    turnstile.reset();
   }
 });

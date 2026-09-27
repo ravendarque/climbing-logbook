@@ -51,10 +51,6 @@
       </p>
     </form>
   </div>
-  <script type="module">
-    import { redirectIfLoggedIn } from "/-/session-redirect.js";
-    redirectIfLoggedIn(document.getElementById("page-content"));
-  </script>
-  <script type="module" src="/-/login/login.js"></script>
+  <script type="module" src="/-/login-app.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
 </body>
 </html>
