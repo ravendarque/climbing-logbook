@@ -7,16 +7,10 @@ import { resolveApexUrl, resolveBetaXUrl, resolveMyXUrl } from "./resolve-cross-
 import { userKey } from "./user-storage.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
+import { adminFetch, isAuthRedirect } from "./admin-fetch.js";
 
 const SETTINGS_URL = "/-/api/settings";
 const QUEUE_KEY = userKey("logbook_pending_queue");
-
-function adminFetch(url, options) {
-  return fetch(url, { ...options, redirect: "manual" });
-}
-function isAuthRedirect(res) {
-  return res.type === "opaqueredirect";
-}
 
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 const LOG_PATH = `/${encodeURIComponent(USERNAME)}/log`;

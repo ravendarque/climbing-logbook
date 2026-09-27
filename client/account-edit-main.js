@@ -6,16 +6,10 @@ import { createThemeToggle } from "./theme-toggle.js";
 import { syncAdminBar } from "./admin-bar.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
+import { adminFetch, isAuthRedirect } from "./admin-fetch.js";
 
 const SETTINGS_URL = "/-/api/settings";
 const AUTH_BASE = "/-/api/auth";
-
-function adminFetch(url, options) {
-  return fetch(url, { ...options, redirect: "manual" });
-}
-function isAuthRedirect(res) {
-  return res.type === "opaqueredirect";
-}
 
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 

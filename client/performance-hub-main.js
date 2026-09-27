@@ -9,6 +9,7 @@ import { isDemoUsername } from "./demo-mode.js";
 import "./components/climbing-tab-bar.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
+import { adminFetch, isAuthRedirect } from "./admin-fetch.js";
 
 const SETTINGS_URL = "/-/api/settings";
 
@@ -52,13 +53,6 @@ const INSIGHTS = [
     route: "rpe",
   },
 ];
-
-function adminFetch(url, options) {
-  return fetch(url, { ...options, redirect: "manual" });
-}
-function isAuthRedirect(res) {
-  return res.type === "opaqueredirect";
-}
 
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 const IS_DEMO = isDemoUsername(USERNAME);

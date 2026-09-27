@@ -371,11 +371,17 @@ Tables (see `migrations/` for columns and constraints):
   append-only log of `{ kind, op, record }`, applied optimistically and
   replayed in order by `syncPending()`. The queue syncs on the Sync
   button, on the `online` event, and straight away when a save joins it.
+  A write that hasn't answered within 10 seconds is treated as offline
+  and queued (`client/admin-fetch.js`, shared by every page script).
   A 401 stops the replay and keeps the queue. A new place created offline
   queues its location, place and entry in dependency order.
 - **Sync.** A new device runs a full sync on `/:username/sync` (chunked);
   after that, each table syncs by delta since its last cursor
   ([ADR-0019](adr/0019-local-first-sync-chunked-initial-load-and-delta.md)).
+- **Login and home pages** wait up to 3 seconds for the session check
+  before showing themselves (`static/-/session-redirect.js`), so a slow
+  connection never leaves them blank; a signed-in visitor is still
+  redirected when the check answers.
 - **Service worker** (`client/sw/`, [ADR-0028](adr/0028-service-worker-owns-the-owner-app-shell.md)).
   One cache per build. On install it pre-caches every owner page and
   everything they load, so one visit online makes every owner page open

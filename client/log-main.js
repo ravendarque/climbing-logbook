@@ -15,6 +15,7 @@ import { pageAllowsBoot } from "./boot-gate.js";
 import { userKey } from "./user-storage.js";
 import { registerServiceWorker } from "./register-sw.js";
 import { resolveApexUrl } from "./resolve-cross-hostname-url.js";
+import { adminFetch, isAuthRedirect } from "./admin-fetch.js";
 
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 const IS_DEMO = isDemoUsername(USERNAME);
@@ -28,13 +29,6 @@ const LOCATIONS_URL = demoDataUrl(USERNAME, "/-/api/locations", "locations");
 const LOCATIONS_WRITE_URL = "/-/api/locations";
 const SETTINGS_URL = "/-/api/settings";
 const QUEUE_KEY = userKey("logbook_pending_queue");
-
-function adminFetch(url, options) {
-  return fetch(url, { ...options, redirect: "manual" });
-}
-function isAuthRedirect(res) {
-  return res.type === "opaqueredirect";
-}
 
 // No caching for a demo: anyone can open it, including an owner signed in on this browser.
 const store = createStore(IS_DEMO ? { storage: { getItem: () => null, setItem: () => {} } } : undefined);

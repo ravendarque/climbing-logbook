@@ -857,6 +857,24 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await expect(page.locator("#sync-btn")).toBeHidden();
   });
 
+  test("queues a save whose request hangs, once the write timeout passes", async ({ page }) => {
+    await gotoLogHarness(page);
+    await page.route("**/-/api/entries**", route =>
+      route.request().method() === "POST" ? undefined : route.fallback(),
+    );
+
+    const entryName = `E2E hung save ${Date.now()}`;
+    await page.locator("#add-btn").click();
+    await page.locator("#entry-name").fill(entryName);
+    await page.locator("#place-btn").click();
+    await page.locator('#place-listbox li[data-key="p1"]').click();
+    await page.locator("#entry-submit-btn").click();
+
+    await expect(page.locator("#entry-overlay")).toBeHidden({ timeout: 15_000 });
+    await expect(page.locator("#sections")).toContainText(entryName);
+    await expect(page.locator("#sync-btn")).toHaveText(/Sync \(1\)/);
+  });
+
   // Responses, not requests: an aborted write has none, and one sent before a listener attaches still arrives.
   function savedEntryWrites(page) {
     const methods = [];
