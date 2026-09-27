@@ -10,6 +10,7 @@ import { startPage } from "./boot-gate.js";
 import { userKey } from "./user-storage.js";
 import { resolveApexUrl } from "./resolve-cross-hostname-url.js";
 import { apiFetch } from "./api-fetch.js";
+import { createFailedWritesBanner, getFailedWrites, removeFailedWrite } from "./failed-writes.js";
 
 const {
   username: USERNAME,
@@ -47,6 +48,7 @@ const offlineSync = createOfflineSync({
   placesUrl: PLACES_URL,
   locationsUrl: LOCATIONS_URL,
   queueKey: QUEUE_KEY,
+  onFailedWrites: showFailedWrites,
 });
 
 const entriesTable = document.querySelector("climbing-entries-table");
@@ -88,6 +90,21 @@ const entryForm = createEntryForm({
   readOnly: IS_DEMO,
   isAthleteMode: adminAuth.isAthleteMode,
 });
+
+const failedWritesBanner = createFailedWritesBanner({
+  el: document.getElementById("failed-writes"),
+  onEdit: item => entryForm.open(item.record, { asNew: item.op === "add", onSaved: () => discardFailedWrite(item) }),
+  onDiscard: discardFailedWrite,
+});
+
+function discardFailedWrite(item) {
+  removeFailedWrite(item.qid);
+  showFailedWrites();
+}
+
+function showFailedWrites() {
+  if (!IS_DEMO) failedWritesBanner.render(getFailedWrites());
+}
 
 document.getElementById("grade-scale-reference-link").href = resolveApexUrl(location.hostname, "/help/grade-scales/");
 
@@ -141,6 +158,7 @@ async function boot() {
 
   entriesTable.loading = false;
   render();
+  showFailedWrites();
 }
 
 startPage(boot);

@@ -198,10 +198,10 @@ export function createPlacePicker({
           body: JSON.stringify(location),
         });
         if (isUnauthorized(res)) throw new Error("not-authenticated");
-        const data = await res.json();
+        const data = await res.json().catch(() => null);
         if (!res.ok) {
           // A real rejection, not connectivity: queueing would fail the same way.
-          showAddPlaceError(data.error ?? `Error ${res.status}`);
+          showAddPlaceError(data?.error ?? `Error ${res.status}`);
           addPlaceSubmitBtn.disabled = false;
           return;
         }
@@ -228,9 +228,9 @@ export function createPlacePicker({
           body: JSON.stringify(place),
         });
         if (isUnauthorized(res)) throw new Error("not-authenticated");
-        const data = await res.json();
+        const data = await res.json().catch(() => null);
         if (!res.ok) {
-          showAddPlaceError(data.error ?? `Error ${res.status}`);
+          showAddPlaceError(data?.error ?? `Error ${res.status}`);
           addPlaceSubmitBtn.disabled = false;
           return;
         }

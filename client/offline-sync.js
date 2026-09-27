@@ -1,6 +1,7 @@
 import { getCursor, setCursor } from "./sync-cursors.js";
 import { BACKGROUND_FETCH_TIMEOUT_MS } from "./sync-status-icon.js";
 import { isUnauthorized } from "./api-fetch.js";
+import { addFailedWrite, isPermanentFailure } from "./failed-writes.js";
 
 export function createOfflineSync({
   store,
@@ -13,6 +14,7 @@ export function createOfflineSync({
   placesUrl,
   locationsUrl,
   queueKey,
+  onFailedWrites = () => {},
 }) {
   const syncBtn = document.getElementById("sync-btn");
   const syncBtnLabel = document.getElementById("sync-btn-label");
@@ -101,6 +103,20 @@ export function createOfflineSync({
   }
 
   // A disabled button stops a second click, but not repeated online events.
+  // A server that's failing is retried later, each wait doubling up to the cap.
+  const FIRST_RETRY_MS = 30_000;
+  const MAX_RETRY_MS = 10 * 60_000;
+  let retryDelay = FIRST_RETRY_MS;
+  let retryTimer = null;
+
+  function scheduleRetry() {
+    clearTimeout(retryTimer);
+    retryTimer = setTimeout(() => {
+      if (store.isLoggedIn()) syncPending();
+    }, retryDelay);
+    retryDelay = Math.min(retryDelay * 2, MAX_RETRY_MS);
+  }
+
   let syncInFlight = false;
   // A save queued mid-replay asks for another pass rather than waiting for the next trigger.
   let syncAgain = false;
@@ -126,9 +142,11 @@ export function createOfflineSync({
   async function replayQueue() {
     assignMissingQids();
     const queue = getQueue();
-    if (!queue.length) return;
+    if (!queue.length) return false;
 
     const confirmed = { entries: [], places: [], locations: [] };
+    let serverFailing = false;
+    let anyRejected = false;
     for (const item of queue) {
       // Synced by another tab, or purged by a delete, since the queue was read.
       if (!isStillQueued(item.qid)) continue;
@@ -140,7 +158,19 @@ export function createOfflineSync({
           store.setLoggedIn(false);
           break;
         }
-        if (!res.ok) continue;
+        if (!res.ok && !isPermanentFailure(res.status)) {
+          // Stopped, not skipped: a later item may depend on this one.
+          serverFailing = true;
+          break;
+        }
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          addFailedWrite(item, body?.error ?? `Error ${res.status}`);
+          setQueue(getQueue().filter(queued => queued.qid !== item.qid));
+          anyRejected = true;
+          onFailedWrites();
+          continue;
+        }
         data = res.status === 204 ? null : await res.json();
       } catch {
         break; // still offline -- stop, the rest stay queued in order
@@ -172,10 +202,15 @@ export function createOfflineSync({
       setQueue(stored);
     }
 
-    const tables = Object.keys(confirmed).filter(table => confirmed[table].length);
+    if (serverFailing) scheduleRetry();
+    else retryDelay = FIRST_RETRY_MS;
+
+    // A rejected item still shows as pending until the view is rebuilt from the stored data.
+    const tables = Object.keys(confirmed).filter(table => anyRejected || confirmed[table].length);
     for (const table of tables) store.mergeConfirmed(table, confirmed[table]);
     // Re-apply what's still queued on top of the confirmed data.
     if (tables.length) store.applyPendingQueue(getQueue());
+    return serverFailing;
   }
 
   async function syncPending() {
@@ -189,10 +224,12 @@ export function createOfflineSync({
 
     try {
       await syncStatusIcon.track(pullDeltas());
+      let serverFailing = false;
       do {
         syncAgain = false;
-        await withReplayLock(replayQueue);
-      } while (syncAgain && store.isLoggedIn());
+        // A failing server waits for the backoff, not an immediate second pass.
+        serverFailing = await withReplayLock(replayQueue);
+      } while (syncAgain && !serverFailing && store.isLoggedIn());
     } finally {
       syncInFlight = false;
       syncAgain = false;
