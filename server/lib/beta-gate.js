@@ -52,19 +52,19 @@ export async function handleBetaGatedSignUp(request, env, auth) {
     headers: { "Content-Type": "application/json" },
     body: bodyText,
   });
-  const response = await auth.handler(forwardedRequest);
-
-  // A registered email gets a 200 and a synthetic user but no new row, so only the create hook's used_by proves a claim.
-  const claimed = await env.LOGBOOK_DB.prepare(`SELECT used_by FROM beta_invites WHERE code = ?`).bind(code).first();
-  if (!claimed?.used_by) {
-    await env.LOGBOOK_DB.prepare(
-      `UPDATE beta_invites SET used_at = NULL${claimedEmailPin ? ", email = NULL" : ""} WHERE code = ?`,
-    )
-      .bind(code)
-      .run();
+  try {
+    return await auth.handler(forwardedRequest);
+  } finally {
+    // A registered email gets a 200 and a synthetic user but no new row, so only the create hook's used_by proves a claim.
+    const claimed = await env.LOGBOOK_DB.prepare(`SELECT used_by FROM beta_invites WHERE code = ?`).bind(code).first();
+    if (!claimed?.used_by) {
+      await env.LOGBOOK_DB.prepare(
+        `UPDATE beta_invites SET used_at = NULL${claimedEmailPin ? ", email = NULL" : ""} WHERE code = ?`,
+      )
+        .bind(code)
+        .run();
+    }
   }
-
-  return response;
 }
 
 export function createBetaGateAfterHook(env) {

@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { resetAuthTables } from "./support.js";
 import { seedInvite, signUp, stubBetaGateFetch } from "./beta-gate-helpers.js";
+import { handleBetaGatedSignUp } from "../server/lib/beta-gate.js";
 
 beforeEach(resetAuthTables);
 stubBetaGateFetch();
@@ -55,6 +56,26 @@ describe("beta gate enabled (BETA_GATE_ENABLED=true, wrangler.jsonc default)", (
       .bind("second-code")
       .first();
     expect(row).toEqual({ used_at: null, used_by: null, email: null });
+  });
+
+  it("releases the code when the sign-up handler throws", async () => {
+    await seedInvite({ code: "thrown" });
+    const request = new Request("https://x/-/api/auth/sign-up/email", {
+      method: "POST",
+      body: JSON.stringify({ code: "thrown", email: "nix@example.com" }),
+    });
+    const auth = {
+      handler: async () => {
+        throw new Error("D1 went away");
+      },
+    };
+
+    await expect(handleBetaGatedSignUp(request, env, auth)).rejects.toThrow("D1 went away");
+
+    const row = await env.LOGBOOK_DB.prepare(`SELECT used_at, email FROM beta_invites WHERE code = ?`)
+      .bind("thrown")
+      .first();
+    expect(row).toEqual({ used_at: null, email: null });
   });
 
   it("releases the code when sign-up fails for an unrelated reason", async () => {
