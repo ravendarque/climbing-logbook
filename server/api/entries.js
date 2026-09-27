@@ -7,6 +7,7 @@ import {
   nextCursorSql,
 } from "../lib/d1-resource.js";
 import { validateEntryShape } from "../../shared/entry-schema.js";
+import { intParam } from "../lib/params.js";
 
 // Must match migrations/0016_add_grade_scale.sql's backfill WHERE clause.
 const LEGACY_SPORT_NON_STANDARD_GRADES = new Set(["1", "1+", "2", "2+", "3", "3+"]);
@@ -201,10 +202,14 @@ const entryResource = createD1ResourceHandlers({
 export const { handlePost } = entryResource;
 
 const PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 500;
+const MAX_CHUNK_SIZE = 1000;
 
-async function handleDelta(since, env, userId, { includeChildRows }) {
-  if (!userId) return json({ entries: [], cursor: Number(since) }, 200, { "Cache-Control": "no-store" });
-  const { rows, cursor } = await listChangedForUser(env, "entries", userId, rowToJsonWithDeleted, Number(since));
+async function handleDelta(url, env, userId, { includeChildRows }) {
+  const since = intParam(url, "since");
+  if (since.response) return since.response;
+  if (!userId) return json({ entries: [], cursor: since.value }, 200, { "Cache-Control": "no-store" });
+  const { rows, cursor } = await listChangedForUser(env, "entries", userId, rowToJsonWithDeleted, since.value);
   const decorated = includeChildRows ? await attachChildRows(rows, env) : rows;
   return json({ entries: decorated, cursor }, 200, { "Cache-Control": "no-store" });
 }
@@ -213,14 +218,16 @@ async function handleDelta(since, env, userId, { includeChildRows }) {
 async function handleByLocation(locationId, url, env, userId, { shapeRow, includeChildRows }) {
   if (!userId) return json({ entries: [] }, 200, { "Cache-Control": "no-store" });
 
-  const limit = Number(url.searchParams.get("limit")) || PAGE_SIZE;
-  const offset = Number(url.searchParams.get("offset")) || 0;
+  const limit = intParam(url, "limit", { min: 1, max: MAX_PAGE_SIZE, fallback: PAGE_SIZE });
+  if (limit.response) return limit.response;
+  const offset = intParam(url, "offset", { fallback: 0 });
+  if (offset.response) return offset.response;
   const { results } = await env.LOGBOOK_DB.prepare(`
       SELECT e.* FROM entries e JOIN places p ON e.place_id = p.id
       WHERE e.user_id = ? AND p.location_id = ? AND e.deleted_at IS NULL
       ORDER BY e.created_at LIMIT ? OFFSET ?
     `)
-    .bind(userId, locationId, limit, offset)
+    .bind(userId, locationId, limit.value, offset.value)
     .all();
 
   const shaped = results.map(shapeRow);
@@ -231,8 +238,9 @@ async function handleByLocation(locationId, url, env, userId, { shapeRow, includ
 async function handleChunked(url, env, userId, { shapeRow, includeChildRows }) {
   if (!userId) return json({ entries: [], total: 0, cursor: 0 }, 200, { "Cache-Control": "no-store" });
 
-  const limit = Number(url.searchParams.get("limit"));
-  if (!Number.isInteger(limit) || limit < 1) return json({ error: "limit must be a positive integer" }, 400);
+  const limitParam = intParam(url, "limit", { min: 1, max: MAX_CHUNK_SIZE });
+  if (limitParam.response) return limitParam.response;
+  const limit = limitParam.value;
   const afterCreatedAt = url.searchParams.get("afterCreatedAt") ?? "";
   const afterId = url.searchParams.get("afterId") ?? "";
   // Keyset, not offset: a delete mid-sync would shift later rows past the next page.
@@ -272,7 +280,7 @@ export async function handleGet(request, env, userId, { shapeRow = rowToJson, in
   const opts = { shapeRow, includeChildRows };
 
   const since = url.searchParams.get("since");
-  if (since !== null) return handleDelta(since, env, userId, opts);
+  if (since !== null) return handleDelta(url, env, userId, opts);
 
   const locationId = url.searchParams.get("locationId");
   if (locationId) return handleByLocation(locationId, url, env, userId, opts);

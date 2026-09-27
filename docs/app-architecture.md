@@ -347,7 +347,13 @@ Tables (see `migrations/` for columns and constraints):
   re-covers anything that changed during the load.
 - **Writes are allowlisted.** `buildRow()` in each API module builds the row
   from known fields only; the request body is never spread into storage.
-  `shared/entry-schema.js` validates entries on both sides.
+  `shared/entry-schema.js` validates entries on both sides, and
+  `server/lib/resource-schemas.js` validates places and locations, so a
+  wrong type is a 400 before it reaches D1's `bind()`. An id is 1 to 64
+  letters, digits, `-` or `_` (`shared/ids.js`): the client mints UUIDs,
+  and seeds use readable slugs. Integer query parameters go through
+  `intParam()` (`server/lib/params.js`), which rejects negatives, since a
+  negative `LIMIT` means no limit in SQLite.
 - **Grades are stored as logged.** `entries.grade` keeps the climber's own
   label and `grade_scale` says which of the nine scales it's in.
   `shared/grade-data.js` converts through one canonical ordinal per

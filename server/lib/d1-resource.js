@@ -1,4 +1,5 @@
 import { json, parseJsonBody } from "./json.js";
+import { intParam } from "./params.js";
 
 // Create, replay, dedup and delta semantics: docs/app-architecture.md, Data model.
 
@@ -75,9 +76,11 @@ export function createD1ResourceHandlers({
   decorateRows = (_env, _userId, rows) => rows,
 }) {
   async function handleGet(request, env, userId) {
-    const since = new URL(request.url).searchParams.get("since");
-    if (since !== null) {
-      const { rows, cursor } = await listChangedForUser(env, table, userId, rowToJson, Number(since));
+    const url = new URL(request.url);
+    if (url.searchParams.has("since")) {
+      const since = intParam(url, "since");
+      if (since.response) return since.response;
+      const { rows, cursor } = await listChangedForUser(env, table, userId, rowToJson, since.value);
       return json({ [resourceKey]: await decorateRows(env, userId, rows), cursor }, 200, {
         "Cache-Control": "no-store",
       });
@@ -106,7 +109,7 @@ export function createD1ResourceHandlers({
       if (duplicate) return respondWithRow(env, userId, duplicate.id, 200, { dedupedTo: duplicate.id });
     }
 
-    const id = typeof record.id === "string" && record.id ? record.id : crypto.randomUUID();
+    const id = record.id ?? crypto.randomUUID();
 
     const existing = await findOwnedRow(env, table, id, userId, excludeDeleted ? { includeDeletedAt: true } : {});
     if (existing) {

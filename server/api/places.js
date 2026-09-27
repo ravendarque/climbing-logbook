@@ -1,7 +1,9 @@
 import { createD1ResourceHandlers, findOwnedRow } from "../lib/d1-resource.js";
+import { firstIssue, placeSchema } from "../lib/resource-schemas.js";
 
 async function validateFields(place, env, userId) {
-  if (!place.locationId) return "Missing required field: locationId";
+  const issue = firstIssue(placeSchema, place);
+  if (issue) return issue;
   const owned = await findOwnedRow(env, "locations", place.locationId, userId);
   if (!owned) return "locationId does not reference one of your locations";
   return null;

@@ -195,6 +195,12 @@ describe("handleGet (?limit=, chunked full sync)", () => {
     expect(res.status).toBe(400);
   });
 
+  it("400s a limit above the maximum chunk size", async () => {
+    const res = await getChunk({ limit: "1001" });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("limit must be a whole number from 1 to 1000");
+  });
+
   it("returns no next key on the last chunk", async () => {
     await post(validEntry());
     const chunk = await (await getChunk({ limit: "2" })).json();
@@ -217,6 +223,18 @@ describe("handleGet (locationId -- #111 per-table pagination)", () => {
     const qs = new URLSearchParams({ locationId: id, ...params }).toString();
     return fetchJson(`${ENTRIES_URL}?${qs}`, { headers: { Cookie: extraCookie } });
   }
+
+  it.each([
+    ["limit", "-1"],
+    ["limit", "abc"],
+    ["limit", "0"],
+    ["offset", "-1"],
+    ["offset", "abc"],
+  ])("400s %s=%j, rather than a negative LIMIT meaning no limit", async (name, value) => {
+    const res = await getLocation(locationId, { [name]: value });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(new RegExp(`^${name} must be a whole number`));
+  });
 
   it("returns only that location's entries, across every place under it", async () => {
     const secondPlaceId = (
@@ -280,6 +298,12 @@ describe("handleGet (?since= -- #500 delta sync)", () => {
   function getSince(since, extraCookie = cookie) {
     return fetchJson(`${ENTRIES_URL}?since=${since}`, { headers: { Cookie: extraCookie } });
   }
+
+  it.each(["-1", "abc", "", "1.5"])("400s since=%j", async since => {
+    const res = await getSince(since);
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/^since must be a whole number/);
+  });
   function cursorOf(id) {
     return env.LOGBOOK_DB.prepare(`SELECT sync_cursor FROM entries WHERE id = ?`)
       .bind(id)
@@ -381,6 +405,16 @@ describe("handlePost", () => {
     const res = await post("{not json");
     expect(res.status).toBe(400);
     expect((await res.json()).error).toBe("Invalid JSON");
+  });
+
+  it.each([
+    [{ x: 1 }, "id must be a string"],
+    ["not a valid id!", "id must be 1 to 64 letters, digits, - or _"],
+  ])("400s id = %j on create and on edit", async (id, message) => {
+    for (const res of [await post({ ...validEntry(), id }), await put({ ...validEntry(), id })]) {
+      expect(res.status).toBe(400);
+      expect((await res.json()).error).toBe(message);
+    }
   });
 
   it.each(["placeId", "name", "grade", "type", "status"])("rejects a missing %s", async field => {

@@ -1,10 +1,8 @@
 import { createD1ResourceHandlers } from "../lib/d1-resource.js";
+import { firstIssue, locationSchema } from "../lib/resource-schemas.js";
 
 async function validateFields(location) {
-  if (!location.name) return "Missing required field: name";
-  // D1 bind() throws on a non-string, which would be a 500 rather than a 400.
-  if (typeof location.name !== "string") return "name must be a string";
-  return null;
+  return firstIssue(locationSchema, location);
 }
 
 async function findDuplicateLocation(env, userId, location) {
