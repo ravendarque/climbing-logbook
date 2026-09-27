@@ -106,6 +106,7 @@ export function createEntryForm({
   });
 
   let editingId = null; // null = add mode
+  let onSavedOnce = null;
 
   function updateFormStatusLabels() {
     document.getElementById("form-flash-label").textContent = flashLabel(store.getActiveType());
@@ -427,8 +428,10 @@ export function createEntryForm({
   entryNavForward.addEventListener("click", () => showPage(2));
   entryNavBack.addEventListener("click", () => showPage(1));
 
-  function open(entry) {
-    editingId = entry?.id ?? null;
+  // asNew opens a record's values as a new entry; onSaved runs once this save is sent or queued.
+  function open(entry, { asNew = false, onSaved = null } = {}) {
+    editingId = asNew ? null : (entry?.id ?? null);
+    onSavedOnce = onSaved;
     entryModalTitle.textContent = editingId ? "Edit entry" : "Add entry";
     entryDeleteBtn.hidden = readOnly || !editingId;
     entryMsg.className = "hidden";
@@ -483,10 +486,16 @@ export function createEntryForm({
     if (e.target === entryOverlay) closeModal(entryOverlay);
   });
 
+  function finishSave() {
+    closeModal(entryOverlay);
+    onSavedOnce?.();
+    onSavedOnce = null;
+  }
+
   function queueAndSync(item) {
     enqueue(item);
     store.applyPendingQueue(getQueue());
-    closeModal(entryOverlay);
+    finishSave();
     if (store.isLoggedIn()) syncPending();
   }
 
@@ -548,9 +557,10 @@ export function createEntryForm({
         body: JSON.stringify(entry),
       });
       if (isUnauthorized(res)) throw new Error("not-authenticated");
-      const data = await res.json();
+      // An HTML error page isn't JSON; that's still a server error, not being offline.
+      const data = await res.json().catch(() => null);
       if (!res.ok) {
-        showEntryError(data.error ?? `Error ${res.status}`);
+        showEntryError(data?.error ?? `Error ${res.status}`);
         entrySubmitBtns.forEach(btn => {
           btn.disabled = false;
         });
@@ -558,7 +568,7 @@ export function createEntryForm({
       }
       store.mergeConfirmed("entries", [data.entry]);
       store.applyPendingQueue(getQueue());
-      closeModal(entryOverlay);
+      finishSave();
     } catch (err) {
       // Queue it and show it now. Always appended: the queue is an ordered event log.
       if (err.message === "not-authenticated") {
@@ -566,7 +576,7 @@ export function createEntryForm({
       }
       enqueue({ kind: "entry", op, record: entry });
       store.applyPendingQueue(getQueue());
-      closeModal(entryOverlay);
+      finishSave();
     }
 
     entrySubmitBtns.forEach(btn => {
@@ -595,7 +605,7 @@ export function createEntryForm({
       const res = await apiFetch(`${entriesWriteUrl}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
       if (isUnauthorized(res)) throw new Error("not-authenticated");
       if (!res.ok) {
-        showEntryError((await res.json()).error ?? `Error ${res.status}`);
+        showEntryError((await res.json().catch(() => null))?.error ?? `Error ${res.status}`);
         entryDeleteBtn.disabled = false;
         return;
       }
@@ -603,7 +613,7 @@ export function createEntryForm({
       // Purge queued items for this entry, or a queued add would resurrect it.
       setQueue(getQueue().filter(item => !(item.kind === "entry" && item.record.id === id)));
       store.applyPendingQueue(getQueue());
-      closeModal(entryOverlay);
+      finishSave();
     } catch (err) {
       // Queued and shown as pending-delete until it syncs; appended like any other event.
       if (err.message === "not-authenticated") {
@@ -611,7 +621,7 @@ export function createEntryForm({
       }
       enqueue({ kind: "entry", op: "delete", record: entrySnapshot ?? { id } });
       store.applyPendingQueue(getQueue());
-      closeModal(entryOverlay);
+      finishSave();
     }
 
     entryDeleteBtn.disabled = false;

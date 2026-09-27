@@ -376,7 +376,13 @@ Tables (see `migrations/` for columns and constraints):
   A write that hasn't answered within 10 seconds is treated as offline
   and queued (`client/api-fetch.js`, shared by every page script). A 401
   on a save queues it too and shows the page as signed out; during a
-  replay it stops and keeps the queue. A new place created offline
+  replay it stops and keeps the queue. Other replay failures are
+  classified (`client/failed-writes.js`): a 5xx, 408 or 429 stops the
+  replay in order and retries with backoff (30 seconds, doubling to 10
+  minutes); any other 4xx will fail the same way every time, so the item
+  leaves the queue for a per-user "couldn't save" list shown as a banner
+  on the log page, where an add or edit can be reopened in the form or
+  discarded. A new place created offline
   queues its location, place and entry in dependency order.
 - **Sync.** A new device runs a full sync on `/:username/sync` (chunked);
   after that, each table syncs by delta since its last cursor

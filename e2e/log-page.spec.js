@@ -857,6 +857,122 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await expect(page.locator("#sync-btn")).toBeHidden();
   });
 
+  async function queueEntryOffline(page, entryName) {
+    await page.locator("#add-btn").click();
+    await page.locator("#entry-name").fill(entryName);
+    await page.locator("#place-btn").click();
+    await page.locator('#place-listbox li[data-key="p1"]').click();
+    await page.locator("#entry-submit-btn").click();
+    await expect(page.locator("#entry-overlay")).toBeHidden();
+    await expect(page.locator("#sync-btn")).toHaveText(/Sync \(1\)/);
+  }
+
+  test("a queued add the server rejects moves to the banner, and Discard clears it", async ({ page }) => {
+    await gotoLogHarness(page);
+    let mode = "offline";
+    await page.route("**/-/api/entries**", route => {
+      if (route.request().method() === "GET") return route.fallback();
+      if (mode === "offline") return route.abort("failed");
+      return route.fulfill({ status: 400, json: { error: "grade is not a valid grade for boulder" } });
+    });
+
+    const entryName = `E2E rejected ${Date.now()}`;
+    await queueEntryOffline(page, entryName);
+
+    mode = "reject";
+    await page.evaluate(() => window.dispatchEvent(new Event("online")));
+
+    const banner = page.locator("#failed-writes");
+    await expect(banner).toBeVisible();
+    await expect(banner).toContainText(`Couldn't save “${entryName}”: grade is not a valid grade for boulder`);
+    await expect(page.locator("#sync-btn")).toBeHidden();
+    await expect(page.locator("#sections")).not.toContainText(entryName);
+
+    await banner.getByRole("button", { name: "Discard" }).click();
+    await expect(banner).toBeHidden();
+    await page.reload();
+    await expect(page.locator("#failed-writes")).toBeHidden();
+  });
+
+  test("Edit on a rejected add reopens it in the form, and saving it clears the banner", async ({ page }) => {
+    await gotoLogHarness(page);
+    let mode = "offline";
+    await page.route("**/-/api/entries**", route => {
+      if (route.request().method() === "GET") return route.fallback();
+      if (mode === "offline") return route.abort("failed");
+      if (mode === "reject") return route.fulfill({ status: 400, json: { error: "Missing required field: grade" } });
+      return route.fallback();
+    });
+
+    const entryName = `E2E fix me ${Date.now()}`;
+    await queueEntryOffline(page, entryName);
+    mode = "reject";
+    await page.evaluate(() => window.dispatchEvent(new Event("online")));
+    await expect(page.locator("#failed-writes")).toBeVisible();
+
+    mode = "accept";
+    await page.locator("#failed-writes").getByRole("button", { name: "Edit" }).click();
+    await expect(page.locator("#entry-overlay")).toBeVisible();
+    await expect(page.locator("#entry-modal-title")).toHaveText("Add entry");
+    await expect(page.locator("#entry-name")).toHaveValue(entryName);
+    await page.locator("#entry-submit-btn").click();
+
+    await expect(page.locator("#entry-overlay")).toBeHidden();
+    await expect(page.locator("#failed-writes")).toBeHidden();
+    await expect(page.locator("#sections")).toContainText(entryName);
+  });
+
+  test("a 503 stops the replay at the failing item, keeping everything queued in order", async ({ page }) => {
+    await gotoLogHarness(page);
+    let mode = "offline";
+    const sentWhileDown = [];
+    await page.route("**/-/api/entries**", route => {
+      if (route.request().method() === "GET") return route.fallback();
+      if (mode === "offline") return route.abort("failed");
+      sentWhileDown.push(route.request().postDataJSON().name);
+      return route.fulfill({ status: 503, contentType: "text/html", body: "<h1>Service unavailable</h1>" });
+    });
+
+    const first = `E2E first ${Date.now()}`;
+    await queueEntryOffline(page, first);
+    await page.locator("#add-btn").click();
+    await page.locator("#entry-name").fill(`E2E second ${Date.now()}`);
+    await page.locator("#place-btn").click();
+    await page.locator('#place-listbox li[data-key="p1"]').click();
+    await page.locator("#entry-submit-btn").click();
+    await expect(page.locator("#sync-btn")).toHaveText(/Sync \(2\)/);
+
+    mode = "down";
+    const replayed = page.waitForResponse(res => res.url().includes("/-/api/entries") && res.status() === 503);
+    await page.evaluate(() => window.dispatchEvent(new Event("online")));
+    await replayed;
+
+    await expect(page.locator("#sync-btn")).toHaveText(/Sync \(2\)/);
+    await expect(page.locator("#failed-writes")).toBeHidden();
+    // Another trigger may retry the head of the queue, but nothing behind a failing item is ever sent.
+    expect(sentWhileDown.length).toBeGreaterThan(0);
+    expect(new Set(sentWhileDown)).toEqual(new Set([first]));
+  });
+
+  test("a direct save answered with a non-JSON 500 shows an error instead of queueing", async ({ page }) => {
+    await gotoLogHarness(page);
+    await page.route("**/-/api/entries**", route =>
+      route.request().method() === "POST"
+        ? route.fulfill({ status: 500, contentType: "text/html", body: "<h1>Error 1101</h1>" })
+        : route.fallback(),
+    );
+
+    await page.locator("#add-btn").click();
+    await page.locator("#entry-name").fill(`E2E server error ${Date.now()}`);
+    await page.locator("#place-btn").click();
+    await page.locator('#place-listbox li[data-key="p1"]').click();
+    await page.locator("#entry-submit-btn").click();
+
+    await expect(page.locator("#entry-msg")).toContainText("Error 500");
+    await expect(page.locator("#entry-overlay")).toBeVisible();
+    await expect(page.locator("#sync-btn")).toBeHidden();
+  });
+
   test("queues a save the server answers with a 401, and shows the page as signed out", async ({ page }) => {
     await gotoLogHarness(page);
     await page.route("**/-/api/entries**", route =>
