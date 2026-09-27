@@ -4,31 +4,7 @@ test("renders the shared chrome, a real map, and switches discipline (persisted 
   page,
   owner,
 }) => {
-  await owner.seed({
-    locations: [{ id: "l1", name: "Test Crag", country: "United Kingdom" }],
-    places: [{ id: "p1", locationId: "l1", area: "" }],
-    entries: [
-      {
-        id: "e1",
-        placeId: "p1",
-        type: "boulder",
-        status: "send",
-        grade: "6A",
-        date: "2026-05-01",
-        name: "Boulder Seed",
-      },
-      {
-        id: "e2",
-        placeId: "p1",
-        type: "sport",
-        sportStyle: "lead",
-        status: "send",
-        grade: "6a",
-        date: "2026-05-02",
-        name: "Sport Seed",
-      },
-    ],
-  });
+  await owner.seed({ entries: [{ type: "boulder" }, { type: "sport", grade: "6a" }] });
   await page.goto(owner.url("/map"));
 
   await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");

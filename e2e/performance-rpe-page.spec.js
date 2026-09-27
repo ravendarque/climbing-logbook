@@ -1,15 +1,22 @@
-import { expect, test } from "@playwright/test";
-import { mockApi } from "./mock-api.js";
+import { daysAgo, expect, test } from "./owner.js";
+import { expectWiderWindowRefetch } from "./performance-window.js";
+
+// Five sends (the confidence gate), with grade and effort both rising from one week to a later one.
+const RISING_EFFORT = [
+  ...[1, 2, 3].map(() => ({ date: daysAgo(30), grade: "6B", rpe: 70 })),
+  ...[1, 2].map(() => ({ date: daysAgo(2), grade: "6C", rpe: 80 })),
+];
 
 test("shows the confidence-gate message, time-window control, and Sources section below the sample threshold", async ({
   page,
+  owner,
 }) => {
-  await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
-  await page.goto("/e2e-fixtures/pages/performance-rpe.html");
+  await owner.settings({ athleteMode: true });
+  await page.goto(owner.url("/performance/rpe"));
 
   await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
   await expect(page.locator("climbing-tab-bar a", { hasText: "Performance" })).toHaveAttribute("aria-current", "page");
-  await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", "/e2e-fixtures/performance");
+  await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", `/${owner.username}/performance`);
   await expect(page.locator("#view-explainer")).toContainText("Exertion slider");
   await expect(page.locator("#view-explainer")).toContainText("less reliable");
   await expect(page.locator('[data-window="12w"]')).toBeVisible();
@@ -17,29 +24,10 @@ test("shows the confidence-gate message, time-window control, and Sources sectio
   await expect(page.locator("body")).toContainText("Gajdošík");
 });
 
-test("renders the exertion bars and grade-labeled line once the confidence gate clears", async ({ page }) => {
-  await mockApi(page, {
-    settings: { athleteMode: true, activeDiscipline: "boulder" },
-    effortData: {
-      boulder: {
-        buckets: ["-3w", "-2w", "-1w"],
-        maxGradeByBucket: [
-          null,
-          { grade: "6B", gradeScale: "font-non-standard" },
-          { grade: "6C", gradeScale: "font-non-standard" },
-        ],
-        avgExertionByBucket: [null, 70, 85],
-        headline: "Your effort is rising alongside your grade -- sounds like it's paying off.",
-      },
-      lead: {
-        buckets: ["-3w", "-2w", "-1w"],
-        maxGradeByBucket: [null, null, null],
-        avgExertionByBucket: [null, null, null],
-        headline: null,
-      },
-    },
-  });
-  await page.goto("/e2e-fixtures/pages/performance-rpe.html");
+test("renders the exertion bars and grade-labeled line once the confidence gate clears", async ({ page, owner }) => {
+  await owner.settings({ athleteMode: true });
+  await owner.seed({ entries: RISING_EFFORT });
+  await page.goto(owner.url("/performance/rpe"));
 
   await expect(page.locator("#rpe-root")).toContainText("sounds like it's paying off");
   await expect(page.locator("#rpe-root svg")).toBeVisible();
@@ -48,29 +36,10 @@ test("renders the exertion bars and grade-labeled line once the confidence gate 
   await expect(page.locator("#rpe-root svg")).toContainText("–");
 });
 
-test("switching the report grade scale relabels the chart's grade point", async ({ page }) => {
-  await mockApi(page, {
-    settings: { athleteMode: true, activeDiscipline: "boulder" },
-    effortData: {
-      boulder: {
-        buckets: ["-3w", "-2w", "-1w"],
-        maxGradeByBucket: [
-          null,
-          { grade: "6B", gradeScale: "font-non-standard" },
-          { grade: "6C", gradeScale: "font-non-standard" },
-        ],
-        avgExertionByBucket: [null, 70, 85],
-        headline: "Your effort is rising alongside your grade -- sounds like it's paying off.",
-      },
-      lead: {
-        buckets: ["-3w", "-2w", "-1w"],
-        maxGradeByBucket: [null, null, null],
-        avgExertionByBucket: [null, null, null],
-        headline: null,
-      },
-    },
-  });
-  await page.goto("/e2e-fixtures/pages/performance-rpe.html");
+test("switching the report grade scale relabels the chart's grade point", async ({ page, owner }) => {
+  await owner.settings({ athleteMode: true });
+  await owner.seed({ entries: RISING_EFFORT });
+  await page.goto(owner.url("/performance/rpe"));
   await expect(page.locator("#rpe-root")).toContainText("6B");
 
   await page.locator("#report-grade-scale-btn").click();
@@ -79,43 +48,22 @@ test("switching the report grade scale relabels the chart's grade point", async 
   await expect(page.locator("#rpe-root")).toContainText("V5"); // reportGradeLabel("6C", "boulder", "v-scale")
 });
 
-test("switching the time window to 52w re-fetches with a wider range", async ({ page }) => {
-  let lastRequestUrl = null;
-  await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
-  await page.route("**/-/api/performance/rpe**", route => {
-    lastRequestUrl = route.request().url();
-    return route.fulfill({
-      json: {
-        boulder: { buckets: [], maxGradeByBucket: [], avgExertionByBucket: [], headline: null },
-        lead: { buckets: [], maxGradeByBucket: [], avgExertionByBucket: [], headline: null },
-      },
-    });
-  });
-  await page.goto("/e2e-fixtures/pages/performance-rpe.html");
-  // The first fetch waits for the session and settings, so it lands after load.
-  await expect.poll(() => lastRequestUrl).not.toBeNull();
-  const initialUrl = lastRequestUrl;
-
-  await page.locator('[data-window="52w"]').click();
-  await expect.poll(() => lastRequestUrl).not.toBe(initialUrl);
-
-  const initialStart = new URL(initialUrl).searchParams.get("start");
-  const fiftyTwoWStart = new URL(lastRequestUrl).searchParams.get("start");
-  expect(new Date(fiftyTwoWStart).getTime()).toBeLessThan(new Date(initialStart).getTime());
+test("switching the time window to 52w re-fetches with a wider range", async ({ page, owner }) => {
+  await owner.settings({ athleteMode: true });
+  await expectWiderWindowRefetch(page, owner.url("/performance/rpe"), "rpe");
 });
 
-test("shows the offline message instead of the chart when the fetch fails", async ({ page }) => {
-  await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
+test("shows the offline message instead of the chart when the fetch fails", async ({ page, owner }) => {
+  await owner.settings({ athleteMode: true });
   await page.route("**/-/api/performance/rpe**", route => route.fulfill({ status: 500 }));
-  await page.goto("/e2e-fixtures/pages/performance-rpe.html");
+  await page.goto(owner.url("/performance/rpe"));
 
   await expect(page.locator("#performance-offline")).toBeVisible();
   await expect(page.locator("#rpe-root")).toBeHidden();
 });
 
-test("redirects to /log when Athlete Mode is off", async ({ page }) => {
-  await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder" } });
-  await page.goto("/e2e-fixtures/pages/performance-rpe.html");
+test("redirects to /log when Athlete Mode is off", async ({ page, owner }) => {
+  await page.goto(owner.url("/performance/rpe"));
 
-  await page.waitForURL(/\/log$/);
+  await page.waitForURL(`**/${owner.username}/log`);
 });

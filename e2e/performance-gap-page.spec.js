@@ -1,45 +1,33 @@
-import { expect, test } from "@playwright/test";
-import { mockApi } from "./mock-api.js";
+import { daysAgo, expect, test } from "./owner.js";
+import { expectWiderWindowRefetch } from "./performance-window.js";
 
-test("shows the zero-sends headline, time-window control, and Sources section with no data", async ({ page }) => {
-  await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
-  await page.goto("/e2e-fixtures/pages/performance-gap.html");
+// Best flash 6B, best send 6C, in two different weeks.
+const FLASH_AND_SENDS = [
+  { date: daysAgo(15), grade: "6B", firstAttempt: true, attemptsToSend: 1 },
+  { date: daysAgo(15), grade: "6B", attemptsToSend: 2 },
+  { date: daysAgo(2), grade: "6C", attemptsToSend: 3 },
+];
+
+test("shows the zero-sends headline, time-window control, and Sources section with no data", async ({
+  page,
+  owner,
+}) => {
+  await owner.settings({ athleteMode: true });
+  await page.goto(owner.url("/performance/gap"));
 
   await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
   await expect(page.locator("climbing-tab-bar a", { hasText: "Performance" })).toHaveAttribute("aria-current", "page");
-  await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", "/e2e-fixtures/performance");
+  await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", `/${owner.username}/performance`);
   await expect(page.locator("#view-explainer")).toContainText("Attempts count and Flash selection");
   await expect(page.locator('[data-window="12w"]')).toBeVisible();
   await expect(page.locator("#gap-root")).toContainText("No sends logged in this window yet.");
   await expect(page.locator("body")).toContainText("Climbstat");
 });
 
-test("renders both grade-labeled line series and the attempts bar", async ({ page }) => {
-  await mockApi(page, {
-    settings: { athleteMode: true, activeDiscipline: "boulder" },
-    gapData: {
-      boulder: {
-        buckets: ["-3w", "-2w", "-1w"],
-        flashMaxByBucket: [null, { grade: "6B", gradeScale: "font-non-standard" }, null],
-        sendMaxByBucket: [
-          null,
-          { grade: "6B", gradeScale: "font-non-standard" },
-          { grade: "6C", gradeScale: "font-non-standard" },
-        ],
-        avgAttemptsByBucket: [null, 1.5, 3],
-        // Unused: the page recomputes the headline for the chosen scale.
-        headline: "unused -- recomputed client-side, see #733",
-      },
-      lead: {
-        buckets: ["-3w", "-2w", "-1w"],
-        flashMaxByBucket: [null, null, null],
-        sendMaxByBucket: [null, null, null],
-        avgAttemptsByBucket: [null, null, null],
-        headline: "No sends logged in this window yet.",
-      },
-    },
-  });
-  await page.goto("/e2e-fixtures/pages/performance-gap.html");
+test("renders both grade-labeled line series and the attempts bar", async ({ page, owner }) => {
+  await owner.settings({ athleteMode: true });
+  await owner.seed({ entries: FLASH_AND_SENDS });
+  await page.goto(owner.url("/performance/gap"));
 
   // 6B+ sits between them: two named steps, not one.
   await expect(page.locator("#gap-root")).toContainText("2 grade-steps ahead");
@@ -49,31 +37,10 @@ test("renders both grade-labeled line series and the attempts bar", async ({ pag
   await expect(page.locator("#gap-root svg")).toContainText("–");
 });
 
-test("switching the report grade scale relabels both grade line series", async ({ page }) => {
-  await mockApi(page, {
-    settings: { athleteMode: true, activeDiscipline: "boulder" },
-    gapData: {
-      boulder: {
-        buckets: ["-3w", "-2w", "-1w"],
-        flashMaxByBucket: [null, { grade: "6B", gradeScale: "font-non-standard" }, null],
-        sendMaxByBucket: [
-          null,
-          { grade: "6B", gradeScale: "font-non-standard" },
-          { grade: "6C", gradeScale: "font-non-standard" },
-        ],
-        avgAttemptsByBucket: [null, 1.5, 3],
-        headline: "unused -- recomputed client-side, see #733", // see the other test's own comment
-      },
-      lead: {
-        buckets: ["-3w", "-2w", "-1w"],
-        flashMaxByBucket: [null, null, null],
-        sendMaxByBucket: [null, null, null],
-        avgAttemptsByBucket: [null, null, null],
-        headline: "No sends logged in this window yet.",
-      },
-    },
-  });
-  await page.goto("/e2e-fixtures/pages/performance-gap.html");
+test("switching the report grade scale relabels both grade line series", async ({ page, owner }) => {
+  await owner.settings({ athleteMode: true });
+  await owner.seed({ entries: FLASH_AND_SENDS });
+  await page.goto(owner.url("/performance/gap"));
   await expect(page.locator("#gap-root")).toContainText("6B");
 
   await page.locator("#report-grade-scale-btn").click();
@@ -82,54 +49,22 @@ test("switching the report grade scale relabels both grade line series", async (
   await expect(page.locator("#gap-root")).toContainText("V5"); // reportGradeLabel("6C", "boulder", "v-scale")
 });
 
-test("switching the time window to 52w re-fetches with a wider range", async ({ page }) => {
-  let lastRequestUrl = null;
-  await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
-  await page.route("**/-/api/performance/gap**", route => {
-    lastRequestUrl = route.request().url();
-    return route.fulfill({
-      json: {
-        boulder: {
-          buckets: [],
-          flashMaxByBucket: [],
-          sendMaxByBucket: [],
-          avgAttemptsByBucket: [],
-          headline: "No sends logged in this window yet.",
-        },
-        lead: {
-          buckets: [],
-          flashMaxByBucket: [],
-          sendMaxByBucket: [],
-          avgAttemptsByBucket: [],
-          headline: "No sends logged in this window yet.",
-        },
-      },
-    });
-  });
-  await page.goto("/e2e-fixtures/pages/performance-gap.html");
-  await expect.poll(() => lastRequestUrl).not.toBeNull();
-  const initialUrl = lastRequestUrl;
-
-  await page.locator('[data-window="52w"]').click();
-  await expect.poll(() => lastRequestUrl).not.toBe(initialUrl);
-
-  const initialStart = new URL(initialUrl).searchParams.get("start");
-  const fiftyTwoWStart = new URL(lastRequestUrl).searchParams.get("start");
-  expect(new Date(fiftyTwoWStart).getTime()).toBeLessThan(new Date(initialStart).getTime());
+test("switching the time window to 52w re-fetches with a wider range", async ({ page, owner }) => {
+  await owner.settings({ athleteMode: true });
+  await expectWiderWindowRefetch(page, owner.url("/performance/gap"), "gap");
 });
 
-test("shows the offline message instead of the chart when the fetch fails", async ({ page }) => {
-  await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
+test("shows the offline message instead of the chart when the fetch fails", async ({ page, owner }) => {
+  await owner.settings({ athleteMode: true });
   await page.route("**/-/api/performance/gap**", route => route.fulfill({ status: 500 }));
-  await page.goto("/e2e-fixtures/pages/performance-gap.html");
+  await page.goto(owner.url("/performance/gap"));
 
   await expect(page.locator("#performance-offline")).toBeVisible();
   await expect(page.locator("#gap-root")).toBeHidden();
 });
 
-test("redirects to /log when Athlete Mode is off", async ({ page }) => {
-  await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder" } });
-  await page.goto("/e2e-fixtures/pages/performance-gap.html");
+test("redirects to /log when Athlete Mode is off", async ({ page, owner }) => {
+  await page.goto(owner.url("/performance/gap"));
 
-  await page.waitForURL(/\/log$/);
+  await page.waitForURL(`**/${owner.username}/log`);
 });

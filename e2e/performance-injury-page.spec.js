@@ -1,4 +1,4 @@
-import { expect, test } from "./owner.js";
+import { daysAgo, expect, test } from "./owner.js";
 
 const LEFT_CRIMP = { limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" };
 
@@ -21,18 +21,7 @@ test("shows the not-enough-data message, empty log, and Sources section with no 
 test("renders the ranked headline and log rows when a cluster clears the confidence gate", async ({ page, owner }) => {
   await owner.settings({ athleteMode: true });
   await owner.seed({
-    locations: [{ id: "l1", name: "Test Crag", country: "United Kingdom" }],
-    places: [{ id: "p1", locationId: "l1", area: "" }],
-    entries: ["2026-01-01", "2026-01-02", "2026-01-03"].map((date, i) => ({
-      id: `e${i}`,
-      placeId: "p1",
-      type: "boulder",
-      status: "send",
-      grade: "6A",
-      date,
-      name: `Painful Route ${i + 1}`,
-      painMoves: [LEFT_CRIMP],
-    })),
+    entries: [3, 2, 1].map(n => ({ date: daysAgo(n), name: `Painful Route ${4 - n}`, painMoves: [LEFT_CRIMP] })),
   });
   await page.goto(owner.url("/performance/injury"));
 

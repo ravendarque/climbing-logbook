@@ -6,7 +6,7 @@ import { OWNED_ORIGIN, ownedRouteUrl } from "./owned-route-url.js";
 export const OWNER_POOL_PATH = "e2e/.auth/owners.json";
 const OWNER_NEXT_PATH = "e2e/.auth/owners-next";
 // Raise this when a run runs out: one user per test that uses `owner`.
-export const OWNER_POOL_SIZE = 40;
+export const OWNER_POOL_SIZE = 60;
 
 export function ownerPoolUser(i) {
   const username = `e2eowner${String(i).padStart(3, "0")}`;
@@ -32,6 +32,14 @@ function claimOwner() {
   return owners[next];
 }
 
+export function daysAgo(n) {
+  return new Date(Date.now() - n * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+const DEFAULT_LOCATION = { id: "l1", name: "Test Crag", country: "United Kingdom" };
+const DEFAULT_PLACE = { id: "p1", locationId: "l1", area: "" };
+const ENTRY_DEFAULTS = { placeId: "p1", type: "boulder", status: "send", grade: "6A", date: daysAgo(1) };
+
 function createOwner(username, request) {
   const api = async (method, path, data) => {
     const res = await request.fetch(`${OWNED_ORIGIN}/-/api/${path}`, { method, data });
@@ -48,10 +56,15 @@ function createOwner(username, request) {
     async settings(fields) {
       await api("PATCH", "settings", fields);
     },
-    async seed({ locations = [], places = [], entries = [] }) {
+    // Entries default to a boulder send yesterday at one crag, so a test states only what it asserts on.
+    async seed({ locations = [DEFAULT_LOCATION], places = [DEFAULT_PLACE], entries = [] }) {
       for (const l of locations) await api("POST", "locations", { ...l, id: ownId(l.id) });
       for (const p of places) await api("POST", "places", { ...p, id: ownId(p.id), locationId: ownId(p.locationId) });
-      for (const e of entries) await api("POST", "entries", { ...e, id: ownId(e.id), placeId: ownId(e.placeId) });
+      for (const [i, e] of entries.entries()) {
+        const entry = { ...ENTRY_DEFAULTS, id: `e${i}`, name: `Climb ${i + 1}`, ...e };
+        if (entry.type === "sport") entry.sportStyle ??= "lead";
+        await api("POST", "entries", { ...entry, id: ownId(entry.id), placeId: ownId(entry.placeId) });
+      }
     },
   };
 }

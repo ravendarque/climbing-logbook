@@ -1,26 +1,8 @@
 import { expect, test } from "./owner.js";
 
-const today = new Date().toISOString().slice(0, 10);
-
 test("renders the shared chrome and a real grade pyramid, and switches discipline", async ({ page, owner }) => {
   await owner.settings({ athleteMode: true, activeDiscipline: "boulder" });
-  await owner.seed({
-    locations: [{ id: "l1", name: "Test Crag", country: "United Kingdom" }],
-    places: [{ id: "p1", locationId: "l1", area: "" }],
-    entries: [
-      { id: "e1", placeId: "p1", type: "boulder", status: "send", grade: "6A", date: today, name: "Boulder Send" },
-      {
-        id: "e2",
-        placeId: "p1",
-        type: "sport",
-        sportStyle: "lead",
-        status: "send",
-        grade: "6a",
-        date: today,
-        name: "Sport Send",
-      },
-    ],
-  });
+  await owner.seed({ entries: [{ type: "boulder" }, { type: "sport", grade: "6a" }] });
   await page.goto(owner.url("/performance/pyramid"));
 
   await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
