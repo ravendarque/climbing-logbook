@@ -15,6 +15,7 @@ import { createMoveRowList } from "./move-tagging.js";
 import { validateEntryShape } from "../shared/entry-schema.js";
 import { createListPicker, renderOptionList } from "./modal-utils.js";
 import { calendarDatePickerHtml, createCalendarDatePicker } from "./calendar-date-picker.js";
+import { isUnauthorized } from "./api-fetch.js";
 
 const ERROR_MSG_CLASS = "mt-[.85rem] error-message";
 
@@ -22,8 +23,7 @@ export function createEntryForm({
   store,
   openModal,
   closeModal,
-  adminFetch,
-  isAuthRedirect,
+  apiFetch,
   getQueue,
   setQueue,
   enqueue,
@@ -77,8 +77,7 @@ export function createEntryForm({
     store,
     openModal,
     closeModal,
-    adminFetch,
-    isAuthRedirect,
+    apiFetch,
     getQueue,
     enqueue,
     locationsWriteUrl,
@@ -543,12 +542,12 @@ export function createEntryForm({
     }
 
     try {
-      const res = await adminFetch(entriesWriteUrl, {
+      const res = await apiFetch(entriesWriteUrl, {
         method: editingId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(entry),
       });
-      if (isAuthRedirect(res)) throw new Error("not-authenticated");
+      if (isUnauthorized(res)) throw new Error("not-authenticated");
       const data = await res.json();
       if (!res.ok) {
         showEntryError(data.error ?? `Error ${res.status}`);
@@ -593,8 +592,8 @@ export function createEntryForm({
 
     // Deletes are idempotent, so even a never-synced entry is sent.
     try {
-      const res = await adminFetch(`${entriesWriteUrl}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-      if (isAuthRedirect(res)) throw new Error("not-authenticated");
+      const res = await apiFetch(`${entriesWriteUrl}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      if (isUnauthorized(res)) throw new Error("not-authenticated");
       if (!res.ok) {
         showEntryError((await res.json()).error ?? `Error ${res.status}`);
         entryDeleteBtn.disabled = false;

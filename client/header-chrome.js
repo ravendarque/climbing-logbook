@@ -2,8 +2,9 @@ import { pointApexLinksAtApex } from "./apex-links.js";
 import { createDisclosure } from "./modal-utils.js";
 import { createThemeToggle } from "./theme-toggle.js";
 import { disciplineLabel } from "./status.js";
+import { isUnauthorized } from "./api-fetch.js";
 
-export function createHeaderChrome({ store, adminFetch, isAuthRedirect, settingsUrl }) {
+export function createHeaderChrome({ store, apiFetch, settingsUrl }) {
   createThemeToggle();
 
   pointApexLinksAtApex();
@@ -30,12 +31,12 @@ export function createHeaderChrome({ store, adminFetch, isAuthRedirect, settings
 
     // Best effort: offline or logged out, the switch stays local.
     try {
-      const res = await adminFetch(settingsUrl, {
+      const res = await apiFetch(settingsUrl, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ activeDiscipline: store.getActiveType() }),
       });
-      if (res.status === 401 || isAuthRedirect(res)) {
+      if (isUnauthorized(res)) {
         store.setLoggedIn(false);
       }
     } catch {}

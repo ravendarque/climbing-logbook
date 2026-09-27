@@ -8,7 +8,7 @@ import { buildTemplateCsv } from "../shared/csv-import.js";
 import { loginPageUrl } from "./login-url.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
-import { adminFetch, isAuthRedirect } from "./admin-fetch.js";
+import { apiFetch, isUnauthorized } from "./api-fetch.js";
 import { BACKGROUND_FETCH_TIMEOUT_MS } from "./sync-status-icon.js";
 
 const SETTINGS_URL = "/-/api/settings";
@@ -35,8 +35,7 @@ function updateAdminBar() {
 
 const adminAuth = createAdminAuth({
   store,
-  adminFetch,
-  isAuthRedirect,
+  apiFetch,
   settingsUrl: SETTINGS_URL,
   updateAdminBar,
 });
@@ -100,13 +99,13 @@ importForm.addEventListener("submit", async e => {
 
   try {
     // Not the 10s save timeout: an import isn't idempotent, so abandoning one that later lands invites a duplicate.
-    const res = await adminFetch(IMPORT_URL, {
+    const res = await apiFetch(IMPORT_URL, {
       method: "POST",
       headers: { "Content-Type": contentType },
       body: await file.text(),
       signal: AbortSignal.timeout(BACKGROUND_FETCH_TIMEOUT_MS),
     });
-    if (isAuthRedirect(res)) {
+    if (isUnauthorized(res)) {
       window.location.href = loginPageUrl();
       return;
     }

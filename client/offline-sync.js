@@ -1,10 +1,10 @@
 import { getCursor, setCursor } from "./sync-cursors.js";
 import { BACKGROUND_FETCH_TIMEOUT_MS } from "./sync-status-icon.js";
+import { isUnauthorized } from "./api-fetch.js";
 
 export function createOfflineSync({
   store,
-  adminFetch,
-  isAuthRedirect,
+  apiFetch,
   syncStatusIcon,
   entriesWriteUrl,
   locationsWriteUrl,
@@ -48,22 +48,22 @@ export function createOfflineSync({
 
   function syncOne(item) {
     if (item.kind === "location") {
-      return adminFetch(locationsWriteUrl, {
+      return apiFetch(locationsWriteUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(item.record),
       });
     }
     if (item.kind === "place") {
-      return adminFetch(placesWriteUrl, {
+      return apiFetch(placesWriteUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(item.record),
       });
     }
     return item.op === "delete"
-      ? adminFetch(`${entriesWriteUrl}?id=${encodeURIComponent(item.record.id)}`, { method: "DELETE" })
-      : adminFetch(entriesWriteUrl, {
+      ? apiFetch(`${entriesWriteUrl}?id=${encodeURIComponent(item.record.id)}`, { method: "DELETE" })
+      : apiFetch(entriesWriteUrl, {
           method: item.op === "edit" ? "PUT" : "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(item.record),
@@ -135,7 +135,7 @@ export function createOfflineSync({
       let data;
       try {
         const res = await syncOne(item);
-        if (res.status === 401 || isAuthRedirect(res)) {
+        if (isUnauthorized(res)) {
           // The rest stay queued, in order.
           store.setLoggedIn(false);
           break;

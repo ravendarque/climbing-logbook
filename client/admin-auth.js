@@ -4,6 +4,7 @@ import { LOGIN_PATH, loginPageUrl } from "./login-url.js";
 import { clearSignedInUser, ownerOfPath, userKey, writeSignedInUser } from "./user-storage.js";
 import { isDemoUsername } from "./demo-mode.js";
 import { isWorkerCache } from "./sw/caches.js";
+import { isUnauthorized } from "./api-fetch.js";
 
 async function clearWorkerCaches() {
   try {
@@ -15,14 +16,7 @@ async function clearWorkerCaches() {
   }
 }
 
-export function createAdminAuth({
-  store,
-  adminFetch,
-  isAuthRedirect,
-  settingsUrl,
-  updateAdminBar,
-  onFetchTimeout = () => {},
-}) {
+export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, onFetchTimeout = () => {} }) {
   const AUTH_SESSION_URL = "/-/api/auth/get-session";
   const AUTH_SIGN_OUT_URL = "/-/api/auth/sign-out";
   const SETTINGS_URL = "/-/api/settings";
@@ -83,12 +77,12 @@ export function createAdminAuth({
 
   // A failed PATCH is a normal, displayable outcome, so it returns { ok } rather than throwing.
   async function patchSetting(field, value) {
-    const res = await adminFetch(settingsUrl, {
+    const res = await apiFetch(settingsUrl, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ [field]: value }),
     });
-    if (res.status === 401 || isAuthRedirect(res)) {
+    if (isUnauthorized(res)) {
       store.setLoggedIn(false);
       return { ok: false };
     }
@@ -130,7 +124,7 @@ export function createAdminAuth({
     store.setLoggedIn(localStorage.getItem(LOGIN_HINT_KEY) === "1");
     let res;
     try {
-      res = await adminFetch(AUTH_SESSION_URL, { signal: AbortSignal.timeout(BACKGROUND_FETCH_TIMEOUT_MS) });
+      res = await apiFetch(AUTH_SESSION_URL, { signal: AbortSignal.timeout(BACKGROUND_FETCH_TIMEOUT_MS) });
     } catch (err) {
       // Offline or timed out: the optimistic hint stands.
       if (err.name === "TimeoutError") onFetchTimeout();

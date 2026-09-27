@@ -7,7 +7,7 @@ import { resolveApexUrl, resolveBetaXUrl, resolveMyXUrl } from "./resolve-cross-
 import { userKey } from "./user-storage.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
-import { adminFetch, isAuthRedirect } from "./admin-fetch.js";
+import { apiFetch } from "./api-fetch.js";
 
 const SETTINGS_URL = "/-/api/settings";
 const QUEUE_KEY = userKey("logbook_pending_queue");
@@ -76,8 +76,7 @@ function updateAdminBar() {
 
 const adminAuth = createAdminAuth({
   store,
-  adminFetch,
-  isAuthRedirect,
+  apiFetch,
   settingsUrl: SETTINGS_URL,
   updateAdminBar,
 });
