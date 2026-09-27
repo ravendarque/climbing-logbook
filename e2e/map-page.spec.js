@@ -1,10 +1,12 @@
-import { expect, test } from "@playwright/test";
-import { mockApi } from "./mock-api.js";
+import { expect, test } from "./owner.js";
 
 test("renders the shared chrome, a real map, and switches discipline (persisted via the settings PATCH)", async ({
   page,
+  owner,
 }) => {
-  await mockApi(page, {
+  await owner.seed({
+    locations: [{ id: "l1", name: "Test Crag", country: "United Kingdom" }],
+    places: [{ id: "p1", locationId: "l1", area: "" }],
     entries: [
       {
         id: "e1",
@@ -15,12 +17,19 @@ test("renders the shared chrome, a real map, and switches discipline (persisted 
         date: "2026-05-01",
         name: "Boulder Seed",
       },
-      { id: "e2", placeId: "p1", type: "sport", status: "send", grade: "6a", date: "2026-05-02", name: "Sport Seed" },
+      {
+        id: "e2",
+        placeId: "p1",
+        type: "sport",
+        sportStyle: "lead",
+        status: "send",
+        grade: "6a",
+        date: "2026-05-02",
+        name: "Sport Seed",
+      },
     ],
-    places: [{ id: "p1", locationId: "l1", area: "" }],
-    locations: [{ id: "l1", name: "Test Crag", country: "United Kingdom" }],
   });
-  await page.goto("/e2e-fixtures/pages/map.html");
+  await page.goto(owner.url("/map"));
 
   await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
 
@@ -33,6 +42,9 @@ test("renders the shared chrome, a real map, and switches discipline (persisted 
     page.waitForResponse(res => res.url().includes("/-/api/settings") && res.request().method() === "PATCH"),
     page.locator('.discipline-option[data-discipline="sport"]').click(),
   ]);
+  await expect(page.locator("#discipline-btn-label")).toHaveText("Sport");
+
+  await page.reload();
   await expect(page.locator("#discipline-btn-label")).toHaveText("Sport");
 
   await page.locator("#discipline-btn").click();

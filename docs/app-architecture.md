@@ -514,7 +514,14 @@ Three kinds of test:
 |---|---|---|
 | Component harness | `e2e/fixtures/*-entry.js`, built by `pnpm run e2e:build-fixtures` into `/e2e-fixtures/`, mount a real component against made-up data | Component behaviour: map zoom, the pyramid |
 | Page harness | A copy of a built shell at `/e2e-fixtures/pages/<page>.html`, running its real bundle, with `/-/api/*` faked by `e2e/mock-api.js` | Older page tests, being moved to real routes |
-| Real route | `my.localhost` via `ownedRouteUrl()` and `addOwnedRouteSessionCookie()` (`e2e/owned-route-url.js`), against the real Worker and D1 | Page tests, routing, sessions, the service worker, per-user storage |
+| Real route | `my.localhost` against the real Worker and D1: the `owner` fixture (`e2e/owner.js`) for a test that needs a user of its own, or `ownedRouteUrl()` and `addOwnedRouteSessionCookie()` (`e2e/owned-route-url.js`) for the seeded dev user | Page tests, routing, sessions, the service worker, per-user storage |
+
+`e2e/global-setup.js` also signs up a pool of users (`OWNER_POOL_SIZE` in
+`e2e/owner.js`), and the `owner` fixture hands each test the next one, so a
+test can change settings and data without affecting any other. Its
+`seed()` and `settings()` go through the real API; record ids are prefixed
+with the username because ids are unique across users. A run with more
+`owner` tests than the pool holds fails with a message saying to raise it.
 
 In the page harness the first path segment is `e2e-fixtures`, so links built
 from the URL use that as the username, and navigation to another page is

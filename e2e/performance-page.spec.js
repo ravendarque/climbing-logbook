@@ -1,9 +1,8 @@
-import { expect, test } from "@playwright/test";
-import { mockApi } from "./mock-api.js";
+import { expect, test } from "./owner.js";
 
-test("renders the shared chrome and one tile per insight, linking to its own sub-page", async ({ page }) => {
-  await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
-  await page.goto("/e2e-fixtures/pages/performance.html");
+test("renders the shared chrome and one tile per insight, linking to its own sub-page", async ({ page, owner }) => {
+  await owner.settings({ athleteMode: true, activeDiscipline: "boulder" });
+  await page.goto(owner.url("/performance"));
 
   await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
   await expect(page.locator("climbing-tab-bar a", { hasText: "Performance" })).toHaveAttribute("aria-current", "page");
@@ -11,12 +10,18 @@ test("renders the shared chrome and one tile per insight, linking to its own sub
   const pyramidTile = page.locator("#insight-pyramid");
   await expect(pyramidTile).toBeVisible();
   await expect(pyramidTile.locator(".row-card-title")).toHaveText("Grade Pyramid");
-  await expect(pyramidTile.locator("a", { hasText: "View" })).toHaveAttribute("href", /\/performance\/pyramid$/);
+  await expect(pyramidTile.locator("a", { hasText: "View" })).toHaveAttribute(
+    "href",
+    `/${owner.username}/performance/pyramid`,
+  );
 });
 
-test("#599 -- the gap tile's title is discipline-aware and updates live on a discipline switch", async ({ page }) => {
-  await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
-  await page.goto("/e2e-fixtures/pages/performance.html");
+test("#599 -- the gap tile's title is discipline-aware and updates live on a discipline switch", async ({
+  page,
+  owner,
+}) => {
+  await owner.settings({ athleteMode: true, activeDiscipline: "boulder" });
+  await page.goto(owner.url("/performance"));
 
   const gapTile = page.locator("#insight-gap");
   await expect(gapTile.locator(".row-card-title")).toHaveText("Send / Flash Gap");
@@ -26,9 +31,8 @@ test("#599 -- the gap tile's title is discipline-aware and updates live on a dis
   await expect(gapTile.locator(".row-card-title")).toHaveText("Redpoint / Onsight Gap");
 });
 
-test("redirects to /log when Athlete Mode is off", async ({ page }) => {
-  await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder" } });
-  await page.goto("/e2e-fixtures/pages/performance.html");
+test("redirects to /log when Athlete Mode is off", async ({ page, owner }) => {
+  await page.goto(owner.url("/performance"));
 
-  await page.waitForURL(/\/log$/);
+  await page.waitForURL(`**/${owner.username}/log`);
 });
