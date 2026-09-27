@@ -29,7 +29,7 @@ test("a queued add and delete, in the pre-#992 shape, replay to /-/api/entries",
   await page.locator("#sync-btn").click();
   await expect(page.locator("#sync-btn")).toBeHidden();
 
-  expect(writes).toEqual(["POST /-/api/entries 201", "DELETE /-/api/entries 200"]);
+  expect(writes).toEqual(["POST /-/api/entries 201", "DELETE /-/api/entries 204"]);
   const queue = await page.evaluate(owner => localStorage.getItem(`logbook_pending_queue:${owner}`), OWNER);
   expect(JSON.parse(queue ?? "[]")).toEqual([]);
 });

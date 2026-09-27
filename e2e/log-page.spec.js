@@ -386,7 +386,7 @@ test("adding a move and saving submits it in the entry payload", async ({ page }
   await page.route("**/-/api/entries*", async route => {
     if (route.request().method() !== "POST") return route.fallback();
     submittedBody = route.request().postDataJSON();
-    await route.fulfill({ status: 201, json: { entries: [{ ...submittedBody, id: "new-id" }] } });
+    await route.fulfill({ status: 201, json: { entry: { ...submittedBody, id: "new-id" } } });
   });
 
   const entryName = `E2E move payload ${Date.now()}`;
@@ -496,7 +496,7 @@ test("choosing Font (Non-standard) switches to the number/letter/modifier fields
   await page.route("**/-/api/entries*", async route => {
     if (route.request().method() !== "POST") return route.fallback();
     submittedBody = route.request().postDataJSON();
-    await route.fulfill({ status: 201, json: { entries: [{ ...submittedBody, id: "new-id" }] } });
+    await route.fulfill({ status: 201, json: { entry: { ...submittedBody, id: "new-id" } } });
   });
 
   await page.locator("#add-btn").click();
@@ -758,7 +758,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await expect(page.locator("#sections")).toContainText(entryName);
 
     const requestMethods = [];
-    page.on("requestfinished", req => {
+    page.on("request", req => {
       if (req.url().includes("/-/api/entries") && req.method() !== "GET") requestMethods.push(req.method());
     });
 
@@ -825,7 +825,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await expect(page.locator("#sections")).toContainText(entryName);
 
     const postRequests = [];
-    page.on("requestfinished", req => {
+    page.on("request", req => {
       if (req.url().includes("/-/api/entries") && req.method() === "POST") postRequests.push(req.url());
     });
 
@@ -879,6 +879,35 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
 
     await expect(page.locator("#sections")).toContainText(entryName);
     await expect(page.locator(".place-header", { hasText: "Existing Crag" })).toHaveCount(1);
+  });
+
+  test("an online add-place that dedups against another device's location saves the entry under it", async ({ page }) => {
+    await gotoLogHarness(page, { entries: [], places: [], locations: [] });
+
+    await page.evaluate(() => fetch("/-/api/locations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: crypto.randomUUID(), name: "Existing Crag", country: "France" }),
+    }));
+
+    const entryName = `E2E online dedup ${Date.now()}`;
+    await page.locator("#add-btn").click();
+    await page.locator("#entry-name").fill(entryName);
+    await page.locator("#place-btn").click();
+    await page.locator("#place-add-new-btn").click();
+    await page.locator("#add-place-location").fill("existing crag");
+    await page.locator("#add-place-area").fill("Sector 1");
+    await page.locator("#add-place-country-btn").click();
+    await page.locator("#add-place-country-search").fill("France");
+    await page.locator('#add-place-country-listbox li[data-key="France"]').click();
+    await page.locator("#add-place-submit-btn").click();
+    await expect(page.locator("#add-place-overlay")).toBeHidden();
+
+    await page.locator("#entry-submit-btn").click();
+    await expect(page.locator("#entry-overlay")).toBeHidden();
+    await expect(page.locator("#sync-btn")).toBeHidden();
+    await expect(page.locator(".place-header", { hasText: "Existing Crag" })).toHaveCount(1);
+    await expect(page.locator("#sections")).toContainText(entryName);
   });
 
   test("#939 -- reloading the page alone picks up an entry added on another device, no click or online event needed", async ({ page }) => {

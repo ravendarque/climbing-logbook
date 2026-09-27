@@ -316,9 +316,17 @@ Tables (see `migrations/` for columns and constraints):
   the same id is an idempotent replay, and deleting a missing id succeeds.
   `server/lib/d1-resource.js` holds the create path. Two concurrent creates
   of one id race past the existence check, so the losing `INSERT`'s
-  unique-constraint error is treated as a replay too. A create that lands
-  on a soft-deleted id brings the row back with the new data instead of
-  being dropped.
+  unique-constraint error is treated as a replay too; an id another user
+  holds gets a 409. A create that lands on a soft-deleted id brings the row
+  back with the new data instead of being dropped.
+- **A write returns only what it wrote:** the row (`{ entry }`,
+  `{ place }`, `{ location }`), 204 for a delete, and just the count for an
+  import. The client merges it into its store with
+  `store.mergeConfirmed()`, the same merge a delta pull uses, and leaves
+  the sync cursor alone so the next delta re-sends the row harmlessly.
+- **An entry and its move tags are written in one `batch()`**, the
+  resource factory's `childStatements`, so a failure leaves neither
+  half written.
 - **Places and locations are deduplicated by name** (case-insensitive,
   plus the area for a place). A create that matches an existing row
   returns `dedupedTo: <id>`, and the offline queue remaps anything still

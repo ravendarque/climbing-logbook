@@ -45,21 +45,29 @@ export function buildInsertStatement(env, table, row) {
     .bind(...columns.map(c => row[c]), row.user_id);
 }
 
-export async function insertRow(env, table, row) {
-  await buildInsertStatement(env, table, row).run();
+export function findRow(env, table, id, userId) {
+  return env.LOGBOOK_DB
+    .prepare(`SELECT * FROM ${table} WHERE id = ? AND user_id = ?`)
+    .bind(id, userId)
+    .first();
 }
 
-export function createD1ResourceHandlers({ table, resourceKey, validateFields, buildRow, rowToJson, excludeDeleted = false, findDuplicate, afterWrite, decorateRows }) {
+// childStatements join the row's own write in one batch, so a failure leaves nothing half written.
+export function createD1ResourceHandlers({ table, resourceKey, rowKey, validateFields, buildRow, rowToJson, excludeDeleted = false, findDuplicate, childStatements = () => [], decorateRows = (env, userId, rows) => rows }) {
   async function handleGet(request, env, userId) {
     const since = new URL(request.url).searchParams.get("since");
     if (since !== null) {
       const { rows, cursor } = await listChangedForUser(env, table, userId, rowToJson, Number(since));
-      const decorated = decorateRows ? await decorateRows(env, userId, rows) : rows;
-      return json({ [resourceKey]: decorated, cursor }, 200, { "Cache-Control": "no-store" });
+      return json({ [resourceKey]: await decorateRows(env, userId, rows), cursor }, 200, { "Cache-Control": "no-store" });
     }
     const list = await listForUser(env, table, userId, rowToJson, { excludeDeleted });
-    const decoratedList = decorateRows ? await decorateRows(env, userId, list) : list;
-    return json({ [resourceKey]: decoratedList }, 200, { "Cache-Control": "no-store" });
+    return json({ [resourceKey]: await decorateRows(env, userId, list) }, 200, { "Cache-Control": "no-store" });
+  }
+
+  async function respondWithRow(env, userId, id, status, extra = {}) {
+    const row = await findRow(env, table, id, userId);
+    const [decorated] = await decorateRows(env, userId, [rowToJson(row)]);
+    return json({ [rowKey]: decorated, ...extra }, status);
   }
 
   async function handlePost(request, env, userId) {
@@ -73,14 +81,7 @@ export function createD1ResourceHandlers({ table, resourceKey, validateFields, b
     // Content match first: two offline devices adding the same crag must converge.
     if (findDuplicate) {
       const duplicate = await findDuplicate(env, userId, record);
-      if (duplicate) {
-        const list = await listForUser(env, table, userId, rowToJson, { excludeDeleted });
-        const decorated = decorateRows ? await decorateRows(env, userId, list) : list;
-        return json({
-          [resourceKey]: decorated,
-          dedupedTo: duplicate.id,
-        }, 200);
-      }
+      if (duplicate) return respondWithRow(env, userId, duplicate.id, 200, { dedupedTo: duplicate.id });
     }
 
     const id = typeof record.id === "string" && record.id ? record.id : crypto.randomUUID();
@@ -91,35 +92,30 @@ export function createD1ResourceHandlers({ table, resourceKey, validateFields, b
       if (excludeDeleted && existing.deleted_at !== null) {
         const row = buildRow(record, id, userId);
         const columns = Object.keys(row).filter(c => c !== "id" && c !== "user_id");
-        await env.LOGBOOK_DB
-          .prepare(`UPDATE ${table} SET ${columns.map(c => `${c} = ?`).join(", ")}, deleted_at = NULL, sync_cursor = ${nextCursorSql(table)} WHERE id = ? AND user_id = ?`)
-          .bind(...columns.map(c => row[c]), userId, id, userId)
-          .run();
-        if (afterWrite) await afterWrite(env, id, record);
-        const list = await listForUser(env, table, userId, rowToJson, { excludeDeleted });
-        const decorated = decorateRows ? await decorateRows(env, userId, list) : list;
-        return json({ [resourceKey]: decorated }, 201);
+        await env.LOGBOOK_DB.batch([
+          env.LOGBOOK_DB
+            .prepare(`UPDATE ${table} SET ${columns.map(c => `${c} = ?`).join(", ")}, deleted_at = NULL, sync_cursor = ${nextCursorSql(table)} WHERE id = ? AND user_id = ?`)
+            .bind(...columns.map(c => row[c]), userId, id, userId),
+          ...childStatements(env, id, record),
+        ]);
+        return respondWithRow(env, userId, id, 201);
       }
-      const list = await listForUser(env, table, userId, rowToJson, { excludeDeleted });
-      const decorated = decorateRows ? await decorateRows(env, userId, list) : list;
-      return json({ [resourceKey]: decorated }, 200);
+      return respondWithRow(env, userId, id, 200);
     }
 
     // A concurrent create of the same id loses here; that's a replay, not an error.
     try {
-      await insertRow(env, table, buildRow(record, id, userId));
+      await env.LOGBOOK_DB.batch([
+        buildInsertStatement(env, table, buildRow(record, id, userId)),
+        ...childStatements(env, id, record),
+      ]);
     } catch (e) {
       if (!e.message?.includes("UNIQUE constraint failed")) throw e;
-      const list = await listForUser(env, table, userId, rowToJson, { excludeDeleted });
-      const decorated = decorateRows ? await decorateRows(env, userId, list) : list;
-      return json({ [resourceKey]: decorated }, 200);
+      if (!await findOwnedRow(env, table, id, userId)) return json({ error: "That id is already in use" }, 409);
+      return respondWithRow(env, userId, id, 200);
     }
-    if (afterWrite) await afterWrite(env, id, record);
-
-    const list = await listForUser(env, table, userId, rowToJson, { excludeDeleted });
-    const decorated = decorateRows ? await decorateRows(env, userId, list) : list;
-    return json({ [resourceKey]: decorated }, 201);
+    return respondWithRow(env, userId, id, 201);
   }
 
-  return { handleGet, handlePost };
+  return { handleGet, handlePost, respondWithRow };
 }

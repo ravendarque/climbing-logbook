@@ -471,7 +471,7 @@ export function createEntryForm({
         entrySubmitBtns.forEach(btn => { btn.disabled = false; });
         return;
       }
-      store.setEntries(data.entries);
+      store.mergeConfirmed("entries", [data.entry]);
       store.applyPendingQueue(getQueue());
       closeModal(entryOverlay);
     } catch (err) {
@@ -507,13 +507,12 @@ export function createEntryForm({
     try {
       const res = await adminFetch(`${entriesWriteUrl}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
       if (isAuthRedirect(res)) throw new Error("not-authenticated");
-      const data = await res.json();
       if (!res.ok) {
-        showEntryError(data.error ?? `Error ${res.status}`);
+        showEntryError((await res.json()).error ?? `Error ${res.status}`);
         entryDeleteBtn.disabled = false;
         return;
       }
-      store.setEntries(data.entries);
+      store.mergeConfirmed("entries", [{ id, deleted: true }]);
       // Purge queued items for this entry, or a queued add would resurrect it.
       setQueue(getQueue().filter(item => !(item.kind === "entry" && item.record.id === id)));
       store.applyPendingQueue(getQueue());

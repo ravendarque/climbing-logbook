@@ -29,62 +29,67 @@ beforeEach(async () => {
   userId = id;
 });
 
-describe("afterWrite", () => {
-  it("is called once with (env, id, record) after a fresh insert", async () => {
-    const calls = [];
-    const { handlePost } = createD1ResourceHandlers({
-      table: "places", resourceKey: "places", validateFields, buildRow, rowToJson,
-      afterWrite: async (e, id, record) => { calls.push({ id, record }); },
-    });
-    const locationId = await seedLocation(userId);
-    const record = { locationId, area: "Bas Cuvier" };
-    const request = new Request("https://x/", { method: "POST", body: JSON.stringify(record) });
-    await handlePost(request, env, userId);
+function post(handlePost, body) {
+  return handlePost(new Request("https://x/", { method: "POST", body: JSON.stringify(body) }), env, userId);
+}
 
-    expect(calls).toHaveLength(1);
-    expect(calls[0].record).toEqual(record);
-    expect(typeof calls[0].id).toBe("string");
+describe("childStatements", () => {
+  it("run in the same batch as the row, with its id", async () => {
+    const { handlePost } = createD1ResourceHandlers({
+      table: "places", resourceKey: "places", rowKey: "place", validateFields, buildRow, rowToJson,
+      childStatements: (e, id) => [e.LOGBOOK_DB.prepare("UPDATE places SET area = 'Set by child' WHERE id = ?").bind(id)],
+    });
+    const res = await post(handlePost, { locationId: await seedLocation(userId), area: "Bas Cuvier" });
+
+    expect(res.status).toBe(201);
+    expect((await res.json()).place.area).toBe("Set by child");
   });
 
-  it("is not called when handlePost short-circuits on a validation error", async () => {
+  it("roll the row back when one of them fails", async () => {
+    const { handlePost } = createD1ResourceHandlers({
+      table: "places", resourceKey: "places", rowKey: "place", validateFields, buildRow, rowToJson,
+      childStatements: e => [e.LOGBOOK_DB.prepare("INSERT INTO no_such_table (id) VALUES (1)")],
+    });
+    await expect(post(handlePost, { id: "rolled-back", locationId: await seedLocation(userId), area: "Bas Cuvier" })).rejects.toThrow();
+
+    const row = await env.LOGBOOK_DB.prepare("SELECT id FROM places WHERE id = ?").bind("rolled-back").first();
+    expect(row).toBeNull();
+  });
+
+  it("aren't built when handlePost short-circuits on a validation error", async () => {
     const calls = [];
     const { handlePost } = createD1ResourceHandlers({
-      table: "places", resourceKey: "places",
+      table: "places", resourceKey: "places", rowKey: "place",
       validateFields: async () => "always invalid",
       buildRow, rowToJson,
-      afterWrite: async () => { calls.push(1); },
+      childStatements: () => { calls.push(1); return []; },
     });
-    const request = new Request("https://x/", { method: "POST", body: JSON.stringify({ area: "x" }) });
-    await handlePost(request, env, userId);
+    await post(handlePost, { area: "x" });
 
     expect(calls).toHaveLength(0);
   });
 });
 
 describe("decorateRows", () => {
-  it("replaces the list handleGet returns", async () => {
-    const { handlePost, handleGet } = createD1ResourceHandlers({
-      table: "places", resourceKey: "places", validateFields, buildRow, rowToJson,
-      decorateRows: async (e, uid, rows) => rows.map(r => ({ ...r, decorated: true })),
-    });
-    const locationId = await seedLocation(userId);
-    await handlePost(new Request("https://x/", { method: "POST", body: JSON.stringify({ locationId, area: "Bas Cuvier" }) }), env, userId);
+  const decorateRows = async (e, uid, rows) => rows.map(r => ({ ...r, decorated: true }));
 
-    const res = await handleGet(new Request("https://x/"), env, userId);
-    const { places } = await res.json();
+  it("decorates the list handleGet returns", async () => {
+    const { handlePost, handleGet } = createD1ResourceHandlers({
+      table: "places", resourceKey: "places", rowKey: "place", validateFields, buildRow, rowToJson, decorateRows,
+    });
+    await post(handlePost, { locationId: await seedLocation(userId), area: "Bas Cuvier" });
+
+    const { places } = await (await handleGet(new Request("https://x/"), env, userId)).json();
     expect(places).toHaveLength(1);
     expect(places[0].decorated).toBe(true);
   });
 
-  it("replaces the list handlePost itself returns", async () => {
+  it("decorates the row handlePost returns", async () => {
     const { handlePost } = createD1ResourceHandlers({
-      table: "places", resourceKey: "places", validateFields, buildRow, rowToJson,
-      decorateRows: async (e, uid, rows) => rows.map(r => ({ ...r, decorated: true })),
+      table: "places", resourceKey: "places", rowKey: "place", validateFields, buildRow, rowToJson, decorateRows,
     });
-    const locationId = await seedLocation(userId);
-    const res = await handlePost(new Request("https://x/", { method: "POST", body: JSON.stringify({ locationId, area: "Bas Cuvier" }) }), env, userId);
+    const res = await post(handlePost, { locationId: await seedLocation(userId), area: "Bas Cuvier" });
 
-    const { places } = await res.json();
-    expect(places[0].decorated).toBe(true);
+    expect((await res.json()).place.decorated).toBe(true);
   });
 });

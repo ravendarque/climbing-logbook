@@ -144,7 +144,7 @@ describe("handleGetInjuryLog", () => {
 
   it("excludes a soft-deleted entry's pain moves from both the log and the cluster count", async () => {
     const created = await (await postEntry({ painMoves: [{ limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" }] })).json();
-    await del(created.entries[0].id);
+    await del(created.entry.id);
     const res = await getInjuryLog();
     const body = await res.json();
     expect(body.log).toEqual([]);
@@ -203,7 +203,7 @@ describe("handleGetStrengthsWeaknesses", () => {
 
   it("excludes a soft-deleted entry's moves from both the headline and the anchor list", async () => {
     const created = await (await postEntry({ moves: [{ difficulty: "hardest", limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" }] })).json();
-    await del(created.entries[0].id);
+    await del(created.entry.id);
     const body = await (await getStrengths()).json();
     expect(body.headline).toBeNull();
     expect(body.anchors).toEqual([]);
@@ -273,7 +273,7 @@ describe("handleGetVolume", () => {
 
   it("excludes a soft-deleted entry", async () => {
     const created = await (await postEntry({ date: "2026-01-10" })).json();
-    await del(created.entries[0].id);
+    await del(created.entry.id);
     const { boulder } = await (await getVolume(WINDOW)).json();
     expect(boulder.sendCounts).toEqual([0, 0, 0]);
   });
@@ -337,7 +337,7 @@ describe("handleGetGap", () => {
 
   it("excludes a soft-deleted entry", async () => {
     const created = await (await postEntry({ date: "2026-01-10" })).json();
-    await del(created.entries[0].id);
+    await del(created.entry.id);
     const { boulder } = await (await getGap(WINDOW)).json();
     expect(boulder.sendMaxByBucket).toEqual([null, null, null]);
   });
@@ -399,7 +399,7 @@ describe("handleGetEffort", () => {
 
   it("excludes a soft-deleted entry", async () => {
     const created = await (await postEntry({ date: "2026-01-10" })).json();
-    await del(created.entries[0].id);
+    await del(created.entry.id);
     const { boulder } = await (await getEffort(WINDOW)).json();
     expect(boulder.avgExertionByBucket).toEqual([null, null, null]);
   });

@@ -5,6 +5,7 @@ import {
   entryLocation as entryLocationPure,
 } from "./entries.js";
 import { applyPendingQueue as applyPendingQueuePure } from "./offline-queue.js";
+import { mergeDelta } from "./delta-merge.js";
 import { userKey } from "./user-storage.js";
 
 const ENTRIES_CACHE_KEY = userKey("logbook_entries_cache");
@@ -44,6 +45,21 @@ export function createStore({ storage = typeof localStorage !== "undefined" ? lo
     locations = next;
     storage.setItem(LOCATIONS_CACHE_KEY, JSON.stringify(locations));
     notify();
+  }
+
+  const TABLES = {
+    entries: { key: ENTRIES_CACHE_KEY, set: setEntries },
+    places: { key: PLACES_CACHE_KEY, set: setPlaces },
+    locations: { key: LOCATIONS_CACHE_KEY, set: setLocations },
+  };
+
+  // Onto the stored cache, not the in-memory view, so pending flags never get persisted.
+  function mergeConfirmed(table, rows) {
+    const { key, set } = TABLES[table];
+    set(mergeDelta(readCached(key), rows));
+  }
+  function readCached(key) {
+    try { return JSON.parse(storage.getItem(key)) ?? []; } catch { return []; }
   }
 
   // Never persisted: only server-confirmed data is cached, or a stale pending flag would outlive its item.
@@ -101,6 +117,7 @@ export function createStore({ storage = typeof localStorage !== "undefined" ? lo
     setPlaces,
     getLocations: () => locations,
     setLocations,
+    mergeConfirmed,
     loadEntriesFromCache,
     loadPlacesFromCache,
     loadLocationsFromCache,

@@ -36,6 +36,7 @@ export function rowToJson(row) {
 export const { handleGet, handlePost } = createD1ResourceHandlers({
   table: "places",
   resourceKey: "places",
+  rowKey: "place",
   validateFields,
   buildRow,
   rowToJson,
