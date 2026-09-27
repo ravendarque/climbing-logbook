@@ -1,33 +1,15 @@
-import { createStore } from "./store.js";
-import { createAdminAuth } from "./admin-auth.js";
-import { createDisclosure } from "./modal-utils.js";
-import { createThemeToggle } from "./theme-toggle.js";
-import { syncAdminBar } from "./admin-bar.js";
+import { createAccountShell } from "./account-shell.js";
 import { resolveApexUrl, resolveBetaXUrl, resolveMyXUrl } from "./resolve-cross-hostname-url.js";
 import { userKey } from "./user-storage.js";
-import { pageAllowsBoot } from "./boot-gate.js";
-import { registerServiceWorker } from "./register-sw.js";
-import { apiFetch } from "./api-fetch.js";
+import { startPage } from "./boot-gate.js";
 
-const SETTINGS_URL = "/-/api/settings";
 const QUEUE_KEY = userKey("logbook_pending_queue");
 
-const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
+const { username: USERNAME, adminAuth, updateAdminBar } = createAccountShell();
 const LOG_PATH = `/${encodeURIComponent(USERNAME)}/log`;
-
-const store = createStore();
 
 document.getElementById("back-to-account-link").href = `/${encodeURIComponent(USERNAME)}/account`;
 document.getElementById("beta-help-link").href = resolveApexUrl(location.hostname, "/help/beta-channel/");
-
-const menuUsername = document.getElementById("menu-username");
-const headerMenuBottomRow = document.getElementById("header-menu-bottom-row");
-function updateMenuDivider() {
-  const hasTopContent = !menuUsername.hidden;
-  headerMenuBottomRow.classList.toggle("border-t", hasTopContent);
-  headerMenuBottomRow.classList.toggle("pt-2", hasTopContent);
-  headerMenuBottomRow.classList.toggle("mt-1", hasTopContent);
-}
 
 const statusEl = document.getElementById("beta-status");
 const joinEl = document.getElementById("beta-join");
@@ -70,17 +52,6 @@ function render() {
   actionsEl.hidden = false;
 }
 
-function updateAdminBar() {
-  syncAdminBar({ store, adminAuth, headerChrome: { updateMenuDivider } });
-}
-
-const adminAuth = createAdminAuth({
-  store,
-  apiFetch,
-  settingsUrl: SETTINGS_URL,
-  updateAdminBar,
-});
-
 function showError(message) {
   errorEl.textContent = message;
   errorEl.hidden = false;
@@ -118,20 +89,10 @@ confirmBtn.addEventListener("click", async () => {
 addEventListener("online", render);
 addEventListener("offline", render);
 
-createDisclosure(
-  document.getElementById("header-menu-btn"),
-  document.getElementById("header-menu-popover"),
-  "#header-menu-wrap",
-);
-createThemeToggle();
-
 async function boot() {
   await Promise.all([adminAuth.checkSession(), adminAuth.fetchSettings()]);
   updateAdminBar();
   render();
 }
 
-pageAllowsBoot().then(allowed => {
-  if (!allowed) return;
-  registerServiceWorker({ after: boot() });
-});
+startPage(boot);

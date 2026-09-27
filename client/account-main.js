@@ -1,37 +1,24 @@
 // Not header-chrome.js: it requires the discipline picker, which this page doesn't have.
-import { createStore } from "./store.js";
-import { createAdminAuth } from "./admin-auth.js";
-import { createDisclosure } from "./modal-utils.js";
-import { createThemeToggle } from "./theme-toggle.js";
-import { syncAdminBar } from "./admin-bar.js";
+import { createAccountShell } from "./account-shell.js";
 import { loadResource } from "./fetch-json.js";
 import { buildEntriesCsv, resolveExportRows } from "../shared/csv-import.js";
-import { pageAllowsBoot } from "./boot-gate.js";
-import { registerServiceWorker } from "./register-sw.js";
-import { apiFetch } from "./api-fetch.js";
+import { startPage } from "./boot-gate.js";
 
-const SETTINGS_URL = "/-/api/settings";
 const DATA_URL = "/-/api/entries";
 const PLACES_URL = "/-/api/places";
 const LOCATIONS_URL = "/-/api/locations";
 
-const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
-
-const store = createStore();
+const {
+  username: USERNAME,
+  store,
+  adminAuth,
+  updateAdminBar,
+} = createAccountShell({ onAdminBarUpdate: () => syncSettingsToggles() });
 
 document.getElementById("edit-account-link").href = `/${encodeURIComponent(USERNAME)}/account/edit`;
 document.getElementById("import-link").href = `/${encodeURIComponent(USERNAME)}/account/import`;
 document.getElementById("beta-row").href = `/${encodeURIComponent(USERNAME)}/account/beta`;
 document.getElementById("back-to-logbook-link").href = `/${encodeURIComponent(USERNAME)}/log`;
-
-const menuUsername = document.getElementById("menu-username");
-const headerMenuBottomRow = document.getElementById("header-menu-bottom-row");
-function updateMenuDivider() {
-  const hasTopContent = !menuUsername.hidden;
-  headerMenuBottomRow.classList.toggle("border-t", hasTopContent);
-  headerMenuBottomRow.classList.toggle("pt-2", hasTopContent);
-  headerMenuBottomRow.classList.toggle("mt-1", hasTopContent);
-}
 
 const athleteModeRow = document.getElementById("athlete-mode-row");
 const athleteModeToggle = document.getElementById("athlete-mode-toggle");
@@ -72,25 +59,6 @@ athleteModeToggle.addEventListener("click", () =>
 publicLogbookToggle.addEventListener("click", () =>
   handleSettingToggle(publicLogbookToggle, adminAuth.setLogbookPublic, "Public Logbook"),
 );
-
-function updateAdminBar() {
-  syncAdminBar({ store, adminAuth, headerChrome: { updateMenuDivider } });
-  syncSettingsToggles();
-}
-
-const adminAuth = createAdminAuth({
-  store,
-  apiFetch,
-  settingsUrl: SETTINGS_URL,
-  updateAdminBar,
-});
-
-createDisclosure(
-  document.getElementById("header-menu-btn"),
-  document.getElementById("header-menu-popover"),
-  "#header-menu-wrap",
-);
-createThemeToggle();
 
 // Fetched on click: most visits never export.
 const exportError = document.getElementById("export-error");
@@ -133,7 +101,4 @@ async function boot() {
   updateAdminBar();
 }
 
-pageAllowsBoot().then(allowed => {
-  if (!allowed) return;
-  registerServiceWorker({ after: boot() });
-});
+startPage(boot);

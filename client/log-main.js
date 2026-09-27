@@ -1,24 +1,29 @@
-import { createStore } from "./store.js";
+import { createAppShell } from "./app-shell.js";
 import { createEntryForm } from "./entry-form.js";
-import { createAdminAuth } from "./admin-auth.js";
-import { createHeaderChrome } from "./header-chrome.js";
 import { createModalHelpers } from "./modal-utils.js";
 import { createOfflineSync } from "./offline-sync.js";
 import { loadResource } from "./fetch-json.js";
-import { syncAdminBar } from "./admin-bar.js";
-import { createSyncStatusIcon } from "./sync-status-icon.js";
 import { isSynced } from "./sync-status.js";
-import { demoDataUrl, isDemoUsername } from "./demo-mode.js";
-import "./components/climbing-tab-bar.js";
+import { demoDataUrl } from "./demo-mode.js";
 import "./components/climbing-entries-table.js";
-import { pageAllowsBoot } from "./boot-gate.js";
+import { startPage } from "./boot-gate.js";
 import { userKey } from "./user-storage.js";
-import { registerServiceWorker } from "./register-sw.js";
 import { resolveApexUrl } from "./resolve-cross-hostname-url.js";
 import { apiFetch } from "./api-fetch.js";
 
-const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
-const IS_DEMO = isDemoUsername(USERNAME);
+const {
+  username: USERNAME,
+  isDemo: IS_DEMO,
+  store,
+  syncStatusIcon,
+  adminAuth,
+  headerChrome,
+  updateAdminBar,
+} = createAppShell({
+  render,
+  noCacheForDemo: true,
+  adminBarExtras: () => ({ addBtn: document.getElementById("add-btn"), offlineSync }),
+});
 
 // A demo visitor has no session, so demo pages read the public endpoints.
 const ENTRIES_WRITE_URL = "/-/api/entries";
@@ -27,13 +32,7 @@ const PLACES_URL = demoDataUrl(USERNAME, "/-/api/places", "places");
 const PLACES_WRITE_URL = "/-/api/places";
 const LOCATIONS_URL = demoDataUrl(USERNAME, "/-/api/locations", "locations");
 const LOCATIONS_WRITE_URL = "/-/api/locations";
-const SETTINGS_URL = "/-/api/settings";
 const QUEUE_KEY = userKey("logbook_pending_queue");
-
-// No caching for a demo: anyone can open it, including an owner signed in on this browser.
-const store = createStore(IS_DEMO ? { storage: { getItem: () => null, setItem: () => {} } } : undefined);
-const syncStatusIcon = createSyncStatusIcon();
-store.subscribe(render);
 
 const { openModal, closeModal } = createModalHelpers(["add-place-overlay", "entry-overlay"]);
 
@@ -50,9 +49,6 @@ const offlineSync = createOfflineSync({
   queueKey: QUEUE_KEY,
 });
 
-const tabBar = document.querySelector("climbing-tab-bar");
-tabBar.setAttribute("username", USERNAME);
-
 const entriesTable = document.querySelector("climbing-entries-table");
 
 // Moved into the table's action row, which the component has rendered by the time this runs.
@@ -68,24 +64,6 @@ function render() {
   entriesTable.activeDiscipline = store.getActiveType();
   updateAdminBar();
 }
-
-function updateAdminBar() {
-  syncAdminBar({ store, adminAuth, headerChrome, tabBar, addBtn: document.getElementById("add-btn"), offlineSync });
-}
-
-const adminAuth = createAdminAuth({
-  store,
-  apiFetch,
-  settingsUrl: SETTINGS_URL,
-  updateAdminBar,
-  onFetchTimeout: syncStatusIcon.reportTimeout,
-});
-
-const headerChrome = createHeaderChrome({
-  store,
-  apiFetch,
-  settingsUrl: SETTINGS_URL,
-});
 
 document.addEventListener("click", e => {
   const editBtn = e.target.closest(".edit-btn");
@@ -165,7 +143,4 @@ async function boot() {
   render();
 }
 
-pageAllowsBoot().then(allowed => {
-  if (!allowed) return;
-  registerServiceWorker({ after: boot() });
-});
+startPage(boot);

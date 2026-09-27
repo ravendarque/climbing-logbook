@@ -1,28 +1,11 @@
-import { createStore } from "./store.js";
-import { createAdminAuth } from "./admin-auth.js";
-import { createHeaderChrome } from "./header-chrome.js";
-import { syncAdminBar } from "./admin-bar.js";
-import { createSyncStatusIcon } from "./sync-status-icon.js";
+import { createAppShell } from "./app-shell.js";
 import { escapeHtml } from "./escape-html.js";
 import { humanize } from "../shared/tag-stats-helpers.js";
-import { demoDataUrl, isDemoUsername } from "./demo-mode.js";
-import "./components/climbing-tab-bar.js";
-import { pageAllowsBoot } from "./boot-gate.js";
-import { registerServiceWorker } from "./register-sw.js";
-import { apiFetch } from "./api-fetch.js";
+import { demoDataUrl } from "./demo-mode.js";
+import { startPage } from "./boot-gate.js";
 
-const SETTINGS_URL = "/-/api/settings";
-
-const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
-const IS_DEMO = isDemoUsername(USERNAME);
+const { username: USERNAME, headerChrome, updateAdminBar, authenticateAthlete } = createAppShell({ render });
 const STRENGTHS_URL = demoDataUrl(USERNAME, "/-/api/performance/strengths", "performance/strengths");
-
-const store = createStore();
-const syncStatusIcon = createSyncStatusIcon();
-store.subscribe(render);
-
-const tabBar = document.querySelector("climbing-tab-bar");
-tabBar.setAttribute("username", USERNAME);
 
 document.getElementById("back-to-performance-link").href = `/${encodeURIComponent(USERNAME)}/performance`;
 
@@ -39,24 +22,6 @@ async function fetchStrengths() {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
-
-function updateAdminBar() {
-  syncAdminBar({ store, adminAuth, headerChrome, tabBar });
-}
-
-const adminAuth = createAdminAuth({
-  store,
-  apiFetch,
-  settingsUrl: SETTINGS_URL,
-  updateAdminBar,
-  onFetchTimeout: syncStatusIcon.reportTimeout,
-});
-
-const headerChrome = createHeaderChrome({
-  store,
-  apiFetch,
-  settingsUrl: SETTINGS_URL,
-});
 
 function cellRowHtml(cell) {
   const pct = Math.round(cell.score * 100);
@@ -142,20 +107,7 @@ function renderStrengths({ headline, anchors }) {
 }
 
 async function boot() {
-  store.setActiveView("performance-strengths");
-
-  // The Athlete Mode redirect waits for real settings: a cached "on" may be stale.
-  adminAuth.setInitialActiveType();
-
-  const sessionPromise = syncStatusIcon.track(adminAuth.checkSession());
-  const settingsPromise = syncStatusIcon.track(adminAuth.fetchSettings());
-
-  await adminAuth.reconcileActiveType(sessionPromise, settingsPromise);
-
-  if (!IS_DEMO && !adminAuth.isAthleteMode()) {
-    location.href = `/${encodeURIComponent(USERNAME)}/log`;
-    return;
-  }
+  if (!(await authenticateAthlete("performance-strengths"))) return;
 
   render();
 
@@ -171,7 +123,4 @@ async function boot() {
   }
 }
 
-pageAllowsBoot().then(allowed => {
-  if (!allowed) return;
-  registerServiceWorker({ after: boot() });
-});
+startPage(boot);

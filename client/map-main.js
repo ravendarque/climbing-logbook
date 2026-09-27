@@ -1,29 +1,21 @@
-import { createStore } from "./store.js";
+import { createAppShell } from "./app-shell.js";
 import { createMapView } from "./map-view.js";
-import { createAdminAuth } from "./admin-auth.js";
-import { createHeaderChrome } from "./header-chrome.js";
-import { syncAdminBar } from "./admin-bar.js";
-import { createSyncStatusIcon } from "./sync-status-icon.js";
-import { demoDataUrl, isDemoUsername } from "./demo-mode.js";
-import "./components/climbing-tab-bar.js";
-import { pageAllowsBoot } from "./boot-gate.js";
+import { demoDataUrl } from "./demo-mode.js";
+import { startPage } from "./boot-gate.js";
 import { userKey } from "./user-storage.js";
-import { registerServiceWorker } from "./register-sw.js";
-import { apiFetch } from "./api-fetch.js";
 
-const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
-const IS_DEMO = isDemoUsername(USERNAME);
+const {
+  username: USERNAME,
+  isDemo: IS_DEMO,
+  store,
+  syncStatusIcon,
+  adminAuth,
+  headerChrome,
+  updateAdminBar,
+} = createAppShell({ render });
 
 const MAP_COUNTS_URL = demoDataUrl(USERNAME, "/-/api/map/counts", "map/counts");
 const MAP_COUNTS_CACHE_KEY = userKey("logbook_map_counts_cache");
-const SETTINGS_URL = "/-/api/settings";
-
-const store = createStore();
-const syncStatusIcon = createSyncStatusIcon();
-store.subscribe(render);
-
-const tabBar = document.querySelector("climbing-tab-bar");
-tabBar.setAttribute("username", USERNAME);
 
 const mapView = createMapView({ store });
 
@@ -32,24 +24,6 @@ function render() {
   mapView.render();
   updateAdminBar();
 }
-
-function updateAdminBar() {
-  syncAdminBar({ store, adminAuth, headerChrome, tabBar });
-}
-
-const adminAuth = createAdminAuth({
-  store,
-  apiFetch,
-  settingsUrl: SETTINGS_URL,
-  updateAdminBar,
-  onFetchTimeout: syncStatusIcon.reportTimeout,
-});
-
-const headerChrome = createHeaderChrome({
-  store,
-  apiFetch,
-  settingsUrl: SETTINGS_URL,
-});
 
 async function boot() {
   store.setActiveView("map");
@@ -98,7 +72,4 @@ async function loadMapCounts() {
   } catch {}
 }
 
-pageAllowsBoot().then(allowed => {
-  if (!allowed) return;
-  registerServiceWorker({ after: boot() });
-});
+startPage(boot);
