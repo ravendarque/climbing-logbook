@@ -3,6 +3,8 @@ import { placeOf as placeOfPure, locationOf as locationOfPure, entryLocation as 
 import { applyPendingQueue as applyPendingQueuePure } from "./offline-queue.js";
 import { mergeDelta } from "./delta-merge.js";
 import { userKey } from "./user-storage.js";
+import { isQuotaError } from "./storage-quota.js";
+import { resetCursor } from "./sync-cursors.js";
 
 const ENTRIES_CACHE_KEY = userKey("logbook_entries_cache");
 const PLACES_CACHE_KEY = userKey("logbook_places_cache");
@@ -26,20 +28,34 @@ export function createStore({ storage = typeof localStorage !== "undefined" ? lo
     for (const fn of subscribers) fn();
   }
 
+  // A cache that can't be written is dropped, and its cursor reset, so a stale copy never pairs with a newer cursor.
+  function persist(table, key, rows) {
+    try {
+      storage.setItem(key, JSON.stringify(rows));
+    } catch (err) {
+      if (!isQuotaError(err)) throw err;
+      dropCache(table);
+    }
+  }
+  function dropCache(table) {
+    storage.removeItem(TABLES[table].key);
+    resetCursor(table, storage);
+  }
+
   function setEntries(next) {
     entries = next;
     // Always persisted, or a locally deleted entry reappears from cache.
-    storage.setItem(ENTRIES_CACHE_KEY, JSON.stringify(entries));
+    persist("entries", ENTRIES_CACHE_KEY, entries);
     notify();
   }
   function setPlaces(next) {
     places = next;
-    storage.setItem(PLACES_CACHE_KEY, JSON.stringify(places));
+    persist("places", PLACES_CACHE_KEY, places);
     notify();
   }
   function setLocations(next) {
     locations = next;
-    storage.setItem(LOCATIONS_CACHE_KEY, JSON.stringify(locations));
+    persist("locations", LOCATIONS_CACHE_KEY, locations);
     notify();
   }
 
@@ -136,6 +152,7 @@ export function createStore({ storage = typeof localStorage !== "undefined" ? lo
     getLocations: () => locations,
     setLocations,
     mergeConfirmed,
+    dropCache,
     loadEntriesFromCache,
     loadPlacesFromCache,
     loadLocationsFromCache,

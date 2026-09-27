@@ -22,6 +22,13 @@ export function getCursor(table, storage = realStorage()) {
   return typeof cursor === "number" ? cursor : 0;
 }
 
+// The next delta for this table then returns every row.
+export function resetCursor(table, storage = realStorage()) {
+  const all = readAll(storage);
+  delete all[table];
+  storage.setItem(CURSORS_KEY, JSON.stringify(all));
+}
+
 export function setCursor(table, value, storage = realStorage()) {
   const all = readAll(storage);
   all[table] = value;

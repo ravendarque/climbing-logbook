@@ -145,6 +145,8 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
     // Recorded for the offline ownership check; a cached page for someone else redirects home.
     if (username) {
       writeSignedInUser(localStorage, username);
+      // Asks the browser not to evict this origin's storage, which holds unsynced climbs.
+      navigator.storage?.persist?.().catch(() => {});
       const owner = ownerOfPath(window.location.pathname);
       if (owner && !isDemoUsername(owner) && owner !== username.toLowerCase()) {
         window.location.replace(`/${encodeURIComponent(username)}/log`);

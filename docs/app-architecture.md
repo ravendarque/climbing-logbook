@@ -382,7 +382,16 @@ Tables (see `migrations/` for columns and constraints):
   minutes); any other 4xx will fail the same way every time, so the item
   leaves the queue for a per-user "couldn't save" list shown as a banner
   on the log page, where an add or edit can be reopened in the form or
-  discarded. A new place created offline
+  discarded.
+- **Storage limits** (`client/storage-quota.js`). localStorage is the only
+  copy of unsynced climbs, so a full device is handled rather than
+  thrown: a cache that can't be written is dropped and its sync cursor
+  reset, so the next delta refetches it; the queue takes priority, so the
+  entries cache is dropped to make room for it, and if even that fails the
+  form stays open with a message. Once signed in, a page asks for
+  persistent storage (`navigator.storage.persist()`). Safari clears
+  script-written storage after seven days without a visit, except for an
+  installed app, so a Safari tab with unsynced climbs suggests installing. A new place created offline
   queues its location, place and entry in dependency order.
 - **Sync.** A new device runs a full sync on `/:username/sync` (chunked);
   after that, each table syncs by delta since its last cursor
