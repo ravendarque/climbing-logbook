@@ -1,0 +1,5 @@
+# Formatting-only commits: git blame skips them (GitHub reads this file automatically).
+# Locally: git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# Reformat with Biome (#1147)
+c37c71980ea7b26030516b7a79f3e4331c61bafa
