@@ -70,7 +70,7 @@ creates the bucket, and is safe to re-run.
 | Workflow | Trigger | What it does |
 |---|---|---|
 | `test.yml` | PR, unless it only touches `docs/`, `infra/` or root-level Markdown | `pnpm test`, then a `CLOUDFLARE_ENV=preview` build, so every PR proves it builds |
-| `e2e.yml` | PR, with the same exceptions as `test.yml` | Playwright against the production-style build |
+| `e2e.yml` | PR, with the same exceptions as `test.yml`, plus Markdown help pages | Playwright against the production-style build |
 | `preview.yml` | PR, unless it only touches `docs/`, `infra/`, `test/`, `e2e/` or root-level Markdown | Applies migrations to the preview database, builds with `CLOUDFLARE_ENV=preview`, runs `wrangler versions upload --env preview --preview-alias pr-<n>`, and comments the URL |
 | `require-release-label.yml` | PR | Requires one `release:` label, and rejects `release: none` outside the never-reaches-users paths (`docs/versioning.md`) |
 | `release.yml` | PR merged | Cuts the next `vX.Y.Z` tag from the label |

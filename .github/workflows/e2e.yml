@@ -19,6 +19,8 @@ jobs:
               - '!docs/**'
               - '!*.md'
               - '!infra/**'
+              # Help pages are Markdown content; test.yml builds them, and no e2e test reads them.
+              - '!views/help/**/*.md'
 
   e2e:
     needs: changes
