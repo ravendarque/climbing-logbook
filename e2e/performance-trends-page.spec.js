@@ -1,13 +1,23 @@
-import { expect, test } from "@playwright/test";
-import { mockApi } from "./mock-api.js";
+import { daysAgo, expect, test } from "./owner.js";
+import { expectWiderWindowRefetch } from "./performance-window.js";
 
-test("shows the zero-sends headline, time-window control, and Sources section with no data", async ({ page }) => {
-  await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
-  await page.goto("/e2e-fixtures/pages/performance-trends.html");
+// 2, 5 and 3 sends in three different weeks, topping out at 6A, 6B and 6C.
+const TEN_SENDS = [
+  ...[1, 2].map(() => ({ date: daysAgo(22), grade: "6A" })),
+  ...[1, 2, 3, 4, 5].map(() => ({ date: daysAgo(15), grade: "6B" })),
+  ...[1, 2, 3].map(() => ({ date: daysAgo(2), grade: "6C" })),
+];
+
+test("shows the zero-sends headline, time-window control, and Sources section with no data", async ({
+  page,
+  owner,
+}) => {
+  await owner.settings({ athleteMode: true });
+  await page.goto(owner.url("/performance/trends"));
 
   await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
   await expect(page.locator("climbing-tab-bar a", { hasText: "Performance" })).toHaveAttribute("aria-current", "page");
-  await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", "/e2e-fixtures/performance");
+  await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", `/${owner.username}/performance`);
   await expect(page.locator("#view-explainer")).toContainText("every logged send's grade");
   await expect(page.locator("#view-explainer")).toContainText("send-log proxy");
   await expect(page.locator('[data-window="12w"]')).toBeVisible();
@@ -15,46 +25,20 @@ test("shows the zero-sends headline, time-window control, and Sources section wi
   await expect(page.locator("body")).toContainText("Bechtel");
 });
 
-test("renders real bars and a grade-labeled line point", async ({ page }) => {
-  await mockApi(page, {
-    settings: { athleteMode: true, activeDiscipline: "boulder" },
-    volumeData: {
-      boulder: {
-        buckets: ["-3w", "-2w", "-1w"],
-        sendCounts: [2, 5, 3],
-        maxGradeByBucket: [
-          null,
-          { grade: "6B", gradeScale: "font-non-standard" },
-          { grade: "6C", gradeScale: "font-non-standard" },
-        ],
-      },
-      lead: { buckets: ["-3w", "-2w", "-1w"], sendCounts: [0, 0, 0], maxGradeByBucket: [null, null, null] },
-    },
-  });
-  await page.goto("/e2e-fixtures/pages/performance-trends.html");
+test("renders real bars and a grade-labeled line point", async ({ page, owner }) => {
+  await owner.settings({ athleteMode: true });
+  await owner.seed({ entries: TEN_SENDS });
+  await page.goto(owner.url("/performance/trends"));
 
   await expect(page.locator("#trends-root")).toContainText("10 sends logged in this window, busiest period had 5.");
   await expect(page.locator("#trends-root svg")).toBeVisible();
   await expect(page.locator("#trends-root")).toContainText("6B");
 });
 
-test("switching the report grade scale relabels the chart's grade point", async ({ page }) => {
-  await mockApi(page, {
-    settings: { athleteMode: true, activeDiscipline: "boulder" },
-    volumeData: {
-      boulder: {
-        buckets: ["-3w", "-2w", "-1w"],
-        sendCounts: [2, 5, 3],
-        maxGradeByBucket: [
-          null,
-          { grade: "6B", gradeScale: "font-non-standard" },
-          { grade: "6C", gradeScale: "font-non-standard" },
-        ],
-      },
-      lead: { buckets: ["-3w", "-2w", "-1w"], sendCounts: [0, 0, 0], maxGradeByBucket: [null, null, null] },
-    },
-  });
-  await page.goto("/e2e-fixtures/pages/performance-trends.html");
+test("switching the report grade scale relabels the chart's grade point", async ({ page, owner }) => {
+  await owner.settings({ athleteMode: true });
+  await owner.seed({ entries: TEN_SENDS });
+  await page.goto(owner.url("/performance/trends"));
   await expect(page.locator("#trends-root")).toContainText("6B");
 
   await page.locator("#report-grade-scale-btn").click();
@@ -64,45 +48,18 @@ test("switching the report grade scale relabels the chart's grade point", async 
   expect(await page.evaluate(() => localStorage.getItem("logbook_grade_scale_reports_boulder"))).toBe("v-scale");
 });
 
-test("switching the time window to 52w re-fetches with a wider range", async ({ page }) => {
-  let lastRequestUrl = null;
-  await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
-  await page.route("**/-/api/performance/volume**", route => {
-    lastRequestUrl = route.request().url();
-    return route.fulfill({
-      json: {
-        boulder: { buckets: [], sendCounts: [], maxGradeByBucket: [] },
-        lead: { buckets: [], sendCounts: [], maxGradeByBucket: [] },
-      },
-    });
-  });
-  await page.goto("/e2e-fixtures/pages/performance-trends.html");
-  // The first fetch waits for the session and settings, so it lands after load.
-  await expect.poll(() => lastRequestUrl).not.toBeNull();
-  const initialUrl = lastRequestUrl;
-
-  await page.locator('[data-window="52w"]').click();
-  await expect.poll(() => lastRequestUrl).not.toBe(initialUrl);
-
-  const initialStart = new URL(initialUrl).searchParams.get("start");
-  const fiftyTwoWStart = new URL(lastRequestUrl).searchParams.get("start");
-  expect(new Date(fiftyTwoWStart).getTime()).toBeLessThan(new Date(initialStart).getTime());
+test("switching the time window to 52w re-fetches with a wider range", async ({ page, owner }) => {
+  await owner.settings({ athleteMode: true });
+  await expectWiderWindowRefetch(page, owner.url("/performance/trends"), "volume");
 });
 
-test("Custom range: picking a start date via the calendar popover re-fetches with that date", async ({ page }) => {
-  let lastRequestUrl = null;
-  await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
-  await page.route("**/-/api/performance/volume**", route => {
-    lastRequestUrl = route.request().url();
-    return route.fulfill({
-      json: {
-        boulder: { buckets: [], sendCounts: [], maxGradeByBucket: [] },
-        lead: { buckets: [], sendCounts: [], maxGradeByBucket: [] },
-      },
-    });
-  });
-  await page.goto("/e2e-fixtures/pages/performance-trends.html");
-  await expect.poll(() => lastRequestUrl).not.toBeNull();
+test("Custom range: picking a start date via the calendar popover re-fetches with that date", async ({
+  page,
+  owner,
+}) => {
+  await owner.settings({ athleteMode: true });
+  await page.goto(owner.url("/performance/trends"));
+  await expect(page.locator('[data-window="custom"]')).toBeVisible();
 
   await page.locator('[data-window="custom"]').click();
   await page.locator("#time-window-start-btn").click();
@@ -110,28 +67,31 @@ test("Custom range: picking a start date via the calendar popover re-fetches wit
 
   const dayCell = page.locator("#time-window-start-grid button[data-date]").first();
   const pickedDate = await dayCell.getAttribute("data-date");
+  const refetch = page.waitForRequest(
+    req =>
+      req.url().includes("/-/api/performance/volume") && new URL(req.url()).searchParams.get("start") === pickedDate,
+  );
   await dayCell.click();
 
   await expect(page.locator("#time-window-start-popover")).toBeHidden();
-  await expect.poll(() => new URL(lastRequestUrl).searchParams.get("start")).toBe(pickedDate);
+  await refetch;
 
   const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const [, y, mo, d] = /^(\d{4})-(\d{2})-(\d{2})$/.exec(pickedDate);
   await expect(page.locator("#time-window-root")).toContainText(`${MONTHS_SHORT[+mo - 1]} ${+d}, ${y}`);
 });
 
-test("shows the offline message instead of the chart when the fetch fails", async ({ page }) => {
-  await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
+test("shows the offline message instead of the chart when the fetch fails", async ({ page, owner }) => {
+  await owner.settings({ athleteMode: true });
   await page.route("**/-/api/performance/volume**", route => route.fulfill({ status: 500 }));
-  await page.goto("/e2e-fixtures/pages/performance-trends.html");
+  await page.goto(owner.url("/performance/trends"));
 
   await expect(page.locator("#performance-offline")).toBeVisible();
   await expect(page.locator("#trends-root")).toBeHidden();
 });
 
-test("redirects to /log when Athlete Mode is off", async ({ page }) => {
-  await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder" } });
-  await page.goto("/e2e-fixtures/pages/performance-trends.html");
+test("redirects to /log when Athlete Mode is off", async ({ page, owner }) => {
+  await page.goto(owner.url("/performance/trends"));
 
-  await page.waitForURL(/\/log$/);
+  await page.waitForURL(`**/${owner.username}/log`);
 });
