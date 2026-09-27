@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by [ADR-0030](0030-test-against-the-real-worker-mock-only-what-it-cant-produce.md).
 
 ## Context
 

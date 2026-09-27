@@ -48,7 +48,30 @@ jobs:
       - uses: ./.github/actions/setup-node-pnpm
       # The ASSETS binding the tests hit serves the 11ty output.
       - run: pnpm run html:build
-      - run: pnpm test
+      - run: pnpm test:coverage
+      # No report is written when a test fails.
+      - name: Coverage summary
+        if: ${{ !cancelled() && hashFiles('coverage/coverage-summary.json') != '' }}
+        run: |
+          node -e '
+            const summary = require("./coverage/coverage-summary.json");
+            const dirs = {};
+            for (const [file, m] of Object.entries(summary)) {
+              if (file === "total") continue;
+              const dir = file.slice(process.cwd().length + 1).split("/")[0];
+              dirs[dir] ??= { statements: [0, 0], branches: [0, 0], functions: [0, 0], lines: [0, 0] };
+              for (const k in dirs[dir]) { dirs[dir][k][0] += m[k].covered; dirs[dir][k][1] += m[k].total; }
+            }
+            const pct = ([c, t]) => (t ? ((100 * c) / t).toFixed(1) : "100.0") + "%";
+            const rows = Object.entries(dirs).map(([d, m]) => `| ${d}/ | ${pct(m.statements)} | ${pct(m.branches)} | ${pct(m.functions)} | ${pct(m.lines)} |`);
+            console.log(["| | Statements | Branches | Functions | Lines |", "|---|---|---|---|---|", ...rows].join("\n"));
+          ' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() && hashFiles('coverage/coverage-summary.json') != '' }}
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
       - run: pnpm run tailwind:build
       - run: pnpm run deploy:build
         env:

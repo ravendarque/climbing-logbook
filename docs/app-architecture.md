@@ -490,10 +490,15 @@ in dev.
   D1, for the API and server logic) and its `client-dom` project (client
   modules, build scripts and repo checks such as dead path references and
   migration safety).
+- `pnpm test:coverage` runs the same with an Istanbul coverage report in
+  `coverage/`. CI runs it, publishes the report and enforces a floor on
+  `server/` and `shared/` (`vitest.config.js`).
 - `pnpm run test:e2e` runs Playwright against the production build served
-  by `vite preview`. Most page tests use mocked API responses
-  (`e2e/mock-api.js`); some run against the real Worker and D1.
-- [ADR-0011](adr/0011-three-layer-test-pyramid.md) records the test pyramid.
+  by `vite preview`. Page tests run against the real Worker and D1; some
+  older ones still use mocked API responses (`e2e/mock-api.js`) until they
+  are moved (#1095).
+- [ADR-0030](adr/0030-test-against-the-real-worker-mock-only-what-it-cant-produce.md)
+  records the test layers.
 
 ### End-to-end tests
 
@@ -508,8 +513,8 @@ Three kinds of test:
 | Kind | How | Used for |
 |---|---|---|
 | Component harness | `e2e/fixtures/*-entry.js`, built by `pnpm run e2e:build-fixtures` into `/e2e-fixtures/`, mount a real component against made-up data | Component behaviour: map zoom, the pyramid |
-| Page harness | A copy of a built shell at `/e2e-fixtures/pages/<page>.html`, running its real bundle, with `/-/api/*` faked by `e2e/mock-api.js` | Most page tests |
-| Real route | `my.localhost` via `ownedRouteUrl()` and `addOwnedRouteSessionCookie()` (`e2e/owned-route-url.js`), against the real Worker and D1 | Routing, sessions, the service worker, per-user storage |
+| Page harness | A copy of a built shell at `/e2e-fixtures/pages/<page>.html`, running its real bundle, with `/-/api/*` faked by `e2e/mock-api.js` | Older page tests, being moved to real routes |
+| Real route | `my.localhost` via `ownedRouteUrl()` and `addOwnedRouteSessionCookie()` (`e2e/owned-route-url.js`), against the real Worker and D1 | Page tests, routing, sessions, the service worker, per-user storage |
 
 In the page harness the first path segment is `e2e-fixtures`, so links built
 from the URL use that as the username, and navigation to another page is
