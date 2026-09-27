@@ -1,14 +1,6 @@
 name: E2E
 
-# Golden-path Playwright suite (#218) -- the top layer of the test
-# pyramid, exercising the real rendered app in a real browser against a
-# local `wrangler dev` (Miniflare), not the Vitest backend/client layers'
-# in-process or extracted-logic coverage. See playwright.config.js for how
-# the dev server and seed data get spun up.
-#
-# `e2e` is a required status check -- see test.yml's own comment for why
-# the trigger stays unconditional and skipping instead happens via the
-# `changes` job + `e2e`'s own job-level `if:` below.
+# A required check, so the trigger stays unconditional; see test.yml.
 on:
   pull_request:
 
@@ -18,35 +10,15 @@ jobs:
     outputs:
       relevant: ${{ steps.filter.outputs.relevant }}
     steps:
-      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v3.0.4 -- pinned to a commit, see test.yml's own comment for why
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v3.0.4
         id: filter
         with:
+          predicate-quantifier: every
           filters: |
             relevant:
-              - 'server/**'
-              - 'client/**'
-              - 'shared/**'
-              - 'static/**'
-              - 'e2e/**'
-              - 'scripts/lib/dev-session.mjs'
-              - 'migrations/**'
-              - 'wrangler.jsonc'
-              - 'playwright.config.js'
-              - 'package.json'
-              - 'pnpm-lock.yaml'
-              - '.github/workflows/e2e.yml'
-              - '.github/actions/setup-node-pnpm/**'
-              # #827 -- e2e's own webServer (playwright.config.js) runs
-              # `pnpm run html:build` (11ty) before starting `wrangler
-              # dev`, so a change only under views/ or .eleventy.js-only change
-              # directly affects every served page's HTML. Without these,
-              # such a PR's e2e check silently reports "skipping" instead
-              # of actually exercising Playwright against the real
-              # rendered pages -- found live shipping PR #825 (#823),
-              # matching test.yml's own filter, which already includes
-              # both for the identical reason (#760).
-              - 'views/**'
-              - '.eleventy.js'
+              - '!docs/**'
+              - '!**/*.md'
+              - '!infra/**'
 
   e2e:
     needs: changes
@@ -56,13 +28,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node-pnpm
       - run: pnpm exec playwright install --with-deps chromium
-      # CI has no .dev.vars (correctly gitignored, never committed) --
-      # this specific value is Cloudflare's own public "always passes"
-      # Turnstile test secret (#311), not a real credential, safe to
-      # write here. Local `wrangler dev` (this job's webServer, see
-      # playwright.config.js) reads the top-level wrangler.jsonc config,
-      # not env.preview -- that block's own committed test-secret default
-      # doesn't cover this job.
+      # Cloudflare's public always-passes Turnstile test secret, not a credential.
       - run: echo 'TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA' >> .dev.vars
       - run: pnpm run test:e2e
       - uses: actions/upload-artifact@v7

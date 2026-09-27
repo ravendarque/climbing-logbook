@@ -1,29 +1,14 @@
 name: Preview
 
-# Uploads a version of the separate climbing-logbook-preview Worker
-# (env.preview in wrangler.jsonc, #222) for every PR -- bound to its own D1
-# database, never production's. `wrangler versions upload` (not `deploy`)
-# never attaches a route or receives production traffic; it just produces a
-# reachable preview URL. The alias is stable per PR number, so the same
-# comment gets updated across pushes instead of a new one piling up each
-# time (mirrors what Cloudflare Pages/native Workers Builds do natively --
-# see #222 for why this project uses its own workflow instead of that).
-#
-# Not a required status check (unlike test.yml/e2e.yml) -- safe to filter
-# at the trigger level, no risk of a permanently-blocked PR.
+# Uploads a preview version of the separate preview Worker for each PR. Not a required check, so it filters at the trigger.
 on:
   pull_request:
-    paths:
-      - 'server/**'
-      - 'client/**'
-      - 'static/**'
-      - 'styles/**'
-      - 'migrations/**'
-      - 'wrangler.jsonc'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - '.github/workflows/preview.yml'
-      - '.github/actions/setup-node-pnpm/**'
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'infra/**'
+      - 'test/**'
+      - 'e2e/**'
 
 # #970 -- two runs for the same PR (e.g. a push, then a merge from main a
 # minute later) used to overlap, and the newer run's reset of the shared

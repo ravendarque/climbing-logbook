@@ -1,18 +1,6 @@
 name: Test
 
-# Runs the Vitest suite (@cloudflare/vitest-pool-workers -- real Workers
-# runtime via Miniflare, not hand-rolled mocks) on every PR. See #203/#26.
-#
-# `test` is a required status check (branch-protection ruleset) -- the
-# trigger below deliberately stays unconditional (`on: pull_request`, no
-# `paths:`). A required check that never runs never reports a status at
-# all, which blocks the PR forever (confirmed the hard way, #357/#360
-# during the 2026-08-06 GitHub Actions outage -- a different root cause,
-# same failure mode). Skipping cheaply for irrelevant changes (docs-only
-# PRs, #364) instead happens via the `changes` job below plus the `test`
-# job's own `if:` -- a job skipped by a job-level condition still reports
-# a real "success" conclusion for its context, satisfying the required
-# check, unlike a workflow that never triggered at all.
+# A required check: the trigger stays unconditional, since a required check that never runs blocks the PR.
 on:
   pull_request:
 
@@ -22,29 +10,16 @@ jobs:
     outputs:
       relevant: ${{ steps.filter.outputs.relevant }}
     steps:
-      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v3.0.4 -- pinned to a commit, not a tag (third-party action, not a first-party/verified publisher like the other actions in this repo)
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v3.0.4
         id: filter
         with:
+          # Everything counts except docs and infra, so a new build input can't slip past.
+          predicate-quantifier: every
           filters: |
             relevant:
-              - 'server/**'
-              - 'client/**'
-              - 'shared/**'
-              - 'test/**'
-              - 'migrations/**'
-              - 'wrangler.jsonc'
-              - 'vitest.config.js'
-              - 'package.json'
-              - 'pnpm-lock.yaml'
-              - '.github/workflows/test.yml'
-              - '.github/actions/setup-node-pnpm/**'
-              # #760 -- test/owned-routes.test.js and test/public-profile.test.js
-              # exercise the real ASSETS binding, which needs the page shells
-              # to actually exist on disk (11ty-generated, gitignored, no
-              # longer committed) -- a change only under views/ needs a real
-              # test run, not just a skip.
-              - 'views/**'
-              - '.eleventy.js'
+              - '!docs/**'
+              - '!**/*.md'
+              - '!infra/**'
 
   test:
     needs: changes
@@ -53,8 +28,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node-pnpm
-      # #760 -- test/owned-routes.test.js/test/public-profile.test.js hit
-      # the real ASSETS binding, which serves public/**/index.html --
-      # 11ty-generated, gitignored, no longer part of the checkout itself.
+      # The ASSETS binding the tests hit serves the 11ty output.
       - run: pnpm run html:build
       - run: pnpm test
+      - run: pnpm run tailwind:build
+      - run: pnpm run deploy:build
+        env:
+          CLOUDFLARE_ENV: preview
