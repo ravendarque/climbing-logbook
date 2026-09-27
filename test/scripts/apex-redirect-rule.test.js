@@ -14,7 +14,12 @@ const PREFIXES = list("apex_only_path_prefixes");
 // Not apex pages: owner and profile shells, the launch page, /-/, and build-only entries.
 const APP_OR_BUILD = new Set([
   ...Object.values(SHELL_PATHS).map(path => path.split("/")[1]),
-  "profile", "launch", "-", "_includes", "_headers", "e2e-fixtures",
+  "profile",
+  "launch",
+  "-",
+  "_includes",
+  "_headers",
+  "e2e-fixtures",
 ]);
 
 const covered = path => EXACT.includes(path) || PREFIXES.some(prefix => path.startsWith(prefix));

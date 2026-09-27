@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { entrySchema, validateEntryShape, VALID_GRADES, VALID_STATUSES, VALID_TYPES } from "../../shared/entry-schema.js";
+import {
+  entrySchema,
+  validateEntryShape,
+  VALID_GRADES,
+  VALID_STATUSES,
+  VALID_TYPES,
+} from "../../shared/entry-schema.js";
 import { BOULDER_GRADES, LEAD_GRADES } from "../../shared/grade-data.js";
 import * as v from "valibot";
 
@@ -25,33 +31,32 @@ describe("validateEntryShape", () => {
       const entry = validEntry();
       delete entry[field];
       expect(validateEntryShape(entry)).toBe(`Missing required field: ${field}`);
-    }
+    },
   );
 
   it.each(["placeId", "name", "grade", "type", "status"])(
     "rejects an empty string %s the same as a missing one",
     field => {
       expect(validateEntryShape(validEntry({ [field]: "" }))).toBe(`Missing required field: ${field}`);
-    }
+    },
   );
 
-  it.each(["placeId", "name", "grade", "type", "status"])(
-    "rejects a null %s the same as a missing one",
-    field => {
-      expect(validateEntryShape(validEntry({ [field]: null }))).toBe(`Missing required field: ${field}`);
-    }
-  );
+  it.each(["placeId", "name", "grade", "type", "status"])("rejects a null %s the same as a missing one", field => {
+    expect(validateEntryShape(validEntry({ [field]: null }))).toBe(`Missing required field: ${field}`);
+  });
 
   it("rejects an invalid type", () => {
     expect(validateEntryShape(validEntry({ type: "trad" }))).toMatch(/^type must be one of/);
   });
 
-  it("accepts \"6a\" for boulder now -- valid under font-non-standard, ambiguous by design when no gradeScale is given", () => {
+  it('accepts "6a" for boulder now -- valid under font-non-standard, ambiguous by design when no gradeScale is given', () => {
     expect(validateEntryShape(validEntry({ type: "boulder", grade: "6a" }))).toBeNull();
   });
 
   it("rejects a grade not valid for the entry's type in any of its scales", () => {
-    expect(validateEntryShape(validEntry({ type: "boulder", grade: "VI+" }))).toMatch(/^grade is not a valid grade for/);
+    expect(validateEntryShape(validEntry({ type: "boulder", grade: "VI+" }))).toMatch(
+      /^grade is not a valid grade for/,
+    );
   });
 
   it("accepts a grade valid for the sport type", () => {
@@ -75,11 +80,15 @@ describe("validateEntryShape", () => {
   });
 
   it("rejects sportStyle on a non-sport entry", () => {
-    expect(validateEntryShape(validEntry({ type: "boulder", sportStyle: "lead" }))).toBe("sportStyle is only valid when type is sport");
+    expect(validateEntryShape(validEntry({ type: "boulder", sportStyle: "lead" }))).toBe(
+      "sportStyle is only valid when type is sport",
+    );
   });
 
   it("rejects an invalid sportStyle on a sport entry", () => {
-    expect(validateEntryShape(validEntry({ type: "sport", grade: "6a", sportStyle: "solo" }))).toMatch(/^sportStyle must be one of/);
+    expect(validateEntryShape(validEntry({ type: "sport", grade: "6a", sportStyle: "solo" }))).toMatch(
+      /^sportStyle must be one of/,
+    );
   });
 
   it.each(["lead", "top_rope"])("accepts a %s sportStyle on a sport entry", sportStyle => {
@@ -87,7 +96,9 @@ describe("validateEntryShape", () => {
   });
 
   it.each([undefined, null, ""])("rejects a sport entry with sportStyle %p (missing, not just falsy)", sportStyle => {
-    expect(validateEntryShape(validEntry({ type: "sport", grade: "6a", sportStyle }))).toBe("Missing required field: sportStyle");
+    expect(validateEntryShape(validEntry({ type: "sport", grade: "6a", sportStyle }))).toBe(
+      "Missing required field: sportStyle",
+    );
   });
 
   it("rejects an invalid status", () => {
@@ -179,6 +190,8 @@ describe("exported constants (for CSV template generation / future reuse)", () =
 
   it("accepts a Sport entry at #129's new low and high ends", () => {
     expect(v.safeParse(entrySchema, validEntry({ type: "sport", grade: "4a", sportStyle: "lead" })).success).toBe(true);
-    expect(v.safeParse(entrySchema, validEntry({ type: "sport", grade: "9c+", sportStyle: "lead" })).success).toBe(true);
+    expect(v.safeParse(entrySchema, validEntry({ type: "sport", grade: "9c+", sportStyle: "lead" })).success).toBe(
+      true,
+    );
   });
 });

@@ -8,7 +8,10 @@ import { buildPrecacheList } from "../../scripts/precache-list.mjs";
 import { SHELL_PATHS } from "../../shared/owner-routes.js";
 
 let dir;
-const write = (rel, content = "") => { mkdirSync(join(dir, rel, ".."), { recursive: true }); writeFileSync(join(dir, rel), content); };
+const write = (rel, content = "") => {
+  mkdirSync(join(dir, rel, ".."), { recursive: true });
+  writeFileSync(join(dir, rel), content);
+};
 
 const LOG_SHELL = `<link rel="stylesheet" href="/-/tailwind.css?v=aaaaaaaaaa">
 <link rel="manifest" href="/-/manifest.json">
@@ -34,7 +37,17 @@ beforeEach(() => {
   write("log/index.html", LOG_SHELL);
   write("-/tailwind.css", "@font-face{src:url(/-/fonts/Bebas.woff2)}body{background:url('/help/bg.png')}");
   write("-/manifest.json", JSON.stringify({ icons: [{ src: "./icon-192.png" }, { src: "./icon.svg" }] }));
-  for (const file of ["favicon-32.png", "icon-192.png", "icon.svg", "components/climbing-header.js", "log-app.js", "help-app.js", "fonts/Bebas.woff2", "fonts/Other.woff2"]) write(`-/${file}`);
+  for (const file of [
+    "favicon-32.png",
+    "icon-192.png",
+    "icon.svg",
+    "components/climbing-header.js",
+    "log-app.js",
+    "help-app.js",
+    "fonts/Bebas.woff2",
+    "fonts/Other.woff2",
+  ])
+    write(`-/${file}`);
   for (const file of Object.keys(BUNDLE)) write(file);
   write("-/launch/index.html");
 });
@@ -66,8 +79,18 @@ describe("buildPrecacheList (#948)", () => {
   });
 
   it("hashes only what isn't content-addressed", () => {
-    const hashed = buildPrecacheList(dir, BUNDLE).assets.filter(asset => asset.hash).map(asset => asset.url);
-    expect(hashed).toEqual(["/-/favicon-32.png", "/-/fonts/Bebas.woff2", "/-/fonts/Other.woff2", "/-/icon-192.png", "/-/icon.svg", "/-/launch/", "/-/manifest.json"]);
+    const hashed = buildPrecacheList(dir, BUNDLE)
+      .assets.filter(asset => asset.hash)
+      .map(asset => asset.url);
+    expect(hashed).toEqual([
+      "/-/favicon-32.png",
+      "/-/fonts/Bebas.woff2",
+      "/-/fonts/Other.woff2",
+      "/-/icon-192.png",
+      "/-/icon.svg",
+      "/-/launch/",
+      "/-/manifest.json",
+    ]);
   });
 
   it("leaves out anchors, other origins, pages outside the worker's tiers, and bundles no owner page loads", () => {

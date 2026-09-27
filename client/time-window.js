@@ -18,7 +18,8 @@ const WINDOWS = { "12w": 12, "52w": 52 };
 const PILL_LABELS = { "12w": "12 weeks", "52w": "52 weeks", custom: "Custom" };
 
 // aria-pressed buttons, not radio labels. A fixed width so the segments match.
-const PILL_CLASSES = "border border-border rounded-app bg-surface text-muted text-[.82rem] font-semibold cursor-pointer transition-colors duration-150 hover:text-foreground px-3 py-1 min-w-[5.5rem] text-center aria-[pressed=true]:bg-accent aria-[pressed=true]:text-accent-foreground aria-[pressed=true]:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2";
+const PILL_CLASSES =
+  "border border-border rounded-app bg-surface text-muted text-[.82rem] font-semibold cursor-pointer transition-colors duration-150 hover:text-foreground px-3 py-1 min-w-[5.5rem] text-center aria-[pressed=true]:bg-accent aria-[pressed=true]:text-accent-foreground aria-[pressed=true]:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2";
 
 const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -34,7 +35,8 @@ export function createTimeWindowControl({ containerEl, onChange, initial = "12w"
   let mode = initial;
   let customRange = presetRange(WINDOWS["12w"]);
   // render() rebuilds everything, so the previous pickers are destroyed first.
-  let startPicker = null, endPicker = null;
+  let startPicker = null,
+    endPicker = null;
 
   function currentRange() {
     return mode === "custom" ? customRange : presetRange(WINDOWS[mode]);
@@ -43,13 +45,18 @@ export function createTimeWindowControl({ containerEl, onChange, initial = "12w"
   function render() {
     startPicker?.destroy();
     endPicker?.destroy();
-    const pillsHtml = ["12w", "52w", "custom"].map(m => `
+    const pillsHtml = ["12w", "52w", "custom"]
+      .map(
+        m => `
       <button type="button" class="${PILL_CLASSES}" data-window="${m}" aria-pressed="${m === mode}">${PILL_LABELS[m]}</button>
-    `).join("");
+    `,
+      )
+      .join("");
 
     // No shrink: the row wraps, not the label.
-    const customHtml = mode === "custom"
-      ? `<div class="flex items-center gap-2 mt-2 flex-wrap">
+    const customHtml =
+      mode === "custom"
+        ? `<div class="flex items-center gap-2 mt-2 flex-wrap">
           <div class="flex items-center gap-2">
             ${calendarDatePickerHtml("time-window-start", { label: "Pick a start date" })}
             <span class="text-[.85rem] text-foreground shrink-0 whitespace-nowrap">${escapeHtml(formatDateLabel(customRange.start))}</span>
@@ -60,7 +67,7 @@ export function createTimeWindowControl({ containerEl, onChange, initial = "12w"
             <span class="text-[.85rem] text-foreground shrink-0 whitespace-nowrap">${escapeHtml(formatDateLabel(customRange.end))}</span>
           </div>
         </div>`
-      : "";
+        : "";
 
     containerEl.innerHTML = `<div class="flex gap-1">${pillsHtml}</div>${customHtml}`;
 

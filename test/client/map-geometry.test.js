@@ -64,7 +64,7 @@ describe("clampMapView", () => {
 
   it("clamps y so the view never runs past the map's top/bottom edges", () => {
     expect(clampMapView({ x: 0, y: -50, w: 700, h: 525 }, bounds).y).toBe(0);
-    expect(clampMapView({ x: 0, y: 100, w: 700, h: 525 }, bounds).y).toBe(525 - (700 / MAP_WIDE_ASPECT));
+    expect(clampMapView({ x: 0, y: 100, w: 700, h: 525 }, bounds).y).toBe(525 - 700 / MAP_WIDE_ASPECT);
   });
 });
 

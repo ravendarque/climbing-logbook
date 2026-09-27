@@ -16,6 +16,8 @@ const list = countries
   }))
   .sort((a, b) => a.name.localeCompare(b.name));
 
-const lines = list.map(c => `  { name: ${JSON.stringify(c.name)}, flag: ${JSON.stringify(c.flag)}, lat: ${c.lat}, lng: ${c.lng} },`);
+const lines = list.map(
+  c => `  { name: ${JSON.stringify(c.name)}, flag: ${JSON.stringify(c.flag)}, lat: ${c.lat}, lng: ${c.lng} },`,
+);
 
 console.log(`export const COUNTRIES = [\n${lines.join("\n")}\n];`);

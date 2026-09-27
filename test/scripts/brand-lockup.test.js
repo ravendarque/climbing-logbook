@@ -7,10 +7,12 @@ import { describe, expect, it } from "vitest";
 const root = process.cwd();
 const svg = readFileSync(join(root, "static/-/brand-lockup.svg"), "utf8");
 const header = readFileSync(join(root, "static/-/components/climbing-header.js"), "utf8");
-const LOCKUP = JSON.parse(
-  header.match(/var LOCKUP = (\{.*\});/)[1].replace(/(\w+):/g, '"$1":'),
-);
-const viewBox = id => svg.match(new RegExp(`<symbol id="${id}" viewBox="([^"]+)"`))[1].split(" ").map(Number);
+const LOCKUP = JSON.parse(header.match(/var LOCKUP = (\{.*\});/)[1].replace(/(\w+):/g, '"$1":'));
+const viewBox = id =>
+  svg
+    .match(new RegExp(`<symbol id="${id}" viewBox="([^"]+)"`))[1]
+    .split(" ")
+    .map(Number);
 
 describe("the brand lockup (#1015)", () => {
   it("is well-formed XML (no double hyphen inside a comment)", () => {
@@ -20,7 +22,12 @@ describe("the brand lockup (#1015)", () => {
   it("matches the sizes generated into the header", () => {
     const [, , width, height] = viewBox("lockup");
     const [, , betaWidth, betaHeight] = viewBox("lockup-beta");
-    expect({ width, betaWidth, height, betaHeight }).toEqual({ width: LOCKUP.width, betaWidth: LOCKUP.betaWidth, height: LOCKUP.height, betaHeight: LOCKUP.height });
+    expect({ width, betaWidth, height, betaHeight }).toEqual({
+      width: LOCKUP.width,
+      betaWidth: LOCKUP.betaWidth,
+      height: LOCKUP.height,
+      betaHeight: LOCKUP.height,
+    });
   });
 
   it("puts the 'or not' button inside the regular lockup, at its bottom right", () => {
@@ -41,10 +48,14 @@ describe("the brand lockup (#1015)", () => {
       }
     };
     walk("views");
-    const loaders = templates.filter(path => /<script src="[^"]*climbing-header\.js/.test(readFileSync(join(root, path), "utf8")));
+    const loaders = templates.filter(path =>
+      /<script src="[^"]*climbing-header\.js/.test(readFileSync(join(root, path), "utf8")),
+    );
     expect(loaders.length).toBeGreaterThan(0);
     for (const path of loaders) {
-      expect(readFileSync(join(root, path), "utf8"), path).toContain('<link rel="preload" as="image" type="image/svg+xml" href="/-/brand-lockup.svg{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}">');
+      expect(readFileSync(join(root, path), "utf8"), path).toContain(
+        '<link rel="preload" as="image" type="image/svg+xml" href="/-/brand-lockup.svg{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}">',
+      );
     }
   });
 });

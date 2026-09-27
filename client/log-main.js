@@ -44,9 +44,16 @@ store.subscribe(render);
 const { openModal, closeModal } = createModalHelpers(["add-place-overlay", "entry-overlay"]);
 
 const offlineSync = createOfflineSync({
-  store, adminFetch, isAuthRedirect, syncStatusIcon,
-  entriesWriteUrl: ENTRIES_WRITE_URL, locationsWriteUrl: LOCATIONS_WRITE_URL, placesWriteUrl: PLACES_WRITE_URL,
-  entriesUrl: ENTRIES_URL, placesUrl: PLACES_URL, locationsUrl: LOCATIONS_URL,
+  store,
+  adminFetch,
+  isAuthRedirect,
+  syncStatusIcon,
+  entriesWriteUrl: ENTRIES_WRITE_URL,
+  locationsWriteUrl: LOCATIONS_WRITE_URL,
+  placesWriteUrl: PLACES_WRITE_URL,
+  entriesUrl: ENTRIES_URL,
+  placesUrl: PLACES_URL,
+  locationsUrl: LOCATIONS_URL,
   queueKey: QUEUE_KEY,
 });
 
@@ -56,10 +63,9 @@ tabBar.setAttribute("username", USERNAME);
 const entriesTable = document.querySelector("climbing-entries-table");
 
 // Moved into the table's action row, which the component has rendered by the time this runs.
-document.getElementById("entries-table-actions").append(
-  document.getElementById("add-btn"),
-  document.getElementById("sync-btn"),
-);
+document
+  .getElementById("entries-table-actions")
+  .append(document.getElementById("add-btn"), document.getElementById("sync-btn"));
 
 function render() {
   headerChrome.updateDisciplinePicker();
@@ -75,14 +81,18 @@ function updateAdminBar() {
 }
 
 const adminAuth = createAdminAuth({
-  store, adminFetch, isAuthRedirect,
+  store,
+  adminFetch,
+  isAuthRedirect,
   settingsUrl: SETTINGS_URL,
   updateAdminBar,
   onFetchTimeout: syncStatusIcon.reportTimeout,
 });
 
 const headerChrome = createHeaderChrome({
-  store, adminFetch, isAuthRedirect,
+  store,
+  adminFetch,
+  isAuthRedirect,
   settingsUrl: SETTINGS_URL,
 });
 
@@ -95,10 +105,18 @@ document.addEventListener("click", e => {
 });
 
 const entryForm = createEntryForm({
-  store, openModal, closeModal, adminFetch, isAuthRedirect,
-  getQueue: offlineSync.getQueue, setQueue: offlineSync.setQueue,
-  enqueue: offlineSync.enqueue, syncPending: offlineSync.syncPending,
-  entriesWriteUrl: ENTRIES_WRITE_URL, locationsWriteUrl: LOCATIONS_WRITE_URL, placesWriteUrl: PLACES_WRITE_URL,
+  store,
+  openModal,
+  closeModal,
+  adminFetch,
+  isAuthRedirect,
+  getQueue: offlineSync.getQueue,
+  setQueue: offlineSync.setQueue,
+  enqueue: offlineSync.enqueue,
+  syncPending: offlineSync.syncPending,
+  entriesWriteUrl: ENTRIES_WRITE_URL,
+  locationsWriteUrl: LOCATIONS_WRITE_URL,
+  placesWriteUrl: PLACES_WRITE_URL,
   readOnly: IS_DEMO,
   isAthleteMode: adminAuth.isAthleteMode,
 });
@@ -130,8 +148,7 @@ async function boot() {
   if (IS_DEMO) {
     try {
       store.setEntries(await loadResource(ENTRIES_URL, "entries"));
-    } catch {
-    }
+    } catch {}
   }
 
   const [placesResult, locationsResult] = await Promise.allSettled([

@@ -18,7 +18,7 @@ const ANTIMERIDIAN_MARGIN = 5; // degrees of longitude from the seam
 
 const round1 = n => Math.round(n * 10) / 10;
 const round2 = n => Math.round(n * 100) / 100;
-const wrap180 = deg => ((deg + 180) % 360 + 360) % 360 - 180;
+const wrap180 = deg => ((((deg + 180) % 360) + 360) % 360) - 180;
 
 const VARIANTS = [
   { name: "greenwich", centralMeridian: 0 },

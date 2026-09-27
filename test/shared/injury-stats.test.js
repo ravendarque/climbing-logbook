@@ -1,11 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { MIN_TAG_COUNT, describeCluster, painClusterCounts, painLogEntries, topPainCluster } from "../../shared/injury-stats.js";
+import {
+  MIN_TAG_COUNT,
+  describeCluster,
+  painClusterCounts,
+  painLogEntries,
+  topPainCluster,
+} from "../../shared/injury-stats.js";
 
 function entryWithPain(overrides = {}, painMoves = []) {
   return { id: "e1", name: "Test Route", date: "2026-01-01", painMoves, ...overrides };
 }
 function painRow(overrides = {}) {
-  return { limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang", ...overrides };
+  return {
+    limb: "hand",
+    side: "left",
+    holdType: "crimp",
+    movementStyle: "static",
+    wallAngle: "overhang",
+    ...overrides,
+  };
 }
 
 describe("painClusterCounts", () => {
@@ -15,7 +28,9 @@ describe("painClusterCounts", () => {
 
   it("counts one cluster from a single pain move", () => {
     const clusters = painClusterCounts([entryWithPain({}, [painRow()])]);
-    expect(clusters).toEqual([{ limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang", count: 1 }]);
+    expect(clusters).toEqual([
+      { limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang", count: 1 },
+    ]);
   });
 
   it("sums counts for the same combination across multiple entries", () => {
@@ -29,16 +44,16 @@ describe("painClusterCounts", () => {
 
   it("keeps different combinations as separate clusters", () => {
     const clusters = painClusterCounts([
-      entryWithPain({ id: "e1" }, [painRow({ limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "slab" })]),
+      entryWithPain({ id: "e1" }, [
+        painRow({ limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "slab" }),
+      ]),
       entryWithPain({ id: "e2" }, [painRow()]),
     ]);
     expect(clusters).toHaveLength(2);
   });
 
   it("counts multiple pain moves within one entry separately", () => {
-    const clusters = painClusterCounts([
-      entryWithPain({}, [painRow(), painRow({ wallAngle: "roof" })]),
-    ]);
+    const clusters = painClusterCounts([entryWithPain({}, [painRow(), painRow({ wallAngle: "roof" })])]);
     expect(clusters).toHaveLength(2);
   });
 });
@@ -58,7 +73,9 @@ describe("topPainCluster", () => {
   it("returns the highest-count cluster when multiple clear the gate", () => {
     const entries = [
       ...Array.from({ length: MIN_TAG_COUNT }, (_, i) => entryWithPain({ id: `a${i}` }, [painRow()])),
-      ...Array.from({ length: MIN_TAG_COUNT + 2 }, (_, i) => entryWithPain({ id: `b${i}` }, [painRow({ wallAngle: "roof" })])),
+      ...Array.from({ length: MIN_TAG_COUNT + 2 }, (_, i) =>
+        entryWithPain({ id: `b${i}` }, [painRow({ wallAngle: "roof" })]),
+      ),
     ];
     const top = topPainCluster(entries);
     expect(top.wallAngle).toBe("roof");
@@ -101,17 +118,35 @@ describe("painLogEntries", () => {
 
 describe("describeCluster", () => {
   it("builds the exact headline shape from the design doc's own example", () => {
-    const cluster = { limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang", count: 5 };
+    const cluster = {
+      limb: "hand",
+      side: "left",
+      holdType: "crimp",
+      movementStyle: "static",
+      wallAngle: "overhang",
+      count: 5,
+    };
     expect(describeCluster(cluster)).toBe("Your pain flags cluster on left hand crimps, overhang.");
   });
 
   it("pluralizes pinch as pinches, not pinchs", () => {
-    const cluster = { limb: "hand", side: "right", holdType: "pinch", movementStyle: "dynamic", wallAngle: "roof", count: 5 };
+    const cluster = {
+      limb: "hand",
+      side: "right",
+      holdType: "pinch",
+      movementStyle: "dynamic",
+      wallAngle: "roof",
+      count: 5,
+    };
     expect(describeCluster(cluster)).toBe("Your pain flags cluster on right hand pinches, roof.");
   });
 
   it("pluralizes every other hold type with a plain trailing s", () => {
-    expect(describeCluster({ limb: "foot", side: "left", holdType: "toe-hook", wallAngle: "slab" })).toBe("Your pain flags cluster on left foot toe-hooks, slab.");
-    expect(describeCluster({ limb: "knee", side: "right", holdType: "kneebar", wallAngle: "vert" })).toBe("Your pain flags cluster on right knee kneebars, vert.");
+    expect(describeCluster({ limb: "foot", side: "left", holdType: "toe-hook", wallAngle: "slab" })).toBe(
+      "Your pain flags cluster on left foot toe-hooks, slab.",
+    );
+    expect(describeCluster({ limb: "knee", side: "right", holdType: "kneebar", wallAngle: "vert" })).toBe(
+      "Your pain flags cluster on right knee kneebars, vert.",
+    );
   });
 });

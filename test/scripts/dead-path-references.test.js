@@ -13,8 +13,25 @@ import { describe, expect, it } from "vitest";
 const ROOT = join(import.meta.dirname, "../..");
 const BASELINE_FILE = join(import.meta.dirname, "dead-path-references.baseline.json");
 
-const TOP_LEVEL = ["client", "server", "shared", "static", "views", "docs", "scripts", "test", "e2e", "infra", "migrations", "styles", ".github"];
-const PATH_TOKEN = new RegExp(`(?<![\\w/.@-])((?:${TOP_LEVEL.map(d => d.replace(".", "\\.")).join("|")})\\/[\\w./-]*\\w)`, "g");
+const TOP_LEVEL = [
+  "client",
+  "server",
+  "shared",
+  "static",
+  "views",
+  "docs",
+  "scripts",
+  "test",
+  "e2e",
+  "infra",
+  "migrations",
+  "styles",
+  ".github",
+];
+const PATH_TOKEN = new RegExp(
+  `(?<![\\w/.@-])((?:${TOP_LEVEL.map(d => d.replace(".", "\\.")).join("|")})\\/[\\w./-]*\\w)`,
+  "g",
+);
 const EXTENSION = /\.(?:js|mjs|cjs|json|jsonc|md|njk|html|css|sql|tf|yml|yaml|txt|svg|png)$/;
 const SCANNED = /\.(?:js|mjs|cjs|njk|md|yml|yaml|css|sql|tf|jsonc|html)$/;
 const EXEMPT = ["docs/adr/", "migrations/", "test/scripts/dead-path-references"];
@@ -74,7 +91,10 @@ describe("path references in comments and docs", () => {
 
   it("adds no new references to paths that don't exist", () => {
     const added = current.filter(ref => !baseline.includes(ref));
-    expect(added, "Fix these references, or delete the comment if it only narrates history (docs/coding-standards.md, Comments and docs)").toEqual([]);
+    expect(
+      added,
+      "Fix these references, or delete the comment if it only narrates history (docs/coding-standards.md, Comments and docs)",
+    ).toEqual([]);
   });
 
   it("lists no baseline entries that have since been fixed", () => {

@@ -53,7 +53,9 @@ function syncSettingsToggles() {
   betaRow.hidden = !loggedIn;
   athleteModeToggle.setAttribute("aria-checked", String(adminAuth.isAthleteMode()));
   publicLogbookToggle.setAttribute("aria-checked", String(adminAuth.isLogbookPublic()));
-  betaStatus.textContent = adminAuth.getBetaOptIn() ? "You're enrolled in the beta." : "You're not enrolled in the beta.";
+  betaStatus.textContent = adminAuth.getBetaOptIn()
+    ? "You're enrolled in the beta."
+    : "You're not enrolled in the beta.";
 }
 
 // A failed save leaves the toggle at its last known state rather than flipping it.
@@ -70,8 +72,12 @@ async function handleSettingToggle(btn, setter, label) {
   }
 }
 
-athleteModeToggle.addEventListener("click", () => handleSettingToggle(athleteModeToggle, adminAuth.setAthleteMode, "Athlete Mode"));
-publicLogbookToggle.addEventListener("click", () => handleSettingToggle(publicLogbookToggle, adminAuth.setLogbookPublic, "Public Logbook"));
+athleteModeToggle.addEventListener("click", () =>
+  handleSettingToggle(athleteModeToggle, adminAuth.setAthleteMode, "Athlete Mode"),
+);
+publicLogbookToggle.addEventListener("click", () =>
+  handleSettingToggle(publicLogbookToggle, adminAuth.setLogbookPublic, "Public Logbook"),
+);
 
 function updateAdminBar() {
   syncAdminBar({ store, adminAuth, headerChrome: { updateMenuDivider } });
@@ -79,12 +85,18 @@ function updateAdminBar() {
 }
 
 const adminAuth = createAdminAuth({
-  store, adminFetch, isAuthRedirect,
+  store,
+  adminFetch,
+  isAuthRedirect,
   settingsUrl: SETTINGS_URL,
   updateAdminBar,
 });
 
-createDisclosure(document.getElementById("header-menu-btn"), document.getElementById("header-menu-popover"), "#header-menu-wrap");
+createDisclosure(
+  document.getElementById("header-menu-btn"),
+  document.getElementById("header-menu-popover"),
+  "#header-menu-wrap",
+);
 createThemeToggle();
 
 // Fetched on click: most visits never export.

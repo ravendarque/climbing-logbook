@@ -1,4 +1,13 @@
-import { SCALES, SCALES_BY_DISCIPLINE, gradeOrdinal, gradeColorForScale, nonStandardLabel, parseNonStandardLabel, resolveScaleId, DEFAULT_SCALE_BY_TYPE } from "../shared/grade-data.js";
+import {
+  SCALES,
+  SCALES_BY_DISCIPLINE,
+  gradeOrdinal,
+  gradeColorForScale,
+  nonStandardLabel,
+  parseNonStandardLabel,
+  resolveScaleId,
+  DEFAULT_SCALE_BY_TYPE,
+} from "../shared/grade-data.js";
 import { gradeDisplayLabelForScale } from "../shared/volume-stats.js";
 import { flashLabel, sendLabel, nameLabel, hydrateStatusIcons } from "./status.js";
 import { createPlacePicker } from "./place-picker.js";
@@ -27,20 +36,20 @@ export function createEntryForm({
   // Demo mode: every field works, Save never does.
   readOnly = false,
 }) {
-  const entryOverlay   = document.getElementById("entry-overlay");
-  const entryForm      = document.getElementById("entry-form");
-  const entryModalTitle= document.getElementById("entry-modal-title");
-  const nameInput  = document.getElementById("entry-name");
+  const entryOverlay = document.getElementById("entry-overlay");
+  const entryForm = document.getElementById("entry-form");
+  const entryModalTitle = document.getElementById("entry-modal-title");
+  const nameInput = document.getElementById("entry-name");
   const notesInput = document.getElementById("entry-notes");
   const videoInput = document.getElementById("entry-video");
-  const gradePrev   = document.getElementById("grade-prev");
-  const gradeNext   = document.getElementById("grade-next");
-  const gradeNsFields   = document.getElementById("grade-ns-fields");
-  const dateInput  = document.getElementById("entry-date");
+  const gradePrev = document.getElementById("grade-prev");
+  const gradeNext = document.getElementById("grade-next");
+  const gradeNsFields = document.getElementById("grade-ns-fields");
+  const dateInput = document.getElementById("entry-date");
   const datePickerMount = document.getElementById("date-picker-mount");
   const entrySubmitBtns = [document.getElementById("entry-submit-btn"), document.getElementById("entry-submit-btn-2")];
   const entryDeleteBtn = document.getElementById("entry-delete-btn");
-  const entryMsg      = document.getElementById("entry-msg");
+  const entryMsg = document.getElementById("entry-msg");
   const entryNavForward = document.getElementById("entry-nav-forward");
   const entryNavBack = document.getElementById("entry-nav-back");
   const entryPagesViewport = document.getElementById("entry-pages-viewport");
@@ -65,14 +74,37 @@ export function createEntryForm({
   const attemptsCount = document.getElementById("attempts-count");
 
   const placePicker = createPlacePicker({
-    store, openModal, closeModal, adminFetch, isAuthRedirect,
-    getQueue, enqueue,
-    locationsWriteUrl, placesWriteUrl,
+    store,
+    openModal,
+    closeModal,
+    adminFetch,
+    isAuthRedirect,
+    getQueue,
+    enqueue,
+    locationsWriteUrl,
+    placesWriteUrl,
   });
 
-  const hardestMoves = createMoveRowList({ listEl: document.getElementById("hardest-moves-list"), addBtnEl: document.getElementById("hardest-moves-add"), hasDifficulty: true, defaultDifficulty: "hardest", listLabel: "hardest move" });
-  const easiestMoves = createMoveRowList({ listEl: document.getElementById("easiest-moves-list"), addBtnEl: document.getElementById("easiest-moves-add"), hasDifficulty: true, defaultDifficulty: "easiest", listLabel: "easiest move" });
-  const painMoves = createMoveRowList({ listEl: document.getElementById("pain-moves-list"), addBtnEl: document.getElementById("pain-moves-add"), hasDifficulty: false, listLabel: "pain/injury move" });
+  const hardestMoves = createMoveRowList({
+    listEl: document.getElementById("hardest-moves-list"),
+    addBtnEl: document.getElementById("hardest-moves-add"),
+    hasDifficulty: true,
+    defaultDifficulty: "hardest",
+    listLabel: "hardest move",
+  });
+  const easiestMoves = createMoveRowList({
+    listEl: document.getElementById("easiest-moves-list"),
+    addBtnEl: document.getElementById("easiest-moves-add"),
+    hasDifficulty: true,
+    defaultDifficulty: "easiest",
+    listLabel: "easiest move",
+  });
+  const painMoves = createMoveRowList({
+    listEl: document.getElementById("pain-moves-list"),
+    addBtnEl: document.getElementById("pain-moves-add"),
+    hasDifficulty: false,
+    listLabel: "pain/injury move",
+  });
 
   let editingId = null; // null = add mode
 
@@ -94,15 +126,25 @@ export function createEntryForm({
   // Guarded: the Workers test pool has no localStorage.
   function loadGradeScalePref(type) {
     let stored = null;
-    try { stored = localStorage.getItem(gradeScalePrefKey(type)); } catch { /* ignore */ }
+    try {
+      stored = localStorage.getItem(gradeScalePrefKey(type));
+    } catch {
+      /* ignore */
+    }
     return resolveScaleId(type, stored, DEFAULT_SCALE_BY_TYPE[type]);
   }
   function saveGradeScalePref(type, scaleId) {
-    try { localStorage.setItem(gradeScalePrefKey(type), scaleId); } catch { /* ignore */ }
+    try {
+      localStorage.setItem(gradeScalePrefKey(type), scaleId);
+    } catch {
+      /* ignore */
+    }
   }
 
   let activeGradeScaleId = DEFAULT_SCALE_BY_TYPE.boulder; // real value set in open()
-  function currentGradeScaleId() { return activeGradeScaleId; }
+  function currentGradeScaleId() {
+    return activeGradeScaleId;
+  }
 
   function makeListPicker(idPrefix) {
     return createListPicker({
@@ -123,7 +165,9 @@ export function createEntryForm({
     const type = store.getActiveType();
     const currentId = currentGradeScaleId();
     renderOptionList(document.getElementById("grade-scale-listbox"), SCALES_BY_DISCIPLINE[type], {
-      getKey: s => s.id, getLabel: s => s.name, isSelected: s => s.id === currentId,
+      getKey: s => s.id,
+      getLabel: s => s.name,
+      isSelected: s => s.id === currentId,
     });
   });
   gradeScalePicker.setOnSelect(scaleId => chooseScale(scaleId));
@@ -146,30 +190,49 @@ export function createEntryForm({
   const NS_LETTERS = [null, "a", "b", "c"];
   const NS_MODIFIERS = [null, "-", "+"];
   // "n/a", not a dash: null is a real, selectable value here.
-  function nsButtonLabel(v) { return v === null ? "n/a" : String(v); }
+  function nsButtonLabel(v) {
+    return v === null ? "n/a" : String(v);
+  }
 
-  let nsNumber = 1, nsLetter = null, nsModifier = null;
+  let nsNumber = 1,
+    nsLetter = null,
+    nsModifier = null;
 
   gradeNsNumberPicker.setRender(() => {
     renderOptionList(document.getElementById("grade-ns-number-listbox"), NS_NUMBERS, {
-      getKey: n => String(n), getLabel: n => String(n), isSelected: n => n === nsNumber,
+      getKey: n => String(n),
+      getLabel: n => String(n),
+      isSelected: n => n === nsNumber,
     });
   });
-  gradeNsNumberPicker.setOnSelect(key => { nsNumber = Number(key); updateNonStandardFields(); });
+  gradeNsNumberPicker.setOnSelect(key => {
+    nsNumber = Number(key);
+    updateNonStandardFields();
+  });
 
   gradeNsLetterPicker.setRender(() => {
     renderOptionList(document.getElementById("grade-ns-letter-listbox"), NS_LETTERS, {
-      getKey: l => l ?? "", getLabel: l => nsButtonLabel(l), isSelected: l => l === nsLetter,
+      getKey: l => l ?? "",
+      getLabel: l => nsButtonLabel(l),
+      isSelected: l => l === nsLetter,
     });
   });
-  gradeNsLetterPicker.setOnSelect(key => { nsLetter = key || null; updateNonStandardFields(); });
+  gradeNsLetterPicker.setOnSelect(key => {
+    nsLetter = key || null;
+    updateNonStandardFields();
+  });
 
   gradeNsModifierPicker.setRender(() => {
     renderOptionList(document.getElementById("grade-ns-modifier-listbox"), NS_MODIFIERS, {
-      getKey: m => m ?? "", getLabel: m => nsButtonLabel(m), isSelected: m => m === nsModifier,
+      getKey: m => m ?? "",
+      getLabel: m => nsButtonLabel(m),
+      isSelected: m => m === nsModifier,
     });
   });
-  gradeNsModifierPicker.setOnSelect(key => { nsModifier = key || null; updateNonStandardFields(); });
+  gradeNsModifierPicker.setOnSelect(key => {
+    nsModifier = key || null;
+    updateNonStandardFields();
+  });
 
   function nonStandardValueFromFields() {
     return nonStandardLabel(nsNumber, nsLetter, nsModifier);
@@ -180,8 +243,9 @@ export function createEntryForm({
     gradeNsLetterPicker.trigger.textContent = nsButtonLabel(nsLetter);
     gradeNsModifierPicker.trigger.textContent = nsButtonLabel(nsModifier);
     const bg = gradeColorForScale(selectedGrade, currentGradeScaleId(), store.getActiveType());
-    [gradeNsNumberPicker.trigger, gradeNsLetterPicker.trigger, gradeNsModifierPicker.trigger]
-      .forEach(el => { el.style.backgroundColor = bg; });
+    [gradeNsNumberPicker.trigger, gradeNsLetterPicker.trigger, gradeNsModifierPicker.trigger].forEach(el => {
+      el.style.backgroundColor = bg;
+    });
   }
   function setNonStandardFieldsFromLabel(label) {
     const parsed = parseNonStandardLabel(label) ?? { number: 1, letter: null, modifier: null };
@@ -211,7 +275,9 @@ export function createEntryForm({
     const type = store.getActiveType();
     const scaleId = currentGradeScaleId();
     renderOptionList(document.getElementById("grade-value-listbox"), SCALES[scaleId].labels, {
-      getKey: g => g, getLabel: g => gradeOptionLabel(g, scaleId, type), isSelected: g => g === selectedGrade,
+      getKey: g => g,
+      getLabel: g => gradeOptionLabel(g, scaleId, type),
+      isSelected: g => g === selectedGrade,
     });
   });
   gradeValuePicker.setOnSelect(label => selectGradeByValue(label, currentGradeScaleId()));
@@ -225,7 +291,11 @@ export function createEntryForm({
     const g = labels[wrapped];
     selectedGrade = g;
     gradeValuePicker.trigger.textContent = gradeOptionLabel(g, currentGradeScaleId(), store.getActiveType());
-    gradeValuePicker.trigger.style.backgroundColor = gradeColorForScale(g, currentGradeScaleId(), store.getActiveType());
+    gradeValuePicker.trigger.style.backgroundColor = gradeColorForScale(
+      g,
+      currentGradeScaleId(),
+      store.getActiveType(),
+    );
   }
   function selectGradeByValue(value, scaleId) {
     if (isNonStandardScaleId(scaleId)) {
@@ -294,8 +364,14 @@ export function createEntryForm({
     attemptsCount.value = attemptsValue === 0 ? "–" : String(attemptsValue);
     attemptsMinus.disabled = attemptsValue <= 0;
   }
-  attemptsMinus.addEventListener("click", () => { attemptsValue = Math.max(0, attemptsValue - 1); renderAttempts(); });
-  attemptsPlus.addEventListener("click", () => { attemptsValue += 1; renderAttempts(); });
+  attemptsMinus.addEventListener("click", () => {
+    attemptsValue = Math.max(0, attemptsValue - 1);
+    renderAttempts();
+  });
+  attemptsPlus.addEventListener("click", () => {
+    attemptsValue += 1;
+    renderAttempts();
+  });
   // Non-digits are stripped, not rejected, so typing over the dash works.
   attemptsCount.addEventListener("input", () => {
     const digits = attemptsCount.value.replace(/[^0-9]/g, "");
@@ -330,7 +406,9 @@ export function createEntryForm({
     containerEl: datePickerMount,
     idPrefix: "date-picker",
     getValue: () => dateInput.value,
-    onSelect: dateStr => { dateInput.value = dateStr; },
+    onSelect: dateStr => {
+      dateInput.value = dateStr;
+    },
   });
 
   function showPage(pageNum) {
@@ -370,18 +448,16 @@ export function createEntryForm({
       });
     }
 
-    nameInput.value  = entry?.name  ?? "";
+    nameInput.value = entry?.name ?? "";
     placePicker.reset(entry?.placeId ?? "");
     notesInput.value = entry?.notes ?? "";
     videoInput.value = entry?.video ?? "";
     // Today only when adding; an existing entry without a date stays blank.
-    dateInput.value  = entry ? (entry.date ?? "") : new Date().toISOString().slice(0, 10);
+    dateInput.value = entry ? (entry.date ?? "") : new Date().toISOString().slice(0, 10);
 
     // Editing shows the entry's own scale; only a new entry uses the saved preference.
     const type = store.getActiveType();
-    activeGradeScaleId = entry
-      ? (entry.gradeScale ?? DEFAULT_SCALE_BY_TYPE[type])
-      : loadGradeScalePref(type);
+    activeGradeScaleId = entry ? (entry.gradeScale ?? DEFAULT_SCALE_BY_TYPE[type]) : loadGradeScalePref(type);
     renderGradeOptions();
     if (entry) selectGradeByValue(entry.grade, activeGradeScaleId);
     else selectDefaultGrade();
@@ -404,7 +480,9 @@ export function createEntryForm({
   }
   document.getElementById("add-btn").addEventListener("click", () => open(null));
   document.getElementById("entry-close").addEventListener("click", () => closeModal(entryOverlay));
-  entryOverlay.addEventListener("click", e => { if (e.target === entryOverlay) closeModal(entryOverlay); });
+  entryOverlay.addEventListener("click", e => {
+    if (e.target === entryOverlay) closeModal(entryOverlay);
+  });
 
   function queueAndSync(item) {
     enqueue(item);
@@ -417,24 +495,26 @@ export function createEntryForm({
     e.preventDefault();
     // Enter in a field submits even with the button disabled.
     if (readOnly) return;
-    entrySubmitBtns.forEach(btn => { btn.disabled = true; });
+    entrySubmitBtns.forEach(btn => {
+      btn.disabled = true;
+    });
     entryMsg.className = "hidden";
 
-    const name  = nameInput.value.trim();
+    const name = nameInput.value.trim();
     const entry = {
-      id:     editingId ?? crypto.randomUUID(),
+      id: editingId ?? crypto.randomUUID(),
       // The committed place, not in-progress search text.
       placeId: placePicker.getPlaceId(),
       name,
-      grade:  selectedGrade,
+      grade: selectedGrade,
       gradeScale: activeGradeScaleId,
-      type:   store.getActiveType(),
+      type: store.getActiveType(),
       status: selectedStatus,
       firstAttempt: isFlash,
       sportStyle: store.getActiveType() === "sport" ? selectedSportStyle : null,
-      date:   dateInput.value.trim() || null,
-      notes:  notesInput.value.trim() || null,
-      video:  videoInput.value.trim() || null,
+      date: dateInput.value.trim() || null,
+      notes: notesInput.value.trim() || null,
+      video: videoInput.value.trim() || null,
       rpe: selectedStatus === "send" ? Number(exertionSlider.value) : null,
       attemptsToSend: attemptsValue,
       moves: [...hardestMoves.getRows(), ...easiestMoves.getRows()],
@@ -445,7 +525,9 @@ export function createEntryForm({
     const shapeErr = validateEntryShape(entry);
     if (shapeErr) {
       showEntryError(shapeErr);
-      entrySubmitBtns.forEach(btn => { btn.disabled = false; });
+      entrySubmitBtns.forEach(btn => {
+        btn.disabled = false;
+      });
       return;
     }
 
@@ -454,7 +536,9 @@ export function createEntryForm({
     // While anything is queued, a save joins the back of the queue so it can't be overtaken.
     if (getQueue().length) {
       queueAndSync({ kind: "entry", op, record: entry });
-      entrySubmitBtns.forEach(btn => { btn.disabled = false; });
+      entrySubmitBtns.forEach(btn => {
+        btn.disabled = false;
+      });
       return;
     }
 
@@ -468,7 +552,9 @@ export function createEntryForm({
       const data = await res.json();
       if (!res.ok) {
         showEntryError(data.error ?? `Error ${res.status}`);
-        entrySubmitBtns.forEach(btn => { btn.disabled = false; });
+        entrySubmitBtns.forEach(btn => {
+          btn.disabled = false;
+        });
         return;
       }
       store.mergeConfirmed("entries", [data.entry]);
@@ -484,7 +570,9 @@ export function createEntryForm({
       closeModal(entryOverlay);
     }
 
-    entrySubmitBtns.forEach(btn => { btn.disabled = false; });
+    entrySubmitBtns.forEach(btn => {
+      btn.disabled = false;
+    });
   });
 
   entryDeleteBtn.addEventListener("click", async () => {

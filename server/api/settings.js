@@ -47,8 +47,7 @@ export async function handlePatchSettings(request, env, userId) {
   }
 
   // No row exists until a user's first PATCH.
-  await env.LOGBOOK_DB
-    .prepare(`INSERT INTO settings (user_id) VALUES (?) ON CONFLICT(user_id) DO NOTHING`)
+  await env.LOGBOOK_DB.prepare(`INSERT INTO settings (user_id) VALUES (?) ON CONFLICT(user_id) DO NOTHING`)
     .bind(userId)
     .run();
 
@@ -72,8 +71,9 @@ export async function handlePatchSettings(request, env, userId) {
   }
 
   if (sets.length > 0) {
-    await env.LOGBOOK_DB
-      .prepare(`UPDATE settings SET ${sets.join(", ")}, updated_at = datetime('now') WHERE user_id = ?`)
+    await env.LOGBOOK_DB.prepare(
+      `UPDATE settings SET ${sets.join(", ")}, updated_at = datetime('now') WHERE user_id = ?`,
+    )
       .bind(...values, userId)
       .run();
   }

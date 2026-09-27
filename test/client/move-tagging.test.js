@@ -104,11 +104,25 @@ describe("createMoveRowList", () => {
     const widget = createMoveRowList({ listEl, addBtnEl, hasDifficulty: true });
     addBtnEl.click();
     widget.setRows([
-      { difficulty: "easiest", limb: "knee", side: "left", holdType: "kneebar", movementStyle: "static", wallAngle: "roof" },
+      {
+        difficulty: "easiest",
+        limb: "knee",
+        side: "left",
+        holdType: "kneebar",
+        movementStyle: "static",
+        wallAngle: "roof",
+      },
     ]);
     const rows = widget.getRows();
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toEqual({ difficulty: "easiest", limb: "knee", side: "left", holdType: "kneebar", movementStyle: "static", wallAngle: "roof" });
+    expect(rows[0]).toEqual({
+      difficulty: "easiest",
+      limb: "knee",
+      side: "left",
+      holdType: "kneebar",
+      movementStyle: "static",
+      wallAngle: "roof",
+    });
   });
 
   it("reset() clears to zero rows", () => {
@@ -122,7 +136,9 @@ describe("createMoveRowList", () => {
   it("renders the Limb dropdown's options in sentence case", () => {
     createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
     addBtnEl.click();
-    const limbOptionText = Array.from(listEl.querySelectorAll('[data-field="limbSide"] option')).map(o => o.textContent);
+    const limbOptionText = Array.from(listEl.querySelectorAll('[data-field="limbSide"] option')).map(
+      o => o.textContent,
+    );
     expect(limbOptionText).toContain("Left hand");
     expect(limbOptionText).not.toContain("Left Hand");
   });

@@ -23,7 +23,12 @@ export function precacheItems(list, origin, username) {
     return { key, url, hash, immutable: kind === "immutable" };
   });
   const shells = username
-    ? list.shells.map(({ page, hash }) => ({ key: shellCacheKey(page, origin), url: `/${username}/${page}`, page, hash }))
+    ? list.shells.map(({ page, hash }) => ({
+        key: shellCacheKey(page, origin),
+        url: `/${username}/${page}`,
+        page,
+        hash,
+      }))
     : [];
   return [...shells, ...assets];
 }
@@ -38,7 +43,7 @@ async function previousCopy(cachesImpl, currentName, item) {
   for (const name of await cachesImpl.keys()) {
     if (name === currentName || !isBuildCache(name)) continue;
     const hit = await (await cachesImpl.open(name)).match(item.key, MATCH);
-    if (hit && (item.immutable || (item.hash && await sha256Hex(hit) === item.hash))) return hit;
+    if (hit && (item.immutable || (item.hash && (await sha256Hex(hit)) === item.hash))) return hit;
   }
   return null;
 }
@@ -59,7 +64,10 @@ export async function fillPrecache({ list, cacheName, origin, username, cachesIm
     }
     try {
       // Only content-addressed files may come from the HTTP cache.
-      const response = await fetchImpl(item.url, { credentials: "same-origin", cache: item.immutable ? "default" : "no-cache" });
+      const response = await fetchImpl(item.url, {
+        credentials: "same-origin",
+        cache: item.immutable ? "default" : "no-cache",
+      });
       const cacheable = item.page ? isCacheableShell(response, item.page) : isCacheableAsset(response);
       if (!cacheable) throw new Error(`${item.url}: ${response.status}`);
       await cache.put(item.key, response);

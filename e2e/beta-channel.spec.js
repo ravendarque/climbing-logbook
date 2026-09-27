@@ -14,19 +14,30 @@ async function setEnrollment(page, enrolled) {
 }
 
 test.describe("beta channel enrollment check", () => {
-  test.beforeEach(async ({ context }) => { await useSessionOnBeta(context); });
-  test.afterEach(async ({ page }) => { await setEnrollment(page, false); });
+  test.beforeEach(async ({ context }) => {
+    await useSessionOnBeta(context);
+  });
+  test.afterEach(async ({ page }) => {
+    await setEnrollment(page, false);
+  });
 
-  test("a not-enrolled user sees the message, keeps the header, and the page never loads its data", async ({ page }) => {
+  test("a not-enrolled user sees the message, keeps the header, and the page never loads its data", async ({
+    page,
+  }) => {
     await setEnrollment(page, false);
     const dataRequests = [];
-    page.on("request", req => { if (/\/-\/api\/(logbook|places|locations)\b/.test(req.url())) dataRequests.push(req.url()); });
+    page.on("request", req => {
+      if (/\/-\/api\/(logbook|places|locations)\b/.test(req.url())) dataRequests.push(req.url());
+    });
 
     await page.goto(`${BETA}/${DEV_USER.username}/log`);
     const message = page.locator("#beta-not-enrolled");
     await expect(message).toBeVisible();
     await expect(message).toContainText("Beta is for enrolled users");
-    await expect(message.getByRole("link", { name: "Join the beta" })).toHaveAttribute("href", `/${DEV_USER.username}/account/beta`);
+    await expect(message.getByRole("link", { name: "Join the beta" })).toHaveAttribute(
+      "href",
+      `/${DEV_USER.username}/account/beta`,
+    );
     await expect(page.locator("climbing-page-header")).toBeVisible();
     await expect(page.locator("climbing-entries-table")).toBeHidden();
     expect(dataRequests).toEqual([]);
@@ -39,7 +50,9 @@ test.describe("beta channel enrollment check", () => {
     await expect(page.locator("#beta-not-enrolled")).toHaveCount(0);
   });
 
-  test("leaving the beta elsewhere is picked up: the cached 'enrolled' is corrected and the page reloads to the message", async ({ page }) => {
+  test("leaving the beta elsewhere is picked up: the cached 'enrolled' is corrected and the page reloads to the message", async ({
+    page,
+  }) => {
     await setEnrollment(page, true);
     await page.goto(`${BETA}/${DEV_USER.username}/map`);
     await expect(page.locator("#beta-not-enrolled")).toHaveCount(0);
@@ -51,7 +64,9 @@ test.describe("beta channel enrollment check", () => {
 });
 
 test.describe("Logbook Beta's identity", () => {
-  test.beforeEach(async ({ context }) => { await useSessionOnBeta(context); });
+  test.beforeEach(async ({ context }) => {
+    await useSessionOnBeta(context);
+  });
 
   test("beta pages carry the Beta badge, yellow theme colour and Logbook Beta's manifest", async ({ page }) => {
     await page.goto(`${BETA}/${DEV_USER.username}/log`);

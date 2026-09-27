@@ -21,12 +21,19 @@ export function gapByBucket(entries, buckets, type) {
     if (idx === -1) continue;
 
     const ordinal = bestGradeOrdinal(entry, type);
-    const pair = { grade: entry.grade, gradeScale: entry.gradeScale ?? PRIMARY_SCALE_BY_TYPE[type] ?? PRIMARY_SCALE_BY_TYPE.boulder };
+    const pair = {
+      grade: entry.grade,
+      gradeScale: entry.gradeScale ?? PRIMARY_SCALE_BY_TYPE[type] ?? PRIMARY_SCALE_BY_TYPE.boulder,
+    };
     if (ordinal !== null && (sendMaxOrdinalByBucket[idx] === null || ordinal > sendMaxOrdinalByBucket[idx])) {
       sendMaxOrdinalByBucket[idx] = ordinal;
       sendMaxByBucket[idx] = pair;
     }
-    if (entry.firstAttempt && ordinal !== null && (flashMaxOrdinalByBucket[idx] === null || ordinal > flashMaxOrdinalByBucket[idx])) {
+    if (
+      entry.firstAttempt &&
+      ordinal !== null &&
+      (flashMaxOrdinalByBucket[idx] === null || ordinal > flashMaxOrdinalByBucket[idx])
+    ) {
       flashMaxOrdinalByBucket[idx] = ordinal;
       flashMaxByBucket[idx] = pair;
     }
@@ -38,7 +45,7 @@ export function gapByBucket(entries, buckets, type) {
 
   // null, not 0: a bucket with no attempts data is not a measured zero.
   const avgAttemptsByBucket = attemptsCountByBucket.map((count, i) =>
-    count ? Math.round((attemptsSumByBucket[i] / count) * 10) / 10 : null
+    count ? Math.round((attemptsSumByBucket[i] / count) * 10) / 10 : null,
   );
 
   return { flashMaxByBucket, sendMaxByBucket, avgAttemptsByBucket };
@@ -63,8 +70,9 @@ export function gapHeadline(flashMaxByBucket, sendMaxByBucket, type, viewScaleId
   const sendTerm = SEND_TERM[type];
   const positionOrder = reportPositionOrder(type);
   // Prose can't drop a grade like a chart can, so it falls back to the logged scale.
-  const label = pair => reportGradeLabel(pair.grade, pair.gradeScale, type, viewScaleId)
-    ?? reportGradeLabel(pair.grade, pair.gradeScale, type, pair.gradeScale);
+  const label = pair =>
+    reportGradeLabel(pair.grade, pair.gradeScale, type, viewScaleId) ??
+    reportGradeLabel(pair.grade, pair.gradeScale, type, pair.gradeScale);
   const ordinalOf = pair => bestGradeOrdinal(pair, type);
 
   const sendGrades = sendMaxByBucket.filter(g => g !== null);

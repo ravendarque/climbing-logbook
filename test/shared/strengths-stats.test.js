@@ -1,11 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { MIN_TAG_COUNT, availableAnchors, cellCounts, describeWeakness, rankedCells, rankedForAnchor, topWeakness } from "../../shared/strengths-stats.js";
+import {
+  MIN_TAG_COUNT,
+  availableAnchors,
+  cellCounts,
+  describeWeakness,
+  rankedCells,
+  rankedForAnchor,
+  topWeakness,
+} from "../../shared/strengths-stats.js";
 
 function entryWithMoves(moves = [], overrides = {}) {
   return { id: "e1", name: "Test Route", moves, ...overrides };
 }
 function moveRow(overrides = {}) {
-  return { difficulty: "hardest", limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang", ...overrides };
+  return {
+    difficulty: "hardest",
+    limb: "hand",
+    side: "left",
+    holdType: "crimp",
+    movementStyle: "static",
+    wallAngle: "overhang",
+    ...overrides,
+  };
 }
 
 describe("cellCounts", () => {
@@ -14,24 +30,25 @@ describe("cellCounts", () => {
   });
 
   it("counts hardest and easiest separately within one cell", () => {
-    const cells = cellCounts([entryWithMoves([moveRow({ difficulty: "hardest" }), moveRow({ difficulty: "easiest" })])]);
+    const cells = cellCounts([
+      entryWithMoves([moveRow({ difficulty: "hardest" }), moveRow({ difficulty: "easiest" })]),
+    ]);
     expect(cells).toHaveLength(1);
     expect(cells[0]).toMatchObject({ hardestCount: 1, easiestCount: 1, total: 2, score: 0.5 });
   });
 
   it("keeps different combinations as separate cells", () => {
-    const cells = cellCounts([entryWithMoves([
-      moveRow(),
-      moveRow({ limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "slab" }),
-    ])]);
+    const cells = cellCounts([
+      entryWithMoves([
+        moveRow(),
+        moveRow({ limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "slab" }),
+      ]),
+    ]);
     expect(cells).toHaveLength(2);
   });
 
   it("sums counts for the same combination across multiple entries", () => {
-    const cells = cellCounts([
-      entryWithMoves([moveRow()], { id: "e1" }),
-      entryWithMoves([moveRow()], { id: "e2" }),
-    ]);
+    const cells = cellCounts([entryWithMoves([moveRow()], { id: "e1" }), entryWithMoves([moveRow()], { id: "e2" })]);
     expect(cells).toHaveLength(1);
     expect(cells[0].total).toBe(2);
   });
@@ -92,7 +109,9 @@ describe("availableAnchors", () => {
   });
 
   it("humanizes a hyphenated hold-type value into sentence case, not raw", () => {
-    const anchors = availableAnchors([entryWithMoves([moveRow({ limb: "foot", side: "right", holdType: "toe-hook" })])]);
+    const anchors = availableAnchors([
+      entryWithMoves([moveRow({ limb: "foot", side: "right", holdType: "toe-hook" })]),
+    ]);
     expect(anchors).toContainEqual({ dimension: "holdType", value: "toe-hook", label: "Toe hook" });
     expect(anchors).toContainEqual({ dimension: "limbSide", value: "foot-right", label: "Right foot" });
   });
@@ -106,7 +125,9 @@ describe("availableAnchors", () => {
 describe("rankedForAnchor", () => {
   it("only includes cells matching the fixed dimension/value", () => {
     const matching = Array.from({ length: MIN_TAG_COUNT }, () => moveRow({ holdType: "crimp" }));
-    const nonMatching = Array.from({ length: MIN_TAG_COUNT }, () => moveRow({ holdType: "jug", difficulty: "easiest" }));
+    const nonMatching = Array.from({ length: MIN_TAG_COUNT }, () =>
+      moveRow({ holdType: "jug", difficulty: "easiest" }),
+    );
     const entries = [entryWithMoves([...matching, ...nonMatching])];
     const ranked = rankedForAnchor(entries, "holdType", "crimp");
     expect(ranked).toHaveLength(1);
@@ -114,7 +135,9 @@ describe("rankedForAnchor", () => {
   });
 
   it("matches on the limbSide dimension using the combined limb-side value", () => {
-    const entries = [entryWithMoves(Array.from({ length: MIN_TAG_COUNT }, () => moveRow({ limb: "foot", side: "right" })))];
+    const entries = [
+      entryWithMoves(Array.from({ length: MIN_TAG_COUNT }, () => moveRow({ limb: "foot", side: "right" }))),
+    ];
     const ranked = rankedForAnchor(entries, "limbSide", "foot-right");
     expect(ranked).toHaveLength(1);
   });
@@ -137,7 +160,11 @@ describe("describeWeakness", () => {
   });
 
   it("uses the correct adjective for every wall angle", () => {
-    expect(describeWeakness({ limb: "foot", side: "left", holdType: "toe-hook", wallAngle: "slab" })).toBe("Your left foot on slab toe-hooks looks like a key weakness.");
-    expect(describeWeakness({ limb: "knee", side: "right", holdType: "kneebar", wallAngle: "vert" })).toBe("Your right knee on vertical kneebars looks like a key weakness.");
+    expect(describeWeakness({ limb: "foot", side: "left", holdType: "toe-hook", wallAngle: "slab" })).toBe(
+      "Your left foot on slab toe-hooks looks like a key weakness.",
+    );
+    expect(describeWeakness({ limb: "knee", side: "right", holdType: "kneebar", wallAngle: "vert" })).toBe(
+      "Your right knee on vertical kneebars looks like a key weakness.",
+    );
   });
 });

@@ -2,9 +2,23 @@
 import { escapeHtml } from "./escape-html.js";
 import { createDisclosure } from "./modal-utils.js";
 
-const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
-const DAY_CELL_CLASSES = "h-7 flex items-center justify-center rounded-[calc(var(--radius-app)-2px)] text-[.78rem] text-foreground border-0 bg-transparent cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] aria-selected:bg-accent aria-selected:text-accent-foreground aria-selected:hover:bg-accent aria-[current=date]:font-bold aria-[current=date]:text-accent";
+const DAY_CELL_CLASSES =
+  "h-7 flex items-center justify-center rounded-[calc(var(--radius-app)-2px)] text-[.78rem] text-foreground border-0 bg-transparent cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] aria-selected:bg-accent aria-selected:text-accent-foreground aria-selected:hover:bg-accent aria-[current=date]:font-bold aria-[current=date]:text-accent";
 
 const CALENDAR_ICON = `<svg class="w-[1.1rem] h-[1.1rem] stroke-current" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <rect x="3" y="5" width="18" height="16" rx="2"></rect>
@@ -13,12 +27,15 @@ const CALENDAR_ICON = `<svg class="w-[1.1rem] h-[1.1rem] stroke-current" viewBox
   <line x1="16" y1="3" x2="16" y2="7"></line>
 </svg>`;
 
-export function calendarDatePickerHtml(idPrefix, {
-  label = "Pick a date",
-  wrapClasses = "relative flex-[0_0_2.75rem]",
-  buttonClasses = "w-full h-full flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent",
-  buttonContent = CALENDAR_ICON,
-} = {}) {
+export function calendarDatePickerHtml(
+  idPrefix,
+  {
+    label = "Pick a date",
+    wrapClasses = "relative flex-[0_0_2.75rem]",
+    buttonClasses = "w-full h-full flex items-center justify-center border border-border rounded-app bg-surface text-foreground cursor-pointer hover:border-accent",
+    buttonContent = CALENDAR_ICON,
+  } = {},
+) {
   const p = idPrefix;
   return `
     <div class="${wrapClasses}" id="${p}-wrap">
@@ -76,7 +93,9 @@ export function createCalendarDatePicker({ containerEl, idPrefix, getValue, onSe
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
       const isSelected = selected.year === viewYear && selected.month === viewMonth && selected.day === day;
-      cells.push(`<button type="button" class="${DAY_CELL_CLASSES}" data-date="${dateStr}" aria-selected="${isSelected}" aria-current="${dateStr === todayStr ? "date" : "false"}">${day}</button>`);
+      cells.push(
+        `<button type="button" class="${DAY_CELL_CLASSES}" data-date="${dateStr}" aria-selected="${isSelected}" aria-current="${dateStr === todayStr ? "date" : "false"}">${day}</button>`,
+      );
     }
     gridEl.innerHTML = cells.join("");
   }
@@ -91,12 +110,18 @@ export function createCalendarDatePicker({ containerEl, idPrefix, getValue, onSe
   });
   prevMonthBtn.addEventListener("click", () => {
     viewMonth--;
-    if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+    if (viewMonth < 0) {
+      viewMonth = 11;
+      viewYear--;
+    }
     render();
   });
   nextMonthBtn.addEventListener("click", () => {
     viewMonth++;
-    if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+    if (viewMonth > 11) {
+      viewMonth = 0;
+      viewYear++;
+    }
     render();
   });
   gridEl.addEventListener("click", e => {

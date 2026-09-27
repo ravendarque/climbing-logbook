@@ -4,27 +4,42 @@ import { createAuthedSession, fetchJson, resetAuthTables } from "./support.js";
 
 const REPORT_URL = "/-/api/report-issue";
 
-beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
-afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
+beforeAll(() => {
+  env.BETA_GATE_ENABLED = "false";
+});
+afterAll(() => {
+  env.BETA_GATE_ENABLED = "true";
+});
 
 beforeEach(async () => {
   await resetAuthTables();
   await env.LOGBOOK_DB.prepare(`DELETE FROM issue_reports`).run();
   await env.LOGBOOK_DB.prepare(`DELETE FROM rate_limits`).run();
 });
-afterEach(() => { vi.unstubAllGlobals(); });
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 function stubSiteverify(success) {
-  vi.stubGlobal("fetch", vi.fn(async (input) => {
-    const url = typeof input === "string" ? input : input.url;
-    if (url.startsWith("https://challenges.cloudflare.com/turnstile/")) {
-      return new Response(JSON.stringify({ success }), { status: 200, headers: { "Content-Type": "application/json" } });
-    }
-    if (url.startsWith("https://api.resend.com/")) {
-      return new Response(JSON.stringify({ id: "fake-resend-id" }), { status: 200, headers: { "Content-Type": "application/json" } });
-    }
-    throw new Error(`Unexpected fetch to ${url}`);
-  }));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async input => {
+      const url = typeof input === "string" ? input : input.url;
+      if (url.startsWith("https://challenges.cloudflare.com/turnstile/")) {
+        return new Response(JSON.stringify({ success }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (url.startsWith("https://api.resend.com/")) {
+        return new Response(JSON.stringify({ id: "fake-resend-id" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      throw new Error(`Unexpected fetch to ${url}`);
+    }),
+  );
 }
 
 function postReport(body, headers = {}) {
@@ -74,8 +89,10 @@ describe("handleReportIssue", () => {
   it("stores contactEmail, sourcePage, and section when given", async () => {
     stubSiteverify(true);
     const res = await postReport({
-      message: "Broken thing", contactEmail: "me@example.com",
-      sourcePage: "https://climbinglogbook.com/devuser/map", section: "map",
+      message: "Broken thing",
+      contactEmail: "me@example.com",
+      sourcePage: "https://climbinglogbook.com/devuser/map",
+      section: "map",
       turnstileToken: "any-token",
     });
     expect(res.status).toBe(201);
@@ -90,7 +107,11 @@ describe("handleReportIssue", () => {
 
   it("rejects a section that isn't one of the known values", async () => {
     stubSiteverify(true);
-    const res = await postReport({ message: "Broken thing", section: "not-a-real-section", turnstileToken: "any-token" });
+    const res = await postReport({
+      message: "Broken thing",
+      section: "not-a-real-section",
+      turnstileToken: "any-token",
+    });
     expect(res.status).toBe(400);
   });
 
@@ -113,13 +134,22 @@ describe("handleReportIssue", () => {
   it("enforces the per-IP rate limit, then allows a fresh IP through", async () => {
     stubSiteverify(true);
     for (let i = 0; i < 5; i++) {
-      const res = await postReport({ message: `Report ${i}`, turnstileToken: "any-token" }, { "cf-connecting-ip": "1.2.3.4" });
+      const res = await postReport(
+        { message: `Report ${i}`, turnstileToken: "any-token" },
+        { "cf-connecting-ip": "1.2.3.4" },
+      );
       expect(res.status).toBe(201);
     }
-    const limited = await postReport({ message: "One too many", turnstileToken: "any-token" }, { "cf-connecting-ip": "1.2.3.4" });
+    const limited = await postReport(
+      { message: "One too many", turnstileToken: "any-token" },
+      { "cf-connecting-ip": "1.2.3.4" },
+    );
     expect(limited.status).toBe(429);
 
-    const otherIp = await postReport({ message: "Different connection", turnstileToken: "any-token" }, { "cf-connecting-ip": "5.6.7.8" });
+    const otherIp = await postReport(
+      { message: "Different connection", turnstileToken: "any-token" },
+      { "cf-connecting-ip": "5.6.7.8" },
+    );
     expect(otherIp.status).toBe(201);
   });
 

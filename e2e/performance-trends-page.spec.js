@@ -19,7 +19,15 @@ test("renders real bars and a grade-labeled line point", async ({ page }) => {
   await mockApi(page, {
     settings: { athleteMode: true, activeDiscipline: "boulder" },
     volumeData: {
-      boulder: { buckets: ["-3w", "-2w", "-1w"], sendCounts: [2, 5, 3], maxGradeByBucket: [null, { grade: "6B", gradeScale: "font-non-standard" }, { grade: "6C", gradeScale: "font-non-standard" }] },
+      boulder: {
+        buckets: ["-3w", "-2w", "-1w"],
+        sendCounts: [2, 5, 3],
+        maxGradeByBucket: [
+          null,
+          { grade: "6B", gradeScale: "font-non-standard" },
+          { grade: "6C", gradeScale: "font-non-standard" },
+        ],
+      },
       lead: { buckets: ["-3w", "-2w", "-1w"], sendCounts: [0, 0, 0], maxGradeByBucket: [null, null, null] },
     },
   });
@@ -34,7 +42,15 @@ test("switching the report grade scale relabels the chart's grade point", async 
   await mockApi(page, {
     settings: { athleteMode: true, activeDiscipline: "boulder" },
     volumeData: {
-      boulder: { buckets: ["-3w", "-2w", "-1w"], sendCounts: [2, 5, 3], maxGradeByBucket: [null, { grade: "6B", gradeScale: "font-non-standard" }, { grade: "6C", gradeScale: "font-non-standard" }] },
+      boulder: {
+        buckets: ["-3w", "-2w", "-1w"],
+        sendCounts: [2, 5, 3],
+        maxGradeByBucket: [
+          null,
+          { grade: "6B", gradeScale: "font-non-standard" },
+          { grade: "6C", gradeScale: "font-non-standard" },
+        ],
+      },
       lead: { buckets: ["-3w", "-2w", "-1w"], sendCounts: [0, 0, 0], maxGradeByBucket: [null, null, null] },
     },
   });
@@ -53,7 +69,12 @@ test("switching the time window to 52w re-fetches with a wider range", async ({ 
   await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
   await page.route("**/-/api/performance/volume**", route => {
     lastRequestUrl = route.request().url();
-    return route.fulfill({ json: { boulder: { buckets: [], sendCounts: [], maxGradeByBucket: [] }, lead: { buckets: [], sendCounts: [], maxGradeByBucket: [] } } });
+    return route.fulfill({
+      json: {
+        boulder: { buckets: [], sendCounts: [], maxGradeByBucket: [] },
+        lead: { buckets: [], sendCounts: [], maxGradeByBucket: [] },
+      },
+    });
   });
   await page.goto("/e2e-fixtures/pages/performance-trends.html");
   // The first fetch waits for the session and settings, so it lands after load.
@@ -73,7 +94,12 @@ test("Custom range: picking a start date via the calendar popover re-fetches wit
   await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
   await page.route("**/-/api/performance/volume**", route => {
     lastRequestUrl = route.request().url();
-    return route.fulfill({ json: { boulder: { buckets: [], sendCounts: [], maxGradeByBucket: [] }, lead: { buckets: [], sendCounts: [], maxGradeByBucket: [] } } });
+    return route.fulfill({
+      json: {
+        boulder: { buckets: [], sendCounts: [], maxGradeByBucket: [] },
+        lead: { buckets: [], sendCounts: [], maxGradeByBucket: [] },
+      },
+    });
   });
   await page.goto("/e2e-fixtures/pages/performance-trends.html");
   await expect.poll(() => lastRequestUrl).not.toBeNull();
@@ -82,7 +108,7 @@ test("Custom range: picking a start date via the calendar popover re-fetches wit
   await page.locator("#time-window-start-btn").click();
   await expect(page.locator("#time-window-start-popover")).toBeVisible();
 
-  const dayCell = page.locator('#time-window-start-grid button[data-date]').first();
+  const dayCell = page.locator("#time-window-start-grid button[data-date]").first();
   const pickedDate = await dayCell.getAttribute("data-date");
   await dayCell.click();
 

@@ -32,7 +32,9 @@ describe("beta gate enabled (BETA_GATE_ENABLED=true, wrangler.jsonc default)", (
     const res = await signUp({ code: "will-release", username: "bad-username!" });
     expect(res.ok).toBe(false);
 
-    const row = await env.LOGBOOK_DB.prepare(`SELECT used_at FROM beta_invites WHERE code = ?`).bind("will-release").first();
+    const row = await env.LOGBOOK_DB.prepare(`SELECT used_at FROM beta_invites WHERE code = ?`)
+      .bind("will-release")
+      .first();
     expect(row.used_at).toBeNull();
 
     const retry = await signUp({ code: "will-release", username: "goodusername" });
@@ -42,8 +44,12 @@ describe("beta gate enabled (BETA_GATE_ENABLED=true, wrangler.jsonc default)", (
 
 describe("beta gate disabled", () => {
   const original = env.BETA_GATE_ENABLED;
-  beforeEach(() => { env.BETA_GATE_ENABLED = "false"; });
-  afterEach(() => { env.BETA_GATE_ENABLED = original; });
+  beforeEach(() => {
+    env.BETA_GATE_ENABLED = "false";
+  });
+  afterEach(() => {
+    env.BETA_GATE_ENABLED = original;
+  });
 
   it("allows sign-up with no code at all", async () => {
     const res = await signUp({ code: undefined });

@@ -29,26 +29,36 @@ function openBrowser(url) {
 
 console.log("==> Starting dev server");
 // concurrently directly: each nested pnpm layer prints its own ELIFECYCLE line on Ctrl+C.
-const dev = spawn("concurrently", [
-  "-n", "vite,tailwind,html",
-  "-c", "blue,magenta,green",
-  "vite dev",
-  "tailwindcss -i ./styles/tailwind.css -o ./public/-/tailwind.css --watch",
-  "pnpm run html:watch",
-], {
-  stdio: ["inherit", "pipe", "inherit"],
-  shell: WIN,
-  // Piped stdout isn't a TTY, so force colour back on.
-  env: { ...process.env, FORCE_COLOR: "1" },
-  // Its own process group, so one signal stops the whole tree.
-  detached: !WIN,
-});
+const dev = spawn(
+  "concurrently",
+  [
+    "-n",
+    "vite,tailwind,html",
+    "-c",
+    "blue,magenta,green",
+    "vite dev",
+    "tailwindcss -i ./styles/tailwind.css -o ./public/-/tailwind.css --watch",
+    "pnpm run html:watch",
+  ],
+  {
+    stdio: ["inherit", "pipe", "inherit"],
+    shell: WIN,
+    // Piped stdout isn't a TTY, so force colour back on.
+    env: { ...process.env, FORCE_COLOR: "1" },
+    // Its own process group, so one signal stops the whole tree.
+    detached: !WIN,
+  },
+);
 
 function stopDev(sig) {
   if (WIN) {
     spawnSync("taskkill", ["/pid", String(dev.pid), "/T", "/F"]);
   } else {
-    try { process.kill(-dev.pid, sig); } catch { /* already gone */ }
+    try {
+      process.kill(-dev.pid, sig);
+    } catch {
+      /* already gone */
+    }
   }
 }
 

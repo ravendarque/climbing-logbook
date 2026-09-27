@@ -20,19 +20,27 @@ export async function handleGetPyramid(request, env, userId) {
   const sportScale = resolveViewScale("sport", url.searchParams.get("sportScale"));
 
   const entries = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
-  return json({
-    boulder: pyramidSplitRows("boulder", entries, boulderScale),
-    sport: pyramidSplitRows("sport", entries, sportScale),
-  }, 200, { "Cache-Control": "no-store" });
+  return json(
+    {
+      boulder: pyramidSplitRows("boulder", entries, boulderScale),
+      sport: pyramidSplitRows("sport", entries, sportScale),
+    },
+    200,
+    { "Cache-Control": "no-store" },
+  );
 }
 
 export async function handleGetInjuryLog(_request, env, userId) {
   const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
   const entries = await attachChildRows(rows, env);
-  return json({
-    log: painLogEntries(entries),
-    cluster: topPainCluster(entries),
-  }, 200, { "Cache-Control": "no-store" });
+  return json(
+    {
+      log: painLogEntries(entries),
+      cluster: topPainCluster(entries),
+    },
+    200,
+    { "Cache-Control": "no-store" },
+  );
 }
 
 export async function handleGetStrengthsWeaknesses(request, env, userId) {
@@ -48,10 +56,14 @@ export async function handleGetStrengthsWeaknesses(request, env, userId) {
   }
 
   const weakest = topWeakness(entries);
-  return json({
-    headline: weakest ? { cell: weakest, text: describeWeakness(weakest) } : null,
-    anchors: availableAnchors(entries),
-  }, 200, { "Cache-Control": "no-store" });
+  return json(
+    {
+      headline: weakest ? { cell: weakest, text: describeWeakness(weakest) } : null,
+      anchors: availableAnchors(entries),
+    },
+    200,
+    { "Cache-Control": "no-store" },
+  );
 }
 
 const DATE_SHAPE = /^\d{4}-\d{2}-\d{2}$/;
@@ -89,11 +101,17 @@ export async function handleGetVolume(request, env, userId) {
   const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
 
   function forDiscipline(type) {
-    const { sendCounts, maxGradeByBucket } = volumeByBucket(rows.filter(e => e.type === type), buckets, type);
+    const { sendCounts, maxGradeByBucket } = volumeByBucket(
+      rows.filter(e => e.type === type),
+      buckets,
+      type,
+    );
     return { buckets: buckets.map(weekBucketLabel), sendCounts, maxGradeByBucket };
   }
 
-  return json({ boulder: forDiscipline("boulder"), sport: forDiscipline("sport") }, 200, { "Cache-Control": "no-store" });
+  return json({ boulder: forDiscipline("boulder"), sport: forDiscipline("sport") }, 200, {
+    "Cache-Control": "no-store",
+  });
 }
 
 export async function handleGetGap(request, env, userId) {
@@ -107,7 +125,11 @@ export async function handleGetGap(request, env, userId) {
   const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
 
   function forDiscipline(type) {
-    const { flashMaxByBucket, sendMaxByBucket, avgAttemptsByBucket } = gapByBucket(rows.filter(e => e.type === type), buckets, type);
+    const { flashMaxByBucket, sendMaxByBucket, avgAttemptsByBucket } = gapByBucket(
+      rows.filter(e => e.type === type),
+      buckets,
+      type,
+    );
     return {
       buckets: buckets.map(weekBucketLabel),
       flashMaxByBucket,
@@ -117,7 +139,9 @@ export async function handleGetGap(request, env, userId) {
     };
   }
 
-  return json({ boulder: forDiscipline("boulder"), sport: forDiscipline("sport") }, 200, { "Cache-Control": "no-store" });
+  return json({ boulder: forDiscipline("boulder"), sport: forDiscipline("sport") }, 200, {
+    "Cache-Control": "no-store",
+  });
 }
 
 export async function handleGetEffort(request, env, userId) {
@@ -131,15 +155,27 @@ export async function handleGetEffort(request, env, userId) {
   const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
 
   function forDiscipline(type) {
-    const { maxGradeByBucket, avgExertionByBucket, rpeCountByBucket, overallAvgExertion, totalSends } =
-      effortByBucket(rows.filter(e => e.type === type), buckets, type);
+    const { maxGradeByBucket, avgExertionByBucket, rpeCountByBucket, overallAvgExertion, totalSends } = effortByBucket(
+      rows.filter(e => e.type === type),
+      buckets,
+      type,
+    );
     return {
       buckets: buckets.map(weekBucketLabel),
       maxGradeByBucket,
       avgExertionByBucket,
-      headline: effortHeadline(maxGradeByBucket, avgExertionByBucket, rpeCountByBucket, overallAvgExertion, totalSends, type),
+      headline: effortHeadline(
+        maxGradeByBucket,
+        avgExertionByBucket,
+        rpeCountByBucket,
+        overallAvgExertion,
+        totalSends,
+        type,
+      ),
     };
   }
 
-  return json({ boulder: forDiscipline("boulder"), sport: forDiscipline("sport") }, 200, { "Cache-Control": "no-store" });
+  return json({ boulder: forDiscipline("boulder"), sport: forDiscipline("sport") }, 200, {
+    "Cache-Control": "no-store",
+  });
 }

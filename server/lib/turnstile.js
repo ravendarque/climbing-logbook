@@ -24,7 +24,8 @@ export function createTurnstileHook(env) {
     // Fails closed, with its own code so an outage is distinguishable from a bad token.
     let data;
     try {
-      data = DUMMY_SECRET_RESPONSES[env.TURNSTILE_SECRET_KEY] ?? await verifySiteverify(env.TURNSTILE_SECRET_KEY, token);
+      data =
+        DUMMY_SECRET_RESPONSES[env.TURNSTILE_SECRET_KEY] ?? (await verifySiteverify(env.TURNSTILE_SECRET_KEY, token));
     } catch {
       throw new APIError("FORBIDDEN", {
         message: "Bot verification failed. Please try again.",
@@ -54,7 +55,8 @@ async function verifySiteverify(secret, token) {
 export async function verifyTurnstile(env, token) {
   if (typeof token !== "string" || !token) return false;
   try {
-    const data = DUMMY_SECRET_RESPONSES[env.TURNSTILE_SECRET_KEY] ?? await verifySiteverify(env.TURNSTILE_SECRET_KEY, token);
+    const data =
+      DUMMY_SECRET_RESPONSES[env.TURNSTILE_SECRET_KEY] ?? (await verifySiteverify(env.TURNSTILE_SECRET_KEY, token));
     return !!data.success;
   } catch {
     return false;

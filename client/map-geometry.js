@@ -1,6 +1,6 @@
 export const MAP_WIDTH = 960; // fixed across all variants -- only height varies per variant, see generate-world-map.mjs
 export const MAP_NARROW_ASPECT = 3 / 4; // width:height on narrow (<=600px) viewports -- taller than wide
-export const MAP_WIDE_ASPECT   = 4 / 3; // width:height on wide (>600px) viewports -- wider than tall, but still short of the full world's ~1.9:1
+export const MAP_WIDE_ASPECT = 4 / 3; // width:height on wide (>600px) viewports -- wider than tall, but still short of the full world's ~1.9:1
 export const MAP_MIN_W = MAP_WIDTH / 8; // max zoom-in: relative to the full world width, not the (smaller, aspect-dependent) default view
 export const MAP_VIEW_EPS = 0.01; // float slop for the button disabled-at-bounds checks
 

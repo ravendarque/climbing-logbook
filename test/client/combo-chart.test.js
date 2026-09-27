@@ -3,35 +3,65 @@ import { renderComboChartHtml } from "../../client/combo-chart.js";
 
 describe("renderComboChartHtml", () => {
   it("renders the headline sentence", () => {
-    const html = renderComboChartHtml({ bucketLabels: ["Jan 2026"], bars: [{ label: "Sends", values: [3] }], lines: [], headline: "3 sends this month." });
+    const html = renderComboChartHtml({
+      bucketLabels: ["Jan 2026"],
+      bars: [{ label: "Sends", values: [3] }],
+      lines: [],
+      headline: "3 sends this month.",
+    });
     expect(html).toContain("3 sends this month.");
   });
 
   it("renders one bar <rect> per bar value", () => {
-    const html = renderComboChartHtml({ bucketLabels: ["Jan 2026", "Feb 2026"], bars: [{ label: "Sends", values: [3, 5] }], lines: [], headline: "h" });
+    const html = renderComboChartHtml({
+      bucketLabels: ["Jan 2026", "Feb 2026"],
+      bars: [{ label: "Sends", values: [3, 5] }],
+      lines: [],
+      headline: "h",
+    });
     const rectCount = (html.match(/<rect[^>]*class="fill-accent"/g) || []).length;
     expect(rectCount).toBe(2);
   });
 
   it("renders a taller bar for a larger value", () => {
-    const html = renderComboChartHtml({ bucketLabels: ["Jan 2026", "Feb 2026"], bars: [{ label: "Sends", values: [2, 8] }], lines: [], headline: "h" });
+    const html = renderComboChartHtml({
+      bucketLabels: ["Jan 2026", "Feb 2026"],
+      bars: [{ label: "Sends", values: [2, 8] }],
+      lines: [],
+      headline: "h",
+    });
     const heights = [...html.matchAll(/<rect[^>]*height="([\d.]+)"[^>]*class="fill-accent"/g)].map(m => Number(m[1]));
     expect(heights).toHaveLength(2);
     expect(heights[1]).toBeGreaterThan(heights[0]);
   });
 
   it("renders a border framing the full plot area, even when every bar is short", () => {
-    const html = renderComboChartHtml({ bucketLabels: ["Jan 2026"], bars: [{ label: "Sends", values: [1] }], lines: [], headline: "h" });
+    const html = renderComboChartHtml({
+      bucketLabels: ["Jan 2026"],
+      bars: [{ label: "Sends", values: [1] }],
+      lines: [],
+      headline: "h",
+    });
     expect(html).toMatch(/<rect[^>]*class="fill-none stroke-border"/);
   });
 
   it("renders a numeric data label on each bar", () => {
-    const html = renderComboChartHtml({ bucketLabels: ["Jan 2026"], bars: [{ label: "Sends", values: [7] }], lines: [], headline: "h" });
+    const html = renderComboChartHtml({
+      bucketLabels: ["Jan 2026"],
+      bars: [{ label: "Sends", values: [7] }],
+      lines: [],
+      headline: "h",
+    });
     expect(html).toContain(">7<");
   });
 
   it("renders every bucket label on the x-axis", () => {
-    const html = renderComboChartHtml({ bucketLabels: ["Jan 2026", "Feb 2026", "Mar 2026"], bars: [{ label: "Sends", values: [1, 2, 3] }], lines: [], headline: "h" });
+    const html = renderComboChartHtml({
+      bucketLabels: ["Jan 2026", "Feb 2026", "Mar 2026"],
+      bars: [{ label: "Sends", values: [1, 2, 3] }],
+      lines: [],
+      headline: "h",
+    });
     expect(html).toContain("Jan 2026");
     expect(html).toContain("Feb 2026");
     expect(html).toContain("Mar 2026");
@@ -41,7 +71,13 @@ describe("renderComboChartHtml", () => {
     const html = renderComboChartHtml({
       bucketLabels: ["Jan 2026"],
       bars: [{ label: "Sends", values: [1] }],
-      lines: [{ label: "Max grade", points: [{ positionKey: "6B", displayLabel: "V4" }], positionOrder: ["5", "6A", "6B", "6C"] }],
+      lines: [
+        {
+          label: "Max grade",
+          points: [{ positionKey: "6B", displayLabel: "V4" }],
+          positionOrder: ["5", "6A", "6B", "6C"],
+        },
+      ],
       headline: "h",
     });
     expect(html).toContain(">V4<");
@@ -52,11 +88,16 @@ describe("renderComboChartHtml", () => {
     const html = renderComboChartHtml({
       bucketLabels: ["Jan 2026", "Feb 2026"],
       bars: [{ label: "Sends", values: [1, 1] }],
-      lines: [{
-        label: "Max grade",
-        points: [{ positionKey: "5", displayLabel: "V0" }, { positionKey: "6C", displayLabel: "V5" }],
-        positionOrder: ["5", "6A", "6B", "6C"],
-      }],
+      lines: [
+        {
+          label: "Max grade",
+          points: [
+            { positionKey: "5", displayLabel: "V0" },
+            { positionKey: "6C", displayLabel: "V5" },
+          ],
+          positionOrder: ["5", "6A", "6B", "6C"],
+        },
+      ],
       headline: "h",
     });
     const circles = [...html.matchAll(/<circle[^>]*cy="([\d.]+)"/g)].map(m => Number(m[1]));
@@ -69,8 +110,22 @@ describe("renderComboChartHtml", () => {
       bucketLabels: ["Jan 2026", "Feb 2026"],
       bars: [],
       lines: [
-        { label: "Flash", points: [{ positionKey: "6A", displayLabel: "V3" }, { positionKey: "6B", displayLabel: "V4" }], positionOrder: ["6A", "6B"] },
-        { label: "Send", points: [{ positionKey: "6B", displayLabel: "V4" }, { positionKey: "6C", displayLabel: "V5" }], positionOrder: ["6A", "6B", "6C"] },
+        {
+          label: "Flash",
+          points: [
+            { positionKey: "6A", displayLabel: "V3" },
+            { positionKey: "6B", displayLabel: "V4" },
+          ],
+          positionOrder: ["6A", "6B"],
+        },
+        {
+          label: "Send",
+          points: [
+            { positionKey: "6B", displayLabel: "V4" },
+            { positionKey: "6C", displayLabel: "V5" },
+          ],
+          positionOrder: ["6A", "6B", "6C"],
+        },
       ],
       headline: "h",
     });
@@ -87,7 +142,9 @@ describe("renderComboChartHtml", () => {
     const html = renderComboChartHtml({
       bucketLabels: ["Jan 2026", "Feb 2026"],
       bars: [{ label: "Sends", values: [0, 1] }],
-      lines: [{ label: "Max grade", points: [null, { positionKey: "6A", displayLabel: "V3" }], positionOrder: ["5", "6A"] }],
+      lines: [
+        { label: "Max grade", points: [null, { positionKey: "6A", displayLabel: "V3" }], positionOrder: ["5", "6A"] },
+      ],
       headline: "h",
     });
     const circleCount = (html.match(/<circle/g) || []).length;
@@ -95,7 +152,14 @@ describe("renderComboChartHtml", () => {
   });
 
   it("handles an all-zero bar series without dividing by zero", () => {
-    expect(() => renderComboChartHtml({ bucketLabels: ["Jan 2026"], bars: [{ label: "Sends", values: [0] }], lines: [], headline: "h" })).not.toThrow();
+    expect(() =>
+      renderComboChartHtml({
+        bucketLabels: ["Jan 2026"],
+        bars: [{ label: "Sends", values: [0] }],
+        lines: [],
+        headline: "h",
+      }),
+    ).not.toThrow();
   });
 
   it("handles a positionOrder of length 1 without dividing by zero", () => {
@@ -109,7 +173,12 @@ describe("renderComboChartHtml", () => {
   });
 
   it("renders y-axis tick label text for a bar series with a real max value", () => {
-    const html = renderComboChartHtml({ bucketLabels: ["Jan 2026"], bars: [{ label: "Sends", values: [10] }], lines: [], headline: "h" });
+    const html = renderComboChartHtml({
+      bucketLabels: ["Jan 2026"],
+      bars: [{ label: "Sends", values: [10] }],
+      lines: [],
+      headline: "h",
+    });
     expect(html).toContain(">5<");
     expect(html).toContain(">10<");
   });
@@ -126,7 +195,12 @@ describe("renderComboChartHtml", () => {
   });
 
   it("#603 -- renders a null bar value as a dash, not a zero-height rect", () => {
-    const html = renderComboChartHtml({ bucketLabels: ["Jan 2026"], bars: [{ label: "Avg attempts", values: [null] }], lines: [], headline: "h" });
+    const html = renderComboChartHtml({
+      bucketLabels: ["Jan 2026"],
+      bars: [{ label: "Avg attempts", values: [null] }],
+      lines: [],
+      headline: "h",
+    });
     const rectCount = (html.match(/<rect[^>]*class="fill-accent"/g) || []).length;
     expect(rectCount).toBe(0);
     expect(html).toContain(">–<");
@@ -146,13 +220,23 @@ describe("renderComboChartHtml", () => {
   });
 
   it("#603 -- a null bar value doesn't distort the y-axis scale computed from real values", () => {
-    const html = renderComboChartHtml({ bucketLabels: ["Jan 2026", "Feb 2026"], bars: [{ label: "Avg attempts", values: [null, 10] }], lines: [], headline: "h" });
+    const html = renderComboChartHtml({
+      bucketLabels: ["Jan 2026", "Feb 2026"],
+      bars: [{ label: "Avg attempts", values: [null, 10] }],
+      lines: [],
+      headline: "h",
+    });
     expect(html).toContain(">5<");
     expect(html).toContain(">10<");
   });
 
   it("#603 -- an all-null bar series doesn't throw and produces no rects", () => {
-    const html = renderComboChartHtml({ bucketLabels: ["Jan 2026", "Feb 2026"], bars: [{ label: "Avg attempts", values: [null, null] }], lines: [], headline: "h" });
+    const html = renderComboChartHtml({
+      bucketLabels: ["Jan 2026", "Feb 2026"],
+      bars: [{ label: "Avg attempts", values: [null, null] }],
+      lines: [],
+      headline: "h",
+    });
     const rectCount = (html.match(/<rect[^>]*class="fill-accent"/g) || []).length;
     expect(rectCount).toBe(0);
     const dashCount = (html.match(/>–</g) || []).length;
@@ -162,7 +246,10 @@ describe("renderComboChartHtml", () => {
   it("renders multiple bar series side by side within the same bucket slot, not stacked", () => {
     const html = renderComboChartHtml({
       bucketLabels: ["Jan 2026"],
-      bars: [{ label: "A", values: [3] }, { label: "B", values: [5] }],
+      bars: [
+        { label: "A", values: [3] },
+        { label: "B", values: [5] },
+      ],
       lines: [],
       headline: "h",
     });

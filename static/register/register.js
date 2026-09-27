@@ -24,7 +24,7 @@ window.onTurnstileLoad = () => {
   turnstileWidgetId = window.turnstile.render("#turnstile-widget", { sitekey });
 };
 
-form.addEventListener("submit", async (event) => {
+form.addEventListener("submit", async event => {
   event.preventDefault();
   errorEl.hidden = true;
   submitBtn.disabled = true;

@@ -2,8 +2,21 @@
 
 // From obscenity's englishDataset, whose allowlist keeps innocent words (grape, therapist) passing.
 export const OBSCENITY_PHRASES = [
-  "abeed", "abo", "africoon", "arabush", "boonga", "chingchong", "chink",
-  "dyke", "fag", "kike", "negro", "nigger", "rape", "retard", "spastic",
+  "abeed",
+  "abo",
+  "africoon",
+  "arabush",
+  "boonga",
+  "chingchong",
+  "chink",
+  "dyke",
+  "fag",
+  "kike",
+  "negro",
+  "nigger",
+  "rape",
+  "retard",
+  "spastic",
   "tranny",
 ];
 

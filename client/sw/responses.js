@@ -9,8 +9,12 @@ export function shellCacheKey(page, origin) {
 
 // Only when the server marked it as this page's shell, so a redirect or error page never is.
 export function isCacheableShell(response, page) {
-  return response.ok && !response.redirected && response.type !== "opaqueredirect"
-    && response.headers.get(SHELL_HEADER) === page;
+  return (
+    response.ok &&
+    !response.redirected &&
+    response.type !== "opaqueredirect" &&
+    response.headers.get(SHELL_HEADER) === page
+  );
 }
 
 // Static assets: only successful, same-origin responses.

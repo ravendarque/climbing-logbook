@@ -17,7 +17,12 @@ describe("applyPendingQueue", () => {
 
     it("skips a location whose id already exists (dedupe)", () => {
       const locations = [{ id: "l1", name: "Magic Wood" }];
-      const result = applyPendingQueue([{ kind: "location", record: { id: "l1", name: "Magic Wood" } }], [], [], locations);
+      const result = applyPendingQueue(
+        [{ kind: "location", record: { id: "l1", name: "Magic Wood" } }],
+        [],
+        [],
+        locations,
+      );
       expect(result.locations).toHaveLength(1);
     });
   });
@@ -43,7 +48,12 @@ describe("applyPendingQueue", () => {
 
     it("skips an add whose id already exists (dedupe)", () => {
       const entries = [{ id: "e1", grade: "6A" }];
-      const result = applyPendingQueue([{ kind: "entry", op: "add", record: { id: "e1", grade: "6A" } }], entries, [], []);
+      const result = applyPendingQueue(
+        [{ kind: "entry", op: "add", record: { id: "e1", grade: "6A" } }],
+        entries,
+        [],
+        [],
+      );
       expect(result.entries).toHaveLength(1);
     });
 
@@ -56,19 +66,34 @@ describe("applyPendingQueue", () => {
 
     it("no-ops a delete for an id that isn't present", () => {
       const entries = [{ id: "e1", grade: "6A" }];
-      const result = applyPendingQueue([{ kind: "entry", op: "delete", record: { id: "does-not-exist" } }], entries, [], []);
+      const result = applyPendingQueue(
+        [{ kind: "entry", op: "delete", record: { id: "does-not-exist" } }],
+        entries,
+        [],
+        [],
+      );
       expect(result.entries).toEqual([{ id: "e1", grade: "6A" }]);
     });
 
     it("marks a matching entry pending on op:edit", () => {
       const entries = [{ id: "e1", grade: "6A" }];
-      const result = applyPendingQueue([{ kind: "entry", op: "edit", record: { id: "e1", grade: "6B" } }], entries, [], []);
+      const result = applyPendingQueue(
+        [{ kind: "entry", op: "edit", record: { id: "e1", grade: "6B" } }],
+        entries,
+        [],
+        [],
+      );
       expect(result.entries[0]).toEqual({ id: "e1", grade: "6B", _pending: true });
     });
 
     it("no-ops an edit for an id that isn't present", () => {
       const entries = [{ id: "e1", grade: "6A" }];
-      const result = applyPendingQueue([{ kind: "entry", op: "edit", record: { id: "does-not-exist", grade: "6B" } }], entries, [], []);
+      const result = applyPendingQueue(
+        [{ kind: "entry", op: "edit", record: { id: "does-not-exist", grade: "6B" } }],
+        entries,
+        [],
+        [],
+      );
       expect(result.entries).toEqual([{ id: "e1", grade: "6A" }]);
     });
   });

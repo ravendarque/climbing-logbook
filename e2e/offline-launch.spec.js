@@ -18,7 +18,9 @@ async function warm(page, path) {
   await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
 }
 
-test.beforeEach(async ({ context }) => { await addOwnedRouteSessionCookie(context); });
+test.beforeEach(async ({ context }) => {
+  await addOwnedRouteSessionCookie(context);
+});
 
 test("an owner page registers the root-scoped worker and is controlled by it", async ({ page }) => {
   await warm(page, "/log");
@@ -26,7 +28,10 @@ test("an owner page registers the root-scoped worker and is controlled by it", a
   expect(scope).toBe(`${ORIGIN}/`);
 });
 
-test("offline cold launch: a fresh navigation to a visited owner page renders from the device", async ({ page, context }) => {
+test("offline cold launch: a fresh navigation to a visited owner page renders from the device", async ({
+  page,
+  context,
+}) => {
   await warm(page, "/log");
   await warm(page, "/map");
   await context.setOffline(true);
@@ -68,7 +73,10 @@ test("after visiting only /log, every owner page opens offline", async ({ page, 
   await context.setOffline(false);
 });
 
-test("the installed app's start page (/-/launch/) opens offline and lands on the signed-in user's log", async ({ page, context }) => {
+test("the installed app's start page (/-/launch/) opens offline and lands on the signed-in user's log", async ({
+  page,
+  context,
+}) => {
   await warm(page, "/log");
   await context.setOffline(true);
   const app = await context.newPage();
@@ -82,16 +90,22 @@ test("an interrupted install keeps what it fetched, and the retry fetches only t
   const workerFetches = [];
   let failManifest = true;
   await context.route("**/-/manifest.json", route => (failManifest ? route.abort() : route.fallback()));
-  context.on("request", req => { if (req.serviceWorker()) workerFetches.push(new URL(req.url()).pathname + new URL(req.url()).search); });
+  context.on("request", req => {
+    if (req.serviceWorker()) workerFetches.push(new URL(req.url()).pathname + new URL(req.url()).search);
+  });
 
   const url = ownedRouteUrl(DEV_USER.username, "/log");
   await page.goto(url);
   await page.waitForURL(url);
   await expect.poll(() => workerFetches.includes("/-/manifest.json")).toBe(true);
-  await expect.poll(() => page.evaluate(async () => {
-    const registration = await navigator.serviceWorker.getRegistration();
-    return !registration?.installing && !registration?.active;
-  })).toBe(true);
+  await expect
+    .poll(() =>
+      page.evaluate(async () => {
+        const registration = await navigator.serviceWorker.getRegistration();
+        return !registration?.installing && !registration?.active;
+      }),
+    )
+    .toBe(true);
   const firstAttempt = workerFetches.length;
   expect(firstAttempt).toBeGreaterThan(40);
 
@@ -106,7 +120,8 @@ test("a warm launch takes the document and every static asset from the worker, n
   const fromNetwork = [];
   page.on("response", res => {
     const url = new URL(res.url());
-    const isShellOrAsset = res.request().isNavigationRequest() || url.pathname.startsWith("/-/") && !url.pathname.startsWith("/-/api/");
+    const isShellOrAsset =
+      res.request().isNavigationRequest() || (url.pathname.startsWith("/-/") && !url.pathname.startsWith("/-/api/"));
     if (isShellOrAsset && !res.fromServiceWorker()) fromNetwork.push(url.pathname);
   });
   const nav = await page.goto(ownedRouteUrl(DEV_USER.username, "/log"));
@@ -156,9 +171,13 @@ test("logging out deletes the worker's caches: no owner shell survives the sessi
 
   // Stubbed: a real sign-out would end the shared dev session. The login page's session check is told
   // there's none, as after a real sign-out, or it would bounce back to /log.
-  await page.route("**/-/api/auth/sign-out", route => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }));
+  await page.route("**/-/api/auth/sign-out", route =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  );
   await page.locator("#header-menu-btn").click();
-  await page.route("**/-/api/auth/get-session", route => route.fulfill({ status: 200, contentType: "application/json", body: "null" }));
+  await page.route("**/-/api/auth/get-session", route =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "null" }),
+  );
   await page.locator("#login-toggle-btn").click();
   await page.waitForURL(url => url.pathname === "/-/login/");
   await page.waitForLoadState("networkidle");
@@ -168,8 +187,13 @@ test("logging out deletes the worker's caches: no owner shell survives the sessi
   expect(after.filter(p => !p.startsWith("/-/"))).toEqual([]);
 });
 
-test("a device registered at the old /sw.js switches to /service-worker.js on its next owner-page load", async ({ page, context }) => {
-  await context.route("**/sw.js", route => route.fulfill({ contentType: "text/javascript", body: "self.addEventListener('fetch', () => {});" }));
+test("a device registered at the old /sw.js switches to /service-worker.js on its next owner-page load", async ({
+  page,
+  context,
+}) => {
+  await context.route("**/sw.js", route =>
+    route.fulfill({ contentType: "text/javascript", body: "self.addEventListener('fetch', () => {});" }),
+  );
   await page.goto(`${ORIGIN}/${DEV_USER.username}`);
   await page.evaluate(async () => {
     await navigator.serviceWorker.register("/sw.js", { scope: "/" });
@@ -177,10 +201,17 @@ test("a device registered at the old /sw.js switches to /service-worker.js on it
   });
 
   await warm(page, "/log");
-  await expect.poll(() => page.evaluate(async () => {
-    const registrations = await navigator.serviceWorker.getRegistrations();
-    return registrations.map(r => [new URL(r.scope).pathname, new URL(r.active?.scriptURL ?? "http://x/none").pathname]);
-  })).toEqual([["/", "/service-worker.js"]]);
+  await expect
+    .poll(() =>
+      page.evaluate(async () => {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        return registrations.map(r => [
+          new URL(r.scope).pathname,
+          new URL(r.active?.scriptURL ?? "http://x/none").pathname,
+        ]);
+      }),
+    )
+    .toEqual([["/", "/service-worker.js"]]);
 });
 
 test("a lapsed session: reads 401 and the worker-served page keeps the cached logbook", async ({ page, context }) => {
@@ -193,7 +224,8 @@ test("a lapsed session: reads 401 and the worker-served page keeps the cached lo
   const lapsed = await context.newPage();
   lapsed.on("response", res => {
     const { pathname } = new URL(res.url());
-    if (res.request().method() === "GET" && /^\/-\/api\/(entries|places|locations|settings)$/.test(pathname)) reads.push(`${pathname} ${res.status()}`);
+    if (res.request().method() === "GET" && /^\/-\/api\/(entries|places|locations|settings)$/.test(pathname))
+      reads.push(`${pathname} ${res.status()}`);
   });
   await lapsed.goto(ownedRouteUrl(DEV_USER.username, "/log"));
   await lapsed.waitForLoadState("networkidle");

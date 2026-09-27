@@ -11,8 +11,7 @@ export async function redirectIfLoggedIn(contentEl) {
         try {
           const settingsRes = await fetch("/-/api/settings");
           betaOptIn = (await settingsRes.json()).betaOptIn;
-        } catch {
-        }
+        } catch {}
       }
       location.href = resolvePostLoginTarget({
         hostname: location.hostname,

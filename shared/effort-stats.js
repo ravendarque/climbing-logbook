@@ -27,7 +27,7 @@ export function effortByBucket(entries, buckets, type) {
 
   // null, not 0: a bucket with no RPE data is not a measured zero.
   const avgExertionByBucket = rpeCountByBucket.map((count, i) =>
-    count ? Math.round((rpeSumByBucket[i] / count) * 10) / 10 : null
+    count ? Math.round((rpeSumByBucket[i] / count) * 10) / 10 : null,
   );
   const overallAvgExertion = totalRpeCount ? Math.round((totalRpeSum / totalRpeCount) * 10) / 10 : null;
 
@@ -39,20 +39,31 @@ const SEND_TERM = { boulder: "send", sport: "redpoint" };
 
 function firstLastIndicesWithData(hasDataFlags) {
   const indices = [];
-  hasDataFlags.forEach((hasData, i) => { if (hasData) indices.push(i); });
+  hasDataFlags.forEach((hasData, i) => {
+    if (hasData) indices.push(i);
+  });
   return indices.length >= 2 ? [indices[0], indices[indices.length - 1]] : null;
 }
 
-export function effortHeadline(maxGradeByBucket, avgExertionByBucket, rpeCountByBucket, overallAvgExertion, totalSends, type) {
+export function effortHeadline(
+  maxGradeByBucket,
+  avgExertionByBucket,
+  rpeCountByBucket,
+  overallAvgExertion,
+  totalSends,
+  type,
+) {
   if (totalSends < MIN_SEND_SAMPLE) return null;
 
   const gradeRange = firstLastIndicesWithData(maxGradeByBucket.map(g => g !== null));
-  const gradeTrendUp = gradeRange !== null &&
+  const gradeTrendUp =
+    gradeRange !== null &&
     reportGradeOrdinal(maxGradeByBucket[gradeRange[1]].grade, maxGradeByBucket[gradeRange[1]].gradeScale, type) >
-    reportGradeOrdinal(maxGradeByBucket[gradeRange[0]].grade, maxGradeByBucket[gradeRange[0]].gradeScale, type);
+      reportGradeOrdinal(maxGradeByBucket[gradeRange[0]].grade, maxGradeByBucket[gradeRange[0]].gradeScale, type);
 
   const rpeRange = firstLastIndicesWithData(rpeCountByBucket.map(c => c > 0));
-  const exertionTrendUp = rpeRange !== null && (avgExertionByBucket[rpeRange[1]] - avgExertionByBucket[rpeRange[0]]) >= EXERTION_RISE_MARGIN;
+  const exertionTrendUp =
+    rpeRange !== null && avgExertionByBucket[rpeRange[1]] - avgExertionByBucket[rpeRange[0]] >= EXERTION_RISE_MARGIN;
 
   if (gradeTrendUp && exertionTrendUp) {
     return "Your effort is rising alongside your grade -- sounds like it's paying off. Climbing-specific session-RPE research has found a real link between logged effort and training load, so a trend like this is a reasonable signal the extra push is translating into progress, not just extra fatigue.";

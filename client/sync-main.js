@@ -36,9 +36,8 @@ function setProgress(loaded, total) {
   const pct = total > 0 ? Math.round((loaded / total) * 100) : 0;
   fillEl.style.width = `${pct}%`;
   trackEl.setAttribute("aria-valuenow", String(pct));
-  detailEl.textContent = total > 0
-    ? `${loaded.toLocaleString()} / ${total.toLocaleString()} entries`
-    : "Setting things up";
+  detailEl.textContent =
+    total > 0 ? `${loaded.toLocaleString()} / ${total.toLocaleString()} entries` : "Setting things up";
 }
 
 async function fetchJson(url) {
@@ -60,7 +59,9 @@ async function syncEntriesCold(store) {
   let next = null;
   setProgress(0, 0);
   do {
-    const after = next ? `&afterCreatedAt=${encodeURIComponent(next.createdAt)}&afterId=${encodeURIComponent(next.id)}` : "";
+    const after = next
+      ? `&afterCreatedAt=${encodeURIComponent(next.createdAt)}&afterId=${encodeURIComponent(next.id)}`
+      : "";
     const chunk = await fetchJson(`${ENTRIES_URL}?limit=${CHUNK_SIZE}${after}`);
     entries = entries.concat(chunk.entries);
     cursor ??= chunk.cursor;
@@ -78,10 +79,7 @@ async function runSync(store) {
   setProgress(0, 0);
 
   // Places and locations first: entries reference them.
-  await Promise.all([
-    syncByDelta(store, "places", PLACES_URL),
-    syncByDelta(store, "locations", LOCATIONS_URL),
-  ]);
+  await Promise.all([syncByDelta(store, "places", PLACES_URL), syncByDelta(store, "locations", LOCATIONS_URL)]);
 
   if (warm) await syncByDelta(store, "entries", ENTRIES_URL);
   else await syncEntriesCold(store);

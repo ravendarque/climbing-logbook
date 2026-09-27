@@ -86,12 +86,55 @@ describe("gradeMatchesSearch", () => {
 
 describe("filteredEntries", () => {
   const entries = [
-    { id: "e1", type: "boulder", status: "send", firstAttempt: true, grade: "6A", gradeScale: "font", name: "Font Classic", placeId: "p1" },
-    { id: "e2", type: "boulder", status: "project", firstAttempt: false, grade: "7A", gradeScale: "font", name: "Karma", placeId: "p1" },
-    { id: "e3", type: "sport", status: "send", firstAttempt: false, grade: "6a", gradeScale: "french", name: "Voie des Dalles", placeId: "p2", sportStyle: "lead" },
-    { id: "e4", type: "sport", status: "send", firstAttempt: false, grade: "6b", gradeScale: "french", name: "Top-Rope Route", placeId: "p2", sportStyle: "top_rope" },
+    {
+      id: "e1",
+      type: "boulder",
+      status: "send",
+      firstAttempt: true,
+      grade: "6A",
+      gradeScale: "font",
+      name: "Font Classic",
+      placeId: "p1",
+    },
+    {
+      id: "e2",
+      type: "boulder",
+      status: "project",
+      firstAttempt: false,
+      grade: "7A",
+      gradeScale: "font",
+      name: "Karma",
+      placeId: "p1",
+    },
+    {
+      id: "e3",
+      type: "sport",
+      status: "send",
+      firstAttempt: false,
+      grade: "6a",
+      gradeScale: "french",
+      name: "Voie des Dalles",
+      placeId: "p2",
+      sportStyle: "lead",
+    },
+    {
+      id: "e4",
+      type: "sport",
+      status: "send",
+      firstAttempt: false,
+      grade: "6b",
+      gradeScale: "french",
+      name: "Top-Rope Route",
+      placeId: "p2",
+      sportStyle: "top_rope",
+    },
   ];
-  const baseFilters = { activeType: "boulder", statusFilters: new Set(["flash", "send", "project"]), gradeTiers: null, search: "" };
+  const baseFilters = {
+    activeType: "boulder",
+    statusFilters: new Set(["flash", "send", "project"]),
+    gradeTiers: null,
+    search: "",
+  };
 
   it("filters to only the active discipline", () => {
     const result = filteredEntries(entries, PLACES, baseFilters);
@@ -109,8 +152,12 @@ describe("filteredEntries", () => {
   });
 
   it("filters by grade tier, derived from (grade, gradeScale)", () => {
-    expect(filteredEntries(entries, PLACES, { ...baseFilters, gradeTiers: new Set(["intermediate"]) }).map(e => e.id)).toEqual(["e1"]);
-    expect(filteredEntries(entries, PLACES, { ...baseFilters, gradeTiers: new Set(["advanced"]) }).map(e => e.id)).toEqual(["e2"]);
+    expect(
+      filteredEntries(entries, PLACES, { ...baseFilters, gradeTiers: new Set(["intermediate"]) }).map(e => e.id),
+    ).toEqual(["e1"]);
+    expect(
+      filteredEntries(entries, PLACES, { ...baseFilters, gradeTiers: new Set(["advanced"]) }).map(e => e.id),
+    ).toEqual(["e2"]);
   });
 
   it("an empty gradeTiers shows nothing, same 'means exactly what it contains' rule as statusFilters (#63)", () => {
@@ -128,7 +175,14 @@ describe("filteredEntries", () => {
 
   it("filters by grade label search, alongside name/area", () => {
     expect(filteredEntries(entries, PLACES, { ...baseFilters, search: "6a" }).map(e => e.id)).toEqual(["e1"]);
-    expect(filteredEntries(entries, PLACES, { ...baseFilters, activeType: "sport", statusFilters: new Set(["send"]), search: "6a" }).map(e => e.id)).toEqual(["e3"]);
+    expect(
+      filteredEntries(entries, PLACES, {
+        ...baseFilters,
+        activeType: "sport",
+        statusFilters: new Set(["send"]),
+        search: "6a",
+      }).map(e => e.id),
+    ).toEqual(["e3"]);
   });
 
   const sportFilters = { ...baseFilters, activeType: "sport", statusFilters: new Set(["send"]) };
@@ -210,6 +264,9 @@ describe("sortEntries", () => {
       { id: "s1", grade: "6a", date: "2025-01-01", name: "Zebra", placeId: "p2" },
       { id: "s2", grade: "4a", date: "2026-01-01", name: "Apple", placeId: "p1" },
     ];
-    expect(sortEntries(sportEntries, { col: "grade", dir: "asc" }, PLACES, "sport").map(e => e.id)).toEqual(["s2", "s1"]);
+    expect(sortEntries(sportEntries, { col: "grade", dir: "asc" }, PLACES, "sport").map(e => e.id)).toEqual([
+      "s2",
+      "s1",
+    ]);
   });
 });

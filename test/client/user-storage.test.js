@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { adoptLegacyUserData, ownerOfPath, PER_USER_KEYS, readSignedInUser, SIGNED_IN_USER_KEY, userKey, writeSignedInUser, clearSignedInUser } from "../../client/user-storage.js";
+import {
+  adoptLegacyUserData,
+  ownerOfPath,
+  PER_USER_KEYS,
+  readSignedInUser,
+  SIGNED_IN_USER_KEY,
+  userKey,
+  writeSignedInUser,
+  clearSignedInUser,
+} from "../../client/user-storage.js";
 
 function memoryStorage(entries = {}) {
   const map = new Map(Object.entries(entries));

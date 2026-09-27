@@ -17,35 +17,44 @@ test("logs in via the login page, then logs out again", async ({ page }) => {
   expect(session?.user?.email).toBe(DEV_USER.email);
 
   // A bare POST with no body silently fails to end the session.
-  await page.evaluate(() => fetch("/-/api/auth/sign-out", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: "{}",
-  }));
+  await page.evaluate(() =>
+    fetch("/-/api/auth/sign-out", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    }),
+  );
   const afterSignOut = await page.evaluate(() => fetch("/-/api/auth/get-session").then(r => r.json()));
   expect(afterSignOut).toBeNull();
 });
 
-test("an enrolled user logging in on a non-apex host skips the channel read and lands on /log on the same origin", async ({ page }) => {
+test("an enrolled user logging in on a non-apex host skips the channel read and lands on /log on the same origin", async ({
+  page,
+}) => {
   await page.goto("/login/");
   await page.evaluate(
-    ({ email, password }) => fetch("/-/api/auth/sign-in/email", {
+    ({ email, password }) =>
+      fetch("/-/api/auth/sign-in/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      }),
+    { email: DEV_USER.email, password: DEV_USER.password },
+  );
+  await page.evaluate(() =>
+    fetch("/-/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ betaOptIn: true }),
+    }),
+  );
+  await page.evaluate(() =>
+    fetch("/-/api/auth/sign-out", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: "{}",
     }),
-    { email: DEV_USER.email, password: DEV_USER.password }
   );
-  await page.evaluate(() => fetch("/-/api/settings", {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ betaOptIn: true }),
-  }));
-  await page.evaluate(() => fetch("/-/api/auth/sign-out", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: "{}",
-  }));
 
   await page.goto("/login/");
   await page.locator("#email").fill(DEV_USER.email);

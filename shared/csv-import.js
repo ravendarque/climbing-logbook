@@ -1,8 +1,20 @@
 // The template's header row, in order. New columns go at the end so an old template needs only one added.
 export const CSV_COLUMNS = [
-  "name", "grade", "discipline", "status", "firstAttempt",
-  "date", "location", "area", "country", "video", "notes", "sportStyle",
-  "attemptsToSend", "rpe", "gradeScale",
+  "name",
+  "grade",
+  "discipline",
+  "status",
+  "firstAttempt",
+  "date",
+  "location",
+  "area",
+  "country",
+  "video",
+  "notes",
+  "sportStyle",
+  "attemptsToSend",
+  "rpe",
+  "gradeScale",
 ];
 
 export function buildTemplateCsv() {
@@ -20,8 +32,12 @@ function parseRows(text) {
     const ch = normalized[i];
     if (inQuotes) {
       if (ch === '"') {
-        if (normalized[i + 1] === '"') { field += '"'; i++; }
-        else { inQuotes = false; }
+        if (normalized[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
       } else {
         field += ch;
       }
@@ -29,16 +45,22 @@ function parseRows(text) {
       // RFC 4180: only a leading quote opens a quoted field, so 6" crimp keeps its quote.
       inQuotes = true;
     } else if (ch === ",") {
-      row.push(field); field = "";
+      row.push(field);
+      field = "";
     } else if (ch === "\n") {
-      row.push(field); field = "";
-      rows.push(row); row = [];
+      row.push(field);
+      field = "";
+      rows.push(row);
+      row = [];
     } else {
       field += ch;
     }
   }
   // A file with no trailing newline still has one final field/row pending.
-  if (field !== "" || row.length > 0) { row.push(field); rows.push(row); }
+  if (field !== "" || row.length > 0) {
+    row.push(field);
+    rows.push(row);
+  }
 
   return rows;
 }
@@ -61,7 +83,9 @@ export function parseCsvText(text) {
 
   const parsedRows = dataRows.map(cells => {
     const row = {};
-    CSV_COLUMNS.forEach((col, i) => { row[col] = (cells[i] ?? "").trim(); });
+    CSV_COLUMNS.forEach((col, i) => {
+      row[col] = (cells[i] ?? "").trim();
+    });
     return row;
   });
 
@@ -76,7 +100,8 @@ export function parseJsonText(text) {
   } catch {
     return { ok: false, error: "JSON file isn't valid JSON." };
   }
-  if (!Array.isArray(parsed)) return { ok: false, error: "JSON file must be an array of entries, the same shape 'Export as JSON' produces." };
+  if (!Array.isArray(parsed))
+    return { ok: false, error: "JSON file must be an array of entries, the same shape 'Export as JSON' produces." };
   if (parsed.length === 0) return { ok: false, error: "JSON file has no entries to import." };
 
   const rows = [];
@@ -87,9 +112,12 @@ export function parseJsonText(text) {
     }
     const normalized = {};
     CSV_COLUMNS.forEach(col => {
-      normalized[col] = col === "firstAttempt"
-        ? (String(row.firstAttempt) === "true" ? "true" : "false")
-        : String(row[col] ?? "").trim();
+      normalized[col] =
+        col === "firstAttempt"
+          ? String(row.firstAttempt) === "true"
+            ? "true"
+            : "false"
+          : String(row[col] ?? "").trim();
     });
     rows.push(normalized);
   }
@@ -135,7 +163,9 @@ function escapeCsvField(value) {
 
 export function buildEntriesCsv(rows) {
   const lines = rows.map(row =>
-    CSV_COLUMNS.map(col => escapeCsvField(col === "firstAttempt" ? (row.firstAttempt ? "true" : "false") : row[col])).join(",")
+    CSV_COLUMNS.map(col =>
+      escapeCsvField(col === "firstAttempt" ? (row.firstAttempt ? "true" : "false") : row[col]),
+    ).join(","),
   );
   return `${[CSV_COLUMNS.join(","), ...lines].join("\n")}\n`;
 }

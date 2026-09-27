@@ -9,15 +9,24 @@ function prefKey(type) {
 // Guarded: the Workers test pool has no localStorage.
 function loadPref(type) {
   let stored = null;
-  try { stored = localStorage.getItem(prefKey(type)); } catch { /* ignore */ }
+  try {
+    stored = localStorage.getItem(prefKey(type));
+  } catch {
+    /* ignore */
+  }
   // Standard scales only: an old or tampered preference falls back to the default.
   return resolveScaleId(type, stored, DEFAULT_SCALE_BY_TYPE[type], STANDARD_SCALES_BY_DISCIPLINE[type]);
 }
 function savePref(type, scaleId) {
-  try { localStorage.setItem(prefKey(type), scaleId); } catch { /* ignore */ }
+  try {
+    localStorage.setItem(prefKey(type), scaleId);
+  } catch {
+    /* ignore */
+  }
 }
 
-const TRIGGER_CLASSES = "group inline-flex items-center gap-[.35rem] h-[var(--field-h)] px-[.8rem] bg-surface border border-border rounded-app text-foreground text-[.85rem] font-semibold cursor-pointer hover:border-accent [&_svg]:stroke-current [&_svg]:fill-none [&_.chevron-icon]:transition-transform [&_.chevron-icon]:duration-150 aria-expanded:[&_.chevron-icon]:rotate-180";
+const TRIGGER_CLASSES =
+  "group inline-flex items-center gap-[.35rem] h-[var(--field-h)] px-[.8rem] bg-surface border border-border rounded-app text-foreground text-[.85rem] font-semibold cursor-pointer hover:border-accent [&_svg]:stroke-current [&_svg]:fill-none [&_.chevron-icon]:transition-transform [&_.chevron-icon]:duration-150 aria-expanded:[&_.chevron-icon]:rotate-180";
 const CHEVRON_SVG = `<svg class="chevron-icon w-3 h-3" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>`;
 
 // A getter: the discipline can change after construction.
@@ -34,7 +43,10 @@ export function createReportGradeScalePicker({ containerEl, getType, onChange })
       </div>
     </div>`;
 
-  containerEl.querySelector("#report-grade-scale-reference-link").href = resolveApexUrl(location.hostname, "/help/grade-scales/");
+  containerEl.querySelector("#report-grade-scale-reference-link").href = resolveApexUrl(
+    location.hostname,
+    "/help/grade-scales/",
+  );
 
   const btnLabel = containerEl.querySelector("#report-grade-scale-btn-label");
   const picker = createListPicker({
@@ -62,7 +74,9 @@ export function createReportGradeScalePicker({ containerEl, getType, onChange })
     const type = getType();
     const currentId = currentScaleId();
     renderOptionList(containerEl.querySelector("#report-grade-scale-listbox"), STANDARD_SCALES_BY_DISCIPLINE[type], {
-      getKey: s => s.id, getLabel: s => s.name, isSelected: s => s.id === currentId,
+      getKey: s => s.id,
+      getLabel: s => s.name,
+      isSelected: s => s.id === currentId,
     });
   });
   picker.setOnSelect(scaleId => {

@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 
-test("a location with entries in only one discipline still starts collapsed when that discipline first renders", async ({ page }) => {
+test("a location with entries in only one discipline still starts collapsed when that discipline first renders", async ({
+  page,
+}) => {
   await page.goto("/e2e-fixtures/entries-table-harness.html");
 
   const bothHeader = page.locator('.place-header[data-location-id="loc-both"]');

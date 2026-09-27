@@ -15,11 +15,13 @@ export async function handleBetaGatedSignUp(request, env, auth) {
   const code = body?.code;
 
   if (typeof code !== "string" || !code) {
-    return json({ message: "An invite code is required to sign up during the beta.", code: "INVITE_CODE_REQUIRED" }, 403);
+    return json(
+      { message: "An invite code is required to sign up during the beta.", code: "INVITE_CODE_REQUIRED" },
+      403,
+    );
   }
 
-  const invite = await env.LOGBOOK_DB
-    .prepare(`SELECT email, used_at FROM beta_invites WHERE code = ?`)
+  const invite = await env.LOGBOOK_DB.prepare(`SELECT email, used_at FROM beta_invites WHERE code = ?`)
     .bind(code)
     .first();
 
@@ -34,8 +36,9 @@ export async function handleBetaGatedSignUp(request, env, auth) {
   const claimedEmailPin = !invite.email;
 
   // The used_at IS NULL guard makes the claim atomic against a concurrent sign-up.
-  const claim = await env.LOGBOOK_DB
-    .prepare(`UPDATE beta_invites SET used_at = datetime('now'), email = COALESCE(email, ?) WHERE code = ? AND used_at IS NULL`)
+  const claim = await env.LOGBOOK_DB.prepare(
+    `UPDATE beta_invites SET used_at = datetime('now'), email = COALESCE(email, ?) WHERE code = ? AND used_at IS NULL`,
+  )
     .bind(body?.email ?? null, code)
     .run();
   if (claim.meta.changes === 0) {
@@ -50,8 +53,9 @@ export async function handleBetaGatedSignUp(request, env, auth) {
   const response = await auth.handler(forwardedRequest);
 
   if (!response.ok) {
-    await env.LOGBOOK_DB
-      .prepare(`UPDATE beta_invites SET used_at = NULL${claimedEmailPin ? ", email = NULL" : ""} WHERE code = ?`)
+    await env.LOGBOOK_DB.prepare(
+      `UPDATE beta_invites SET used_at = NULL${claimedEmailPin ? ", email = NULL" : ""} WHERE code = ?`,
+    )
       .bind(code)
       .run();
   }
@@ -63,9 +67,6 @@ export function createBetaGateAfterHook(env) {
   return async (user, context) => {
     const code = context?.body?.code;
     if (typeof code !== "string" || !code) return;
-    await env.LOGBOOK_DB
-      .prepare(`UPDATE beta_invites SET used_by = ? WHERE code = ?`)
-      .bind(user.id, code)
-      .run();
+    await env.LOGBOOK_DB.prepare(`UPDATE beta_invites SET used_by = ? WHERE code = ?`).bind(user.id, code).run();
   };
 }

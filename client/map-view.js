@@ -24,7 +24,7 @@ const MAP_VARIANTS = {
 };
 // Uncompressed sizes, for the progress bar: gzip responses carry no Content-Length, and the
 // body stream is already decompressed.
-const MAP_VARIANT_SIZES = {"greenwich":83027,"americas":82148,"oceania":82354};
+const MAP_VARIANT_SIZES = { greenwich: 83027, americas: 82148, oceania: 82354 };
 const MAP_VARIANT_STORAGE_KEY = "mapProjectionVariant";
 
 const PIN_BASE_R = 9;
@@ -192,14 +192,14 @@ export function createMapView({ store, allDisciplines = false }) {
     svg.setAttribute("viewBox", `${mapView.x} ${mapView.y} ${mapView.w} ${mapView.h}`);
     applyPinScale();
 
-    const zoomInBtn  = document.getElementById("map-zoom-in");
+    const zoomInBtn = document.getElementById("map-zoom-in");
     const zoomOutBtn = document.getElementById("map-zoom-out");
-    zoomInBtn.disabled  = mapView.w <= MAP_MIN_W + MAP_VIEW_EPS;
+    zoomInBtn.disabled = mapView.w <= MAP_MIN_W + MAP_VIEW_EPS;
     zoomOutBtn.disabled = mapView.w >= mapMaxW() - MAP_VIEW_EPS;
 
-    document.getElementById("map-pan-up").disabled    = mapView.y <= MAP_VIEW_EPS;
-    document.getElementById("map-pan-down").disabled  = mapView.y >= mapData.height - mapView.h - MAP_VIEW_EPS;
-    document.getElementById("map-pan-left").disabled  = mapView.x <= MAP_VIEW_EPS;
+    document.getElementById("map-pan-up").disabled = mapView.y <= MAP_VIEW_EPS;
+    document.getElementById("map-pan-down").disabled = mapView.y >= mapData.height - mapView.h - MAP_VIEW_EPS;
+    document.getElementById("map-pan-left").disabled = mapView.x <= MAP_VIEW_EPS;
     document.getElementById("map-pan-right").disabled = mapView.x >= MAP_WIDTH - mapView.w - MAP_VIEW_EPS;
   }
 
@@ -221,11 +221,13 @@ export function createMapView({ store, allDisciplines = false }) {
   function zoomMapBy(factor, cx, cy) {
     if (cx === undefined) cx = mapView.x + mapView.w / 2;
     if (cy === undefined) cy = mapView.y + mapView.h / 2;
-    setMapView(computeZoomedView(mapView, factor, cx, cy, {
-      maxW: mapMaxW(),
-      minW: MAP_MIN_W,
-      viewportAspect: mapViewportAspect(),
-    }));
+    setMapView(
+      computeZoomedView(mapView, factor, cx, cy, {
+        maxW: mapMaxW(),
+        minW: MAP_MIN_W,
+        viewportAspect: mapViewportAspect(),
+      }),
+    );
   }
 
   function panMapBy(dx, dy) {
@@ -243,7 +245,10 @@ export function createMapView({ store, allDisciplines = false }) {
     if (!mapDrag || e.pointerId !== mapDrag.pointerId) return;
     mapDrag = null;
     const svg = getMapSvg();
-    if (svg) { svg.classList.remove("cursor-grabbing"); svg.classList.add("cursor-grab"); }
+    if (svg) {
+      svg.classList.remove("cursor-grabbing");
+      svg.classList.add("cursor-grab");
+    }
   }
   // On the document: a drag can leave the SVG, and the SVG is re-created on render.
   document.addEventListener("pointermove", e => {
@@ -295,11 +300,15 @@ export function createMapView({ store, allDisciplines = false }) {
     const c = COUNTRY_BY_NAME[countryName];
     const body = allDisciplines
       ? `<div class="flex gap-4 max-[600px]:flex-col max-[600px]:gap-[.6rem]">
-          ${["boulder", "sport"].map(type => `
+          ${["boulder", "sport"]
+            .map(
+              type => `
             <div class="flex-1 min-w-0">
               <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mb-[.3rem]">${disciplineLabel(type)}</div>
               ${statBlock(type, countryName)}
-            </div>`).join("")}
+            </div>`,
+            )
+            .join("")}
         </div>`
       : statBlock(store.getActiveType(), countryName);
     return `
@@ -339,7 +348,10 @@ export function createMapView({ store, allDisciplines = false }) {
     if (!activePinCountry) return;
     activePinCountry = null;
     document.getElementById("map-pin-popover").hidden = true;
-    if (pinPopoverCleanup) { pinPopoverCleanup(); pinPopoverCleanup = null; }
+    if (pinPopoverCleanup) {
+      pinPopoverCleanup();
+      pinPopoverCleanup = null;
+    }
   }
 
   function togglePinPopover(pinEl) {
@@ -350,11 +362,17 @@ export function createMapView({ store, allDisciplines = false }) {
 
   document.addEventListener("click", e => {
     const pin = e.target.closest("[data-pin-country]");
-    if (pin) { togglePinPopover(pin); return; }
+    if (pin) {
+      togglePinPopover(pin);
+      return;
+    }
     if (activePinCountry && !e.target.closest("#map-pin-popover")) closePinPopover();
   });
   document.addEventListener("keydown", e => {
-    if (e.key === "Escape" && activePinCountry) { closePinPopover(); return; }
+    if (e.key === "Escape" && activePinCountry) {
+      closePinPopover();
+      return;
+    }
     if ((e.key === "Enter" || e.key === " ") && e.target.closest?.("[data-pin-country]")) {
       e.preventDefault();
       togglePinPopover(e.target.closest("[data-pin-country]"));
@@ -366,7 +384,9 @@ export function createMapView({ store, allDisciplines = false }) {
     const inPlay = disciplinesInPlay();
 
     const countriesWithEntries = new Set();
-    let flashes = 0, sends = 0, projects = 0;
+    let flashes = 0,
+      sends = 0,
+      projects = 0;
     for (const [country, byDiscipline] of Object.entries(mapCounts)) {
       for (const type of inPlay) {
         const c = byDiscipline[type];
@@ -380,9 +400,13 @@ export function createMapView({ store, allDisciplines = false }) {
     const countries = countriesWithEntries.size;
 
     const flashLabelText = allDisciplines ? combinedFlashLabel(disciplines) : flashLabel(store.getActiveType());
-    const flashLabelPlural = allDisciplines ? combinedFlashLabel(disciplines, true) : flashLabel(store.getActiveType(), true);
+    const flashLabelPlural = allDisciplines
+      ? combinedFlashLabel(disciplines, true)
+      : flashLabel(store.getActiveType(), true);
     const sendLabelText = allDisciplines ? combinedSendLabel(disciplines) : sendLabel(store.getActiveType());
-    const sendLabelPlural = allDisciplines ? combinedSendLabel(disciplines, true) : sendLabel(store.getActiveType(), true);
+    const sendLabelPlural = allDisciplines
+      ? combinedSendLabel(disciplines, true)
+      : sendLabel(store.getActiveType(), true);
 
     const stat = (n, singular, plural) =>
       `<span class="text-foreground font-semibold">${n}</span> <span class="text-muted">${n === 1 ? singular : plural}</span>`;
@@ -456,21 +480,26 @@ export function createMapView({ store, allDisciplines = false }) {
 
     if (!mapUserHasInteracted || mapView === null) mapView = defaultMapView();
 
-    const pins = pinnedCountries.map(c => {
-      const count = countsByCountry.get(c.name);
-      const label = `${c.name}: ${count} ${count === 1 ? "entry" : "entries"}`;
-      return `
+    const pins = pinnedCountries
+      .map(c => {
+        const count = countsByCountry.get(c.name);
+        const label = `${c.name}: ${count} ${count === 1 ? "entry" : "entries"}`;
+        return `
         <g class="cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" role="button" tabindex="0" data-pin-country="${escapeHtml(c.name)}" aria-label="${escapeHtml(label)}">
           <title>${escapeHtml(label)}</title>
           <circle cx="${c.x}" cy="${c.y}" r="${PIN_BASE_R}" class="fill-accent stroke-background" stroke-width="${PIN_BASE_STROKE}"></circle>
           <text x="${c.x}" y="${c.y}" text-anchor="middle" dominant-baseline="central" class="fill-accent-foreground font-bold select-none" style="font-size: ${PIN_BASE_FONT}px">${count}</text>
         </g>`;
-    }).join("");
+      })
+      .join("");
 
     // An sr-only list: SVG <title> isn't reliably announced.
-    const srList = pinnedCountries.map(c =>
-      `<li>${escapeHtml(c.name)}: ${countsByCountry.get(c.name)} ${countsByCountry.get(c.name) === 1 ? "entry" : "entries"}</li>`
-    ).join("");
+    const srList = pinnedCountries
+      .map(
+        c =>
+          `<li>${escapeHtml(c.name)}: ${countsByCountry.get(c.name)} ${countsByCountry.get(c.name) === 1 ? "entry" : "entries"}</li>`,
+      )
+      .join("");
 
     const mapAriaLabel = allDisciplines
       ? "World map of logged climbing entries by country"
@@ -498,11 +527,15 @@ export function createMapView({ store, allDisciplines = false }) {
       svg.classList.remove("cursor-grab");
       svg.classList.add("cursor-grabbing");
     });
-    svg.addEventListener("wheel", e => {
-      e.preventDefault();
-      const { x, y } = mapClientPointToUserSpace(svg, e.clientX, e.clientY);
-      zoomMapBy(e.deltaY < 0 ? 1.2 : 1 / 1.2, x, y);
-    }, { passive: false });
+    svg.addEventListener(
+      "wheel",
+      e => {
+        e.preventDefault();
+        const { x, y } = mapClientPointToUserSpace(svg, e.clientX, e.clientY);
+        zoomMapBy(e.deltaY < 0 ? 1.2 : 1 / 1.2, x, y);
+      },
+      { passive: false },
+    );
 
     applyMapView();
   }

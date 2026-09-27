@@ -43,9 +43,11 @@ export class ClimbingTabBar extends HTMLElement {
     const visibleTabs = TABS.filter(t => !t.requiresPerformance || showPerformance);
 
     const links = visibleTabs
-      .map(t => `
+      .map(
+        t => `
         <a href="/${encodePathSegment(username)}/${t.page}" class="${LINK_CLASSES}"${t.page === activePage ? ' aria-current="page"' : ""}>${t.label}</a>
-      `)
+      `,
+      )
       .join("");
 
     // No margin here: inside a flex item it would break the row's bottom alignment.

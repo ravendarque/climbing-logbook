@@ -23,8 +23,16 @@ export function readCachedEnrollment(storage) {
 
 function writeCachedEnrollment(storage, enrolled) {
   let cached = {};
-  try { cached = JSON.parse(storage.getItem(SETTINGS_CACHE_KEY)) ?? {}; } catch { /* start fresh */ }
-  try { storage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({ ...cached, betaOptIn: enrolled })); } catch { /* storage full or blocked */ }
+  try {
+    cached = JSON.parse(storage.getItem(SETTINGS_CACHE_KEY)) ?? {};
+  } catch {
+    /* start fresh */
+  }
+  try {
+    storage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({ ...cached, betaOptIn: enrolled }));
+  } catch {
+    /* storage full or blocked */
+  }
 }
 
 // undefined without a session; throws offline or on a server error.
@@ -81,11 +89,16 @@ export async function enrollmentAllowsBoot({
   }
 
   // Cached answer decides now; the network only corrects it (once).
-  fetchEnrollment(fetchImpl).then(enrolled => {
-    if (enrolled === undefined || enrolled === cached) return;
-    writeCachedEnrollment(storage, enrolled);
-    reload();
-  }, () => { /* offline: the cached answer stands */ });
+  fetchEnrollment(fetchImpl).then(
+    enrolled => {
+      if (enrolled === undefined || enrolled === cached) return;
+      writeCachedEnrollment(storage, enrolled);
+      reload();
+    },
+    () => {
+      /* offline: the cached answer stands */
+    },
+  );
 
   if (!cached) renderNotEnrolled(doc, { reason: "not-enrolled", joinUrl });
   return cached;

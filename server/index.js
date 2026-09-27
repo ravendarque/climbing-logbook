@@ -3,7 +3,14 @@ import { handleImport } from "./api/entries-import.js";
 import { handleGet as handleGetPlaces, handlePost as handlePostPlaces } from "./api/places.js";
 import { handleGet as handleGetLocations, handlePost as handlePostLocations } from "./api/locations.js";
 import { handleGetSettings, handlePatchSettings } from "./api/settings.js";
-import { handleGetEffort, handleGetGap, handleGetInjuryLog, handleGetPyramid, handleGetStrengthsWeaknesses, handleGetVolume } from "./api/performance.js";
+import {
+  handleGetEffort,
+  handleGetGap,
+  handleGetInjuryLog,
+  handleGetPyramid,
+  handleGetStrengthsWeaknesses,
+  handleGetVolume,
+} from "./api/performance.js";
 import { handleGetMapCounts } from "./api/map.js";
 import { handlePublicProfile } from "./api/public-profile.js";
 import { handlePublicResource } from "./api/public-data.js";
@@ -88,7 +95,9 @@ export default {
       return handleFeedback(request, env);
     }
 
-    const publicDataMatch = pathname.match(/^\/-\/api\/public\/([^/]+)\/(entries\/counts|entries|places|locations|map\/counts|performance\/(?:pyramid|injury|strengths|volume|gap|rpe))$/);
+    const publicDataMatch = pathname.match(
+      /^\/-\/api\/public\/([^/]+)\/(entries\/counts|entries|places|locations|map\/counts|performance\/(?:pyramid|injury|strengths|volume|gap|rpe))$/,
+    );
     if (publicDataMatch && method === "GET") {
       const [, username, resource] = publicDataMatch;
       return handlePublicResource(request, env, username, resource);

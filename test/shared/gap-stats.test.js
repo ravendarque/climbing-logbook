@@ -4,7 +4,16 @@ import { gapByBucket, gapHeadline } from "../../shared/gap-stats.js";
 function entry(overrides = {}) {
   const type = overrides.type ?? "boulder";
   const gradeScale = type === "boulder" ? "font-non-standard" : "french";
-  return { date: "2026-01-15", status: "send", grade: "6B", type, gradeScale, firstAttempt: false, attemptsToSend: null, ...overrides };
+  return {
+    date: "2026-01-15",
+    status: "send",
+    grade: "6B",
+    type,
+    gradeScale,
+    firstAttempt: false,
+    attemptsToSend: null,
+    ...overrides,
+  };
 }
 
 function pair(grade, gradeScale = "font-non-standard") {
@@ -25,23 +34,26 @@ describe("gapByBucket", () => {
   });
 
   it("tracks the highest send grade per bucket regardless of firstAttempt, as a { grade, gradeScale } pair", () => {
-    const entries = [entry({ grade: "6B", firstAttempt: false }), entry({ grade: "7A", firstAttempt: true, date: "2026-01-20" })];
+    const entries = [
+      entry({ grade: "6B", firstAttempt: false }),
+      entry({ grade: "7A", firstAttempt: true, date: "2026-01-20" }),
+    ];
     const { sendMaxByBucket } = gapByBucket(entries, [JAN]);
     expect(sendMaxByBucket).toEqual([pair("7A")]);
   });
 
   it("tracks the highest first-attempt-success grade per bucket separately", () => {
-    const entries = [entry({ grade: "6B", firstAttempt: true }), entry({ grade: "7A", firstAttempt: false, date: "2026-01-20" })];
+    const entries = [
+      entry({ grade: "6B", firstAttempt: true }),
+      entry({ grade: "7A", firstAttempt: false, date: "2026-01-20" }),
+    ];
     const { flashMaxByBucket, sendMaxByBucket } = gapByBucket(entries, [JAN]);
     expect(flashMaxByBucket).toEqual([pair("6B")]);
     expect(sendMaxByBucket).toEqual([pair("7A")]);
   });
 
   it("ranks Sport grades against Sport's own order, not Boulder's", () => {
-    const entries = [
-      entry({ grade: "4a", type: "sport" }),
-      entry({ grade: "6a", type: "sport", date: "2026-01-20" }),
-    ];
+    const entries = [entry({ grade: "4a", type: "sport" }), entry({ grade: "6a", type: "sport", date: "2026-01-20" })];
     const { sendMaxByBucket } = gapByBucket(entries, [JAN], "sport");
     expect(sendMaxByBucket).toEqual([pair("6a", "french")]);
   });
@@ -61,13 +73,21 @@ describe("gapByBucket", () => {
   });
 
   it("averages attemptsToSend per bucket, ignoring entries with no value", () => {
-    const entries = [entry({ attemptsToSend: 2 }), entry({ attemptsToSend: 4, date: "2026-01-20" }), entry({ attemptsToSend: null, date: "2026-01-25" })];
+    const entries = [
+      entry({ attemptsToSend: 2 }),
+      entry({ attemptsToSend: 4, date: "2026-01-20" }),
+      entry({ attemptsToSend: null, date: "2026-01-25" }),
+    ];
     const { avgAttemptsByBucket } = gapByBucket(entries, [JAN]);
     expect(avgAttemptsByBucket).toEqual([3]);
   });
 
   it("rounds the average attempts to one decimal place", () => {
-    const entries = [entry({ attemptsToSend: 1 }), entry({ attemptsToSend: 2, date: "2026-01-20" }), entry({ attemptsToSend: 2, date: "2026-01-25" })];
+    const entries = [
+      entry({ attemptsToSend: 1 }),
+      entry({ attemptsToSend: 2, date: "2026-01-20" }),
+      entry({ attemptsToSend: 2, date: "2026-01-25" }),
+    ];
     const { avgAttemptsByBucket } = gapByBucket(entries, [JAN]);
     expect(avgAttemptsByBucket).toEqual([1.7]);
   });
@@ -83,7 +103,10 @@ describe("gapByBucket", () => {
   });
 
   it("places each entry in its own correct bucket across multiple buckets", () => {
-    const entries = [entry({ date: "2026-01-05", grade: "6B" }), entry({ date: "2026-02-10", grade: "7A", firstAttempt: true })];
+    const entries = [
+      entry({ date: "2026-01-05", grade: "6B" }),
+      entry({ date: "2026-02-10", grade: "7A", firstAttempt: true }),
+    ];
     const { flashMaxByBucket, sendMaxByBucket } = gapByBucket(entries, [JAN, FEB]);
     expect(sendMaxByBucket).toEqual([pair("6B"), pair("7A")]);
     expect(flashMaxByBucket).toEqual([null, pair("7A")]);

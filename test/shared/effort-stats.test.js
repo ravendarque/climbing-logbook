@@ -38,14 +38,22 @@ describe("effortByBucket", () => {
   });
 
   it("averages rpe per bucket, ignoring entries with no rpe value", () => {
-    const entries = [entry({ rpe: 60 }), entry({ rpe: 80, date: "2026-01-20" }), entry({ rpe: null, date: "2026-01-25" })];
+    const entries = [
+      entry({ rpe: 60 }),
+      entry({ rpe: 80, date: "2026-01-20" }),
+      entry({ rpe: null, date: "2026-01-25" }),
+    ];
     const { avgExertionByBucket, rpeCountByBucket } = effortByBucket(entries, [JAN]);
     expect(avgExertionByBucket).toEqual([70]);
     expect(rpeCountByBucket).toEqual([2]);
   });
 
   it("rounds a bucket's average to one decimal place", () => {
-    const entries = [entry({ rpe: 60 }), entry({ rpe: 70, date: "2026-01-20" }), entry({ rpe: 80, date: "2026-01-25" })];
+    const entries = [
+      entry({ rpe: 60 }),
+      entry({ rpe: 70, date: "2026-01-20" }),
+      entry({ rpe: 80, date: "2026-01-25" }),
+    ];
     const { avgExertionByBucket } = effortByBucket(entries, [JAN]);
     expect(avgExertionByBucket).toEqual([70]);
   });

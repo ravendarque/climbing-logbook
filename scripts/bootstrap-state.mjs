@@ -3,7 +3,7 @@
 const BUCKET_NAME = "climbing-logbook-tfstate";
 const CF_BASE = "https://api.cloudflare.com/client/v4";
 
-const apiToken  = process.env.CLOUDFLARE_API_TOKEN;
+const apiToken = process.env.CLOUDFLARE_API_TOKEN;
 const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
 
 if (!apiToken || !accountId) {

@@ -44,14 +44,18 @@ function updateAdminBar() {
 }
 
 const adminAuth = createAdminAuth({
-  store, adminFetch, isAuthRedirect,
+  store,
+  adminFetch,
+  isAuthRedirect,
   settingsUrl: SETTINGS_URL,
   updateAdminBar,
   onFetchTimeout: syncStatusIcon.reportTimeout,
 });
 
 const headerChrome = createHeaderChrome({
-  store, adminFetch, isAuthRedirect,
+  store,
+  adminFetch,
+  isAuthRedirect,
   settingsUrl: SETTINGS_URL,
 });
 
@@ -99,8 +103,7 @@ async function loadMapCounts() {
     const counts = await res.json();
     localStorage.setItem(MAP_COUNTS_CACHE_KEY, JSON.stringify(counts));
     mapView.setCounts(counts);
-  } catch {
-  }
+  } catch {}
 }
 
 pageAllowsBoot().then(allowed => {

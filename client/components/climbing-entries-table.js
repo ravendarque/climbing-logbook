@@ -36,32 +36,72 @@ export class ClimbingEntriesTable extends HTMLElement {
     return ["editable", "active-discipline", "all-disciplines", "lazy", "loading"];
   }
 
-  get entries() { return this.#entries; }
-  set entries(v) { this.#entries = v ?? []; this.#update(); }
+  get entries() {
+    return this.#entries;
+  }
+  set entries(v) {
+    this.#entries = v ?? [];
+    this.#update();
+  }
 
-  get places() { return this.#places; }
-  set places(v) { this.#places = v ?? []; this.#update(); }
+  get places() {
+    return this.#places;
+  }
+  set places(v) {
+    this.#places = v ?? [];
+    this.#update();
+  }
 
-  get locations() { return this.#locations; }
-  set locations(v) { this.#locations = v ?? []; this.#update(); }
+  get locations() {
+    return this.#locations;
+  }
+  set locations(v) {
+    this.#locations = v ?? [];
+    this.#update();
+  }
 
-  get locationCounts() { return this.#locationCounts; }
-  set locationCounts(v) { this.#locationCounts = v ?? {}; this.#update(); }
+  get locationCounts() {
+    return this.#locationCounts;
+  }
+  set locationCounts(v) {
+    this.#locationCounts = v ?? {};
+    this.#update();
+  }
 
-  get activeDiscipline() { return this.getAttribute("active-discipline") || "boulder"; }
-  set activeDiscipline(v) { this.setAttribute("active-discipline", v); }
+  get activeDiscipline() {
+    return this.getAttribute("active-discipline") || "boulder";
+  }
+  set activeDiscipline(v) {
+    this.setAttribute("active-discipline", v);
+  }
 
-  get editable() { return this.hasAttribute("editable"); }
-  set editable(v) { this.toggleAttribute("editable", !!v); }
+  get editable() {
+    return this.hasAttribute("editable");
+  }
+  set editable(v) {
+    this.toggleAttribute("editable", !!v);
+  }
 
-  get allDisciplines() { return this.hasAttribute("all-disciplines"); }
-  set allDisciplines(v) { this.toggleAttribute("all-disciplines", !!v); }
+  get allDisciplines() {
+    return this.hasAttribute("all-disciplines");
+  }
+  set allDisciplines(v) {
+    this.toggleAttribute("all-disciplines", !!v);
+  }
 
-  get lazy() { return this.hasAttribute("lazy"); }
-  set lazy(v) { this.toggleAttribute("lazy", !!v); }
+  get lazy() {
+    return this.hasAttribute("lazy");
+  }
+  set lazy(v) {
+    this.toggleAttribute("lazy", !!v);
+  }
 
-  get loading() { return this.hasAttribute("loading"); }
-  set loading(v) { this.toggleAttribute("loading", !!v); }
+  get loading() {
+    return this.hasAttribute("loading");
+  }
+  set loading(v) {
+    this.toggleAttribute("loading", !!v);
+  }
 
   connectedCallback() {
     if (!this.#wired) {
@@ -104,22 +144,28 @@ export class ClimbingEntriesTable extends HTMLElement {
 
   #realSections() {
     if (!this.allDisciplines) {
-      return groupByPlace(this.#filteredEntries(), this.#entries, this.#places)
-        .map(([locationId, items]) => ({ key: locationId, locationId, discipline: null, items }));
+      return groupByPlace(this.#filteredEntries(), this.#entries, this.#places).map(([locationId, items]) => ({
+        key: locationId,
+        locationId,
+        discipline: null,
+        items,
+      }));
     }
 
     const activeDisciplines = this.#activeDisciplines();
-    const groupsByDiscipline = new Map(activeDisciplines.map(discipline => {
-      const disciplineEntries = this.#entries.filter(e => e.type === discipline);
-      const filtered = filteredEntries(disciplineEntries, this.#places, {
-        activeType: discipline,
-        statusFilters: this.#statusFilters,
-        gradeTiers: null,
-        search: this.#search,
-        sportStyleFilters: this.#sportStyleFilters,
-      });
-      return [discipline, new Map(groupByPlace(filtered, disciplineEntries, this.#places))];
-    }));
+    const groupsByDiscipline = new Map(
+      activeDisciplines.map(discipline => {
+        const disciplineEntries = this.#entries.filter(e => e.type === discipline);
+        const filtered = filteredEntries(disciplineEntries, this.#places, {
+          activeType: discipline,
+          statusFilters: this.#statusFilters,
+          gradeTiers: null,
+          search: this.#search,
+          sportStyleFilters: this.#sportStyleFilters,
+        });
+        return [discipline, new Map(groupByPlace(filtered, disciplineEntries, this.#places))];
+      }),
+    );
 
     const orderedLocationIds = groupByPlace(this.#entries, this.#entries, this.#places).map(([id]) => id);
     const sections = [];
@@ -138,7 +184,13 @@ export class ClimbingEntriesTable extends HTMLElement {
 
     const shells = this.#locations
       .filter(l => !realLocationIds.has(l.id) && (this.#locationCounts[l.id] ?? 0) > 0)
-      .map(l => ({ key: l.id, locationId: l.id, discipline: null, items: null, shellCount: this.#locationCounts[l.id] }));
+      .map(l => ({
+        key: l.id,
+        locationId: l.id,
+        discipline: null,
+        items: null,
+        shellCount: this.#locationCounts[l.id],
+      }));
 
     const order = new Map(this.#locations.map((l, i) => [l.id, i]));
     return [...real, ...shells].sort((a, b) => (order.get(a.locationId) ?? 0) - (order.get(b.locationId) ?? 0));
@@ -148,7 +200,9 @@ export class ClimbingEntriesTable extends HTMLElement {
     if (!this.lazy || section.items !== null) return;
     if (this.#loadingLocations.has(section.locationId)) return;
     this.#loadingLocations.add(section.locationId);
-    this.dispatchEvent(new CustomEvent("location-expand", { detail: { locationId: section.locationId }, bubbles: true }));
+    this.dispatchEvent(
+      new CustomEvent("location-expand", { detail: { locationId: section.locationId }, bubbles: true }),
+    );
   }
 
   #getSort(locationId) {
@@ -161,7 +215,9 @@ export class ClimbingEntriesTable extends HTMLElement {
     const { openModal, closeModal } = createModalHelpers(["notes-overlay"]);
 
     this.querySelector("#notes-close").addEventListener("click", () => closeModal(notesOverlay));
-    notesOverlay.addEventListener("click", e => { if (e.target === notesOverlay) closeModal(notesOverlay); });
+    notesOverlay.addEventListener("click", e => {
+      if (e.target === notesOverlay) closeModal(notesOverlay);
+    });
 
     this.addEventListener("click", e => {
       const notesBtn = e.target.closest(".notes-btn");
@@ -198,8 +254,10 @@ export class ClimbingEntriesTable extends HTMLElement {
         const keys = sections.map(s => s.key);
         const allCollapsed = keys.length > 0 && keys.every(k => this.#collapsed.has(k));
         sections.forEach(s => {
-          if (allCollapsed) { this.#collapsed.delete(s.key); this.#maybeExpandShell(s); }
-          else this.#collapsed.add(s.key);
+          if (allCollapsed) {
+            this.#collapsed.delete(s.key);
+            this.#maybeExpandShell(s);
+          } else this.#collapsed.add(s.key);
         });
         this.#update();
         return;
@@ -241,28 +299,36 @@ export class ClimbingEntriesTable extends HTMLElement {
     this.addEventListener("change", e => {
       const statusInput = e.target.closest("#filter-status-group input[data-filter]");
       if (statusInput) {
-        statusInput.checked ? this.#statusFilters.add(statusInput.dataset.filter) : this.#statusFilters.delete(statusInput.dataset.filter);
+        statusInput.checked
+          ? this.#statusFilters.add(statusInput.dataset.filter)
+          : this.#statusFilters.delete(statusInput.dataset.filter);
         this.#update();
         return;
       }
 
       const disciplineInput = e.target.closest("#filter-discipline-group input[data-discipline]");
       if (disciplineInput) {
-        disciplineInput.checked ? this.#disciplineFilters.add(disciplineInput.dataset.discipline) : this.#disciplineFilters.delete(disciplineInput.dataset.discipline);
+        disciplineInput.checked
+          ? this.#disciplineFilters.add(disciplineInput.dataset.discipline)
+          : this.#disciplineFilters.delete(disciplineInput.dataset.discipline);
         this.#update();
         return;
       }
 
       const sportStyleInput = e.target.closest("#filter-sport-style-group input[data-sport-style]");
       if (sportStyleInput) {
-        sportStyleInput.checked ? this.#sportStyleFilters.add(sportStyleInput.dataset.sportStyle) : this.#sportStyleFilters.delete(sportStyleInput.dataset.sportStyle);
+        sportStyleInput.checked
+          ? this.#sportStyleFilters.add(sportStyleInput.dataset.sportStyle)
+          : this.#sportStyleFilters.delete(sportStyleInput.dataset.sportStyle);
         this.#update();
         return;
       }
 
       const gradeTierInput = e.target.closest("#filter-grade-tier-group input[data-grade-tier]");
       if (gradeTierInput) {
-        gradeTierInput.checked ? this.#gradeTiers.add(gradeTierInput.dataset.gradeTier) : this.#gradeTiers.delete(gradeTierInput.dataset.gradeTier);
+        gradeTierInput.checked
+          ? this.#gradeTiers.add(gradeTierInput.dataset.gradeTier)
+          : this.#gradeTiers.delete(gradeTierInput.dataset.gradeTier);
         this.#update();
       }
     });
@@ -308,18 +374,34 @@ export class ClimbingEntriesTable extends HTMLElement {
   #focusedControlSelector() {
     const el = document.activeElement;
     if (!el || !this.contains(el)) return null;
-    if (el.matches(".place-header[data-location-id]")) return { selector: `.place-header[data-location-id="${CSS.escape(el.dataset.locationId)}"]` };
-    if (el.matches("th[data-sort][data-location-id]")) return { selector: `th[data-sort="${CSS.escape(el.dataset.sort)}"][data-location-id="${CSS.escape(el.dataset.locationId)}"]` };
-    if (el.matches(".show-more-btn[data-section-key]")) return { selector: `.show-more-btn[data-section-key="${CSS.escape(el.dataset.sectionKey)}"]`, sectionKey: el.dataset.sectionKey };
-    if (el.matches(".show-all-btn[data-section-key]")) return { selector: `.show-all-btn[data-section-key="${CSS.escape(el.dataset.sectionKey)}"]`, sectionKey: el.dataset.sectionKey };
+    if (el.matches(".place-header[data-location-id]"))
+      return { selector: `.place-header[data-location-id="${CSS.escape(el.dataset.locationId)}"]` };
+    if (el.matches("th[data-sort][data-location-id]"))
+      return {
+        selector: `th[data-sort="${CSS.escape(el.dataset.sort)}"][data-location-id="${CSS.escape(el.dataset.locationId)}"]`,
+      };
+    if (el.matches(".show-more-btn[data-section-key]"))
+      return {
+        selector: `.show-more-btn[data-section-key="${CSS.escape(el.dataset.sectionKey)}"]`,
+        sectionKey: el.dataset.sectionKey,
+      };
+    if (el.matches(".show-all-btn[data-section-key]"))
+      return {
+        selector: `.show-all-btn[data-section-key="${CSS.escape(el.dataset.sectionKey)}"]`,
+        sectionKey: el.dataset.sectionKey,
+      };
     return null;
   }
 
   #restoreFocus(captured) {
     if (!captured) return;
     const el = this.querySelector(captured.selector);
-    if (el) { el.focus(); return; }
-    if (captured.sectionKey !== undefined) this.querySelector(`.place-header[data-location-id="${CSS.escape(captured.sectionKey)}"]`)?.focus();
+    if (el) {
+      el.focus();
+      return;
+    }
+    if (captured.sectionKey !== undefined)
+      this.querySelector(`.place-header[data-location-id="${CSS.escape(captured.sectionKey)}"]`)?.focus();
   }
 
   #updateScheduled = false;
@@ -381,7 +463,8 @@ export class ClimbingEntriesTable extends HTMLElement {
     this.querySelectorAll("#filter-sport-style-group input[data-sport-style]").forEach(input => {
       input.checked = this.#sportStyleFilters.has(input.dataset.sportStyle);
     });
-    const anyActive = setDiffersFrom(this.#statusFilters, DEFAULT_STATUS_FILTERS) ||
+    const anyActive =
+      setDiffersFrom(this.#statusFilters, DEFAULT_STATUS_FILTERS) ||
       setDiffersFrom(this.#disciplineFilters, DISCIPLINE_ORDER) ||
       setDiffersFrom(this.#sportStyleFilters, VALID_SPORT_STYLES) ||
       setDiffersFrom(this.#gradeTiers, GRADE_TIER_IDS);

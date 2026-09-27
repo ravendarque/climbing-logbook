@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { SHELL_PATHS, matchOwnerRoute } from "../../shared/owner-routes.js";
 
-const PRE_958_REGEX = /^\/([^/]+)\/(log|map|performance(?:\/(?:pyramid|injury|strengths|trends|gap|rpe))?|sync|account(?:\/edit|\/import)?)\/?$/;
+const PRE_958_REGEX =
+  /^\/([^/]+)\/(log|map|performance(?:\/(?:pyramid|injury|strengths|trends|gap|rpe))?|sync|account(?:\/edit|\/import)?)\/?$/;
 
 const PAGES = Object.keys(SHELL_PATHS);
 const ADDED_SINCE_958 = ["account/beta"];
@@ -37,7 +38,7 @@ describe("matchOwnerRoute (#958)", () => {
     "/-/api/entries",
     "/-/log-app.js",
     "devuser/log",
-  ])("does not match %j", (pathname) => {
+  ])("does not match %j", pathname => {
     expect(matchOwnerRoute(pathname)).toBeNull();
   });
 
@@ -50,7 +51,19 @@ describe("matchOwnerRoute (#958)", () => {
   it("agrees with the pre-#958 regex on every path in the corpus", () => {
     const usernames = ["devuser", "a", "j%C3%B6rg", "user.name", "user-name_1"];
     const pre958Pages = PAGES.filter(p => !ADDED_SINCE_958.includes(p));
-    const suffixes = [...pre958Pages, ...pre958Pages.map(p => `${p}/`), "", "/", "performance/grades", "account/display", "log/extra", "log//", "/log", "settings", "constructor"];
+    const suffixes = [
+      ...pre958Pages,
+      ...pre958Pages.map(p => `${p}/`),
+      "",
+      "/",
+      "performance/grades",
+      "account/display",
+      "log/extra",
+      "log//",
+      "/log",
+      "settings",
+      "constructor",
+    ];
     const corpus = [];
     for (const u of usernames) for (const s of suffixes) corpus.push(`/${u}/${s}`);
     corpus.push("", "/", "//log", "/help/", "/login/", "/-/api/entries");

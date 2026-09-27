@@ -29,25 +29,23 @@ describe("classifyRequest (#962)", () => {
     "/login/?returnTo=%2Fraven%2Flog",
     "/register/",
     "/raven/performance/grades",
-  ])("a navigation to %s passes through (not offline-capable, ADR-0017)", (path) => {
+  ])("a navigation to %s passes through (not offline-capable, ADR-0017)", path => {
     expect(req(path, { mode: "navigate" })).toEqual({ kind: "passthrough" });
   });
 
-  it.each([
-    "/-/api/entries?since=1",
-    "/-/api/settings",
-    "/-/api/auth/get-session",
-    "/-/api/performance/pyramid?v=2",
-  ])("never touches API responses: %s passes through", (path) => {
-    expect(req(path)).toEqual({ kind: "passthrough" });
-  });
+  it.each(["/-/api/entries?since=1", "/-/api/settings", "/-/api/auth/get-session", "/-/api/performance/pyramid?v=2"])(
+    "never touches API responses: %s passes through",
+    path => {
+      expect(req(path)).toEqual({ kind: "passthrough" });
+    },
+  );
 
   it.each([
     "/-/chunks/store-abc123.js",
     "/-/log-app.js?v=7c0d7e0c8b",
     "/-/tailwind.css?v=abf68efebc",
     "/-/components/climbing-header.js?v=5eea3ebad9",
-  ])("%s is immutable (content-addressed)", (path) => {
+  ])("%s is immutable (content-addressed)", path => {
     expect(req(path)).toEqual({ kind: "immutable" });
   });
 
@@ -55,13 +53,12 @@ describe("classifyRequest (#962)", () => {
     expect(req("/-/fonts/BebasNeue-Regular.woff2")).toEqual({ kind: "font" });
   });
 
-  it.each([
-    "/-/manifest.json",
-    "/-/icon-192.png",
-    "/-/world-map-greenwich.json",
-  ])("other /-/ static file %s is static", (path) => {
-    expect(req(path)).toEqual({ kind: "static" });
-  });
+  it.each(["/-/manifest.json", "/-/icon-192.png", "/-/world-map-greenwich.json"])(
+    "other /-/ static file %s is static",
+    path => {
+      expect(req(path)).toEqual({ kind: "static" });
+    },
+  );
 
   it.each([
     ["a non-GET request", "/-/log-app.js?v=1", { method: "POST" }],

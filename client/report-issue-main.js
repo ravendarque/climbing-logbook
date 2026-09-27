@@ -2,7 +2,11 @@
 import { createDisclosure } from "./modal-utils.js";
 import { createThemeToggle } from "./theme-toggle.js";
 
-createDisclosure(document.getElementById("header-menu-btn"), document.getElementById("header-menu-popover"), "#header-menu-wrap");
+createDisclosure(
+  document.getElementById("header-menu-btn"),
+  document.getElementById("header-menu-popover"),
+  "#header-menu-wrap",
+);
 createThemeToggle();
 
 const helpNav = document.getElementById("help-nav");
@@ -39,7 +43,7 @@ window.onTurnstileLoad = () => {
 // undefined, not "", so JSON.stringify omits it and the server sees it as absent.
 const sourcePage = document.referrer || undefined;
 
-form.addEventListener("submit", async (event) => {
+form.addEventListener("submit", async event => {
   event.preventDefault();
   errorEl.hidden = true;
   submitBtn.disabled = true;

@@ -1,14 +1,32 @@
 import { describe, expect, it } from "vitest";
-import { CSV_COLUMNS, buildEntriesCsv, buildTemplateCsv, parseCsvText, parseJsonText, resolveExportRows } from "../../shared/csv-import.js";
+import {
+  CSV_COLUMNS,
+  buildEntriesCsv,
+  buildTemplateCsv,
+  parseCsvText,
+  parseJsonText,
+  resolveExportRows,
+} from "../../shared/csv-import.js";
 
 const HEADER = CSV_COLUMNS.join(",");
 
 function row(overrides = {}) {
   const values = {
-    name: "La Marie-Rose", grade: "6B", discipline: "boulder", status: "send",
-    firstAttempt: "true", date: "2026-07-30", location: "Fontainebleau",
-    area: "Bas Cuvier", country: "France", video: "", notes: "", sportStyle: "",
-    attemptsToSend: "", rpe: "", gradeScale: "",
+    name: "La Marie-Rose",
+    grade: "6B",
+    discipline: "boulder",
+    status: "send",
+    firstAttempt: "true",
+    date: "2026-07-30",
+    location: "Fontainebleau",
+    area: "Bas Cuvier",
+    country: "France",
+    video: "",
+    notes: "",
+    sportStyle: "",
+    attemptsToSend: "",
+    rpe: "",
+    gradeScale: "",
     ...overrides,
   };
   return CSV_COLUMNS.map(col => values[col]).join(",");
@@ -38,12 +56,25 @@ describe("parseCsvText", () => {
   it("parses a single valid data row into a column-keyed object", () => {
     const result = parseCsvText(`${HEADER}\n${row()}\n`);
     expect(result.ok).toBe(true);
-    expect(result.rows).toEqual([{
-      name: "La Marie-Rose", grade: "6B", discipline: "boulder", status: "send",
-      firstAttempt: "true", date: "2026-07-30", location: "Fontainebleau",
-      area: "Bas Cuvier", country: "France", video: "", notes: "", sportStyle: "",
-      attemptsToSend: "", rpe: "", gradeScale: "",
-    }]);
+    expect(result.rows).toEqual([
+      {
+        name: "La Marie-Rose",
+        grade: "6B",
+        discipline: "boulder",
+        status: "send",
+        firstAttempt: "true",
+        date: "2026-07-30",
+        location: "Fontainebleau",
+        area: "Bas Cuvier",
+        country: "France",
+        video: "",
+        notes: "",
+        sportStyle: "",
+        attemptsToSend: "",
+        rpe: "",
+        gradeScale: "",
+      },
+    ]);
   });
 
   it("parses multiple rows in order", () => {
@@ -95,7 +126,7 @@ describe("parseCsvText", () => {
   });
 
   it("a bare quote in one row's field doesn't swallow a later row", () => {
-    const result = parseCsvText(`${HEADER}\n${row({ name: "Worked a 6\" crimp" })}\n${row({ name: "Route B" })}\n`);
+    const result = parseCsvText(`${HEADER}\n${row({ name: 'Worked a 6" crimp' })}\n${row({ name: "Route B" })}\n`);
     expect(result.ok).toBe(true);
     expect(result.rows).toHaveLength(2);
     expect(result.rows.map(r => r.name)).toEqual(['Worked a 6" crimp', "Route B"]);
@@ -105,10 +136,21 @@ describe("parseCsvText", () => {
 describe("parseJsonText (#639)", () => {
   function jsonRow(overrides = {}) {
     return {
-      name: "La Marie-Rose", grade: "6B", discipline: "boulder", status: "send",
-      firstAttempt: true, date: "2026-07-30", location: "Fontainebleau",
-      area: "Bas Cuvier", country: "France", video: "", notes: "", sportStyle: "",
-      attemptsToSend: "", rpe: "", gradeScale: "",
+      name: "La Marie-Rose",
+      grade: "6B",
+      discipline: "boulder",
+      status: "send",
+      firstAttempt: true,
+      date: "2026-07-30",
+      location: "Fontainebleau",
+      area: "Bas Cuvier",
+      country: "France",
+      video: "",
+      notes: "",
+      sportStyle: "",
+      attemptsToSend: "",
+      rpe: "",
+      gradeScale: "",
       ...overrides,
     };
   }
@@ -142,15 +184,28 @@ describe("parseJsonText (#639)", () => {
   it("parses a single valid entry, normalizing to the same row shape parseCsvText produces", () => {
     const result = parseJsonText(JSON.stringify([jsonRow()]));
     expect(result.ok).toBe(true);
-    expect(result.rows).toEqual([{
-      name: "La Marie-Rose", grade: "6B", discipline: "boulder", status: "send",
-      firstAttempt: "true", date: "2026-07-30", location: "Fontainebleau",
-      area: "Bas Cuvier", country: "France", video: "", notes: "", sportStyle: "",
-      attemptsToSend: "", rpe: "", gradeScale: "",
-    }]);
+    expect(result.rows).toEqual([
+      {
+        name: "La Marie-Rose",
+        grade: "6B",
+        discipline: "boulder",
+        status: "send",
+        firstAttempt: "true",
+        date: "2026-07-30",
+        location: "Fontainebleau",
+        area: "Bas Cuvier",
+        country: "France",
+        video: "",
+        notes: "",
+        sportStyle: "",
+        attemptsToSend: "",
+        rpe: "",
+        gradeScale: "",
+      },
+    ]);
   });
 
-  it("normalizes a real JSON boolean firstAttempt to the string \"true\"/\"false\"", () => {
+  it('normalizes a real JSON boolean firstAttempt to the string "true"/"false"', () => {
     const result = parseJsonText(JSON.stringify([jsonRow({ firstAttempt: false })]));
     expect(result.rows[0].firstAttempt).toBe("false");
   });
@@ -168,7 +223,17 @@ describe("parseJsonText (#639)", () => {
 
   it("round-trips through resolveExportRows -- the app's own JSON export is importable as-is", () => {
     const entries = [
-      { name: "La Marie-Rose", grade: "6B", type: "boulder", status: "send", placeId: "place1", firstAttempt: true, date: "2026-07-30", video: "https://example.com", notes: "Comma, quote \" and all" },
+      {
+        name: "La Marie-Rose",
+        grade: "6B",
+        type: "boulder",
+        status: "send",
+        placeId: "place1",
+        firstAttempt: true,
+        date: "2026-07-30",
+        video: "https://example.com",
+        notes: 'Comma, quote " and all',
+      },
     ];
     const locations = [{ id: "loc1", name: "Fontainebleau", country: "France" }];
     const places = [{ id: "place1", locationId: "loc1", area: "Bas Cuvier" }];
@@ -177,13 +242,25 @@ describe("parseJsonText (#639)", () => {
     const reimported = parseJsonText(jsonText);
 
     expect(reimported.ok).toBe(true);
-    expect(reimported.rows).toEqual([{
-      name: "La Marie-Rose", grade: "6B", discipline: "boulder", status: "send",
-      firstAttempt: "true", date: "2026-07-30", location: "Fontainebleau",
-      area: "Bas Cuvier", country: "France", video: "https://example.com",
-      notes: 'Comma, quote " and all', sportStyle: "",
-      attemptsToSend: "", rpe: "", gradeScale: "",
-    }]);
+    expect(reimported.rows).toEqual([
+      {
+        name: "La Marie-Rose",
+        grade: "6B",
+        discipline: "boulder",
+        status: "send",
+        firstAttempt: "true",
+        date: "2026-07-30",
+        location: "Fontainebleau",
+        area: "Bas Cuvier",
+        country: "France",
+        video: "https://example.com",
+        notes: 'Comma, quote " and all',
+        sportStyle: "",
+        attemptsToSend: "",
+        rpe: "",
+        gradeScale: "",
+      },
+    ]);
   });
 });
 
@@ -192,13 +269,36 @@ describe("resolveExportRows (#27)", () => {
   const places = [{ id: "place1", locationId: "loc1", area: "Bas Cuvier" }];
 
   it("joins an entry's placeId against places/locations into text columns", () => {
-    const entry = { name: "La Marie-Rose", grade: "6B", type: "boulder", status: "send", placeId: "place1", firstAttempt: true, date: "2026-07-30", video: "", notes: "" };
-    expect(resolveExportRows([entry], places, locations)).toEqual([{
-      name: "La Marie-Rose", grade: "6B", discipline: "boulder", status: "send",
-      firstAttempt: true, date: "2026-07-30", location: "Fontainebleau",
-      area: "Bas Cuvier", country: "France", video: "", notes: "", sportStyle: "",
-      attemptsToSend: "", rpe: "", gradeScale: "",
-    }]);
+    const entry = {
+      name: "La Marie-Rose",
+      grade: "6B",
+      type: "boulder",
+      status: "send",
+      placeId: "place1",
+      firstAttempt: true,
+      date: "2026-07-30",
+      video: "",
+      notes: "",
+    };
+    expect(resolveExportRows([entry], places, locations)).toEqual([
+      {
+        name: "La Marie-Rose",
+        grade: "6B",
+        discipline: "boulder",
+        status: "send",
+        firstAttempt: true,
+        date: "2026-07-30",
+        location: "Fontainebleau",
+        area: "Bas Cuvier",
+        country: "France",
+        video: "",
+        notes: "",
+        sportStyle: "",
+        attemptsToSend: "",
+        rpe: "",
+        gradeScale: "",
+      },
+    ]);
   });
 
   it("keeps firstAttempt as a real boolean, not a string", () => {
@@ -207,20 +307,42 @@ describe("resolveExportRows (#27)", () => {
   });
 
   it("defaults null date/video/notes to empty strings", () => {
-    const entry = { name: "N", grade: "6B", type: "boulder", status: "send", placeId: "place1", firstAttempt: false, date: null, video: null, notes: null };
+    const entry = {
+      name: "N",
+      grade: "6B",
+      type: "boulder",
+      status: "send",
+      placeId: "place1",
+      firstAttempt: false,
+      date: null,
+      video: null,
+      notes: null,
+    };
     expect(resolveExportRows([entry], places, locations)[0]).toMatchObject({ date: "", video: "", notes: "" });
   });
 
   it("resolves to empty location/area/country when the placeId doesn't match any known place (orphaned reference)", () => {
-    const entry = { name: "N", grade: "6B", type: "boulder", status: "send", placeId: "does-not-exist", firstAttempt: false };
+    const entry = {
+      name: "N",
+      grade: "6B",
+      type: "boulder",
+      status: "send",
+      placeId: "does-not-exist",
+      firstAttempt: false,
+    };
     expect(resolveExportRows([entry], places, locations)[0]).toMatchObject({ location: "", area: "", country: "" });
   });
 
   it("survives a real JSON.stringify/JSON.parse round-trip with quotes, a backslash, a newline, and unicode", () => {
     const entry = {
       name: 'Route "The Gift" (5.12a) \\ Área São Paulo\nSecond line',
-      grade: "6B", type: "boulder", status: "send", placeId: "place1", firstAttempt: false,
-      video: "", notes: 'He said "nice" \\o/ 🧗',
+      grade: "6B",
+      type: "boulder",
+      status: "send",
+      placeId: "place1",
+      firstAttempt: false,
+      video: "",
+      notes: 'He said "nice" \\o/ 🧗',
     };
     const [row] = resolveExportRows([entry], places, locations);
     const roundTripped = JSON.parse(JSON.stringify(row));
@@ -232,7 +354,25 @@ describe("resolveExportRows (#27)", () => {
 
 describe("buildEntriesCsv (#27)", () => {
   it("produces a header row plus one row per resolved entry", () => {
-    const rows = [{ name: "La Marie-Rose", grade: "6B", discipline: "boulder", status: "send", firstAttempt: true, date: "2026-07-30", location: "Fontainebleau", area: "Bas Cuvier", country: "France", video: "", notes: "", sportStyle: "", attemptsToSend: "", rpe: "", gradeScale: "" }];
+    const rows = [
+      {
+        name: "La Marie-Rose",
+        grade: "6B",
+        discipline: "boulder",
+        status: "send",
+        firstAttempt: true,
+        date: "2026-07-30",
+        location: "Fontainebleau",
+        area: "Bas Cuvier",
+        country: "France",
+        video: "",
+        notes: "",
+        sportStyle: "",
+        attemptsToSend: "",
+        rpe: "",
+        gradeScale: "",
+      },
+    ];
     expect(buildEntriesCsv(rows)).toBe(`${HEADER}\n${row({ firstAttempt: "true" })}\n`);
   });
 
@@ -240,47 +380,183 @@ describe("buildEntriesCsv (#27)", () => {
     expect(buildEntriesCsv([])).toBe(`${HEADER}\n`);
   });
 
-  it("serializes firstAttempt as the string \"true\"/\"false\", matching what parseCsvText expects on reimport", () => {
-    const rows = [{ name: "N", grade: "6B", discipline: "boulder", status: "send", firstAttempt: false, date: "", location: "L", area: "A", country: "C", video: "", notes: "", sportStyle: "", attemptsToSend: "", rpe: "", gradeScale: "" }];
+  it('serializes firstAttempt as the string "true"/"false", matching what parseCsvText expects on reimport', () => {
+    const rows = [
+      {
+        name: "N",
+        grade: "6B",
+        discipline: "boulder",
+        status: "send",
+        firstAttempt: false,
+        date: "",
+        location: "L",
+        area: "A",
+        country: "C",
+        video: "",
+        notes: "",
+        sportStyle: "",
+        attemptsToSend: "",
+        rpe: "",
+        gradeScale: "",
+      },
+    ];
     expect(buildEntriesCsv(rows)).toContain(",false,");
   });
 
   it("quotes a field containing a comma", () => {
-    const rows = [{ name: "N", grade: "6B", discipline: "boulder", status: "send", firstAttempt: false, date: "", location: "L", area: "A", country: "C", video: "", notes: "Great route, would climb again", sportStyle: "", attemptsToSend: "", rpe: "", gradeScale: "" }];
+    const rows = [
+      {
+        name: "N",
+        grade: "6B",
+        discipline: "boulder",
+        status: "send",
+        firstAttempt: false,
+        date: "",
+        location: "L",
+        area: "A",
+        country: "C",
+        video: "",
+        notes: "Great route, would climb again",
+        sportStyle: "",
+        attemptsToSend: "",
+        rpe: "",
+        gradeScale: "",
+      },
+    ];
     expect(buildEntriesCsv(rows)).toContain('"Great route, would climb again"');
   });
 
   it("escapes a quote inside a field", () => {
-    const rows = [{ name: "N", grade: "6B", discipline: "boulder", status: "send", firstAttempt: false, date: "", location: "L", area: "A", country: "C", video: "", notes: 'She said "nice send"', sportStyle: "", attemptsToSend: "", rpe: "", gradeScale: "" }];
+    const rows = [
+      {
+        name: "N",
+        grade: "6B",
+        discipline: "boulder",
+        status: "send",
+        firstAttempt: false,
+        date: "",
+        location: "L",
+        area: "A",
+        country: "C",
+        video: "",
+        notes: 'She said "nice send"',
+        sportStyle: "",
+        attemptsToSend: "",
+        rpe: "",
+        gradeScale: "",
+      },
+    ];
     expect(buildEntriesCsv(rows)).toContain('"She said ""nice send"""');
   });
 
   it("quotes a field containing a newline", () => {
-    const rows = [{ name: "N", grade: "6B", discipline: "boulder", status: "send", firstAttempt: false, date: "", location: "L", area: "A", country: "C", video: "", notes: "Line one\nLine two", sportStyle: "", attemptsToSend: "", rpe: "", gradeScale: "" }];
+    const rows = [
+      {
+        name: "N",
+        grade: "6B",
+        discipline: "boulder",
+        status: "send",
+        firstAttempt: false,
+        date: "",
+        location: "L",
+        area: "A",
+        country: "C",
+        video: "",
+        notes: "Line one\nLine two",
+        sportStyle: "",
+        attemptsToSend: "",
+        rpe: "",
+        gradeScale: "",
+      },
+    ];
     expect(buildEntriesCsv(rows)).toContain('"Line one\nLine two"');
   });
 
   it.each(["=1+1", "+1", "-1", "@SUM(A1)", "\tA1", "\rA1"])(
     "neutralizes a field starting with a formula-trigger character (%j)",
     notes => {
-      const rows = [{ name: "N", grade: "6B", discipline: "boulder", status: "send", firstAttempt: false, date: "", location: "L", area: "A", country: "C", video: "", notes, sportStyle: "", attemptsToSend: "", rpe: "", gradeScale: "" }];
+      const rows = [
+        {
+          name: "N",
+          grade: "6B",
+          discipline: "boulder",
+          status: "send",
+          firstAttempt: false,
+          date: "",
+          location: "L",
+          area: "A",
+          country: "C",
+          video: "",
+          notes,
+          sportStyle: "",
+          attemptsToSend: "",
+          rpe: "",
+          gradeScale: "",
+        },
+      ];
       expect(buildEntriesCsv(rows)).toContain(`,'${notes},,,,\n`);
-    }
+    },
   );
 
   it("does not neutralize a field that merely contains, but doesn't start with, a trigger character", () => {
-    const rows = [{ name: "N", grade: "6B", discipline: "boulder", status: "send", firstAttempt: false, date: "", location: "L", area: "A", country: "C", video: "", notes: "5.12a - The Nose", sportStyle: "", attemptsToSend: "", rpe: "", gradeScale: "" }];
+    const rows = [
+      {
+        name: "N",
+        grade: "6B",
+        discipline: "boulder",
+        status: "send",
+        firstAttempt: false,
+        date: "",
+        location: "L",
+        area: "A",
+        country: "C",
+        video: "",
+        notes: "5.12a - The Nose",
+        sportStyle: "",
+        attemptsToSend: "",
+        rpe: "",
+        gradeScale: "",
+      },
+    ];
     expect(buildEntriesCsv(rows)).toContain(",5.12a - The Nose,,,,\n");
   });
 
   it("neutralizes a formula-triggering field that also needs RFC4180 quoting", () => {
-    const rows = [{ name: "N", grade: "6B", discipline: "boulder", status: "send", firstAttempt: false, date: "", location: "L", area: "A", country: "C", video: "", notes: '=HYPERLINK("http://evil.com","click"), nice', sportStyle: "", attemptsToSend: "", rpe: "", gradeScale: "" }];
+    const rows = [
+      {
+        name: "N",
+        grade: "6B",
+        discipline: "boulder",
+        status: "send",
+        firstAttempt: false,
+        date: "",
+        location: "L",
+        area: "A",
+        country: "C",
+        video: "",
+        notes: '=HYPERLINK("http://evil.com","click"), nice',
+        sportStyle: "",
+        attemptsToSend: "",
+        rpe: "",
+        gradeScale: "",
+      },
+    ];
     expect(buildEntriesCsv(rows)).toContain('"\'=HYPERLINK(""http://evil.com"",""click""), nice"');
   });
 
   it("round-trips through parseCsvText -- export then reimport produces the same rows", () => {
     const entries = [
-      { name: "La Marie-Rose", grade: "6B", type: "boulder", status: "send", placeId: "place1", firstAttempt: true, date: "2026-07-30", video: "https://example.com", notes: "Comma, quote \" and all" },
+      {
+        name: "La Marie-Rose",
+        grade: "6B",
+        type: "boulder",
+        status: "send",
+        placeId: "place1",
+        firstAttempt: true,
+        date: "2026-07-30",
+        video: "https://example.com",
+        notes: 'Comma, quote " and all',
+      },
     ];
     const locations = [{ id: "loc1", name: "Fontainebleau", country: "France" }];
     const places = [{ id: "place1", locationId: "loc1", area: "Bas Cuvier" }];
@@ -289,18 +565,40 @@ describe("buildEntriesCsv (#27)", () => {
     const reimported = parseCsvText(csv);
 
     expect(reimported.ok).toBe(true);
-    expect(reimported.rows).toEqual([{
-      name: "La Marie-Rose", grade: "6B", discipline: "boulder", status: "send",
-      firstAttempt: "true", date: "2026-07-30", location: "Fontainebleau",
-      area: "Bas Cuvier", country: "France", video: "https://example.com",
-      notes: 'Comma, quote " and all', sportStyle: "",
-      attemptsToSend: "", rpe: "", gradeScale: "",
-    }]);
+    expect(reimported.rows).toEqual([
+      {
+        name: "La Marie-Rose",
+        grade: "6B",
+        discipline: "boulder",
+        status: "send",
+        firstAttempt: "true",
+        date: "2026-07-30",
+        location: "Fontainebleau",
+        area: "Bas Cuvier",
+        country: "France",
+        video: "https://example.com",
+        notes: 'Comma, quote " and all',
+        sportStyle: "",
+        attemptsToSend: "",
+        rpe: "",
+        gradeScale: "",
+      },
+    ]);
   });
 
   it("round-trips attemptsToSend/rpe/gradeScale through export then reimport", () => {
     const entries = [
-      { name: "La Marie-Rose", grade: "6B", gradeScale: "font-non-standard", type: "boulder", status: "send", placeId: "place1", firstAttempt: true, attemptsToSend: 3, rpe: 80 },
+      {
+        name: "La Marie-Rose",
+        grade: "6B",
+        gradeScale: "font-non-standard",
+        type: "boulder",
+        status: "send",
+        placeId: "place1",
+        firstAttempt: true,
+        attemptsToSend: 3,
+        rpe: 80,
+      },
     ];
     const locations = [{ id: "loc1", name: "Fontainebleau", country: "France" }];
     const places = [{ id: "place1", locationId: "loc1", area: "Bas Cuvier" }];

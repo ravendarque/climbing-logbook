@@ -6,8 +6,12 @@ import { createAuthedSession, fetchJson, resetAuthTables } from "./support.js";
 const IMPORT_URL = "/-/api/entries/import";
 const HEADER = CSV_COLUMNS.join(",");
 
-beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
-afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
+beforeAll(() => {
+  env.BETA_GATE_ENABLED = "false";
+});
+afterAll(() => {
+  env.BETA_GATE_ENABLED = "true";
+});
 
 let cookie;
 
@@ -18,10 +22,21 @@ beforeEach(async () => {
 
 function csvRow(overrides = {}) {
   const values = {
-    name: "La Marie-Rose", grade: "6B", discipline: "boulder", status: "send",
-    firstAttempt: "true", date: "2026-07-30", location: "Fontainebleau",
-    area: "Bas Cuvier", country: "France", video: "", notes: "", sportStyle: "",
-    attemptsToSend: "", rpe: "", gradeScale: "",
+    name: "La Marie-Rose",
+    grade: "6B",
+    discipline: "boulder",
+    status: "send",
+    firstAttempt: "true",
+    date: "2026-07-30",
+    location: "Fontainebleau",
+    area: "Bas Cuvier",
+    country: "France",
+    video: "",
+    notes: "",
+    sportStyle: "",
+    attemptsToSend: "",
+    rpe: "",
+    gradeScale: "",
     ...overrides,
   };
   return CSV_COLUMNS.map(col => values[col]).join(",");
@@ -57,7 +72,11 @@ describe("handleImport", () => {
   });
 
   it("rejects a header that doesn't match the template", async () => {
-    const res = await fetchJson(IMPORT_URL, { method: "POST", headers: { Cookie: cookie }, body: "name,grade\nFoo,6A\n" });
+    const res = await fetchJson(IMPORT_URL, {
+      method: "POST",
+      headers: { Cookie: cookie },
+      body: "name,grade\nFoo,6A\n",
+    });
     expect(res.status).toBe(400);
     expect((await res.json()).error).toMatch(/^CSV header doesn't match the template/);
   });
@@ -203,9 +222,17 @@ describe("handleImport", () => {
 
 function jsonEntry(overrides = {}) {
   return {
-    name: "La Marie-Rose", grade: "6B", discipline: "boulder", status: "send",
-    firstAttempt: true, date: "2026-07-30", location: "Fontainebleau",
-    area: "Bas Cuvier", country: "France", video: "", notes: "",
+    name: "La Marie-Rose",
+    grade: "6B",
+    discipline: "boulder",
+    status: "send",
+    firstAttempt: true,
+    date: "2026-07-30",
+    location: "Fontainebleau",
+    area: "Bas Cuvier",
+    country: "France",
+    video: "",
+    notes: "",
     ...overrides,
   };
 }
@@ -220,7 +247,11 @@ function importJson(entries, extraCookie = cookie) {
 
 describe("handleImport (JSON, #639)", () => {
   it("rejects invalid JSON", async () => {
-    const res = await fetchJson(IMPORT_URL, { method: "POST", headers: { "Content-Type": "application/json", Cookie: cookie }, body: "not json" });
+    const res = await fetchJson(IMPORT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: cookie },
+      body: "not json",
+    });
     expect(res.status).toBe(400);
     expect((await res.json()).error).toBe("JSON file isn't valid JSON.");
   });
@@ -264,14 +295,30 @@ describe("handleImport (JSON, #639)", () => {
 
   it("round-trips this app's own JSON export shape end-to-end", async () => {
     const exportedShape = {
-      name: "Redpoint Route", grade: "6a", discipline: "sport", status: "send",
-      firstAttempt: true, date: "2026-08-01", location: "Kalymnos",
-      area: "Grande Grotta", country: "Greece", video: "", notes: "", sportStyle: "lead",
+      name: "Redpoint Route",
+      grade: "6a",
+      discipline: "sport",
+      status: "send",
+      firstAttempt: true,
+      date: "2026-08-01",
+      location: "Kalymnos",
+      area: "Grande Grotta",
+      country: "Greece",
+      video: "",
+      notes: "",
+      sportStyle: "lead",
     };
     const res = await importJson([exportedShape]);
     expect(res.status).toBe(201);
     const entries = await storedEntries();
-    expect(entries[0]).toMatchObject({ name: "Redpoint Route", grade: "6a", type: "sport", status: "send", firstAttempt: true, sportStyle: "lead" });
+    expect(entries[0]).toMatchObject({
+      name: "Redpoint Route",
+      grade: "6a",
+      type: "sport",
+      status: "send",
+      firstAttempt: true,
+      sportStyle: "lead",
+    });
   });
 
   it("imports a Sport entry, requiring sportStyle same as the single-entry form (#643)", async () => {

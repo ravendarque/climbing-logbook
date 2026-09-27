@@ -43,17 +43,28 @@ export async function createAuthedSession({
   const request = (path, init) => exports.default.fetch(`${base}${path}`, init);
 
   let capturedHtml;
-  vi.stubGlobal("fetch", vi.fn(async (input, init) => {
-    const url = typeof input === "string" ? input : input.url;
-    if (url.startsWith("https://api.resend.com/")) {
-      capturedHtml = JSON.parse(init.body).html;
-      return new Response(JSON.stringify({ id: "fake-resend-id" }), { status: 200, headers: { "Content-Type": "application/json" } });
-    }
-    if (url.startsWith("https://challenges.cloudflare.com/turnstile/")) {
-      return new Response(JSON.stringify({ success: true }), { status: 200, headers: { "Content-Type": "application/json" } });
-    }
-    throw new Error(`Unexpected fetch to ${url} -- only Resend/Turnstile calls should reach real fetch() during createAuthedSession()`);
-  }));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input, init) => {
+      const url = typeof input === "string" ? input : input.url;
+      if (url.startsWith("https://api.resend.com/")) {
+        capturedHtml = JSON.parse(init.body).html;
+        return new Response(JSON.stringify({ id: "fake-resend-id" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (url.startsWith("https://challenges.cloudflare.com/turnstile/")) {
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      throw new Error(
+        `Unexpected fetch to ${url} -- only Resend/Turnstile calls should reach real fetch() during createAuthedSession()`,
+      );
+    }),
+  );
 
   const signUp = await request("/-/api/auth/sign-up/email", {
     method: "POST",
@@ -67,7 +78,8 @@ export async function createAuthedSession({
     }),
   });
 
-  if (!signUp.ok) throw new Error(`createAuthedSession: sign-up as "${username}" failed (${signUp.status}): ${await signUp.text()}`);
+  if (!signUp.ok)
+    throw new Error(`createAuthedSession: sign-up as "${username}" failed (${signUp.status}): ${await signUp.text()}`);
   const token = decodeURIComponent(capturedHtml.match(/token=([^"&<?]+)/)[1]);
   const res = await request(`/-/api/auth/verify-email?token=${token}`);
   const cookie = res.headers.get("set-cookie").split(";")[0];
@@ -78,21 +90,16 @@ export async function createAuthedSession({
   return { cookie, userId: user.id };
 }
 
-export async function seedPlace(cookie, { locationName = "Magic Wood", country = "Switzerland", area = "Sector 1" } = {}) {
-  const locRes = await jsonRequest(
-    "POST",
-    "/-/api/locations",
-    { name: locationName, country },
-    { Cookie: cookie }
-  );
-  const { location: { id: locationId } } = await locRes.json();
+export async function seedPlace(
+  cookie,
+  { locationName = "Magic Wood", country = "Switzerland", area = "Sector 1" } = {},
+) {
+  const locRes = await jsonRequest("POST", "/-/api/locations", { name: locationName, country }, { Cookie: cookie });
+  const {
+    location: { id: locationId },
+  } = await locRes.json();
 
-  const placeRes = await jsonRequest(
-    "POST",
-    "/-/api/places",
-    { locationId, area },
-    { Cookie: cookie }
-  );
+  const placeRes = await jsonRequest("POST", "/-/api/places", { locationId, area }, { Cookie: cookie });
   const { place } = await placeRes.json();
   return place.id;
 }

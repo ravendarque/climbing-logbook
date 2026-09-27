@@ -29,8 +29,11 @@ async function ownerUsername() {
 // One fill at a time: a second request while one runs shares it.
 let filling = null;
 function precache(username) {
-  filling ??= fillPrecache({ list: PRECACHE, cacheName: CACHE_NAME, origin: self.location.origin, username })
-    .finally(() => { filling = null; });
+  filling ??= fillPrecache({ list: PRECACHE, cacheName: CACHE_NAME, origin: self.location.origin, username }).finally(
+    () => {
+      filling = null;
+    },
+  );
   return filling;
 }
 
@@ -39,10 +42,12 @@ self.addEventListener("install", event => {
   // shells on their next launch (no forced reload, ADR-0028 decision 6).
   self.skipWaiting();
   // Installed only when complete; a retry fetches only what's missing.
-  event.waitUntil((async () => {
-    const { missing } = await precache(await ownerUsername());
-    if (missing.length) throw new Error(`pre-cache incomplete: ${missing.length} item(s) missing`);
-  })());
+  event.waitUntil(
+    (async () => {
+      const { missing } = await precache(await ownerUsername());
+      if (missing.length) throw new Error(`pre-cache incomplete: ${missing.length} item(s) missing`);
+    })(),
+  );
 });
 
 // Tops up what this build's cache lacks, such as shells after a logout.
@@ -53,13 +58,15 @@ self.addEventListener("message", event => {
 });
 
 self.addEventListener("activate", event => {
-  event.waitUntil((async () => {
-    // Keep this build's cache and the previous build's (an open tab from
-    // the last build keeps finding its assets); drop the rest.
-    const stale = cachesToDelete(await caches.keys(), CACHE_NAME);
-    await Promise.all(stale.map(name => caches.delete(name)));
-    await self.clients.claim();
-  })());
+  event.waitUntil(
+    (async () => {
+      // Keep this build's cache and the previous build's (an open tab from
+      // the last build keeps finding its assets); drop the rest.
+      const stale = cachesToDelete(await caches.keys(), CACHE_NAME);
+      await Promise.all(stale.map(name => caches.delete(name)));
+      await self.clients.claim();
+    })(),
+  );
 });
 
 async function put(request, response) {
@@ -131,13 +138,24 @@ async function networkFirst(event) {
 
 self.addEventListener("fetch", event => {
   const { request } = event;
-  const route = classifyRequest({ url: request.url, method: request.method, mode: request.mode, workerOrigin: self.location.origin });
+  const route = classifyRequest({
+    url: request.url,
+    method: request.method,
+    mode: request.mode,
+    workerOrigin: self.location.origin,
+  });
   switch (route.kind) {
-    case "owner-shell": return event.respondWith(ownerShell(event, route.page));
-    case "launch": return event.respondWith(launchPage(event));
-    case "immutable": return event.respondWith(immutable(event));
-    case "font": return event.respondWith(staleWhileRevalidate(event));
-    case "static": return event.respondWith(networkFirst(event));
-    default: return; // passthrough: the browser handles it as if there were no worker
+    case "owner-shell":
+      return event.respondWith(ownerShell(event, route.page));
+    case "launch":
+      return event.respondWith(launchPage(event));
+    case "immutable":
+      return event.respondWith(immutable(event));
+    case "font":
+      return event.respondWith(staleWhileRevalidate(event));
+    case "static":
+      return event.respondWith(networkFirst(event));
+    default:
+      return; // passthrough: the browser handles it as if there were no worker
   }
 });

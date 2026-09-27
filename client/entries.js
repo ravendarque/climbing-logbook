@@ -16,7 +16,7 @@ export function entryLocation(entry, places, locations) {
 
 export function entryMatchesStatusFilter(entry, filter) {
   if (filter === "flash") return entry.status === "send" && entry.firstAttempt;
-  if (filter === "send")  return entry.status === "send" && !entry.firstAttempt;
+  if (filter === "send") return entry.status === "send" && !entry.firstAttempt;
   return entry.status === filter;
 }
 
@@ -37,7 +37,13 @@ export function filteredEntries(entries, places, { activeType, statusFilters, gr
     if (![...statusFilters].some(f => entryMatchesStatusFilter(e, f))) return false;
     if (activeType === "sport" && sportStyleFilters && !sportStyleFilters.has(e.sportStyle)) return false;
     if (gradeTiers && !gradeTiers.has(gradeTierForScale(e.grade, e.gradeScale, activeType))) return false;
-    if (q && !e.name.toLowerCase().includes(q) && !placeOf(e, places).area.toLowerCase().includes(q) && !gradeMatchesSearch(e.grade, q)) return false;
+    if (
+      q &&
+      !e.name.toLowerCase().includes(q) &&
+      !placeOf(e, places).area.toLowerCase().includes(q) &&
+      !gradeMatchesSearch(e.grade, q)
+    )
+      return false;
     return true;
   });
 }
@@ -52,18 +58,16 @@ export function groupByPlace(entries, allEntries, places) {
     map.get(locationId).push(e);
   }
   const locationOrder = [...new Set(allEntries.map(e => placeOf(e, places).locationId))];
-  return locationOrder
-    .filter(id => map.has(id))
-    .map(id => [id, map.get(id)]);
+  return locationOrder.filter(id => map.has(id)).map(id => [id, map.get(id)]);
 }
 
 export function sortEntries(entries, { col, dir }, places, type) {
   const m = dir === "asc" ? 1 : -1;
   return [...entries].sort((a, b) => {
-    if (col === "grade")  return m * (gradeRank(a.grade, type) - gradeRank(b.grade, type));
-    if (col === "date")   return m * (dateRank(a.date) - dateRank(b.date));
-    if (col === "name")   return m * a.name.localeCompare(b.name);
-    if (col === "area")   return m * placeOf(a, places).area.localeCompare(placeOf(b, places).area);
+    if (col === "grade") return m * (gradeRank(a.grade, type) - gradeRank(b.grade, type));
+    if (col === "date") return m * (dateRank(a.date) - dateRank(b.date));
+    if (col === "name") return m * a.name.localeCompare(b.name);
+    if (col === "area") return m * placeOf(a, places).area.localeCompare(placeOf(b, places).area);
     return 0;
   });
 }

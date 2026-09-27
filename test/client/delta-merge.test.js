@@ -9,14 +9,20 @@ describe("mergeDelta", () => {
   });
 
   it("upserts an existing row by id, keeping its original position", () => {
-    const current = [{ id: "a", name: "Old" }, { id: "b", name: "Untouched" }];
+    const current = [
+      { id: "a", name: "Old" },
+      { id: "b", name: "Untouched" },
+    ];
     const merged = mergeDelta(current, [{ id: "a", name: "Updated", deleted: false }]);
     expect(merged.map(r => r.id)).toEqual(["a", "b"]);
     expect(merged[0]).toEqual({ id: "a", name: "Updated" });
   });
 
   it("removes a row flagged deleted: true", () => {
-    const current = [{ id: "a", name: "Gone soon" }, { id: "b", name: "Stays" }];
+    const current = [
+      { id: "a", name: "Gone soon" },
+      { id: "b", name: "Stays" },
+    ];
     const merged = mergeDelta(current, [{ id: "a", deleted: true }]);
     expect(merged.map(r => r.id)).toEqual(["b"]);
   });

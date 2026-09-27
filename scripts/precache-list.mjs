@@ -15,12 +15,19 @@ const HTML_REFS = /<(?:script|link)\b[^>]*?\s(?:src|href)="(\/[^"/][^"]*)"/g;
 const CSS_URLS = /url\(\s*["']?(\/[^"')/][^"')]*)["']?\s*\)/g;
 
 function isWorkerCached(url) {
-  const kind = classifyRequest({ url: new URL(url, ORIGIN).href, method: "GET", mode: "no-cors", workerOrigin: ORIGIN }).kind;
+  const kind = classifyRequest({
+    url: new URL(url, ORIGIN).href,
+    method: "GET",
+    mode: "no-cors",
+    workerOrigin: ORIGIN,
+  }).kind;
   return kind !== "passthrough";
 }
 
 const sha256 = file => createHash("sha256").update(readFileSync(file)).digest("hex");
-const isContentAddressed = url => classifyRequest({ url: new URL(url, ORIGIN).href, method: "GET", mode: "no-cors", workerOrigin: ORIGIN }).kind === "immutable";
+const isContentAddressed = url =>
+  classifyRequest({ url: new URL(url, ORIGIN).href, method: "GET", mode: "no-cors", workerOrigin: ORIGIN }).kind ===
+  "immutable";
 
 const pathOf = url => new URL(url, ORIGIN).pathname;
 const fileFor = (outDir, url) => {
@@ -82,6 +89,8 @@ export function buildPrecacheList(outDir, bundle) {
 
   return {
     shells: Object.entries(SHELL_PATHS).map(([page, shellPath]) => ({ page, hash: sha256(join(outDir, shellPath)) })),
-    assets: [...assets].sort().map(url => (isContentAddressed(url) ? { url } : { url, hash: sha256(fileFor(outDir, url)) })),
+    assets: [...assets]
+      .sort()
+      .map(url => (isContentAddressed(url) ? { url } : { url, hash: sha256(fileFor(outDir, url)) })),
   };
 }

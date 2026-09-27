@@ -1,7 +1,9 @@
 import { expect, test } from "@playwright/test";
 import { mockApi } from "./mock-api.js";
 
-test("shows the confidence-gate message, time-window control, and Sources section below the sample threshold", async ({ page }) => {
+test("shows the confidence-gate message, time-window control, and Sources section below the sample threshold", async ({
+  page,
+}) => {
   await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
   await page.goto("/e2e-fixtures/pages/performance-rpe.html");
 
@@ -21,11 +23,20 @@ test("renders the exertion bars and grade-labeled line once the confidence gate 
     effortData: {
       boulder: {
         buckets: ["-3w", "-2w", "-1w"],
-        maxGradeByBucket: [null, { grade: "6B", gradeScale: "font-non-standard" }, { grade: "6C", gradeScale: "font-non-standard" }],
+        maxGradeByBucket: [
+          null,
+          { grade: "6B", gradeScale: "font-non-standard" },
+          { grade: "6C", gradeScale: "font-non-standard" },
+        ],
         avgExertionByBucket: [null, 70, 85],
         headline: "Your effort is rising alongside your grade -- sounds like it's paying off.",
       },
-      lead: { buckets: ["-3w", "-2w", "-1w"], maxGradeByBucket: [null, null, null], avgExertionByBucket: [null, null, null], headline: null },
+      lead: {
+        buckets: ["-3w", "-2w", "-1w"],
+        maxGradeByBucket: [null, null, null],
+        avgExertionByBucket: [null, null, null],
+        headline: null,
+      },
     },
   });
   await page.goto("/e2e-fixtures/pages/performance-rpe.html");
@@ -43,11 +54,20 @@ test("switching the report grade scale relabels the chart's grade point", async 
     effortData: {
       boulder: {
         buckets: ["-3w", "-2w", "-1w"],
-        maxGradeByBucket: [null, { grade: "6B", gradeScale: "font-non-standard" }, { grade: "6C", gradeScale: "font-non-standard" }],
+        maxGradeByBucket: [
+          null,
+          { grade: "6B", gradeScale: "font-non-standard" },
+          { grade: "6C", gradeScale: "font-non-standard" },
+        ],
         avgExertionByBucket: [null, 70, 85],
         headline: "Your effort is rising alongside your grade -- sounds like it's paying off.",
       },
-      lead: { buckets: ["-3w", "-2w", "-1w"], maxGradeByBucket: [null, null, null], avgExertionByBucket: [null, null, null], headline: null },
+      lead: {
+        buckets: ["-3w", "-2w", "-1w"],
+        maxGradeByBucket: [null, null, null],
+        avgExertionByBucket: [null, null, null],
+        headline: null,
+      },
     },
   });
   await page.goto("/e2e-fixtures/pages/performance-rpe.html");
@@ -64,7 +84,12 @@ test("switching the time window to 52w re-fetches with a wider range", async ({ 
   await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
   await page.route("**/-/api/performance/rpe**", route => {
     lastRequestUrl = route.request().url();
-    return route.fulfill({ json: { boulder: { buckets: [], maxGradeByBucket: [], avgExertionByBucket: [], headline: null }, lead: { buckets: [], maxGradeByBucket: [], avgExertionByBucket: [], headline: null } } });
+    return route.fulfill({
+      json: {
+        boulder: { buckets: [], maxGradeByBucket: [], avgExertionByBucket: [], headline: null },
+        lead: { buckets: [], maxGradeByBucket: [], avgExertionByBucket: [], headline: null },
+      },
+    });
   });
   await page.goto("/e2e-fixtures/pages/performance-rpe.html");
   // The first fetch waits for the session and settings, so it lands after load.

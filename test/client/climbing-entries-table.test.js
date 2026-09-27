@@ -5,7 +5,16 @@ import "../../client/components/climbing-entries-table.js";
 let el;
 
 function entry(overrides = {}) {
-  return { id: "e1", placeId: "p1", type: "boulder", status: "send", grade: "6A", date: "2026-01-01", name: "Test", ...overrides };
+  return {
+    id: "e1",
+    placeId: "p1",
+    type: "boulder",
+    status: "send",
+    grade: "6A",
+    date: "2026-01-01",
+    name: "Test",
+    ...overrides,
+  };
 }
 
 beforeEach(() => {
@@ -69,7 +78,9 @@ describe("focus restoration after a re-render (#805)", () => {
   it("keeps focus on the Show more button after revealing another page", async () => {
     el.editable = true;
     el.places = [{ id: "p1", locationId: "loc1", area: "" }];
-    el.entries = Array.from({ length: 101 }, (_, i) => entry({ id: `e${i}`, date: `2026-01-${String((i % 28) + 1).padStart(2, "0")}` }));
+    el.entries = Array.from({ length: 101 }, (_, i) =>
+      entry({ id: `e${i}`, date: `2026-01-${String((i % 28) + 1).padStart(2, "0")}` }),
+    );
     el.locations = [{ id: "loc1", name: "Fontainebleau", country: "France" }];
     await Promise.resolve();
 
@@ -86,7 +97,9 @@ describe("focus restoration after a re-render (#805)", () => {
   it("falls back to the place header when Show all removes its own button", async () => {
     el.editable = true;
     el.places = [{ id: "p1", locationId: "loc1", area: "" }];
-    el.entries = Array.from({ length: 150 }, (_, i) => entry({ id: `e${i}`, date: `2026-01-${String((i % 28) + 1).padStart(2, "0")}` }));
+    el.entries = Array.from({ length: 150 }, (_, i) =>
+      entry({ id: `e${i}`, date: `2026-01-${String((i % 28) + 1).padStart(2, "0")}` }),
+    );
     el.locations = [{ id: "loc1", name: "Fontainebleau", country: "France" }];
     await Promise.resolve();
 

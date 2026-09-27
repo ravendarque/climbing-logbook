@@ -27,9 +27,12 @@ describe("pointApexLinksAtApex", () => {
     expect(href("placeholder")).toBe("#");
   });
 
-  it.each(["climbinglogbook.com", "my.localhost", "pr-1-climbing-logbook-preview.ravendarque.workers.dev"])("changes nothing on %s", hostname => {
-    const href = page();
-    pointApexLinksAtApex(document, hostname);
-    expect(href("help")).toBe("/help/");
-  });
+  it.each(["climbinglogbook.com", "my.localhost", "pr-1-climbing-logbook-preview.ravendarque.workers.dev"])(
+    "changes nothing on %s",
+    hostname => {
+      const href = page();
+      pointApexLinksAtApex(document, hostname);
+      expect(href("help")).toBe("/help/");
+    },
+  );
 });

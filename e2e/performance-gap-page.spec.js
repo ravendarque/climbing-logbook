@@ -21,12 +21,22 @@ test("renders both grade-labeled line series and the attempts bar", async ({ pag
       boulder: {
         buckets: ["-3w", "-2w", "-1w"],
         flashMaxByBucket: [null, { grade: "6B", gradeScale: "font-non-standard" }, null],
-        sendMaxByBucket: [null, { grade: "6B", gradeScale: "font-non-standard" }, { grade: "6C", gradeScale: "font-non-standard" }],
+        sendMaxByBucket: [
+          null,
+          { grade: "6B", gradeScale: "font-non-standard" },
+          { grade: "6C", gradeScale: "font-non-standard" },
+        ],
         avgAttemptsByBucket: [null, 1.5, 3],
         // Unused: the page recomputes the headline for the chosen scale.
         headline: "unused -- recomputed client-side, see #733",
       },
-      lead: { buckets: ["-3w", "-2w", "-1w"], flashMaxByBucket: [null, null, null], sendMaxByBucket: [null, null, null], avgAttemptsByBucket: [null, null, null], headline: "No sends logged in this window yet." },
+      lead: {
+        buckets: ["-3w", "-2w", "-1w"],
+        flashMaxByBucket: [null, null, null],
+        sendMaxByBucket: [null, null, null],
+        avgAttemptsByBucket: [null, null, null],
+        headline: "No sends logged in this window yet.",
+      },
     },
   });
   await page.goto("/e2e-fixtures/pages/performance-gap.html");
@@ -46,11 +56,21 @@ test("switching the report grade scale relabels both grade line series", async (
       boulder: {
         buckets: ["-3w", "-2w", "-1w"],
         flashMaxByBucket: [null, { grade: "6B", gradeScale: "font-non-standard" }, null],
-        sendMaxByBucket: [null, { grade: "6B", gradeScale: "font-non-standard" }, { grade: "6C", gradeScale: "font-non-standard" }],
+        sendMaxByBucket: [
+          null,
+          { grade: "6B", gradeScale: "font-non-standard" },
+          { grade: "6C", gradeScale: "font-non-standard" },
+        ],
         avgAttemptsByBucket: [null, 1.5, 3],
         headline: "unused -- recomputed client-side, see #733", // see the other test's own comment
       },
-      lead: { buckets: ["-3w", "-2w", "-1w"], flashMaxByBucket: [null, null, null], sendMaxByBucket: [null, null, null], avgAttemptsByBucket: [null, null, null], headline: "No sends logged in this window yet." },
+      lead: {
+        buckets: ["-3w", "-2w", "-1w"],
+        flashMaxByBucket: [null, null, null],
+        sendMaxByBucket: [null, null, null],
+        avgAttemptsByBucket: [null, null, null],
+        headline: "No sends logged in this window yet.",
+      },
     },
   });
   await page.goto("/e2e-fixtures/pages/performance-gap.html");
@@ -67,7 +87,24 @@ test("switching the time window to 52w re-fetches with a wider range", async ({ 
   await mockApi(page, { settings: { athleteMode: true, activeDiscipline: "boulder" } });
   await page.route("**/-/api/performance/gap**", route => {
     lastRequestUrl = route.request().url();
-    return route.fulfill({ json: { boulder: { buckets: [], flashMaxByBucket: [], sendMaxByBucket: [], avgAttemptsByBucket: [], headline: "No sends logged in this window yet." }, lead: { buckets: [], flashMaxByBucket: [], sendMaxByBucket: [], avgAttemptsByBucket: [], headline: "No sends logged in this window yet." } } });
+    return route.fulfill({
+      json: {
+        boulder: {
+          buckets: [],
+          flashMaxByBucket: [],
+          sendMaxByBucket: [],
+          avgAttemptsByBucket: [],
+          headline: "No sends logged in this window yet.",
+        },
+        lead: {
+          buckets: [],
+          flashMaxByBucket: [],
+          sendMaxByBucket: [],
+          avgAttemptsByBucket: [],
+          headline: "No sends logged in this window yet.",
+        },
+      },
+    });
   });
   await page.goto("/e2e-fixtures/pages/performance-gap.html");
   await expect.poll(() => lastRequestUrl).not.toBeNull();

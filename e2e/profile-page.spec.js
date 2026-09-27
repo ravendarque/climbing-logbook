@@ -2,15 +2,36 @@ import { expect, test } from "@playwright/test";
 import { mockApi } from "./mock-api.js";
 
 const SEED = {
-  entries: [{ id: "e1", placeId: "p1", type: "boulder", status: "send", grade: "6A", date: "2026-05-01", name: "Boulder Seed" }],
+  entries: [
+    { id: "e1", placeId: "p1", type: "boulder", status: "send", grade: "6A", date: "2026-05-01", name: "Boulder Seed" },
+  ],
   places: [{ id: "p1", locationId: "l1", area: "" }],
   locations: [{ id: "l1", name: "Test Crag", country: "United Kingdom" }],
 };
 
 const MIXED_SEED = {
   entries: [
-    { id: "e1", placeId: "p1", type: "boulder", status: "send", firstAttempt: true, grade: "6A", date: "2026-05-01", name: "Boulder Seed" },
-    { id: "e2", placeId: "p1", type: "sport", status: "send", firstAttempt: false, grade: "6a", date: "2026-05-02", name: "Sport Seed", sportStyle: "lead" },
+    {
+      id: "e1",
+      placeId: "p1",
+      type: "boulder",
+      status: "send",
+      firstAttempt: true,
+      grade: "6A",
+      date: "2026-05-01",
+      name: "Boulder Seed",
+    },
+    {
+      id: "e2",
+      placeId: "p1",
+      type: "sport",
+      status: "send",
+      firstAttempt: false,
+      grade: "6a",
+      date: "2026-05-02",
+      name: "Sport Seed",
+      sportStyle: "lead",
+    },
   ],
   places: [{ id: "p1", locationId: "l1", area: "" }],
   locations: [{ id: "l1", name: "Test Crag", country: "United Kingdom" }],
@@ -35,7 +56,9 @@ test("renders the shared chrome readonly -- no edit affordances or admin rows an
   await expect(page.locator("#theme-toggle-btn")).toBeVisible();
 });
 
-test("Grade Pyramid is never present -- no <climbing-tab-bar>, no pyramid markup, no performance bundle request", async ({ page }) => {
+test("Grade Pyramid is never present -- no <climbing-tab-bar>, no pyramid markup, no performance bundle request", async ({
+  page,
+}) => {
   const requests = [];
   page.on("request", req => requests.push(req.url()));
 
@@ -45,7 +68,9 @@ test("Grade Pyramid is never present -- no <climbing-tab-bar>, no pyramid markup
 
   await expect(page.locator("climbing-tab-bar")).toHaveCount(0);
   await expect(page.locator("climbing-grade-pyramid")).toHaveCount(0);
-  expect(requests.some(url => url.includes("performance-pyramid-app.js") || url.includes("performance-hub-app.js"))).toBe(false);
+  expect(
+    requests.some(url => url.includes("performance-pyramid-app.js") || url.includes("performance-hub-app.js")),
+  ).toBe(false);
 });
 
 test("Map tab (#333) switches to a real read-only map and back, without a page navigation", async ({ page }) => {
@@ -67,7 +92,9 @@ test("Map tab (#333) switches to a real read-only map and back, without a page n
   await expect(page.locator("climbing-entries-table")).toBeVisible();
 });
 
-test("no discipline picker anymore -- combined view shows both disciplines as separate table sections", async ({ page }) => {
+test("no discipline picker anymore -- combined view shows both disciplines as separate table sections", async ({
+  page,
+}) => {
   await mockApi(page, MIXED_SEED);
   await page.goto("/e2e-fixtures/pages/profile.html");
   await expect(page.locator("climbing-entries-table")).toBeVisible();
@@ -103,7 +130,16 @@ test("Style filter is hidden until Sport is in view, and narrows the combined ta
     ...MIXED_SEED,
     entries: [
       ...MIXED_SEED.entries,
-      { id: "e3", placeId: "p1", type: "sport", status: "send", grade: "6b", date: "2026-05-03", name: "Top Rope Seed", sportStyle: "top_rope" },
+      {
+        id: "e3",
+        placeId: "p1",
+        type: "sport",
+        status: "send",
+        grade: "6b",
+        date: "2026-05-03",
+        name: "Top Rope Seed",
+        sportStyle: "top_rope",
+      },
     ],
   });
   await page.goto("/e2e-fixtures/pages/profile.html");
@@ -141,7 +177,9 @@ test("combined status filter labels span both disciplines, and there's no grade-
   await expect(page.locator("#filter-grade-tier-group")).toHaveCount(0);
 });
 
-test("filter panel status icons render real SVG content (#63 -- this page never loads entry-form.js, which used to be the only thing hydrating them)", async ({ page }) => {
+test("filter panel status icons render real SVG content (#63 -- this page never loads entry-form.js, which used to be the only thing hydrating them)", async ({
+  page,
+}) => {
   await mockApi(page, MIXED_SEED);
   await page.goto("/e2e-fixtures/pages/profile.html");
   await expect(page.locator("climbing-entries-table")).toBeVisible();
@@ -167,7 +205,9 @@ test("map pin popover (#460) shows both disciplines' own status breakdown togeth
   await expect(popover).toContainText("Send");
 });
 
-test("notes overlay shows the entry's real notes text (#425 -- previously did nothing at all on this page)", async ({ page }) => {
+test("notes overlay shows the entry's real notes text (#425 -- previously did nothing at all on this page)", async ({
+  page,
+}) => {
   await mockApi(page, {
     ...SEED,
     entries: [{ ...SEED.entries[0], notes: "A real note to display" }],
@@ -184,7 +224,9 @@ test("notes overlay shows the entry's real notes text (#425 -- previously did no
   await expect(page.locator("#notes-overlay")).toBeHidden();
 });
 
-test("shell-then-expand: collapsed with a count badge by default, expands to real rows on one fetch, doesn't re-fetch on re-expand", async ({ page }) => {
+test("shell-then-expand: collapsed with a count badge by default, expands to real rows on one fetch, doesn't re-fetch on re-expand", async ({
+  page,
+}) => {
   await mockApi(page, SEED);
 
   const entriesRequests = [];
@@ -219,9 +261,13 @@ test("shows the entries table's own empty state when the target user has no data
   await expect(page.locator("#sections")).toContainText("Nothing to show here");
 });
 
-test("#470 -- shows a loading state before the counts-only shell fetch resolves, then flips to the real empty state once confirmed", async ({ page }) => {
+test("#470 -- shows a loading state before the counts-only shell fetch resolves, then flips to the real empty state once confirmed", async ({
+  page,
+}) => {
   let resolveCounts;
-  const countsDelay = new Promise(resolve => { resolveCounts = resolve; });
+  const countsDelay = new Promise(resolve => {
+    resolveCounts = resolve;
+  });
   await mockApi(page, { entries: [], places: [], locations: [] });
   await page.route("**/-/api/public/*/entries/counts", async route => {
     await countsDelay;

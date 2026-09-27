@@ -2,7 +2,10 @@ import { expect, test } from "@playwright/test";
 import { addOwnedRouteSessionCookie, ownedRouteUrl } from "./owned-route-url.js";
 
 // The real route, Worker and seeded D1, not mocks: this measures what ships.
-test("log page renders real content within a generous local budget, no artificial throttling", async ({ page, context }) => {
+test("log page renders real content within a generous local budget, no artificial throttling", async ({
+  page,
+  context,
+}) => {
   await addOwnedRouteSessionCookie(context);
 
   const start = Date.now();

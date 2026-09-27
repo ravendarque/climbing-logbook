@@ -42,8 +42,10 @@ describe("createDisclosure destroy()", () => {
     document.body.innerHTML = `
       <div id="wrap"><button id="trigger"></button><div id="panel" hidden></div></div>
       <div id="wrap2"><button id="trigger2"></button><div id="panel2" hidden></div></div>`;
-    const t1 = document.getElementById("trigger"), p1 = document.getElementById("panel");
-    const t2 = document.getElementById("trigger2"), p2 = document.getElementById("panel2");
+    const t1 = document.getElementById("trigger"),
+      p1 = document.getElementById("panel");
+    const t2 = document.getElementById("trigger2"),
+      p2 = document.getElementById("panel2");
     const d1 = createDisclosure(t1, p1, "#wrap");
     createDisclosure(t2, p2, "#wrap2");
     d1.destroy();

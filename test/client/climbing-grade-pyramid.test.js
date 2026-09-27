@@ -22,7 +22,10 @@ afterEach(() => {
 
 describe("ClimbingGradePyramid health card", () => {
   it("shows the no-sends state when hasSends is false", () => {
-    el.pyramidData = { boulder: { top4: [], hasSends: false, promotedGrade: null }, sport: { top4: [], hasSends: false, promotedGrade: null } };
+    el.pyramidData = {
+      boulder: { top4: [], hasSends: false, promotedGrade: null },
+      sport: { top4: [], hasSends: false, promotedGrade: null },
+    };
     expect(el.querySelector("#pyramid").textContent).toContain("No Boulder sends logged");
     expect(el.querySelector("#health-card").innerHTML).toBe("");
   });
@@ -81,7 +84,7 @@ describe("ClimbingGradePyramid health card", () => {
         { grade: "7A", count: 2 },
         { grade: "6C", count: 4 },
       ],
-      { promotedGrade: "8A" }
+      { promotedGrade: "8A" },
     );
     const health = el.querySelector("#health-card").textContent;
     expect(health).toContain("ready to push into 8A");

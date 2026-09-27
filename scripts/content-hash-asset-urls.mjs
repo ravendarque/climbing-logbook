@@ -27,7 +27,10 @@ export function contentHashAssetUrls(outDir) {
     const rewritten = html.replace(VERSIONED_REF, (_, path) => {
       if (!hashes.has(path)) {
         const onDisk = join(outDir, path);
-        if (!existsSync(onDisk)) throw new Error(`content-hash-asset-urls: ${file} references ${path}, which isn't in the build. If that page no longer exists, it's a stale leftover in public/ (Eleventy doesn't clean its output; public/ is disposable, so delete it and rebuild).`);
+        if (!existsSync(onDisk))
+          throw new Error(
+            `content-hash-asset-urls: ${file} references ${path}, which isn't in the build. If that page no longer exists, it's a stale leftover in public/ (Eleventy doesn't clean its output; public/ is disposable, so delete it and rebuild).`,
+          );
         hashes.set(path, contentHash(readFileSync(onDisk)));
       }
       refs++;

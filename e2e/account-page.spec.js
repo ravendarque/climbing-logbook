@@ -48,7 +48,9 @@ test("Athlete Mode toggle (#445) switches and persists via the settings PATCH", 
   await expect(page.locator("#athlete-mode-toggle")).toHaveAttribute("aria-checked", "true");
 });
 
-test("Public Logbook toggle (#301, moved to this page by #445) switches and persists via the settings PATCH", async ({ page }) => {
+test("Public Logbook toggle (#301, moved to this page by #445) switches and persists via the settings PATCH", async ({
+  page,
+}) => {
   await mockApi(page);
 
   await page.goto("/e2e-fixtures/pages/account.html");
@@ -68,7 +70,9 @@ test("Public Logbook toggle (#301, moved to this page by #445) switches and pers
 });
 
 test("the Check our beta row links to its sub-page and shows the saved status", async ({ page }) => {
-  await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: true } });
+  await mockApi(page, {
+    settings: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: true },
+  });
   await page.goto("/e2e-fixtures/pages/account.html");
 
   const row = page.locator("#beta-row");
@@ -78,7 +82,20 @@ test("the Check our beta row links to its sub-page and shows the saved status", 
 });
 
 const EXPORT_FIXTURE = {
-  entries: [{ id: "e1", name: "La Marie-Rose", grade: "6B", placeId: "p1", type: "boulder", status: "send", firstAttempt: true, date: "2026-07-30", video: null, notes: null }],
+  entries: [
+    {
+      id: "e1",
+      name: "La Marie-Rose",
+      grade: "6B",
+      placeId: "p1",
+      type: "boulder",
+      status: "send",
+      firstAttempt: true,
+      date: "2026-07-30",
+      video: null,
+      notes: null,
+    },
+  ],
   places: [{ id: "p1", locationId: "l1", area: "Bas Cuvier" }],
   locations: [{ id: "l1", name: "Fontainebleau", country: "France" }],
 };
@@ -87,10 +104,7 @@ test("Export CSV downloads a file built from this user's own entries/places/loca
   await mockApi(page, EXPORT_FIXTURE);
   await page.goto("/e2e-fixtures/pages/account.html");
 
-  const [download] = await Promise.all([
-    page.waitForEvent("download"),
-    page.locator("#export-csv-btn").click(),
-  ]);
+  const [download] = await Promise.all([page.waitForEvent("download"), page.locator("#export-csv-btn").click()]);
   expect(download.suggestedFilename()).toBe("climbing-logbook-export.csv");
   const fs = await import("node:fs/promises");
   const csv = await fs.readFile(await download.path(), "utf8");
@@ -102,19 +116,29 @@ test("Export JSON downloads the resolved rows as JSON", async ({ page }) => {
   await mockApi(page, EXPORT_FIXTURE);
   await page.goto("/e2e-fixtures/pages/account.html");
 
-  const [download] = await Promise.all([
-    page.waitForEvent("download"),
-    page.locator("#export-json-btn").click(),
-  ]);
+  const [download] = await Promise.all([page.waitForEvent("download"), page.locator("#export-json-btn").click()]);
   expect(download.suggestedFilename()).toBe("climbing-logbook-export.json");
   const fs = await import("node:fs/promises");
   const json = JSON.parse(await fs.readFile(await download.path(), "utf8"));
-  expect(json).toEqual([{
-    name: "La Marie-Rose", grade: "6B", discipline: "boulder", status: "send",
-    firstAttempt: true, date: "2026-07-30", location: "Fontainebleau",
-    area: "Bas Cuvier", country: "France", video: "", notes: "", sportStyle: "",
-    attemptsToSend: "", rpe: "", gradeScale: "",
-  }]);
+  expect(json).toEqual([
+    {
+      name: "La Marie-Rose",
+      grade: "6B",
+      discipline: "boulder",
+      status: "send",
+      firstAttempt: true,
+      date: "2026-07-30",
+      location: "Fontainebleau",
+      area: "Bas Cuvier",
+      country: "France",
+      video: "",
+      notes: "",
+      sportStyle: "",
+      attemptsToSend: "",
+      rpe: "",
+      gradeScale: "",
+    },
+  ]);
 });
 
 test("Export shows an error message instead of a download when the data fetch fails", async ({ page }) => {

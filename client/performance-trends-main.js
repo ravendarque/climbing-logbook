@@ -73,7 +73,9 @@ function render() {
 }
 
 async function fetchVolume(start, end) {
-  const res = await fetch(`${demoDataUrl(USERNAME, "/-/api/performance/volume", "performance/volume")}?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
+  const res = await fetch(
+    `${demoDataUrl(USERNAME, "/-/api/performance/volume", "performance/volume")}?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,
+  );
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
@@ -83,14 +85,18 @@ function updateAdminBar() {
 }
 
 const adminAuth = createAdminAuth({
-  store, adminFetch, isAuthRedirect,
+  store,
+  adminFetch,
+  isAuthRedirect,
   settingsUrl: SETTINGS_URL,
   updateAdminBar,
   onFetchTimeout: syncStatusIcon.reportTimeout,
 });
 
 const headerChrome = createHeaderChrome({
-  store, adminFetch, isAuthRedirect,
+  store,
+  adminFetch,
+  isAuthRedirect,
   settingsUrl: SETTINGS_URL,
 });
 

@@ -30,13 +30,34 @@ describe("checkUsername", () => {
   });
 
   it("rejects lookalikes of reserved names", () => {
-    for (const name of ["he1p", "h.e.l.p", "help_", "l0gin", "log_in", "1ogin", "reg1ster", "4dmin", "0fficial", "rnod", "5upport", "ap1", "w.w.w"]) {
+    for (const name of [
+      "he1p",
+      "h.e.l.p",
+      "help_",
+      "l0gin",
+      "log_in",
+      "1ogin",
+      "reg1ster",
+      "4dmin",
+      "0fficial",
+      "rnod",
+      "5upport",
+      "ap1",
+      "w.w.w",
+    ]) {
       expect(reason(name), name).toBe("reserved");
     }
   });
 
   it("rejects an authority word as any one part of a name", () => {
-    for (const name of ["admin_raven", "raven.support", "the.official.page", "adm1n.tom", "mod_team_x", "staff.climber"]) {
+    for (const name of [
+      "admin_raven",
+      "raven.support",
+      "the.official.page",
+      "adm1n.tom",
+      "mod_team_x",
+      "staff.climber",
+    ]) {
       expect(reason(name), name).toBe("authority");
     }
     for (const token of AUTHORITY_TOKENS) expect(reason(`raven_${token}`), token).toBe("authority");
@@ -50,10 +71,26 @@ describe("checkUsername", () => {
 
   it("accepts innocent near-misses", () => {
     for (const name of [
-      "ravendarque", "a", "user.name", "user_name_1", "sw.js",
-      "badmintonfan", "supportertom", "helper", "helpful_hannah", "logan", "loggin",
-      "adminton", "moderato", "climber", "climbing_raven", "logbook_fan", "mods_rock_fan",
-      "intermediate", "sam_5", "tom88",
+      "ravendarque",
+      "a",
+      "user.name",
+      "user_name_1",
+      "sw.js",
+      "badmintonfan",
+      "supportertom",
+      "helper",
+      "helpful_hannah",
+      "logan",
+      "loggin",
+      "adminton",
+      "moderato",
+      "climber",
+      "climbing_raven",
+      "logbook_fan",
+      "mods_rock_fan",
+      "intermediate",
+      "sam_5",
+      "tom88",
     ]) {
       expect(checkUsername(name), name).toEqual({ ok: true });
     }
@@ -67,24 +104,65 @@ describe("checkUsername", () => {
     });
 
     it("sees through leet, repeated letters and separators", () => {
-      for (const name of ["n1gger", "niiigger", "kike_hater", "tr4nny", "h1tler_fan", "heil.hitler", "white_power", "whitepride88", "towel_head", "fourteen_words", "raven_spic", "wolf1488", "14.88", "the14words", "kkk_member", "shem_ale"]) {
+      for (const name of [
+        "n1gger",
+        "niiigger",
+        "kike_hater",
+        "tr4nny",
+        "h1tler_fan",
+        "heil.hitler",
+        "white_power",
+        "whitepride88",
+        "towel_head",
+        "fourteen_words",
+        "raven_spic",
+        "wolf1488",
+        "14.88",
+        "the14words",
+        "kkk_member",
+        "shem_ale",
+      ]) {
         expect(reason(name), name).toBe("hate");
       }
     });
 
     it("accepts innocent names that share letters with a listed term", () => {
       for (const name of [
-        "grape_vine", "therapist", "scrape", "negroni", "montenegro", "nigeria", "sniggering",
-        "spicy", "spice.girl", "raccoon", "tycoon", "cocoon", "pakistan", "wogan", "woggle",
-        "gookie", "beanery", "abode", "about_time", "vandyke", "fagus", "retardant", "trans_climber",
-        "tomwhite", "power_climber", "pride_climber", "con_man",
+        "grape_vine",
+        "therapist",
+        "scrape",
+        "negroni",
+        "montenegro",
+        "nigeria",
+        "sniggering",
+        "spicy",
+        "spice.girl",
+        "raccoon",
+        "tycoon",
+        "cocoon",
+        "pakistan",
+        "wogan",
+        "woggle",
+        "gookie",
+        "beanery",
+        "abode",
+        "about_time",
+        "vandyke",
+        "fagus",
+        "retardant",
+        "trans_climber",
+        "tomwhite",
+        "power_climber",
+        "pride_climber",
+        "con_man",
       ]) {
         expect(checkUsername(name), name).toEqual({ ok: true });
       }
     });
 
     it("doesn't block 88 or 14 on their own: mostly birth years and grades", () => {
-      for (const name of ["tom88", "climber14", "v14_crusher", "1988"]) expect(checkUsername(name), name).toEqual({ ok: true });
+      for (const name of ["tom88", "climber14", "v14_crusher", "1988"])
+        expect(checkUsername(name), name).toEqual({ ok: true });
     });
   });
 });

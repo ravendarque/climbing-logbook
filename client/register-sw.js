@@ -15,20 +15,29 @@ globalThis.navigation?.addEventListener?.("navigate", event => {
 // Browsers keep a registration even when its script errors, so only page code can remove it.
 export async function unregisterRetiredWorkers(container) {
   const registrations = await container.getRegistrations();
-  await Promise.all(registrations
-    .filter(registration => new URL(registration.scope).pathname.startsWith("/logbook/"))
-    .map(registration => registration.unregister()));
+  await Promise.all(
+    registrations
+      .filter(registration => new URL(registration.scope).pathname.startsWith("/logbook/"))
+      .map(registration => registration.unregister()),
+  );
 }
 
 function whenIdle(win) {
   return new Promise(resolve => {
-    const idle = () => (win.requestIdleCallback ? win.requestIdleCallback(() => resolve(), { timeout: 5000 }) : win.setTimeout(resolve, 2000));
+    const idle = () =>
+      win.requestIdleCallback
+        ? win.requestIdleCallback(() => resolve(), { timeout: 5000 })
+        : win.setTimeout(resolve, 2000);
     if (win.document.readyState === "complete") idle();
     else win.addEventListener("load", idle, { once: true });
   });
 }
 
-export async function registerServiceWorker({ after = Promise.resolve(), win = window, isLeaving = () => leaving } = {}) {
+export async function registerServiceWorker({
+  after = Promise.resolve(),
+  win = window,
+  isLeaving = () => leaving,
+} = {}) {
   const container = win.navigator.serviceWorker;
   // Owner pages only; not demo pages, where there's no session to pre-cache with.
   const owner = ownerOfPath(win.location.pathname);

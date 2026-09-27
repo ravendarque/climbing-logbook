@@ -28,23 +28,36 @@ describe("registerServiceWorker", () => {
   it("registers /service-worker.js with scope / on an owner page, after removing the retired worker", async () => {
     const old = registration("https://my.climbinglogbook.com/logbook/");
     const active = { postMessage: vi.fn() };
-    const container = { getRegistrations: vi.fn().mockResolvedValue([old]), register: vi.fn().mockResolvedValue({}), ready: Promise.resolve({ active }) };
+    const container = {
+      getRegistrations: vi.fn().mockResolvedValue([old]),
+      register: vi.fn().mockResolvedValue({}),
+      ready: Promise.resolve({ active }),
+    };
     await registerServiceWorker({ win: fakeWindow("/raven/log", container) });
     expect(old.unregister).toHaveBeenCalled();
     expect(container.register).toHaveBeenCalledWith("/service-worker.js", { scope: "/" });
     expect(active.postMessage).toHaveBeenCalledWith({ type: "precache" });
   });
 
-  it.each(["/raven", "/help/", "/login/", "/e2e-fixtures/pages/log.html", "/beginnerdemo/log"])("never registers on %s (not a signed-in owner's page)", async (path) => {
-    const container = { getRegistrations: vi.fn(), register: vi.fn() };
-    await registerServiceWorker({ win: fakeWindow(path, container) });
-    expect(container.register).not.toHaveBeenCalled();
-  });
+  it.each(["/raven", "/help/", "/login/", "/e2e-fixtures/pages/log.html", "/beginnerdemo/log"])(
+    "never registers on %s (not a signed-in owner's page)",
+    async path => {
+      const container = { getRegistrations: vi.fn(), register: vi.fn() };
+      await registerServiceWorker({ win: fakeWindow(path, container) });
+      expect(container.register).not.toHaveBeenCalled();
+    },
+  );
 
   it("waits for the page's boot to settle before registering, even if boot fails", async () => {
     let finishBoot;
-    const after = new Promise((_resolve, reject) => { finishBoot = reject; });
-    const container = { getRegistrations: vi.fn().mockResolvedValue([]), register: vi.fn().mockResolvedValue({}), ready: Promise.resolve({ active: null }) };
+    const after = new Promise((_resolve, reject) => {
+      finishBoot = reject;
+    });
+    const container = {
+      getRegistrations: vi.fn().mockResolvedValue([]),
+      register: vi.fn().mockResolvedValue({}),
+      ready: Promise.resolve({ active: null }),
+    };
     const done = registerServiceWorker({ after, win: fakeWindow("/raven/log", container) });
     await new Promise(resolve => setTimeout(resolve, 0));
     expect(container.register).not.toHaveBeenCalled();
@@ -61,7 +74,10 @@ describe("registerServiceWorker", () => {
 
   it("does nothing, and doesn't throw, without service worker support or when registration fails", async () => {
     await expect(registerServiceWorker({ win: fakeWindow("/raven/log", undefined) })).resolves.toBeUndefined();
-    const failing = { getRegistrations: vi.fn().mockResolvedValue([]), register: vi.fn().mockRejectedValue(new Error("blocked")) };
+    const failing = {
+      getRegistrations: vi.fn().mockResolvedValue([]),
+      register: vi.fn().mockRejectedValue(new Error("blocked")),
+    };
     await expect(registerServiceWorker({ win: fakeWindow("/raven/log", failing) })).resolves.toBeUndefined();
   });
 });

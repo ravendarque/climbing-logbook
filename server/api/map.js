@@ -15,12 +15,19 @@ export async function handleGetMapCounts(_request, env, userId) {
     JOIN locations l ON p.location_id = l.id
     WHERE e.user_id = ? AND e.deleted_at IS NULL
     GROUP BY l.country, e.discipline_id
-  `).bind(userId).all();
+  `)
+    .bind(userId)
+    .all();
 
   const counts = {};
   for (const row of results) {
     counts[row.country] ??= {};
-    counts[row.country][row.discipline_id] = { total: row.total, flash: row.flash, send: row.send, project: row.project };
+    counts[row.country][row.discipline_id] = {
+      total: row.total,
+      flash: row.flash,
+      send: row.send,
+      project: row.project,
+    };
   }
 
   return json(counts, 200, { "Cache-Control": "no-store" });

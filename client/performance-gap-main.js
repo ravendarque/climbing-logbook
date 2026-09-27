@@ -85,7 +85,9 @@ function render() {
 }
 
 async function fetchGap(start, end) {
-  const res = await fetch(`${demoDataUrl(USERNAME, "/-/api/performance/gap", "performance/gap")}?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
+  const res = await fetch(
+    `${demoDataUrl(USERNAME, "/-/api/performance/gap", "performance/gap")}?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,
+  );
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
@@ -95,14 +97,18 @@ function updateAdminBar() {
 }
 
 const adminAuth = createAdminAuth({
-  store, adminFetch, isAuthRedirect,
+  store,
+  adminFetch,
+  isAuthRedirect,
   settingsUrl: SETTINGS_URL,
   updateAdminBar,
   onFetchTimeout: syncStatusIcon.reportTimeout,
 });
 
 const headerChrome = createHeaderChrome({
-  store, adminFetch, isAuthRedirect,
+  store,
+  adminFetch,
+  isAuthRedirect,
   settingsUrl: SETTINGS_URL,
 });
 

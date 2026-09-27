@@ -30,7 +30,7 @@ const ALL_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"];
 
 const accepted = Object.entries(ROUTES).flatMap(([path, methods]) => methods.map(method => [method, path]));
 const mismatched = Object.entries(ROUTES).flatMap(([path, methods]) =>
-  ALL_METHODS.filter(method => !methods.includes(method)).map(method => [method, path])
+  ALL_METHODS.filter(method => !methods.includes(method)).map(method => [method, path]),
 );
 
 describe("resource routes without a session", () => {
@@ -52,7 +52,9 @@ describe("resource routes with a session", () => {
     await resetAuthTables();
     ({ cookie } = await createAuthedSession());
   });
-  afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
+  afterAll(() => {
+    env.BETA_GATE_ENABLED = "true";
+  });
 
   it.each(mismatched)("404s %s %s", async (method, path) => {
     const res = await fetchJson(path, { method, headers: { Cookie: cookie } });
@@ -75,10 +77,13 @@ describe("resource routes with a session", () => {
     expect(await res.json()).toMatchObject({ athleteMode: false, betaOptIn: false });
   });
 
-  it.each(ALL_METHODS.flatMap(method => RETIRED_PATHS.map(path => [method, path])))("404s %s on the retired %s", async (method, path) => {
-    const res = await fetchJson(path, { method, headers: { Cookie: cookie } });
-    expect(res.status).toBe(404);
-  });
+  it.each(ALL_METHODS.flatMap(method => RETIRED_PATHS.map(path => [method, path])))(
+    "404s %s on the retired %s",
+    async (method, path) => {
+      const res = await fetchJson(path, { method, headers: { Cookie: cookie } });
+      expect(res.status).toBe(404);
+    },
+  );
 });
 
 describe("username availability endpoint", () => {

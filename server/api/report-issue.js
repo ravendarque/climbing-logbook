@@ -41,15 +41,17 @@ export async function handleReportIssue(request, env) {
 
   await env.LOGBOOK_DB.prepare(
     `INSERT INTO issue_reports (id, message, contact_email, user_id, source_page, section, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`
-  ).bind(
-    crypto.randomUUID(),
-    result.output.message,
-    result.output.contactEmail || null,
-    userId,
-    result.output.sourcePage || null,
-    result.output.section || null,
-  ).run();
+     VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
+  )
+    .bind(
+      crypto.randomUUID(),
+      result.output.message,
+      result.output.contactEmail || null,
+      userId,
+      result.output.sourcePage || null,
+      result.output.section || null,
+    )
+    .run();
 
   return json({ ok: true }, 201);
 }

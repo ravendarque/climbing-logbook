@@ -20,7 +20,7 @@ function loginRedirect(request) {
 // Null for no session, no such user and someone else's session alike (anti-enumeration).
 async function resolveOwnedSession(request, env, username) {
   const sessionUserId = await resolveUserId(request, env);
-  const targetUserId = sessionUserId && await resolveUserIdByUsername(env, username);
+  const targetUserId = sessionUserId && (await resolveUserIdByUsername(env, username));
   return targetUserId === sessionUserId ? sessionUserId : null;
 }
 

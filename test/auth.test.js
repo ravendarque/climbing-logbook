@@ -4,27 +4,48 @@ import { BASE_URL, fetchJson, jsonRequest, resetAuthTables } from "./support.js"
 
 beforeEach(resetAuthTables);
 
-beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
-afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
+beforeAll(() => {
+  env.BETA_GATE_ENABLED = "false";
+});
+afterAll(() => {
+  env.BETA_GATE_ENABLED = "true";
+});
 
-const VALID_SIGNUP = { email: "nix@example.com", password: "correct-horse-battery-staple", name: "Nix", username: "nix", turnstileToken: "test-token" };
+const VALID_SIGNUP = {
+  email: "nix@example.com",
+  password: "correct-horse-battery-staple",
+  name: "Nix",
+  username: "nix",
+  turnstileToken: "test-token",
+};
 
 let resendCalls;
 beforeEach(() => {
   resendCalls = [];
-  vi.stubGlobal("fetch", vi.fn(async (input, init) => {
-    const url = typeof input === "string" ? input : input.url;
-    if (url.startsWith("https://api.resend.com/")) {
-      resendCalls.push({ body: init?.body ? JSON.parse(init.body) : null });
-      return new Response(JSON.stringify({ id: "fake-resend-id" }), { status: 200, headers: { "Content-Type": "application/json" } });
-    }
-    if (url.startsWith("https://challenges.cloudflare.com/turnstile/")) {
-      return new Response(JSON.stringify({ success: true }), { status: 200, headers: { "Content-Type": "application/json" } });
-    }
-    throw new Error(`Unexpected fetch to ${url}`);
-  }));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input, init) => {
+      const url = typeof input === "string" ? input : input.url;
+      if (url.startsWith("https://api.resend.com/")) {
+        resendCalls.push({ body: init?.body ? JSON.parse(init.body) : null });
+        return new Response(JSON.stringify({ id: "fake-resend-id" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (url.startsWith("https://challenges.cloudflare.com/turnstile/")) {
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      throw new Error(`Unexpected fetch to ${url}`);
+    }),
+  );
 });
-afterEach(() => { vi.unstubAllGlobals(); });
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 function signUp(body = VALID_SIGNUP) {
   return jsonRequest("POST", "/-/api/auth/sign-up/email", body);
@@ -154,17 +175,25 @@ describe("account settings (#302)", () => {
   it("changes the password, rejecting the wrong current password", async () => {
     const cookie = await signUpAndVerify();
 
-    const wrongRes = await authedPost("/-/api/auth/change-password", {
-      currentPassword: "not-the-password",
-      newPassword: "a-brand-new-password",
-    }, cookie);
+    const wrongRes = await authedPost(
+      "/-/api/auth/change-password",
+      {
+        currentPassword: "not-the-password",
+        newPassword: "a-brand-new-password",
+      },
+      cookie,
+    );
     expect(wrongRes.status).toBe(400);
     expect((await wrongRes.json()).code).toBe("INVALID_PASSWORD");
 
-    const okRes = await authedPost("/-/api/auth/change-password", {
-      currentPassword: VALID_SIGNUP.password,
-      newPassword: "a-brand-new-password",
-    }, cookie);
+    const okRes = await authedPost(
+      "/-/api/auth/change-password",
+      {
+        currentPassword: VALID_SIGNUP.password,
+        newPassword: "a-brand-new-password",
+      },
+      cookie,
+    );
     expect(okRes.status).toBe(200);
 
     const signInRes = await signIn(VALID_SIGNUP.email, "a-brand-new-password");

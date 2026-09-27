@@ -6,8 +6,12 @@ import { handleGet as handleGetLocations } from "./locations.js";
 import { handleGetMapCounts } from "./map.js";
 import { handleGetProfileCounts } from "./profile-counts.js";
 import {
-  handleGetEffort, handleGetGap, handleGetInjuryLog, handleGetPyramid,
-  handleGetStrengthsWeaknesses, handleGetVolume,
+  handleGetEffort,
+  handleGetGap,
+  handleGetInjuryLog,
+  handleGetPyramid,
+  handleGetStrengthsWeaknesses,
+  handleGetVolume,
 } from "./performance.js";
 
 // A private or unknown username gets the same 404, so accounts can't be enumerated.

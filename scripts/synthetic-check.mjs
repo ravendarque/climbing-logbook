@@ -18,7 +18,7 @@ function parseSetCookie(setCookieHeader) {
     attrs.map(attr => {
       const eq = attr.indexOf("=");
       return eq === -1 ? [attr.toLowerCase(), true] : [attr.slice(0, eq).toLowerCase(), attr.slice(eq + 1)];
-    })
+    }),
   );
   return { pair, domain: attrMap.domain };
 }
@@ -52,7 +52,7 @@ async function main() {
   const appHostname = new URL(APP).hostname;
   if (!cookieAppliesTo(domain, appHostname)) {
     throw new Error(
-      `Session cookie's Domain attribute (${domain}) would NOT be sent by a real browser to ${appHostname} -- this is exactly the #354 bug class. Refusing to reuse it.`
+      `Session cookie's Domain attribute (${domain}) would NOT be sent by a real browser to ${appHostname} -- this is exactly the #354 bug class. Refusing to reuse it.`,
     );
   }
 
@@ -65,7 +65,9 @@ async function main() {
   }
   const session = await sessionRes.json();
   if (!session?.user) {
-    throw new Error(`get-session returned no user -- the session did not resolve across the domain split. Body: ${JSON.stringify(session)}`);
+    throw new Error(
+      `get-session returned no user -- the session did not resolve across the domain split. Body: ${JSON.stringify(session)}`,
+    );
   }
   console.log(`Session resolved for ${session.user.email} on ${appHostname}.`);
 
