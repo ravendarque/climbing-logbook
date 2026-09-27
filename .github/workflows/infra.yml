@@ -98,15 +98,6 @@ jobs:
             }
           "
 
-      # #932 -- a second, independent REAL_SITEKEY constant
-      # (client/report-issue-main.js) went unnoticed by the sync step
-      # above, which only ever knew about register.js -- found while
-      # fixing beta's own Turnstile domain gap. Same regex/replace shape,
-      # a separate step (not a generalized loop over both paths) so each
-      # file's own sync result stays independently visible in this
-      # workflow's own log output, matching how the step above is
-      # already its own standalone block rather than something more
-      # generic.
       - name: Sync report-issue-main.js Turnstile sitekey
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         working-directory: .
@@ -149,11 +140,12 @@ jobs:
 
           PR_URL=$(gh pr create \
             --title "chore: sync generated infra config" \
-            --body "Automated sync of Terraform-derived config (KV namespace id / lockfile) after an infra apply. See docs/infra-architecture.md." \
+            --body "Automated sync of Terraform-derived config (D1 database id, Turnstile sitekey, provider lockfile) after an infra apply. See docs/infra-architecture.md." \
             --base main --head "$BRANCH")
           PR_NUM="${PR_URL##*/}"
 
-          gh api "repos/${{ github.repository }}/issues/$PR_NUM/labels" -f "labels[]=release: none"
+          # These files ship, so the label check rejects release: none (#995).
+          gh api "repos/${{ github.repository }}/issues/$PR_NUM/labels" -f "labels[]=release: patch"
 
           gh pr checks "$PR_NUM" --watch
           gh pr merge "$PR_NUM" --squash --delete-branch \
