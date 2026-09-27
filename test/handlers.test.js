@@ -154,6 +154,23 @@ describe.each([
       });
     }
 
+    it.each([
+      ["id", { x: 1 }, "id must be a string"],
+      ["id", "not a valid id!", "id must be 1 to 64 letters, digits, - or _"],
+      [defaultField, { x: 1 }, `${defaultField} must be a string`],
+      [requiredField, 42, `${requiredField} must be a string`],
+    ])("400s %s = %j instead of letting it reach D1", async (field, value, message) => {
+      const res = await postJson(createPath, { ...(await validBody()), [field]: value });
+      expect(res.status).toBe(400);
+      expect((await res.json()).error).toBe(message);
+    });
+
+    it("400s a body that isn't an object", async () => {
+      const res = await postJson(createPath, null);
+      expect(res.status).toBe(400);
+      expect((await res.json()).error).toBe("Request body must be a JSON object");
+    });
+
     describe("?since= (#500 delta sync)", () => {
       function getSince(since, extraCookie = cookie) {
         return fetchJson(`${listPath}?since=${since}`, { headers: { Cookie: extraCookie } });
@@ -162,6 +179,12 @@ describe.each([
       it("401s an anonymous caller (#992)", async () => {
         const res = await fetchJson(`${listPath}?since=0`);
         expect(res.status).toBe(401);
+      });
+
+      it.each(["-1", "abc", "", "1.5"])("400s since=%j", async since => {
+        const res = await getSince(since);
+        expect(res.status).toBe(400);
+        expect((await res.json()).error).toMatch(/^since must be a whole number/);
       });
 
       it("returns a row created at or after since, reporting its own cursor as the new cursor", async () => {

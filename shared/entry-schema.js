@@ -1,6 +1,7 @@
 // Valibot, not Zod: Zod bundles every locale (~320KB); Valibot tree-shakes to ~3KB for the client.
 import * as v from "valibot";
 import { BOULDER_GRADES, LEAD_GRADES, SCALES_BY_DISCIPLINE, gradeOrdinal } from "./grade-data.js";
+import { idSchema } from "./ids.js";
 
 export const VALID_TYPES = ["boulder", "sport"];
 export const VALID_STATUSES = ["send", "project", "archived", "checkout"];
@@ -76,6 +77,14 @@ export const entrySchema = v.pipe(
   v.rawCheck(({ dataset, addIssue }) => {
     if (!dataset.typed) return;
     const entry = /** @type {Record<string, any>} */ (dataset.value);
+
+    if (entry.id !== undefined) {
+      const id = v.safeParse(idSchema("id"), entry.id);
+      if (!id.success) {
+        addIssue({ message: id.issues[0].message, path: fieldPath(entry, "id") });
+        return;
+      }
+    }
 
     for (const field of ["placeId", "name", "grade", "type", "status"]) {
       if (!entry[field]) {
