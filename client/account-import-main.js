@@ -9,6 +9,7 @@ import { loginPageUrl } from "./login-url.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
 import { adminFetch, isAuthRedirect } from "./admin-fetch.js";
+import { BACKGROUND_FETCH_TIMEOUT_MS } from "./sync-status-icon.js";
 
 const SETTINGS_URL = "/-/api/settings";
 const IMPORT_URL = "/-/api/entries/import";
@@ -98,10 +99,12 @@ importForm.addEventListener("submit", async e => {
   const contentType = file.name.toLowerCase().endsWith(".json") ? "application/json" : "text/csv";
 
   try {
+    // Not the 10s save timeout: an import isn't idempotent, so abandoning one that later lands invites a duplicate.
     const res = await adminFetch(IMPORT_URL, {
       method: "POST",
       headers: { "Content-Type": contentType },
       body: await file.text(),
+      signal: AbortSignal.timeout(BACKGROUND_FETCH_TIMEOUT_MS),
     });
     if (isAuthRedirect(res)) {
       window.location.href = loginPageUrl();
