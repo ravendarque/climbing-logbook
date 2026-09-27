@@ -96,8 +96,7 @@ export function createOfflineSync({
       });
       if (!res.ok) return;
       const { [table]: rows, cursor } = await res.json();
-      store.mergeConfirmed(table, rows);
-      setCursor(table, cursor);
+      if (store.mergeConfirmed(table, rows)) setCursor(table, cursor);
     } catch (err) {
       // Offline: skip. A real timeout flags the indicator, since onLine can read true on a dead link.
       if (err.name === "TimeoutError") syncStatusIcon.reportTimeout();

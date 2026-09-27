@@ -99,6 +99,12 @@ describe("a full device", () => {
     expect(JSON.parse(storage.getItem("logbook_sync_cursors"))).toEqual({ places: 7 });
   });
 
+  it("reports whether the cache was written, so a caller only advances the cursor when it was", () => {
+    const full = createStore({ storage: quotaStorage(["logbook_entries_cache"]) });
+    expect(full.mergeConfirmed("entries", ENTRIES)).toBe(false);
+    expect(full.mergeConfirmed("places", PLACES)).toBe(true);
+  });
+
   it("still throws an error that isn't about storage being full", () => {
     const storage = fakeStorage();
     storage.setItem = () => {

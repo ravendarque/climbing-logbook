@@ -29,12 +29,15 @@ export function createStore({ storage = typeof localStorage !== "undefined" ? lo
   }
 
   // A cache that can't be written is dropped, and its cursor reset, so a stale copy never pairs with a newer cursor.
+  // False then: the caller mustn't advance that cursor.
   function persist(table, key, rows) {
     try {
       storage.setItem(key, JSON.stringify(rows));
+      return true;
     } catch (err) {
       if (!isQuotaError(err)) throw err;
       dropCache(table);
+      return false;
     }
   }
   function dropCache(table) {
@@ -45,18 +48,21 @@ export function createStore({ storage = typeof localStorage !== "undefined" ? lo
   function setEntries(next) {
     entries = next;
     // Always persisted, or a locally deleted entry reappears from cache.
-    persist("entries", ENTRIES_CACHE_KEY, entries);
+    const cached = persist("entries", ENTRIES_CACHE_KEY, entries);
     notify();
+    return cached;
   }
   function setPlaces(next) {
     places = next;
-    persist("places", PLACES_CACHE_KEY, places);
+    const cached = persist("places", PLACES_CACHE_KEY, places);
     notify();
+    return cached;
   }
   function setLocations(next) {
     locations = next;
-    persist("locations", LOCATIONS_CACHE_KEY, locations);
+    const cached = persist("locations", LOCATIONS_CACHE_KEY, locations);
     notify();
+    return cached;
   }
 
   const TABLES = {
@@ -68,7 +74,7 @@ export function createStore({ storage = typeof localStorage !== "undefined" ? lo
   // Onto the stored cache, not the in-memory view, so pending flags never get persisted.
   function mergeConfirmed(table, rows) {
     const { key, set } = TABLES[table];
-    set(mergeDelta(readCached(key), rows));
+    return set(mergeDelta(readCached(key), rows));
   }
   function readCached(key) {
     try {

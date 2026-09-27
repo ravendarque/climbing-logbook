@@ -47,8 +47,7 @@ async function fetchJson(url) {
 
 async function syncByDelta(store, table, url) {
   const { [table]: rows, cursor } = await fetchJson(`${url}?since=${getCursor(table)}`);
-  store.mergeConfirmed(table, rows);
-  setCursor(table, cursor);
+  if (store.mergeConfirmed(table, rows)) setCursor(table, cursor);
 }
 
 // Keeps the first chunk's cursor, so the next delta re-covers anything that changed mid-load.
@@ -68,8 +67,7 @@ async function syncEntriesCold(store) {
     setProgress(entries.length, chunk.total);
   } while (next);
 
-  store.setEntries(entries);
-  setCursor("entries", cursor);
+  if (store.setEntries(entries)) setCursor("entries", cursor);
 }
 
 async function runSync(store) {
