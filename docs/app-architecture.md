@@ -404,7 +404,11 @@ Tables (see `migrations/` for columns and constraints):
   cookies. It posts to Better Auth's `sign-in/email`.
 - **Sign-up** (`/register/`) needs an invite code while the beta gate is on
   (`server/lib/beta-gate.js`), is protected by Turnstile, and needs email
-  verification before the first login.
+  verification before the first login. A code is claimed before sign-up and
+  released afterwards unless a user was actually created (the create hook
+  sets `used_by`): an already-registered email gets a 200 and no account,
+  so the response alone can't say. Emails, including a code's pinned one,
+  are compared lowercased.
 - **Session check.** `checkSession()` (`client/admin-auth.js`) reads the
   last-known state from localStorage first and corrects it once
   `/-/api/auth/get-session` answers; a network failure keeps the last-known
