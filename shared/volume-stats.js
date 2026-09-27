@@ -15,7 +15,7 @@ function toISODate(d) {
 export function weekBuckets(start, end) {
   const startDate = parseISODate(start);
   const endDate = parseISODate(end);
-  const totalDays = Math.round((endDate - startDate) / DAY_MS) + 1;
+  const totalDays = Math.round((endDate.getTime() - startDate.getTime()) / DAY_MS) + 1;
   const totalWeeks = totalDays / 7;
   const bucketWidthWeeks = Math.max(1, Math.round(totalWeeks / TARGET_BUCKET_COUNT));
   const bucketWidthDays = bucketWidthWeeks * 7;

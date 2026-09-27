@@ -31,6 +31,7 @@ export const MOVEMENT_STYLES_BY_LIMB = {
 
 const DATE_SHAPE = /^\d{4}(-\d{2}(-\d{2})?)?$/;
 
+/** @returns {[import("valibot").ObjectPathItem]} */
 function fieldPath(entry, key) {
   return [{ type: "object", origin: "value", input: entry, key, value: entry[key] }];
 }
@@ -74,7 +75,7 @@ export const entrySchema = v.pipe(
   }),
   v.rawCheck(({ dataset, addIssue }) => {
     if (!dataset.typed) return;
-    const entry = dataset.value;
+    const entry = /** @type {Record<string, any>} */ (dataset.value);
 
     for (const field of ["placeId", "name", "grade", "type", "status"]) {
       if (!entry[field]) {

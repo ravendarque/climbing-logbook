@@ -46,7 +46,22 @@ export function findRow(env, table, id, userId) {
   return env.LOGBOOK_DB.prepare(`SELECT * FROM ${table} WHERE id = ? AND user_id = ?`).bind(id, userId).first();
 }
 
+/**
+ * @typedef {object} ResourceOptions
+ * @property {string} table
+ * @property {string} resourceKey
+ * @property {string} rowKey
+ * @property {(record: any, env: any, userId: string) => Promise<string | null>} validateFields
+ * @property {(record: any, id: string, userId: string) => Record<string, unknown>} buildRow
+ * @property {(row: any) => object} rowToJson
+ * @property {boolean} [excludeDeleted]
+ * @property {(env: any, userId: string, record: any) => Promise<{ id: string } | null>} [findDuplicate]
+ * @property {(env: any, id: string, record: any) => D1PreparedStatement[]} [childStatements]
+ * @property {(env: any, userId: string, rows: object[]) => object[] | Promise<object[]>} [decorateRows]
+ */
+
 // childStatements join the row's own write in one batch, so a failure leaves nothing half written.
+/** @param {ResourceOptions} options */
 export function createD1ResourceHandlers({
   table,
   resourceKey,

@@ -261,6 +261,12 @@ async function handleAll(env, userId, { shapeRow, includeChildRows }) {
   return json({ entries: decorated }, 200, { "Cache-Control": "no-store" });
 }
 
+/**
+ * @param {Request} request
+ * @param {any} env
+ * @param {string} userId
+ * @param {{ shapeRow?: (row: any) => object, includeChildRows?: boolean }} [options]
+ */
 export async function handleGet(request, env, userId, { shapeRow = rowToJson, includeChildRows = true } = {}) {
   const url = new URL(request.url);
   const opts = { shapeRow, includeChildRows };
