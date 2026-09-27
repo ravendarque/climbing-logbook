@@ -141,6 +141,9 @@ describe.each([
       const ownBody = { ...(await validBody()), id: "fixed-id-cross-user" };
       const second = await postJson(createPath, ownBody, cookie);
       expect(second.status).toBe(409);
+      expect((await (await getList(listPath, otherCookie)).json())[listKey]).toEqual([
+        expect.objectContaining(otherBody),
+      ]);
       expect((await (await getList(listPath, cookie)).json())[listKey].map(r => r.id)).not.toContain(
         "fixed-id-cross-user",
       );

@@ -907,6 +907,19 @@ describe("cross-user isolation", () => {
     expect(await res.json()).toEqual({ entries: [] });
   });
 
+  it("a second user creating with the first user's entry id gets a 409, and the entry is untouched", async () => {
+    const created = await (await post(validEntry())).json();
+    const id = created.entry.id;
+
+    const userB = await createAuthedSession();
+    const placeIdB = await seedPlace(userB.cookie);
+    const res = await post({ ...validEntry(), placeId: placeIdB, id, name: "Hijacked" }, userB.cookie);
+    expect(res.status).toBe(409);
+
+    expect((await (await get()).json()).entries).toEqual([created.entry]);
+    expect((await (await get(userB.cookie)).json()).entries).toEqual([]);
+  });
+
   it("a second user cannot update the first user's entry by forging its id", async () => {
     const created = await (await post(validEntry())).json();
     const id = created.entry.id;
