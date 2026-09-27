@@ -1,8 +1,8 @@
 // Owner routes only resolve on my.localhost; bare localhost 404s with no hint why.
-const PORT = 8787;
+export const OWNED_ORIGIN = "http://my.localhost:8787";
 
 export function ownedRouteUrl(username, path) {
-  return `http://my.localhost:${PORT}/${username}${path}`;
+  return `${OWNED_ORIGIN}/${username}${path}`;
 }
 
 // The global session cookie is scoped to localhost, which my.localhost doesn't get.
