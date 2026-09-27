@@ -1,5 +1,6 @@
 import { escapeHtml } from "./escape-html.js";
 import { userKey } from "./user-storage.js";
+import { isQuotaError } from "./storage-quota.js";
 
 const FAILED_KEY = userKey("logbook_failed_writes");
 
@@ -17,7 +18,13 @@ export function getFailedWrites(storage = localStorage) {
 }
 
 export function addFailedWrite(item, reason, storage = localStorage) {
-  storage.setItem(FAILED_KEY, JSON.stringify([...getFailedWrites(storage), { ...item, reason }]));
+  try {
+    storage.setItem(FAILED_KEY, JSON.stringify([...getFailedWrites(storage), { ...item, reason }]));
+    return true;
+  } catch (err) {
+    if (!isQuotaError(err)) throw err;
+    return false;
+  }
 }
 
 export function removeFailedWrite(qid, storage = localStorage) {

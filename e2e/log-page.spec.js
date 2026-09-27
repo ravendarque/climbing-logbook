@@ -1517,3 +1517,84 @@ test("#893 -- the live region doesn't re-announce while already syncing", async 
   await settingsSettled;
   await expect(page.locator("#menu-sync-announce")).toHaveText("Synced.");
 });
+
+test.describe("A full device (#1083)", () => {
+  // Throws the browser's quota error for the queue, while `stillFull()` holds in the page.
+  async function fillStorageForTheQueue(page, stillFull) {
+    await page.addInitScript(stillFullSource => {
+      const stillFull = new Function(`return (${stillFullSource})()`);
+      const setItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (key, value) {
+        if (key.startsWith("logbook_pending_queue") && stillFull()) {
+          throw new DOMException("The quota has been exceeded.", "QuotaExceededError");
+        }
+        return setItem.call(this, key, value);
+      };
+    }, stillFull.toString());
+  }
+
+  async function saveWhileOffline(page, entryName) {
+    await page.route("**/-/api/entries**", route =>
+      route.request().method() === "GET" ? route.fallback() : route.abort("failed"),
+    );
+    await page.locator("#add-btn").click();
+    await page.locator("#entry-name").fill(entryName);
+    await page.locator("#place-btn").click();
+    await page.locator('#place-listbox li[data-key="p1"]').click();
+    await page.locator("#entry-submit-btn").click();
+  }
+
+  test("drops the entries cache to make room for an offline save, which is then queued", async ({ page }) => {
+    await fillStorageForTheQueue(page, () =>
+      Object.keys(localStorage).some(key => key.startsWith("logbook_entries_cache")),
+    );
+    await gotoLogHarness(page);
+
+    await saveWhileOffline(page, `E2E made room ${Date.now()}`);
+
+    await expect(page.locator("#entry-overlay")).toBeHidden();
+    await expect(page.locator("#sync-btn")).toHaveText(/Sync \(1\)/);
+    const cacheKeys = await page.evaluate(() =>
+      Object.keys(localStorage).filter(key => key.startsWith("logbook_entries_cache")),
+    );
+    expect(cacheKeys).toEqual([]);
+  });
+
+  test("keeps the form open with a clear message when even that isn't enough", async ({ page }) => {
+    await fillStorageForTheQueue(page, () => true);
+    await gotoLogHarness(page);
+
+    const entryName = `E2E no room ${Date.now()}`;
+    await saveWhileOffline(page, entryName);
+
+    await expect(page.locator("#entry-msg")).toContainText("Your device's storage is full");
+    await expect(page.locator("#entry-overlay")).toBeVisible();
+    await expect(page.locator("#entry-name")).toHaveValue(entryName);
+    await expect(page.locator("#sync-btn")).toBeHidden();
+  });
+});
+
+test.describe("Safari in a tab (#1083)", () => {
+  test.use({
+    userAgent:
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1",
+  });
+
+  test("suggests installing the app while there are unsynced climbs", async ({ page }) => {
+    await gotoLogHarness(page);
+    const nudge = page.locator("#install-nudge");
+    await expect(nudge).toBeHidden();
+
+    await page.route("**/-/api/entries**", route =>
+      route.request().method() === "GET" ? route.fallback() : route.abort("failed"),
+    );
+    await page.locator("#add-btn").click();
+    await page.locator("#entry-name").fill(`E2E Safari ${Date.now()}`);
+    await page.locator("#place-btn").click();
+    await page.locator('#place-listbox li[data-key="p1"]').click();
+    await page.locator("#entry-submit-btn").click();
+
+    await expect(nudge).toBeVisible();
+    await expect(nudge.getByRole("link", { name: "Install the app" })).toHaveAttribute("href", /\/help\/install\/$/);
+  });
+});

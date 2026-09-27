@@ -75,6 +75,45 @@ describe("entries/places/locations", () => {
   });
 });
 
+describe("a full device", () => {
+  function quotaStorage(fullKeys) {
+    const storage = fakeStorage();
+    const setItem = storage.setItem;
+    storage.setItem = (k, v) => {
+      if (fullKeys.includes(k)) throw new DOMException("full", "QuotaExceededError");
+      setItem(k, v);
+    };
+    storage.removeItem = k => storage._map.delete(k);
+    return storage;
+  }
+
+  it("keeps the new entries in memory, drops the stale cache and resets its cursor, without throwing", () => {
+    const storage = quotaStorage(["logbook_entries_cache"]);
+    storage._map.set("logbook_entries_cache", JSON.stringify([ENTRIES[0]]));
+    storage._map.set("logbook_sync_cursors", JSON.stringify({ entries: 42, places: 7 }));
+    const full = createStore({ storage });
+
+    expect(() => full.setEntries(ENTRIES)).not.toThrow();
+    expect(full.getEntries()).toEqual(ENTRIES);
+    expect(storage.getItem("logbook_entries_cache")).toBeNull();
+    expect(JSON.parse(storage.getItem("logbook_sync_cursors"))).toEqual({ places: 7 });
+  });
+
+  it("reports whether the cache was written, so a caller only advances the cursor when it was", () => {
+    const full = createStore({ storage: quotaStorage(["logbook_entries_cache"]) });
+    expect(full.mergeConfirmed("entries", ENTRIES)).toBe(false);
+    expect(full.mergeConfirmed("places", PLACES)).toBe(true);
+  });
+
+  it("still throws an error that isn't about storage being full", () => {
+    const storage = fakeStorage();
+    storage.setItem = () => {
+      throw new TypeError("boom");
+    };
+    expect(() => createStore({ storage }).setEntries(ENTRIES)).toThrow("boom");
+  });
+});
+
 describe("mergeConfirmed", () => {
   it("upserts confirmed rows into the stored cache and persists the result", () => {
     store.setEntries(ENTRIES);

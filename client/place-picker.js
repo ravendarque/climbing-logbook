@@ -4,6 +4,7 @@ import { escapeHtml } from "./escape-html.js";
 import { COUNTRY_BY_NAME, COUNTRIES } from "./countries.js";
 import { createSearchableListbox } from "./modal-utils.js";
 import { isUnauthorized } from "./api-fetch.js";
+import { STORAGE_FULL_MESSAGE } from "./storage-quota.js";
 
 export function createPlacePicker({
   store,
@@ -245,7 +246,11 @@ export function createPlacePicker({
     if (authLapsed) {
       store.setLoggedIn(false);
     }
-    if (queued.length) enqueue(...queued);
+    if (queued.length && !enqueue(...queued)) {
+      showAddPlaceError(STORAGE_FULL_MESSAGE);
+      addPlaceSubmitBtn.disabled = false;
+      return;
+    }
     store.applyPendingQueue(getQueue());
     setPlace(place.id);
     closeModal(addPlaceOverlay);

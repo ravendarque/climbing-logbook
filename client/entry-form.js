@@ -16,6 +16,7 @@ import { validateEntryShape } from "../shared/entry-schema.js";
 import { createListPicker, renderOptionList } from "./modal-utils.js";
 import { calendarDatePickerHtml, createCalendarDatePicker } from "./calendar-date-picker.js";
 import { isUnauthorized } from "./api-fetch.js";
+import { STORAGE_FULL_MESSAGE } from "./storage-quota.js";
 
 const ERROR_MSG_CLASS = "mt-[.85rem] error-message";
 
@@ -492,11 +493,19 @@ export function createEntryForm({
     onSavedOnce = null;
   }
 
-  function queueAndSync(item) {
-    enqueue(item);
+  // If storage is full the form stays open, so nothing typed is lost.
+  function queueWrite(item) {
+    if (!enqueue(item)) {
+      showEntryError(STORAGE_FULL_MESSAGE);
+      return false;
+    }
     store.applyPendingQueue(getQueue());
     finishSave();
-    if (store.isLoggedIn()) syncPending();
+    return true;
+  }
+
+  function queueAndSync(item) {
+    if (queueWrite(item) && store.isLoggedIn()) syncPending();
   }
 
   entryForm.addEventListener("submit", async e => {
@@ -574,9 +583,7 @@ export function createEntryForm({
       if (err.message === "not-authenticated") {
         store.setLoggedIn(false);
       }
-      enqueue({ kind: "entry", op, record: entry });
-      store.applyPendingQueue(getQueue());
-      finishSave();
+      queueWrite({ kind: "entry", op, record: entry });
     }
 
     entrySubmitBtns.forEach(btn => {
@@ -619,9 +626,7 @@ export function createEntryForm({
       if (err.message === "not-authenticated") {
         store.setLoggedIn(false);
       }
-      enqueue({ kind: "entry", op: "delete", record: entrySnapshot ?? { id } });
-      store.applyPendingQueue(getQueue());
-      finishSave();
+      queueWrite({ kind: "entry", op: "delete", record: entrySnapshot ?? { id } });
     }
 
     entryDeleteBtn.disabled = false;

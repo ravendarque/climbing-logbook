@@ -2,6 +2,7 @@ import { getCursor, setCursor } from "./sync-cursors.js";
 import { BACKGROUND_FETCH_TIMEOUT_MS } from "./sync-status-icon.js";
 import { isUnauthorized } from "./api-fetch.js";
 import { addFailedWrite, isPermanentFailure } from "./failed-writes.js";
+import { isQuotaError, isSafariTab } from "./storage-quota.js";
 
 export function createOfflineSync({
   store,
@@ -19,6 +20,8 @@ export function createOfflineSync({
   const syncBtn = document.getElementById("sync-btn");
   const syncBtnLabel = document.getElementById("sync-btn-label");
   const syncBtnIcon = document.getElementById("sync-btn-icon");
+  const installNudge = document.getElementById("install-nudge");
+  const showInstallNudge = isSafariTab();
 
   function getQueue() {
     try {
@@ -27,13 +30,26 @@ export function createOfflineSync({
       return [];
     }
   }
+  // The queue is the only copy of unsynced climbs, so the entries cache makes way for it. False if even that isn't enough.
   function setQueue(queue) {
-    localStorage.setItem(queueKey, JSON.stringify(queue));
+    try {
+      localStorage.setItem(queueKey, JSON.stringify(queue));
+    } catch (err) {
+      if (!isQuotaError(err)) throw err;
+      store.dropCache("entries");
+      try {
+        localStorage.setItem(queueKey, JSON.stringify(queue));
+      } catch (retryErr) {
+        if (!isQuotaError(retryErr)) throw retryErr;
+        return false;
+      }
+    }
     updateSyncButton();
+    return true;
   }
   // Read and write storage with no await between, or a concurrent change is lost. qid identifies an item.
   function enqueue(...items) {
-    setQueue([...getQueue(), ...items.map(item => ({ ...item, qid: crypto.randomUUID() }))]);
+    return setQueue([...getQueue(), ...items.map(item => ({ ...item, qid: crypto.randomUUID() }))]);
   }
   // Items queued by older builds have no qid.
   function assignMissingQids() {
@@ -46,6 +62,7 @@ export function createOfflineSync({
     // Hidden while logged out: a sync needs a session.
     syncBtn.hidden = n === 0 || !store.isLoggedIn();
     syncBtnLabel.textContent = n ? `Sync (${n})` : "Sync";
+    installNudge.hidden = n === 0 || !showInstallNudge;
   }
 
   function syncOne(item) {
@@ -79,8 +96,7 @@ export function createOfflineSync({
       });
       if (!res.ok) return;
       const { [table]: rows, cursor } = await res.json();
-      store.mergeConfirmed(table, rows);
-      setCursor(table, cursor);
+      if (store.mergeConfirmed(table, rows)) setCursor(table, cursor);
     } catch (err) {
       // Offline: skip. A real timeout flags the indicator, since onLine can read true on a dead link.
       if (err.name === "TimeoutError") syncStatusIcon.reportTimeout();
@@ -165,7 +181,8 @@ export function createOfflineSync({
         }
         if (!res.ok) {
           const body = await res.json().catch(() => null);
-          addFailedWrite(item, body?.error ?? `Error ${res.status}`);
+          // Leaves the queue only once it's safely on the list.
+          if (!addFailedWrite(item, body?.error ?? `Error ${res.status}`)) continue;
           setQueue(getQueue().filter(queued => queued.qid !== item.qid));
           anyRejected = true;
           onFailedWrites();
