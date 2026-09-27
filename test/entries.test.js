@@ -66,7 +66,7 @@ describe("handleGet", () => {
 
   it("excludes a soft-deleted entry", async () => {
     const created = await (await post(validEntry())).json();
-    await del(created.entries[0].id);
+    await del(created.entry.id);
 
     const { entries } = await (await get()).json();
     expect(entries).toEqual([]);
@@ -76,21 +76,21 @@ describe("handleGet", () => {
 describe("attemptsToSend / rpe", () => {
   it("round-trips attemptsToSend and rpe through create", async () => {
     const created = await (await post({ ...validEntry(), attemptsToSend: 5, rpe: 80 })).json();
-    expect(created.entries[0].attemptsToSend).toBe(5);
-    expect(created.entries[0].rpe).toBe(80);
+    expect(created.entry.attemptsToSend).toBe(5);
+    expect(created.entry.rpe).toBe(80);
   });
 
   it("defaults both to null when omitted", async () => {
     const created = await (await post(validEntry())).json();
-    expect(created.entries[0].attemptsToSend).toBeNull();
-    expect(created.entries[0].rpe).toBeNull();
+    expect(created.entry.attemptsToSend).toBeNull();
+    expect(created.entry.rpe).toBeNull();
   });
 
   it("round-trips both through edit", async () => {
     const created = await (await post(validEntry())).json();
-    const updated = await (await put({ ...created.entries[0], attemptsToSend: 3, rpe: 60 })).json();
-    expect(updated.entries[0].attemptsToSend).toBe(3);
-    expect(updated.entries[0].rpe).toBe(60);
+    const updated = await (await put({ ...created.entry, attemptsToSend: 3, rpe: 60 })).json();
+    expect(updated.entry.attemptsToSend).toBe(3);
+    expect(updated.entry.rpe).toBe(60);
   });
 
   it("rejects an invalid rpe on create", async () => {
@@ -101,31 +101,35 @@ describe("attemptsToSend / rpe", () => {
   });
 });
 
-describe("handleGet (flat limit/offset, no locationId -- #498 chunked full sync)", () => {
+describe("handleGet (?limit=, chunked full sync)", () => {
   function getChunk(params, extraCookie = cookie) {
     const qs = new URLSearchParams(params).toString();
     return fetchJson(`${ENTRIES_URL}?${qs}`, { headers: { Cookie: extraCookie } });
   }
 
-  it("still serves a legacy offset slice, plus the true total", async () => {
+  function getAfter(next) {
+    return getChunk({ limit: "2", afterCreatedAt: next.createdAt, afterId: next.id });
+  }
+
+  it("returns capped chunks in key order, each with the true total", async () => {
     for (let i = 0; i < 5; i++) await post({ ...validEntry(), id: `e${i}`, name: `Route ${i}` });
 
     const first = await (await getChunk({ limit: "2" })).json();
     expect(first.entries.map(e => e.name)).toEqual(["Route 0", "Route 1"]);
     expect(first.total).toBe(5);
 
-    const second = await (await getChunk({ limit: "2", offset: "2" })).json();
+    const second = await (await getAfter(first.next)).json();
     expect(second.entries.map(e => e.name)).toEqual(["Route 2", "Route 3"]);
     expect(second.total).toBe(5);
 
-    const last = await (await getChunk({ limit: "2", offset: "4" })).json();
+    const last = await (await getAfter(second.next)).json();
     expect(last.entries.map(e => e.name)).toEqual(["Route 4"]);
     expect(last.total).toBe(5);
   });
 
-  it("offset past the end returns an empty (not error) chunk", async () => {
-    await post(validEntry());
-    const res = await getChunk({ limit: "20", offset: "50" });
+  it("a key past the end returns an empty (not error) chunk", async () => {
+    await post({ ...validEntry(), id: "e0" });
+    const res = await getAfter({ createdAt: "9999-12-31 23:59:59", id: "" });
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ entries: [], total: 0, cursor: 0, next: null });
   });
@@ -149,8 +153,8 @@ describe("handleGet (flat limit/offset, no locationId -- #498 chunked full sync)
       env.LOGBOOK_DB.prepare(`SELECT sync_cursor FROM entries WHERE id = ?`).bind(id).first().then(r => r.sync_cursor)));
     const maxCursor = Math.max(...cursors);
 
-    const first = await (await getChunk({ limit: "2", offset: "0" })).json();
-    const second = await (await getChunk({ limit: "2", offset: "2" })).json();
+    const first = await (await getChunk({ limit: "2" })).json();
+    const second = await (await getAfter(first.next)).json();
     expect(first.cursor).toBe(maxCursor);
     expect(second.cursor).toBe(maxCursor);
   });
@@ -185,17 +189,10 @@ describe("handleGet (flat limit/offset, no locationId -- #498 chunked full sync)
     expect(chunk.next).toBeNull();
   });
 
-  it("defaults offset to 0 when omitted", async () => {
-    await post({ ...validEntry(), name: "Only Route" });
-    const res = await getChunk({ limit: "20" });
-    const { entries } = await res.json();
-    expect(entries.map(e => e.name)).toEqual(["Only Route"]);
-  });
-
   it("excludes a soft-deleted entry from both the chunk and its total", async () => {
     const created = await (await post(validEntry())).json();
     await post({ ...validEntry(), name: "Still Here" });
-    await del(created.entries[0].id);
+    await del(created.entry.id);
 
     const { entries, total } = await (await getChunk({ limit: "20" })).json();
     expect(entries.map(e => e.name)).toEqual(["Still Here"]);
@@ -210,7 +207,7 @@ describe("handleGet (locationId -- #111 per-table pagination)", () => {
   }
 
   it("returns only that location's entries, across every place under it", async () => {
-    const secondPlaceId = (await (await jsonRequest("POST", "/-/api/places", { locationId, area: "Second Area" }, { Cookie: cookie })).json()).places.at(-1).id;
+    const secondPlaceId = (await (await jsonRequest("POST", "/-/api/places", { locationId, area: "Second Area" }, { Cookie: cookie })).json()).place.id;
     const otherLocationPlaceId = await seedPlace(cookie, { locationName: "Other Crag" });
     await post(validEntry());
     await post({ ...validEntry(), name: "Second Area Route", placeId: secondPlaceId });
@@ -240,7 +237,7 @@ describe("handleGet (locationId -- #111 per-table pagination)", () => {
 
   it("excludes a soft-deleted entry", async () => {
     const created = await (await post(validEntry())).json();
-    await del(created.entries[0].id);
+    await del(created.entry.id);
 
     const { entries } = await (await getLocation(locationId)).json();
     expect(entries).toEqual([]);
@@ -287,7 +284,7 @@ describe("handleGet (?since= -- #500 delta sync)", () => {
 
   it("returns a row created at or after since, and reports its own cursor as the new cursor", async () => {
     const created = await (await post(validEntry())).json();
-    const id = created.entries[0].id;
+    const id = created.entry.id;
     const cursor = await cursorOf(id);
 
     const { entries, cursor: newCursor } = await (await getSince(cursor)).json();
@@ -298,7 +295,7 @@ describe("handleGet (?since= -- #500 delta sync)", () => {
 
   it("excludes a row whose cursor is strictly before since", async () => {
     const created = await (await post(validEntry())).json();
-    const id = created.entries[0].id;
+    const id = created.entry.id;
     const cursor = await cursorOf(id);
 
     const { entries } = await (await getSince(cursor + 1)).json();
@@ -307,7 +304,7 @@ describe("handleGet (?since= -- #500 delta sync)", () => {
 
   it("includes a soft-deleted row, flagged deleted: true, unlike every other read path", async () => {
     const created = await (await post(validEntry())).json();
-    const id = created.entries[0].id;
+    const id = created.entry.id;
 
     await del(id);
     const deleteCursor = await cursorOf(id);
@@ -320,13 +317,13 @@ describe("handleGet (?since= -- #500 delta sync)", () => {
 
   it("a delta fetch from 0 returns every live and tombstoned row for that user", async () => {
     const created = await (await post(validEntry())).json();
-    const secondId = (await (await post({ ...validEntry(), name: "Second" })).json()).entries.find(e => e.name === "Second").id;
+    const secondId = (await (await post({ ...validEntry(), name: "Second" })).json()).entry.id;
     await del(secondId);
 
     const { entries } = await (await getSince(0)).json();
-    expect(entries.map(e => e.id).sort()).toEqual([created.entries[0].id, secondId].sort());
+    expect(entries.map(e => e.id).sort()).toEqual([created.entry.id, secondId].sort());
     expect(entries.find(e => e.id === secondId).deleted).toBe(true);
-    expect(entries.find(e => e.id === created.entries[0].id).deleted).toBe(false);
+    expect(entries.find(e => e.id === created.entry.id).deleted).toBe(false);
   });
 
   it("never returns another user's rows (cross-user isolation)", async () => {
@@ -343,12 +340,13 @@ describe("handlePost", () => {
     expect(res.status).toBe(401);
   });
 
-  it("creates an entry on the happy path", async () => {
+  it("creates an entry on the happy path, returning only that entry", async () => {
     const res = await post(validEntry());
     expect(res.status).toBe(201);
-    const { entries } = await res.json();
-    expect(entries).toHaveLength(1);
-    expect(entries[0]).toMatchObject({
+    const body = await res.json();
+    expect(Object.keys(body)).toEqual(["entry"]);
+    const { entry } = body;
+    expect(entry).toMatchObject({
       name: "La Marie-Rose",
       grade: "6B",
       placeId,
@@ -358,8 +356,8 @@ describe("handlePost", () => {
       video: null,
       notes: null,
     });
-    expect(typeof entries[0].id).toBe("string");
-    expect(entries[0].id.length).toBeGreaterThan(0);
+    expect(typeof entry.id).toBe("string");
+    expect(entry.id.length).toBeGreaterThan(0);
   });
 
   it("rejects malformed JSON", async () => {
@@ -399,28 +397,28 @@ describe("handlePost", () => {
   it("creates an entry with an explicit gradeScale, and reports it back", async () => {
     const res = await post({ ...validEntry(), gradeScale: "font-non-standard" });
     expect(res.status).toBe(201);
-    const { entries } = await res.json();
-    expect(entries[0].gradeScale).toBe("font-non-standard");
+    const { entry } = await res.json();
+    expect(entry.gradeScale).toBe("font-non-standard");
   });
 
   it("defaults gradeScale to font-non-standard for a Boulder entry when the client omits it", async () => {
     const res = await post(validEntry());
-    const { entries } = await res.json();
-    expect(entries[0].gradeScale).toBe("font-non-standard");
+    const { entry } = await res.json();
+    expect(entry.gradeScale).toBe("font-non-standard");
   });
 
   it("defaults gradeScale to french for a Sport entry using the current low end when the client omits it", async () => {
     const res = await post({ ...validEntry(), type: "sport", grade: "6a", sportStyle: "lead" });
-    const { entries } = await res.json();
-    expect(entries[0].gradeScale).toBe("french");
+    const { entry } = await res.json();
+    expect(entry.gradeScale).toBe("french");
   });
 
   it.each(["1", "1+", "2", "2+", "3", "3+"])(
     "defaults gradeScale to french-non-standard for a Sport entry at the legacy pre-correction low end (grade %s)",
     async grade => {
       const res = await post({ ...validEntry(), type: "sport", grade, sportStyle: "lead" });
-      const { entries } = await res.json();
-      expect(entries[0].gradeScale).toBe("french-non-standard");
+      const { entry } = await res.json();
+      expect(entry.gradeScale).toBe("french-non-standard");
     }
   );
 
@@ -465,8 +463,8 @@ describe("handlePost", () => {
   it("accepts a valid https video URL", async () => {
     const res = await post({ ...validEntry(), video: "https://example.com/clip" });
     expect(res.status).toBe(201);
-    const { entries } = await res.json();
-    expect(entries[0].video).toBe("https://example.com/clip");
+    const { entry } = await res.json();
+    expect(entry.video).toBe("https://example.com/clip");
   });
 
   it("rejects a placeId that doesn't exist", async () => {
@@ -482,8 +480,8 @@ describe("handlePost", () => {
 
     const second = await post(entryWithId);
     expect(second.status).toBe(200);
-    const { entries } = await second.json();
-    expect(entries).toHaveLength(1);
+    expect((await second.json()).entry.id).toBe("fixed-id-1");
+    expect((await (await get()).json()).entries).toHaveLength(1);
   });
 
   it("resurrects a soft-deleted row when a create reuses its id, rather than silently no-op'ing", async () => {
@@ -497,9 +495,8 @@ describe("handlePost", () => {
 
     const recreated = await post({ ...validEntry(), id: "resurrect-id-1", name: "Resurrected" });
     expect(recreated.status).toBe(201);
-    const { entries } = await recreated.json();
-    expect(entries).toHaveLength(1);
-    expect(entries[0]).toMatchObject({ id: "resurrect-id-1", name: "Resurrected" });
+    const { entry } = await recreated.json();
+    expect(entry).toMatchObject({ id: "resurrect-id-1", name: "Resurrected" });
 
     const row = await env.LOGBOOK_DB.prepare(`SELECT deleted_at FROM entries WHERE id = ?`).bind("resurrect-id-1").first();
     expect(row.deleted_at).toBeNull();
@@ -512,27 +509,26 @@ describe("handlePost", () => {
 
     const second = await post({ ...validEntry(), id: "still-live-id-1", name: "Should Not Apply" });
     expect(second.status).toBe(200);
-    const { entries } = await second.json();
-    expect(entries).toHaveLength(1);
-    expect(entries[0].name).toBe(entryWithId.name);
+    const { entry } = await second.json();
+    expect(entry.name).toBe(entryWithId.name);
   });
 
   it("sets firstAttempt true only when status is send", async () => {
     const res = await post({ ...validEntry(), status: "send", firstAttempt: true });
-    const { entries } = await res.json();
-    expect(entries[0].firstAttempt).toBe(true);
+    const { entry } = await res.json();
+    expect(entry.firstAttempt).toBe(true);
   });
 
   it("forces firstAttempt false when status is not send, even if requested true", async () => {
     const res = await post({ ...validEntry(), status: "project", firstAttempt: true });
-    const { entries } = await res.json();
-    expect(entries[0].firstAttempt).toBe(false);
+    const { entry } = await res.json();
+    expect(entry.firstAttempt).toBe(false);
   });
 
   it("persists and returns sportStyle for a sport entry", async () => {
     const res = await post({ ...validEntry(), type: "sport", grade: "6a", sportStyle: "top_rope" });
-    const { entries } = await res.json();
-    expect(entries[0].sportStyle).toBe("top_rope");
+    const { entry } = await res.json();
+    expect(entry.sportStyle).toBe("top_rope");
   });
 
   it("rejects a sport entry with no sportStyle at all", async () => {
@@ -543,10 +539,10 @@ describe("handlePost", () => {
 
   it("null-coalesces omitted optional fields", async () => {
     const res = await post(validEntry());
-    const { entries } = await res.json();
-    expect(entries[0].date).toBeNull();
-    expect(entries[0].video).toBeNull();
-    expect(entries[0].notes).toBeNull();
+    const { entry } = await res.json();
+    expect(entry.date).toBeNull();
+    expect(entry.video).toBeNull();
+    expect(entry.notes).toBeNull();
   });
 
   it("gives each create a cursor above every existing one", async () => {
@@ -575,18 +571,18 @@ describe("handlePost", () => {
 describe("handlePut", () => {
   it("rejects an unauthenticated request", async () => {
     const created = await (await post(validEntry())).json();
-    const res = await jsonRequest("PUT", ENTRIES_URL, { ...validEntry(), id: created.entries[0].id, name: "Renamed" });
+    const res = await jsonRequest("PUT", ENTRIES_URL, { ...validEntry(), id: created.entry.id, name: "Renamed" });
     expect(res.status).toBe(401);
   });
 
   it("updates an existing entry on the happy path", async () => {
     const created = await (await post(validEntry())).json();
-    const id = created.entries[0].id;
+    const id = created.entry.id;
 
     const res = await put({ ...validEntry(), id, name: "Renamed" });
     expect(res.status).toBe(200);
-    const { entries } = await res.json();
-    expect(entries[0].name).toBe("Renamed");
+    const { entry } = await res.json();
+    expect(entry.name).toBe("Renamed");
   });
 
   it("rejects a missing id", async () => {
@@ -603,7 +599,7 @@ describe("handlePut", () => {
 
   it("passes through validation errors", async () => {
     const created = await (await post(validEntry())).json();
-    const id = created.entries[0].id;
+    const id = created.entry.id;
 
     const res = await put({ ...validEntry(), id, status: "flashed" });
     expect(res.status).toBe(400);
@@ -612,7 +608,7 @@ describe("handlePut", () => {
 
   it("404s when the id belongs to a soft-deleted entry", async () => {
     const created = await (await post(validEntry())).json();
-    const id = created.entries[0].id;
+    const id = created.entry.id;
     await del(id);
 
     const res = await put({ ...validEntry(), id, name: "Renamed" });
@@ -622,7 +618,7 @@ describe("handlePut", () => {
 
   it("bumps sync_cursor on a real edit", async () => {
     const created = await (await post(validEntry())).json();
-    const id = created.entries[0].id;
+    const id = created.entry.id;
     const before = await env.LOGBOOK_DB.prepare(`SELECT sync_cursor FROM entries WHERE id = ?`).bind(id).first();
 
     await put({ ...validEntry(), id, name: "Renamed" });
@@ -635,18 +631,17 @@ describe("handlePut", () => {
 describe("handleDelete", () => {
   it("rejects an unauthenticated request", async () => {
     const created = await (await post(validEntry())).json();
-    const res = await fetchJson(`${ENTRIES_URL}?id=${created.entries[0].id}`, { method: "DELETE" });
+    const res = await fetchJson(`${ENTRIES_URL}?id=${created.entry.id}`, { method: "DELETE" });
     expect(res.status).toBe(401);
   });
 
   it("deletes an existing entry on the happy path", async () => {
     const created = await (await post(validEntry())).json();
-    const id = created.entries[0].id;
+    const id = created.entry.id;
 
     const res = await del(id);
-    expect(res.status).toBe(200);
-    const { entries } = await res.json();
-    expect(entries).toHaveLength(0);
+    expect(res.status).toBe(204);
+    expect((await (await get()).json()).entries).toHaveLength(0);
   });
 
   it("rejects a missing id", async () => {
@@ -657,25 +652,23 @@ describe("handleDelete", () => {
 
   it("is idempotent when the id doesn't exist, rather than erroring (#268)", async () => {
     const res = await del("does-not-exist");
-    expect(res.status).toBe(200);
-    const { entries } = await res.json();
-    expect(entries).toEqual([]);
+    expect(res.status).toBe(204);
   });
 
   it("idempotent delete leaves other entries untouched", async () => {
     const created = await (await post(validEntry())).json();
-    const id = created.entries[0].id;
+    const id = created.entry.id;
 
     const res = await del("does-not-exist");
-    expect(res.status).toBe(200);
-    const { entries } = await res.json();
-    expect(entries).toEqual([created.entries[0]]);
+    expect(res.status).toBe(204);
+    const { entries } = await (await get()).json();
+    expect(entries).toEqual([created.entry]);
     expect(entries.find(e => e.id === id)).toBeDefined();
   });
 
   it("soft-deletes -- the row still exists in D1, just excluded from reads", async () => {
     const created = await (await post(validEntry())).json();
-    const id = created.entries[0].id;
+    const id = created.entry.id;
 
     await del(id);
 
@@ -686,7 +679,7 @@ describe("handleDelete", () => {
 
   it("bumps sync_cursor on delete, same as a real change a future delta fetch needs to see", async () => {
     const created = await (await post(validEntry())).json();
-    const id = created.entries[0].id;
+    const id = created.entry.id;
     const before = await env.LOGBOOK_DB.prepare(`SELECT sync_cursor FROM entries WHERE id = ?`).bind(id).first();
 
     await del(id);
@@ -707,21 +700,21 @@ function validPainRow(overrides = {}) {
 describe("entry_moves / entry_pain_moves", () => {
   it("defaults both to empty arrays when omitted", async () => {
     const created = await (await post(validEntry())).json();
-    expect(created.entries[0].moves).toEqual([]);
-    expect(created.entries[0].painMoves).toEqual([]);
+    expect(created.entry.moves).toEqual([]);
+    expect(created.entry.painMoves).toEqual([]);
   });
 
   it("writes and reads back moves on create", async () => {
     const created = await (await post({ ...validEntry(), moves: [validMoveRow()] })).json();
-    expect(created.entries[0].moves).toHaveLength(1);
-    expect(created.entries[0].moves[0]).toMatchObject({ difficulty: "hardest", limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" });
-    expect(typeof created.entries[0].moves[0].id).toBe("string");
+    expect(created.entry.moves).toHaveLength(1);
+    expect(created.entry.moves[0]).toMatchObject({ difficulty: "hardest", limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" });
+    expect(typeof created.entry.moves[0].id).toBe("string");
   });
 
   it("writes and reads back painMoves on create", async () => {
     const created = await (await post({ ...validEntry(), painMoves: [validPainRow()] })).json();
-    expect(created.entries[0].painMoves).toHaveLength(1);
-    expect(created.entries[0].painMoves[0]).toMatchObject({ limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "slab" });
+    expect(created.entry.painMoves).toHaveLength(1);
+    expect(created.entry.painMoves[0]).toMatchObject({ limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "slab" });
   });
 
   it("returns moves/painMoves for every entry via a plain GET", async () => {
@@ -732,21 +725,21 @@ describe("entry_moves / entry_pain_moves", () => {
 
   it("diffs-and-replaces moves on edit, not merges", async () => {
     const created = await (await post({ ...validEntry(), moves: [validMoveRow()] })).json();
-    const updated = await (await put({ ...created.entries[0], moves: [validMoveRow({ difficulty: "easiest", limb: "knee", side: "left", holdType: "kneebar", movementStyle: "static" })] })).json();
-    expect(updated.entries[0].moves).toHaveLength(1);
-    expect(updated.entries[0].moves[0].difficulty).toBe("easiest");
-    expect(updated.entries[0].moves[0].limb).toBe("knee");
+    const updated = await (await put({ ...created.entry, moves: [validMoveRow({ difficulty: "easiest", limb: "knee", side: "left", holdType: "kneebar", movementStyle: "static" })] })).json();
+    expect(updated.entry.moves).toHaveLength(1);
+    expect(updated.entry.moves[0].difficulty).toBe("easiest");
+    expect(updated.entry.moves[0].limb).toBe("knee");
   });
 
   it("clears moves on edit when the new list is empty", async () => {
     const created = await (await post({ ...validEntry(), moves: [validMoveRow()] })).json();
-    const updated = await (await put({ ...created.entries[0], moves: [] })).json();
-    expect(updated.entries[0].moves).toEqual([]);
+    const updated = await (await put({ ...created.entry, moves: [] })).json();
+    expect(updated.entry.moves).toEqual([]);
   });
 
   it("leaves an entry's moves in place after a soft delete (not cascaded)", async () => {
     const created = await (await post({ ...validEntry(), moves: [validMoveRow()] })).json();
-    const id = created.entries[0].id;
+    const id = created.entry.id;
     await del(id);
     const { results } = await env.LOGBOOK_DB.prepare("SELECT * FROM entry_moves WHERE entry_id = ?").bind(id).all();
     expect(results).toHaveLength(1);
@@ -757,6 +750,32 @@ describe("entry_moves / entry_pain_moves", () => {
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toBe("moves[0].wallAngle must be one of: slab, vert, overhang, roof");
+  });
+
+  async function withFailingMoveInserts(fn) {
+    await env.LOGBOOK_DB.prepare("CREATE TRIGGER fail_moves BEFORE INSERT ON entry_moves BEGIN SELECT RAISE(ABORT, 'forced'); END").run();
+    try {
+      return await fn();
+    } finally {
+      await env.LOGBOOK_DB.prepare("DROP TRIGGER fail_moves").run();
+    }
+  }
+
+  it("leaves an edited entry unchanged when writing its moves fails", async () => {
+    const created = await (await post(validEntry())).json();
+    const before = await env.LOGBOOK_DB.prepare("SELECT * FROM entries WHERE id = ?").bind(created.entry.id).first();
+
+    await expect(withFailingMoveInserts(() => put({ ...created.entry, name: "Renamed", moves: [validMoveRow()] }))).rejects.toThrow("forced");
+
+    const after = await env.LOGBOOK_DB.prepare("SELECT * FROM entries WHERE id = ?").bind(created.entry.id).first();
+    expect(after).toEqual(before);
+  });
+
+  it("creates no entry when writing its moves fails", async () => {
+    await expect(withFailingMoveInserts(() => post({ ...validEntry(), id: "half-written", moves: [validMoveRow()] }))).rejects.toThrow("forced");
+
+    const row = await env.LOGBOOK_DB.prepare("SELECT id FROM entries WHERE id = ?").bind("half-written").first();
+    expect(row).toBeNull();
   });
 
   it("a plain GET succeeds and returns every entry once entry count crosses the 100-bound-parameter chunk boundary", async () => {
@@ -785,7 +804,7 @@ describe("cross-user isolation", () => {
 
   it("a second user cannot update the first user's entry by forging its id", async () => {
     const created = await (await post(validEntry())).json();
-    const id = created.entries[0].id;
+    const id = created.entry.id;
 
     const userB = await createAuthedSession();
     const placeIdB = await seedPlace(userB.cookie);
@@ -798,12 +817,11 @@ describe("cross-user isolation", () => {
 
   it("a second user's delete of a forged id doesn't remove the first user's entry", async () => {
     const created = await (await post(validEntry())).json();
-    const id = created.entries[0].id;
+    const id = created.entry.id;
 
     const userB = await createAuthedSession();
     const res = await del(id, userB.cookie);
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ entries: [] }); // B's own (empty) list, not A's
+    expect(res.status).toBe(204);
 
     const stillOwned = await (await get()).json();
     expect(stillOwned.entries).toHaveLength(1);

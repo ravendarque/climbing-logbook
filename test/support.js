@@ -85,8 +85,7 @@ export async function seedPlace(cookie, { locationName = "Magic Wood", country =
     { name: locationName, country },
     { Cookie: cookie }
   );
-  const { locations } = await locRes.json();
-  const locationId = locations.at(-1).id;
+  const { location: { id: locationId } } = await locRes.json();
 
   const placeRes = await jsonRequest(
     "POST",
@@ -94,6 +93,6 @@ export async function seedPlace(cookie, { locationName = "Magic Wood", country =
     { locationId, area },
     { Cookie: cookie }
   );
-  const { places } = await placeRes.json();
-  return places.at(-1).id;
+  const { place } = await placeRes.json();
+  return place.id;
 }

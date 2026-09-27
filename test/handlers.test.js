@@ -24,8 +24,7 @@ function patchJson(path, body, extraCookie = cookie) {
 
 async function seedLocation(extraCookie = cookie, name = "Magic Wood") {
   const res = await postJson("/-/api/locations", { name, country: "Switzerland" }, extraCookie);
-  const { locations } = await res.json();
-  return locations.at(-1).id;
+  return (await res.json()).location.id;
 }
 
 describe.each([
@@ -34,6 +33,7 @@ describe.each([
     listPath: "/-/api/places",
     createPath: "/-/api/places",
     listKey: "places",
+    rowKey: "place",
     buildValidBody: locationId => ({ locationId, area: "Sector 1" }),
     buildMinimalBody: locationId => ({ locationId }),
     requiredField: "locationId",
@@ -46,6 +46,7 @@ describe.each([
     listPath: "/-/api/locations",
     createPath: "/-/api/locations",
     listKey: "locations",
+    rowKey: "location",
     buildValidBody: () => ({ name: "Magic Wood", country: "Switzerland" }),
     buildMinimalBody: () => ({ name: "Magic Wood" }),
     requiredField: "name",
@@ -53,7 +54,7 @@ describe.each([
     dedupField: "name",
     needsLocation: false,
   },
-])("$resource", ({ listPath, createPath, listKey, buildValidBody, buildMinimalBody, requiredField, defaultField, dedupField, needsLocation }) => {
+])("$resource", ({ listPath, createPath, listKey, rowKey, buildValidBody, buildMinimalBody, requiredField, defaultField, dedupField, needsLocation }) => {
   async function validBody(extraCookie = cookie) {
     const locationId = needsLocation ? await seedLocation(extraCookie) : undefined;
     return buildValidBody(locationId);
@@ -77,17 +78,16 @@ describe.each([
     const body = await validBody();
     const res = await postJson(createPath, body);
     expect(res.status).toBe(201);
-    const responseBody = await res.json();
-    expect(responseBody[listKey]).toHaveLength(1);
-    expect(responseBody[listKey][0]).toMatchObject(body);
-    expect(typeof responseBody[listKey][0].id).toBe("string");
-    expect(responseBody[listKey][0].id.length).toBeGreaterThan(0);
+    const { [rowKey]: row } = await res.json();
+    expect(row).toMatchObject(body);
+    expect(typeof row.id).toBe("string");
+    expect(row.id.length).toBeGreaterThan(0);
   });
 
   it(`defaults ${defaultField} to an empty string when omitted`, async () => {
     const res = await postJson(createPath, await minimalBody());
     const body = await res.json();
-    expect(body[listKey][0][defaultField]).toBe("");
+    expect(body[rowKey][defaultField]).toBe("");
   });
 
   it("rejects malformed JSON", async () => {
@@ -111,11 +111,11 @@ describe.each([
 
     const second = await postJson(createPath, withId);
     expect(second.status).toBe(200);
-    const body = await second.json();
-    expect(body[listKey]).toHaveLength(1);
+    expect((await second.json())[rowKey].id).toBe("fixed-id-1");
+    expect((await (await getList(listPath, cookie)).json())[listKey]).toHaveLength(1);
   });
 
-  it("resolves an id collision with another user's existing row instead of a 500", async () => {
+  it("409s an id another user already holds", async () => {
     const { cookie: otherCookie } = await createAuthedSession();
     const otherBody = { ...(await validBody(otherCookie)), id: "fixed-id-cross-user" };
     const first = await postJson(createPath, otherBody, otherCookie);
@@ -123,9 +123,8 @@ describe.each([
 
     const ownBody = { ...(await validBody()), id: "fixed-id-cross-user" };
     const second = await postJson(createPath, ownBody, cookie);
-    expect(second.status).toBe(200);
-    const body = await second.json();
-    expect(body[listKey]).toHaveLength(0);
+    expect(second.status).toBe(409);
+    expect((await (await getList(listPath, cookie)).json())[listKey].map(r => r.id)).not.toContain("fixed-id-cross-user");
   });
 
   if (needsLocation) {
@@ -148,7 +147,7 @@ describe.each([
 
     it("returns a row created at or after since, reporting its own cursor as the new cursor", async () => {
       const created = await (await postJson(createPath, await validBody())).json();
-      const id = created[listKey][0].id;
+      const id = created[rowKey].id;
       const row = await env.LOGBOOK_DB.prepare(`SELECT sync_cursor FROM ${listKey} WHERE id = ?`).bind(id).first();
 
       const { [listKey]: rows, cursor } = await (await getSince(row.sync_cursor)).json();
@@ -158,7 +157,7 @@ describe.each([
 
     it("excludes a row whose cursor is strictly before since", async () => {
       const created = await (await postJson(createPath, await validBody())).json();
-      const id = created[listKey][0].id;
+      const id = created[rowKey].id;
       const row = await env.LOGBOOK_DB.prepare(`SELECT sync_cursor FROM ${listKey} WHERE id = ?`).bind(id).first();
 
       const { [listKey]: rows } = await (await getSince(row.sync_cursor + 1)).json();
@@ -178,7 +177,7 @@ describe.each([
       const locationId = needsLocation ? await seedLocation() : undefined;
       const first = await postJson(createPath, buildValidBody(locationId));
       expect(first.status).toBe(201);
-      const originalId = (await first.json())[listKey][0].id;
+      const originalId = (await first.json())[rowKey].id;
 
       const dup = buildValidBody(locationId);
       dup[dedupField] = dup[dedupField].toUpperCase();
@@ -186,8 +185,7 @@ describe.each([
       expect(second.status).toBe(200);
       const secondBody = await second.json();
       expect(secondBody.dedupedTo).toBe(originalId);
-      expect(secondBody[listKey]).toHaveLength(1);
-      expect(secondBody[listKey][0].id).toBe(originalId);
+      expect(secondBody[rowKey].id).toBe(originalId);
     });
 
     it("does not dedup against another user's matching row", async () => {

@@ -1,7 +1,6 @@
 import { createStore } from "./store.js";
 import { isSynced, markSynced } from "./sync-status.js";
 import { getCursor, setCursor } from "./sync-cursors.js";
-import { mergeDelta } from "./delta-merge.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
 import { pointApexLinksAtApex } from "./apex-links.js";
@@ -48,11 +47,9 @@ async function fetchJson(url) {
   return res.json();
 }
 
-async function syncSmallTable(table, url, loadFromCache, getCurrent, setCurrent) {
-  loadFromCache();
-  const since = getCursor(table);
-  const { [table]: rows, cursor } = await fetchJson(`${url}?since=${since}`);
-  setCurrent(mergeDelta(getCurrent(), rows));
+async function syncByDelta(store, table, url) {
+  const { [table]: rows, cursor } = await fetchJson(`${url}?since=${getCursor(table)}`);
+  store.mergeConfirmed(table, rows);
   setCursor(table, cursor);
 }
 
@@ -75,14 +72,6 @@ async function syncEntriesCold(store) {
   setCursor("entries", cursor);
 }
 
-async function syncEntriesWarm(store) {
-  store.loadEntriesFromCache();
-  const since = getCursor("entries");
-  const { entries, cursor } = await fetchJson(`${ENTRIES_URL}?since=${since}`);
-  store.setEntries(mergeDelta(store.getEntries(), entries));
-  setCursor("entries", cursor);
-}
-
 async function runSync(store) {
   // isSynced(), not a zero cursor: a forced resync must take the cold path.
   const warm = isSynced();
@@ -90,11 +79,11 @@ async function runSync(store) {
 
   // Places and locations first: entries reference them.
   await Promise.all([
-    syncSmallTable("places", PLACES_URL, store.loadPlacesFromCache, store.getPlaces, store.setPlaces),
-    syncSmallTable("locations", LOCATIONS_URL, store.loadLocationsFromCache, store.getLocations, store.setLocations),
+    syncByDelta(store, "places", PLACES_URL),
+    syncByDelta(store, "locations", LOCATIONS_URL),
   ]);
 
-  if (warm) await syncEntriesWarm(store);
+  if (warm) await syncByDelta(store, "entries", ENTRIES_URL);
   else await syncEntriesCold(store);
 
   markSynced();

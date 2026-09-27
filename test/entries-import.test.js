@@ -36,6 +36,10 @@ function importCsv(rows, extraCookie = cookie) {
   });
 }
 
+async function storedEntries(extraCookie = cookie) {
+  return (await (await fetchJson("/-/api/entries", { headers: { Cookie: extraCookie } })).json()).entries;
+}
+
 describe("handleImport", () => {
   it("rejects an unauthenticated request", async () => {
     const res = await fetchJson(IMPORT_URL, {
@@ -75,10 +79,10 @@ describe("handleImport", () => {
   it("imports valid rows, minting a new location and place", async () => {
     const res = await importCsv([csvRow()]);
     expect(res.status).toBe(201);
-    const body = await res.json();
-    expect(body.imported).toBe(1);
-    expect(body.entries).toHaveLength(1);
-    expect(body.entries[0]).toMatchObject({ name: "La Marie-Rose", grade: "6B", type: "boulder", status: "send" });
+    expect(await res.json()).toEqual({ imported: 1 });
+    const entries = await storedEntries();
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({ name: "La Marie-Rose", grade: "6B", type: "boulder", status: "send" });
 
     const locations = await (await fetchJson("/-/api/locations", { headers: { Cookie: cookie } })).json();
     expect(locations.locations).toEqual([expect.objectContaining({ name: "Fontainebleau", country: "France" })]);
@@ -89,7 +93,7 @@ describe("handleImport", () => {
   it("dedups repeated location+area pairs within one import into a single place", async () => {
     const res = await importCsv([csvRow({ name: "Route A" }), csvRow({ name: "Route B" })]);
     expect(res.status).toBe(201);
-    const { entries } = await res.json();
+    const entries = await storedEntries();
     expect(entries[0].placeId).toBe(entries[1].placeId);
 
     const places = await (await fetchJson("/-/api/places", { headers: { Cookie: cookie } })).json();
@@ -143,7 +147,7 @@ describe("handleImport", () => {
   it("coerces the firstAttempt CSV string correctly, not by string truthiness", async () => {
     const res = await importCsv([csvRow({ firstAttempt: "false" })]);
     expect(res.status).toBe(201);
-    const { entries } = await res.json();
+    const entries = await storedEntries();
     expect(entries[0].firstAttempt).toBe(false);
   });
 
@@ -160,7 +164,7 @@ describe("handleImport", () => {
   it("imports a Sport row with its sportStyle column, requiring it same as the single-entry form (#643)", async () => {
     const res = await importCsv([csvRow({ discipline: "sport", grade: "6a", sportStyle: "lead" })]);
     expect(res.status).toBe(201);
-    const { entries } = await res.json();
+    const entries = await storedEntries();
     expect(entries[0]).toMatchObject({ type: "sport", sportStyle: "lead" });
   });
 
@@ -173,14 +177,14 @@ describe("handleImport", () => {
   it("imports attemptsToSend/rpe/gradeScale when given", async () => {
     const res = await importCsv([csvRow({ attemptsToSend: "3", rpe: "80", gradeScale: "font-non-standard" })]);
     expect(res.status).toBe(201);
-    const { entries } = await res.json();
+    const entries = await storedEntries();
     expect(entries[0]).toMatchObject({ attemptsToSend: 3, rpe: 80, gradeScale: "font-non-standard" });
   });
 
   it("falls back to defaultGradeScale() when the gradeScale column is blank, same as the single-entry form", async () => {
     const res = await importCsv([csvRow({ discipline: "boulder", grade: "6B", gradeScale: "" })]);
     expect(res.status).toBe(201);
-    const { entries } = await res.json();
+    const entries = await storedEntries();
     expect(entries[0].gradeScale).toBe("font-non-standard");
   });
 
@@ -230,9 +234,9 @@ describe("handleImport (JSON, #639)", () => {
   it("imports valid entries, minting a new location and place, same as the CSV path", async () => {
     const res = await importJson([jsonEntry()]);
     expect(res.status).toBe(201);
-    const body = await res.json();
-    expect(body.imported).toBe(1);
-    expect(body.entries[0]).toMatchObject({ name: "La Marie-Rose", grade: "6B", type: "boulder", status: "send" });
+    expect(await res.json()).toEqual({ imported: 1 });
+    const entries = await storedEntries();
+    expect(entries[0]).toMatchObject({ name: "La Marie-Rose", grade: "6B", type: "boulder", status: "send" });
 
     const locations = await (await fetchJson("/-/api/locations", { headers: { Cookie: cookie } })).json();
     expect(locations.locations).toEqual([expect.objectContaining({ name: "Fontainebleau", country: "France" })]);
@@ -247,7 +251,7 @@ describe("handleImport (JSON, #639)", () => {
   it("normalizes a real JSON boolean firstAttempt correctly, not by string truthiness", async () => {
     const res = await importJson([jsonEntry({ firstAttempt: false })]);
     expect(res.status).toBe(201);
-    const { entries } = await res.json();
+    const entries = await storedEntries();
     expect(entries[0].firstAttempt).toBe(false);
   });
 
@@ -266,14 +270,14 @@ describe("handleImport (JSON, #639)", () => {
     };
     const res = await importJson([exportedShape]);
     expect(res.status).toBe(201);
-    const { entries } = await res.json();
+    const entries = await storedEntries();
     expect(entries[0]).toMatchObject({ name: "Redpoint Route", grade: "6a", type: "sport", status: "send", firstAttempt: true, sportStyle: "lead" });
   });
 
   it("imports a Sport entry, requiring sportStyle same as the single-entry form (#643)", async () => {
     const res = await importJson([jsonEntry({ discipline: "sport", grade: "6a", sportStyle: "top_rope" })]);
     expect(res.status).toBe(201);
-    const { entries } = await res.json();
+    const entries = await storedEntries();
     expect(entries[0]).toMatchObject({ type: "sport", sportStyle: "top_rope" });
   });
 
@@ -286,14 +290,14 @@ describe("handleImport (JSON, #639)", () => {
   it("imports attemptsToSend/rpe/gradeScale when given", async () => {
     const res = await importJson([jsonEntry({ attemptsToSend: 3, rpe: 80, gradeScale: "font-non-standard" })]);
     expect(res.status).toBe(201);
-    const { entries } = await res.json();
+    const entries = await storedEntries();
     expect(entries[0]).toMatchObject({ attemptsToSend: 3, rpe: 80, gradeScale: "font-non-standard" });
   });
 
   it("falls back to defaultGradeScale() when gradeScale is omitted, same as the single-entry form", async () => {
     const res = await importJson([jsonEntry()]);
     expect(res.status).toBe(201);
-    const { entries } = await res.json();
+    const entries = await storedEntries();
     expect(entries[0].gradeScale).toBe("font-non-standard");
   });
 });

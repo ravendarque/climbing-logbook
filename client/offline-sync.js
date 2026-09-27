@@ -1,5 +1,4 @@
 import { getCursor, setCursor } from "./sync-cursors.js";
-import { mergeDelta } from "./delta-merge.js";
 import { BACKGROUND_FETCH_TIMEOUT_MS } from "./sync-status-icon.js";
 
 export function createOfflineSync({
@@ -68,14 +67,12 @@ export function createOfflineSync({
         });
   }
 
-  // Merges onto the clean stored cache, not the in-memory view, so pending flags never get persisted.
-  async function pullDelta(url, table, getCurrent, setCurrent, loadFromCache) {
+  async function pullDelta(url, table) {
     try {
       const res = await fetch(`${url}?since=${getCursor(table)}`, { signal: AbortSignal.timeout(BACKGROUND_FETCH_TIMEOUT_MS) });
       if (!res.ok) return;
       const { [table]: rows, cursor } = await res.json();
-      loadFromCache();
-      setCurrent(mergeDelta(getCurrent(), rows));
+      store.mergeConfirmed(table, rows);
       setCursor(table, cursor);
     } catch (err) {
       // Offline: skip. A real timeout flags the indicator, since onLine can read true on a dead link.
@@ -86,10 +83,10 @@ export function createOfflineSync({
   async function pullDeltas() {
     // Places and locations first: entries reference them.
     await Promise.all([
-      pullDelta(placesUrl, "places", store.getPlaces, store.setPlaces, store.loadPlacesFromCache),
-      pullDelta(locationsUrl, "locations", store.getLocations, store.setLocations, store.loadLocationsFromCache),
+      pullDelta(placesUrl, "places"),
+      pullDelta(locationsUrl, "locations"),
     ]);
-    await pullDelta(entriesUrl, "entries", store.getEntries, store.setEntries, store.loadEntriesFromCache);
+    await pullDelta(entriesUrl, "entries");
 
     // Always re-apply the queue on top of the clean merge.
     store.applyPendingQueue(getQueue());
@@ -97,7 +94,7 @@ export function createOfflineSync({
 
   // Entries only: boot() already refreshes places and locations.
   async function reconcileEntries() {
-    await syncStatusIcon.track(pullDelta(entriesUrl, "entries", store.getEntries, store.setEntries, store.loadEntriesFromCache));
+    await syncStatusIcon.track(pullDelta(entriesUrl, "entries"));
     store.applyPendingQueue(getQueue());
   }
 
@@ -129,7 +126,7 @@ export function createOfflineSync({
     const queue = getQueue();
     if (!queue.length) return;
 
-    let lastEntries = null, lastPlaces = null, lastLocations = null;
+    const confirmed = { entries: [], places: [], locations: [] };
     for (const item of queue) {
       // Synced by another tab, or purged by a delete, since the queue was read.
       if (!isStillQueued(item.qid)) continue;
@@ -142,26 +139,26 @@ export function createOfflineSync({
           break;
         }
         if (!res.ok) continue;
-        data = await res.json();
+        data = res.status === 204 ? null : await res.json();
       } catch {
         break; // still offline -- stop, the rest stay queued in order
       }
 
       let remap = null;
       if (item.kind === "location") {
-        lastLocations = data.locations;
+        confirmed.locations.push(data.location);
         // A location item's own id is what later place items reference.
         if (data.dedupedTo && data.dedupedTo !== item.record.id) {
           remap = ["locationId", item.record.id, data.dedupedTo];
         }
       } else if (item.kind === "place") {
-        lastPlaces = data.places;
+        confirmed.places.push(data.place);
         // A place item's own id is what later entry items reference.
         if (data.dedupedTo && data.dedupedTo !== item.record.id) {
           remap = ["placeId", item.record.id, data.dedupedTo];
         }
       } else {
-        lastEntries = data.entries;
+        confirmed.entries.push(item.op === "delete" ? { id: item.record.id, deleted: true } : data.entry);
       }
 
       // One read-modify-write: drop this item and remap stored references too.
@@ -173,13 +170,10 @@ export function createOfflineSync({
       setQueue(stored);
     }
 
-    if (lastLocations) store.setLocations(lastLocations);
-    if (lastPlaces) store.setPlaces(lastPlaces);
-    if (lastEntries) store.setEntries(lastEntries);
+    const tables = Object.keys(confirmed).filter(table => confirmed[table].length);
+    for (const table of tables) store.mergeConfirmed(table, confirmed[table]);
     // Re-apply what's still queued on top of the confirmed data.
-    if (lastLocations || lastPlaces || lastEntries) {
-      store.applyPendingQueue(getQueue());
-    }
+    if (tables.length) store.applyPendingQueue(getQueue());
   }
 
   async function syncPending() {

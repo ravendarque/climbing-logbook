@@ -57,6 +57,37 @@ describe("entries/places/locations", () => {
   });
 });
 
+describe("mergeConfirmed", () => {
+  it("upserts confirmed rows into the stored cache and persists the result", () => {
+    store.setEntries(ENTRIES);
+    store.mergeConfirmed("entries", [{ ...ENTRIES[0], name: "Renamed" }, { id: "e3", placeId: "p1", name: "New" }]);
+    const expected = [{ ...ENTRIES[0], name: "Renamed" }, ENTRIES[1], { id: "e3", placeId: "p1", name: "New" }];
+    expect(store.getEntries()).toEqual(expected);
+    expect(JSON.parse(storage.getItem("logbook_entries_cache"))).toEqual(expected);
+  });
+
+  it("drops a row confirmed deleted", () => {
+    store.setEntries(ENTRIES);
+    store.mergeConfirmed("entries", [{ id: "e1", deleted: true }]);
+    expect(store.getEntries()).toEqual([ENTRIES[1]]);
+  });
+
+  it("merges onto the stored cache, so pending rows in the view are never persisted", () => {
+    store.setEntries(ENTRIES);
+    store.applyPendingQueue([{ kind: "entry", op: "add", record: { id: "queued", placeId: "p1", name: "Queued" } }]);
+    store.mergeConfirmed("entries", [{ id: "e3", placeId: "p1", name: "New" }]);
+    expect(JSON.parse(storage.getItem("logbook_entries_cache")).map(e => e.id)).toEqual(["e1", "e2", "e3"]);
+  });
+
+  it("merges places and locations the same way", () => {
+    store.setPlaces(PLACES);
+    store.mergeConfirmed("places", [{ id: "p3", locationId: "l1", area: "Apremont" }]);
+    store.mergeConfirmed("locations", [{ id: "l3", name: "Albarracín", country: "Spain" }]);
+    expect(store.getPlaces().map(p => p.id)).toEqual(["p1", "p2", "p3"]);
+    expect(store.getLocations().map(l => l.id)).toEqual(["l3"]);
+  });
+});
+
 describe("loadEntriesFromCache", () => {
   it("returns false and leaves entries empty when nothing was ever cached", () => {
     expect(store.loadEntriesFromCache()).toBe(false);

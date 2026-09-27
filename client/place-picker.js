@@ -189,7 +189,9 @@ export function createPlacePicker({
           addPlaceSubmitBtn.disabled = false;
           return;
         }
-        store.setLocations(data.locations);
+        store.mergeConfirmed("locations", [data.location]);
+        // A deduplicated location has another id; the place must point at it.
+        place.locationId = data.location.id;
       } catch (err) {
         if (err.message === "not-authenticated") authLapsed = true;
         // Queued in dependency order: the location, then its place.
@@ -214,7 +216,8 @@ export function createPlacePicker({
           addPlaceSubmitBtn.disabled = false;
           return;
         }
-        store.setPlaces(data.places);
+        store.mergeConfirmed("places", [data.place]);
+        place.id = data.place.id;
       } catch (err) {
         if (err.message === "not-authenticated") authLapsed = true;
         queued.push({ kind: "place", op: "add", record: place });

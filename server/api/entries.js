@@ -91,9 +91,8 @@ function painMoveRowToJson(row) {
   return { id: row.id, limb: row.limb, side: row.side, holdType: row.hold_type, movementStyle: row.movement_style, wallAngle: row.wall_angle };
 }
 
-// One batch, so a failure never leaves an entry's tags half replaced.
-async function replaceChildRows(env, table, entryId, records, buildRow) {
-  const statements = [
+function replaceChildRowStatements(env, table, entryId, records, buildRow) {
+  return [
     env.LOGBOOK_DB.prepare(`DELETE FROM ${table} WHERE entry_id = ?`).bind(entryId),
     ...records.map(record => {
       const row = buildRow(record, crypto.randomUUID(), entryId);
@@ -101,12 +100,13 @@ async function replaceChildRows(env, table, entryId, records, buildRow) {
       return env.LOGBOOK_DB.prepare(`INSERT INTO ${table} (${columns.join(", ")}) VALUES (${columns.map(() => "?").join(", ")})`).bind(...columns.map(c => row[c]));
     }),
   ];
-  await env.LOGBOOK_DB.batch(statements);
 }
 
-async function replaceMovesAndPainMoves(env, entryId, record) {
-  await replaceChildRows(env, "entry_moves", entryId, record.moves ?? [], buildMoveRow);
-  await replaceChildRows(env, "entry_pain_moves", entryId, record.painMoves ?? [], buildPainMoveRow);
+function moveStatements(env, entryId, record) {
+  return [
+    ...replaceChildRowStatements(env, "entry_moves", entryId, record.moves ?? [], buildMoveRow),
+    ...replaceChildRowStatements(env, "entry_pain_moves", entryId, record.painMoves ?? [], buildPainMoveRow),
+  ];
 }
 
 // D1 allows at most 100 bound parameters per statement.
@@ -142,16 +142,19 @@ export async function attachChildRows(rows, env) {
   return rows.map(row => ({ ...row, moves: movesByEntry[row.id] ?? [], painMoves: painByEntry[row.id] ?? [] }));
 }
 
-export const { handlePost } = createD1ResourceHandlers({
+const entryResource = createD1ResourceHandlers({
   table: "entries",
   resourceKey: "entries",
+  rowKey: "entry",
   validateFields,
   buildRow,
   rowToJson,
   excludeDeleted: true,
-  afterWrite: (env, id, record) => replaceMovesAndPainMoves(env, id, record),
+  childStatements: moveStatements,
   decorateRows: (env, userId, rows) => attachChildRows(rows, env),
 });
+
+export const { handlePost } = entryResource;
 
 const PAGE_SIZE = 20;
 
@@ -189,9 +192,7 @@ async function handleChunked(url, env, userId, { shapeRow, includeChildRows }) {
   if (!Number.isInteger(limit) || limit < 1) return json({ error: "limit must be a positive integer" }, 400);
   const afterCreatedAt = url.searchParams.get("afterCreatedAt") ?? "";
   const afterId = url.searchParams.get("afterId") ?? "";
-  // Only clients cached from before keyset paging still send offset.
-  const offset = Number(url.searchParams.get("offset")) || 0;
-  // Keyset, not offset alone: a delete mid-sync would shift later rows past the next page.
+  // Keyset, not offset: a delete mid-sync would shift later rows past the next page.
   const { results } = await env.LOGBOOK_DB
     .prepare(`
       SELECT *,
@@ -199,9 +200,9 @@ async function handleChunked(url, env, userId, { shapeRow, includeChildRows }) {
         (SELECT MAX(sync_cursor) FROM entries WHERE user_id = ?) AS max_cursor
       FROM entries
       WHERE user_id = ? AND deleted_at IS NULL AND (created_at, id) > (?, ?)
-      ORDER BY created_at, id LIMIT ? OFFSET ?
+      ORDER BY created_at, id LIMIT ?
     `)
-    .bind(userId, userId, userId, afterCreatedAt, afterId, limit, offset)
+    .bind(userId, userId, userId, afterCreatedAt, afterId, limit)
     .all();
   const total = results[0]?.total ?? 0;
   const cursor = results[0]?.max_cursor ?? 0;
@@ -251,15 +252,14 @@ export async function handlePut(request, env, userId) {
 
   const row = buildRow(entry, entry.id, userId);
   const columns = Object.keys(row).filter(c => c !== "id" && c !== "user_id");
-  await env.LOGBOOK_DB
-    .prepare(`UPDATE entries SET ${columns.map(c => `${c} = ?`).join(", ")}, sync_cursor = ${nextCursorSql("entries")}, updated_at = datetime('now') WHERE id = ? AND user_id = ?`)
-    .bind(...columns.map(c => row[c]), userId, entry.id, userId)
-    .run();
-  await replaceMovesAndPainMoves(env, entry.id, entry);
+  await env.LOGBOOK_DB.batch([
+    env.LOGBOOK_DB
+      .prepare(`UPDATE entries SET ${columns.map(c => `${c} = ?`).join(", ")}, sync_cursor = ${nextCursorSql("entries")}, updated_at = datetime('now') WHERE id = ? AND user_id = ?`)
+      .bind(...columns.map(c => row[c]), userId, entry.id, userId),
+    ...moveStatements(env, entry.id, entry),
+  ]);
 
-  const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
-  const decorated = await attachChildRows(rows, env);
-  return json({ entries: decorated });
+  return entryResource.respondWithRow(env, userId, entry.id, 200);
 }
 
 // Soft delete: a delta sync can only learn about a deletion from a tombstone.
@@ -272,7 +272,5 @@ export async function handleDelete(request, env, userId) {
     .bind(Date.now(), userId, id, userId)
     .run();
 
-  const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
-  const decorated = await attachChildRows(rows, env);
-  return json({ entries: decorated });
+  return new Response(null, { status: 204 });
 }

@@ -100,7 +100,7 @@ describe("public data API", () => {
       const { cookie } = await createAuthedSession({ username: "countsdeleteduser" });
       const placeId = await seedPlace(cookie, { locationName: "Fontainebleau" });
       const created = await (await jsonRequest("POST", "/-/api/entries", { placeId, name: "Sleepwalker", grade: "7A", type: "boulder", status: "send" }, { Cookie: cookie })).json();
-      await fetchJson(`/-/api/entries?id=${created.entries[0].id}`, { method: "DELETE", headers: { Cookie: cookie } });
+      await fetchJson(`/-/api/entries?id=${created.entry.id}`, { method: "DELETE", headers: { Cookie: cookie } });
 
       const { locations, counts } = await (await fetchPublic("countsdeleteduser", "entries/counts")).json();
       const locationId = locations.find(l => l.name === "Fontainebleau").id;
@@ -152,7 +152,7 @@ describe("public data API", () => {
       const { cookie } = await createAuthedSession({ username: "sincedeleteduser" });
       const placeId = await seedPlace(cookie);
       const created = await (await jsonRequest("POST", "/-/api/entries", { placeId, name: "Sleepwalker", grade: "7A", type: "boulder", status: "send" }, { Cookie: cookie })).json();
-      await fetchJson(`/-/api/entries?id=${created.entries[0].id}`, { method: "DELETE", headers: { Cookie: cookie } });
+      await fetchJson(`/-/api/entries?id=${created.entry.id}`, { method: "DELETE", headers: { Cookie: cookie } });
 
       const res = await fetchPublic("sincedeleteduser", "entries?since=0");
       expect(res.status).toBe(200);

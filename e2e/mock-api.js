@@ -168,18 +168,19 @@ export async function mockApi(page, {
   await page.route("**/-/api/entries*", async route => {
     const method = route.request().method();
     if (method === "POST") {
-      _entries = [..._entries, stamp(route.request().postDataJSON())];
-      return route.fulfill({ status: 201, json: { entries: _entries } });
+      const entry = stamp(route.request().postDataJSON());
+      _entries = [..._entries, entry];
+      return route.fulfill({ status: 201, json: { entry } });
     }
     if (method === "PUT") {
       const body = stamp(route.request().postDataJSON());
       _entries = _entries.map(e => (e.id === body.id ? body : e));
-      return route.fulfill({ json: { entries: _entries } });
+      return route.fulfill({ json: { entry: body } });
     }
     if (method === "DELETE") {
       const id = new URL(route.request().url()).searchParams.get("id");
       _entries = _entries.filter(e => e.id !== id);
-      return route.fulfill({ json: { entries: _entries } });
+      return route.fulfill({ status: 204 });
     }
     return route.fallback();
   });
@@ -191,24 +192,26 @@ export async function mockApi(page, {
       ? (JSON.parse(route.request().postData() || "[]").length)
       : (route.request().postData() || "").trim().split("\n").slice(1).filter(Boolean).length;
     _entries = [..._entries, ...Array.from({ length: rowCount }, (_, i) => ({ id: `imported-${_entries.length + i}` }))];
-    return route.fulfill({ status: 201, json: { imported: rowCount, entries: _entries } });
+    return route.fulfill({ status: 201, json: { imported: rowCount } });
   });
 
   await page.route("**/-/api/places*", async route => {
     if (route.request().method() !== "POST") return route.fallback();
     const body = route.request().postDataJSON();
     const duplicate = _places.find(p => p.locationId === body.locationId && (p.area ?? "").toLowerCase() === (body.area ?? "").toLowerCase());
-    if (duplicate) return route.fulfill({ json: { places: _places, dedupedTo: duplicate.id } });
-    _places = [..._places, stamp(body)];
-    return route.fulfill({ status: 201, json: { places: _places } });
+    if (duplicate) return route.fulfill({ json: { place: duplicate, dedupedTo: duplicate.id } });
+    const place = stamp(body);
+    _places = [..._places, place];
+    return route.fulfill({ status: 201, json: { place } });
   });
 
   await page.route("**/-/api/locations*", async route => {
     if (route.request().method() !== "POST") return route.fallback();
     const body = route.request().postDataJSON();
     const duplicate = _locations.find(l => l.name.toLowerCase() === body.name.toLowerCase());
-    if (duplicate) return route.fulfill({ json: { locations: _locations, dedupedTo: duplicate.id } });
-    _locations = [..._locations, stamp(body)];
-    return route.fulfill({ status: 201, json: { locations: _locations } });
+    if (duplicate) return route.fulfill({ json: { location: duplicate, dedupedTo: duplicate.id } });
+    const location = stamp(body);
+    _locations = [..._locations, location];
+    return route.fulfill({ status: 201, json: { location } });
   });
 }

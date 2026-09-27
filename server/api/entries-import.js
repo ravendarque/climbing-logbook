@@ -2,8 +2,8 @@ import * as v from "valibot";
 import { json } from "../lib/json.js";
 import { entrySchema } from "../../shared/entry-schema.js";
 import { parseCsvText, parseJsonText } from "../../shared/csv-import.js";
-import { buildInsertStatement, listForUser } from "../lib/d1-resource.js";
-import { attachChildRows, buildRow as buildEntryRow, rowToJson as entryRowToJson } from "./entries.js";
+import { buildInsertStatement } from "../lib/d1-resource.js";
+import { buildRow as buildEntryRow } from "./entries.js";
 import { buildRow as buildLocationRow } from "./locations.js";
 import { buildRow as buildPlaceRow } from "./places.js";
 
@@ -108,7 +108,5 @@ export async function handleImport(request, env, userId) {
   ];
   if (statements.length > 0) await env.LOGBOOK_DB.batch(statements);
 
-  const rows = await listForUser(env, "entries", userId, entryRowToJson, { excludeDeleted: true });
-  const decorated = await attachChildRows(rows, env);
-  return json({ imported: drafts.length, entries: decorated }, 201);
+  return json({ imported: drafts.length }, 201);
 }
