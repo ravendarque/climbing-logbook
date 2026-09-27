@@ -1,51 +1,16 @@
 // Not queued offline: an import needs the server to resolve places and validate every row.
-import { createStore } from "./store.js";
-import { createAdminAuth } from "./admin-auth.js";
-import { createDisclosure } from "./modal-utils.js";
-import { createThemeToggle } from "./theme-toggle.js";
-import { syncAdminBar } from "./admin-bar.js";
+import { createAccountShell } from "./account-shell.js";
 import { buildTemplateCsv } from "../shared/csv-import.js";
 import { loginPageUrl } from "./login-url.js";
-import { pageAllowsBoot } from "./boot-gate.js";
-import { registerServiceWorker } from "./register-sw.js";
+import { startPage } from "./boot-gate.js";
 import { apiFetch, isUnauthorized } from "./api-fetch.js";
 import { BACKGROUND_FETCH_TIMEOUT_MS } from "./sync-status-icon.js";
 
-const SETTINGS_URL = "/-/api/settings";
 const IMPORT_URL = "/-/api/entries/import";
 
-const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
-
-const store = createStore();
+const { username: USERNAME, adminAuth, updateAdminBar } = createAccountShell();
 
 document.getElementById("back-to-account-link").href = `/${encodeURIComponent(USERNAME)}/account`;
-
-const menuUsername = document.getElementById("menu-username");
-const headerMenuBottomRow = document.getElementById("header-menu-bottom-row");
-function updateMenuDivider() {
-  const hasTopContent = !menuUsername.hidden;
-  headerMenuBottomRow.classList.toggle("border-t", hasTopContent);
-  headerMenuBottomRow.classList.toggle("pt-2", hasTopContent);
-  headerMenuBottomRow.classList.toggle("mt-1", hasTopContent);
-}
-
-function updateAdminBar() {
-  syncAdminBar({ store, adminAuth, headerChrome: { updateMenuDivider } });
-}
-
-const adminAuth = createAdminAuth({
-  store,
-  apiFetch,
-  settingsUrl: SETTINGS_URL,
-  updateAdminBar,
-});
-
-createDisclosure(
-  document.getElementById("header-menu-btn"),
-  document.getElementById("header-menu-popover"),
-  "#header-menu-wrap",
-);
-createThemeToggle();
 
 document.getElementById("download-template-btn").addEventListener("click", () => {
   const blob = new Blob([buildTemplateCsv()], { type: "text/csv" });
@@ -133,7 +98,4 @@ async function boot() {
   updateAdminBar();
 }
 
-pageAllowsBoot().then(allowed => {
-  if (!allowed) return;
-  registerServiceWorker({ after: boot() });
-});
+startPage(boot);

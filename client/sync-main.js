@@ -1,8 +1,7 @@
 import { createStore } from "./store.js";
 import { isSynced, markSynced } from "./sync-status.js";
 import { getCursor, setCursor } from "./sync-cursors.js";
-import { pageAllowsBoot } from "./boot-gate.js";
-import { registerServiceWorker } from "./register-sw.js";
+import { startPage } from "./boot-gate.js";
 import { pointApexLinksAtApex } from "./apex-links.js";
 
 const PLACES_URL = "/-/api/places";
@@ -103,7 +102,4 @@ document.getElementById("sync-retry-btn").addEventListener("click", () => locati
 
 pointApexLinksAtApex();
 
-pageAllowsBoot().then(allowed => {
-  if (!allowed) return;
-  registerServiceWorker({ after: boot() });
-});
+startPage(boot);
