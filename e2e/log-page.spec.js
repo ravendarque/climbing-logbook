@@ -3,8 +3,27 @@ import { mockApi } from "./mock-api.js";
 
 const SEED = {
   entries: [
-    { id: "e1", placeId: "p1", type: "boulder", status: "send", grade: "6A", gradeScale: "font", date: "2026-05-01", name: "Boulder Seed" },
-    { id: "e2", placeId: "p1", type: "sport", status: "send", grade: "6a", gradeScale: "french", date: "2026-05-02", name: "Sport Seed", sportStyle: "lead" },
+    {
+      id: "e1",
+      placeId: "p1",
+      type: "boulder",
+      status: "send",
+      grade: "6A",
+      gradeScale: "font",
+      date: "2026-05-01",
+      name: "Boulder Seed",
+    },
+    {
+      id: "e2",
+      placeId: "p1",
+      type: "sport",
+      status: "send",
+      grade: "6a",
+      gradeScale: "french",
+      date: "2026-05-02",
+      name: "Sport Seed",
+      sportStyle: "lead",
+    },
   ],
   places: [{ id: "p1", locationId: "l1", area: "" }],
   locations: [{ id: "l1", name: "Test Crag", country: "United Kingdom" }],
@@ -16,9 +35,13 @@ async function gotoLogHarness(page, seed = SEED) {
   await expect(page.locator("climbing-entries-table")).toBeVisible();
 }
 
-test("#470 -- shows a loading state before real data resolves, then flips to the real empty state once confirmed", async ({ page }) => {
+test("#470 -- shows a loading state before real data resolves, then flips to the real empty state once confirmed", async ({
+  page,
+}) => {
   let resolvePlaces;
-  const placesDelay = new Promise(resolve => { resolvePlaces = resolve; });
+  const placesDelay = new Promise(resolve => {
+    resolvePlaces = resolve;
+  });
   await mockApi(page, { entries: [], places: [], locations: [] });
   await page.route("**/-/api/places*", async route => {
     await placesDelay;
@@ -53,7 +76,9 @@ test("renders the shared chrome and a real entries table, and switches disciplin
   await expect(page.locator("#discipline-btn-label")).toHaveText("Boulder");
 });
 
-test("#939 follow-up -- location sections start collapsed on the very first paint, no expand-then-collapse flash", async ({ page }) => {
+test("#939 follow-up -- location sections start collapsed on the very first paint, no expand-then-collapse flash", async ({
+  page,
+}) => {
   await gotoLogHarness(page);
 
   const header = page.locator(".place-header", { hasText: "Test Crag" });
@@ -66,9 +91,17 @@ test("#939 follow-up -- location sections start collapsed on the very first pain
   await expect(row).toBeVisible();
 });
 
-test("#501 -- a table past one page shows Show more/Show all, both reveal the rest client-side (no fetch)", async ({ page }) => {
+test("#501 -- a table past one page shows Show more/Show all, both reveal the rest client-side (no fetch)", async ({
+  page,
+}) => {
   const manyEntries = Array.from({ length: 125 }, (_, i) => ({
-    id: `many-${i}`, placeId: "p1", type: "boulder", status: "send", grade: "6A", date: "2026-05-01", name: `Many Seed ${i}`,
+    id: `many-${i}`,
+    placeId: "p1",
+    type: "boulder",
+    status: "send",
+    grade: "6A",
+    date: "2026-05-01",
+    name: `Many Seed ${i}`,
   }));
   await gotoLogHarness(page, { ...SEED, entries: manyEntries });
   await page.locator("#collapse-all-btn").click();
@@ -78,7 +111,9 @@ test("#501 -- a table past one page shows Show more/Show all, both reveal the re
   await expect(page.locator(".show-all-btn")).toBeVisible();
 
   const entriesRequests = [];
-  page.on("request", req => { if (req.url().includes("/-/api/entries") && req.method() === "GET") entriesRequests.push(req.url()); });
+  page.on("request", req => {
+    if (req.url().includes("/-/api/entries") && req.method() === "GET") entriesRequests.push(req.url());
+  });
 
   await page.locator(".show-more-btn").click();
   await expect(page.locator("tbody tr")).toHaveCount(125);
@@ -90,14 +125,22 @@ test("#501 -- a table past one page shows Show more/Show all, both reveal the re
 
 test("#501 -- Show all reveals the exact remainder client-side, no fetch", async ({ page }) => {
   const manyEntries = Array.from({ length: 130 }, (_, i) => ({
-    id: `many-${i}`, placeId: "p1", type: "boulder", status: "send", grade: "6A", date: "2026-05-01", name: `Many Seed ${i}`,
+    id: `many-${i}`,
+    placeId: "p1",
+    type: "boulder",
+    status: "send",
+    grade: "6A",
+    date: "2026-05-01",
+    name: `Many Seed ${i}`,
   }));
   await gotoLogHarness(page, { ...SEED, entries: manyEntries });
   await page.locator("#collapse-all-btn").click();
   await expect(page.locator("#sections")).toContainText("100 of 130 shown");
 
   const entriesRequests = [];
-  page.on("request", req => { if (req.url().includes("/-/api/entries") && req.method() === "GET") entriesRequests.push(req.url()); });
+  page.on("request", req => {
+    if (req.url().includes("/-/api/entries") && req.method() === "GET") entriesRequests.push(req.url());
+  });
 
   await page.locator(".show-all-btn").click();
   await expect(page.locator("tbody tr")).toHaveCount(130);
@@ -105,10 +148,23 @@ test("#501 -- Show all reveals the exact remainder client-side, no fetch", async
   expect(entriesRequests).toEqual([]);
 });
 
-test("archived climbs are hidden by default (#63), shown once explicitly filtered for, and Clear restores the default", async ({ page }) => {
+test("archived climbs are hidden by default (#63), shown once explicitly filtered for, and Clear restores the default", async ({
+  page,
+}) => {
   await gotoLogHarness(page, {
     ...SEED,
-    entries: [...SEED.entries, { id: "e3", placeId: "p1", type: "boulder", status: "archived", grade: "6B", date: "2026-05-03", name: "Archived Seed" }],
+    entries: [
+      ...SEED.entries,
+      {
+        id: "e3",
+        placeId: "p1",
+        type: "boulder",
+        status: "archived",
+        grade: "6B",
+        date: "2026-05-03",
+        name: "Archived Seed",
+      },
+    ],
   });
 
   await expect(page.locator("#sections")).toContainText("Boulder Seed");
@@ -138,7 +194,16 @@ test("grade-tier filter narrows the table by tier, and Clear restores every tier
     ...SEED,
     entries: [
       ...SEED.entries,
-      { id: "e3", placeId: "p1", type: "boulder", status: "send", grade: "9A", gradeScale: "font", date: "2026-05-04", name: "Elite Roof" },
+      {
+        id: "e3",
+        placeId: "p1",
+        type: "boulder",
+        status: "send",
+        grade: "9A",
+        gradeScale: "font",
+        date: "2026-05-04",
+        name: "Elite Roof",
+      },
     ],
   });
 
@@ -164,7 +229,16 @@ test("search matches an as-logged grade label, case-insensitively, per the modif
     ...SEED,
     entries: [
       ...SEED.entries,
-      { id: "e3", placeId: "p1", type: "boulder", status: "send", grade: "7A+", gradeScale: "font", date: "2026-05-04", name: "Plus Route" },
+      {
+        id: "e3",
+        placeId: "p1",
+        type: "boulder",
+        status: "send",
+        grade: "7A+",
+        gradeScale: "font",
+        date: "2026-05-04",
+        name: "Plus Route",
+      },
     ],
   });
 
@@ -213,7 +287,9 @@ test("adds and then deletes an entry via the Add/Edit modal", async ({ page }) =
   await expect(page.locator("#sections")).not.toContainText(entryName);
 });
 
-test("date picker: opens on the field's current month, navigates, selects a day, and re-syncs on reopen", async ({ page }) => {
+test("date picker: opens on the field's current month, navigates, selects a day, and re-syncs on reopen", async ({
+  page,
+}) => {
   await gotoLogHarness(page);
   await page.locator("#add-btn").click();
   await expect(page.locator("#entry-overlay")).toBeVisible();
@@ -222,7 +298,10 @@ test("date picker: opens on the field's current month, navigates, selects a day,
   await page.locator("#date-picker-btn").click();
   await expect(page.locator("#date-picker-popover")).toBeVisible();
   await expect(page.locator("#date-picker-month-label")).toHaveText("August 2026");
-  await expect(page.locator('#date-picker-grid button[data-date="2026-08-15"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator('#date-picker-grid button[data-date="2026-08-15"]')).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
 
   await page.locator("#date-picker-next-month").click();
   await expect(page.locator("#date-picker-month-label")).toHaveText("September 2026");
@@ -236,7 +315,10 @@ test("date picker: opens on the field's current month, navigates, selects a day,
 
   await page.locator("#date-picker-btn").click();
   await expect(page.locator("#date-picker-month-label")).toHaveText("August 2026");
-  await expect(page.locator('#date-picker-grid button[data-date="2026-08-03"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator('#date-picker-grid button[data-date="2026-08-03"]')).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
 });
 
 test("Style control is hidden for Boulder, shown+required for Sport, and pre-fills on edit", async ({ page }) => {
@@ -293,7 +375,16 @@ test("Style filter is hidden for Boulder, shown for Sport, and narrows the table
     ...SEED,
     entries: [
       ...SEED.entries,
-      { id: "e3", placeId: "p1", type: "sport", status: "send", grade: "6b", date: "2026-05-03", name: "Top Rope Seed", sportStyle: "top_rope" },
+      {
+        id: "e3",
+        placeId: "p1",
+        type: "sport",
+        status: "send",
+        grade: "6b",
+        date: "2026-05-03",
+        name: "Top Rope Seed",
+        sportStyle: "top_rope",
+      },
     ],
   });
 
@@ -417,9 +508,26 @@ test("editing an entry pre-populates its existing moves into the right list", as
     entries: [
       ...SEED.entries,
       {
-        id: "e3", placeId: "p1", type: "boulder", status: "send", grade: "6A", date: "2026-05-04", name: "Move Seed",
-        moves: [{ limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "slab", difficulty: "hardest" }],
-        painMoves: [{ limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "overhang" }],
+        id: "e3",
+        placeId: "p1",
+        type: "boulder",
+        status: "send",
+        grade: "6A",
+        date: "2026-05-04",
+        name: "Move Seed",
+        moves: [
+          {
+            limb: "hand",
+            side: "left",
+            holdType: "crimp",
+            movementStyle: "static",
+            wallAngle: "slab",
+            difficulty: "hardest",
+          },
+        ],
+        painMoves: [
+          { limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "overhang" },
+        ],
       },
     ],
   });
@@ -476,7 +584,9 @@ test("reopening the form after navigating to page 2 starts back on page 1", asyn
   await expect(page.locator("#entry-page-2")).toHaveJSProperty("inert", true);
 });
 
-test("Boulder defaults to the Font scale (button + popover), and the picker lists Boulder's 3 scales", async ({ page }) => {
+test("Boulder defaults to the Font scale (button + popover), and the picker lists Boulder's 3 scales", async ({
+  page,
+}) => {
   await gotoLogHarness(page);
   await page.locator("#add-btn").click();
   await expect(page.locator("#entry-overlay")).toBeVisible();
@@ -486,10 +596,16 @@ test("Boulder defaults to the Font scale (button + popover), and the picker list
   await expect(page.locator("#grade-value-btn")).toHaveText("3/VB");
 
   await page.locator("#grade-scale-btn").click();
-  await expect(page.locator('#grade-scale-listbox [role="option"]')).toHaveText(["Font", "Font (Non-standard)", "V-scale (Hueco)"]);
+  await expect(page.locator('#grade-scale-listbox [role="option"]')).toHaveText([
+    "Font",
+    "Font (Non-standard)",
+    "V-scale (Hueco)",
+  ]);
 });
 
-test("choosing Font (Non-standard) switches to the number/letter/modifier fields, and submits the built label + scale", async ({ page }) => {
+test("choosing Font (Non-standard) switches to the number/letter/modifier fields, and submits the built label + scale", async ({
+  page,
+}) => {
   await gotoLogHarness(page);
 
   let submittedBody;
@@ -558,7 +674,16 @@ test("editing an entry shows its own actual gradeScale, not the current entry-fo
     ...SEED,
     entries: [
       ...SEED.entries,
-      { id: "e4", placeId: "p1", type: "boulder", status: "send", grade: "6a+", gradeScale: "font-non-standard", date: "2026-05-05", name: "Non-standard Seed" },
+      {
+        id: "e4",
+        placeId: "p1",
+        type: "boulder",
+        status: "send",
+        grade: "6a+",
+        gradeScale: "font-non-standard",
+        date: "2026-05-05",
+        name: "Non-standard Seed",
+      },
     ],
   });
 
@@ -674,15 +799,14 @@ test.describe("Shared popover behavior (createDisclosure)", () => {
   });
 });
 
-test("#561 -- logging out navigates away instead of leaving the visitor stranded on an owner-only page", async ({ page }) => {
+test("#561 -- logging out navigates away instead of leaving the visitor stranded on an owner-only page", async ({
+  page,
+}) => {
   await gotoLogHarness(page);
   await page.locator("#header-menu-btn").click();
   await expect(page.locator("#login-toggle-btn")).toHaveText("Log out");
 
-  await Promise.all([
-    page.waitForURL(/\/login\/?$/),
-    page.locator("#login-toggle-btn").click(),
-  ]);
+  await Promise.all([page.waitForURL(/\/login\/?$/), page.locator("#login-toggle-btn").click()]);
 });
 
 test("theme toggle flips data-theme and persists to localStorage", async ({ page }) => {
@@ -709,7 +833,9 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     const entryName = `E2E offline climb ${Date.now()}`;
 
     let failing = true;
-    await page.route("**/-/api/entries**", route => (failing && route.request().method() !== "GET" ? route.abort("failed") : route.fallback()));
+    await page.route("**/-/api/entries**", route =>
+      failing && route.request().method() !== "GET" ? route.abort("failed") : route.fallback(),
+    );
 
     await page.locator("#add-btn").click();
     await page.locator("#entry-name").fill(entryName);
@@ -731,13 +857,17 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await expect(page.locator("#sync-btn")).toBeHidden();
   });
 
-  test("queues an add then a delete for the same never-synced entry, replays both in order on sync (#268)", async ({ page }) => {
+  test("queues an add then a delete for the same never-synced entry, replays both in order on sync (#268)", async ({
+    page,
+  }) => {
     await gotoLogHarness(page);
 
     const entryName = `E2E add-then-delete ${Date.now()}`;
 
     let failing = true;
-    await page.route("**/-/api/entries**", route => (failing && route.request().method() !== "GET" ? route.abort("failed") : route.fallback()));
+    await page.route("**/-/api/entries**", route =>
+      failing && route.request().method() !== "GET" ? route.abort("failed") : route.fallback(),
+    );
 
     await page.locator("#add-btn").click();
     await page.locator("#entry-name").fill(entryName);
@@ -771,11 +901,15 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     expect(requestMethods).toEqual(["POST", "DELETE"]);
   });
 
-  test("reconnect drift: a queued pending delete still executes when the same entry was edited on another device first", async ({ page }) => {
+  test("reconnect drift: a queued pending delete still executes when the same entry was edited on another device first", async ({
+    page,
+  }) => {
     await gotoLogHarness(page);
 
     let failing = true;
-    await page.route("**/-/api/entries**", route => (failing && route.request().method() !== "GET" ? route.abort("failed") : route.fallback()));
+    await page.route("**/-/api/entries**", route =>
+      failing && route.request().method() !== "GET" ? route.abort("failed") : route.fallback(),
+    );
 
     await page.locator("#collapse-all-btn").click();
     const row = page.locator("tr", { has: page.getByText("Boulder Seed", { exact: true }) });
@@ -786,11 +920,20 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await expect(page.locator("#sections")).toContainText("Boulder Seed");
 
     failing = false;
-    await page.evaluate(() => fetch("/-/api/entries", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: "e1", placeId: "p1", type: "boulder", status: "send", grade: "6A", name: "Edited By Other Device" }),
-    }).then(res => res.json()));
+    await page.evaluate(() =>
+      fetch("/-/api/entries", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "e1",
+          placeId: "p1",
+          type: "boulder",
+          status: "send",
+          grade: "6A",
+          name: "Edited By Other Device",
+        }),
+      }).then(res => res.json()),
+    );
     failing = true;
 
     const deleteResponsePromise = page.waitForResponse(
@@ -808,13 +951,17 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     expect(cached.some(e => e._pending || e._pendingDelete)).toBe(false);
   });
 
-  test("reconnect re-entrancy: two online events in quick succession don't double-POST a queued item", async ({ page }) => {
+  test("reconnect re-entrancy: two online events in quick succession don't double-POST a queued item", async ({
+    page,
+  }) => {
     await gotoLogHarness(page);
 
     const entryName = `E2E reentrancy ${Date.now()}`;
 
     let failing = true;
-    await page.route("**/-/api/entries**", route => (failing && route.request().method() !== "GET" ? route.abort("failed") : route.fallback()));
+    await page.route("**/-/api/entries**", route =>
+      failing && route.request().method() !== "GET" ? route.abort("failed") : route.fallback(),
+    );
 
     await page.locator("#add-btn").click();
     await page.locator("#entry-name").fill(entryName);
@@ -839,19 +986,29 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     expect(postRequests).toHaveLength(1);
   });
 
-  test("#490 -- an offline-created place/location dedups against a same-named row from another device, with the queued entry correctly remapped to it", async ({ page }) => {
+  test("#490 -- an offline-created place/location dedups against a same-named row from another device, with the queued entry correctly remapped to it", async ({
+    page,
+  }) => {
     await gotoLogHarness(page, { entries: [], places: [], locations: [] });
 
-    await page.evaluate(() => fetch("/-/api/locations", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: crypto.randomUUID(), name: "Existing Crag", country: "France" }),
-    }));
+    await page.evaluate(() =>
+      fetch("/-/api/locations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: crypto.randomUUID(), name: "Existing Crag", country: "France" }),
+      }),
+    );
 
     let failing = true;
-    await page.route("**/-/api/locations", route => (failing && route.request().method() !== "GET" ? route.abort("failed") : route.fallback()));
-    await page.route("**/-/api/places", route => (failing && route.request().method() !== "GET" ? route.abort("failed") : route.fallback()));
-    await page.route("**/-/api/entries**", route => (failing && route.request().method() !== "GET" ? route.abort("failed") : route.fallback()));
+    await page.route("**/-/api/locations", route =>
+      failing && route.request().method() !== "GET" ? route.abort("failed") : route.fallback(),
+    );
+    await page.route("**/-/api/places", route =>
+      failing && route.request().method() !== "GET" ? route.abort("failed") : route.fallback(),
+    );
+    await page.route("**/-/api/entries**", route =>
+      failing && route.request().method() !== "GET" ? route.abort("failed") : route.fallback(),
+    );
 
     const entryName = `E2E dedup remap ${Date.now()}`;
     await page.locator("#add-btn").click();
@@ -881,14 +1038,18 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await expect(page.locator(".place-header", { hasText: "Existing Crag" })).toHaveCount(1);
   });
 
-  test("an online add-place that dedups against another device's location saves the entry under it", async ({ page }) => {
+  test("an online add-place that dedups against another device's location saves the entry under it", async ({
+    page,
+  }) => {
     await gotoLogHarness(page, { entries: [], places: [], locations: [] });
 
-    await page.evaluate(() => fetch("/-/api/locations", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: crypto.randomUUID(), name: "Existing Crag", country: "France" }),
-    }));
+    await page.evaluate(() =>
+      fetch("/-/api/locations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: crypto.randomUUID(), name: "Existing Crag", country: "France" }),
+      }),
+    );
 
     const entryName = `E2E online dedup ${Date.now()}`;
     await page.locator("#add-btn").click();
@@ -910,15 +1071,30 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await expect(page.locator("#sections")).toContainText(entryName);
   });
 
-  test("#939 -- reloading the page alone picks up an entry added on another device, no click or online event needed", async ({ page }) => {
+  test("#939 -- reloading the page alone picks up an entry added on another device, no click or online event needed", async ({
+    page,
+  }) => {
     await gotoLogHarness(page);
 
     const entryName = `E2E boot reconcile ${Date.now()}`;
-    await page.evaluate(name => fetch("/-/api/entries", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: crypto.randomUUID(), placeId: "p1", type: "boulder", status: "send", grade: "6A", gradeScale: "font", date: "2026-05-03", name }),
-    }), entryName);
+    await page.evaluate(
+      name =>
+        fetch("/-/api/entries", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: crypto.randomUUID(),
+            placeId: "p1",
+            type: "boulder",
+            status: "send",
+            grade: "6A",
+            gradeScale: "font",
+            date: "2026-05-03",
+            name,
+          }),
+        }),
+      entryName,
+    );
 
     await expect(page.locator("#sections")).not.toContainText(entryName);
 
@@ -928,30 +1104,44 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await expect(page.locator("#sections")).toContainText(entryName);
   });
 
-  test("#939 -- a new entry and its new place, both added on another device together, group under the real location after reload (no empty/unknown section)", async ({ page }) => {
+  test("#939 -- a new entry and its new place, both added on another device together, group under the real location after reload (no empty/unknown section)", async ({
+    page,
+  }) => {
     await gotoLogHarness(page);
 
     const locationId = crypto.randomUUID();
     const placeId = crypto.randomUUID();
     const entryName = `E2E new-place reconcile ${Date.now()}`;
 
-    await page.evaluate(async ({ locationId, placeId, entryName }) => {
-      await fetch("/-/api/locations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: locationId, name: "New Crag", country: "France" }),
-      });
-      await fetch("/-/api/places", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: placeId, locationId, area: "Sector 1" }),
-      });
-      await fetch("/-/api/entries", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: crypto.randomUUID(), placeId, type: "boulder", status: "send", grade: "6A", gradeScale: "font", date: "2026-05-04", name: entryName }),
-      });
-    }, { locationId, placeId, entryName });
+    await page.evaluate(
+      async ({ locationId, placeId, entryName }) => {
+        await fetch("/-/api/locations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: locationId, name: "New Crag", country: "France" }),
+        });
+        await fetch("/-/api/places", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: placeId, locationId, area: "Sector 1" }),
+        });
+        await fetch("/-/api/entries", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: crypto.randomUUID(),
+            placeId,
+            type: "boulder",
+            status: "send",
+            grade: "6A",
+            gradeScale: "font",
+            date: "2026-05-04",
+            name: entryName,
+          }),
+        });
+      },
+      { locationId, placeId, entryName },
+    );
 
     await page.reload();
     await expect(page.locator("climbing-entries-table")).toBeVisible();
@@ -1068,11 +1258,15 @@ test("notes overlay shows the entry's real notes text, closes via Escape or its 
   await expect(page.locator("#notes-overlay")).toBeHidden();
 });
 
-test("#847 -- the sync status ring actually disappears (not just the data attribute) once background reconcile settles", async ({ page }) => {
+test("#847 -- the sync status ring actually disappears (not just the data attribute) once background reconcile settles", async ({
+  page,
+}) => {
   await mockApi(page, SEED);
   await page.route("**/-/api/auth/get-session", async route => {
     await new Promise(r => setTimeout(r, 400));
-    await route.fulfill({ json: { session: { id: "s1" }, user: { id: "u1", username: "e2euser", email: "e2e@example.com" } } });
+    await route.fulfill({
+      json: { session: { id: "s1" }, user: { id: "u1", username: "e2euser", email: "e2e@example.com" } },
+    });
   });
   await page.goto("/e2e-fixtures/pages/log.html");
 
@@ -1081,11 +1275,15 @@ test("#847 -- the sync status ring actually disappears (not just the data attrib
   await expect(ring).toHaveCSS("opacity", "0", { timeout: 5000 });
 });
 
-test("#847 -- the burger menu shows a status row while syncing; #878 -- Help is always present regardless; #893 -- the sync live region announces start and completion", async ({ page }) => {
+test("#847 -- the burger menu shows a status row while syncing; #878 -- Help is always present regardless; #893 -- the sync live region announces start and completion", async ({
+  page,
+}) => {
   await mockApi(page, SEED);
   await page.route("**/-/api/auth/get-session", async route => {
     await new Promise(r => setTimeout(r, 400));
-    await route.fulfill({ json: { session: { id: "s1" }, user: { id: "u1", username: "e2euser", email: "e2e@example.com" } } });
+    await route.fulfill({
+      json: { session: { id: "s1" }, user: { id: "u1", username: "e2euser", email: "e2e@example.com" } },
+    });
   });
   await page.goto("/e2e-fixtures/pages/log.html");
 
@@ -1101,13 +1299,17 @@ test("#847 -- the burger menu shows a status row while syncing; #878 -- Help is 
   await expect(page.locator("#menu-help-link")).toBeVisible();
 });
 
-test("#847 -- going offline turns the burger menu ring solid red and updates the status row; #893 -- and announces it", async ({ page }) => {
+test("#847 -- going offline turns the burger menu ring solid red and updates the status row; #893 -- and announces it", async ({
+  page,
+}) => {
   await gotoLogHarness(page);
 
   await page.context().setOffline(true);
   try {
     await expect(page.locator("#header-menu-btn")).toHaveAttribute("data-sync-state", "offline");
-    await expect(page.locator("#menu-sync-announce")).toHaveText("You're offline. Changes will sync when you're back online.");
+    await expect(page.locator("#menu-sync-announce")).toHaveText(
+      "You're offline. Changes will sync when you're back online.",
+    );
     await page.locator("#header-menu-btn").click();
     await expect(page.locator("#menu-status-text")).toHaveText("Status: Offline");
   } finally {
@@ -1119,13 +1321,19 @@ test("#847 -- going offline turns the burger menu ring solid red and updates the
 // Routes are held open by deferred promises, not timers, so the ordering is guaranteed.
 test("#893 -- the live region doesn't re-announce while already syncing", async ({ page }) => {
   let releaseSession, releaseSettings;
-  const sessionGate = new Promise(r => { releaseSession = r; });
-  const settingsGate = new Promise(r => { releaseSettings = r; });
+  const sessionGate = new Promise(r => {
+    releaseSession = r;
+  });
+  const settingsGate = new Promise(r => {
+    releaseSettings = r;
+  });
 
   await mockApi(page, SEED);
   await page.route("**/-/api/auth/get-session", async route => {
     await sessionGate;
-    await route.fulfill({ json: { session: { id: "s1" }, user: { id: "u1", username: "e2euser", email: "e2e@example.com" } } });
+    await route.fulfill({
+      json: { session: { id: "s1" }, user: { id: "u1", username: "e2euser", email: "e2e@example.com" } },
+    });
   });
   await page.route("**/-/api/settings", async route => {
     await settingsGate;
@@ -1134,7 +1342,9 @@ test("#893 -- the live region doesn't re-announce while already syncing", async 
   await page.goto("/e2e-fixtures/pages/log.html");
 
   await expect(page.locator("#menu-sync-announce")).toHaveText("Syncing…");
-  await page.evaluate(() => { document.getElementById("menu-sync-announce").textContent = ""; });
+  await page.evaluate(() => {
+    document.getElementById("menu-sync-announce").textContent = "";
+  });
 
   const sessionSettled = page.waitForResponse(res => res.url().includes("/-/api/auth/get-session"));
   releaseSession();

@@ -11,9 +11,16 @@ describe("per-host app identity (#956)", () => {
 
     expect(prod.name).toBe("Climbing Logbook");
     expect(apex).toEqual(prod);
-    expect(beta).toMatchObject({ name: "Climbing Logbook Beta", short_name: "Logbook Beta", start_url: "/-/launch/", scope: "/" });
+    expect(beta).toMatchObject({
+      name: "Climbing Logbook Beta",
+      short_name: "Logbook Beta",
+      start_url: "/-/launch/",
+      scope: "/",
+    });
     expect(beta.theme_color).not.toBe(prod.theme_color);
-    expect(beta.icons.map(icon => icon.src)).toEqual(expect.arrayContaining(["/-/beta/icon-512.png", "/-/beta/icon-maskable-512.png"]));
+    expect(beta.icons.map(icon => icon.src)).toEqual(
+      expect.arrayContaining(["/-/beta/icon-512.png", "/-/beta/icon-maskable-512.png"]),
+    );
     for (const manifest of [prod, beta]) expect(JSON.stringify(manifest)).not.toMatch(/devuser|raven/i);
   });
 
@@ -29,7 +36,9 @@ describe("per-host app identity (#956)", () => {
     const bytes = async host => new Uint8Array(await (await get(host, "/-/apple-touch-icon.png")).arrayBuffer());
     const prod = await bytes("my.climbinglogbook.com");
     const beta = await bytes("beta.climbinglogbook.com");
-    const betaFile = new Uint8Array(await (await env.ASSETS.fetch("https://assets.local/-/beta/apple-touch-icon.png")).arrayBuffer());
+    const betaFile = new Uint8Array(
+      await (await env.ASSETS.fetch("https://assets.local/-/beta/apple-touch-icon.png")).arrayBuffer(),
+    );
     expect(beta).toEqual(betaFile);
     expect(prod).not.toEqual(beta);
   });

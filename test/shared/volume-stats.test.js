@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { bucketIndexForDate, gradeDisplayLabelForScale, reportGradeLabel, reportGradeOrdinal, reportGradePoint, reportPositionOrder, volumeByBucket, volumeHeadline, weekBucketLabel, weekBuckets } from "../../shared/volume-stats.js";
+import {
+  bucketIndexForDate,
+  gradeDisplayLabelForScale,
+  reportGradeLabel,
+  reportGradeOrdinal,
+  reportGradePoint,
+  reportPositionOrder,
+  volumeByBucket,
+  volumeHeadline,
+  weekBucketLabel,
+  weekBuckets,
+} from "../../shared/volume-stats.js";
 
 describe("gradeDisplayLabelForScale", () => {
   it("renders the V-scale label for a Boulder grade regardless of which scale it was logged in", () => {
@@ -18,7 +29,9 @@ describe("gradeDisplayLabelForScale", () => {
 describe("reportGradeOrdinal / reportGradeLabel / reportPositionOrder", () => {
   it("reportGradeOrdinal reads a Boulder grade via its own real scale", () => {
     expect(reportGradeOrdinal("6a", "font-non-standard", "boulder")).not.toBeNull();
-    expect(reportGradeOrdinal("6a+", "font-non-standard", "boulder")).toBeGreaterThan(reportGradeOrdinal("6a", "font-non-standard", "boulder"));
+    expect(reportGradeOrdinal("6a+", "font-non-standard", "boulder")).toBeGreaterThan(
+      reportGradeOrdinal("6a", "font-non-standard", "boulder"),
+    );
   });
   it("reportGradeOrdinal reads a Sport grade via its own real scale", () => {
     expect(reportGradeOrdinal("6a+", "french", "sport")).not.toBeNull();
@@ -28,7 +41,9 @@ describe("reportGradeOrdinal / reportGradeLabel / reportPositionOrder", () => {
     expect(reportGradeOrdinal("6a", null, "boulder")).toBe(reportGradeOrdinal("6a", "font-non-standard", "boulder"));
   });
   it("reportGradeOrdinal correctly resolves a grade logged in a NON-primary scale (#717's own real fix)", () => {
-    expect(reportGradeOrdinal("V3", "v-scale", "boulder")).toBe(reportGradeOrdinal("6a", "font-non-standard", "boulder"));
+    expect(reportGradeOrdinal("V3", "v-scale", "boulder")).toBe(
+      reportGradeOrdinal("6a", "font-non-standard", "boulder"),
+    );
   });
   it("reportGradeLabel renders a Boulder grade in whichever scale the viewer chose", () => {
     expect(reportGradeLabel("6a", "font-non-standard", "boulder", "font-non-standard")).toBe("6a");
@@ -51,8 +66,10 @@ describe("reportGradeOrdinal / reportGradeLabel / reportPositionOrder", () => {
     expect(reportGradePoint(null, "boulder", "font")).toBeNull();
   });
   it("reportGradePoint returns a real point for a representable grade", () => {
-    expect(reportGradePoint({ grade: "6a", gradeScale: "font-non-standard" }, "boulder", "font"))
-      .toEqual({ positionKey: reportGradeOrdinal("6a", "font-non-standard", "boulder"), displayLabel: "6A" });
+    expect(reportGradePoint({ grade: "6a", gradeScale: "font-non-standard" }, "boulder", "font")).toEqual({
+      positionKey: reportGradeOrdinal("6a", "font-non-standard", "boulder"),
+      displayLabel: "6A",
+    });
   });
   it("reportPositionOrder is a strictly ascending ordinal range covering the discipline's real picker", () => {
     for (const type of ["boulder", "sport"]) {
@@ -77,7 +94,20 @@ describe("weekBuckets", () => {
   it("a 12-week (84-day) range produces 12 one-week buckets", () => {
     const buckets = weekBuckets("2026-03-09", "2026-05-31");
     expect(buckets).toHaveLength(12);
-    expect(buckets.map(weekBucketLabel)).toEqual(["-12w", "-11w", "-10w", "-9w", "-8w", "-7w", "-6w", "-5w", "-4w", "-3w", "-2w", "-1w"]);
+    expect(buckets.map(weekBucketLabel)).toEqual([
+      "-12w",
+      "-11w",
+      "-10w",
+      "-9w",
+      "-8w",
+      "-7w",
+      "-6w",
+      "-5w",
+      "-4w",
+      "-3w",
+      "-2w",
+      "-1w",
+    ]);
   });
 
   it("every bucket in a 12-week range is exactly 7 days wide", () => {
@@ -91,7 +121,21 @@ describe("weekBuckets", () => {
   it("a 52-week (364-day) range produces 13 four-week buckets", () => {
     const buckets = weekBuckets("2023-03-03", "2024-02-29");
     expect(buckets).toHaveLength(13);
-    expect(buckets.map(weekBucketLabel)).toEqual(["-52w", "-48w", "-44w", "-40w", "-36w", "-32w", "-28w", "-24w", "-20w", "-16w", "-12w", "-8w", "-4w"]);
+    expect(buckets.map(weekBucketLabel)).toEqual([
+      "-52w",
+      "-48w",
+      "-44w",
+      "-40w",
+      "-36w",
+      "-32w",
+      "-28w",
+      "-24w",
+      "-20w",
+      "-16w",
+      "-12w",
+      "-8w",
+      "-4w",
+    ]);
   });
 
   it("every bucket in a 52-week range is exactly 28 days wide", () => {
@@ -194,7 +238,10 @@ describe("volumeByBucket", () => {
 
   it("places each entry in its own correct bucket across multiple buckets", () => {
     const entries = [entry({ date: "2026-01-05" }), entry({ date: "2026-02-10", grade: "7A" })];
-    const { sendCounts, maxGradeByBucket } = volumeByBucket(entries, [bucket("2026-01-01", "2026-01-31"), bucket("2026-02-01", "2026-02-28")]);
+    const { sendCounts, maxGradeByBucket } = volumeByBucket(entries, [
+      bucket("2026-01-01", "2026-01-31"),
+      bucket("2026-02-01", "2026-02-28"),
+    ]);
     expect(sendCounts).toEqual([1, 1]);
     expect(maxGradeByBucket).toEqual([
       { grade: "6B", gradeScale: "font-non-standard" },

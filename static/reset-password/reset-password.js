@@ -18,7 +18,7 @@ if (!token) {
   form.hidden = true;
   invalidEl.hidden = false;
 } else {
-  form.addEventListener("submit", async (event) => {
+  form.addEventListener("submit", async event => {
     event.preventDefault();
     errorEl.hidden = true;
     submitBtn.disabled = true;

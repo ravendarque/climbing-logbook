@@ -4,7 +4,9 @@ import { addOwnedRouteSessionCookie, ownedRouteUrl } from "./owned-route-url.js"
 
 const OWNER = DEV_USER.username.toLowerCase();
 
-test.beforeEach(async ({ context }) => { await addOwnedRouteSessionCookie(context); });
+test.beforeEach(async ({ context }) => {
+  await addOwnedRouteSessionCookie(context);
+});
 
 async function storageSnapshot(page) {
   return page.evaluate(() => Object.fromEntries(Object.keys(localStorage).map(k => [k, localStorage.getItem(k)])));
@@ -26,10 +28,12 @@ test("pre-#960 data is adopted by the user the server authorised, not left globa
   // Wait out the first visit's cold sync: rewriting mid-boot lets it record the user and skip adoption.
   await page.waitForURL(`**/${DEV_USER.username}/log`);
   await expect(page.locator("climbing-entries-table")).toBeVisible();
-  await expect.poll(async () => {
-    const keys = await storageSnapshot(page).catch(() => ({}));
-    return keys.logbook_signed_in_user === OWNER && !!keys[`logbook_entries_cache:${OWNER}`];
-  }).toBe(true);
+  await expect
+    .poll(async () => {
+      const keys = await storageSnapshot(page).catch(() => ({}));
+      return keys.logbook_signed_in_user === OWNER && !!keys[`logbook_entries_cache:${OWNER}`];
+    })
+    .toBe(true);
   await page.waitForLoadState("networkidle");
   await page.evaluate(owner => {
     for (const k of Object.keys(localStorage)) {
@@ -55,7 +59,16 @@ test("pre-#960 data is adopted by the user the server authorised, not left globa
 test("another user's cached data on the same device never shows on this user's pages", async ({ page }) => {
   await page.goto(ownedRouteUrl(DEV_USER.username, "/log"));
   await expect(page.locator("climbing-entries-table")).toBeVisible();
-  const alienEntry = { id: "alien-entry-1", date: "2026-01-01", name: "Someone else's secret climb", type: "boulder", grade: "7A", status: "flash", locationId: "x", placeId: "y" };
+  const alienEntry = {
+    id: "alien-entry-1",
+    date: "2026-01-01",
+    name: "Someone else's secret climb",
+    type: "boulder",
+    grade: "7A",
+    status: "flash",
+    locationId: "x",
+    placeId: "y",
+  };
   await page.evaluate(entry => {
     localStorage.setItem("logbook_signed_in_user", "someoneelse");
     localStorage.setItem("logbook_entries_cache", JSON.stringify([entry]));
@@ -74,10 +87,19 @@ test("another user's cached data on the same device never shows on this user's p
 test("logging out keeps an unsynced queue attributed to its owner and forgets who's signed in", async ({ page }) => {
   await page.goto(ownedRouteUrl(DEV_USER.username, "/log"));
   await expect(page.locator("climbing-entries-table")).toBeVisible();
-  await page.evaluate(owner => localStorage.setItem(`logbook_pending_queue:${owner}`, JSON.stringify([{ kind: "entry", op: "delete", record: { id: "queued-1" } }])), OWNER);
+  await page.evaluate(
+    owner =>
+      localStorage.setItem(
+        `logbook_pending_queue:${owner}`,
+        JSON.stringify([{ kind: "entry", op: "delete", record: { id: "queued-1" } }]),
+      ),
+    OWNER,
+  );
 
   // Stubbed: a real sign-out would end the shared dev session.
-  await page.route("**/-/api/auth/sign-out", route => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }));
+  await page.route("**/-/api/auth/sign-out", route =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  );
   await page.locator("#header-menu-btn").click();
   await page.locator("#login-toggle-btn").click();
   await page.waitForURL(url => url.pathname === "/-/login/");

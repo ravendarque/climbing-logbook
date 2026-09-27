@@ -3,12 +3,7 @@ import { createDisclosure } from "./modal-utils.js";
 import { createThemeToggle } from "./theme-toggle.js";
 import { disciplineLabel } from "./status.js";
 
-export function createHeaderChrome({
-  store,
-  adminFetch,
-  isAuthRedirect,
-  settingsUrl,
-}) {
+export function createHeaderChrome({ store, adminFetch, isAuthRedirect, settingsUrl }) {
   createThemeToggle();
 
   pointApexLinksAtApex();
@@ -43,8 +38,7 @@ export function createHeaderChrome({
       if (res.status === 401 || isAuthRedirect(res)) {
         store.setLoggedIn(false);
       }
-    } catch {
-    }
+    } catch {}
   });
 
   // The discipline picker stays out of the menu so the active discipline is always visible.

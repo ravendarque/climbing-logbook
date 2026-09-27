@@ -10,7 +10,7 @@ const LIMB_SIDE_OPTIONS = [
   { value: "foot-right", limb: "foot", side: "right" },
   { value: "knee-left", limb: "knee", side: "left" },
   { value: "knee-right", limb: "knee", side: "right" },
-// Humanised as one string, or both words would be capitalised.
+  // Humanised as one string, or both words would be capitalised.
 ].map(o => ({ ...o, label: humanize(`${o.side}-${o.limb}`) }));
 
 function limbSideOption(value) {
@@ -18,7 +18,11 @@ function limbSideOption(value) {
 }
 
 function optionsHtml(values, selected) {
-  return values.map(v => `<option value="${escapeHtml(v)}"${v === selected ? " selected" : ""}>${escapeHtml(humanize(v))}</option>`).join("");
+  return values
+    .map(
+      v => `<option value="${escapeHtml(v)}"${v === selected ? " selected" : ""}>${escapeHtml(humanize(v))}</option>`,
+    )
+    .join("");
 }
 
 function rowHtml(row, listLabel) {
@@ -57,7 +61,13 @@ function rowHtml(row, listLabel) {
 
 function defaultRow(hasDifficulty, defaultDifficulty) {
   const first = LIMB_SIDE_OPTIONS[0];
-  const row = { limb: first.limb, side: first.side, holdType: HOLD_TYPES_BY_LIMB[first.limb][0], movementStyle: MOVEMENT_STYLES_BY_LIMB[first.limb][0], wallAngle: VALID_WALL_ANGLES[0] };
+  const row = {
+    limb: first.limb,
+    side: first.side,
+    holdType: HOLD_TYPES_BY_LIMB[first.limb][0],
+    movementStyle: MOVEMENT_STYLES_BY_LIMB[first.limb][0],
+    wallAngle: VALID_WALL_ANGLES[0],
+  };
   if (hasDifficulty) row.difficulty = defaultDifficulty;
   return row;
 }
@@ -76,7 +86,8 @@ export function createMoveRowList({ listEl, addBtnEl, hasDifficulty, defaultDiff
   // render() replaces every row, so focus is restored by index.
   function focusRowField(index, field) {
     const rowEl = listEl.children[index];
-    const el = field === "remove" ? rowEl?.querySelector("[data-remove-row]") : rowEl?.querySelector(`[data-field="${field}"]`);
+    const el =
+      field === "remove" ? rowEl?.querySelector("[data-remove-row]") : rowEl?.querySelector(`[data-field="${field}"]`);
     el?.focus();
   }
 
@@ -119,7 +130,13 @@ export function createMoveRowList({ listEl, addBtnEl, hasDifficulty, defaultDiff
 
   return {
     getRows: () => rows.map(r => ({ ...r })),
-    setRows: newRows => { rows = newRows.map(r => ({ ...r })); render(); },
-    reset: () => { rows = []; render(); },
+    setRows: newRows => {
+      rows = newRows.map(r => ({ ...r }));
+      render();
+    },
+    reset: () => {
+      rows = [];
+      render();
+    },
   };
 }

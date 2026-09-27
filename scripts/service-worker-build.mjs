@@ -22,7 +22,11 @@ function servedFiles(root, dir = root) {
 export function computeBuildId(root) {
   const hash = createHash("sha256");
   for (const rel of servedFiles(root).sort()) {
-    hash.update(rel).update("\0").update(readFileSync(join(root, rel))).update("\0");
+    hash
+      .update(rel)
+      .update("\0")
+      .update(readFileSync(join(root, rel)))
+      .update("\0");
   }
   return hash.digest("hex").slice(0, 16);
 }

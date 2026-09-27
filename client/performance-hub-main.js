@@ -28,7 +28,8 @@ const INSIGHTS = [
   {
     id: "insight-strengths",
     title: "Strengths / Weaknesses",
-    description: "See which hold types, wall angles, and movements are your weakest combination, and drill into any one of them.",
+    description:
+      "See which hold types, wall angles, and movements are your weakest combination, and drill into any one of them.",
     route: "strengths",
   },
   {
@@ -40,7 +41,8 @@ const INSIGHTS = [
   {
     id: "insight-gap",
     title: type => `${sendLabel(type)} / ${flashLabel(type)} Gap`,
-    description: "Compare your first-try sends against what you eventually send once you've worked a climb, and see how many attempts it typically takes.",
+    description:
+      "Compare your first-try sends against what you eventually send once you've worked a climb, and see how many attempts it typically takes.",
     route: "gap",
   },
   {
@@ -72,12 +74,14 @@ const tilesEl = document.getElementById("insight-tiles");
 
 function renderTiles() {
   const type = store.getActiveType();
-  tilesEl.innerHTML = INSIGHTS.map(insight => rowCardHtml({
-    id: insight.id,
-    title: typeof insight.title === "function" ? insight.title(type) : insight.title,
-    description: insight.description,
-    controlHtml: `<a class="btn shrink-0" href="/${encodeURIComponent(USERNAME)}/performance/${insight.route}">View</a>`,
-  })).join("");
+  tilesEl.innerHTML = INSIGHTS.map(insight =>
+    rowCardHtml({
+      id: insight.id,
+      title: typeof insight.title === "function" ? insight.title(type) : insight.title,
+      description: insight.description,
+      controlHtml: `<a class="btn shrink-0" href="/${encodeURIComponent(USERNAME)}/performance/${insight.route}">View</a>`,
+    }),
+  ).join("");
 }
 
 function render() {
@@ -91,14 +95,18 @@ function updateAdminBar() {
 }
 
 const adminAuth = createAdminAuth({
-  store, adminFetch, isAuthRedirect,
+  store,
+  adminFetch,
+  isAuthRedirect,
   settingsUrl: SETTINGS_URL,
   updateAdminBar,
   onFetchTimeout: syncStatusIcon.reportTimeout,
 });
 
 const headerChrome = createHeaderChrome({
-  store, adminFetch, isAuthRedirect,
+  store,
+  adminFetch,
+  isAuthRedirect,
   settingsUrl: SETTINGS_URL,
 });
 

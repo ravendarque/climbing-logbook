@@ -13,18 +13,23 @@ const MAX_IMPORT_ROWS = 500;
 // entrySchema names internal keys; the file's columns are location and discipline.
 function toCsvFieldNames(message) {
   if (message === "Missing required field: placeId") return "Missing required field: location";
-  if (message.startsWith("type must be one of")) return message.replace("type must be one of", "discipline must be one of");
+  if (message.startsWith("type must be one of"))
+    return message.replace("type must be one of", "discipline must be one of");
   return message;
 }
 
 // Dedups within the file too, or a 50-row file for one crag would mint 50 places.
 async function resolveLocationsAndPlaces(env, userId, rows) {
-  const { results: existingLocations } = await env.LOGBOOK_DB
-    .prepare(`SELECT id, name, country FROM locations WHERE user_id = ?`)
-    .bind(userId).all();
-  const { results: existingPlaces } = await env.LOGBOOK_DB
-    .prepare(`SELECT id, location_id, area FROM places WHERE user_id = ?`)
-    .bind(userId).all();
+  const { results: existingLocations } = await env.LOGBOOK_DB.prepare(
+    `SELECT id, name, country FROM locations WHERE user_id = ?`,
+  )
+    .bind(userId)
+    .all();
+  const { results: existingPlaces } = await env.LOGBOOK_DB.prepare(
+    `SELECT id, location_id, area FROM places WHERE user_id = ?`,
+  )
+    .bind(userId)
+    .all();
 
   const locationByName = new Map(existingLocations.map(l => [l.name.toLowerCase(), l]));
   const placeByKey = new Map(existingPlaces.map(p => [`${p.location_id}::${p.area.toLowerCase()}`, p]));
@@ -34,7 +39,10 @@ async function resolveLocationsAndPlaces(env, userId, rows) {
   const placeIds = [];
 
   for (const row of rows) {
-    if (!row.location) { placeIds.push(null); continue; }
+    if (!row.location) {
+      placeIds.push(null);
+      continue;
+    }
 
     const locationKey = row.location.toLowerCase();
     let location = locationByName.get(locationKey);
@@ -87,7 +95,10 @@ export async function handleImport(request, env, userId) {
   const parsed = parserFor(request.headers.get("Content-Type"))(text);
   if (!parsed.ok) return json({ error: parsed.error }, 400);
   if (parsed.rows.length > MAX_IMPORT_ROWS) {
-    return json({ error: `Import is limited to ${MAX_IMPORT_ROWS} rows per file (this file has ${parsed.rows.length}).` }, 400);
+    return json(
+      { error: `Import is limited to ${MAX_IMPORT_ROWS} rows per file (this file has ${parsed.rows.length}).` },
+      400,
+    );
   }
 
   const { newLocations, newPlaces, placeIds } = await resolveLocationsAndPlaces(env, userId, parsed.rows);
@@ -97,13 +108,22 @@ export async function handleImport(request, env, userId) {
   drafts.forEach((draft, i) => {
     const result = v.safeParse(entrySchema, draft);
     // Row 1 of a CSV is the header, so data starts at 2; a JSON array starts at 1.
-    if (!result.success) rowErrors.push({ row: i + (isJson ? 1 : 2), error: toCsvFieldNames(result.issues[0].message) });
+    if (!result.success)
+      rowErrors.push({ row: i + (isJson ? 1 : 2), error: toCsvFieldNames(result.issues[0].message) });
   });
   if (rowErrors.length > 0) return json({ errors: rowErrors }, 400);
 
   const statements = [
-    ...newLocations.map(location => buildInsertStatement(env, "locations", buildLocationRow(location, location.id, userId))),
-    ...newPlaces.map(place => buildInsertStatement(env, "places", buildPlaceRow({ locationId: place.location_id, area: place.area }, place.id, userId))),
+    ...newLocations.map(location =>
+      buildInsertStatement(env, "locations", buildLocationRow(location, location.id, userId)),
+    ),
+    ...newPlaces.map(place =>
+      buildInsertStatement(
+        env,
+        "places",
+        buildPlaceRow({ locationId: place.location_id, area: place.area }, place.id, userId),
+      ),
+    ),
     ...drafts.map(draft => buildInsertStatement(env, "entries", buildEntryRow(draft, crypto.randomUUID(), userId))),
   ];
   if (statements.length > 0) await env.LOGBOOK_DB.batch(statements);

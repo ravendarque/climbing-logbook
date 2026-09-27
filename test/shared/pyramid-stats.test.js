@@ -45,8 +45,8 @@ describe("pyramidCounts", () => {
     { type: "boulder", status: "send", grade: "6A", date: isoDaysAgo(10) },
     { type: "boulder", status: "send", grade: "6A", date: isoDaysAgo(20) },
     { type: "boulder", status: "project", grade: "6A", date: isoDaysAgo(10) }, // not a send
-    { type: "boulder", status: "send", grade: "6A", date: isoDaysAgo(400) },  // outside 12mo window
-    { type: "sport", status: "send", grade: "6a", date: isoDaysAgo(10) },     // wrong discipline
+    { type: "boulder", status: "send", grade: "6A", date: isoDaysAgo(400) }, // outside 12mo window
+    { type: "sport", status: "send", grade: "6a", date: isoDaysAgo(10) }, // wrong discipline
   ];
 
   it("counts only sends, within 12 months, matching the requested discipline", () => {
@@ -125,21 +125,27 @@ describe("pyramidCounts", () => {
     });
 
     it("excludes a send whose grade has no representation in the chosen view scale, rather than inflating it onto the floor", () => {
-      const entries = [{ type: "boulder", status: "send", grade: "2+", gradeScale: "font-non-standard", date: isoDaysAgo(10) }];
+      const entries = [
+        { type: "boulder", status: "send", grade: "2+", gradeScale: "font-non-standard", date: isoDaysAgo(10) },
+      ];
       const { order, counts } = pyramidCounts("boulder", entries, "font"); // Font-standard's real floor is "3"
       expect(order).not.toContain("2+");
       expect(Object.values(counts).reduce((a, b) => a + b, 0)).toBe(0);
     });
 
     it("excludes a send at an uncurated native sub-position (e.g. 6A-), rather than reassigning it to a neighboring row", () => {
-      const entries = [{ type: "boulder", status: "send", grade: "6A-", gradeScale: "font-non-standard", date: isoDaysAgo(10) }];
+      const entries = [
+        { type: "boulder", status: "send", grade: "6A-", gradeScale: "font-non-standard", date: isoDaysAgo(10) },
+      ];
       const { order, counts } = pyramidCounts("boulder", entries); // default viewScaleId is the native row scale
       expect(order).not.toContain("6A-");
       expect(Object.values(counts).reduce((a, b) => a + b, 0)).toBe(0);
     });
 
     it("pyramidSplitRows' top4 is built from the chosen scale, not the native scale's rows relabeled", () => {
-      const entries = [{ type: "boulder", status: "send", grade: "7A", gradeScale: "font-non-standard", date: isoDaysAgo(10) }];
+      const entries = [
+        { type: "boulder", status: "send", grade: "7A", gradeScale: "font-non-standard", date: isoDaysAgo(10) },
+      ];
       const { top4 } = pyramidSplitRows("boulder", entries, "v-scale");
       expect(top4.some(r => r.grade === "V6")).toBe(true);
       expect(top4.some(r => r.grade === "7A")).toBe(false);
@@ -226,7 +232,6 @@ describe("pyramidSplitRows", () => {
 });
 
 describe("pyramidHealth", () => {
-
   it("is 'promoted' with stillBuilding=true when another displayed tier still has zero sends", () => {
     const top4 = [
       { grade: "7A", count: 0 }, // the just-promoted tier itself

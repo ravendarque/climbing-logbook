@@ -34,9 +34,19 @@ const LOCATIONS = [
   { name: "Arco", country: "Italy" },
 ];
 const AREAS = [
-  "Bas Cuvier", "Rocher Canon", "95.2", "New Base Camp", "Farmer Wall",
-  "Grande Grotta", "Odyssey", "The Tiger", "The Amphitheatre",
-  "Camp 4", "Sector 6", "Ton Sai Beach", "Massone",
+  "Bas Cuvier",
+  "Rocher Canon",
+  "95.2",
+  "New Base Camp",
+  "Farmer Wall",
+  "Grande Grotta",
+  "Odyssey",
+  "The Tiger",
+  "The Amphitheatre",
+  "Camp 4",
+  "Sector 6",
+  "Ton Sai Beach",
+  "Massone",
 ];
 
 const TIERS = {
@@ -45,12 +55,32 @@ const TIERS = {
   advanceddemo: { boulderRange: [6, 20], sportRange: [4, 14], entriesPerDiscipline: 120 },
 };
 
-const HOLD_TYPES_BY_LIMB = { hand: ["crimp", "jug", "pocket", "sloper", "pinch", "edge"], foot: ["toe-hook", "heel-hook"], knee: ["kneebar"] };
-const MOVEMENT_STYLES_BY_LIMB = { hand: ["static", "dynamic", "lockoff"], foot: ["static", "dynamic"], knee: ["static", "dynamic"] };
+const HOLD_TYPES_BY_LIMB = {
+  hand: ["crimp", "jug", "pocket", "sloper", "pinch", "edge"],
+  foot: ["toe-hook", "heel-hook"],
+  knee: ["kneebar"],
+};
+const MOVEMENT_STYLES_BY_LIMB = {
+  hand: ["static", "dynamic", "lockoff"],
+  foot: ["static", "dynamic"],
+  knee: ["static", "dynamic"],
+};
 const WALL_ANGLES = ["slab", "vert", "overhang", "roof"];
 // Tags cluster on one combination so the reports' confidence gate clears.
-const DOMINANT_MOVE_COMBO = { limb: "hand", side: "right", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" };
-const SECONDARY_MOVE_COMBO = { limb: "foot", side: "left", holdType: "heel-hook", movementStyle: "dynamic", wallAngle: "roof" };
+const DOMINANT_MOVE_COMBO = {
+  limb: "hand",
+  side: "right",
+  holdType: "crimp",
+  movementStyle: "static",
+  wallAngle: "overhang",
+};
+const SECONDARY_MOVE_COMBO = {
+  limb: "foot",
+  side: "left",
+  holdType: "heel-hook",
+  movementStyle: "dynamic",
+  wallAngle: "roof",
+};
 
 function isoDateWeeksAgo(weeksAgo) {
   const d = new Date();
@@ -62,8 +92,11 @@ function isoDateWeeksAgo(weeksAgo) {
 function weightedGradeIndex(tierCount, i) {
   const weights = Array.from({ length: tierCount }, (_, t) => tierCount - t);
   const total = weights.reduce((a, b) => a + b, 0);
-  const cumulative = weights.reduce((acc, w, t) => { acc.push((acc[t - 1] ?? 0) + w); return acc; }, []);
-  const target = (i % total);
+  const cumulative = weights.reduce((acc, w, t) => {
+    acc.push((acc[t - 1] ?? 0) + w);
+    return acc;
+  }, []);
+  const target = i % total;
   return cumulative.findIndex(c => target < c);
 }
 
@@ -74,19 +107,27 @@ function buildPersonaSql(persona) {
   const now = sqlStr(new Date().toISOString());
   const statements = [];
 
-  statements.push(`INSERT OR IGNORE INTO "user" (id, name, email, emailVerified, createdAt, updatedAt, username, displayUsername) VALUES (${sqlStr(userId)}, ${sqlStr(`${label} Demo`)}, ${sqlStr(`${username}@demo.climbinglogbook.internal`)}, 1, ${now}, ${now}, ${sqlStr(username)}, ${sqlStr(`${label} Demo`)});`);
+  statements.push(
+    `INSERT OR IGNORE INTO "user" (id, name, email, emailVerified, createdAt, updatedAt, username, displayUsername) VALUES (${sqlStr(userId)}, ${sqlStr(`${label} Demo`)}, ${sqlStr(`${username}@demo.climbinglogbook.internal`)}, 1, ${now}, ${now}, ${sqlStr(username)}, ${sqlStr(`${label} Demo`)});`,
+  );
 
-  statements.push(`INSERT OR REPLACE INTO settings (user_id, athlete_mode, active_discipline, logbook_public, is_demo, created_at, updated_at) VALUES (${sqlStr(userId)}, 1, 'boulder', 1, 1, ${now}, ${now});`);
+  statements.push(
+    `INSERT OR REPLACE INTO settings (user_id, athlete_mode, active_discipline, logbook_public, is_demo, created_at, updated_at) VALUES (${sqlStr(userId)}, 1, 'boulder', 1, 1, ${now}, ${now});`,
+  );
 
   const locationIds = LOCATIONS.map((loc, i) => {
     const id = `demo-${username}-loc-${i}`;
-    statements.push(`INSERT OR IGNORE INTO locations (id, user_id, name, country, created_at, updated_at) VALUES (${sqlStr(id)}, ${sqlStr(userId)}, ${sqlStr(loc.name)}, ${sqlStr(loc.country)}, ${now}, ${now});`);
+    statements.push(
+      `INSERT OR IGNORE INTO locations (id, user_id, name, country, created_at, updated_at) VALUES (${sqlStr(id)}, ${sqlStr(userId)}, ${sqlStr(loc.name)}, ${sqlStr(loc.country)}, ${now}, ${now});`,
+    );
     return id;
   });
   const placeIds = AREAS.map((area, i) => {
     const id = `demo-${username}-place-${i}`;
     const locationId = locationIds[i % locationIds.length];
-    statements.push(`INSERT OR IGNORE INTO places (id, user_id, location_id, area, created_at, updated_at) VALUES (${sqlStr(id)}, ${sqlStr(userId)}, ${sqlStr(locationId)}, ${sqlStr(area)}, ${now}, ${now});`);
+    statements.push(
+      `INSERT OR IGNORE INTO places (id, user_id, location_id, area, created_at, updated_at) VALUES (${sqlStr(id)}, ${sqlStr(userId)}, ${sqlStr(locationId)}, ${sqlStr(area)}, ${now}, ${now});`,
+    );
     return id;
   });
 
@@ -111,8 +152,12 @@ function buildPersonaSql(persona) {
       // Updated, not inserted: re-runs must backfill rows seeded before this column existed.
       const sportStyle = type === "sport" ? (i % 3 === 0 ? "top_rope" : "lead") : null;
 
-      statements.push(`INSERT OR IGNORE INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id, first_attempt, date, video, notes, created_at, updated_at) VALUES (${sqlStr(entryId)}, ${sqlStr(userId)}, ${sqlStr(placeId)}, ${sqlStr(name)}, ${sqlStr(grade)}, ${sqlStr(type)}, ${sqlStr(status)}, ${sqlBool(firstAttempt)}, ${sqlStr(isoDateWeeksAgo(weeksAgo))}, NULL, NULL, ${now}, ${now});`);
-      statements.push(`UPDATE entries SET attempts_to_send = ${attemptsToSend ?? "NULL"}, rpe = ${rpe ?? "NULL"}, sport_style = ${sportStyle ? sqlStr(sportStyle) : "NULL"} WHERE id = ${sqlStr(entryId)};`);
+      statements.push(
+        `INSERT OR IGNORE INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id, first_attempt, date, video, notes, created_at, updated_at) VALUES (${sqlStr(entryId)}, ${sqlStr(userId)}, ${sqlStr(placeId)}, ${sqlStr(name)}, ${sqlStr(grade)}, ${sqlStr(type)}, ${sqlStr(status)}, ${sqlBool(firstAttempt)}, ${sqlStr(isoDateWeeksAgo(weeksAgo))}, NULL, NULL, ${now}, ${now});`,
+      );
+      statements.push(
+        `UPDATE entries SET attempts_to_send = ${attemptsToSend ?? "NULL"}, rpe = ${rpe ?? "NULL"}, sport_style = ${sportStyle ? sqlStr(sportStyle) : "NULL"} WHERE id = ${sqlStr(entryId)};`,
+      );
     }
   }
 
@@ -121,11 +166,15 @@ function buildPersonaSql(persona) {
   let moveIdx = 0;
   for (let i = 0; i < dominantCount; i++) {
     const entryId = entryIds[i % entryIds.length];
-    statements.push(`INSERT OR IGNORE INTO entry_moves (id, entry_id, difficulty, limb, side, hold_type, movement_style, wall_angle, created_at) VALUES (${sqlStr(`demo-${username}-move-${moveIdx++}`)}, ${sqlStr(entryId)}, 'hardest', ${sqlStr(DOMINANT_MOVE_COMBO.limb)}, ${sqlStr(DOMINANT_MOVE_COMBO.side)}, ${sqlStr(DOMINANT_MOVE_COMBO.holdType)}, ${sqlStr(DOMINANT_MOVE_COMBO.movementStyle)}, ${sqlStr(DOMINANT_MOVE_COMBO.wallAngle)}, ${now});`);
+    statements.push(
+      `INSERT OR IGNORE INTO entry_moves (id, entry_id, difficulty, limb, side, hold_type, movement_style, wall_angle, created_at) VALUES (${sqlStr(`demo-${username}-move-${moveIdx++}`)}, ${sqlStr(entryId)}, 'hardest', ${sqlStr(DOMINANT_MOVE_COMBO.limb)}, ${sqlStr(DOMINANT_MOVE_COMBO.side)}, ${sqlStr(DOMINANT_MOVE_COMBO.holdType)}, ${sqlStr(DOMINANT_MOVE_COMBO.movementStyle)}, ${sqlStr(DOMINANT_MOVE_COMBO.wallAngle)}, ${now});`,
+    );
   }
   for (let i = 0; i < secondaryCount; i++) {
     const entryId = entryIds[(i + dominantCount) % entryIds.length];
-    statements.push(`INSERT OR IGNORE INTO entry_moves (id, entry_id, difficulty, limb, side, hold_type, movement_style, wall_angle, created_at) VALUES (${sqlStr(`demo-${username}-move-${moveIdx++}`)}, ${sqlStr(entryId)}, 'easiest', ${sqlStr(SECONDARY_MOVE_COMBO.limb)}, ${sqlStr(SECONDARY_MOVE_COMBO.side)}, ${sqlStr(SECONDARY_MOVE_COMBO.holdType)}, ${sqlStr(SECONDARY_MOVE_COMBO.movementStyle)}, ${sqlStr(SECONDARY_MOVE_COMBO.wallAngle)}, ${now});`);
+    statements.push(
+      `INSERT OR IGNORE INTO entry_moves (id, entry_id, difficulty, limb, side, hold_type, movement_style, wall_angle, created_at) VALUES (${sqlStr(`demo-${username}-move-${moveIdx++}`)}, ${sqlStr(entryId)}, 'easiest', ${sqlStr(SECONDARY_MOVE_COMBO.limb)}, ${sqlStr(SECONDARY_MOVE_COMBO.side)}, ${sqlStr(SECONDARY_MOVE_COMBO.holdType)}, ${sqlStr(SECONDARY_MOVE_COMBO.movementStyle)}, ${sqlStr(SECONDARY_MOVE_COMBO.wallAngle)}, ${now});`,
+    );
   }
   const varietyCount = Math.min(10, Math.floor(entryIds.length / 4));
   for (let i = 0; i < varietyCount; i++) {
@@ -136,13 +185,17 @@ function buildPersonaSql(persona) {
     const movementStyle = MOVEMENT_STYLES_BY_LIMB[limb][i % MOVEMENT_STYLES_BY_LIMB[limb].length];
     const wallAngle = WALL_ANGLES[i % WALL_ANGLES.length];
     const difficulty = i % 2 === 0 ? "hardest" : "easiest";
-    statements.push(`INSERT OR IGNORE INTO entry_moves (id, entry_id, difficulty, limb, side, hold_type, movement_style, wall_angle, created_at) VALUES (${sqlStr(`demo-${username}-move-${moveIdx++}`)}, ${sqlStr(entryId)}, ${sqlStr(difficulty)}, ${sqlStr(limb)}, ${sqlStr(side)}, ${sqlStr(holdType)}, ${sqlStr(movementStyle)}, ${sqlStr(wallAngle)}, ${now});`);
+    statements.push(
+      `INSERT OR IGNORE INTO entry_moves (id, entry_id, difficulty, limb, side, hold_type, movement_style, wall_angle, created_at) VALUES (${sqlStr(`demo-${username}-move-${moveIdx++}`)}, ${sqlStr(entryId)}, ${sqlStr(difficulty)}, ${sqlStr(limb)}, ${sqlStr(side)}, ${sqlStr(holdType)}, ${sqlStr(movementStyle)}, ${sqlStr(wallAngle)}, ${now});`,
+    );
   }
 
   const painCount = Math.max(6, Math.round(entryIds.length * 0.05));
   for (let i = 0; i < painCount; i++) {
     const entryId = entryIds[i % entryIds.length];
-    statements.push(`INSERT OR IGNORE INTO entry_pain_moves (id, entry_id, limb, side, hold_type, movement_style, wall_angle, created_at) VALUES (${sqlStr(`demo-${username}-pain-${i}`)}, ${sqlStr(entryId)}, ${sqlStr(DOMINANT_MOVE_COMBO.limb)}, ${sqlStr(DOMINANT_MOVE_COMBO.side)}, ${sqlStr(DOMINANT_MOVE_COMBO.holdType)}, ${sqlStr(DOMINANT_MOVE_COMBO.movementStyle)}, ${sqlStr(DOMINANT_MOVE_COMBO.wallAngle)}, ${now});`);
+    statements.push(
+      `INSERT OR IGNORE INTO entry_pain_moves (id, entry_id, limb, side, hold_type, movement_style, wall_angle, created_at) VALUES (${sqlStr(`demo-${username}-pain-${i}`)}, ${sqlStr(entryId)}, ${sqlStr(DOMINANT_MOVE_COMBO.limb)}, ${sqlStr(DOMINANT_MOVE_COMBO.side)}, ${sqlStr(DOMINANT_MOVE_COMBO.holdType)}, ${sqlStr(DOMINANT_MOVE_COMBO.movementStyle)}, ${sqlStr(DOMINANT_MOVE_COMBO.wallAngle)}, ${now});`,
+    );
   }
 
   return statements.join("\n");

@@ -12,13 +12,19 @@ export function createDisclosure(trigger, panel, containerSelector, { escapeTarg
     panel.hidden = true;
     trigger.setAttribute("aria-expanded", "false");
   }
-  const onTriggerClick = () => { if (panel.hidden) open(); else close(); };
+  const onTriggerClick = () => {
+    if (panel.hidden) open();
+    else close();
+  };
   const onDocumentClick = e => {
     if (!panel.hidden && !e.target.closest(containerSelector)) close();
   };
   const onEscapeKeydown = e => {
     if (e.key !== "Escape" || panel.hidden) return;
-    if (escapeTarget !== document) { e.preventDefault(); e.stopPropagation(); }
+    if (escapeTarget !== document) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     close();
     trigger.focus();
   };
@@ -35,17 +41,24 @@ export function createDisclosure(trigger, panel, containerSelector, { escapeTarg
 
 // onSelect gets the item's key, not the item: callers only need the key.
 export function createSearchableListbox({
-  trigger, popover, containerSelector, searchInput, listboxEl, idPrefix,
-  filterItems,       // (query: string) => item[] -- caller owns the data source and match predicate
-  getItemKey,        // (item) => string
-  isSelected,        // (item) => boolean
+  trigger,
+  popover,
+  containerSelector,
+  searchInput,
+  listboxEl,
+  idPrefix,
+  filterItems, // (query: string) => item[] -- caller owns the data source and match predicate
+  getItemKey, // (item) => string
+  isSelected, // (item) => boolean
   renderItemContent, // (item) => inner html string (pre-escaped by the caller, same policy as every other template string in this codebase)
-  onSelect,          // (key: string) => void
+  onSelect, // (key: string) => void
 }) {
   let filtered = [];
   let activeIndex = -1;
 
-  function optionId(i) { return `${idPrefix}-${i}`; }
+  function optionId(i) {
+    return `${idPrefix}-${i}`;
+  }
 
   function updateActiveDescendant() {
     searchInput.setAttribute("aria-activedescendant", activeIndex >= 0 ? optionId(activeIndex) : "");
@@ -59,11 +72,15 @@ export function createSearchableListbox({
     filtered = filterItems(filterText.trim().toLowerCase());
     activeIndex = filtered.length ? 0 : -1;
     listboxEl.innerHTML = filtered.length
-      ? filtered.map((item, i) => `
+      ? filtered
+          .map(
+            (item, i) => `
           <li id="${optionId(i)}" role="option" data-key="${escapeHtml(getItemKey(item))}" aria-selected="${isSelected(item)}" class="flex items-center justify-between gap-[.5rem] px-[.6rem] py-[.5rem] rounded-[calc(var(--radius-app)-2px)] cursor-pointer text-[.9rem] text-foreground hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible">
             ${renderItemContent(item)}
             <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
-          </li>`).join("")
+          </li>`,
+          )
+          .join("")
       : `<li class="px-[.6rem] py-[.5rem] text-[.85rem] text-muted">No matches</li>`;
     updateActiveDescendant();
   }
@@ -81,10 +98,16 @@ export function createSearchableListbox({
   searchInput.addEventListener("keydown", e => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      if (filtered.length) { activeIndex = (activeIndex + 1) % filtered.length; updateActiveDescendant(); }
+      if (filtered.length) {
+        activeIndex = (activeIndex + 1) % filtered.length;
+        updateActiveDescendant();
+      }
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      if (filtered.length) { activeIndex = (activeIndex - 1 + filtered.length) % filtered.length; updateActiveDescendant(); }
+      if (filtered.length) {
+        activeIndex = (activeIndex - 1 + filtered.length) % filtered.length;
+        updateActiveDescendant();
+      }
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (activeIndex >= 0) {
@@ -120,23 +143,33 @@ export function createListPicker({ trigger, popover, listbox, containerSelector 
     trigger.focus();
   });
   return {
-    trigger, close,
-    setRender(fn) { render = fn; },
-    setOnSelect(fn) { onSelect = fn; },
+    trigger,
+    close,
+    setRender(fn) {
+      render = fn;
+    },
+    setOnSelect(fn) {
+      onSelect = fn;
+    },
   };
 }
 
 export function renderOptionList(listboxEl, items, { getKey, getLabel, isSelected }) {
-  listboxEl.innerHTML = items.map(item => `
+  listboxEl.innerHTML = items
+    .map(
+      item => `
     <li role="option" data-key="${escapeHtml(getKey(item))}" aria-selected="${isSelected(item)}" class="flex items-center justify-between gap-[.5rem] px-[.6rem] py-[.5rem] rounded-[calc(var(--radius-app)-2px)] cursor-pointer text-[.85rem] text-foreground hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible">
       ${escapeHtml(getLabel(item))}
       <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
-    </li>`).join("");
+    </li>`,
+    )
+    .join("");
 }
 
 export function focusableEls(overlay) {
-  return [...overlay.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
-    .filter(el => !el.disabled && el.offsetParent !== null);
+  return [
+    ...overlay.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'),
+  ].filter(el => !el.disabled && el.offsetParent !== null);
 }
 
 // Stacking order, not DOM order: add-place sits above the entry form, so Escape closes it first.

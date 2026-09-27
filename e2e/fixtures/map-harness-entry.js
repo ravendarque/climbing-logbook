@@ -8,5 +8,5 @@ store.setActiveView("map");
 const mapView = createMapView({ store });
 mapView.setCounts({
   "United Kingdom": { boulder: { total: 2, flash: 0, send: 2, project: 0 } },
-  "France": { boulder: { total: 1, flash: 0, send: 1, project: 0 } },
+  France: { boulder: { total: 1, flash: 0, send: 1, project: 0 } },
 });

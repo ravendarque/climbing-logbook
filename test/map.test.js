@@ -5,8 +5,12 @@ import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables, seedPlace
 const MAP_COUNTS_URL = "/-/api/map/counts";
 const ENTRIES_URL = "/-/api/entries";
 
-beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
-afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
+beforeAll(() => {
+  env.BETA_GATE_ENABLED = "false";
+});
+afterAll(() => {
+  env.BETA_GATE_ENABLED = "true";
+});
 
 let cookie;
 
@@ -19,10 +23,19 @@ function get(extraCookie = cookie) {
   return fetchJson(MAP_COUNTS_URL, { headers: { Cookie: extraCookie } });
 }
 function postEntry(placeId, overrides = {}, extraCookie = cookie) {
-  return jsonRequest("POST", ENTRIES_URL, {
-    name: "La Marie-Rose", grade: "6B", placeId, type: "boulder", status: "send",
-    ...overrides,
-  }, { Cookie: extraCookie });
+  return jsonRequest(
+    "POST",
+    ENTRIES_URL,
+    {
+      name: "La Marie-Rose",
+      grade: "6B",
+      placeId,
+      type: "boulder",
+      status: "send",
+      ...overrides,
+    },
+    { Cookie: extraCookie },
+  );
 }
 
 describe("handleGetMapCounts", () => {

@@ -6,8 +6,12 @@ import { buildInsertStatement } from "../server/lib/d1-resource.js";
 
 const ENTRIES_URL = "/-/api/entries";
 
-beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
-afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
+beforeAll(() => {
+  env.BETA_GATE_ENABLED = "false";
+});
+afterAll(() => {
+  env.BETA_GATE_ENABLED = "true";
+});
 
 let cookie;
 let userId;
@@ -149,8 +153,14 @@ describe("handleGet (?limit=, chunked full sync)", () => {
   it("reports the max sync_cursor across every matching row, the same value on every chunk", async () => {
     for (let i = 0; i < 3; i++) await post({ ...validEntry(), name: `Route ${i}` });
     const ids = (await (await get()).json()).entries.map(e => e.id);
-    const cursors = await Promise.all(ids.map(id =>
-      env.LOGBOOK_DB.prepare(`SELECT sync_cursor FROM entries WHERE id = ?`).bind(id).first().then(r => r.sync_cursor)));
+    const cursors = await Promise.all(
+      ids.map(id =>
+        env.LOGBOOK_DB.prepare(`SELECT sync_cursor FROM entries WHERE id = ?`)
+          .bind(id)
+          .first()
+          .then(r => r.sync_cursor),
+      ),
+    );
     const maxCursor = Math.max(...cursors);
 
     const first = await (await getChunk({ limit: "2" })).json();
@@ -174,7 +184,9 @@ describe("handleGet (?limit=, chunked full sync)", () => {
     }
     expect(names).toEqual(["e2", "e3", "e4"]);
 
-    const { entries } = await (await fetchJson(`${ENTRIES_URL}?since=${first.cursor}`, { headers: { Cookie: cookie } })).json();
+    const { entries } = await (
+      await fetchJson(`${ENTRIES_URL}?since=${first.cursor}`, { headers: { Cookie: cookie } })
+    ).json();
     expect(entries.find(e => e.id === "e0")?.deleted).toBe(true);
   });
 
@@ -207,7 +219,9 @@ describe("handleGet (locationId -- #111 per-table pagination)", () => {
   }
 
   it("returns only that location's entries, across every place under it", async () => {
-    const secondPlaceId = (await (await jsonRequest("POST", "/-/api/places", { locationId, area: "Second Area" }, { Cookie: cookie })).json()).place.id;
+    const secondPlaceId = (
+      await (await jsonRequest("POST", "/-/api/places", { locationId, area: "Second Area" }, { Cookie: cookie })).json()
+    ).place.id;
     const otherLocationPlaceId = await seedPlace(cookie, { locationName: "Other Crag" });
     await post(validEntry());
     await post({ ...validEntry(), name: "Second Area Route", placeId: secondPlaceId });
@@ -267,7 +281,10 @@ describe("handleGet (?since= -- #500 delta sync)", () => {
     return fetchJson(`${ENTRIES_URL}?since=${since}`, { headers: { Cookie: extraCookie } });
   }
   function cursorOf(id) {
-    return env.LOGBOOK_DB.prepare(`SELECT sync_cursor FROM entries WHERE id = ?`).bind(id).first().then(r => r.sync_cursor);
+    return env.LOGBOOK_DB.prepare(`SELECT sync_cursor FROM entries WHERE id = ?`)
+      .bind(id)
+      .first()
+      .then(r => r.sync_cursor);
   }
 
   it("401s an anonymous caller (#992)", async () => {
@@ -366,16 +383,13 @@ describe("handlePost", () => {
     expect((await res.json()).error).toBe("Invalid JSON");
   });
 
-  it.each(["placeId", "name", "grade", "type", "status"])(
-    "rejects a missing %s",
-    async (field) => {
-      const entry = validEntry();
-      delete entry[field];
-      const res = await post(entry);
-      expect(res.status).toBe(400);
-      expect((await res.json()).error).toBe(`Missing required field: ${field}`);
-    }
-  );
+  it.each(["placeId", "name", "grade", "type", "status"])("rejects a missing %s", async field => {
+    const entry = validEntry();
+    delete entry[field];
+    const res = await post(entry);
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe(`Missing required field: ${field}`);
+  });
 
   it("rejects an invalid type", async () => {
     const res = await post({ ...validEntry(), type: "trad" });
@@ -419,7 +433,7 @@ describe("handlePost", () => {
       const res = await post({ ...validEntry(), type: "sport", grade, sportStyle: "lead" });
       const { entry } = await res.json();
       expect(entry.gradeScale).toBe("french-non-standard");
-    }
+    },
   );
 
   it("rejects a gradeScale that doesn't belong to the entry's discipline", async () => {
@@ -434,13 +448,10 @@ describe("handlePost", () => {
     expect((await res.json()).error).toMatch(/^status must be one of/);
   });
 
-  it.each(["2026", "2026-07", "2026-07-30"])(
-    "accepts a %s date shape",
-    async (date) => {
-      const res = await post({ ...validEntry(), date });
-      expect(res.status).toBe(201);
-    }
-  );
+  it.each(["2026", "2026-07", "2026-07-30"])("accepts a %s date shape", async date => {
+    const res = await post({ ...validEntry(), date });
+    expect(res.status).toBe(201);
+  });
 
   it("rejects a malformed date shape", async () => {
     const res = await post({ ...validEntry(), date: "30-07-2026" });
@@ -498,7 +509,9 @@ describe("handlePost", () => {
     const { entry } = await recreated.json();
     expect(entry).toMatchObject({ id: "resurrect-id-1", name: "Resurrected" });
 
-    const row = await env.LOGBOOK_DB.prepare(`SELECT deleted_at FROM entries WHERE id = ?`).bind("resurrect-id-1").first();
+    const row = await env.LOGBOOK_DB.prepare(`SELECT deleted_at FROM entries WHERE id = ?`)
+      .bind("resurrect-id-1")
+      .first();
     expect(row.deleted_at).toBeNull();
   });
 
@@ -563,7 +576,9 @@ describe("handlePost", () => {
 
     await post({ ...validEntry(), id: "later" });
 
-    const { entries } = await (await fetchJson(`${ENTRIES_URL}?since=${pulled.cursor}`, { headers: { Cookie: cookie } })).json();
+    const { entries } = await (
+      await fetchJson(`${ENTRIES_URL}?since=${pulled.cursor}`, { headers: { Cookie: cookie } })
+    ).json();
     expect(entries.map(e => e.id)).toContain("later");
   });
 });
@@ -684,17 +699,34 @@ describe("handleDelete", () => {
 
     await del(id);
 
-    const after = await env.LOGBOOK_DB.prepare(`SELECT sync_cursor, deleted_at FROM entries WHERE id = ?`).bind(id).first();
+    const after = await env.LOGBOOK_DB.prepare(`SELECT sync_cursor, deleted_at FROM entries WHERE id = ?`)
+      .bind(id)
+      .first();
     expect(after.sync_cursor).toBeGreaterThan(before.sync_cursor);
     expect(after.deleted_at).not.toBeNull();
   });
 });
 
 function validMoveRow(overrides = {}) {
-  return { difficulty: "hardest", limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang", ...overrides };
+  return {
+    difficulty: "hardest",
+    limb: "hand",
+    side: "left",
+    holdType: "crimp",
+    movementStyle: "static",
+    wallAngle: "overhang",
+    ...overrides,
+  };
 }
 function validPainRow(overrides = {}) {
-  return { limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "slab", ...overrides };
+  return {
+    limb: "foot",
+    side: "right",
+    holdType: "toe-hook",
+    movementStyle: "dynamic",
+    wallAngle: "slab",
+    ...overrides,
+  };
 }
 
 describe("entry_moves / entry_pain_moves", () => {
@@ -707,14 +739,27 @@ describe("entry_moves / entry_pain_moves", () => {
   it("writes and reads back moves on create", async () => {
     const created = await (await post({ ...validEntry(), moves: [validMoveRow()] })).json();
     expect(created.entry.moves).toHaveLength(1);
-    expect(created.entry.moves[0]).toMatchObject({ difficulty: "hardest", limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" });
+    expect(created.entry.moves[0]).toMatchObject({
+      difficulty: "hardest",
+      limb: "hand",
+      side: "left",
+      holdType: "crimp",
+      movementStyle: "static",
+      wallAngle: "overhang",
+    });
     expect(typeof created.entry.moves[0].id).toBe("string");
   });
 
   it("writes and reads back painMoves on create", async () => {
     const created = await (await post({ ...validEntry(), painMoves: [validPainRow()] })).json();
     expect(created.entry.painMoves).toHaveLength(1);
-    expect(created.entry.painMoves[0]).toMatchObject({ limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "slab" });
+    expect(created.entry.painMoves[0]).toMatchObject({
+      limb: "foot",
+      side: "right",
+      holdType: "toe-hook",
+      movementStyle: "dynamic",
+      wallAngle: "slab",
+    });
   });
 
   it("returns moves/painMoves for every entry via a plain GET", async () => {
@@ -725,7 +770,20 @@ describe("entry_moves / entry_pain_moves", () => {
 
   it("diffs-and-replaces moves on edit, not merges", async () => {
     const created = await (await post({ ...validEntry(), moves: [validMoveRow()] })).json();
-    const updated = await (await put({ ...created.entry, moves: [validMoveRow({ difficulty: "easiest", limb: "knee", side: "left", holdType: "kneebar", movementStyle: "static" })] })).json();
+    const updated = await (
+      await put({
+        ...created.entry,
+        moves: [
+          validMoveRow({
+            difficulty: "easiest",
+            limb: "knee",
+            side: "left",
+            holdType: "kneebar",
+            movementStyle: "static",
+          }),
+        ],
+      })
+    ).json();
     expect(updated.entry.moves).toHaveLength(1);
     expect(updated.entry.moves[0].difficulty).toBe("easiest");
     expect(updated.entry.moves[0].limb).toBe("knee");
@@ -753,7 +811,9 @@ describe("entry_moves / entry_pain_moves", () => {
   });
 
   async function withFailingMoveInserts(fn) {
-    await env.LOGBOOK_DB.prepare("CREATE TRIGGER fail_moves BEFORE INSERT ON entry_moves BEGIN SELECT RAISE(ABORT, 'forced'); END").run();
+    await env.LOGBOOK_DB.prepare(
+      "CREATE TRIGGER fail_moves BEFORE INSERT ON entry_moves BEGIN SELECT RAISE(ABORT, 'forced'); END",
+    ).run();
     try {
       return await fn();
     } finally {
@@ -765,22 +825,33 @@ describe("entry_moves / entry_pain_moves", () => {
     const created = await (await post(validEntry())).json();
     const before = await env.LOGBOOK_DB.prepare("SELECT * FROM entries WHERE id = ?").bind(created.entry.id).first();
 
-    await expect(withFailingMoveInserts(() => put({ ...created.entry, name: "Renamed", moves: [validMoveRow()] }))).rejects.toThrow("forced");
+    await expect(
+      withFailingMoveInserts(() => put({ ...created.entry, name: "Renamed", moves: [validMoveRow()] })),
+    ).rejects.toThrow("forced");
 
     const after = await env.LOGBOOK_DB.prepare("SELECT * FROM entries WHERE id = ?").bind(created.entry.id).first();
     expect(after).toEqual(before);
   });
 
   it("creates no entry when writing its moves fails", async () => {
-    await expect(withFailingMoveInserts(() => post({ ...validEntry(), id: "half-written", moves: [validMoveRow()] }))).rejects.toThrow("forced");
+    await expect(
+      withFailingMoveInserts(() => post({ ...validEntry(), id: "half-written", moves: [validMoveRow()] })),
+    ).rejects.toThrow("forced");
 
     const row = await env.LOGBOOK_DB.prepare("SELECT id FROM entries WHERE id = ?").bind("half-written").first();
     expect(row).toBeNull();
   });
 
   it("a plain GET succeeds and returns every entry once entry count crosses the 100-bound-parameter chunk boundary", async () => {
-    await env.LOGBOOK_DB.batch(Array.from({ length: 105 }, (_, i) =>
-      buildInsertStatement(env, "entries", buildRow({ ...validEntry(), name: `Route ${i}` }, crypto.randomUUID(), userId))));
+    await env.LOGBOOK_DB.batch(
+      Array.from({ length: 105 }, (_, i) =>
+        buildInsertStatement(
+          env,
+          "entries",
+          buildRow({ ...validEntry(), name: `Route ${i}` }, crypto.randomUUID(), userId),
+        ),
+      ),
+    );
 
     const res = await get();
     expect(res.status).toBe(200);
@@ -837,7 +908,20 @@ describe("cross-user isolation", () => {
 
 describe("publicRowToJson / handlePublicGet (Task 7 -- public profile exclusions)", () => {
   it("publicRowToJson omits rpe and attemptsToSend", () => {
-    const row = { id: "e1", name: "Test", grade: "6B", place_id: "p1", discipline_id: "boulder", status_id: "send", first_attempt: 0, date: "2026-01-01", video: null, notes: null, rpe: 80, attempts_to_send: 5 };
+    const row = {
+      id: "e1",
+      name: "Test",
+      grade: "6B",
+      place_id: "p1",
+      discipline_id: "boulder",
+      status_id: "send",
+      first_attempt: 0,
+      date: "2026-01-01",
+      video: null,
+      notes: null,
+      rpe: 80,
+      attempts_to_send: 5,
+    };
     const json = publicRowToJson(row);
     expect(json).not.toHaveProperty("rpe");
     expect(json).not.toHaveProperty("attemptsToSend");

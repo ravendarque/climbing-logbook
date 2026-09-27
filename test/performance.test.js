@@ -7,8 +7,12 @@ const PYRAMID_URL = "/-/api/performance/pyramid";
 const INJURY_URL = "/-/api/performance/injury";
 const ENTRIES_URL = "/-/api/entries";
 
-beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
-afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
+beforeAll(() => {
+  env.BETA_GATE_ENABLED = "false";
+});
+afterAll(() => {
+  env.BETA_GATE_ENABLED = "true";
+});
 
 let cookie;
 let placeId;
@@ -23,11 +27,20 @@ function get(extraCookie = cookie) {
   return fetchJson(PYRAMID_URL, { headers: { Cookie: extraCookie } });
 }
 function postEntry(overrides = {}, extraCookie = cookie) {
-  return jsonRequest("POST", ENTRIES_URL, {
-    name: "La Marie-Rose", grade: "6B", placeId, type: "boulder", status: "send",
-    date: "2026-06-01", // within 12 months of #currentDate (2026-08-21)
-    ...overrides,
-  }, { Cookie: extraCookie });
+  return jsonRequest(
+    "POST",
+    ENTRIES_URL,
+    {
+      name: "La Marie-Rose",
+      grade: "6B",
+      placeId,
+      type: "boulder",
+      status: "send",
+      date: "2026-06-01", // within 12 months of #currentDate (2026-08-21)
+      ...overrides,
+    },
+    { Cookie: extraCookie },
+  );
 }
 function getInjuryLog(extraCookie = cookie) {
   return fetchJson(INJURY_URL, { headers: { Cookie: extraCookie } });
@@ -103,7 +116,9 @@ describe("handleGetPyramid", () => {
   it("rejects a non-standard scale id as a report view scale, falling back to the native default", async () => {
     await postEntry({ type: "boulder", grade: "6A", gradeScale: "font-non-standard" });
     const noScale = await fetchJson(PYRAMID_URL, { headers: { Cookie: cookie } });
-    const nonStandard = await fetchJson(`${PYRAMID_URL}?boulderScale=font-non-standard`, { headers: { Cookie: cookie } });
+    const nonStandard = await fetchJson(`${PYRAMID_URL}?boulderScale=font-non-standard`, {
+      headers: { Cookie: cookie },
+    });
     expect(nonStandard.status).toBe(200);
     expect(await nonStandard.json()).toEqual(await noScale.json());
   });
@@ -125,7 +140,10 @@ describe("handleGetInjuryLog", () => {
 
   it("includes only entries that have at least one pain move", async () => {
     await postEntry();
-    await postEntry({ name: "Painful Route", painMoves: [{ limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" }] });
+    await postEntry({
+      name: "Painful Route",
+      painMoves: [{ limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" }],
+    });
     const res = await getInjuryLog();
     const { log } = await res.json();
     expect(log).toHaveLength(1);
@@ -135,15 +153,28 @@ describe("handleGetInjuryLog", () => {
 
   it("surfaces a cluster once 5 matching pain moves exist across entries", async () => {
     for (let i = 0; i < MIN_TAG_COUNT; i++) {
-      await postEntry({ name: `Route ${i}`, painMoves: [{ limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "slab" }] });
+      await postEntry({
+        name: `Route ${i}`,
+        painMoves: [{ limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "slab" }],
+      });
     }
     const res = await getInjuryLog();
     const { cluster } = await res.json();
-    expect(cluster).toMatchObject({ limb: "foot", side: "right", holdType: "toe-hook", wallAngle: "slab", count: MIN_TAG_COUNT });
+    expect(cluster).toMatchObject({
+      limb: "foot",
+      side: "right",
+      holdType: "toe-hook",
+      wallAngle: "slab",
+      count: MIN_TAG_COUNT,
+    });
   });
 
   it("excludes a soft-deleted entry's pain moves from both the log and the cluster count", async () => {
-    const created = await (await postEntry({ painMoves: [{ limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" }] })).json();
+    const created = await (
+      await postEntry({
+        painMoves: [{ limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" }],
+      })
+    ).json();
     await del(created.entry.id);
     const res = await getInjuryLog();
     const body = await res.json();
@@ -152,7 +183,9 @@ describe("handleGetInjuryLog", () => {
   });
 
   it("a second user's own request never reflects the first user's pain-tagged entries", async () => {
-    await postEntry({ painMoves: [{ limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" }] });
+    await postEntry({
+      painMoves: [{ limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" }],
+    });
 
     const userB = await createAuthedSession();
     const res = await getInjuryLog(userB.cookie);
@@ -177,7 +210,19 @@ describe("handleGetStrengthsWeaknesses", () => {
 
   it("surfaces a headline once 5 matching hardest tags exist across entries", async () => {
     for (let i = 0; i < 5; i++) {
-      await postEntry({ name: `Route ${i}`, moves: [{ difficulty: "hardest", limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" }] });
+      await postEntry({
+        name: `Route ${i}`,
+        moves: [
+          {
+            difficulty: "hardest",
+            limb: "hand",
+            side: "left",
+            holdType: "crimp",
+            movementStyle: "static",
+            wallAngle: "overhang",
+          },
+        ],
+      });
     }
     const res = await getStrengths();
     const { headline } = await res.json();
@@ -186,7 +231,18 @@ describe("handleGetStrengthsWeaknesses", () => {
   });
 
   it("lists available anchors once moves are tagged", async () => {
-    await postEntry({ moves: [{ difficulty: "hardest", limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "slab" }] });
+    await postEntry({
+      moves: [
+        {
+          difficulty: "hardest",
+          limb: "foot",
+          side: "right",
+          holdType: "toe-hook",
+          movementStyle: "dynamic",
+          wallAngle: "slab",
+        },
+      ],
+    });
     const { anchors } = await (await getStrengths()).json();
     expect(anchors).toContainEqual({ dimension: "holdType", value: "toe-hook", label: "Toe hook" });
     expect(anchors).toContainEqual({ dimension: "limbSide", value: "foot-right", label: "Right foot" });
@@ -194,7 +250,19 @@ describe("handleGetStrengthsWeaknesses", () => {
 
   it("returns a ranked drill-down for a fixed anchor", async () => {
     for (let i = 0; i < 5; i++) {
-      await postEntry({ name: `Route ${i}`, moves: [{ difficulty: "hardest", limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" }] });
+      await postEntry({
+        name: `Route ${i}`,
+        moves: [
+          {
+            difficulty: "hardest",
+            limb: "hand",
+            side: "left",
+            holdType: "crimp",
+            movementStyle: "static",
+            wallAngle: "overhang",
+          },
+        ],
+      });
     }
     const { ranked } = await (await getStrengths({ dimension: "holdType", value: "crimp" })).json();
     expect(ranked).toHaveLength(1);
@@ -202,7 +270,20 @@ describe("handleGetStrengthsWeaknesses", () => {
   });
 
   it("excludes a soft-deleted entry's moves from both the headline and the anchor list", async () => {
-    const created = await (await postEntry({ moves: [{ difficulty: "hardest", limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" }] })).json();
+    const created = await (
+      await postEntry({
+        moves: [
+          {
+            difficulty: "hardest",
+            limb: "hand",
+            side: "left",
+            holdType: "crimp",
+            movementStyle: "static",
+            wallAngle: "overhang",
+          },
+        ],
+      })
+    ).json();
     await del(created.entry.id);
     const body = await (await getStrengths()).json();
     expect(body.headline).toBeNull();
@@ -215,7 +296,18 @@ describe("handleGetStrengthsWeaknesses", () => {
   });
 
   it("a second user's own request never reflects the first user's tagged moves", async () => {
-    await postEntry({ moves: [{ difficulty: "hardest", limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" }] });
+    await postEntry({
+      moves: [
+        {
+          difficulty: "hardest",
+          limb: "hand",
+          side: "left",
+          holdType: "crimp",
+          movementStyle: "static",
+          wallAngle: "overhang",
+        },
+      ],
+    });
     const userB = await createAuthedSession();
     const body = await (await getStrengths({}, userB.cookie)).json();
     expect(body).toEqual({ headline: null, anchors: [] });

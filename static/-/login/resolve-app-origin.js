@@ -16,7 +16,11 @@ export function safeReturnTo(value, origin) {
   // biome-ignore lint/suspicious/noControlCharactersInRegex: rejecting control characters is the point.
   if (value.includes("\\") || /[\u0000-\u001f\u007f]/.test(value)) return null;
   let url;
-  try { url = new URL(value, origin); } catch { return null; }
+  try {
+    url = new URL(value, origin);
+  } catch {
+    return null;
+  }
   if (url.origin !== origin) return null;
   return url.pathname + url.search + url.hash;
 }
@@ -33,6 +37,10 @@ export function resolvePostLoginTarget({ hostname, origin, username, returnTo, b
 function ownsPath(path, username) {
   const first = path.split("/")[1] ?? "";
   let decoded;
-  try { decoded = decodeURIComponent(first); } catch { return false; }
+  try {
+    decoded = decodeURIComponent(first);
+  } catch {
+    return false;
+  }
   return typeof username === "string" && username !== "" && decoded.toLowerCase() === username.toLowerCase();
 }

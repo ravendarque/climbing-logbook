@@ -51,14 +51,18 @@ function updateAdminBar() {
 }
 
 const adminAuth = createAdminAuth({
-  store, adminFetch, isAuthRedirect,
+  store,
+  adminFetch,
+  isAuthRedirect,
   settingsUrl: SETTINGS_URL,
   updateAdminBar,
   onFetchTimeout: syncStatusIcon.reportTimeout,
 });
 
 const headerChrome = createHeaderChrome({
-  store, adminFetch, isAuthRedirect,
+  store,
+  adminFetch,
+  isAuthRedirect,
   settingsUrl: SETTINGS_URL,
 });
 
@@ -72,7 +76,9 @@ function cellRowHtml(cell) {
 }
 
 async function fetchRankedForAnchor(dimension, value) {
-  const res = await fetch(`${STRENGTHS_URL}?dimension=${encodeURIComponent(dimension)}&value=${encodeURIComponent(value)}`);
+  const res = await fetch(
+    `${STRENGTHS_URL}?dimension=${encodeURIComponent(dimension)}&value=${encodeURIComponent(value)}`,
+  );
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
@@ -113,7 +119,10 @@ function anchorOptionsHtml(anchors) {
   }
   return Object.values(groups)
     .filter(g => g.options.length)
-    .map(g => `<optgroup label="${escapeHtml(g.label)}">${g.options.map(a => `<option value="${escapeHtml(a.dimension)}:${escapeHtml(a.value)}">${escapeHtml(a.label)}</option>`).join("")}</optgroup>`)
+    .map(
+      g =>
+        `<optgroup label="${escapeHtml(g.label)}">${g.options.map(a => `<option value="${escapeHtml(a.dimension)}:${escapeHtml(a.value)}">${escapeHtml(a.label)}</option>`).join("")}</optgroup>`,
+    )
     .join("");
 }
 

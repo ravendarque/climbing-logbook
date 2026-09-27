@@ -19,7 +19,11 @@ export const PLACES = [
   { id: "seed-place-magic-wood-farmer-wall", locationId: "seed-loc-magic-wood", area: "Farmer Wall" },
   { id: "seed-place-albarracin-ventorrillo", locationId: "seed-loc-albarracin", area: "El Ventorrillo" },
   { id: "seed-place-albarracin", locationId: "seed-loc-albarracin", area: "" },
-  { id: "seed-place-southern-sandstone-harrisons", locationId: "seed-loc-southern-sandstone", area: "Harrison's Rocks" },
+  {
+    id: "seed-place-southern-sandstone-harrisons",
+    locationId: "seed-loc-southern-sandstone",
+    area: "Harrison's Rocks",
+  },
   { id: "seed-place-portland", locationId: "seed-loc-portland", area: "" },
   { id: "seed-place-rocklands-t-piece", locationId: "seed-loc-rocklands", area: "The T-Piece" },
   { id: "seed-place-yosemite-camp4", locationId: "seed-loc-yosemite", area: "Camp 4" },
@@ -27,16 +31,130 @@ export const PLACES = [
 
 // Covers every tier, status and date granularity; seed-01 and seed-03 share a place.
 const CURATED_ENTRIES = [
-  { id: "seed-01", name: "L'Envers du Décor", grade: "6b", placeId: "seed-place-font-bas-cuvier", type: "boulder", status: "send", firstAttempt: true, date: "2026-03-14", video: null, notes: "Classic warm-up, felt easy" },
-  { id: "seed-02", name: "Karma", grade: "7a", placeId: "seed-place-font-rocher-canon", type: "boulder", status: "project", firstAttempt: false, date: "2026-04", video: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", notes: "Crux move is the toe hook, close on last session" },
-  { id: "seed-03", name: "La Marie-Rose", grade: "5c", placeId: "seed-place-font-bas-cuvier", type: "boulder", status: "send", firstAttempt: false, date: "2025", video: null, notes: null },
-  { id: "seed-04", name: "Not So Soft", grade: "8a", placeId: "seed-place-font-95-2", type: "boulder", status: "checkout", firstAttempt: false, date: null, video: null, notes: null },
-  { id: "seed-05", name: "Digitalis", grade: "7c", placeId: "seed-place-magic-wood-new-base-camp", type: "boulder", status: "project", firstAttempt: false, date: "2026-06", video: "https://vimeo.com/12345678", notes: "Big moves, need to grow 6 inches" },
-  { id: "seed-06", name: "The Practice", grade: "6c", placeId: "seed-place-magic-wood-farmer-wall", type: "boulder", status: "archived", firstAttempt: false, date: "2026-02-02", video: null, notes: "Landing zone felt sketchy, bailed" },
-  { id: "seed-07", name: "Voie des Dalles", grade: "6a", placeId: "seed-place-albarracin-ventorrillo", type: "sport", status: "send", firstAttempt: true, date: "2026-01-20", video: null, notes: null, sportStyle: "lead" },
-  { id: "seed-08", name: "Puentedura", grade: "7a+", placeId: "seed-place-albarracin", type: "sport", status: "project", firstAttempt: false, date: null, video: null, notes: "Redpoint attempt next trip", sportStyle: "lead" },
-  { id: "seed-09", name: "Bat Route", grade: "6b", placeId: "seed-place-southern-sandstone-harrisons", type: "sport", status: "send", firstAttempt: false, date: "2025-09-06", video: null, notes: null, sportStyle: "top_rope" },
-  { id: "seed-10", name: "Slab Happy", grade: "6a+", placeId: "seed-place-portland", type: "sport", status: "checkout", firstAttempt: false, date: null, video: null, notes: null, sportStyle: "top_rope" },
+  {
+    id: "seed-01",
+    name: "L'Envers du Décor",
+    grade: "6b",
+    placeId: "seed-place-font-bas-cuvier",
+    type: "boulder",
+    status: "send",
+    firstAttempt: true,
+    date: "2026-03-14",
+    video: null,
+    notes: "Classic warm-up, felt easy",
+  },
+  {
+    id: "seed-02",
+    name: "Karma",
+    grade: "7a",
+    placeId: "seed-place-font-rocher-canon",
+    type: "boulder",
+    status: "project",
+    firstAttempt: false,
+    date: "2026-04",
+    video: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    notes: "Crux move is the toe hook, close on last session",
+  },
+  {
+    id: "seed-03",
+    name: "La Marie-Rose",
+    grade: "5c",
+    placeId: "seed-place-font-bas-cuvier",
+    type: "boulder",
+    status: "send",
+    firstAttempt: false,
+    date: "2025",
+    video: null,
+    notes: null,
+  },
+  {
+    id: "seed-04",
+    name: "Not So Soft",
+    grade: "8a",
+    placeId: "seed-place-font-95-2",
+    type: "boulder",
+    status: "checkout",
+    firstAttempt: false,
+    date: null,
+    video: null,
+    notes: null,
+  },
+  {
+    id: "seed-05",
+    name: "Digitalis",
+    grade: "7c",
+    placeId: "seed-place-magic-wood-new-base-camp",
+    type: "boulder",
+    status: "project",
+    firstAttempt: false,
+    date: "2026-06",
+    video: "https://vimeo.com/12345678",
+    notes: "Big moves, need to grow 6 inches",
+  },
+  {
+    id: "seed-06",
+    name: "The Practice",
+    grade: "6c",
+    placeId: "seed-place-magic-wood-farmer-wall",
+    type: "boulder",
+    status: "archived",
+    firstAttempt: false,
+    date: "2026-02-02",
+    video: null,
+    notes: "Landing zone felt sketchy, bailed",
+  },
+  {
+    id: "seed-07",
+    name: "Voie des Dalles",
+    grade: "6a",
+    placeId: "seed-place-albarracin-ventorrillo",
+    type: "sport",
+    status: "send",
+    firstAttempt: true,
+    date: "2026-01-20",
+    video: null,
+    notes: null,
+    sportStyle: "lead",
+  },
+  {
+    id: "seed-08",
+    name: "Puentedura",
+    grade: "7a+",
+    placeId: "seed-place-albarracin",
+    type: "sport",
+    status: "project",
+    firstAttempt: false,
+    date: null,
+    video: null,
+    notes: "Redpoint attempt next trip",
+    sportStyle: "lead",
+  },
+  {
+    id: "seed-09",
+    name: "Bat Route",
+    grade: "6b",
+    placeId: "seed-place-southern-sandstone-harrisons",
+    type: "sport",
+    status: "send",
+    firstAttempt: false,
+    date: "2025-09-06",
+    video: null,
+    notes: null,
+    sportStyle: "top_rope",
+  },
+  {
+    id: "seed-10",
+    name: "Slab Happy",
+    grade: "6a+",
+    placeId: "seed-place-portland",
+    type: "sport",
+    status: "checkout",
+    firstAttempt: false,
+    date: null,
+    video: null,
+    notes: null,
+    sportStyle: "top_rope",
+  },
 ];
 
 // Two sends per grade across a run of grades, so the pyramid has real tiers and nearly promotes.
@@ -88,13 +206,23 @@ export const LARGE_LOCATIONS = [
 const HEAVY_PLACES = [
   { id: "seed-large-place-font-heavy", locationId: "seed-loc-fontainebleau", area: "Cuvier Rempart", entryCount: 42 },
   { id: "seed-large-place-ceuse-berlin", locationId: "seed-large-loc-ceuse", area: "Berlin Wall", entryCount: 35 },
-  { id: "seed-large-place-kalymnos-grande-grotta", locationId: "seed-large-loc-kalymnos", area: "Grande Grotta", entryCount: 28 },
+  {
+    id: "seed-large-place-kalymnos-grande-grotta",
+    locationId: "seed-large-loc-kalymnos",
+    area: "Grande Grotta",
+    entryCount: 28,
+  },
 ];
 
 const TAIL_LOCATION_IDS = [
-  "seed-loc-fontainebleau", "seed-loc-magic-wood", "seed-loc-albarracin",
-  "seed-loc-southern-sandstone", "seed-loc-portland",
-  "seed-large-loc-ceuse", "seed-large-loc-kalymnos", "seed-large-loc-siurana",
+  "seed-loc-fontainebleau",
+  "seed-loc-magic-wood",
+  "seed-loc-albarracin",
+  "seed-loc-southern-sandstone",
+  "seed-loc-portland",
+  "seed-large-loc-ceuse",
+  "seed-large-loc-kalymnos",
+  "seed-large-loc-siurana",
 ];
 const TAIL_PLACE_COUNT = 18;
 const TAIL_PLACES = Array.from({ length: TAIL_PLACE_COUNT }, (_, i) => ({
@@ -165,7 +293,9 @@ async function seedAll(baseUrl, label, endpoint, records, cookie) {
 // Locations, then places, then entries: each references the one before.
 export async function seedLogbookData(baseUrl, cookie, { type } = {}) {
   const entries = type ? ENTRIES.filter(e => e.type === type) : ENTRIES;
-  console.log(`Seeding ${LOCATIONS.length} locations, ${PLACES.length} places, ${entries.length} entries into ${baseUrl}...`);
+  console.log(
+    `Seeding ${LOCATIONS.length} locations, ${PLACES.length} places, ${entries.length} entries into ${baseUrl}...`,
+  );
   let failed = 0;
   failed += await seedAll(baseUrl, "Locations", "/-/api/locations", LOCATIONS, cookie);
   failed += await seedAll(baseUrl, "Places", "/-/api/places", PLACES, cookie);
@@ -174,7 +304,9 @@ export async function seedLogbookData(baseUrl, cookie, { type } = {}) {
 }
 
 export async function seedLargeLogbookData(baseUrl, cookie) {
-  console.log(`Seeding ${LARGE_LOCATIONS.length} more locations, ${LARGE_PLACES.length} more places, ${LARGE_ENTRIES.length} more entries (large dataset, #111) into ${baseUrl}...`);
+  console.log(
+    `Seeding ${LARGE_LOCATIONS.length} more locations, ${LARGE_PLACES.length} more places, ${LARGE_ENTRIES.length} more entries (large dataset, #111) into ${baseUrl}...`,
+  );
   let failed = 0;
   failed += await seedAll(baseUrl, "Large locations", "/-/api/locations", LARGE_LOCATIONS, cookie);
   failed += await seedAll(baseUrl, "Large places", "/-/api/places", LARGE_PLACES, cookie);

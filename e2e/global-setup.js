@@ -1,7 +1,12 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { applyMigrations, bootstrapDevSession, resetDatabase, toPlaywrightCookie } from "../scripts/lib/dev-session.mjs";
+import {
+  applyMigrations,
+  bootstrapDevSession,
+  resetDatabase,
+  toPlaywrightCookie,
+} from "../scripts/lib/dev-session.mjs";
 
 const BASE_URL = "http://localhost:8787";
 export const STORAGE_STATE_PATH = "e2e/.auth/dev-session.json";
@@ -14,8 +19,7 @@ async function waitForServer(url, timeoutMs = 60_000) {
     try {
       const res = await fetch(url);
       if (res.ok) return;
-    } catch {
-    }
+    } catch {}
     await new Promise(resolve => setTimeout(resolve, 500));
   }
   throw new Error(`Server at ${url} did not become ready within ${timeoutMs}ms`);
@@ -34,7 +38,7 @@ export default async function globalSetup() {
   mkdirSync(dirname(STORAGE_STATE_PATH), { recursive: true });
   writeFileSync(
     STORAGE_STATE_PATH,
-    JSON.stringify({ cookies: [toPlaywrightCookie(setCookieHeader, BASE_URL)], origins: [] })
+    JSON.stringify({ cookies: [toPlaywrightCookie(setCookieHeader, BASE_URL)], origins: [] }),
   );
 
   execFileSync("node", ["scripts/seed-dev-data.mjs", BASE_URL], { stdio: "inherit" });

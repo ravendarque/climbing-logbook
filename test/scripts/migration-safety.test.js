@@ -14,11 +14,7 @@ const LAST_MIGRATION_BEFORE_RULE = 20;
 
 const OVERRIDE = /^--\s*destructive-migration:\s*\S.{9,}$/m;
 
-const DESTRUCTIVE = [
-  /\bDROP\s+(TABLE|VIEW|TRIGGER|COLUMN)\b/i,
-  /\bALTER\s+TABLE\s+\S+\s+DROP\b/i,
-  /\bRENAME\b/i,
-];
+const DESTRUCTIVE = [/\bDROP\s+(TABLE|VIEW|TRIGGER|COLUMN)\b/i, /\bALTER\s+TABLE\s+\S+\s+DROP\b/i, /\bRENAME\b/i];
 
 function stripComments(sql) {
   return sql.replace(/\/\*[\s\S]*?\*\//g, "").replace(/--.*$/gm, "");
@@ -58,7 +54,8 @@ describe("destructive migration detection", () => {
   });
 
   it("allows a destructive migration that carries a reasoned override", () => {
-    const sql = "-- destructive-migration: nothing reads entries.video since v2.70.0\nALTER TABLE entries DROP COLUMN video;";
+    const sql =
+      "-- destructive-migration: nothing reads entries.video since v2.70.0\nALTER TABLE entries DROP COLUMN video;";
     expect(isAllowed(sql)).toBe(true);
   });
 
@@ -78,6 +75,9 @@ describe("migrations/", () => {
   it.each(governed.length ? governed : ["(none yet)"])("%s is additive, or says why it isn't", name => {
     if (name === "(none yet)") return;
     const sql = readFileSync(join(MIGRATIONS_DIR, name), "utf8");
-    expect(isAllowed(sql), `${name} drops or renames something (${destructiveStatements(sql).join(", ")}). Ship the code that stops using it first, then add "-- destructive-migration: <why it's safe now>" (docs/versioning.md).`).toBe(true);
+    expect(
+      isAllowed(sql),
+      `${name} drops or renames something (${destructiveStatements(sql).join(", ")}). Ship the code that stops using it first, then add "-- destructive-migration: <why it's safe now>" (docs/versioning.md).`,
+    ).toBe(true);
   });
 });

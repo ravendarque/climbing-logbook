@@ -81,7 +81,9 @@ function updateAdminBar() {
 }
 
 const adminAuth = createAdminAuth({
-  store, adminFetch, isAuthRedirect,
+  store,
+  adminFetch,
+  isAuthRedirect,
   settingsUrl: SETTINGS_URL,
   updateAdminBar,
 });
@@ -123,7 +125,11 @@ confirmBtn.addEventListener("click", async () => {
 addEventListener("online", render);
 addEventListener("offline", render);
 
-createDisclosure(document.getElementById("header-menu-btn"), document.getElementById("header-menu-popover"), "#header-menu-wrap");
+createDisclosure(
+  document.getElementById("header-menu-btn"),
+  document.getElementById("header-menu-popover"),
+  "#header-menu-wrap",
+);
 createThemeToggle();
 
 async function boot() {

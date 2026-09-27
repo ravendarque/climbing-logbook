@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { isCacheableAsset, isCacheableShell, shellCacheKey } from "../../../client/sw/responses.js";
 
-const withShell = (page, init = {}) => new Response("<html>", { status: 200, ...init, headers: { "X-Logbook-Shell": page, ...(init.headers ?? {}) } });
+const withShell = (page, init = {}) =>
+  new Response("<html>", { status: 200, ...init, headers: { "X-Logbook-Shell": page, ...(init.headers ?? {}) } });
 
 describe("isCacheableShell (#947, #959)", () => {
   it("caches a 200 carrying the matching shell header", () => {
@@ -16,21 +17,33 @@ describe("isCacheableShell (#947, #959)", () => {
 
   it("never caches an error or a redirect", () => {
     expect(isCacheableShell(withShell("log", { status: 500 }), "log")).toBe(false);
-    expect(isCacheableShell(new Response(null, { status: 302, headers: { Location: "/login/", "X-Logbook-Shell": "log" } }), "log")).toBe(false);
+    expect(
+      isCacheableShell(
+        new Response(null, { status: 302, headers: { Location: "/login/", "X-Logbook-Shell": "log" } }),
+        "log",
+      ),
+    ).toBe(false);
     const redirected = withShell("log");
     Object.defineProperty(redirected, "redirected", { value: true });
     expect(isCacheableShell(redirected, "log")).toBe(false);
   });
 
   it("keys shells by page type, not by user", () => {
-    expect(shellCacheKey("log", "https://my.climbinglogbook.com")).toBe("https://my.climbinglogbook.com/log/index.html");
-    expect(shellCacheKey("account/import", "https://beta.climbinglogbook.com")).toBe("https://beta.climbinglogbook.com/account/import/index.html");
+    expect(shellCacheKey("log", "https://my.climbinglogbook.com")).toBe(
+      "https://my.climbinglogbook.com/log/index.html",
+    );
+    expect(shellCacheKey("account/import", "https://beta.climbinglogbook.com")).toBe(
+      "https://beta.climbinglogbook.com/account/import/index.html",
+    );
   });
 });
 
 describe("isCacheableAsset (#947)", () => {
   it("caches ok same-origin responses only", () => {
-    const basic = r => { Object.defineProperty(r, "type", { value: "basic" }); return r; };
+    const basic = r => {
+      Object.defineProperty(r, "type", { value: "basic" });
+      return r;
+    };
     expect(isCacheableAsset(basic(new Response("x", { status: 200 })))).toBe(true);
     expect(isCacheableAsset(basic(new Response("x", { status: 404 })))).toBe(false);
     const opaque = new Response("x", { status: 200 });

@@ -19,16 +19,24 @@ function d1Args(database, { remote = false, env } = {}) {
 }
 
 export function d1Execute(sql, { database = D1_DATABASE, remote, env } = {}) {
-  execFileSync(
-    "pnpm",
-    ["exec", "wrangler", "d1", "execute", ...d1Args(database, { remote, env }), "--command", sql],
-    { stdio: "inherit" }
-  );
+  execFileSync("pnpm", ["exec", "wrangler", "d1", "execute", ...d1Args(database, { remote, env }), "--command", sql], {
+    stdio: "inherit",
+  });
 }
 
 // Children before parents; beta_invites' user references don't cascade.
 export function resetDatabase(options = {}) {
-  for (const table of ["session", "account", "entries", "places", "locations", "settings", "beta_invites", "verification", "user"]) {
+  for (const table of [
+    "session",
+    "account",
+    "entries",
+    "places",
+    "locations",
+    "settings",
+    "beta_invites",
+    "verification",
+    "user",
+  ]) {
     d1Execute(`DELETE FROM "${table}"`, options);
   }
 }
@@ -47,15 +55,16 @@ async function fetchWithRetry(url, init, attempts = 3) {
 
 // Exported so e2e setup can migrate before its reset: a fresh runner has no tables yet.
 export function applyMigrations({ database = D1_DATABASE, remote, env } = {}) {
-  execFileSync(
-    "pnpm",
-    ["exec", "wrangler", "d1", "migrations", "apply", ...d1Args(database, { remote, env })],
-    { stdio: "inherit" }
-  );
+  execFileSync("pnpm", ["exec", "wrangler", "d1", "migrations", "apply", ...d1Args(database, { remote, env })], {
+    stdio: "inherit",
+  });
 }
 
 // Preview seeding passes secret credentials: a public deployment mustn't use the ones in this file.
-export async function bootstrapDevSession(baseUrl, { user = DEV_USER, inviteCode = `dev-seed-${crypto.randomUUID()}`, ...options } = {}) {
+export async function bootstrapDevSession(
+  baseUrl,
+  { user = DEV_USER, inviteCode = `dev-seed-${crypto.randomUUID()}`, ...options } = {},
+) {
   applyMigrations(options);
 
   d1Execute(`INSERT OR IGNORE INTO beta_invites (code) VALUES ('${inviteCode}')`, options);
@@ -92,7 +101,7 @@ export function toPlaywrightCookie(setCookieHeader, baseUrl) {
     attrs.map(attr => {
       const [k, v] = attr.split("=");
       return [k.toLowerCase(), v ?? true];
-    })
+    }),
   );
 
   const maxAge = attrMap["max-age"] ? Number(attrMap["max-age"]) : null;

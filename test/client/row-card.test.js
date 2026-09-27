@@ -19,19 +19,25 @@ describe("rowCardHtml", () => {
 
   it("omits the status line when status is not given", () => {
     const html = rowCardHtml({ id: "r", title: "T", description: "D", controlHtml: "<button>Go</button>" });
-    expect(html).not.toContain('text-accent');
+    expect(html).not.toContain("text-accent");
   });
 
   it("includes an accent-colored status line when status is given", () => {
-    const html = rowCardHtml({ id: "r", title: "T", description: "D", status: "3 sends logged", controlHtml: "<button>Go</button>" });
-    expect(html).toContain('text-[.78rem] text-accent mt-1');
+    const html = rowCardHtml({
+      id: "r",
+      title: "T",
+      description: "D",
+      status: "3 sends logged",
+      controlHtml: "<button>Go</button>",
+    });
+    expect(html).toContain("text-[.78rem] text-accent mt-1");
     expect(html).toContain("3 sends logged");
   });
 
   it("escapes title, description, and status but not controlHtml", () => {
     const html = rowCardHtml({
       id: "r",
-      title: '<img src=x onerror=alert(1)>',
+      title: "<img src=x onerror=alert(1)>",
       description: "<script>alert(2)</script>",
       status: "<b>bold</b>",
       controlHtml: '<a href="/safe">View</a>',

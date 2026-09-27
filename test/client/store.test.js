@@ -20,8 +20,26 @@ const PLACES = [
   { id: "p2", locationId: "l2", area: "New Base Camp" },
 ];
 const ENTRIES = [
-  { id: "e1", placeId: "p1", name: "L'Envers du Décor", grade: "6B", type: "boulder", status: "send", firstAttempt: true, date: "2026-03-14" },
-  { id: "e2", placeId: "p2", name: "Digitalis", grade: "7C", type: "boulder", status: "project", firstAttempt: false, date: "2026-06" },
+  {
+    id: "e1",
+    placeId: "p1",
+    name: "L'Envers du Décor",
+    grade: "6B",
+    type: "boulder",
+    status: "send",
+    firstAttempt: true,
+    date: "2026-03-14",
+  },
+  {
+    id: "e2",
+    placeId: "p2",
+    name: "Digitalis",
+    grade: "7C",
+    type: "boulder",
+    status: "project",
+    firstAttempt: false,
+    date: "2026-06",
+  },
 ];
 
 let storage, store;
@@ -60,7 +78,10 @@ describe("entries/places/locations", () => {
 describe("mergeConfirmed", () => {
   it("upserts confirmed rows into the stored cache and persists the result", () => {
     store.setEntries(ENTRIES);
-    store.mergeConfirmed("entries", [{ ...ENTRIES[0], name: "Renamed" }, { id: "e3", placeId: "p1", name: "New" }]);
+    store.mergeConfirmed("entries", [
+      { ...ENTRIES[0], name: "Renamed" },
+      { id: "e3", placeId: "p1", name: "New" },
+    ]);
     const expected = [{ ...ENTRIES[0], name: "Renamed" }, ENTRIES[1], { id: "e3", placeId: "p1", name: "New" }];
     expect(store.getEntries()).toEqual(expected);
     expect(JSON.parse(storage.getItem("logbook_entries_cache"))).toEqual(expected);
@@ -109,7 +130,9 @@ describe("loadEntriesFromCache", () => {
   it("notifies subscribers so cached entries reach the DOM immediately, not on some later unrelated mutation (#762)", () => {
     storage.setItem("logbook_entries_cache", JSON.stringify(ENTRIES));
     let calls = 0;
-    store.subscribe(() => { calls++; });
+    store.subscribe(() => {
+      calls++;
+    });
     store.loadEntriesFromCache();
     expect(calls).toBe(1);
   });
@@ -117,14 +140,18 @@ describe("loadEntriesFromCache", () => {
   it("still notifies even when the cached JSON is corrupt", () => {
     storage.setItem("logbook_entries_cache", "{not valid json");
     let calls = 0;
-    store.subscribe(() => { calls++; });
+    store.subscribe(() => {
+      calls++;
+    });
     store.loadEntriesFromCache();
     expect(calls).toBe(1);
   });
 
   it("does not notify when nothing was ever cached", () => {
     let calls = 0;
-    store.subscribe(() => { calls++; });
+    store.subscribe(() => {
+      calls++;
+    });
     store.loadEntriesFromCache();
     expect(calls).toBe(0);
   });
@@ -181,7 +208,9 @@ describe("activeView", () => {
 describe("subscribe/notify (#264)", () => {
   it("calls every subscriber once per mutating call", () => {
     let calls = 0;
-    store.subscribe(() => { calls++; });
+    store.subscribe(() => {
+      calls++;
+    });
     store.setActiveType("lead");
     expect(calls).toBe(1);
     store.setActiveView("map");
@@ -189,9 +218,14 @@ describe("subscribe/notify (#264)", () => {
   });
 
   it("calls every subscriber, not just the first one registered", () => {
-    let a = 0, b = 0;
-    store.subscribe(() => { a++; });
-    store.subscribe(() => { b++; });
+    let a = 0,
+      b = 0;
+    store.subscribe(() => {
+      a++;
+    });
+    store.subscribe(() => {
+      b++;
+    });
     store.setLoggedIn(true);
     expect(a).toBe(1);
     expect(b).toBe(1);
@@ -199,7 +233,9 @@ describe("subscribe/notify (#264)", () => {
 
   it("does not notify from a pure getter/read method", () => {
     let calls = 0;
-    store.subscribe(() => { calls++; });
+    store.subscribe(() => {
+      calls++;
+    });
     store.isLoggedIn();
     store.getEntries();
     store.getActiveType();
@@ -208,7 +244,9 @@ describe("subscribe/notify (#264)", () => {
 
   it("notifies on every mutating method", () => {
     let calls = 0;
-    store.subscribe(() => { calls++; });
+    store.subscribe(() => {
+      calls++;
+    });
     store.setEntries(ENTRIES);
     store.setPlaces(PLACES);
     store.setLocations(LOCATIONS);
@@ -241,7 +279,9 @@ describe("applyPendingQueue (#264)", () => {
 
   it("notifies subscribers", () => {
     let calls = 0;
-    store.subscribe(() => { calls++; });
+    store.subscribe(() => {
+      calls++;
+    });
     store.applyPendingQueue([{ kind: "entry", op: "add", record: { id: "e3", grade: "6A" } }]);
     expect(calls).toBe(1);
   });

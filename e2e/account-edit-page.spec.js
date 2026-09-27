@@ -23,8 +23,8 @@ test("username row: saving posts only { username }, nothing else", async ({ page
   await mockApi(page, { username: "nix", email: "nix@example.com" });
   await page.goto("/e2e-fixtures/pages/account-edit.html");
 
-  const updateUserRequest = page.waitForRequest(req =>
-    req.url().includes("/-/api/auth/update-user") && req.method() === "POST"
+  const updateUserRequest = page.waitForRequest(
+    req => req.url().includes("/-/api/auth/update-user") && req.method() === "POST",
   );
 
   await page.locator("#username-edit-btn").click();
@@ -35,7 +35,9 @@ test("username row: saving posts only { username }, nothing else", async ({ page
   expect(req.postDataJSON()).toEqual({ username: "nixnewname" });
 });
 
-test("email row: saving shows the pending-confirmation state, doesn't change the displayed email yet", async ({ page }) => {
+test("email row: saving shows the pending-confirmation state, doesn't change the displayed email yet", async ({
+  page,
+}) => {
   await mockApi(page, { username: "nix", email: "nix@example.com" });
   await page.goto("/e2e-fixtures/pages/account-edit.html");
 
@@ -67,7 +69,8 @@ test("password row: saving succeeds and closes the form, without touching userna
 test("shows the server's own error message and keeps the form open on failure", async ({ page }) => {
   await mockApi(page, { username: "nix", email: "nix@example.com" });
   await page.route("**/-/api/auth/change-password", route =>
-    route.fulfill({ status: 400, json: { message: "Incorrect password.", code: "INVALID_PASSWORD" } }));
+    route.fulfill({ status: 400, json: { message: "Incorrect password.", code: "INVALID_PASSWORD" } }),
+  );
   await page.goto("/e2e-fixtures/pages/account-edit.html");
 
   await page.locator("#password-edit-btn").click();

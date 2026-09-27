@@ -2,7 +2,11 @@
 import { createDisclosure } from "./modal-utils.js";
 import { createThemeToggle } from "./theme-toggle.js";
 
-createDisclosure(document.getElementById("header-menu-btn"), document.getElementById("header-menu-popover"), "#header-menu-wrap");
+createDisclosure(
+  document.getElementById("header-menu-btn"),
+  document.getElementById("header-menu-popover"),
+  "#header-menu-wrap",
+);
 createThemeToggle();
 
 const helpNav = document.getElementById("help-nav");

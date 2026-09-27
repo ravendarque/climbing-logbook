@@ -11,8 +11,9 @@ beforeEach(() => {
 
 function pickAnyOtherDay(idPrefix) {
   containerEl.querySelector(`#${idPrefix}-btn`).click();
-  const cell = [...containerEl.querySelectorAll(`#${idPrefix}-grid button[data-date]`)]
-    .find(el => el.getAttribute("aria-selected") !== "true");
+  const cell = [...containerEl.querySelectorAll(`#${idPrefix}-grid button[data-date]`)].find(
+    el => el.getAttribute("aria-selected") !== "true",
+  );
   cell.click();
   return cell.dataset.date;
 }

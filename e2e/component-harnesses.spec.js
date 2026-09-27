@@ -49,7 +49,9 @@ test("map-view.js: pan buttons shift the visible viewBox", async ({ page }) => {
   expect(after.x).toBeGreaterThan(before.x);
 });
 
-test("map-view.js: clicking a pin opens the popover with that country's stats, closes on its own close button", async ({ page }) => {
+test("map-view.js: clicking a pin opens the popover with that country's stats, closes on its own close button", async ({
+  page,
+}) => {
   await page.goto("/e2e-fixtures/map-harness.html");
   await expect(page.locator("#map-container svg")).toBeVisible();
 

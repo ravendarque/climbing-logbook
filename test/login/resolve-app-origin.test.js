@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { needsChannelChoice, resolveAppOrigin, resolvePostLoginTarget, safeReturnTo } from "../../static/-/login/resolve-app-origin.js";
+import {
+  needsChannelChoice,
+  resolveAppOrigin,
+  resolvePostLoginTarget,
+  safeReturnTo,
+} from "../../static/-/login/resolve-app-origin.js";
 
 describe("resolveAppOrigin", () => {
   it("returns beta.climbinglogbook.com for an opted-in user on the real apex", () => {
@@ -48,7 +53,7 @@ describe("safeReturnTo", () => {
     "%2F%2Fevil.example",
     "/raven/log\nSet-Cookie: x=1",
     "/raven/log\t",
-  ])("rejects %j", (value) => {
+  ])("rejects %j", value => {
     expect(safeReturnTo(value, origin)).toBeNull();
   });
 });
@@ -58,28 +63,46 @@ describe("resolvePostLoginTarget", () => {
   const apex = { hostname: "climbinglogbook.com", origin: "https://climbinglogbook.com" };
 
   it("on an app host, returns to returnTo when it's the user's own page", () => {
-    expect(resolvePostLoginTarget({ ...app, username: "raven", returnTo: "/raven/map?x=1", betaOptIn: null })).toBe("/raven/map?x=1");
+    expect(resolvePostLoginTarget({ ...app, username: "raven", returnTo: "/raven/map?x=1", betaOptIn: null })).toBe(
+      "/raven/map?x=1",
+    );
   });
 
   it("matches the username case-insensitively and percent-decoded, like the server's lookup", () => {
-    expect(resolvePostLoginTarget({ ...app, username: "Raven", returnTo: "/raven/map", betaOptIn: null })).toBe("/raven/map");
-    expect(resolvePostLoginTarget({ ...app, username: "raven", returnTo: "/%72aven/map", betaOptIn: null })).toBe("/%72aven/map");
+    expect(resolvePostLoginTarget({ ...app, username: "Raven", returnTo: "/raven/map", betaOptIn: null })).toBe(
+      "/raven/map",
+    );
+    expect(resolvePostLoginTarget({ ...app, username: "raven", returnTo: "/%72aven/map", betaOptIn: null })).toBe(
+      "/%72aven/map",
+    );
   });
 
   it("on an app host, ignores returnTo for someone else's page (it would only bounce back to login) and goes to their own /log", () => {
-    expect(resolvePostLoginTarget({ ...app, username: "raven", returnTo: "/someoneelse/log", betaOptIn: null })).toBe("/raven/log");
+    expect(resolvePostLoginTarget({ ...app, username: "raven", returnTo: "/someoneelse/log", betaOptIn: null })).toBe(
+      "/raven/log",
+    );
   });
 
   it("on an app host, falls back to the user's own /log, same origin, for a missing or unsafe returnTo", () => {
     expect(resolvePostLoginTarget({ ...app, username: "raven", returnTo: null, betaOptIn: true })).toBe("/raven/log");
-    expect(resolvePostLoginTarget({ ...app, username: "raven", returnTo: "//evil.example/raven/log", betaOptIn: true })).toBe("/raven/log");
-    expect(resolvePostLoginTarget({ ...app, username: "raven", returnTo: "/%E0%A4%A/log", betaOptIn: null })).toBe("/raven/log");
+    expect(
+      resolvePostLoginTarget({ ...app, username: "raven", returnTo: "//evil.example/raven/log", betaOptIn: true }),
+    ).toBe("/raven/log");
+    expect(resolvePostLoginTarget({ ...app, username: "raven", returnTo: "/%E0%A4%A/log", betaOptIn: null })).toBe(
+      "/raven/log",
+    );
   });
 
   it("on the apex, ignores returnTo and picks the channel: beta when enrolled, else my.x", () => {
-    expect(resolvePostLoginTarget({ ...apex, username: "raven", returnTo: "/raven/map", betaOptIn: true })).toBe("https://beta.climbinglogbook.com/raven/log");
-    expect(resolvePostLoginTarget({ ...apex, username: "raven", returnTo: "/raven/map", betaOptIn: false })).toBe("https://my.climbinglogbook.com/raven/log");
-    expect(resolvePostLoginTarget({ ...apex, username: "raven", returnTo: null, betaOptIn: null })).toBe("https://my.climbinglogbook.com/raven/log");
+    expect(resolvePostLoginTarget({ ...apex, username: "raven", returnTo: "/raven/map", betaOptIn: true })).toBe(
+      "https://beta.climbinglogbook.com/raven/log",
+    );
+    expect(resolvePostLoginTarget({ ...apex, username: "raven", returnTo: "/raven/map", betaOptIn: false })).toBe(
+      "https://my.climbinglogbook.com/raven/log",
+    );
+    expect(resolvePostLoginTarget({ ...apex, username: "raven", returnTo: null, betaOptIn: null })).toBe(
+      "https://my.climbinglogbook.com/raven/log",
+    );
   });
 
   it("only the apex needs the settings read for the channel choice", () => {

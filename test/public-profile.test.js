@@ -2,8 +2,12 @@ import { env, exports } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
 
-beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
-afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
+beforeAll(() => {
+  env.BETA_GATE_ENABLED = "false";
+});
+afterAll(() => {
+  env.BETA_GATE_ENABLED = "true";
+});
 
 function fetchProfile(username, hostname = "my.example.com") {
   return exports.default.fetch(`https://${hostname}/${username}`);
@@ -56,10 +60,17 @@ describe("public profile visibility", () => {
   it("404s (not the shell) once logbook_public is turned off", async () => {
     const { cookie } = await createAuthedSession({ username: "privateuser" });
     const placeId = await seedPlace(cookie);
-    await jsonRequest("POST", "/-/api/entries", { placeId, name: "Sleepwalker", grade: "7A", type: "boulder", status: "send" }, { Cookie: cookie });
+    await jsonRequest(
+      "POST",
+      "/-/api/entries",
+      { placeId, name: "Sleepwalker", grade: "7A", type: "boulder", status: "send" },
+      { Cookie: cookie },
+    );
 
     await jsonRequest("PATCH", "/-/api/settings", {}, { Cookie: cookie }); // creates the settings row
-    await env.LOGBOOK_DB.prepare(`UPDATE settings SET logbook_public = 0 WHERE user_id = (SELECT id FROM "user" WHERE username = 'privateuser')`).run();
+    await env.LOGBOOK_DB.prepare(
+      `UPDATE settings SET logbook_public = 0 WHERE user_id = (SELECT id FROM "user" WHERE username = 'privateuser')`,
+    ).run();
 
     const res = await fetchProfile("privateuser");
     expect(res.status).toBe(404);

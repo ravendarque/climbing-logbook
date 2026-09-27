@@ -1,10 +1,20 @@
 import { expect, test } from "@playwright/test";
 import { mockApi } from "./mock-api.js";
 
-test("renders the shared chrome, a real map, and switches discipline (persisted via the settings PATCH)", async ({ page }) => {
+test("renders the shared chrome, a real map, and switches discipline (persisted via the settings PATCH)", async ({
+  page,
+}) => {
   await mockApi(page, {
     entries: [
-      { id: "e1", placeId: "p1", type: "boulder", status: "send", grade: "6A", date: "2026-05-01", name: "Boulder Seed" },
+      {
+        id: "e1",
+        placeId: "p1",
+        type: "boulder",
+        status: "send",
+        grade: "6A",
+        date: "2026-05-01",
+        name: "Boulder Seed",
+      },
       { id: "e2", placeId: "p1", type: "sport", status: "send", grade: "6a", date: "2026-05-02", name: "Sport Seed" },
     ],
     places: [{ id: "p1", locationId: "l1", area: "" }],

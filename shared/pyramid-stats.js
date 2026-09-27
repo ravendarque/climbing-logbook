@@ -80,7 +80,8 @@ export function pyramidSplitRows(type, entries, viewScaleId = ROW_SCALE_BY_TYPE[
   const displayTop = Math.max(topIdx, Math.min(3, order.length - 1));
   const windowStartIdx = Math.max(0, displayTop - 3);
 
-  const top4 = order.slice(windowStartIdx, displayTop + 1)
+  const top4 = order
+    .slice(windowStartIdx, displayTop + 1)
     .map(g => ({ grade: g, count: counts[g] }))
     .reverse(); // hardest (ideal 1) first
 

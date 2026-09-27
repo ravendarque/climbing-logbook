@@ -4,14 +4,19 @@ import { createAuthedSession, resetAuthTables } from "./support.js";
 import { SHELL_HEADER, SHELL_PATHS } from "../shared/owner-routes.js";
 
 async function setBetaOptIn(userId, value) {
-  await env.LOGBOOK_DB
-    .prepare(`INSERT INTO settings (user_id, beta_opt_in) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET beta_opt_in = excluded.beta_opt_in`)
+  await env.LOGBOOK_DB.prepare(
+    `INSERT INTO settings (user_id, beta_opt_in) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET beta_opt_in = excluded.beta_opt_in`,
+  )
     .bind(userId, value === null ? null : value ? 1 : 0)
     .run();
 }
 
-beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
-afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
+beforeAll(() => {
+  env.BETA_GATE_ENABLED = "false";
+});
+afterAll(() => {
+  env.BETA_GATE_ENABLED = "true";
+});
 
 function fetchOwnedRoute(username, page, { hostname = "my.climbinglogbook.com", cookie } = {}) {
   return exports.default.fetch(`https://${hostname}/${username}/${page}`, {
@@ -40,7 +45,10 @@ describe("owned route authorization", () => {
 
   it("redirects to login when logged in as a *different* user", async () => {
     await createAuthedSession({ username: "targetuser", hostname: "climbinglogbook.com" });
-    const { cookie: otherCookie } = await createAuthedSession({ username: "differentuser", hostname: "climbinglogbook.com" });
+    const { cookie: otherCookie } = await createAuthedSession({
+      username: "differentuser",
+      hostname: "climbinglogbook.com",
+    });
     const res = await fetchOwnedRoute("targetuser", "log", { cookie: otherCookie });
     expect(res.status).toBe(302);
     expect(res.headers.get("Location")).toBe("https://my.climbinglogbook.com/-/login/?returnTo=%2Ftargetuser%2Flog");
@@ -50,7 +58,9 @@ describe("owned route authorization", () => {
     const { cookie } = await createAuthedSession({ username: "realuser", hostname: "climbinglogbook.com" });
     const res = await fetchOwnedRoute("nobody-by-this-name", "log", { cookie });
     expect(res.status).toBe(302);
-    expect(res.headers.get("Location")).toBe("https://my.climbinglogbook.com/-/login/?returnTo=%2Fnobody-by-this-name%2Flog");
+    expect(res.headers.get("Location")).toBe(
+      "https://my.climbinglogbook.com/-/login/?returnTo=%2Fnobody-by-this-name%2Flog",
+    );
   });
 
   it("looks up the username case-insensitively", async () => {
@@ -167,7 +177,10 @@ describe("owned route authorization", () => {
   });
 
   it("serves the real static shell for account/import", async () => {
-    const { cookie } = await createAuthedSession({ username: "accountimportshelluser", hostname: "climbinglogbook.com" });
+    const { cookie } = await createAuthedSession({
+      username: "accountimportshelluser",
+      hostname: "climbinglogbook.com",
+    });
     const res = await fetchOwnedRoute("accountimportshelluser", "account/import", { cookie });
     expect(res.status).toBe(200);
     const html = await res.text();
@@ -194,7 +207,9 @@ describe("owned route authorization", () => {
   });
 
   it("keeps the page's query string in returnTo", async () => {
-    const res = await exports.default.fetch("https://my.climbinglogbook.com/someone/performance/rpe?window=90", { redirect: "manual" });
+    const res = await exports.default.fetch("https://my.climbinglogbook.com/someone/performance/rpe?window=90", {
+      redirect: "manual",
+    });
     expect(res.status).toBe(302);
     const location = new URL(res.headers.get("Location"));
     expect(location.origin).toBe("https://my.climbinglogbook.com");
@@ -218,9 +233,15 @@ describe("beta.x owned routes", () => {
     ["not enrolled (0)", false],
     ["no value (NULL)", null],
   ])("%s -- still serves the real page shell (no server-side gate, no redirect)", async (_label, value) => {
-    const { cookie, userId } = await createAuthedSession({ username: `betanogate${value === null ? "null" : "0"}`, hostname: "climbinglogbook.com" });
+    const { cookie, userId } = await createAuthedSession({
+      username: `betanogate${value === null ? "null" : "0"}`,
+      hostname: "climbinglogbook.com",
+    });
     await setBetaOptIn(userId, value);
-    const res = await fetchOwnedRoute(`betanogate${value === null ? "null" : "0"}`, "map", { hostname: "beta.climbinglogbook.com", cookie });
+    const res = await fetchOwnedRoute(`betanogate${value === null ? "null" : "0"}`, "map", {
+      hostname: "beta.climbinglogbook.com",
+      cookie,
+    });
     expect(res.status).toBe(200);
     expect(res.headers.get(SHELL_HEADER)).toBe("map");
     expect(await res.text()).not.toContain("<beta-opt-in-modal");
@@ -248,7 +269,10 @@ describe("beta.x owned routes", () => {
   });
 
   it("falls through (404) for a page shape that isn't a real owned route", async () => {
-    const { cookie, userId } = await createAuthedSession({ username: "betaunknownpage", hostname: "climbinglogbook.com" });
+    const { cookie, userId } = await createAuthedSession({
+      username: "betaunknownpage",
+      hostname: "climbinglogbook.com",
+    });
     await setBetaOptIn(userId, true);
     const res = await fetchOwnedRoute("betaunknownpage", "settings", { hostname: "beta.climbinglogbook.com", cookie });
     expect(res.status).toBe(404);
@@ -262,7 +286,17 @@ describe("beta.x owned routes", () => {
 
 describe("demo account owned pages (#251)", () => {
   it("serves log/map/performance and every performance sub-page shell with no session", async () => {
-    for (const page of ["log", "map", "performance", "performance/pyramid", "performance/injury", "performance/strengths", "performance/trends", "performance/gap", "performance/rpe"]) {
+    for (const page of [
+      "log",
+      "map",
+      "performance",
+      "performance/pyramid",
+      "performance/injury",
+      "performance/strengths",
+      "performance/trends",
+      "performance/gap",
+      "performance/rpe",
+    ]) {
       const res = await fetchOwnedRoute("beginnerdemo", page);
       expect(res.status, `${page} should serve for a demo username with no session`).toBe(200);
     }
@@ -310,7 +344,10 @@ describe("shell identity header (#959)", () => {
   });
 
   it("marks the real page on beta.x for an opted-in user", async () => {
-    const { cookie, userId } = await createAuthedSession({ username: "betashellheader", hostname: "climbinglogbook.com" });
+    const { cookie, userId } = await createAuthedSession({
+      username: "betashellheader",
+      hostname: "climbinglogbook.com",
+    });
     await setBetaOptIn(userId, true);
     const res = await fetchOwnedRoute("betashellheader", "map", { hostname: "beta.climbinglogbook.com", cookie });
     expect(res.status).toBe(200);

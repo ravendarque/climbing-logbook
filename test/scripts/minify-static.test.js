@@ -5,8 +5,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { minifyStaticScripts } from "../../scripts/minify-static.mjs";
 
 let root;
-beforeEach(() => { root = mkdtempSync(join(tmpdir(), "minify-static-")); });
-afterEach(() => { rmSync(root, { recursive: true, force: true }); });
+beforeEach(() => {
+  root = mkdtempSync(join(tmpdir(), "minify-static-"));
+});
+afterEach(() => {
+  rmSync(root, { recursive: true, force: true });
+});
 
 function write(path, content) {
   mkdirSync(join(path, ".."), { recursive: true });
@@ -15,13 +19,16 @@ function write(path, content) {
 
 describe("minifyStaticScripts", () => {
   it("strips every comment and keeps top-level names other scripts rely on", () => {
-    write(join(root, "src/components/widget.js"), `// explains history
+    write(
+      join(root, "src/components/widget.js"),
+      `// explains history
 /* block */
 function sharedHelper(value) { /* inner */ return value * 2; }
 var SITE_KEY = "abc"; // trailing
 /*! legal */
 class ClimbingWidget extends HTMLElement {}
-`);
+`,
+    );
     write(join(root, "out/components/widget.js"), "copied by 11ty");
 
     const { before, after } = minifyStaticScripts(join(root, "src"), join(root, "out"));

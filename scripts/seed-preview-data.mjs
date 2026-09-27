@@ -14,7 +14,12 @@ if (!PREVIEW_DEV_EMAIL || !PREVIEW_DEV_PASSWORD || !PREVIEW_BETA_INVITE_CODE) {
   console.error("Missing PREVIEW_DEV_EMAIL / PREVIEW_DEV_PASSWORD / PREVIEW_BETA_INVITE_CODE in the environment.");
   process.exit(1);
 }
-const PREVIEW_USER = { email: PREVIEW_DEV_EMAIL, password: PREVIEW_DEV_PASSWORD, name: "Preview Dev User", username: "previewdev" };
+const PREVIEW_USER = {
+  email: PREVIEW_DEV_EMAIL,
+  password: PREVIEW_DEV_PASSWORD,
+  name: "Preview Dev User",
+  username: "previewdev",
+};
 
 const D1_OPTIONS = { database: "climbing-logbook-preview", remote: true, env: "preview" };
 
@@ -25,8 +30,7 @@ async function waitForServer(url, timeoutMs = 60_000) {
     try {
       const res = await fetch(url);
       if (res.ok) return;
-    } catch {
-    }
+    } catch {}
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
   throw new Error(`Preview at ${url} did not become ready within ${timeoutMs}ms`);

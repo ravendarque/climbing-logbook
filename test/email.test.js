@@ -5,27 +5,50 @@ import { createEmailSender } from "../server/lib/email.js";
 
 beforeEach(resetAuthTables);
 
-beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
-afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
+beforeAll(() => {
+  env.BETA_GATE_ENABLED = "false";
+});
+afterAll(() => {
+  env.BETA_GATE_ENABLED = "true";
+});
 
-const SIGNUP = { email: "nix@example.com", password: "correct-horse-battery-staple", name: "Nix", username: "nix", turnstileToken: "test-token" };
+const SIGNUP = {
+  email: "nix@example.com",
+  password: "correct-horse-battery-staple",
+  name: "Nix",
+  username: "nix",
+  turnstileToken: "test-token",
+};
 
 let resendCalls;
 beforeEach(() => {
   resendCalls = [];
-  vi.stubGlobal("fetch", vi.fn(async (input, init) => {
-    const url = typeof input === "string" ? input : input.url;
-    if (url.startsWith("https://api.resend.com/")) {
-      resendCalls.push({ url, body: init?.body ? JSON.parse(init.body) : null });
-      return new Response(JSON.stringify({ id: "fake-resend-id" }), { status: 200, headers: { "Content-Type": "application/json" } });
-    }
-    if (url.startsWith("https://challenges.cloudflare.com/turnstile/")) {
-      return new Response(JSON.stringify({ success: true }), { status: 200, headers: { "Content-Type": "application/json" } });
-    }
-    throw new Error(`Unexpected fetch to ${url} -- only Resend/Turnstile calls should reach real fetch() in this test file`);
-  }));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input, init) => {
+      const url = typeof input === "string" ? input : input.url;
+      if (url.startsWith("https://api.resend.com/")) {
+        resendCalls.push({ url, body: init?.body ? JSON.parse(init.body) : null });
+        return new Response(JSON.stringify({ id: "fake-resend-id" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (url.startsWith("https://challenges.cloudflare.com/turnstile/")) {
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      throw new Error(
+        `Unexpected fetch to ${url} -- only Resend/Turnstile calls should reach real fetch() in this test file`,
+      );
+    }),
+  );
 });
-afterEach(() => { vi.unstubAllGlobals(); });
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 function signUp(body = SIGNUP) {
   return jsonRequest("POST", "/-/api/auth/sign-up/email", body);
@@ -47,7 +70,10 @@ describe("sign-up with email verification required", () => {
 
   it("rejects sign-in before the email is verified", async () => {
     await signUp();
-    const res = await jsonRequest("POST", "/-/api/auth/sign-in/email", { email: SIGNUP.email, password: SIGNUP.password });
+    const res = await jsonRequest("POST", "/-/api/auth/sign-in/email", {
+      email: SIGNUP.email,
+      password: SIGNUP.password,
+    });
     expect(res.status).toBe(403);
   });
 
@@ -77,13 +103,22 @@ describe("password reset", () => {
     expect(resendCalls[0].body.subject).toMatch(/reset/i);
 
     const token = extractToken(resendCalls[0].body.html, "reset-password/");
-    const resetRes = await jsonRequest("POST", "/-/api/auth/reset-password", { newPassword: "a-brand-new-password", token });
+    const resetRes = await jsonRequest("POST", "/-/api/auth/reset-password", {
+      newPassword: "a-brand-new-password",
+      token,
+    });
     expect(resetRes.status).toBe(200);
 
-    const oldPasswordRes = await jsonRequest("POST", "/-/api/auth/sign-in/email", { email: SIGNUP.email, password: SIGNUP.password });
+    const oldPasswordRes = await jsonRequest("POST", "/-/api/auth/sign-in/email", {
+      email: SIGNUP.email,
+      password: SIGNUP.password,
+    });
     expect(oldPasswordRes.status).not.toBe(200);
 
-    const newPasswordRes = await jsonRequest("POST", "/-/api/auth/sign-in/email", { email: SIGNUP.email, password: "a-brand-new-password" });
+    const newPasswordRes = await jsonRequest("POST", "/-/api/auth/sign-in/email", {
+      email: SIGNUP.email,
+      password: "a-brand-new-password",
+    });
     expect(newPasswordRes.status).toBe(403); // still unverified -- correct password, but sign-in itself requires verification (see above)
   });
 
@@ -93,13 +128,21 @@ describe("password reset", () => {
     await jsonRequest("POST", "/-/api/auth/request-password-reset", { email: SIGNUP.email });
     const token = extractToken(resendCalls[0].body.html, "reset-password/");
 
-    expect((await jsonRequest("POST", "/-/api/auth/reset-password", { newPassword: "first-new-password", token })).status).toBe(200);
-    const secondAttempt = await jsonRequest("POST", "/-/api/auth/reset-password", { newPassword: "second-new-password", token });
+    expect(
+      (await jsonRequest("POST", "/-/api/auth/reset-password", { newPassword: "first-new-password", token })).status,
+    ).toBe(200);
+    const secondAttempt = await jsonRequest("POST", "/-/api/auth/reset-password", {
+      newPassword: "second-new-password",
+      token,
+    });
     expect(secondAttempt.status).not.toBe(200);
   });
 
   it("rejects an unknown token", async () => {
-    const res = await jsonRequest("POST", "/-/api/auth/reset-password", { newPassword: "whatever", token: "not-a-real-token" });
+    const res = await jsonRequest("POST", "/-/api/auth/reset-password", {
+      newPassword: "whatever",
+      token: "not-a-real-token",
+    });
     expect(res.status).not.toBe(200);
   });
 });
@@ -114,7 +157,11 @@ describe("createEmailSender HTML escaping (defense in depth, #754)", () => {
   const sender = createEmailSender(env);
 
   it("escapes HTML metacharacters in newEmail before interpolating into the change-email confirmation", async () => {
-    await sender.sendChangeEmailConfirmation("owner@example.com", '<img src=x onerror=alert(1)>', "https://example.com/confirm?token=abc");
+    await sender.sendChangeEmailConfirmation(
+      "owner@example.com",
+      "<img src=x onerror=alert(1)>",
+      "https://example.com/confirm?token=abc",
+    );
     const html = resendCalls[0].body.html;
     expect(html).not.toContain("<img src=x onerror=alert(1)>");
     expect(html).toContain("&lt;img src=x onerror=alert(1)&gt;");

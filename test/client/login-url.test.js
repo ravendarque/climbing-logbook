@@ -3,8 +3,9 @@ import { LOGIN_PATH, loginPageUrl } from "../../client/login-url.js";
 
 describe("loginPageUrl", () => {
   it("is this origin's /login/, with the current path and query as returnTo", () => {
-    expect(loginPageUrl({ pathname: "/raven/performance/rpe", search: "?window=90" }))
-      .toBe("/-/login/?returnTo=%2Fraven%2Fperformance%2Frpe%3Fwindow%3D90");
+    expect(loginPageUrl({ pathname: "/raven/performance/rpe", search: "?window=90" })).toBe(
+      "/-/login/?returnTo=%2Fraven%2Fperformance%2Frpe%3Fwindow%3D90",
+    );
   });
 
   it("round-trips through URLSearchParams to the original path", () => {

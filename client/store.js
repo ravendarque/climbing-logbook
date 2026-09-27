@@ -1,9 +1,5 @@
 // Whole-store, synchronous notify: every render is a full rebuild, so finer grains buy nothing.
-import {
-  placeOf as placeOfPure,
-  locationOf as locationOfPure,
-  entryLocation as entryLocationPure,
-} from "./entries.js";
+import { placeOf as placeOfPure, locationOf as locationOfPure, entryLocation as entryLocationPure } from "./entries.js";
 import { applyPendingQueue as applyPendingQueuePure } from "./offline-queue.js";
 import { mergeDelta } from "./delta-merge.js";
 import { userKey } from "./user-storage.js";
@@ -59,7 +55,11 @@ export function createStore({ storage = typeof localStorage !== "undefined" ? lo
     set(mergeDelta(readCached(key), rows));
   }
   function readCached(key) {
-    try { return JSON.parse(storage.getItem(key)) ?? []; } catch { return []; }
+    try {
+      return JSON.parse(storage.getItem(key)) ?? [];
+    } catch {
+      return [];
+    }
   }
 
   // Never persisted: only server-confirmed data is cached, or a stale pending flag would outlive its item.
@@ -75,19 +75,31 @@ export function createStore({ storage = typeof localStorage !== "undefined" ? lo
   function loadEntriesFromCache() {
     const cached = storage.getItem(ENTRIES_CACHE_KEY);
     if (cached === null) return false;
-    try { entries = JSON.parse(cached); } catch { entries = []; }
+    try {
+      entries = JSON.parse(cached);
+    } catch {
+      entries = [];
+    }
     notify();
     return true;
   }
   function loadPlacesFromCache() {
     const cached = storage.getItem(PLACES_CACHE_KEY);
     if (cached === null) return;
-    try { places = JSON.parse(cached); } catch { places = []; }
+    try {
+      places = JSON.parse(cached);
+    } catch {
+      places = [];
+    }
   }
   function loadLocationsFromCache() {
     const cached = storage.getItem(LOCATIONS_CACHE_KEY);
     if (cached === null) return;
-    try { locations = JSON.parse(cached); } catch { locations = []; }
+    try {
+      locations = JSON.parse(cached);
+    } catch {
+      locations = [];
+    }
   }
 
   function placeOf(entry) {
@@ -105,8 +117,14 @@ export function createStore({ storage = typeof localStorage !== "undefined" ? lo
     notify();
   }
 
-  function setLoggedIn(v) { loggedIn = v; notify(); }
-  function setActiveView(v) { activeView = v; notify(); }
+  function setLoggedIn(v) {
+    loggedIn = v;
+    notify();
+  }
+  function setActiveView(v) {
+    activeView = v;
+    notify();
+  }
 
   return {
     subscribe,

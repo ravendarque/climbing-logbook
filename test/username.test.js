@@ -3,7 +3,8 @@ import { isValidUsername } from "../server/lib/auth.js";
 
 describe("isValidUsername (#983)", () => {
   it("accepts the normal charset", () => {
-    for (const name of ["raven", "a", "user.name", "user_name_1", "sw.js"]) expect(isValidUsername(name), name).toBe(true);
+    for (const name of ["raven", "a", "user.name", "user_name_1", "sw.js"])
+      expect(isValidUsername(name), name).toBe(true);
   });
 
   it("can never be the service worker script's name", () => {

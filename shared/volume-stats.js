@@ -59,7 +59,10 @@ export function volumeByBucket(entries, buckets, type) {
     const ordinal = bestGradeOrdinal(entry, type);
     if (ordinal !== null && (maxOrdinalByBucket[idx] === null || ordinal > maxOrdinalByBucket[idx])) {
       maxOrdinalByBucket[idx] = ordinal;
-      maxGradeByBucket[idx] = { grade: entry.grade, gradeScale: entry.gradeScale ?? PRIMARY_SCALE_BY_TYPE[type] ?? PRIMARY_SCALE_BY_TYPE.boulder };
+      maxGradeByBucket[idx] = {
+        grade: entry.grade,
+        gradeScale: entry.gradeScale ?? PRIMARY_SCALE_BY_TYPE[type] ?? PRIMARY_SCALE_BY_TYPE.boulder,
+      };
     }
   }
 

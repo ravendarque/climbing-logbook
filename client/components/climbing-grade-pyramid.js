@@ -3,9 +3,9 @@ import { gradePyramidColorForScale } from "../../shared/grade-data.js";
 import { PYRAMID_IDEAL_BY_POSITION, pyramidHealth } from "../../shared/pyramid-stats.js";
 import { disciplineLabel } from "../status.js";
 
-const PYRAMID_ICON_GOOD     = `<circle cx="12" cy="12" r="9"></circle><path d="m8.5 12.5 2.5 2.5 5-5"></path>`;
-const PYRAMID_ICON_LOW      = `<path d="M12 3 2 20h20L12 3Z"></path><path d="M12 9v5"></path><path d="M12 17h.01"></path>`;
-const PYRAMID_ICON_MISSING  = `<circle cx="12" cy="12" r="9"></circle><path d="M12 7v6"></path><path d="M12 16.5h.01"></path>`;
+const PYRAMID_ICON_GOOD = `<circle cx="12" cy="12" r="9"></circle><path d="m8.5 12.5 2.5 2.5 5-5"></path>`;
+const PYRAMID_ICON_LOW = `<path d="M12 3 2 20h20L12 3Z"></path><path d="M12 9v5"></path><path d="M12 17h.01"></path>`;
+const PYRAMID_ICON_MISSING = `<circle cx="12" cy="12" r="9"></circle><path d="M12 7v6"></path><path d="M12 16.5h.01"></path>`;
 const PYRAMID_ICON_PROMOTED = `<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"></path>`;
 const PYRAMID_GOLD = "var(--pyramid-status-promoted)";
 
@@ -25,10 +25,33 @@ const SHELL = `
 `;
 
 function pyramidStatusIcon(actual, ideal, promoted) {
-  if (promoted) return { cls: "promoted", color: PYRAMID_GOLD, svg: PYRAMID_ICON_PROMOTED, label: "Ready to push -- you've logged enough at the tier below to attempt this grade" };
-  if (actual === 0) return { cls: "missing", color: "var(--pyramid-status-missing)", svg: PYRAMID_ICON_MISSING, label: "No sends at this tier" };
-  if (actual < ideal) return { cls: "low", color: "var(--color-tier-heuristic)", svg: PYRAMID_ICON_LOW, label: `${actual} of ${ideal} for a full 8-4-2-1 tier` };
-  return { cls: "good", color: "var(--pyramid-status-good)", svg: PYRAMID_ICON_GOOD, label: `Meets or exceeds the ${ideal}-send tier` };
+  if (promoted)
+    return {
+      cls: "promoted",
+      color: PYRAMID_GOLD,
+      svg: PYRAMID_ICON_PROMOTED,
+      label: "Ready to push -- you've logged enough at the tier below to attempt this grade",
+    };
+  if (actual === 0)
+    return {
+      cls: "missing",
+      color: "var(--pyramid-status-missing)",
+      svg: PYRAMID_ICON_MISSING,
+      label: "No sends at this tier",
+    };
+  if (actual < ideal)
+    return {
+      cls: "low",
+      color: "var(--color-tier-heuristic)",
+      svg: PYRAMID_ICON_LOW,
+      label: `${actual} of ${ideal} for a full 8-4-2-1 tier`,
+    };
+  return {
+    cls: "good",
+    color: "var(--pyramid-status-good)",
+    svg: PYRAMID_ICON_GOOD,
+    label: `Meets or exceeds the ${ideal}-send tier`,
+  };
 }
 
 function pyramidBarRow(row, { ideal, scaleMax, type, promoted = false, viewScaleId }) {
@@ -69,14 +92,28 @@ export class ClimbingGradePyramid extends HTMLElement {
     return ["active-discipline"];
   }
 
-  get pyramidData() { return this.#pyramidData; }
-  set pyramidData(v) { this.#pyramidData = v ?? { boulder: EMPTY_PYRAMID, sport: EMPTY_PYRAMID }; this.#render(); }
+  get pyramidData() {
+    return this.#pyramidData;
+  }
+  set pyramidData(v) {
+    this.#pyramidData = v ?? { boulder: EMPTY_PYRAMID, sport: EMPTY_PYRAMID };
+    this.#render();
+  }
 
-  get activeDiscipline() { return this.getAttribute("active-discipline") || "boulder"; }
-  set activeDiscipline(v) { this.setAttribute("active-discipline", v); }
+  get activeDiscipline() {
+    return this.getAttribute("active-discipline") || "boulder";
+  }
+  set activeDiscipline(v) {
+    this.setAttribute("active-discipline", v);
+  }
 
-  get viewScaleId() { return this.#viewScaleId; }
-  set viewScaleId(v) { this.#viewScaleId = v; this.#render(); }
+  get viewScaleId() {
+    return this.#viewScaleId;
+  }
+  set viewScaleId(v) {
+    this.#viewScaleId = v;
+    this.#render();
+  }
 
   connectedCallback() {
     if (!this.#wired) {
@@ -106,16 +143,27 @@ export class ClimbingGradePyramid extends HTMLElement {
     }
 
     const top4Scale = Math.max(8, ...top4.map(r => r.count));
-    pyramidEl.innerHTML = top4.map((r, i) => pyramidBarRow(r, { ideal: PYRAMID_IDEAL_BY_POSITION[i], scaleMax: top4Scale, type, viewScaleId, promoted: r.grade === promotedGrade })).join("");
+    pyramidEl.innerHTML = top4
+      .map((r, i) =>
+        pyramidBarRow(r, {
+          ideal: PYRAMID_IDEAL_BY_POSITION[i],
+          scaleMax: top4Scale,
+          type,
+          viewScaleId,
+          promoted: r.grade === promotedGrade,
+        }),
+      )
+      .join("");
 
-    windowNoteEl.innerHTML =
-      `Sends from the <strong class="text-foreground font-semibold">last 12 months only</strong>, showing your
+    windowNoteEl.innerHTML = `Sends from the <strong class="text-foreground font-semibold">last 12 months only</strong>, showing your
        <strong class="text-foreground font-semibold">8-4-2-1 window</strong> — four grade tiers anchored to your progress so far, including any with zero sends, projecting one tier higher once you've logged enough to be ready to push for it. Dashed outlines mark the
        ideal count for each tier. The ratio itself is a widely used coaching heuristic, not a proven ratio -- see Sources below.`;
 
     const health = pyramidHealth(top4, promotedGrade);
-    const promotedClass = "flex gap-3 px-4 py-[14px] rounded-app mb-7 [&_svg]:w-[1.2rem] [&_svg]:h-[1.2rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:mt-[2px] [&_svg]:shrink-0 bg-[color-mix(in_srgb,var(--pyramid-status-promoted)_10%,var(--color-surface))] border border-[color-mix(in_srgb,var(--pyramid-status-promoted)_35%,transparent)] text-pyramid-promoted";
-    const heuristicClass = "flex gap-3 px-4 py-[14px] rounded-app mb-7 [&_svg]:w-[1.2rem] [&_svg]:h-[1.2rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:mt-[2px] [&_svg]:shrink-0 bg-[color-mix(in_srgb,var(--color-tier-heuristic)_8%,var(--color-surface))] border border-[color-mix(in_srgb,var(--color-tier-heuristic)_30%,transparent)] text-tier-heuristic";
+    const promotedClass =
+      "flex gap-3 px-4 py-[14px] rounded-app mb-7 [&_svg]:w-[1.2rem] [&_svg]:h-[1.2rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:mt-[2px] [&_svg]:shrink-0 bg-[color-mix(in_srgb,var(--pyramid-status-promoted)_10%,var(--color-surface))] border border-[color-mix(in_srgb,var(--pyramid-status-promoted)_35%,transparent)] text-pyramid-promoted";
+    const heuristicClass =
+      "flex gap-3 px-4 py-[14px] rounded-app mb-7 [&_svg]:w-[1.2rem] [&_svg]:h-[1.2rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:mt-[2px] [&_svg]:shrink-0 bg-[color-mix(in_srgb,var(--color-tier-heuristic)_8%,var(--color-surface))] border border-[color-mix(in_srgb,var(--color-tier-heuristic)_30%,transparent)] text-tier-heuristic";
 
     if (health.kind === "promoted") {
       healthEl.className = promotedClass;

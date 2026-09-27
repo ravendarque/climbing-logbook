@@ -36,7 +36,9 @@ describe("calendarDatePickerHtml", () => {
     containerEl.innerHTML = calendarDatePickerHtml("start") + calendarDatePickerHtml("end");
     expect(containerEl.querySelector("#start-btn")).toBeTruthy();
     expect(containerEl.querySelector("#end-btn")).toBeTruthy();
-    expect(containerEl.querySelectorAll("[id]").length).toBe(new Set([...containerEl.querySelectorAll("[id]")].map(el => el.id)).size);
+    expect(containerEl.querySelectorAll("[id]").length).toBe(
+      new Set([...containerEl.querySelectorAll("[id]")].map(el => el.id)).size,
+    );
   });
 
   it("uses the default calendar icon in the button when no buttonContent is given", () => {
@@ -142,9 +144,24 @@ describe("createCalendarDatePicker", () => {
 
   it("two instances (idPrefix start/end) operate independently", () => {
     containerEl.innerHTML = calendarDatePickerHtml("start") + calendarDatePickerHtml("end");
-    let startValue = "2026-08-01", endValue = "2026-08-31";
-    createCalendarDatePicker({ containerEl, idPrefix: "start", getValue: () => startValue, onSelect: d => { startValue = d; } });
-    createCalendarDatePicker({ containerEl, idPrefix: "end", getValue: () => endValue, onSelect: d => { endValue = d; } });
+    let startValue = "2026-08-01",
+      endValue = "2026-08-31";
+    createCalendarDatePicker({
+      containerEl,
+      idPrefix: "start",
+      getValue: () => startValue,
+      onSelect: d => {
+        startValue = d;
+      },
+    });
+    createCalendarDatePicker({
+      containerEl,
+      idPrefix: "end",
+      getValue: () => endValue,
+      onSelect: d => {
+        endValue = d;
+      },
+    });
     containerEl.querySelector("#start-btn").click();
     expect(containerEl.querySelector("#start-popover").hidden).toBe(false);
     expect(containerEl.querySelector("#end-popover").hidden).toBe(true);

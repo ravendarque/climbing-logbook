@@ -28,7 +28,9 @@ describe("createReportGradeScalePicker", () => {
   it("renders a trigger button and the 'What's this?' link pointing at the public grades reference page", () => {
     mount();
     expect(containerEl.querySelector("#report-grade-scale-btn")).toBeTruthy();
-    expect(containerEl.querySelector("#report-grade-scale-reference-link").getAttribute("href")).toBe("/help/grade-scales/");
+    expect(containerEl.querySelector("#report-grade-scale-reference-link").getAttribute("href")).toBe(
+      "/help/grade-scales/",
+    );
   });
 
   it("opens the popover on click and lists only the standard scales for the active discipline", () => {

@@ -7,7 +7,7 @@ export const VALID_STATUSES = ["send", "project", "archived", "checkout"];
 
 export const VALID_GRADES = {
   boulder: BOULDER_GRADES.map(x => x.g),
-  sport:   LEAD_GRADES.map(x => x.g),
+  sport: LEAD_GRADES.map(x => x.g),
 };
 
 export const VALID_SPORT_STYLES = ["lead", "top_rope"];
@@ -42,9 +42,12 @@ function moveRowError(row, fieldPrefix) {
   if (typeof row !== "object" || row === null) return `${fieldPrefix} must be an object`;
   if (!VALID_LIMBS.includes(row.limb)) return `${fieldPrefix}.limb must be one of: ${VALID_LIMBS.join(", ")}`;
   if (!VALID_SIDES.includes(row.side)) return `${fieldPrefix}.side must be one of: ${VALID_SIDES.join(", ")}`;
-  if (!HOLD_TYPES_BY_LIMB[row.limb].includes(row.holdType)) return `${fieldPrefix}.holdType must be one of: ${HOLD_TYPES_BY_LIMB[row.limb].join(", ")}`;
-  if (!MOVEMENT_STYLES_BY_LIMB[row.limb].includes(row.movementStyle)) return `${fieldPrefix}.movementStyle must be one of: ${MOVEMENT_STYLES_BY_LIMB[row.limb].join(", ")}`;
-  if (!VALID_WALL_ANGLES.includes(row.wallAngle)) return `${fieldPrefix}.wallAngle must be one of: ${VALID_WALL_ANGLES.join(", ")}`;
+  if (!HOLD_TYPES_BY_LIMB[row.limb].includes(row.holdType))
+    return `${fieldPrefix}.holdType must be one of: ${HOLD_TYPES_BY_LIMB[row.limb].join(", ")}`;
+  if (!MOVEMENT_STYLES_BY_LIMB[row.limb].includes(row.movementStyle))
+    return `${fieldPrefix}.movementStyle must be one of: ${MOVEMENT_STYLES_BY_LIMB[row.limb].join(", ")}`;
+  if (!VALID_WALL_ANGLES.includes(row.wallAngle))
+    return `${fieldPrefix}.wallAngle must be one of: ${VALID_WALL_ANGLES.join(", ")}`;
   return null;
 }
 
@@ -93,7 +96,10 @@ export const entrySchema = v.pipe(
     if (entry.gradeScale !== undefined && entry.gradeScale !== null) {
       const validScaleIds = SCALES_BY_DISCIPLINE[entry.type]?.map(s => s.id) ?? [];
       if (!validScaleIds.includes(entry.gradeScale)) {
-        addIssue({ message: `gradeScale must be one of: ${validScaleIds.join(", ")}`, path: fieldPath(entry, "gradeScale") });
+        addIssue({
+          message: `gradeScale must be one of: ${validScaleIds.join(", ")}`,
+          path: fieldPath(entry, "gradeScale"),
+        });
         return;
       }
     }
@@ -120,7 +126,10 @@ export const entrySchema = v.pipe(
         return;
       }
       if (!VALID_SPORT_STYLES.includes(entry.sportStyle)) {
-        addIssue({ message: `sportStyle must be one of: ${VALID_SPORT_STYLES.join(", ")}`, path: fieldPath(entry, "sportStyle") });
+        addIssue({
+          message: `sportStyle must be one of: ${VALID_SPORT_STYLES.join(", ")}`,
+          path: fieldPath(entry, "sportStyle"),
+        });
         return;
       }
     }
@@ -151,7 +160,10 @@ export const entrySchema = v.pipe(
     }
     if (entry.attemptsToSend !== undefined && entry.attemptsToSend !== null) {
       if (!Number.isInteger(entry.attemptsToSend) || entry.attemptsToSend < 0) {
-        addIssue({ message: "attemptsToSend must be a non-negative integer", path: fieldPath(entry, "attemptsToSend") });
+        addIssue({
+          message: "attemptsToSend must be a non-negative integer",
+          path: fieldPath(entry, "attemptsToSend"),
+        });
       }
     }
     if (entry.rpe !== undefined && entry.rpe !== null) {
@@ -166,7 +178,10 @@ export const entrySchema = v.pipe(
         for (let i = 0; i < entry.moves.length; i++) {
           const row = entry.moves[i];
           if (typeof row === "object" && row !== null && !VALID_MOVE_DIFFICULTIES.includes(row.difficulty)) {
-            addIssue({ message: `moves[${i}].difficulty must be one of: ${VALID_MOVE_DIFFICULTIES.join(", ")}`, path: fieldPath(entry, "moves") });
+            addIssue({
+              message: `moves[${i}].difficulty must be one of: ${VALID_MOVE_DIFFICULTIES.join(", ")}`,
+              path: fieldPath(entry, "moves"),
+            });
             return;
           }
           const rowErr = moveRowError(row, `moves[${i}]`);
@@ -190,7 +205,7 @@ export const entrySchema = v.pipe(
         }
       }
     }
-  })
+  }),
 );
 
 export function validateEntryShape(entry) {

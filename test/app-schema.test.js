@@ -6,27 +6,24 @@ beforeEach(resetAuthTables);
 
 async function seedUser(id = "user-1") {
   const now = new Date().toISOString();
-  await env.LOGBOOK_DB
-    .prepare(
-      `INSERT INTO "user" (id, name, email, emailVerified, createdAt, updatedAt)
-       VALUES (?, ?, ?, 1, ?, ?)`
-    )
+  await env.LOGBOOK_DB.prepare(
+    `INSERT INTO "user" (id, name, email, emailVerified, createdAt, updatedAt)
+       VALUES (?, ?, ?, 1, ?, ?)`,
+  )
     .bind(id, "Test User", `${id}@example.com`, now, now)
     .run();
   return id;
 }
 
 async function seedLocation(userId, id = "loc-1") {
-  await env.LOGBOOK_DB
-    .prepare(`INSERT INTO locations (id, user_id, name) VALUES (?, ?, ?)`)
+  await env.LOGBOOK_DB.prepare(`INSERT INTO locations (id, user_id, name) VALUES (?, ?, ?)`)
     .bind(id, userId, "Fontainebleau")
     .run();
   return id;
 }
 
 async function seedPlace(userId, locationId, id = "place-1") {
-  await env.LOGBOOK_DB
-    .prepare(`INSERT INTO places (id, user_id, location_id, area) VALUES (?, ?, ?, ?)`)
+  await env.LOGBOOK_DB.prepare(`INSERT INTO places (id, user_id, location_id, area) VALUES (?, ?, ?, ?)`)
     .bind(id, userId, locationId, "Bas Cuvier")
     .run();
   return id;
@@ -53,11 +50,10 @@ describe("locations/places/entries", () => {
     const locationId = await seedLocation(userId);
     const placeId = await seedPlace(userId, locationId);
 
-    await env.LOGBOOK_DB
-      .prepare(
-        `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id, first_attempt)
-         VALUES ('entry-1', ?, ?, 'Le Toit du Cul de Chien', '7A', 'boulder', 'send', 1)`
-      )
+    await env.LOGBOOK_DB.prepare(
+      `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id, first_attempt)
+         VALUES ('entry-1', ?, ?, 'Le Toit du Cul de Chien', '7A', 'boulder', 'send', 1)`,
+    )
       .bind(userId, placeId)
       .run();
 
@@ -73,13 +69,12 @@ describe("locations/places/entries", () => {
     const placeId = await seedPlace(userId, locationId);
 
     await expect(
-      env.LOGBOOK_DB
-        .prepare(
-          `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id)
-           VALUES ('entry-1', ?, ?, 'Test', '7A', 'not-a-real-discipline', 'send')`
-        )
+      env.LOGBOOK_DB.prepare(
+        `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id)
+           VALUES ('entry-1', ?, ?, 'Test', '7A', 'not-a-real-discipline', 'send')`,
+      )
         .bind(userId, placeId)
-        .run()
+        .run(),
     ).rejects.toThrow(/FOREIGN KEY/);
   });
 
@@ -89,13 +84,12 @@ describe("locations/places/entries", () => {
     const placeId = await seedPlace(userId, locationId);
 
     await expect(
-      env.LOGBOOK_DB
-        .prepare(
-          `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id, first_attempt)
-           VALUES ('entry-1', ?, ?, 'Test', '7A', 'boulder', 'send', 2)`
-        )
+      env.LOGBOOK_DB.prepare(
+        `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id, first_attempt)
+           VALUES ('entry-1', ?, ?, 'Test', '7A', 'boulder', 'send', 2)`,
+      )
         .bind(userId, placeId)
-        .run()
+        .run(),
     ).rejects.toThrow(/CHECK/);
   });
 
@@ -103,11 +97,10 @@ describe("locations/places/entries", () => {
     const userId = await seedUser();
     const locationId = await seedLocation(userId);
     const placeId = await seedPlace(userId, locationId);
-    await env.LOGBOOK_DB
-      .prepare(
-        `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id)
-         VALUES ('entry-1', ?, ?, 'Test', '7A', 'boulder', 'send')`
-      )
+    await env.LOGBOOK_DB.prepare(
+      `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id)
+         VALUES ('entry-1', ?, ?, 'Test', '7A', 'boulder', 'send')`,
+    )
       .bind(userId, placeId)
       .run();
 
@@ -121,20 +114,26 @@ describe("locations/places/entries", () => {
     const userId = await seedUser();
     const locationId = await seedLocation(userId);
     const placeId = await seedPlace(userId, locationId);
-    await env.LOGBOOK_DB
-      .prepare(
-        `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id)
-         VALUES ('entry-1', ?, ?, 'Test', '7A', 'boulder', 'send')`
-      )
+    await env.LOGBOOK_DB.prepare(
+      `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id)
+         VALUES ('entry-1', ?, ?, 'Test', '7A', 'boulder', 'send')`,
+    )
       .bind(userId, placeId)
       .run();
     await env.LOGBOOK_DB.prepare(`INSERT INTO settings (user_id) VALUES (?)`).bind(userId).run();
 
     await env.LOGBOOK_DB.prepare(`DELETE FROM "user" WHERE id = ?`).bind(userId).run();
 
-    for (const [table, id] of [["locations", locationId], ["places", placeId], ["entries", "entry-1"], ["settings", userId]]) {
+    for (const [table, id] of [
+      ["locations", locationId],
+      ["places", placeId],
+      ["entries", "entry-1"],
+      ["settings", userId],
+    ]) {
       const idColumn = table === "settings" ? "user_id" : "id";
-      const remaining = await env.LOGBOOK_DB.prepare(`SELECT ${idColumn} FROM ${table} WHERE ${idColumn} = ?`).bind(id).first();
+      const remaining = await env.LOGBOOK_DB.prepare(`SELECT ${idColumn} FROM ${table} WHERE ${idColumn} = ?`)
+        .bind(id)
+        .first();
       expect(remaining).toBeNull();
     }
   });
@@ -154,31 +153,24 @@ describe("settings", () => {
   it("rejects logbook_public values outside 0/1", async () => {
     const userId = await seedUser();
     await expect(
-      env.LOGBOOK_DB
-        .prepare(`INSERT INTO settings (user_id, logbook_public) VALUES (?, 2)`)
-        .bind(userId)
-        .run()
+      env.LOGBOOK_DB.prepare(`INSERT INTO settings (user_id, logbook_public) VALUES (?, 2)`).bind(userId).run(),
     ).rejects.toThrow(/CHECK/);
   });
 
   it("rejects an unknown active_discipline", async () => {
     const userId = await seedUser();
     await expect(
-      env.LOGBOOK_DB
-        .prepare(`INSERT INTO settings (user_id, active_discipline) VALUES (?, 'yoga')`)
-        .bind(userId)
-        .run()
+      env.LOGBOOK_DB.prepare(`INSERT INTO settings (user_id, active_discipline) VALUES (?, 'yoga')`).bind(userId).run(),
     ).rejects.toThrow(/FOREIGN KEY/);
   });
 });
 
 describe("entry_moves (#36)", () => {
   async function seedEntry(userId, placeId, id = "entry-1") {
-    await env.LOGBOOK_DB
-      .prepare(
-        `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id)
-         VALUES (?, ?, ?, 'Test', '7A', 'boulder', 'send')`
-      )
+    await env.LOGBOOK_DB.prepare(
+      `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id)
+         VALUES (?, ?, ?, 'Test', '7A', 'boulder', 'send')`,
+    )
       .bind(id, userId, placeId)
       .run();
     return id;
@@ -190,11 +182,10 @@ describe("entry_moves (#36)", () => {
     const placeId = await seedPlace(userId, locationId);
     const entryId = await seedEntry(userId, placeId);
 
-    await env.LOGBOOK_DB
-      .prepare(
-        `INSERT INTO entry_moves (id, entry_id, difficulty, limb, side, hold_type, movement_style, wall_angle)
-         VALUES ('move-1', ?, 'hardest', 'hand', 'left', 'crimp', 'lockoff', 'overhang')`
-      )
+    await env.LOGBOOK_DB.prepare(
+      `INSERT INTO entry_moves (id, entry_id, difficulty, limb, side, hold_type, movement_style, wall_angle)
+         VALUES ('move-1', ?, 'hardest', 'hand', 'left', 'crimp', 'lockoff', 'overhang')`,
+    )
       .bind(entryId)
       .run();
 
@@ -214,13 +205,12 @@ describe("entry_moves (#36)", () => {
     const entryId = await seedEntry(userId, placeId);
 
     await expect(
-      env.LOGBOOK_DB
-        .prepare(
-          `INSERT INTO entry_moves (id, entry_id, difficulty, limb, side, hold_type, movement_style, wall_angle)
-           VALUES ('move-1', ?, 'medium', 'hand', 'left', 'crimp', 'static', 'overhang')`
-        )
+      env.LOGBOOK_DB.prepare(
+        `INSERT INTO entry_moves (id, entry_id, difficulty, limb, side, hold_type, movement_style, wall_angle)
+           VALUES ('move-1', ?, 'medium', 'hand', 'left', 'crimp', 'static', 'overhang')`,
+      )
         .bind(entryId)
-        .run()
+        .run(),
     ).rejects.toThrow(/CHECK/);
   });
 
@@ -231,13 +221,12 @@ describe("entry_moves (#36)", () => {
     const entryId = await seedEntry(userId, placeId);
 
     await expect(
-      env.LOGBOOK_DB
-        .prepare(
-          `INSERT INTO entry_moves (id, entry_id, difficulty, limb, side, hold_type, movement_style, wall_angle)
-           VALUES ('move-1', ?, 'hardest', 'foot', 'right', 'toe-hook', 'lockoff', 'overhang')`
-        )
+      env.LOGBOOK_DB.prepare(
+        `INSERT INTO entry_moves (id, entry_id, difficulty, limb, side, hold_type, movement_style, wall_angle)
+           VALUES ('move-1', ?, 'hardest', 'foot', 'right', 'toe-hook', 'lockoff', 'overhang')`,
+      )
         .bind(entryId)
-        .run()
+        .run(),
     ).rejects.toThrow(/CHECK/);
   });
 
@@ -247,11 +236,10 @@ describe("entry_moves (#36)", () => {
     const placeId = await seedPlace(userId, locationId);
     const entryId = await seedEntry(userId, placeId);
 
-    await env.LOGBOOK_DB
-      .prepare(
-        `INSERT INTO entry_moves (id, entry_id, difficulty, limb, side, hold_type, movement_style, wall_angle)
-         VALUES ('move-1', ?, 'easiest', 'knee', 'right', 'kneebar', 'static', 'roof')`
-      )
+    await env.LOGBOOK_DB.prepare(
+      `INSERT INTO entry_moves (id, entry_id, difficulty, limb, side, hold_type, movement_style, wall_angle)
+         VALUES ('move-1', ?, 'easiest', 'knee', 'right', 'kneebar', 'static', 'roof')`,
+    )
       .bind(entryId)
       .run();
 
@@ -264,11 +252,10 @@ describe("entry_moves (#36)", () => {
     const locationId = await seedLocation(userId);
     const placeId = await seedPlace(userId, locationId);
     const entryId = await seedEntry(userId, placeId);
-    await env.LOGBOOK_DB
-      .prepare(
-        `INSERT INTO entry_moves (id, entry_id, difficulty, limb, side, hold_type, movement_style, wall_angle)
-         VALUES ('move-1', ?, 'hardest', 'hand', 'left', 'crimp', 'static', 'vert')`
-      )
+    await env.LOGBOOK_DB.prepare(
+      `INSERT INTO entry_moves (id, entry_id, difficulty, limb, side, hold_type, movement_style, wall_angle)
+         VALUES ('move-1', ?, 'hardest', 'hand', 'left', 'crimp', 'static', 'vert')`,
+    )
       .bind(entryId)
       .run();
 
@@ -285,11 +272,10 @@ describe("entries.attempts_to_send (#37)", () => {
     const locationId = await seedLocation(userId);
     const placeId = await seedPlace(userId, locationId);
 
-    await env.LOGBOOK_DB
-      .prepare(
-        `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id)
-         VALUES ('entry-1', ?, ?, 'Test', '7A', 'boulder', 'send')`
-      )
+    await env.LOGBOOK_DB.prepare(
+      `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id)
+         VALUES ('entry-1', ?, ?, 'Test', '7A', 'boulder', 'send')`,
+    )
       .bind(userId, placeId)
       .run();
     const noValue = await env.LOGBOOK_DB.prepare(`SELECT attempts_to_send FROM entries WHERE id = 'entry-1'`).first();
@@ -306,13 +292,12 @@ describe("entries.attempts_to_send (#37)", () => {
     const placeId = await seedPlace(userId, locationId);
 
     await expect(
-      env.LOGBOOK_DB
-        .prepare(
-          `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id, attempts_to_send)
-           VALUES ('entry-1', ?, ?, 'Test', '7A', 'boulder', 'send', -1)`
-        )
+      env.LOGBOOK_DB.prepare(
+        `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id, attempts_to_send)
+           VALUES ('entry-1', ?, ?, 'Test', '7A', 'boulder', 'send', -1)`,
+      )
         .bind(userId, placeId)
-        .run()
+        .run(),
     ).rejects.toThrow(/CHECK/);
   });
 });
@@ -323,11 +308,10 @@ describe("entries.rpe (#563)", () => {
     const locationId = await seedLocation(userId);
     const placeId = await seedPlace(userId, locationId);
 
-    await env.LOGBOOK_DB
-      .prepare(
-        `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id)
-         VALUES ('entry-1', ?, ?, 'Test', '7A', 'boulder', 'send')`
-      )
+    await env.LOGBOOK_DB.prepare(
+      `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id)
+         VALUES ('entry-1', ?, ?, 'Test', '7A', 'boulder', 'send')`,
+    )
       .bind(userId, placeId)
       .run();
     const noValue = await env.LOGBOOK_DB.prepare(`SELECT rpe FROM entries WHERE id = 'entry-1'`).first();
@@ -344,24 +328,22 @@ describe("entries.rpe (#563)", () => {
     const placeId = await seedPlace(userId, locationId);
 
     await expect(
-      env.LOGBOOK_DB
-        .prepare(
-          `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id, rpe)
-           VALUES ('entry-1', ?, ?, 'Test', '7A', 'boulder', 'send', 150)`
-        )
+      env.LOGBOOK_DB.prepare(
+        `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id, rpe)
+           VALUES ('entry-1', ?, ?, 'Test', '7A', 'boulder', 'send', 150)`,
+      )
         .bind(userId, placeId)
-        .run()
+        .run(),
     ).rejects.toThrow(/CHECK/);
   });
 });
 
 describe("entry_pain_moves (#572)", () => {
   async function seedEntry(userId, placeId, id = "entry-1") {
-    await env.LOGBOOK_DB
-      .prepare(
-        `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id)
-         VALUES (?, ?, ?, 'Test', '7A', 'boulder', 'send')`
-      )
+    await env.LOGBOOK_DB.prepare(
+      `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id)
+         VALUES (?, ?, ?, 'Test', '7A', 'boulder', 'send')`,
+    )
       .bind(id, userId, placeId)
       .run();
     return id;
@@ -373,11 +355,10 @@ describe("entry_pain_moves (#572)", () => {
     const placeId = await seedPlace(userId, locationId);
     const entryId = await seedEntry(userId, placeId);
 
-    await env.LOGBOOK_DB
-      .prepare(
-        `INSERT INTO entry_pain_moves (id, entry_id, limb, side, hold_type, movement_style, wall_angle)
-         VALUES ('pain-1', ?, 'hand', 'left', 'crimp', 'dynamic', 'overhang')`
-      )
+    await env.LOGBOOK_DB.prepare(
+      `INSERT INTO entry_pain_moves (id, entry_id, limb, side, hold_type, movement_style, wall_angle)
+         VALUES ('pain-1', ?, 'hand', 'left', 'crimp', 'dynamic', 'overhang')`,
+    )
       .bind(entryId)
       .run();
 
@@ -397,13 +378,12 @@ describe("entry_pain_moves (#572)", () => {
     const entryId = await seedEntry(userId, placeId);
 
     await expect(
-      env.LOGBOOK_DB
-        .prepare(
-          `INSERT INTO entry_pain_moves (id, entry_id, limb, side, hold_type, movement_style, wall_angle)
-           VALUES ('pain-1', ?, 'foot', 'right', 'toe-hook', 'lockoff', 'overhang')`
-        )
+      env.LOGBOOK_DB.prepare(
+        `INSERT INTO entry_pain_moves (id, entry_id, limb, side, hold_type, movement_style, wall_angle)
+           VALUES ('pain-1', ?, 'foot', 'right', 'toe-hook', 'lockoff', 'overhang')`,
+      )
         .bind(entryId)
-        .run()
+        .run(),
     ).rejects.toThrow(/CHECK/);
   });
 
@@ -413,25 +393,27 @@ describe("entry_pain_moves (#572)", () => {
     const placeId = await seedPlace(userId, locationId);
     const entryId = await seedEntry(userId, placeId);
 
-    const none = await env.LOGBOOK_DB.prepare(`SELECT COUNT(*) AS n FROM entry_pain_moves WHERE entry_id = ?`).bind(entryId).first();
+    const none = await env.LOGBOOK_DB.prepare(`SELECT COUNT(*) AS n FROM entry_pain_moves WHERE entry_id = ?`)
+      .bind(entryId)
+      .first();
     expect(none.n).toBe(0);
 
-    await env.LOGBOOK_DB
-      .prepare(
-        `INSERT INTO entry_pain_moves (id, entry_id, limb, side, hold_type, movement_style, wall_angle)
-         VALUES ('pain-1', ?, 'hand', 'left', 'crimp', 'static', 'vert')`
-      )
+    await env.LOGBOOK_DB.prepare(
+      `INSERT INTO entry_pain_moves (id, entry_id, limb, side, hold_type, movement_style, wall_angle)
+         VALUES ('pain-1', ?, 'hand', 'left', 'crimp', 'static', 'vert')`,
+    )
       .bind(entryId)
       .run();
-    await env.LOGBOOK_DB
-      .prepare(
-        `INSERT INTO entry_pain_moves (id, entry_id, limb, side, hold_type, movement_style, wall_angle)
-         VALUES ('pain-2', ?, 'foot', 'right', 'smear', 'static', 'slab')`
-      )
+    await env.LOGBOOK_DB.prepare(
+      `INSERT INTO entry_pain_moves (id, entry_id, limb, side, hold_type, movement_style, wall_angle)
+         VALUES ('pain-2', ?, 'foot', 'right', 'smear', 'static', 'slab')`,
+    )
       .bind(entryId)
       .run();
 
-    const some = await env.LOGBOOK_DB.prepare(`SELECT COUNT(*) AS n FROM entry_pain_moves WHERE entry_id = ?`).bind(entryId).first();
+    const some = await env.LOGBOOK_DB.prepare(`SELECT COUNT(*) AS n FROM entry_pain_moves WHERE entry_id = ?`)
+      .bind(entryId)
+      .first();
     expect(some.n).toBe(2);
   });
 
@@ -440,11 +422,10 @@ describe("entry_pain_moves (#572)", () => {
     const locationId = await seedLocation(userId);
     const placeId = await seedPlace(userId, locationId);
     const entryId = await seedEntry(userId, placeId);
-    await env.LOGBOOK_DB
-      .prepare(
-        `INSERT INTO entry_pain_moves (id, entry_id, limb, side, hold_type, movement_style, wall_angle)
-         VALUES ('pain-1', ?, 'hand', 'left', 'crimp', 'static', 'vert')`
-      )
+    await env.LOGBOOK_DB.prepare(
+      `INSERT INTO entry_pain_moves (id, entry_id, limb, side, hold_type, movement_style, wall_angle)
+         VALUES ('pain-1', ?, 'hand', 'left', 'crimp', 'static', 'vert')`,
+    )
       .bind(entryId)
       .run();
 

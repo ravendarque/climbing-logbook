@@ -53,15 +53,21 @@ describe("attemptsToSend", () => {
   });
 
   it("rejects a negative number", () => {
-    expect(validateEntryShape(validEntry({ attemptsToSend: -1 }))).toBe("attemptsToSend must be a non-negative integer");
+    expect(validateEntryShape(validEntry({ attemptsToSend: -1 }))).toBe(
+      "attemptsToSend must be a non-negative integer",
+    );
   });
 
   it("rejects a non-integer", () => {
-    expect(validateEntryShape(validEntry({ attemptsToSend: 2.5 }))).toBe("attemptsToSend must be a non-negative integer");
+    expect(validateEntryShape(validEntry({ attemptsToSend: 2.5 }))).toBe(
+      "attemptsToSend must be a non-negative integer",
+    );
   });
 
   it("rejects a string", () => {
-    expect(validateEntryShape(validEntry({ attemptsToSend: "7" }))).toBe("attemptsToSend must be a non-negative integer");
+    expect(validateEntryShape(validEntry({ attemptsToSend: "7" }))).toBe(
+      "attemptsToSend must be a non-negative integer",
+    );
   });
 });
 
@@ -93,10 +99,25 @@ describe("rpe", () => {
 });
 
 function validMoveRow(overrides = {}) {
-  return { difficulty: "hardest", limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang", ...overrides };
+  return {
+    difficulty: "hardest",
+    limb: "hand",
+    side: "left",
+    holdType: "crimp",
+    movementStyle: "static",
+    wallAngle: "overhang",
+    ...overrides,
+  };
 }
 function validPainRow(overrides = {}) {
-  return { limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "slab", ...overrides };
+  return {
+    limb: "foot",
+    side: "right",
+    holdType: "toe-hook",
+    movementStyle: "dynamic",
+    wallAngle: "slab",
+    ...overrides,
+  };
 }
 
 describe("moves", () => {
@@ -117,9 +138,22 @@ describe("moves", () => {
   });
 
   it("accepts multiple valid moves", () => {
-    expect(validateEntryShape(validEntry({
-      moves: [validMoveRow(), validMoveRow({ difficulty: "easiest", limb: "foot", side: "right", holdType: "heel-hook", movementStyle: "dynamic" })],
-    }))).toBeNull();
+    expect(
+      validateEntryShape(
+        validEntry({
+          moves: [
+            validMoveRow(),
+            validMoveRow({
+              difficulty: "easiest",
+              limb: "foot",
+              side: "right",
+              holdType: "heel-hook",
+              movementStyle: "dynamic",
+            }),
+          ],
+        }),
+      ),
+    ).toBeNull();
   });
 
   it("accepts a valid lockoff move (hand only)", () => {
@@ -127,33 +161,49 @@ describe("moves", () => {
   });
 
   it("rejects an invalid difficulty", () => {
-    expect(validateEntryShape(validEntry({ moves: [validMoveRow({ difficulty: "medium" })] }))).toBe("moves[0].difficulty must be one of: hardest, easiest");
+    expect(validateEntryShape(validEntry({ moves: [validMoveRow({ difficulty: "medium" })] }))).toBe(
+      "moves[0].difficulty must be one of: hardest, easiest",
+    );
   });
 
   it("rejects an invalid limb", () => {
-    expect(validateEntryShape(validEntry({ moves: [validMoveRow({ limb: "elbow" })] }))).toBe("moves[0].limb must be one of: hand, foot, knee");
+    expect(validateEntryShape(validEntry({ moves: [validMoveRow({ limb: "elbow" })] }))).toBe(
+      "moves[0].limb must be one of: hand, foot, knee",
+    );
   });
 
   it("rejects an invalid side", () => {
-    expect(validateEntryShape(validEntry({ moves: [validMoveRow({ side: "middle" })] }))).toBe("moves[0].side must be one of: left, right");
+    expect(validateEntryShape(validEntry({ moves: [validMoveRow({ side: "middle" })] }))).toBe(
+      "moves[0].side must be one of: left, right",
+    );
   });
 
   it("rejects a hold type not valid for the given limb", () => {
-    expect(validateEntryShape(validEntry({ moves: [validMoveRow({ limb: "foot", side: "right", holdType: "crimp" })] })))
-      .toBe("moves[0].holdType must be one of: toe-hook, heel-hook");
+    expect(
+      validateEntryShape(validEntry({ moves: [validMoveRow({ limb: "foot", side: "right", holdType: "crimp" })] })),
+    ).toBe("moves[0].holdType must be one of: toe-hook, heel-hook");
   });
 
   it("rejects lockoff for a non-hand limb", () => {
-    expect(validateEntryShape(validEntry({ moves: [validMoveRow({ limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "lockoff" })] })))
-      .toBe("moves[0].movementStyle must be one of: static, dynamic");
+    expect(
+      validateEntryShape(
+        validEntry({
+          moves: [validMoveRow({ limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "lockoff" })],
+        }),
+      ),
+    ).toBe("moves[0].movementStyle must be one of: static, dynamic");
   });
 
   it("rejects an invalid wall angle", () => {
-    expect(validateEntryShape(validEntry({ moves: [validMoveRow({ wallAngle: "ceiling" })] }))).toBe("moves[0].wallAngle must be one of: slab, vert, overhang, roof");
+    expect(validateEntryShape(validEntry({ moves: [validMoveRow({ wallAngle: "ceiling" })] }))).toBe(
+      "moves[0].wallAngle must be one of: slab, vert, overhang, roof",
+    );
   });
 
   it("reports the correct index for the second row", () => {
-    expect(validateEntryShape(validEntry({ moves: [validMoveRow(), validMoveRow({ wallAngle: "ceiling" })] }))).toBe("moves[1].wallAngle must be one of: slab, vert, overhang, roof");
+    expect(validateEntryShape(validEntry({ moves: [validMoveRow(), validMoveRow({ wallAngle: "ceiling" })] }))).toBe(
+      "moves[1].wallAngle must be one of: slab, vert, overhang, roof",
+    );
   });
 
   it("rejects moves that isn't an array", () => {
@@ -175,7 +225,9 @@ describe("painMoves", () => {
   });
 
   it("rejects an invalid limb the same way moves does", () => {
-    expect(validateEntryShape(validEntry({ painMoves: [validPainRow({ limb: "elbow" })] }))).toBe("painMoves[0].limb must be one of: hand, foot, knee");
+    expect(validateEntryShape(validEntry({ painMoves: [validPainRow({ limb: "elbow" })] }))).toBe(
+      "painMoves[0].limb must be one of: hand, foot, knee",
+    );
   });
 
   it("rejects painMoves that isn't an array", () => {

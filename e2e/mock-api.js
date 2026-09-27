@@ -1,27 +1,57 @@
 // Fakes the /-/api/* responses the real bundles fetch, statefully for one test (docs/app-architecture.md, Testing).
 const EMPTY_PYRAMID = { top4: [], lower: [], hasSends: false, promotedGrade: null };
 
-export async function mockApi(page, {
-  entries = [], places = [], locations = [], settings = { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: false },
-  loggedIn = true, username = "fixtureuser", email = "fixtureuser@example.com",
-  pyramidData = { boulder: EMPTY_PYRAMID, sport: EMPTY_PYRAMID },
-  injuryData = { log: [], cluster: null },
-  strengthsData = { headline: null, anchors: [] },
-  strengthsRankedData = { ranked: [] },
-  volumeData = {
-    boulder: { buckets: ["-3w", "-2w", "-1w"], sendCounts: [0, 0, 0], maxGradeByBucket: [null, null, null] },
-    sport: { buckets: ["-3w", "-2w", "-1w"], sendCounts: [0, 0, 0], maxGradeByBucket: [null, null, null] },
-  },
-  gapData = {
-    boulder: { buckets: ["-3w", "-2w", "-1w"], flashMaxByBucket: [null, null, null], sendMaxByBucket: [null, null, null], avgAttemptsByBucket: [null, null, null], headline: "No sends logged in this window yet." },
-    sport: { buckets: ["-3w", "-2w", "-1w"], flashMaxByBucket: [null, null, null], sendMaxByBucket: [null, null, null], avgAttemptsByBucket: [null, null, null], headline: "No sends logged in this window yet." },
-  },
-  effortData = {
-    boulder: { buckets: ["-3w", "-2w", "-1w"], maxGradeByBucket: [null, null, null], avgExertionByBucket: [null, null, null], headline: null },
-    sport: { buckets: ["-3w", "-2w", "-1w"], maxGradeByBucket: [null, null, null], avgExertionByBucket: [null, null, null], headline: null },
-  },
-  synced = true,
-} = {}) {
+export async function mockApi(
+  page,
+  {
+    entries = [],
+    places = [],
+    locations = [],
+    settings = { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: false },
+    loggedIn = true,
+    username = "fixtureuser",
+    email = "fixtureuser@example.com",
+    pyramidData = { boulder: EMPTY_PYRAMID, sport: EMPTY_PYRAMID },
+    injuryData = { log: [], cluster: null },
+    strengthsData = { headline: null, anchors: [] },
+    strengthsRankedData = { ranked: [] },
+    volumeData = {
+      boulder: { buckets: ["-3w", "-2w", "-1w"], sendCounts: [0, 0, 0], maxGradeByBucket: [null, null, null] },
+      sport: { buckets: ["-3w", "-2w", "-1w"], sendCounts: [0, 0, 0], maxGradeByBucket: [null, null, null] },
+    },
+    gapData = {
+      boulder: {
+        buckets: ["-3w", "-2w", "-1w"],
+        flashMaxByBucket: [null, null, null],
+        sendMaxByBucket: [null, null, null],
+        avgAttemptsByBucket: [null, null, null],
+        headline: "No sends logged in this window yet.",
+      },
+      sport: {
+        buckets: ["-3w", "-2w", "-1w"],
+        flashMaxByBucket: [null, null, null],
+        sendMaxByBucket: [null, null, null],
+        avgAttemptsByBucket: [null, null, null],
+        headline: "No sends logged in this window yet.",
+      },
+    },
+    effortData = {
+      boulder: {
+        buckets: ["-3w", "-2w", "-1w"],
+        maxGradeByBucket: [null, null, null],
+        avgExertionByBucket: [null, null, null],
+        headline: null,
+      },
+      sport: {
+        buckets: ["-3w", "-2w", "-1w"],
+        maxGradeByBucket: [null, null, null],
+        avgExertionByBucket: [null, null, null],
+        headline: null,
+      },
+    },
+    synced = true,
+  } = {},
+) {
   let _entries = [...entries];
   let _places = [...places];
   let _locations = [...locations];
@@ -30,7 +60,10 @@ export async function mockApi(page, {
   // A counter stands in for sync_cursor, so the >= delta contract is deterministic.
   let _cursor = 0;
   const cursorOf = new Map();
-  function stamp(row) { cursorOf.set(row.id, ++_cursor); return row; }
+  function stamp(row) {
+    cursorOf.set(row.id, ++_cursor);
+    return row;
+  }
   [..._entries, ..._places, ..._locations].forEach(stamp);
 
   // The harness pages share an origin with real pages, so start each test with clean storage.
@@ -42,23 +75,29 @@ export async function mockApi(page, {
       places: Math.max(0, ..._places.map(p => cursorOf.get(p.id) ?? 0)),
       locations: Math.max(0, ..._locations.map(l => cursorOf.get(l.id) ?? 0)),
     };
-    await page.addInitScript(({ seedEntries, seedPlaces, seedLocations, cursors }) => {
-      localStorage.setItem("logbook_sync_status", JSON.stringify({ version: 1, syncedAt: Date.now() }));
-      localStorage.setItem("logbook_entries_cache", JSON.stringify(seedEntries));
-      localStorage.setItem("logbook_places_cache", JSON.stringify(seedPlaces));
-      localStorage.setItem("logbook_locations_cache", JSON.stringify(seedLocations));
-      localStorage.setItem("logbook_sync_cursors", JSON.stringify(cursors));
-    }, { seedEntries: _entries, seedPlaces: _places, seedLocations: _locations, cursors });
+    await page.addInitScript(
+      ({ seedEntries, seedPlaces, seedLocations, cursors }) => {
+        localStorage.setItem("logbook_sync_status", JSON.stringify({ version: 1, syncedAt: Date.now() }));
+        localStorage.setItem("logbook_entries_cache", JSON.stringify(seedEntries));
+        localStorage.setItem("logbook_places_cache", JSON.stringify(seedPlaces));
+        localStorage.setItem("logbook_locations_cache", JSON.stringify(seedLocations));
+        localStorage.setItem("logbook_sync_cursors", JSON.stringify(cursors));
+      },
+      { seedEntries: _entries, seedPlaces: _places, seedLocations: _locations, cursors },
+    );
   }
 
   await page.route("**/-/api/auth/get-session", route =>
-    route.fulfill({ json: loggedIn ? { session: { id: "s1" }, user: { id: "u1", username, email } } : null }));
+    route.fulfill({ json: loggedIn ? { session: { id: "s1" }, user: { id: "u1", username, email } } : null }),
+  );
 
   // Mocked: a real sign-out would end the suite's shared session.
   await page.route("**/-/api/auth/sign-out", route => route.fulfill({ json: {} }));
 
   await page.route("**/-/api/auth/update-user", route => route.fulfill({ json: { status: true } }));
-  await page.route("**/-/api/auth/change-password", route => route.fulfill({ json: { status: true, user: { id: "u1", email } } }));
+  await page.route("**/-/api/auth/change-password", route =>
+    route.fulfill({ json: { status: true, user: { id: "u1", email } } }),
+  );
   await page.route("**/-/api/auth/change-email", route => route.fulfill({ json: { status: true } }));
 
   await page.route("**/-/api/entries*", route => {
@@ -152,7 +191,8 @@ export async function mockApi(page, {
     return route.fulfill({ json: { entries: scoped.slice(0, limit) } });
   });
   await page.route("**/-/api/public/*/entries/counts", route =>
-    route.fulfill({ json: { locations: _locations, places: _places, counts: computeLocationCounts() } }));
+    route.fulfill({ json: { locations: _locations, places: _places, counts: computeLocationCounts() } }),
+  );
   await page.route("**/-/api/public/*/places", route => route.fulfill({ json: { places: _places } }));
   await page.route("**/-/api/public/*/locations", route => route.fulfill({ json: { locations: _locations } }));
   await page.route("**/-/api/public/*/map/counts", route => route.fulfill({ json: computeMapCounts() }));
@@ -189,16 +229,21 @@ export async function mockApi(page, {
     if (route.request().method() !== "POST") return route.continue();
     const contentType = route.request().headers()["content-type"] ?? "";
     const rowCount = contentType.includes("json")
-      ? (JSON.parse(route.request().postData() || "[]").length)
+      ? JSON.parse(route.request().postData() || "[]").length
       : (route.request().postData() || "").trim().split("\n").slice(1).filter(Boolean).length;
-    _entries = [..._entries, ...Array.from({ length: rowCount }, (_, i) => ({ id: `imported-${_entries.length + i}` }))];
+    _entries = [
+      ..._entries,
+      ...Array.from({ length: rowCount }, (_, i) => ({ id: `imported-${_entries.length + i}` })),
+    ];
     return route.fulfill({ status: 201, json: { imported: rowCount } });
   });
 
   await page.route("**/-/api/places*", async route => {
     if (route.request().method() !== "POST") return route.fallback();
     const body = route.request().postDataJSON();
-    const duplicate = _places.find(p => p.locationId === body.locationId && (p.area ?? "").toLowerCase() === (body.area ?? "").toLowerCase());
+    const duplicate = _places.find(
+      p => p.locationId === body.locationId && (p.area ?? "").toLowerCase() === (body.area ?? "").toLowerCase(),
+    );
     if (duplicate) return route.fulfill({ json: { place: duplicate, dedupedTo: duplicate.id } });
     const place = stamp(body);
     _places = [..._places, place];

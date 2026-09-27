@@ -19,8 +19,11 @@ export function createOfflineSync({
   const syncBtnIcon = document.getElementById("sync-btn-icon");
 
   function getQueue() {
-    try { return JSON.parse(localStorage.getItem(queueKey)) ?? []; }
-    catch { return []; }
+    try {
+      return JSON.parse(localStorage.getItem(queueKey)) ?? [];
+    } catch {
+      return [];
+    }
   }
   function setQueue(queue) {
     localStorage.setItem(queueKey, JSON.stringify(queue));
@@ -69,7 +72,9 @@ export function createOfflineSync({
 
   async function pullDelta(url, table) {
     try {
-      const res = await fetch(`${url}?since=${getCursor(table)}`, { signal: AbortSignal.timeout(BACKGROUND_FETCH_TIMEOUT_MS) });
+      const res = await fetch(`${url}?since=${getCursor(table)}`, {
+        signal: AbortSignal.timeout(BACKGROUND_FETCH_TIMEOUT_MS),
+      });
       if (!res.ok) return;
       const { [table]: rows, cursor } = await res.json();
       store.mergeConfirmed(table, rows);
@@ -82,10 +87,7 @@ export function createOfflineSync({
 
   async function pullDeltas() {
     // Places and locations first: entries reference them.
-    await Promise.all([
-      pullDelta(placesUrl, "places"),
-      pullDelta(locationsUrl, "locations"),
-    ]);
+    await Promise.all([pullDelta(placesUrl, "places"), pullDelta(locationsUrl, "locations")]);
     await pullDelta(entriesUrl, "entries");
 
     // Always re-apply the queue on top of the clean merge.
@@ -177,7 +179,10 @@ export function createOfflineSync({
   }
 
   async function syncPending() {
-    if (syncInFlight) { syncAgain = true; return; }
+    if (syncInFlight) {
+      syncAgain = true;
+      return;
+    }
     syncInFlight = true;
     syncBtn.disabled = true;
     syncBtnIcon.classList.add("animate-spin");
@@ -197,7 +202,9 @@ export function createOfflineSync({
   }
 
   syncBtn.addEventListener("click", syncPending);
-  window.addEventListener("online", () => { if (store.isLoggedIn()) syncPending(); });
+  window.addEventListener("online", () => {
+    if (store.isLoggedIn()) syncPending();
+  });
 
   return { getQueue, setQueue, enqueue, syncPending, updateSyncButton, reconcileEntries };
 }

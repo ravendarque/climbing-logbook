@@ -6,7 +6,10 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { contentHash, contentHashAssetUrls } from "../../scripts/content-hash-asset-urls.mjs";
 
 let dir;
-const write = (rel, content) => { mkdirSync(join(dir, rel, ".."), { recursive: true }); writeFileSync(join(dir, rel), content); };
+const write = (rel, content) => {
+  mkdirSync(join(dir, rel, ".."), { recursive: true });
+  writeFileSync(join(dir, rel), content);
+};
 const read = rel => readFileSync(join(dir, rel), "utf8");
 
 beforeEach(() => {
@@ -50,7 +53,9 @@ describe("contentHashAssetUrls (#961)", () => {
     contentHashAssetUrls(dir);
     const after = read("log/index.html");
     const urls = html => [...html.matchAll(/(\/-\/[^"?]+)\?v=([0-9a-f]+)/g)].map(m => [m[1], m[2]]);
-    const changed = urls(after).filter(([path, hash]) => urls(before).find(([p]) => p === path)[1] !== hash).map(([p]) => p);
+    const changed = urls(after)
+      .filter(([path, hash]) => urls(before).find(([p]) => p === path)[1] !== hash)
+      .map(([p]) => p);
     expect(changed).toEqual(["/-/components/climbing-header.js"]);
   });
 

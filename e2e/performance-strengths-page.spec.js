@@ -17,7 +17,9 @@ test("shows the not-enough-data message and Sources section with no tagged moves
   await expect(page.locator("body")).toContainText("MacLeod");
 });
 
-test("#604 -- hides the drill-down picker when anchors exist but no cell clears the confidence gate", async ({ page }) => {
+test("#604 -- hides the drill-down picker when anchors exist but no cell clears the confidence gate", async ({
+  page,
+}) => {
   await mockApi(page, {
     settings: { athleteMode: true, activeDiscipline: "boulder" },
     strengthsData: { headline: null, anchors: [{ dimension: "holdType", value: "crimp", label: "crimp" }] },
@@ -32,16 +34,40 @@ test("renders the headline and drill-down picker, and re-ranks on anchor change"
   await mockApi(page, {
     settings: { athleteMode: true, activeDiscipline: "boulder" },
     strengthsData: {
-      headline: { cell: { limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang", score: 1 }, text: "Your left hand on overhanging crimps looks like a key weakness." },
+      headline: {
+        cell: {
+          limb: "hand",
+          side: "left",
+          holdType: "crimp",
+          movementStyle: "static",
+          wallAngle: "overhang",
+          score: 1,
+        },
+        text: "Your left hand on overhanging crimps looks like a key weakness.",
+      },
       anchors: [{ dimension: "holdType", value: "crimp", label: "crimp" }],
     },
     strengthsRankedData: {
-      ranked: [{ limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang", hardestCount: 5, easiestCount: 0, total: 5, score: 1 }],
+      ranked: [
+        {
+          limb: "hand",
+          side: "left",
+          holdType: "crimp",
+          movementStyle: "static",
+          wallAngle: "overhang",
+          hardestCount: 5,
+          easiestCount: 0,
+          total: 5,
+          score: 1,
+        },
+      ],
     },
   });
   await page.goto("/e2e-fixtures/pages/performance-strengths.html");
 
-  await expect(page.locator("#strengths-headline")).toHaveText("Your left hand on overhanging crimps looks like a key weakness.");
+  await expect(page.locator("#strengths-headline")).toHaveText(
+    "Your left hand on overhanging crimps looks like a key weakness.",
+  );
   await page.locator("#strengths-anchor-select").selectOption("holdType:crimp");
   await expect(page.locator("#strengths-ranked-list .row-card-title")).toContainText("Left hand");
   await expect(page.locator("#strengths-ranked-list")).toContainText("100% hardest (5/5)");

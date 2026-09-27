@@ -1,7 +1,9 @@
 import { expect, test } from "@playwright/test";
 import { mockApi } from "./mock-api.js";
 
-test("shows the not-enough-data message, empty log, and Sources section with no pain-tagged entries", async ({ page }) => {
+test("shows the not-enough-data message, empty log, and Sources section with no pain-tagged entries", async ({
+  page,
+}) => {
   await mockApi(page, {
     settings: { athleteMode: true, activeDiscipline: "boulder" },
     injuryData: { log: [], cluster: null },
@@ -21,8 +23,24 @@ test("renders the ranked headline and log rows when a cluster clears the confide
   await mockApi(page, {
     settings: { athleteMode: true, activeDiscipline: "boulder" },
     injuryData: {
-      log: [{ id: "e1", name: "Painful Route", date: "2026-01-01", painMoves: [{ limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" }] }],
-      cluster: { limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang", count: 5 },
+      log: [
+        {
+          id: "e1",
+          name: "Painful Route",
+          date: "2026-01-01",
+          painMoves: [
+            { limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" },
+          ],
+        },
+      ],
+      cluster: {
+        limb: "hand",
+        side: "left",
+        holdType: "crimp",
+        movementStyle: "static",
+        wallAngle: "overhang",
+        count: 5,
+      },
     },
   });
   await page.goto("/e2e-fixtures/pages/performance-injury.html");

@@ -10,7 +10,8 @@ function nonStandardLabelsByStandardRow(referenceScale, nonStandardScale) {
   const firstOrdinal = referenceScale.toOrdinal(referenceScale.labels[0]);
   const lastOrdinal = referenceScale.toOrdinal(referenceScale.labels[referenceScale.labels.length - 1]);
   const minOrdinal = Math.floor(firstOrdinal / SUB_POSITIONS_PER_NUMBER) * SUB_POSITIONS_PER_NUMBER;
-  const maxOrdinal = Math.floor(lastOrdinal / SUB_POSITIONS_PER_NUMBER) * SUB_POSITIONS_PER_NUMBER + (SUB_POSITIONS_PER_NUMBER - 1);
+  const maxOrdinal =
+    Math.floor(lastOrdinal / SUB_POSITIONS_PER_NUMBER) * SUB_POSITIONS_PER_NUMBER + (SUB_POSITIONS_PER_NUMBER - 1);
   const byRow = new Map();
   for (let ordinal = minOrdinal; ordinal <= maxOrdinal; ordinal++) {
     const standardLabel = referenceScale.toLabel(ordinal);
@@ -39,12 +40,14 @@ export function buildMatrixRows(discipline) {
   const nonStandardByRow = nonStandardLabelsByStandardRow(referenceScale, nonStandardScale);
   const rows = referenceScale.labels.map(label => {
     const ordinal = referenceScale.toOrdinal(label);
-    const cells = Object.fromEntries(scales.map(scale => {
-      if (scale === nonStandardScale) {
-        return [scale.id, (nonStandardByRow.get(label) ?? []).join(", ")];
-      }
-      return [scale.id, scale.toLabel(ordinal)];
-    }));
+    const cells = Object.fromEntries(
+      scales.map(scale => {
+        if (scale === nonStandardScale) {
+          return [scale.id, (nonStandardByRow.get(label) ?? []).join(", ")];
+        }
+        return [scale.id, scale.toLabel(ordinal)];
+      }),
+    );
     return { ordinal, cells };
   });
   if (discipline === "boulder") rows.unshift(BELOW_RANGE_ROW);
@@ -88,13 +91,27 @@ export function gradeScaleMatrixHtml(discipline) {
   const scales = SCALES_BY_DISCIPLINE[discipline];
   if (!scales) throw new Error(`Unknown discipline: ${discipline}`);
   const rows = buildMatrixRows(discipline);
-  const headerCells = scales.map(s => `<th scope="col" class="text-left font-semibold text-muted text-[.78rem] py-[.5rem] px-[.6rem] whitespace-nowrap">${escapeHtml(s.name)}</th>`).join("");
-  const bodyRows = rows.map(row => {
-    const cells = scales.map(s => `<td class="py-[.4rem] px-[.6rem] whitespace-nowrap">${row.cells[s.id] != null ? escapeHtml(row.cells[s.id]) : "<span class=\"text-muted\">—</span>"}</td>`).join("");
-    return `<tr class="border-t border-border">${cells}</tr>`;
-  }).join("");
+  const headerCells = scales
+    .map(
+      s =>
+        `<th scope="col" class="text-left font-semibold text-muted text-[.78rem] py-[.5rem] px-[.6rem] whitespace-nowrap">${escapeHtml(s.name)}</th>`,
+    )
+    .join("");
+  const bodyRows = rows
+    .map(row => {
+      const cells = scales
+        .map(
+          s =>
+            `<td class="py-[.4rem] px-[.6rem] whitespace-nowrap">${row.cells[s.id] != null ? escapeHtml(row.cells[s.id]) : '<span class="text-muted">—</span>'}</td>`,
+        )
+        .join("");
+      return `<tr class="border-t border-border">${cells}</tr>`;
+    })
+    .join("");
 
-  const baseNote = BASE_TABLE_NOTE[discipline] ? `<p class="text-[.82rem] text-muted leading-[1.7] mb-4">${BASE_TABLE_NOTE[discipline]}</p>` : "";
+  const baseNote = BASE_TABLE_NOTE[discipline]
+    ? `<p class="text-[.82rem] text-muted leading-[1.7] mb-4">${BASE_TABLE_NOTE[discipline]}</p>`
+    : "";
 
   return `
     <p class="text-[.82rem] text-muted leading-[1.7] mb-4">${CAVEATS_BY_DISCIPLINE[discipline] ?? ""}</p>
@@ -111,7 +128,12 @@ export function gradeScaleMatrixHtml(discipline) {
 export function gradeScaleSourcesHtml() {
   const sources = allConversionSources();
   if (sources.length === 0) return "";
-  const items = sources.map(source => `<li><strong class="text-foreground font-semibold">${escapeHtml(source)}</strong>${SOURCE_DESCRIPTIONS[source] ? ` -- ${escapeHtml(SOURCE_DESCRIPTIONS[source])}` : ""}</li>`).join("");
+  const items = sources
+    .map(
+      source =>
+        `<li><strong class="text-foreground font-semibold">${escapeHtml(source)}</strong>${SOURCE_DESCRIPTIONS[source] ? ` -- ${escapeHtml(SOURCE_DESCRIPTIONS[source])}` : ""}</li>`,
+    )
+    .join("");
   return `
     <h2 class="sources-heading">Sources</h2>
     <ol class="m-0 pl-[1.2rem] text-[.84rem] leading-[1.6] text-foreground [&>li+li]:mt-[10px]">${items}</ol>

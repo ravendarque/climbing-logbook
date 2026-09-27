@@ -84,11 +84,13 @@ export function createAuth(env, hostname) {
           emailSender.sendChangeEmailConfirmation(user.email, newEmail, url),
       },
     },
-    plugins: [username({
-      usernameValidator: isValidUsername,
-      minUsernameLength: USERNAME_MIN_LENGTH,
-      maxUsernameLength: USERNAME_MAX_LENGTH,
-    })],
+    plugins: [
+      username({
+        usernameValidator: isValidUsername,
+        minUsernameLength: USERNAME_MIN_LENGTH,
+        maxUsernameLength: USERNAME_MAX_LENGTH,
+      }),
+    ],
     hooks: {
       before: createTurnstileHook(env),
     },

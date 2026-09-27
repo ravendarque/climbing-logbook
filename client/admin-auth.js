@@ -15,7 +15,14 @@ async function clearWorkerCaches() {
   }
 }
 
-export function createAdminAuth({ store, adminFetch, isAuthRedirect, settingsUrl, updateAdminBar, onFetchTimeout = () => {} }) {
+export function createAdminAuth({
+  store,
+  adminFetch,
+  isAuthRedirect,
+  settingsUrl,
+  updateAdminBar,
+  onFetchTimeout = () => {},
+}) {
   const AUTH_SESSION_URL = "/-/api/auth/get-session";
   const AUTH_SIGN_OUT_URL = "/-/api/auth/sign-out";
   const SETTINGS_URL = "/-/api/settings";
@@ -41,14 +48,19 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, settingsUrl
   let email = null;
 
   // Applied by boot(), not here: settings and entries race, and the heuristic mustn't clobber it.
-  let persistedDiscipline = cachedSettings && VALID_TYPES.includes(cachedSettings.activeDiscipline)
-    ? cachedSettings.activeDiscipline
-    : null;
+  let persistedDiscipline =
+    cachedSettings && VALID_TYPES.includes(cachedSettings.activeDiscipline) ? cachedSettings.activeDiscipline : null;
 
   function persistSettingsCache() {
-    localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({
-      athleteMode, logbookPublic, betaOptIn, activeDiscipline: persistedDiscipline,
-    }));
+    localStorage.setItem(
+      SETTINGS_CACHE_KEY,
+      JSON.stringify({
+        athleteMode,
+        logbookPublic,
+        betaOptIn,
+        activeDiscipline: persistedDiscipline,
+      }),
+    );
   }
 
   async function fetchSettings() {
@@ -103,7 +115,11 @@ export function createAdminAuth({ store, adminFetch, isAuthRedirect, settingsUrl
     if (result.ok) {
       betaOptIn = result.data.betaOptIn;
       // Cached now, so leaving from beta takes effect there immediately.
-      try { persistSettingsCache(); } catch { /* storage full or blocked */ }
+      try {
+        persistSettingsCache();
+      } catch {
+        /* storage full or blocked */
+      }
     }
     updateAdminBar();
     return result;

@@ -27,10 +27,13 @@ export function createPlacePicker({
   let placeCommittedValue = ""; // the committed placeId, "" if none
 
   function joinedPlaces() {
-    return store.getPlaces().map(p => {
-      const loc = store.locationOf(p);
-      return { id: p.id, location: loc.name, area: p.area, country: loc.country };
-    }).sort((a, b) => a.location.localeCompare(b.location) || a.area.localeCompare(b.area));
+    return store
+      .getPlaces()
+      .map(p => {
+        const loc = store.locationOf(p);
+        return { id: p.id, location: loc.name, area: p.area, country: loc.country };
+      })
+      .sort((a, b) => a.location.localeCompare(b.location) || a.area.localeCompare(b.area));
   }
 
   function setPlace(placeId) {
@@ -53,8 +56,12 @@ export function createPlacePicker({
   }
 
   const { close: closePlacePopover } = createSearchableListbox({
-    trigger: placeBtn, popover: placePopover, containerSelector: "#place-wrap",
-    searchInput: placeSearch, listboxEl: placeListbox, idPrefix: "place-option",
+    trigger: placeBtn,
+    popover: placePopover,
+    containerSelector: "#place-wrap",
+    searchInput: placeSearch,
+    listboxEl: placeListbox,
+    idPrefix: "place-option",
     filterItems: q => {
       const all = joinedPlaces();
       return q ? all.filter(p => p.location.toLowerCase().includes(q) || p.area.toLowerCase().includes(q)) : all;
@@ -110,12 +117,17 @@ export function createPlacePicker({
 
   // A disabled button never fires click, so no extra guard is needed.
   const { close: closeAddPlaceCountryPopover } = createSearchableListbox({
-    trigger: addPlaceCountryBtn, popover: addPlaceCountryPopover, containerSelector: "#add-place-country-wrap",
-    searchInput: addPlaceCountrySearch, listboxEl: addPlaceCountryListbox, idPrefix: "add-place-country-option",
-    filterItems: q => q ? COUNTRIES.filter(c => c.name.toLowerCase().includes(q)) : COUNTRIES,
+    trigger: addPlaceCountryBtn,
+    popover: addPlaceCountryPopover,
+    containerSelector: "#add-place-country-wrap",
+    searchInput: addPlaceCountrySearch,
+    listboxEl: addPlaceCountryListbox,
+    idPrefix: "add-place-country-option",
+    filterItems: q => (q ? COUNTRIES.filter(c => c.name.toLowerCase().includes(q)) : COUNTRIES),
     getItemKey: c => c.name,
     isSelected: c => c.name === addPlaceCountryCommitted,
-    renderItemContent: c => `<span class="flex items-center gap-[.5rem] min-w-0"><span aria-hidden="true">${escapeHtml(c.flag)}</span><span class="truncate">${escapeHtml(c.name)}</span></span>`,
+    renderItemContent: c =>
+      `<span class="flex items-center gap-[.5rem] min-w-0"><span aria-hidden="true">${escapeHtml(c.flag)}</span><span class="truncate">${escapeHtml(c.name)}</span></span>`,
     onSelect: setAddPlaceCountry,
   });
 
@@ -141,12 +153,16 @@ export function createPlacePicker({
     setAddPlaceCountry("");
     addPlaceCountryBtn.disabled = false;
     addPlaceCountryHint.hidden = true;
-    document.getElementById("add-place-location-list").innerHTML =
-      [...new Set(store.getLocations().map(l => l.name))].sort().map(n => `<option value="${escapeHtml(n)}">`).join("");
+    document.getElementById("add-place-location-list").innerHTML = [...new Set(store.getLocations().map(l => l.name))]
+      .sort()
+      .map(n => `<option value="${escapeHtml(n)}">`)
+      .join("");
     openModal(addPlaceOverlay);
   }
   document.getElementById("add-place-close").addEventListener("click", () => closeModal(addPlaceOverlay));
-  addPlaceOverlay.addEventListener("click", e => { if (e.target === addPlaceOverlay) closeModal(addPlaceOverlay); });
+  addPlaceOverlay.addEventListener("click", e => {
+    if (e.target === addPlaceOverlay) closeModal(addPlaceOverlay);
+  });
 
   function showAddPlaceError(text) {
     addPlaceMsg.textContent = text;
@@ -199,7 +215,9 @@ export function createPlacePicker({
       }
     }
 
-    const locationQueued = [...getQueue(), ...queued].some(item => item.kind === "location" && item.record.id === location.id);
+    const locationQueued = [...getQueue(), ...queued].some(
+      item => item.kind === "location" && item.record.id === location.id,
+    );
     if (locationQueued) {
       queued.push({ kind: "place", op: "add", record: place });
     } else {

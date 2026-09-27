@@ -11,5 +11,6 @@ export async function mockTurnstile(page) {
         };
         if (typeof window.onTurnstileLoad === "function") window.onTurnstileLoad();
       `,
-    }));
+    }),
+  );
 }

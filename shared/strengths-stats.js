@@ -17,7 +17,11 @@ export function cellCounts(entries) {
         else if (move.difficulty === "easiest") existing.easiestCount++;
       } else {
         byKey.set(key, {
-          limb: move.limb, side: move.side, holdType: move.holdType, movementStyle: move.movementStyle, wallAngle: move.wallAngle,
+          limb: move.limb,
+          side: move.side,
+          holdType: move.holdType,
+          movementStyle: move.movementStyle,
+          wallAngle: move.wallAngle,
           hardestCount: move.difficulty === "hardest" ? 1 : 0,
           easiestCount: move.difficulty === "easiest" ? 1 : 0,
         });

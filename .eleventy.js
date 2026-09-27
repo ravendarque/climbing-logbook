@@ -40,4 +40,4 @@ export default function (eleventyConfig) {
     // njk, not liquid, so Markdown pages use the same engine.
     markdownTemplateEngine: "njk",
   };
-};
+}

@@ -16,7 +16,7 @@ function showError(message) {
   errorEl.focus();
 }
 
-form.addEventListener("submit", async (event) => {
+form.addEventListener("submit", async event => {
   event.preventDefault();
   errorEl.hidden = true;
   infoEl.hidden = true;
@@ -41,12 +41,15 @@ form.addEventListener("submit", async (event) => {
         try {
           const settingsRes = await fetch("/-/api/settings");
           betaOptIn = (await settingsRes.json()).betaOptIn;
-        } catch {
-        }
+        } catch {}
       }
       // Recorded on app hosts so the offline ownership check knows this user straight away.
       if (!needsChannelChoice(window.location.hostname)) {
-        try { localStorage.setItem("logbook_signed_in_user", data.user.username.toLowerCase()); } catch { /* storage blocked */ }
+        try {
+          localStorage.setItem("logbook_signed_in_user", data.user.username.toLowerCase());
+        } catch {
+          /* storage blocked */
+        }
       }
       window.location.href = resolvePostLoginTarget({
         hostname: window.location.hostname,
@@ -71,7 +74,7 @@ forgotPasswordBtn.addEventListener("click", async () => {
   infoEl.hidden = true;
 
   if (!emailInput.value) {
-    showError("Enter your email above first, then click \"Forgot password?\" again.");
+    showError('Enter your email above first, then click "Forgot password?" again.');
     emailInput.focus();
     return;
   }

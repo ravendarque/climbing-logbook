@@ -12,7 +12,14 @@ export function painClusterCounts(entries) {
       if (existing) {
         existing.count++;
       } else {
-        byKey.set(key, { limb: move.limb, side: move.side, holdType: move.holdType, movementStyle: move.movementStyle, wallAngle: move.wallAngle, count: 1 });
+        byKey.set(key, {
+          limb: move.limb,
+          side: move.side,
+          holdType: move.holdType,
+          movementStyle: move.movementStyle,
+          wallAngle: move.wallAngle,
+          count: 1,
+        });
       }
     }
   }
@@ -26,9 +33,7 @@ export function topPainCluster(entries, minCount = MIN_TAG_COUNT) {
 }
 
 export function painLogEntries(entries) {
-  return entries
-    .filter(e => (e.painMoves ?? []).length > 0)
-    .sort((a, b) => dateRank(b.date) - dateRank(a.date));
+  return entries.filter(e => (e.painMoves ?? []).length > 0).sort((a, b) => dateRank(b.date) - dateRank(a.date));
 }
 
 export function describeCluster(cluster) {

@@ -41,7 +41,11 @@ viewTabs.addEventListener("click", e => {
   if (tab) setActiveView(tab.dataset.view);
 });
 
-createDisclosure(document.getElementById("header-menu-btn"), document.getElementById("header-menu-popover"), "#header-menu-wrap");
+createDisclosure(
+  document.getElementById("header-menu-btn"),
+  document.getElementById("header-menu-popover"),
+  "#header-menu-wrap",
+);
 
 createThemeToggle();
 
@@ -51,7 +55,10 @@ entriesTable.addEventListener("location-expand", async e => {
   const { locationId } = e.detail;
   const base = `/-/api/public/${encodeURIComponent(USERNAME)}`;
   try {
-    const loaded = await loadResource(`${base}/entries?locationId=${encodeURIComponent(locationId)}&limit=${PAGE_SIZE}`, "entries");
+    const loaded = await loadResource(
+      `${base}/entries?locationId=${encodeURIComponent(locationId)}&limit=${PAGE_SIZE}`,
+      "entries",
+    );
     entriesTable.entries = [...entriesTable.entries, ...loaded];
   } catch {
     // No automatic retry: collapsing and re-expanding re-fires the request.
@@ -61,8 +68,12 @@ entriesTable.addEventListener("location-expand", async e => {
 async function boot() {
   const base = `/-/api/public/${encodeURIComponent(USERNAME)}`;
   const [{ locations, places, counts }, mapCounts] = await Promise.all([
-    fetch(`${base}/entries/counts`).then(res => (res.ok ? res.json() : { locations: [], places: [], counts: {} })).catch(() => ({ locations: [], places: [], counts: {} })),
-    fetch(`${base}/map/counts`).then(res => (res.ok ? res.json() : {})).catch(() => ({})),
+    fetch(`${base}/entries/counts`)
+      .then(res => (res.ok ? res.json() : { locations: [], places: [], counts: {} }))
+      .catch(() => ({ locations: [], places: [], counts: {} })),
+    fetch(`${base}/map/counts`)
+      .then(res => (res.ok ? res.json() : {}))
+      .catch(() => ({})),
   ]);
 
   entriesTable.places = places;

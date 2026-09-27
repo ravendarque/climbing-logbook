@@ -9,7 +9,8 @@ import { COUNTRY_BY_NAME } from "../countries.js";
 const EDIT_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"></path></svg>`;
 const PENDING_ICON = `<svg class="inline-block w-[.8rem] h-[.8rem] align-[-1px] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
 
-const TH_BASE = "text-left px-[.65rem] py-[.35rem] text-muted font-medium text-[.72rem] uppercase tracking-wider border-b border-border whitespace-nowrap";
+const TH_BASE =
+  "text-left px-[.65rem] py-[.35rem] text-muted font-medium text-[.72rem] uppercase tracking-wider border-b border-border whitespace-nowrap";
 const TH_SORTABLE = "cursor-pointer hover:text-foreground";
 const TD_BASE = "px-[.65rem] py-[.35rem] align-middle";
 
@@ -41,15 +42,20 @@ export function shellHtml(allDisciplines) {
       </span>
     </label>`;
 
-  const disciplineGroup = allDisciplines ? `
+  const disciplineGroup = allDisciplines
+    ? `
         <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mb-[.4rem]" id="filter-discipline-label">Discipline</div>
         <fieldset class="border border-border rounded-app flex flex-col w-full min-w-0 mb-[.9rem]" id="filter-discipline-group" aria-labelledby="filter-discipline-label">
           ${DISCIPLINE_ORDER.map(d => toggleBtn("discipline", d, "", { text: disciplineLabel(d) })).join("")}
-        </fieldset>` : "";
+        </fieldset>`
+    : "";
 
-  const tierSwatch = tierId => `<span class="inline-block w-3.5 h-3.5 rounded-[calc(var(--radius-app)*.5)] shrink-0" style="background:${gradeTierColor(tierId)}"></span>`;
+  const tierSwatch = tierId =>
+    `<span class="inline-block w-3.5 h-3.5 rounded-[calc(var(--radius-app)*.5)] shrink-0" style="background:${gradeTierColor(tierId)}"></span>`;
 
-  const gradeFilter = allDisciplines ? "" : `
+  const gradeFilter = allDisciplines
+    ? ""
+    : `
         <div class="mt-[.9rem]" id="filter-grade-tier-wrap">
           <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mb-[.4rem]" id="filter-grade-tier-label">Grade</div>
           <fieldset class="border border-border rounded-app flex flex-col w-full min-w-0" id="filter-grade-tier-group" aria-labelledby="filter-grade-tier-label">
@@ -119,10 +125,14 @@ export function renderShellSectionHtml({ key, locationId, shellCount }, { locati
     <div class="bg-surface border border-border rounded-app mb-3 overflow-hidden" data-location-id="${escapeHtml(key)}">
       <div class="place-header flex items-center gap-[.5rem] px-[.9rem] py-[.6rem] ${isCollapsed ? "" : "border-b border-border"} bg-[color-mix(in_srgb,var(--color-surface)_60%,var(--color-bg))] cursor-pointer select-none hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,var(--color-surface))]" data-location-id="${escapeHtml(key)}" role="button" tabindex="0" aria-expanded="${!isCollapsed}">
         <span class="font-semibold text-base truncate min-w-0 flex-1">${escapeHtml(location.name)}</span>
-        ${locationCountry ? `<span class="inline-flex items-center gap-[.3rem] shrink-0">
+        ${
+          locationCountry
+            ? `<span class="inline-flex items-center gap-[.3rem] shrink-0">
           <span class="max-[600px]:hidden text-[.78rem] text-muted font-normal whitespace-nowrap">${escapeHtml(locationCountry.name)}</span>
           <span role="img" aria-label="${escapeHtml(locationCountry.name)}">${escapeHtml(locationCountry.flag)}</span>
-        </span>` : ""}
+        </span>`
+            : ""
+        }
         <span class="inline-flex items-center justify-center min-w-[1.4rem] h-[1.4rem] px-1 rounded-full bg-[color-mix(in_srgb,var(--color-text)_12%,transparent)] text-muted text-[.72rem] font-semibold shrink-0" aria-label="${shellCount} ${shellCount === 1 ? "entry" : "entries"}">${shellCount}</span>
         <span class="text-muted text-[.8rem] transition-transform duration-200 shrink-0 ${isCollapsed ? "-rotate-90" : ""}">▾</span>
       </div>
@@ -130,7 +140,10 @@ export function renderShellSectionHtml({ key, locationId, shellCount }, { locati
     </div>`;
 }
 
-export function renderLocationSectionHtml(section, { locations, places, collapsed, editable, activeDiscipline, sort, revealed }) {
+export function renderLocationSectionHtml(
+  section,
+  { locations, places, collapsed, editable, activeDiscipline, sort, revealed },
+) {
   const { key, locationId, discipline, items } = section;
   const location = locations.find(l => l.id === locationId) ?? { name: "", country: "" };
   // Sections carry discipline only in all-disciplines mode; otherwise it's the active one.
@@ -138,26 +151,28 @@ export function renderLocationSectionHtml(section, { locations, places, collapse
   const { col, dir } = sort;
   const isCollapsed = collapsed.has(key);
 
-  const sortIcon = c => c !== col
-    ? `<i class="ml-[.3rem] not-italic opacity-40">↕</i>`
-    : `<i class="ml-[.3rem] not-italic opacity-100 text-accent">${dir === "asc" ? "↑" : "↓"}</i>`;
-  const sortAria = c => c !== col ? "none" : (dir === "asc" ? "ascending" : "descending");
+  const sortIcon = c =>
+    c !== col
+      ? `<i class="ml-[.3rem] not-italic opacity-40">↕</i>`
+      : `<i class="ml-[.3rem] not-italic opacity-100 text-accent">${dir === "asc" ? "↑" : "↓"}</i>`;
+  const sortAria = c => (c !== col ? "none" : dir === "asc" ? "ascending" : "descending");
 
   const visibleRows = sorted.slice(0, revealed);
   const hasMore = sorted.length > revealed;
 
-  const rows = visibleRows.map(e => {
-    const rowBg = e._pendingDelete
-      ? "bg-[color-mix(in_srgb,#f87171_8%,var(--color-surface))]"
-      : e._pending
-      ? "bg-[color-mix(in_srgb,var(--color-accent)_6%,var(--color-surface))]"
-      : "hover:bg-[color-mix(in_srgb,var(--color-accent)_4%,var(--color-surface))]";
-    const pendingBadge = e._pendingDelete
-      ? `<span class="text-red-400" title="Pending delete"> ${PENDING_ICON}</span>`
-      : e._pending
-      ? `<span class="text-accent" title="Pending sync"> ${PENDING_ICON}</span>`
-      : "";
-    return `
+  const rows = visibleRows
+    .map(e => {
+      const rowBg = e._pendingDelete
+        ? "bg-[color-mix(in_srgb,#f87171_8%,var(--color-surface))]"
+        : e._pending
+          ? "bg-[color-mix(in_srgb,var(--color-accent)_6%,var(--color-surface))]"
+          : "hover:bg-[color-mix(in_srgb,var(--color-accent)_4%,var(--color-surface))]";
+      const pendingBadge = e._pendingDelete
+        ? `<span class="text-red-400" title="Pending delete"> ${PENDING_ICON}</span>`
+        : e._pending
+          ? `<span class="text-accent" title="Pending sync"> ${PENDING_ICON}</span>`
+          : "";
+      return `
     <tr class="border-b border-[color-mix(in_srgb,var(--color-border)_40%,transparent)] last:border-b-0 ${rowBg}">
       <td class="${TD_BASE} text-center">${statusBadge(e)}</td>
       <td class="${TD_BASE}"><span class="grade-badge" style="background:${gradeColor(e.grade, e.type)}">${escapeHtml(e.grade)}</span></td>
@@ -172,7 +187,8 @@ export function renderLocationSectionHtml(section, { locations, places, collapse
       <td class="${TD_BASE} text-center">${editable ? `<button type="button" class="edit-btn border-0 bg-transparent cursor-pointer text-muted inline-flex p-[.2rem] hover:text-accent [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:stroke-current [&_svg]:fill-none" data-edit-id="${escapeHtml(e.id)}" aria-label="Edit">${EDIT_ICON}</button>` : ""}</td>
     </tr>
   `;
-  }).join("");
+    })
+    .join("");
 
   const locationCountry = COUNTRY_BY_NAME[location.country];
   const headerName = discipline ? `${location.name} (${disciplineLabel(discipline)})` : location.name;
@@ -180,10 +196,14 @@ export function renderLocationSectionHtml(section, { locations, places, collapse
     <div class="bg-surface border border-border rounded-app mb-3 overflow-hidden" data-location-id="${escapeHtml(key)}">
       <div class="place-header flex items-center gap-[.5rem] px-[.9rem] py-[.6rem] border-b border-border bg-[color-mix(in_srgb,var(--color-surface)_60%,var(--color-bg))] cursor-pointer select-none hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,var(--color-surface))]" data-location-id="${escapeHtml(key)}" role="button" tabindex="0" aria-expanded="${!isCollapsed}">
         <span class="font-semibold text-base truncate min-w-0 flex-1">${escapeHtml(headerName)}</span>
-        ${locationCountry ? `<span class="inline-flex items-center gap-[.3rem] shrink-0">
+        ${
+          locationCountry
+            ? `<span class="inline-flex items-center gap-[.3rem] shrink-0">
           <span class="max-[600px]:hidden text-[.78rem] text-muted font-normal whitespace-nowrap">${escapeHtml(locationCountry.name)}</span>
           <span role="img" aria-label="${escapeHtml(locationCountry.name)}">${escapeHtml(locationCountry.flag)}</span>
-        </span>` : ""}
+        </span>`
+            : ""
+        }
         <span class="inline-flex items-center justify-center min-w-[1.4rem] h-[1.4rem] px-1 rounded-full bg-[color-mix(in_srgb,var(--color-text)_12%,transparent)] text-muted text-[.72rem] font-semibold shrink-0" aria-label="${sorted.length} ${sorted.length === 1 ? "entry" : "entries"}">${sorted.length}</span>
         <span class="text-muted text-[.8rem] transition-transform duration-200 shrink-0 ${isCollapsed ? "-rotate-90" : ""}">▾</span>
       </div>
@@ -223,12 +243,16 @@ export function renderLocationSectionHtml(section, { locations, places, collapse
             ${rows || `<tr><td class="text-center text-muted p-8 text-[.9rem]" colspan="8">No problems match.</td></tr>`}
           </tbody>
         </table>
-        ${hasMore ? `
+        ${
+          hasMore
+            ? `
         <div class="flex items-center justify-center gap-3 flex-wrap px-[.9rem] py-[.6rem] border-t border-border text-[.82rem]">
           <span class="text-muted">${visibleRows.length} of ${sorted.length} shown</span>
           <button type="button" class="show-more-btn border-0 bg-transparent cursor-pointer text-accent font-medium hover:underline" data-section-key="${escapeHtml(key)}">Show more</button>
           <button type="button" class="show-all-btn border-0 bg-transparent cursor-pointer text-accent font-medium hover:underline" data-section-key="${escapeHtml(key)}">Show all</button>
-        </div>` : ""}
+        </div>`
+            : ""
+        }
       </div>
     </div>`;
 }

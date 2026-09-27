@@ -2,8 +2,12 @@ import { env } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables } from "./support.js";
 
-beforeAll(() => { env.BETA_GATE_ENABLED = "false"; });
-afterAll(() => { env.BETA_GATE_ENABLED = "true"; });
+beforeAll(() => {
+  env.BETA_GATE_ENABLED = "false";
+});
+afterAll(() => {
+  env.BETA_GATE_ENABLED = "true";
+});
 
 let cookie;
 
@@ -54,184 +58,200 @@ describe.each([
     dedupField: "name",
     needsLocation: false,
   },
-])("$resource", ({ listPath, createPath, listKey, rowKey, buildValidBody, buildMinimalBody, requiredField, defaultField, dedupField, needsLocation }) => {
-  async function validBody(extraCookie = cookie) {
-    const locationId = needsLocation ? await seedLocation(extraCookie) : undefined;
-    return buildValidBody(locationId);
-  }
-  async function minimalBody(extraCookie = cookie) {
-    const locationId = needsLocation ? await seedLocation(extraCookie) : undefined;
-    return buildMinimalBody(locationId);
-  }
-
-  it("401s an anonymous read (#992)", async () => {
-    const res = await getList(listPath);
-    expect(res.status).toBe(401);
-  });
-
-  it("rejects an unauthenticated create request", async () => {
-    const res = await jsonRequest("POST", createPath, await validBody());
-    expect(res.status).toBe(401);
-  });
-
-  it("creates on the happy path", async () => {
-    const body = await validBody();
-    const res = await postJson(createPath, body);
-    expect(res.status).toBe(201);
-    const { [rowKey]: row } = await res.json();
-    expect(row).toMatchObject(body);
-    expect(typeof row.id).toBe("string");
-    expect(row.id.length).toBeGreaterThan(0);
-  });
-
-  it(`defaults ${defaultField} to an empty string when omitted`, async () => {
-    const res = await postJson(createPath, await minimalBody());
-    const body = await res.json();
-    expect(body[rowKey][defaultField]).toBe("");
-  });
-
-  it("rejects malformed JSON", async () => {
-    const res = await postJson(createPath, "{not json");
-    expect(res.status).toBe(400);
-    expect((await res.json()).error).toBe("Invalid JSON");
-  });
-
-  it(`rejects a missing ${requiredField}`, async () => {
-    const body = await validBody();
-    delete body[requiredField];
-    const res = await postJson(createPath, body);
-    expect(res.status).toBe(400);
-    expect((await res.json()).error).toBe(`Missing required field: ${requiredField}`);
-  });
-
-  it("replays an existing id idempotently instead of erroring or duplicating", async () => {
-    const withId = { ...(await validBody()), id: "fixed-id-1" };
-    const first = await postJson(createPath, withId);
-    expect(first.status).toBe(201);
-
-    const second = await postJson(createPath, withId);
-    expect(second.status).toBe(200);
-    expect((await second.json())[rowKey].id).toBe("fixed-id-1");
-    expect((await (await getList(listPath, cookie)).json())[listKey]).toHaveLength(1);
-  });
-
-  it("409s an id another user already holds", async () => {
-    const { cookie: otherCookie } = await createAuthedSession();
-    const otherBody = { ...(await validBody(otherCookie)), id: "fixed-id-cross-user" };
-    const first = await postJson(createPath, otherBody, otherCookie);
-    expect(first.status).toBe(201);
-
-    const ownBody = { ...(await validBody()), id: "fixed-id-cross-user" };
-    const second = await postJson(createPath, ownBody, cookie);
-    expect(second.status).toBe(409);
-    expect((await (await getList(listPath, cookie)).json())[listKey].map(r => r.id)).not.toContain("fixed-id-cross-user");
-  });
-
-  if (needsLocation) {
-    it("rejects a locationId that doesn't exist", async () => {
-      const res = await postJson(createPath, { locationId: "does-not-exist", area: "Sector 1" });
-      expect(res.status).toBe(400);
-      expect((await res.json()).error).toBe("locationId does not reference one of your locations");
-    });
-  }
-
-  describe("?since= (#500 delta sync)", () => {
-    function getSince(since, extraCookie = cookie) {
-      return fetchJson(`${listPath}?since=${since}`, { headers: { Cookie: extraCookie } });
+])(
+  "$resource",
+  ({
+    listPath,
+    createPath,
+    listKey,
+    rowKey,
+    buildValidBody,
+    buildMinimalBody,
+    requiredField,
+    defaultField,
+    dedupField,
+    needsLocation,
+  }) => {
+    async function validBody(extraCookie = cookie) {
+      const locationId = needsLocation ? await seedLocation(extraCookie) : undefined;
+      return buildValidBody(locationId);
+    }
+    async function minimalBody(extraCookie = cookie) {
+      const locationId = needsLocation ? await seedLocation(extraCookie) : undefined;
+      return buildMinimalBody(locationId);
     }
 
-    it("401s an anonymous caller (#992)", async () => {
-      const res = await fetchJson(`${listPath}?since=0`);
+    it("401s an anonymous read (#992)", async () => {
+      const res = await getList(listPath);
       expect(res.status).toBe(401);
     });
 
-    it("returns a row created at or after since, reporting its own cursor as the new cursor", async () => {
-      const created = await (await postJson(createPath, await validBody())).json();
-      const id = created[rowKey].id;
-      const row = await env.LOGBOOK_DB.prepare(`SELECT sync_cursor FROM ${listKey} WHERE id = ?`).bind(id).first();
-
-      const { [listKey]: rows, cursor } = await (await getSince(row.sync_cursor)).json();
-      expect(rows.map(r => r.id)).toEqual([id]);
-      expect(cursor).toBe(row.sync_cursor);
+    it("rejects an unauthenticated create request", async () => {
+      const res = await jsonRequest("POST", createPath, await validBody());
+      expect(res.status).toBe(401);
     });
 
-    it("excludes a row whose cursor is strictly before since", async () => {
-      const created = await (await postJson(createPath, await validBody())).json();
-      const id = created[rowKey].id;
-      const row = await env.LOGBOOK_DB.prepare(`SELECT sync_cursor FROM ${listKey} WHERE id = ?`).bind(id).first();
-
-      const { [listKey]: rows } = await (await getSince(row.sync_cursor + 1)).json();
-      expect(rows.find(r => r.id === id)).toBeUndefined();
-    });
-
-    it("never returns another user's rows (cross-user isolation)", async () => {
-      await postJson(createPath, await validBody());
-      const userB = await createAuthedSession();
-      const res = await getSince(0, userB.cookie);
-      expect(await res.json()).toEqual({ [listKey]: [], cursor: 0 });
-    });
-  });
-
-  describe("dedup-on-write (#490)", () => {
-    it("a second create matching an existing row's name (case-insensitively) reuses it instead of duplicating", async () => {
-      const locationId = needsLocation ? await seedLocation() : undefined;
-      const first = await postJson(createPath, buildValidBody(locationId));
-      expect(first.status).toBe(201);
-      const originalId = (await first.json())[rowKey].id;
-
-      const dup = buildValidBody(locationId);
-      dup[dedupField] = dup[dedupField].toUpperCase();
-      const second = await postJson(createPath, dup);
-      expect(second.status).toBe(200);
-      const secondBody = await second.json();
-      expect(secondBody.dedupedTo).toBe(originalId);
-      expect(secondBody[rowKey].id).toBe(originalId);
-    });
-
-    it("does not dedup against another user's matching row", async () => {
-      const locationId = needsLocation ? await seedLocation() : undefined;
-      await postJson(createPath, buildValidBody(locationId));
-
-      const userB = await createAuthedSession();
-      const locationIdB = needsLocation ? await seedLocation(userB.cookie) : undefined;
-      const res = await postJson(createPath, buildValidBody(locationIdB), userB.cookie);
+    it("creates on the happy path", async () => {
+      const body = await validBody();
+      const res = await postJson(createPath, body);
       expect(res.status).toBe(201);
-      expect((await res.json()).dedupedTo).toBeUndefined();
+      const { [rowKey]: row } = await res.json();
+      expect(row).toMatchObject(body);
+      expect(typeof row.id).toBe("string");
+      expect(row.id.length).toBeGreaterThan(0);
+    });
+
+    it(`defaults ${defaultField} to an empty string when omitted`, async () => {
+      const res = await postJson(createPath, await minimalBody());
+      const body = await res.json();
+      expect(body[rowKey][defaultField]).toBe("");
+    });
+
+    it("rejects malformed JSON", async () => {
+      const res = await postJson(createPath, "{not json");
+      expect(res.status).toBe(400);
+      expect((await res.json()).error).toBe("Invalid JSON");
+    });
+
+    it(`rejects a missing ${requiredField}`, async () => {
+      const body = await validBody();
+      delete body[requiredField];
+      const res = await postJson(createPath, body);
+      expect(res.status).toBe(400);
+      expect((await res.json()).error).toBe(`Missing required field: ${requiredField}`);
+    });
+
+    it("replays an existing id idempotently instead of erroring or duplicating", async () => {
+      const withId = { ...(await validBody()), id: "fixed-id-1" };
+      const first = await postJson(createPath, withId);
+      expect(first.status).toBe(201);
+
+      const second = await postJson(createPath, withId);
+      expect(second.status).toBe(200);
+      expect((await second.json())[rowKey].id).toBe("fixed-id-1");
+      expect((await (await getList(listPath, cookie)).json())[listKey]).toHaveLength(1);
+    });
+
+    it("409s an id another user already holds", async () => {
+      const { cookie: otherCookie } = await createAuthedSession();
+      const otherBody = { ...(await validBody(otherCookie)), id: "fixed-id-cross-user" };
+      const first = await postJson(createPath, otherBody, otherCookie);
+      expect(first.status).toBe(201);
+
+      const ownBody = { ...(await validBody()), id: "fixed-id-cross-user" };
+      const second = await postJson(createPath, ownBody, cookie);
+      expect(second.status).toBe(409);
+      expect((await (await getList(listPath, cookie)).json())[listKey].map(r => r.id)).not.toContain(
+        "fixed-id-cross-user",
+      );
     });
 
     if (needsLocation) {
-      it("does not dedup places with the same area name under a different location", async () => {
-        const locationIdA = await seedLocation(cookie, "Magic Wood");
-        await postJson(createPath, buildValidBody(locationIdA));
-
-        const locationIdB = await seedLocation(cookie, "Fontainebleau");
-        const res = await postJson(createPath, buildValidBody(locationIdB));
-        expect(res.status).toBe(201);
-        expect((await res.json()).dedupedTo).toBeUndefined();
-      });
-    }
-  });
-
-  describe("cross-user isolation", () => {
-    it(`a second user's own GET never sees the first user's ${listKey}`, async () => {
-      await postJson(createPath, await validBody());
-
-      const userB = await createAuthedSession();
-      const res = await getList(listPath, userB.cookie);
-      expect(await res.json()).toEqual({ [listKey]: [] });
-    });
-
-    if (needsLocation) {
-      it("a second user cannot create a place against the first user's location", async () => {
-        const locationId = await seedLocation();
-        const userB = await createAuthedSession();
-        const res = await postJson(createPath, { locationId, area: "Sector 1" }, userB.cookie);
+      it("rejects a locationId that doesn't exist", async () => {
+        const res = await postJson(createPath, { locationId: "does-not-exist", area: "Sector 1" });
         expect(res.status).toBe(400);
         expect((await res.json()).error).toBe("locationId does not reference one of your locations");
       });
     }
-  });
-});
+
+    describe("?since= (#500 delta sync)", () => {
+      function getSince(since, extraCookie = cookie) {
+        return fetchJson(`${listPath}?since=${since}`, { headers: { Cookie: extraCookie } });
+      }
+
+      it("401s an anonymous caller (#992)", async () => {
+        const res = await fetchJson(`${listPath}?since=0`);
+        expect(res.status).toBe(401);
+      });
+
+      it("returns a row created at or after since, reporting its own cursor as the new cursor", async () => {
+        const created = await (await postJson(createPath, await validBody())).json();
+        const id = created[rowKey].id;
+        const row = await env.LOGBOOK_DB.prepare(`SELECT sync_cursor FROM ${listKey} WHERE id = ?`).bind(id).first();
+
+        const { [listKey]: rows, cursor } = await (await getSince(row.sync_cursor)).json();
+        expect(rows.map(r => r.id)).toEqual([id]);
+        expect(cursor).toBe(row.sync_cursor);
+      });
+
+      it("excludes a row whose cursor is strictly before since", async () => {
+        const created = await (await postJson(createPath, await validBody())).json();
+        const id = created[rowKey].id;
+        const row = await env.LOGBOOK_DB.prepare(`SELECT sync_cursor FROM ${listKey} WHERE id = ?`).bind(id).first();
+
+        const { [listKey]: rows } = await (await getSince(row.sync_cursor + 1)).json();
+        expect(rows.find(r => r.id === id)).toBeUndefined();
+      });
+
+      it("never returns another user's rows (cross-user isolation)", async () => {
+        await postJson(createPath, await validBody());
+        const userB = await createAuthedSession();
+        const res = await getSince(0, userB.cookie);
+        expect(await res.json()).toEqual({ [listKey]: [], cursor: 0 });
+      });
+    });
+
+    describe("dedup-on-write (#490)", () => {
+      it("a second create matching an existing row's name (case-insensitively) reuses it instead of duplicating", async () => {
+        const locationId = needsLocation ? await seedLocation() : undefined;
+        const first = await postJson(createPath, buildValidBody(locationId));
+        expect(first.status).toBe(201);
+        const originalId = (await first.json())[rowKey].id;
+
+        const dup = buildValidBody(locationId);
+        dup[dedupField] = dup[dedupField].toUpperCase();
+        const second = await postJson(createPath, dup);
+        expect(second.status).toBe(200);
+        const secondBody = await second.json();
+        expect(secondBody.dedupedTo).toBe(originalId);
+        expect(secondBody[rowKey].id).toBe(originalId);
+      });
+
+      it("does not dedup against another user's matching row", async () => {
+        const locationId = needsLocation ? await seedLocation() : undefined;
+        await postJson(createPath, buildValidBody(locationId));
+
+        const userB = await createAuthedSession();
+        const locationIdB = needsLocation ? await seedLocation(userB.cookie) : undefined;
+        const res = await postJson(createPath, buildValidBody(locationIdB), userB.cookie);
+        expect(res.status).toBe(201);
+        expect((await res.json()).dedupedTo).toBeUndefined();
+      });
+
+      if (needsLocation) {
+        it("does not dedup places with the same area name under a different location", async () => {
+          const locationIdA = await seedLocation(cookie, "Magic Wood");
+          await postJson(createPath, buildValidBody(locationIdA));
+
+          const locationIdB = await seedLocation(cookie, "Fontainebleau");
+          const res = await postJson(createPath, buildValidBody(locationIdB));
+          expect(res.status).toBe(201);
+          expect((await res.json()).dedupedTo).toBeUndefined();
+        });
+      }
+    });
+
+    describe("cross-user isolation", () => {
+      it(`a second user's own GET never sees the first user's ${listKey}`, async () => {
+        await postJson(createPath, await validBody());
+
+        const userB = await createAuthedSession();
+        const res = await getList(listPath, userB.cookie);
+        expect(await res.json()).toEqual({ [listKey]: [] });
+      });
+
+      if (needsLocation) {
+        it("a second user cannot create a place against the first user's location", async () => {
+          const locationId = await seedLocation();
+          const userB = await createAuthedSession();
+          const res = await postJson(createPath, { locationId, area: "Sector 1" }, userB.cookie);
+          expect(res.status).toBe(400);
+          expect((await res.json()).error).toBe("locationId does not reference one of your locations");
+        });
+      }
+    });
+  },
+);
 
 describe("locations name validation", () => {
   it("rejects a non-string name with a 400, not an unhandled error", async () => {
@@ -250,7 +270,12 @@ describe("settings", () => {
   it("returns default settings for a logged-in user who's never set any", async () => {
     const res = await fetchJson("/-/api/settings", { headers: { Cookie: cookie } });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: false });
+    expect(await res.json()).toEqual({
+      athleteMode: false,
+      activeDiscipline: "boulder",
+      logbookPublic: true,
+      betaOptIn: false,
+    });
   });
 
   it("rejects an unauthenticated read of the admin settings", async () => {
@@ -279,25 +304,45 @@ describe("settings", () => {
   it("updates athleteMode on the happy path", async () => {
     const res = await patchJson("/-/api/settings", { athleteMode: true });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ athleteMode: true, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: false });
+    expect(await res.json()).toEqual({
+      athleteMode: true,
+      activeDiscipline: "boulder",
+      logbookPublic: true,
+      betaOptIn: false,
+    });
   });
 
   it("updates activeDiscipline on the happy path", async () => {
     const res = await patchJson("/-/api/settings", { activeDiscipline: "sport" });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "sport", logbookPublic: true, betaOptIn: false });
+    expect(await res.json()).toEqual({
+      athleteMode: false,
+      activeDiscipline: "sport",
+      logbookPublic: true,
+      betaOptIn: false,
+    });
   });
 
   it("updates logbookPublic on the happy path", async () => {
     const res = await patchJson("/-/api/settings", { logbookPublic: false });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder", logbookPublic: false, betaOptIn: false });
+    expect(await res.json()).toEqual({
+      athleteMode: false,
+      activeDiscipline: "boulder",
+      logbookPublic: false,
+      betaOptIn: false,
+    });
   });
 
   it("merges a partial update onto existing settings instead of overwriting", async () => {
     await patchJson("/-/api/settings", { athleteMode: true });
     const res = await patchJson("/-/api/settings", { activeDiscipline: "sport" });
-    expect(await res.json()).toEqual({ athleteMode: true, activeDiscipline: "sport", logbookPublic: true, betaOptIn: false });
+    expect(await res.json()).toEqual({
+      athleteMode: true,
+      activeDiscipline: "sport",
+      logbookPublic: true,
+      betaOptIn: false,
+    });
   });
 
   it("rejects malformed JSON", async () => {
@@ -306,14 +351,11 @@ describe("settings", () => {
     expect((await res.json()).error).toBe("Invalid JSON");
   });
 
-  it.each([null, 42, "a string", [1, 2, 3]])(
-    "rejects a non-object JSON body (%j)",
-    async (body) => {
-      const res = await patchJson("/-/api/settings", JSON.stringify(body));
-      expect(res.status).toBe(400);
-      expect((await res.json()).error).toBe("Invalid JSON");
-    }
-  );
+  it.each([null, 42, "a string", [1, 2, 3]])("rejects a non-object JSON body (%j)", async body => {
+    const res = await patchJson("/-/api/settings", JSON.stringify(body));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("Invalid JSON");
+  });
 
   it("rejects a non-boolean athleteMode", async () => {
     const res = await patchJson("/-/api/settings", { athleteMode: "yes" });
@@ -341,13 +383,23 @@ describe("settings", () => {
   it("updates betaOptIn to true on the happy path", async () => {
     const res = await patchJson("/-/api/settings", { betaOptIn: true });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: true });
+    expect(await res.json()).toEqual({
+      athleteMode: false,
+      activeDiscipline: "boulder",
+      logbookPublic: true,
+      betaOptIn: true,
+    });
   });
 
   it("updates betaOptIn to false on the happy path", async () => {
     const res = await patchJson("/-/api/settings", { betaOptIn: false });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: false });
+    expect(await res.json()).toEqual({
+      athleteMode: false,
+      activeDiscipline: "boulder",
+      logbookPublic: true,
+      betaOptIn: false,
+    });
   });
 
   it("rejects a non-boolean betaOptIn", async () => {
@@ -361,6 +413,11 @@ describe("settings", () => {
 
     const userB = await createAuthedSession();
     const res = await fetchJson("/-/api/settings", { headers: { Cookie: userB.cookie } });
-    expect(await res.json()).toEqual({ athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: false });
+    expect(await res.json()).toEqual({
+      athleteMode: false,
+      activeDiscipline: "boulder",
+      logbookPublic: true,
+      betaOptIn: false,
+    });
   });
 });

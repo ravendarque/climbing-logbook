@@ -9,8 +9,9 @@ async function validateFields(place, env, userId) {
 
 async function findDuplicatePlace(env, userId, place) {
   if (!place.locationId) return null;
-  return env.LOGBOOK_DB
-    .prepare(`SELECT id FROM places WHERE user_id = ? AND location_id = ? AND LOWER(area) = LOWER(?)`)
+  return env.LOGBOOK_DB.prepare(
+    `SELECT id FROM places WHERE user_id = ? AND location_id = ? AND LOWER(area) = LOWER(?)`,
+  )
     .bind(userId, place.locationId, place.area ?? "")
     .first();
 }
@@ -42,4 +43,3 @@ export const { handleGet, handlePost } = createD1ResourceHandlers({
   rowToJson,
   findDuplicate: findDuplicatePlace,
 });
-

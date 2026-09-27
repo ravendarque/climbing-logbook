@@ -17,7 +17,9 @@ describe("buildMatrixRows", () => {
     const belowRange = rows[0];
     expect(belowRange.cells.font).toBeNull();
     expect(belowRange.cells["v-scale"]).toBeNull();
-    expect(belowRange.cells["font-non-standard"]).toBe("number (1/2), letter (optional, a/b/c), modifier (optional -/+)");
+    expect(belowRange.cells["font-non-standard"]).toBe(
+      "number (1/2), letter (optional, a/b/c), modifier (optional -/+)",
+    );
   });
 
   it("groups every Non-standard sub-position that rounds to a Font row into that row's own comma-separated list, not a single always-identical value", () => {

@@ -15,7 +15,10 @@ export async function handleGetProfileCounts(_request, env, userId) {
       FROM entries e JOIN places p ON e.place_id = p.id
       WHERE e.user_id = ? AND e.deleted_at IS NULL
       GROUP BY p.location_id
-    `).bind(userId).all().then(r => r.results),
+    `)
+      .bind(userId)
+      .all()
+      .then(r => r.results),
   ]);
 
   const counts = {};

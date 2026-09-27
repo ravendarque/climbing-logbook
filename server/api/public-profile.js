@@ -6,8 +6,7 @@ export async function resolvePublicUser(env, username) {
   const user = await lookupUserByUsername(env, username);
   if (!user) return null;
 
-  const settings = await env.LOGBOOK_DB
-    .prepare(`SELECT logbook_public, is_demo FROM settings WHERE user_id = ?`)
+  const settings = await env.LOGBOOK_DB.prepare(`SELECT logbook_public, is_demo FROM settings WHERE user_id = ?`)
     .bind(user.id)
     .first();
   // No settings row yet means the schema defaults: public, not a demo.

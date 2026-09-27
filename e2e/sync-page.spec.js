@@ -13,7 +13,8 @@ const SEED = {
 
 async function stubReturnTarget(page, path) {
   await page.route(`**${path}*`, route =>
-    route.fulfill({ contentType: "text/html", body: "<html><body>stub</body></html>" }));
+    route.fulfill({ contentType: "text/html", body: "<html><body>stub</body></html>" }),
+  );
 }
 
 test("cold start: fetches everything in chunks and redirects to returnTo once synced", async ({ page }) => {
@@ -53,15 +54,26 @@ test("/log redirects to /:username/sync when not yet synced, preserving returnTo
 });
 
 // Asserts the request, not the response: the body races the redirect that follows.
-test("warm with drift: /sync takes the delta path and catches up on a change from another session", async ({ page }) => {
+test("warm with drift: /sync takes the delta path and catches up on a change from another session", async ({
+  page,
+}) => {
   await mockApi(page, SEED); // synced: true (default) -- seeds pre-drift cursors ({entries: 2, ...} for this SEED)
 
   await page.goto("/e2e-fixtures/pages/log.html");
-  await page.evaluate(() => fetch("/-/api/entries", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id: "drift-1", placeId: "p1", type: "boulder", status: "send", grade: "7A", name: "Drifted In" }),
-  }));
+  await page.evaluate(() =>
+    fetch("/-/api/entries", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: "drift-1",
+        placeId: "p1",
+        type: "boulder",
+        status: "send",
+        grade: "7A",
+        name: "Drifted In",
+      }),
+    }),
+  );
 
   const seededCursor = await page.evaluate(() => JSON.parse(localStorage.getItem("logbook_sync_cursors")).entries);
 

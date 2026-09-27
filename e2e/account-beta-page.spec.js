@@ -22,7 +22,9 @@ test("not enrolled: explains joining, and Join writes the setting and opens the 
   await page.waitForURL("**/e2e-fixtures/log");
 });
 
-test("enrolled: explains leaving, and Leave writes the setting and opens the regular version's log", async ({ page }) => {
+test("enrolled: explains leaving, and Leave writes the setting and opens the regular version's log", async ({
+  page,
+}) => {
   await mockApi(page, { settings: settings(true) });
   await page.goto(PAGE);
 
@@ -56,18 +58,28 @@ test("offline: the button is disabled with a note, and comes back with the conne
 test("changes waiting to sync on this device are pointed out, without blocking", async ({ page }) => {
   await mockApi(page, { settings: settings(false) });
   await page.addInitScript(() => {
-    localStorage.setItem("logbook_pending_queue", JSON.stringify([{ kind: "entry", op: "add", record: { id: "a" } }, { kind: "entry", op: "add", record: { id: "b" } }]));
+    localStorage.setItem(
+      "logbook_pending_queue",
+      JSON.stringify([
+        { kind: "entry", op: "add", record: { id: "a" } },
+        { kind: "entry", op: "add", record: { id: "b" } },
+      ]),
+    );
   });
   await page.goto(PAGE);
 
   await expect(page.locator("#beta-queue-count")).toHaveText("You have 2 changes waiting to sync on this device.");
-  await expect(page.locator("#beta-queue-warning")).toContainText("Other devices you've used offline need to sync on their own.");
+  await expect(page.locator("#beta-queue-warning")).toContainText(
+    "Other devices you've used offline need to sync on their own.",
+  );
   await expect(page.getByRole("button", { name: "Join the beta" })).toBeEnabled();
 });
 
 test("a failed save shows the error, focused, and stays on the page", async ({ page }) => {
   await mockApi(page, { settings: settings(false) });
-  await page.route("**/-/api/settings", route => (route.request().method() === "PATCH" ? route.fulfill({ status: 500, json: {} }) : route.fallback()));
+  await page.route("**/-/api/settings", route =>
+    route.request().method() === "PATCH" ? route.fulfill({ status: 500, json: {} }) : route.fallback(),
+  );
   await page.goto(PAGE);
   const before = page.url();
 
@@ -82,6 +94,9 @@ test("a failed save shows the error, focused, and stays on the page", async ({ p
 test("links to the full help page and back to My account", async ({ page }) => {
   await mockApi(page, { settings: settings(false) });
   await page.goto(PAGE);
-  await expect(page.getByRole("link", { name: "Read more about the beta" })).toHaveAttribute("href", "/help/beta-channel/");
+  await expect(page.getByRole("link", { name: "Read more about the beta" })).toHaveAttribute(
+    "href",
+    "/help/beta-channel/",
+  );
   await expect(page.locator("#back-to-account-link")).toHaveAttribute("href", "/e2e-fixtures/account");
 });

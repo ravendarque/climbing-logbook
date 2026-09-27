@@ -39,12 +39,18 @@ function updateAdminBar() {
 }
 
 const adminAuth = createAdminAuth({
-  store, adminFetch, isAuthRedirect,
+  store,
+  adminFetch,
+  isAuthRedirect,
   settingsUrl: SETTINGS_URL,
   updateAdminBar,
 });
 
-createDisclosure(document.getElementById("header-menu-btn"), document.getElementById("header-menu-popover"), "#header-menu-wrap");
+createDisclosure(
+  document.getElementById("header-menu-btn"),
+  document.getElementById("header-menu-popover"),
+  "#header-menu-wrap",
+);
 createThemeToggle();
 
 document.getElementById("download-template-btn").addEventListener("click", () => {
@@ -74,11 +80,13 @@ function resetImportPanels() {
 }
 
 function showRowErrors(errors) {
-  importErrorsList.replaceChildren(...errors.map(({ row, error }) => {
-    const li = document.createElement("li");
-    li.textContent = row ? `Row ${row}: ${error}` : error;
-    return li;
-  }));
+  importErrorsList.replaceChildren(
+    ...errors.map(({ row, error }) => {
+      const li = document.createElement("li");
+      li.textContent = row ? `Row ${row}: ${error}` : error;
+      return li;
+    }),
+  );
   importErrors.hidden = false;
 }
 
@@ -101,7 +109,10 @@ importForm.addEventListener("submit", async e => {
       headers: { "Content-Type": contentType },
       body: await file.text(),
     });
-    if (isAuthRedirect(res)) { window.location.href = loginPageUrl(); return; }
+    if (isAuthRedirect(res)) {
+      window.location.href = loginPageUrl();
+      return;
+    }
 
     const data = await res.json();
     importStatus.hidden = true;

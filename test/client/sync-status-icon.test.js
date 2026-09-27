@@ -25,7 +25,9 @@ describe("createSyncStatusIcon", () => {
     const icon = createSyncStatusIcon();
     setSyncState.mockClear();
     let resolve;
-    const p = new Promise(r => { resolve = r; });
+    const p = new Promise(r => {
+      resolve = r;
+    });
     icon.track(p);
     expect(setSyncState).toHaveBeenCalledWith("working");
     resolve();
@@ -37,8 +39,12 @@ describe("createSyncStatusIcon", () => {
   it("stays working while at least one of two overlapping tracked promises is still pending", async () => {
     const icon = createSyncStatusIcon();
     let resolveA, resolveB;
-    const a = new Promise(r => { resolveA = r; });
-    const b = new Promise(r => { resolveB = r; });
+    const a = new Promise(r => {
+      resolveA = r;
+    });
+    const b = new Promise(r => {
+      resolveB = r;
+    });
     icon.track(a);
     icon.track(b);
     resolveA();
@@ -82,8 +88,12 @@ describe("createSyncStatusIcon", () => {
   it("reports offline once every tracked call settles if any of them called reportTimeout()", async () => {
     const icon = createSyncStatusIcon();
     let resolveA, resolveB;
-    const a = new Promise(r => { resolveA = r; });
-    const b = new Promise(r => { resolveB = r; });
+    const a = new Promise(r => {
+      resolveA = r;
+    });
+    const b = new Promise(r => {
+      resolveB = r;
+    });
     icon.track(a);
     icon.track(b);
 

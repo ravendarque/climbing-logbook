@@ -1,5 +1,11 @@
 import { json, parseJsonBody } from "../lib/json.js";
-import { createD1ResourceHandlers, findOwnedRow, listChangedForUser, listForUser, nextCursorSql } from "../lib/d1-resource.js";
+import {
+  createD1ResourceHandlers,
+  findOwnedRow,
+  listChangedForUser,
+  listForUser,
+  nextCursorSql,
+} from "../lib/d1-resource.js";
 import { validateEntryShape } from "../../shared/entry-schema.js";
 
 // Must match migrations/0016_add_grade_scale.sql's backfill WHERE clause.
@@ -79,16 +85,48 @@ function rowToJsonWithDeleted(row) {
 }
 
 function buildMoveRow(record, id, entryId) {
-  return { id, entry_id: entryId, difficulty: record.difficulty, limb: record.limb, side: record.side, hold_type: record.holdType, movement_style: record.movementStyle, wall_angle: record.wallAngle };
+  return {
+    id,
+    entry_id: entryId,
+    difficulty: record.difficulty,
+    limb: record.limb,
+    side: record.side,
+    hold_type: record.holdType,
+    movement_style: record.movementStyle,
+    wall_angle: record.wallAngle,
+  };
 }
 function buildPainMoveRow(record, id, entryId) {
-  return { id, entry_id: entryId, limb: record.limb, side: record.side, hold_type: record.holdType, movement_style: record.movementStyle, wall_angle: record.wallAngle };
+  return {
+    id,
+    entry_id: entryId,
+    limb: record.limb,
+    side: record.side,
+    hold_type: record.holdType,
+    movement_style: record.movementStyle,
+    wall_angle: record.wallAngle,
+  };
 }
 function moveRowToJson(row) {
-  return { id: row.id, difficulty: row.difficulty, limb: row.limb, side: row.side, holdType: row.hold_type, movementStyle: row.movement_style, wallAngle: row.wall_angle };
+  return {
+    id: row.id,
+    difficulty: row.difficulty,
+    limb: row.limb,
+    side: row.side,
+    holdType: row.hold_type,
+    movementStyle: row.movement_style,
+    wallAngle: row.wall_angle,
+  };
 }
 function painMoveRowToJson(row) {
-  return { id: row.id, limb: row.limb, side: row.side, holdType: row.hold_type, movementStyle: row.movement_style, wallAngle: row.wall_angle };
+  return {
+    id: row.id,
+    limb: row.limb,
+    side: row.side,
+    holdType: row.hold_type,
+    movementStyle: row.movement_style,
+    wallAngle: row.wall_angle,
+  };
 }
 
 function replaceChildRowStatements(env, table, entryId, records, buildRow) {
@@ -97,7 +135,9 @@ function replaceChildRowStatements(env, table, entryId, records, buildRow) {
     ...records.map(record => {
       const row = buildRow(record, crypto.randomUUID(), entryId);
       const columns = Object.keys(row);
-      return env.LOGBOOK_DB.prepare(`INSERT INTO ${table} (${columns.join(", ")}) VALUES (${columns.map(() => "?").join(", ")})`).bind(...columns.map(c => row[c]));
+      return env.LOGBOOK_DB.prepare(
+        `INSERT INTO ${table} (${columns.join(", ")}) VALUES (${columns.map(() => "?").join(", ")})`,
+      ).bind(...columns.map(c => row[c]));
     }),
   ];
 }
@@ -122,7 +162,9 @@ async function fetchChildRowsChunked(env, table, ids) {
   const results = [];
   for (const idChunk of chunk(ids, CHUNK_SIZE)) {
     const placeholders = idChunk.map(() => "?").join(",");
-    const res = await env.LOGBOOK_DB.prepare(`SELECT * FROM ${table} WHERE entry_id IN (${placeholders})`).bind(...idChunk).all();
+    const res = await env.LOGBOOK_DB.prepare(`SELECT * FROM ${table} WHERE entry_id IN (${placeholders})`)
+      .bind(...idChunk)
+      .all();
     results.push(...res.results);
   }
   return results;
@@ -173,8 +215,7 @@ async function handleByLocation(locationId, url, env, userId, { shapeRow, includ
 
   const limit = Number(url.searchParams.get("limit")) || PAGE_SIZE;
   const offset = Number(url.searchParams.get("offset")) || 0;
-  const { results } = await env.LOGBOOK_DB
-    .prepare(`
+  const { results } = await env.LOGBOOK_DB.prepare(`
       SELECT e.* FROM entries e JOIN places p ON e.place_id = p.id
       WHERE e.user_id = ? AND p.location_id = ? AND e.deleted_at IS NULL
       ORDER BY e.created_at LIMIT ? OFFSET ?
@@ -195,8 +236,7 @@ async function handleChunked(url, env, userId, { shapeRow, includeChildRows }) {
   const afterCreatedAt = url.searchParams.get("afterCreatedAt") ?? "";
   const afterId = url.searchParams.get("afterId") ?? "";
   // Keyset, not offset: a delete mid-sync would shift later rows past the next page.
-  const { results } = await env.LOGBOOK_DB
-    .prepare(`
+  const { results } = await env.LOGBOOK_DB.prepare(`
       SELECT *,
         (SELECT COUNT(*) FROM entries WHERE user_id = ? AND deleted_at IS NULL) AS total,
         (SELECT MAX(sync_cursor) FROM entries WHERE user_id = ?) AS max_cursor
@@ -255,9 +295,9 @@ export async function handlePut(request, env, userId) {
   const row = buildRow(entry, entry.id, userId);
   const columns = Object.keys(row).filter(c => c !== "id" && c !== "user_id");
   await env.LOGBOOK_DB.batch([
-    env.LOGBOOK_DB
-      .prepare(`UPDATE entries SET ${columns.map(c => `${c} = ?`).join(", ")}, sync_cursor = ${nextCursorSql("entries")}, updated_at = datetime('now') WHERE id = ? AND user_id = ?`)
-      .bind(...columns.map(c => row[c]), userId, entry.id, userId),
+    env.LOGBOOK_DB.prepare(
+      `UPDATE entries SET ${columns.map(c => `${c} = ?`).join(", ")}, sync_cursor = ${nextCursorSql("entries")}, updated_at = datetime('now') WHERE id = ? AND user_id = ?`,
+    ).bind(...columns.map(c => row[c]), userId, entry.id, userId),
     ...moveStatements(env, entry.id, entry),
   ]);
 
@@ -269,8 +309,9 @@ export async function handleDelete(request, env, userId) {
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return json({ error: "Missing required field: id" }, 400);
 
-  await env.LOGBOOK_DB
-    .prepare(`UPDATE entries SET deleted_at = ?, sync_cursor = ${nextCursorSql("entries")}, updated_at = datetime('now') WHERE id = ? AND user_id = ?`)
+  await env.LOGBOOK_DB.prepare(
+    `UPDATE entries SET deleted_at = ?, sync_cursor = ${nextCursorSql("entries")}, updated_at = datetime('now') WHERE id = ? AND user_id = ?`,
+  )
     .bind(Date.now(), userId, id, userId)
     .run();
 

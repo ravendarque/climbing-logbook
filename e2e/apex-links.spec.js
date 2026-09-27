@@ -15,7 +15,9 @@ async function unmarkedApexLinks(page) {
   }, APEX_PATH.source);
 }
 
-test.beforeEach(async ({ context }) => { await addOwnedRouteSessionCookie(context); });
+test.beforeEach(async ({ context }) => {
+  await addOwnedRouteSessionCookie(context);
+});
 
 for (const path of ["/log", "/map", "/performance", "/performance/pyramid", "/account", "/sync"]) {
   test(`${path}: every link to an apex page is marked for the apex`, async ({ page }) => {
