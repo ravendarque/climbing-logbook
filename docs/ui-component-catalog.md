@@ -24,9 +24,8 @@ snippet — the actual classes in use, not an abstracted approximation, so
 it's always syntactically correct to start from.
 
 Every screenshot in `docs/ui-component-catalog/` was captured against the
-real, currently-compiled `public/-/tailwind.css` and the real token
-stylesheet `climbing-header.js` injects (not a hand-copied approximation
-of either) — see that directory's own generation script for exactly how,
+real, currently-compiled `public/-/tailwind.css`, which carries the
+design tokens (not a hand-copied approximation) — see that directory's own generation script for exactly how,
 next time these need regenerating after a real visual change.
 
 **Source of truth for the custom component classes below:**
@@ -291,7 +290,7 @@ behavior is centralized in `client/modal-utils.js`'s `createModalHelpers()`
 resolves any grade to one of five tier colors via `GRADE_TIER_COLORS`
 (`{ beginner: "var(--grade-tier-beginner)", ... }`) — a flat per-tier
 mapping, not a per-grade one, so the actual color scale lives entirely in
-the theme tokens (`public/-/components/climbing-header.js`'s
+the theme tokens (`styles/tailwind.css`'s
 `--grade-tier-*` custom properties), never repeated per-grade. Rendered
 via the shared `grade-badge` utility class (`styles/tailwind.css`), with
 the tier color set as an inline `background` (see `climbing-entries-
@@ -302,7 +301,7 @@ table.js`'s own grade-badge markup).
 | ![sample grade badges](ui-component-catalog/grade-colors-dark.png) | ![sample grade badges](ui-component-catalog/grade-colors-light.png) |
 
 **Evidence-tier colors:** three tiers, each with a dark- and light-theme
-value (`public/-/components/climbing-header.js`):
+value (`styles/tailwind.css`):
 
 | Tier | Dark | Light | Meaning |
 |---|---|---|---|

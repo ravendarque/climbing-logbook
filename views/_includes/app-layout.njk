@@ -16,8 +16,8 @@
 {%- if discipline %}
   <script src="/-/components/climbing-discipline-picker.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
 {%- endif %}
-  <script src="/-/components/climbing-burger-menu.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
-  <script src="/-/components/climbing-page-header.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
+  <script defer src="/-/components/climbing-burger-menu.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
+  <script defer src="/-/components/climbing-page-header.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
   <script>
     (function () {
       var stored = localStorage.getItem("logbook_theme");
