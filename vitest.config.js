@@ -14,6 +14,17 @@ const RUN_WORKER_FIRST_PATHS = runWorkerFirstMatch
 
 export default defineConfig({
   test: {
+    // Istanbul, not v8: v8 coverage can't see inside workerd.
+    coverage: {
+      provider: "istanbul",
+      include: ["shared/**/*.js", "server/**/*.js", "client/**/*.js"],
+      reporter: ["text-summary", "json-summary", "html"],
+      // Just below the first measurement (#1095): raise them as coverage grows, never lower them.
+      thresholds: {
+        "server/**": { statements: 97, branches: 93, functions: 99, lines: 98 },
+        "shared/**": { statements: 96, branches: 90, functions: 98, lines: 98 },
+      },
+    },
     // A DOM needs its own project: happy-dom can't run inside workerd.
     projects: [
       {

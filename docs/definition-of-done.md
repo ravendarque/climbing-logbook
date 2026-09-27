@@ -11,8 +11,8 @@ PR ready. Each item points at the rule it comes from rather than restating it.
    [coding-standards.md](coding-standards.md), and every blocking and
    should-fix finding is fixed.
 3. **Tested.** New or changed behaviour is covered at the right layer
-   ([ADR-0011](adr/0011-three-layer-test-pyramid.md)), and `pnpm test` and
-   `pnpm run test:e2e` both pass.
+   ([ADR-0030](adr/0030-test-against-the-real-worker-mock-only-what-it-cant-produce.md)),
+   and `pnpm test` and `pnpm run test:e2e` both pass.
 4. **Verified.** User-facing changes have been driven in a browser, in light
    and dark themes, at desktop and phone widths
    ([coding-standards.md](coding-standards.md#verification)).

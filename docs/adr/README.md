@@ -48,7 +48,7 @@ GitHub, the same treatment every other doc in this repo already gets.
 | [0008](0008-tag-based-semantic-versioning.md) | Tag-based semantic versioning, not package.json commits | Accepted |
 | [0009](0009-normalized-d1-schema-with-lookup-tables.md) | Normalized D1 schema with real lookup tables | Accepted |
 | [0010](0010-public-url-structure-my-domain-username.md) | Public URL structure: my.&lt;domain&gt;/username | Accepted |
-| [0011](0011-three-layer-test-pyramid.md) | Three-layer test pyramid: real Workers runtime, extracted-logic unit tests, Playwright E2E | Accepted |
+| [0011](0011-three-layer-test-pyramid.md) | Three-layer test pyramid: real Workers runtime, extracted-logic unit tests, Playwright E2E | Superseded by 0030 |
 | [0012](0012-client-modularization-factories-no-framework.md) | Client-side modularization: esbuild + ES modules + factories, no framework | Accepted, bundler choice superseded by 0021 |
 | [0013](0013-pr-previews-via-wrangler-versions-upload.md) | PR preview deployments via wrangler versions upload | Accepted |
 | [0014](0014-closed-beta-invite-gate-togglable-not-removable.md) | Closed-beta invite gate, togglable off rather than removed | Accepted, partially superseded by 0016 |
@@ -67,3 +67,4 @@ GitHub, the same treatment every other doc in this repo already gets.
 | [0027](0027-database-backed-rate-limiting-on-sign-in.md) | Database-backed rate limiting, not Better Auth's in-memory default | Accepted |
 | [0028](0028-service-worker-owns-the-owner-app-shell.md) | The service worker owns the owner app's shell: offline cold launch, cache-first per build, never data | Accepted |
 | [0029](0029-beta-channel-enrollment-model.md) | Beta channel: two-state enrollment, checked on the page, one channel per origin | Accepted |
+| [0030](0030-test-against-the-real-worker-mock-only-what-it-cant-produce.md) | Test against the real Worker, mock only what it can't produce, measure coverage | Accepted |

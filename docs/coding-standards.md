@@ -276,10 +276,10 @@ decision and why it's an ongoing constraint, not a single shipped feature.
 
 ### Verification
 
-See [ADR-0011](adr/0011-three-layer-test-pyramid.md) for the three-layer
-test strategy (real-runtime Vitest, extracted-logic unit tests, Playwright
-E2E) this section's manual-verification ask formalized into an automated,
-CI-enforced check.
+See [ADR-0030](adr/0030-test-against-the-real-worker-mock-only-what-it-cant-produce.md)
+for the test layers: real-runtime Vitest, client unit tests, and Playwright
+against the real Worker, with mocks only for states the backend can't
+produce.
 
 - For anything user-facing, verify in an actual browser (or `wrangler dev` +
   the preview tools), not just by reading the code — type-checking and unit
