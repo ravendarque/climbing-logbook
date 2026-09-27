@@ -8,16 +8,10 @@ import { buildTemplateCsv } from "../shared/csv-import.js";
 import { loginPageUrl } from "./login-url.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
+import { adminFetch, isAuthRedirect } from "./admin-fetch.js";
 
 const SETTINGS_URL = "/-/api/settings";
 const IMPORT_URL = "/-/api/entries/import";
-
-function adminFetch(url, options) {
-  return fetch(url, { ...options, redirect: "manual" });
-}
-function isAuthRedirect(res) {
-  return res.type === "opaqueredirect";
-}
 
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 

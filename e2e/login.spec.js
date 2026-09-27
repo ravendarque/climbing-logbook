@@ -108,3 +108,11 @@ test("an owner page with no session logs in on its own origin and comes back to 
   await page.waitForURL(ownedRouteUrl(DEV_USER.username, "/map"));
   await expect(page.locator("climbing-tab-bar")).toBeAttached();
 });
+
+test("shows the login form after a few seconds even when the session check hangs", async ({ page }) => {
+  await page.route("**/-/api/auth/get-session", () => {});
+  await page.goto("/login/");
+
+  await expect(page.locator("#page-content")).toBeHidden();
+  await expect(page.locator("#email")).toBeVisible({ timeout: 4000 });
+});

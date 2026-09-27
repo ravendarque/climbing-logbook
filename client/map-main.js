@@ -9,6 +9,7 @@ import "./components/climbing-tab-bar.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { userKey } from "./user-storage.js";
 import { registerServiceWorker } from "./register-sw.js";
+import { adminFetch, isAuthRedirect } from "./admin-fetch.js";
 
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 const IS_DEMO = isDemoUsername(USERNAME);
@@ -16,13 +17,6 @@ const IS_DEMO = isDemoUsername(USERNAME);
 const MAP_COUNTS_URL = demoDataUrl(USERNAME, "/-/api/map/counts", "map/counts");
 const MAP_COUNTS_CACHE_KEY = userKey("logbook_map_counts_cache");
 const SETTINGS_URL = "/-/api/settings";
-
-function adminFetch(url, options) {
-  return fetch(url, { ...options, redirect: "manual" });
-}
-function isAuthRedirect(res) {
-  return res.type === "opaqueredirect";
-}
 
 const store = createStore();
 const syncStatusIcon = createSyncStatusIcon();

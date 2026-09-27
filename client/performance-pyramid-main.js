@@ -9,15 +9,9 @@ import "./components/climbing-tab-bar.js";
 import "./components/climbing-grade-pyramid.js";
 import { pageAllowsBoot } from "./boot-gate.js";
 import { registerServiceWorker } from "./register-sw.js";
+import { adminFetch, isAuthRedirect } from "./admin-fetch.js";
 
 const SETTINGS_URL = "/-/api/settings";
-
-function adminFetch(url, options) {
-  return fetch(url, { ...options, redirect: "manual" });
-}
-function isAuthRedirect(res) {
-  return res.type === "opaqueredirect";
-}
 
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 const IS_DEMO = isDemoUsername(USERNAME);
