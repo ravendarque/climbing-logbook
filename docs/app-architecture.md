@@ -424,12 +424,14 @@ Tables (see `migrations/` for columns and constraints):
 it for the isolate's lifetime.
 
 - **Trusted origins** are the CSRF boundary: a state-changing request from
-  any other origin is a 403. The plain-`http` production origins are there
-  because `wrangler dev` rewrites a request's origin to the first production
-  route but keeps `http`. Real traffic never has them: the edge redirects
-  HTTP to HTTPS first. `http://localhost:*` is listed explicitly because
-  Better Auth's own derivation from `allowedHosts` doesn't produce the `http`
-  form of a wildcard host.
+  any other origin is a 403. Everywhere they're the three HTTPS app
+  origins, since sign-in on the apex serves `my.` and `beta.`. Only a
+  request to a local host (`localhost`, `*.localhost`) also trusts the
+  local `http` origins (`trustedOriginsFor()`), so a page on a
+  developer's machine can't make credentialed calls to production.
+  `http://localhost:*` is listed explicitly because Better Auth's own
+  derivation from `allowedHosts` doesn't produce the `http` form of a
+  wildcard host.
 - **Allowed hosts** are the production and beta hosts, PR previews
   (`*.ravendarque.workers.dev`), local dev, and `example.com` (the Vitest
   base URL). Vite's dev server reads the same list, so a host missing here is

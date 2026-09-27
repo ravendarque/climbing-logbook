@@ -5,17 +5,18 @@ import { createEmailSender } from "./email.js";
 import { createTurnstileHook } from "./turnstile.js";
 import { checkUsername, USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH } from "../../shared/username-policy.js";
 
-// Why each entry is here: docs/app-architecture.md, Better Auth configuration.
-const TRUSTED_ORIGINS = [
-  "https://ravendarque.com",
+// Why the list depends on the host: docs/app-architecture.md, Better Auth configuration.
+const APP_ORIGINS = [
   "https://climbinglogbook.com",
   "https://my.climbinglogbook.com",
   "https://beta.climbinglogbook.com",
-  "http://localhost:*",
-  "http://my.localhost:*",
-  "http://climbinglogbook.com",
-  "http://my.climbinglogbook.com",
 ];
+const LOCAL_ORIGINS = ["http://localhost:*", "http://my.localhost:*", "http://beta.localhost:*"];
+
+export function trustedOriginsFor(hostname) {
+  const isLocal = hostname === "localhost" || hostname?.endsWith(".localhost");
+  return isLocal ? [...APP_ORIGINS, ...LOCAL_ORIGINS] : APP_ORIGINS;
+}
 
 const ALLOWED_HOSTS = [
   "climbinglogbook.com",
@@ -55,7 +56,7 @@ export function createAuth(env, hostname) {
     database: env.LOGBOOK_DB,
     basePath: "/-/api/auth",
     secret: env.BETTER_AUTH_SECRET,
-    trustedOrigins: TRUSTED_ORIGINS,
+    trustedOrigins: trustedOriginsFor(hostname),
     baseURL: { allowedHosts: ALLOWED_HOSTS },
     // Explicit: Better Auth's default keys off NODE_ENV, which Workers never set.
     rateLimit: { enabled: env.RATE_LIMITING_ENABLED === "true", storage: "database" },

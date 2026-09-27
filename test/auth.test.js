@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { BASE_URL, fetchJson, jsonRequest, resetAuthTables } from "./support.js";
+import { trustedOriginsFor } from "../server/lib/auth.js";
 
 beforeEach(resetAuthTables);
 
@@ -75,6 +76,28 @@ async function signUpAndVerify(body = VALID_SIGNUP) {
   const res = await fetchJson(`/-/api/auth/verify-email?token=${token}`);
   return cookieFrom(res);
 }
+
+describe("trusted origins", () => {
+  const APP = ["https://climbinglogbook.com", "https://my.climbinglogbook.com", "https://beta.climbinglogbook.com"];
+
+  it.each([
+    "climbinglogbook.com",
+    "my.climbinglogbook.com",
+    "beta.climbinglogbook.com",
+    "pr-12-climbing-logbook-preview.ravendarque.workers.dev",
+  ])("are exactly the HTTPS app origins on %s", hostname => {
+    expect(trustedOriginsFor(hostname)).toEqual(APP);
+  });
+
+  it.each(["localhost", "my.localhost", "beta.localhost"])("add the local origins on %s", hostname => {
+    expect(trustedOriginsFor(hostname)).toEqual([
+      ...APP,
+      "http://localhost:*",
+      "http://my.localhost:*",
+      "http://beta.localhost:*",
+    ]);
+  });
+});
 
 describe("sign-up", () => {
   it("creates an unverified account, no session yet", async () => {
