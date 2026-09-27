@@ -13,12 +13,12 @@ third no longer describes the suite, and the gap hides bugs (#1095):
 
 - The Playwright suite has 32 specs and about 200 tests, not a handful.
 - 17 of those specs load a page harness (`/e2e-fixtures/pages/`) with
-  `/-/api/*` faked by `e2e/mock-api.js`. The mock's reason for existing,
-  that owner routes can't be reached from Playwright locally, stopped being
+  `/-/api/*` faked by `e2e/mock-api.js`. The harness was built because owner
+  routes couldn't be reached from Playwright locally, which stopped being
   true once `e2e/owned-route-url.js` reached them through `my.localhost`.
-- The mock has drifted from the server (it still describes a `lead` field
-  the server no longer returns). A mocked spec passes when the client and
-  the real API disagree, which is the class of bug the top layer exists to
+- When #1095 was filed the mock had already drifted from the server (it
+  described a `lead` field the server no longer returned). A mocked spec
+  passes when the client and the real API disagree, which is the class of bug the top layer exists to
   catch. Several review findings in #1074 (#1076, #1077, #1078, #1086) were
   exactly that, and none had a test.
 - Nothing measured coverage, so "covered at the right layer" in the
