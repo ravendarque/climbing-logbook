@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import {
@@ -8,6 +7,7 @@ import {
   resetDatabase,
   toPlaywrightCookie,
 } from "../scripts/lib/dev-session.mjs";
+import { seedLogbookData } from "../scripts/lib/seed-data.mjs";
 import { OWNER_POOL_SIZE, ownerPoolUser, resetOwnerPool } from "./owner.js";
 
 const BASE_URL = "http://localhost:8787";
@@ -43,7 +43,8 @@ export default async function globalSetup() {
     JSON.stringify({ cookies: [toPlaywrightCookie(setCookieHeader, BASE_URL)], origins: [] }),
   );
 
-  execFileSync("node", ["scripts/seed-dev-data.mjs", BASE_URL], { stdio: "inherit" });
+  if ((await seedLogbookData(BASE_URL, setCookieHeader.split(";")[0])) > 0)
+    throw new Error("Seeding the dev user failed");
 
   const owners = Array.from({ length: OWNER_POOL_SIZE }, (_, i) => ownerPoolUser(i));
   const cookies = await provisionUsers(BASE_URL, owners, D1_OPTIONS);

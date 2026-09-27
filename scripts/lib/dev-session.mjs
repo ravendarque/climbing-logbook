@@ -80,11 +80,15 @@ export async function provisionUsers(baseUrl, usersWithCodes, options = {}) {
 
   // Better Auth's origin check needs an Origin header. Any Turnstile token passes the test secret.
   for (const [i, user] of users.entries()) {
-    await fetchWithRetry(`${baseUrl}/-/api/auth/sign-up/email`, {
+    const signUpRes = await fetchWithRetry(`${baseUrl}/-/api/auth/sign-up/email`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Origin: baseUrl },
       body: JSON.stringify({ ...user, code: codes[i], turnstileToken: "test-token" }),
     });
+    // An already-registered email also gets a 200, so a repeat run passes.
+    if (!signUpRes.ok) {
+      throw new Error(`Failed to sign up ${user.email}: ${signUpRes.status} ${await signUpRes.text()}`);
+    }
   }
 
   d1Execute(
