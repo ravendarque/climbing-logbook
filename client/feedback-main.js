@@ -1,7 +1,7 @@
 // This bundle replaces help-main.js on this page, so it wires the menu and theme too.
 import { createDisclosure } from "./modal-utils.js";
 import { createThemeToggle } from "./theme-toggle.js";
-import { turnstileSitekey } from "./turnstile-sitekey.js";
+import { renderTurnstile } from "./turnstile.js";
 
 createDisclosure(
   document.getElementById("header-menu-btn"),
@@ -29,12 +29,7 @@ function showError(message) {
   errorEl.focus();
 }
 
-const sitekey = turnstileSitekey(window.location.hostname);
-
-let turnstileWidgetId;
-window.onTurnstileLoad = () => {
-  turnstileWidgetId = window.turnstile.render("#turnstile-widget", { sitekey });
-};
+const turnstile = renderTurnstile("#turnstile-widget");
 
 const sourcePage = document.referrer || undefined;
 
@@ -49,7 +44,7 @@ form.addEventListener("submit", async event => {
     return;
   }
 
-  const turnstileToken = window.turnstile?.getResponse(turnstileWidgetId);
+  const turnstileToken = turnstile.getResponse();
   if (!turnstileToken) {
     showError("Please complete the verification check.");
     submitBtn.disabled = false;
@@ -82,6 +77,6 @@ form.addEventListener("submit", async event => {
   } finally {
     submitBtn.disabled = false;
     // Tokens are single-use, so a failed submit needs a fresh one.
-    window.turnstile?.reset(turnstileWidgetId);
+    turnstile.reset();
   }
 });

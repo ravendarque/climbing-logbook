@@ -4,7 +4,7 @@ output "d1_database_id" {
 }
 
 output "turnstile_sitekey" {
-  description = "Written into client/turnstile-sitekey.js by infra.yml. Not secret: sitekeys are embedded in client-side JavaScript."
+  description = "Written into client/turnstile.js by infra.yml. Not secret: sitekeys are embedded in client-side JavaScript."
   value       = cloudflare_turnstile_widget.register.id
 }
 
