@@ -241,7 +241,7 @@ function makeAnchoredScale(id, name, labels, anchors) {
   const anchorIndex = new Map(anchors.map(a => [a.label, FRENCH_STANDARD.toOrdinal(a.frenchAnchor)]));
   const ordinalByLabel = new Map();
   let lastAnchorPos = -1,
-    lastAnchorOrdinal = null;
+    lastAnchorOrdinal = 0;
   const anchoredPositions = labels.map((l, i) => (anchorIndex.has(l) ? i : -1)).filter(i => i !== -1);
 
   for (let i = 0; i < labels.length; i++) {

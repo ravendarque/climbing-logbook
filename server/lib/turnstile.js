@@ -13,7 +13,7 @@ export function createTurnstileHook(env) {
   return createAuthMiddleware(async ctx => {
     if (ctx.path !== "/sign-up/email") return;
 
-    const token = ctx.body?.turnstileToken;
+    const token = /** @type {{ turnstileToken?: unknown } | undefined} */ (ctx.body)?.turnstileToken;
     if (typeof token !== "string" || !token) {
       throw new APIError("FORBIDDEN", {
         message: "Bot verification is required to sign up.",

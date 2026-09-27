@@ -44,7 +44,7 @@ export function pyramidCounts(type, entries, viewScaleId = ROW_SCALE_BY_TYPE[typ
     if (e.type !== type || e.status !== "send" || !isWithinLast12Months(e.date)) continue;
     const ordinal = gradeOrdinal(e.grade, e.gradeScale ?? defaultScale);
     if (ordinal === null) continue;
-    const row = isNativeView ? rowByOrdinal.get(ordinal) : viewScale.toLabel(ordinal);
+    const row = rowByOrdinal ? rowByOrdinal.get(ordinal) : viewScale.toLabel(ordinal);
     if (row != null && counts[row] !== undefined) counts[row]++;
   }
   return { order, counts };

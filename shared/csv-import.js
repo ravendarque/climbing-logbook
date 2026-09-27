@@ -65,6 +65,7 @@ function parseRows(text) {
   return rows;
 }
 
+/** @returns {{ ok: true, rows: object[] } | { ok: false, error: string }} */
 export function parseCsvText(text) {
   const rows = parseRows(text);
   if (rows.length === 0) return { ok: false, error: "CSV file is empty." };
@@ -93,6 +94,7 @@ export function parseCsvText(text) {
 }
 
 // Normalises to parseCsvText's row shape so both formats share one import pipeline.
+/** @returns {{ ok: true, rows: object[] } | { ok: false, error: string }} */
 export function parseJsonText(text) {
   let parsed;
   try {

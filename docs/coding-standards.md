@@ -107,6 +107,9 @@ quietly reversed without someone re-deciding on purpose.
 - **Lint and format with Biome.** `pnpm lint` checks both (recommended
   rules, warnings fail CI); `pnpm format` fixes formatting. A deliberate
   exception gets a `biome-ignore` comment that says why.
+- **Type-check `shared/` and `server/`** (`pnpm typecheck`: `tsc` over the
+  JavaScript, with `strictNullChecks`). Types go in JSDoc tags, not
+  TypeScript files.
 - **Feature branches + PRs, always** — no direct commits/pushes to `main`,
   even for small fixes, even from an agent. Merge only after review or
   explicit confirmation a dependent step (e.g. infra apply) succeeded.
