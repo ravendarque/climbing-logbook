@@ -13,6 +13,8 @@ export async function handleBetaGatedSignUp(request, env, auth) {
     body = {};
   }
   const code = body?.code;
+  // Better Auth stores emails lowercased, so the pin is compared and stored the same way.
+  const email = typeof body?.email === "string" ? body.email.toLowerCase() : null;
 
   if (typeof code !== "string" || !code) {
     return json(
@@ -28,7 +30,7 @@ export async function handleBetaGatedSignUp(request, env, auth) {
   if (!invite || invite.used_at) {
     return json({ message: "Invalid or already-used invite code.", code: "INVALID_INVITE_CODE" }, 403);
   }
-  if (invite.email && invite.email !== body?.email) {
+  if (invite.email && invite.email.toLowerCase() !== email) {
     return json({ message: "This invite code is not valid for this email address.", code: "INVALID_INVITE_CODE" }, 403);
   }
 
@@ -39,7 +41,7 @@ export async function handleBetaGatedSignUp(request, env, auth) {
   const claim = await env.LOGBOOK_DB.prepare(
     `UPDATE beta_invites SET used_at = datetime('now'), email = COALESCE(email, ?) WHERE code = ? AND used_at IS NULL`,
   )
-    .bind(body?.email ?? null, code)
+    .bind(email, code)
     .run();
   if (claim.meta.changes === 0) {
     return json({ message: "Invalid or already-used invite code.", code: "INVALID_INVITE_CODE" }, 403);
@@ -50,17 +52,19 @@ export async function handleBetaGatedSignUp(request, env, auth) {
     headers: { "Content-Type": "application/json" },
     body: bodyText,
   });
-  const response = await auth.handler(forwardedRequest);
-
-  if (!response.ok) {
-    await env.LOGBOOK_DB.prepare(
-      `UPDATE beta_invites SET used_at = NULL${claimedEmailPin ? ", email = NULL" : ""} WHERE code = ?`,
-    )
-      .bind(code)
-      .run();
+  try {
+    return await auth.handler(forwardedRequest);
+  } finally {
+    // A registered email gets a 200 and a synthetic user but no new row, so only the create hook's used_by proves a claim.
+    const claimed = await env.LOGBOOK_DB.prepare(`SELECT used_by FROM beta_invites WHERE code = ?`).bind(code).first();
+    if (!claimed?.used_by) {
+      await env.LOGBOOK_DB.prepare(
+        `UPDATE beta_invites SET used_at = NULL${claimedEmailPin ? ", email = NULL" : ""} WHERE code = ?`,
+      )
+        .bind(code)
+        .run();
+    }
   }
-
-  return response;
 }
 
 export function createBetaGateAfterHook(env) {
