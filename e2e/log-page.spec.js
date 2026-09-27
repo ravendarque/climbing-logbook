@@ -857,6 +857,16 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await expect(page.locator("#sync-btn")).toBeHidden();
   });
 
+  // Responses, not requests: an aborted write has none, and one sent before a listener attaches still arrives.
+  function savedEntryWrites(page) {
+    const methods = [];
+    page.on("response", res => {
+      const req = res.request();
+      if (req.url().includes("/-/api/entries") && req.method() !== "GET") methods.push(req.method());
+    });
+    return methods;
+  }
+
   test("queues an add then a delete for the same never-synced entry, replays both in order on sync (#268)", async ({
     page,
   }) => {
@@ -868,6 +878,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await page.route("**/-/api/entries**", route =>
       failing && route.request().method() !== "GET" ? route.abort("failed") : route.fallback(),
     );
+    const savedWrites = savedEntryWrites(page);
 
     await page.locator("#add-btn").click();
     await page.locator("#entry-name").fill(entryName);
@@ -887,18 +898,13 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
 
     await expect(page.locator("#sections")).toContainText(entryName);
 
-    const requestMethods = [];
-    page.on("request", req => {
-      if (req.url().includes("/-/api/entries") && req.method() !== "GET") requestMethods.push(req.method());
-    });
-
     failing = false;
     await page.evaluate(() => window.dispatchEvent(new Event("online")));
 
     await expect(page.locator("#sections")).not.toContainText(entryName);
     await expect(page.locator("#sync-btn")).toBeHidden();
 
-    expect(requestMethods).toEqual(["POST", "DELETE"]);
+    await expect.poll(() => savedWrites).toEqual(["POST", "DELETE"]);
   });
 
   test("reconnect drift: a queued pending delete still executes when the same entry was edited on another device first", async ({
@@ -962,6 +968,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await page.route("**/-/api/entries**", route =>
       failing && route.request().method() !== "GET" ? route.abort("failed") : route.fallback(),
     );
+    const savedWrites = savedEntryWrites(page);
 
     await page.locator("#add-btn").click();
     await page.locator("#entry-name").fill(entryName);
@@ -971,11 +978,6 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await expect(page.locator("#entry-overlay")).toBeHidden();
     await expect(page.locator("#sections")).toContainText(entryName);
 
-    const postRequests = [];
-    page.on("request", req => {
-      if (req.url().includes("/-/api/entries") && req.method() === "POST") postRequests.push(req.url());
-    });
-
     failing = false;
     await page.evaluate(() => {
       window.dispatchEvent(new Event("online"));
@@ -983,7 +985,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     });
 
     await expect(page.locator("#sync-btn")).toBeHidden();
-    expect(postRequests).toHaveLength(1);
+    await expect.poll(() => savedWrites).toEqual(["POST"]);
   });
 
   test("#490 -- an offline-created place/location dedups against a same-named row from another device, with the queued entry correctly remapped to it", async ({
