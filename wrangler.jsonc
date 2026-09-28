@@ -65,7 +65,7 @@
         { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook-preview", "database_id": "845753a5-abfc-4d74-995b-94d802b4964e", "migrations_dir": "migrations" }
       ]
     },
-    // Like preview, but never deployed, so no rate limiting (no real client IP) and no real email.
+    // Like preview, but never deployed, so no rate limiting (no real client IP).
     "e2e": {
       "workers_dev": true,
       "routes": [],

@@ -8,7 +8,6 @@ const MIXED_SEED = {
   ],
 };
 
-// Seeds as the owner, then visits signed out: the profile is what the public sees.
 async function visitProfile(page, owner, seed) {
   if (seed) await owner.seed(seed);
   await page.context().clearCookies();

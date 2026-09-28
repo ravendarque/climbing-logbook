@@ -1,7 +1,6 @@
 import { CSV_COLUMNS } from "../shared/csv-import.js";
 import { expect, test } from "./owner.js";
 
-// Built from the real template, so a new column can't leave these files behind.
 const csv = (...rows) =>
   [CSV_COLUMNS, ...rows].map(cells => `${CSV_COLUMNS.map((_, i) => cells[i] ?? "").join(",")}\n`).join("");
 const row = (name, grade, location) => [

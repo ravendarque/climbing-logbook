@@ -3,7 +3,6 @@ import { expect, gotoSyncedLog, test } from "./owner.js";
 
 async function expectLandmarksAndSkipLink(page) {
   await expect(page.locator("main")).toHaveCount(1);
-  // A state that's hidden (a form's success panel, say) isn't read, so only exposed headings count.
   await expect(page.locator("h1:visible")).toHaveCount(1);
 
   await page.keyboard.press("Tab");
@@ -42,7 +41,6 @@ for (const path of OWNER_PAGES) {
 }
 
 test("/sync has one main, one h1 and a working skip link", async ({ page, owner }) => {
-  // Held, so the page stays on /sync instead of finishing and moving on.
   await page.route("**/-/api/places*", () => new Promise(() => {}));
   await page.goto(owner.url("/sync"));
   await expectLandmarksAndSkipLink(page);

@@ -1,11 +1,9 @@
-// Gives each test a signed-in user of its own (provisioned by global-setup.js), seeded through the real API.
 import { readFileSync, writeFileSync } from "node:fs";
 import { expect, test as base } from "@playwright/test";
 import { OWNED_ORIGIN, ownedRouteUrl } from "./owned-route-url.js";
 
 export const OWNER_POOL_PATH = "e2e/.auth/owners.json";
 const OWNER_NEXT_PATH = "e2e/.auth/owners-next";
-// Raise this when a run runs out: one user per test that uses `owner`.
 export const OWNER_POOL_SIZE = 200;
 
 function ownerIdentity(username) {
@@ -21,7 +19,6 @@ export function resetOwnerPool(owners) {
   writeFileSync(OWNER_NEXT_PATH, "0");
 }
 
-// A file, not a variable: Playwright restarts the worker process after a failure.
 function claimOwner() {
   const owners = JSON.parse(readFileSync(OWNER_POOL_PATH, "utf8"));
   const next = Number(readFileSync(OWNER_NEXT_PATH, "utf8"));
@@ -44,19 +41,16 @@ function createOwner(username, request) {
     expect(res.ok(), `${method} ${path}: ${res.status()} ${await res.text()}`).toBe(true);
     return res;
   };
-  // Ids are primary keys across all users, so each owner's are prefixed.
   const ownId = id => (id == null ? id : `${username}-${id}`);
 
   return {
     ...ownerIdentity(username),
     url: path => ownedRouteUrl(username, path),
     ownId,
-    // Another device's write: it goes straight to the API, so a page.route() can't intercept it.
     api,
     async settings(fields) {
       await api("PATCH", "settings", fields);
     },
-    // Entries default to a boulder send yesterday at one crag, so a test states only what it asserts on.
     async seed({
       entries = [],
       locations = entries.length ? [DEFAULT_LOCATION] : [],
