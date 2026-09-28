@@ -60,7 +60,8 @@ test("warm with drift: /sync takes the delta path and catches up on a change fro
 
   const entriesRequests = [];
   page.on("request", req => {
-    if (req.url().includes("/-/api/entries") && req.method() === "GET") entriesRequests.push(req.url());
+    const fromSync = new URL(req.frame().url()).pathname === `/${owner.username}/sync`;
+    if (fromSync && req.url().includes("/-/api/entries") && req.method() === "GET") entriesRequests.push(req.url());
   });
   await page.goto(syncUrl(owner));
   await page.waitForURL(`**/${owner.username}/log`);
