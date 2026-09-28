@@ -69,7 +69,6 @@ export async function bootstrapDevSession(baseUrl, { user = DEV_USER, inviteCode
 
 const sqlString = value => `'${String(value).replace(/'/g, "''")}'`;
 
-// Two D1 CLI calls however many users, since each call costs seconds. Returns their session cookies.
 export async function provisionUsers(baseUrl, usersWithCodes, options = {}) {
   const codes = usersWithCodes.map(u => u.inviteCode ?? `dev-seed-${crypto.randomUUID()}`);
   const users = usersWithCodes.map(({ inviteCode, ...user }) => user);
@@ -85,7 +84,6 @@ export async function provisionUsers(baseUrl, usersWithCodes, options = {}) {
       headers: { "Content-Type": "application/json", Origin: baseUrl },
       body: JSON.stringify({ ...user, code: codes[i], turnstileToken: "test-token" }),
     });
-    // An already-registered email also gets a 200, so a repeat run passes.
     if (!signUpRes.ok) {
       throw new Error(`Failed to sign up ${user.email}: ${signUpRes.status} ${await signUpRes.text()}`);
     }

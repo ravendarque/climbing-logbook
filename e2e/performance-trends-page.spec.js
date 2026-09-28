@@ -1,7 +1,6 @@
 import { daysAgo, expect, test } from "./owner.js";
 import { expectWiderWindowRefetch } from "./performance-window.js";
 
-// 2, 5 and 3 sends in three different weeks, topping out at 6A, 6B and 6C.
 const TEN_SENDS = [
   ...[1, 2].map(() => ({ date: daysAgo(22), grade: "6A" })),
   ...[1, 2, 3, 4, 5].map(() => ({ date: daysAgo(15), grade: "6B" })),

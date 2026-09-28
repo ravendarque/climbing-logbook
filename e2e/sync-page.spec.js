@@ -81,7 +81,6 @@ test("/log does NOT redirect to /sync once already synced", async ({ page, owner
     if (frame === page.mainFrame()) visited.push(new URL(frame.url()).pathname);
   });
   await page.reload();
-  // The table is in the static shell; the cached rows and a quiet network mean boot has decided.
   await expect(page.locator("climbing-entries-table")).toContainText("Test Crag");
   await page.waitForLoadState("networkidle");
 

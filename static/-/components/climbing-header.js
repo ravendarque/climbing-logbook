@@ -89,7 +89,6 @@
   class ClimbingHeader extends HTMLElement {
     connectedCallback() {
       if (this.getAttribute("variant") !== "brand") return;
-      // Only a page whose heading is the brand itself (home) makes it the h1.
       this.innerHTML = brandHtml(this.hasAttribute("align-left"), this.hasAttribute("heading") ? "h1" : "p");
       this._wireFootnote();
     }
