@@ -20,28 +20,31 @@
   </script>
 </head>
 <body class="bg-background text-foreground font-sans min-h-screen flex flex-col items-center justify-center gap-6 px-4">
-  <climbing-header variant="brand"></climbing-header>
-  <form class="w-full max-w-[360px] bg-surface border border-border rounded-app p-6" id="reset-form" novalidate>
-    <label class="block text-sm text-muted mb-1" for="password">New password</label>
-    <input
-      class="text-input w-full mb-4"
-      type="password" id="password" name="password" required autocomplete="new-password">
+  {% include "skip-link.njk" %}
+  <main class="flex flex-col items-center gap-6 w-full focus:outline-none" id="main" tabindex="-1">
+    <climbing-header variant="brand"></climbing-header>
+    <form class="w-full max-w-[360px] bg-surface border border-border rounded-app p-6" id="reset-form" novalidate>
+      <h1 class="sr-only">Choose a new password</h1>
+      <label class="block text-sm text-muted mb-1" for="password">New password</label>
+      <input
+        class="text-input w-full mb-4"
+        type="password" id="password" name="password" required autocomplete="new-password">
 
-    <p class="mb-4 error-message" id="reset-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>
+      <p class="mb-4 error-message" id="reset-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>
 
-    <button type="submit" class="btn btn-primary w-full disabled:opacity-[.45] disabled:cursor-not-allowed" id="reset-submit-btn">Set new password</button>
-  </form>
+      <button type="submit" class="btn btn-primary w-full disabled:opacity-[.45] disabled:cursor-not-allowed" id="reset-submit-btn">Set new password</button>
+    </form>
 
-  <div class="w-full max-w-[360px] bg-surface border border-border rounded-app p-6 text-center" id="reset-invalid" hidden>
-    <h1 class="font-display text-3xl mb-4 tracking-wide">Link expired</h1>
-    <p class="text-muted">This password reset link is invalid or has expired. <a class="text-accent" href="../login/">Request a new one</a> from the login page.</p>
-  </div>
+    <div class="w-full max-w-[360px] bg-surface border border-border rounded-app p-6 text-center" id="reset-invalid" hidden>
+      <h1 class="font-display text-3xl mb-4 tracking-wide">Link expired</h1>
+      <p class="text-muted">This password reset link is invalid or has expired. <a class="text-accent" href="../login/">Request a new one</a> from the login page.</p>
+    </div>
 
-  <div class="w-full max-w-[360px] bg-surface border border-border rounded-app p-6 text-center" id="reset-success" hidden>
-    <h1 class="font-display text-3xl mb-4 tracking-wide">Password updated</h1>
-    <p class="text-muted"><a class="text-accent" href="../login/">Log in</a> with your new password.</p>
-  </div>
-
+    <div class="w-full max-w-[360px] bg-surface border border-border rounded-app p-6 text-center" id="reset-success" hidden>
+      <h1 class="font-display text-3xl mb-4 tracking-wide">Password updated</h1>
+      <p class="text-muted"><a class="text-accent" href="../login/">Log in</a> with your new password.</p>
+    </div>
+  </main>
   <script type="module" src="/-/reset-password-app.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
 </body>
 </html>

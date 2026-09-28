@@ -5,7 +5,7 @@ import { expect, test } from "./owner.js";
 test("renders the shared chrome, no discipline picker, and the My account link/username", async ({ page, owner }) => {
   await page.goto(owner.url("/account"));
 
-  await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
+  await expect(page.locator("climbing-header [data-brand-name]")).toHaveText("Climbing Logbook");
 
   await expect(page.locator("#discipline-btn")).toHaveCount(0);
 

@@ -60,7 +60,7 @@ test("#470 -- shows a loading state before real data resolves, then flips to the
 test("renders the shared chrome and a real entries table, and switches discipline", async ({ page, owner }) => {
   await gotoLog(page, owner);
 
-  await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
+  await expect(page.locator("climbing-header [data-brand-name]")).toHaveText("Climbing Logbook");
   await expect(page.locator("climbing-tab-bar a", { hasText: "Logbook" })).toHaveAttribute("aria-current", "page");
 
   await page.locator("#collapse-all-btn").click();

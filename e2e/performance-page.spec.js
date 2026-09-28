@@ -4,7 +4,7 @@ test("renders the shared chrome and one tile per insight, linking to its own sub
   await owner.settings({ athleteMode: true, activeDiscipline: "boulder" });
   await page.goto(owner.url("/performance"));
 
-  await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
+  await expect(page.locator("climbing-header [data-brand-name]")).toHaveText("Climbing Logbook");
   await expect(page.locator("climbing-tab-bar a", { hasText: "Performance" })).toHaveAttribute("aria-current", "page");
 
   const pyramidTile = page.locator("#insight-pyramid");

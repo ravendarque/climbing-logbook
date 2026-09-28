@@ -14,7 +14,7 @@ const loc = path => ({ pathname: path, search: "" });
 const session = user => vi.fn().mockResolvedValue({ json: async () => (user ? { user: { username: user } } : null) });
 
 beforeEach(() => {
-  document.body.innerHTML = `<div><climbing-page-header></climbing-page-header><div id="content">app</div></div>`;
+  document.body.innerHTML = `<div><climbing-page-header></climbing-page-header></div><main id="main"><div id="content">app</div></main>`;
 });
 const blocked = () => document.getElementById("not-available-offline");
 

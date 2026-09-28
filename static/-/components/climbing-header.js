@@ -15,7 +15,7 @@
   }
 
   // Owns its footnote modal end to end, so pages leave it out of createModalHelpers().
-  function brandHtml(alignLeft) {
+  function brandHtml(alignLeft, nameTag) {
     // One SVG, so the mark, title and tagline can't drift apart; the text is real but visually hidden.
     var width = IS_BETA ? LOCKUP.betaWidth : LOCKUP.width;
     var pct = (n, of) => `${((n / of) * 100).toFixed(3)}%`;
@@ -45,9 +45,13 @@
       LOCKUP.height +
       '"/>' +
       "    </svg>" +
-      '    <h1 class="sr-only">Climbing Logbook' +
+      "    <" +
+      nameTag +
+      ' class="sr-only" data-brand-name>Climbing Logbook' +
       (IS_BETA ? " Beta" : "") +
-      "</h1>" +
+      "</" +
+      nameTag +
+      ">" +
       '    <p class="sr-only">Log your climbs, visualise your progress</p>' +
       '    <button type="button" class="absolute bg-transparent border-0 p-0 cursor-pointer" id="footnote-trigger" style="left:' +
       pct(orNot.x, width) +
@@ -85,7 +89,8 @@
   class ClimbingHeader extends HTMLElement {
     connectedCallback() {
       if (this.getAttribute("variant") !== "brand") return;
-      this.innerHTML = brandHtml(this.hasAttribute("align-left"));
+      // Only a page whose heading is the brand itself (home) makes it the h1.
+      this.innerHTML = brandHtml(this.hasAttribute("align-left"), this.hasAttribute("heading") ? "h1" : "p");
       this._wireFootnote();
     }
 

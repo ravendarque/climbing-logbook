@@ -30,7 +30,13 @@
   {%- endif %}
 </head>
 <body class="bg-background text-foreground font-sans px-4 pt-6 pb-16 min-w-[300px]">
+{% include "skip-link.njk" %}
+<div class="max-w-[960px] mx-auto">
+  {% include "page-header.njk" %}
+</div>
+<main class="focus:outline-none" id="main" tabindex="-1">
 {{ content | safe }}
+</main>
 {% include "footer.njk" %}
 {%- if bundle %}
 <script type="module" src="/-/{{ bundle }}-app.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>

@@ -7,7 +7,7 @@ test("renders the shared chrome, a real map, and switches discipline (persisted 
   await owner.seed({ entries: [{ type: "boulder" }, { type: "sport", grade: "6a" }] });
   await page.goto(owner.url("/map"));
 
-  await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
+  await expect(page.locator("climbing-header [data-brand-name]")).toHaveText("Climbing Logbook");
 
   await expect(page.locator("#map-container svg")).toBeVisible();
   await expect(page.locator("#map-load-retry")).toHaveCount(0);

@@ -9,6 +9,7 @@ import "./components/climbing-entries-table.js";
 
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 document.title = `${USERNAME} – Climbing Logbook`;
+document.getElementById("profile-title").textContent = `${USERNAME}'s logbook`;
 
 const entriesTable = document.querySelector("climbing-entries-table");
 
