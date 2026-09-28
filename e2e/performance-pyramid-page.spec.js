@@ -5,7 +5,7 @@ test("renders the shared chrome and a real grade pyramid, and switches disciplin
   await owner.seed({ entries: [{ type: "boulder" }, { type: "sport", grade: "6a" }] });
   await page.goto(owner.url("/performance/pyramid"));
 
-  await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
+  await expect(page.locator("climbing-header [data-brand-name]")).toHaveText("Climbing Logbook");
   await expect(page.locator("climbing-tab-bar a", { hasText: "Performance" })).toHaveAttribute("aria-current", "page");
   await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", `/${owner.username}/performance`);
   await expect(page.locator("#view-explainer")).toContainText("every send's grade");

@@ -9,7 +9,7 @@ test("shows the not-enough-data message, empty log, and Sources section with no 
   await owner.settings({ athleteMode: true });
   await page.goto(owner.url("/performance/injury"));
 
-  await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
+  await expect(page.locator("climbing-header [data-brand-name]")).toHaveText("Climbing Logbook");
   await expect(page.locator("climbing-tab-bar a", { hasText: "Performance" })).toHaveAttribute("aria-current", "page");
   await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", `/${owner.username}/performance`);
   await expect(page.locator("#view-explainer")).toContainText("Pain/injury tags");

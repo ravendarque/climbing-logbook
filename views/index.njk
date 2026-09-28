@@ -20,34 +20,37 @@
   </script>
 </head>
 <body class="bg-background text-foreground font-sans min-h-screen flex items-center justify-center px-4">
-  {# display:none, not [hidden], so it doesn't depend on the stylesheet having loaded. #}
-  <div class="w-full max-w-[440px] text-center" id="page-content" style="display:none">
-    <climbing-header variant="brand"></climbing-header>
-    <p class="text-muted mb-8">
-      Track your boulder and lead sends and projects, by grade and by
-      place. Works offline, installable as a PWA. Share a read-only view
-      of your log with a public profile page if you want to.
-    </p>
+  {% include "skip-link.njk" %}
+  <main class="focus:outline-none" id="main" tabindex="-1">
+    {# display:none, not [hidden], so it doesn't depend on the stylesheet having loaded. #}
+    <div class="w-full max-w-[440px] text-center" id="page-content" style="display:none">
+      <climbing-header variant="brand" heading></climbing-header>
+      <p class="text-muted mb-8">
+        Track your boulder and lead sends and projects, by grade and by
+        place. Works offline, installable as a PWA. Share a read-only view
+        of your log with a public profile page if you want to.
+      </p>
 
-    <div class="flex flex-col gap-3 mb-8">
-      <a class="btn btn-primary" href="./register/">Sign up</a>
-      <a class="btn" href="./login/">Log in</a>
-    </div>
-
-    <div class="relative mb-8" id="demo-picker-wrap">
-      <button type="button" class="btn w-full" id="demo-picker-trigger" aria-haspopup="listbox" aria-expanded="false">View a demo first</button>
-      <div class="absolute top-[calc(100%+.4rem)] left-0 z-20 bg-background border border-border rounded-app p-[.35rem] w-full shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="demo-picker-popover" role="listbox" aria-label="Choose a demo persona" hidden>
-        <div id="demo-picker-list"></div>
+      <div class="flex flex-col gap-3 mb-8">
+        <a class="btn btn-primary" href="./register/">Sign up</a>
+        <a class="btn" href="./login/">Log in</a>
       </div>
+
+      <div class="relative mb-8" id="demo-picker-wrap">
+        <button type="button" class="btn w-full" id="demo-picker-trigger" aria-haspopup="listbox" aria-expanded="false">View a demo first</button>
+        <div class="absolute top-[calc(100%+.4rem)] left-0 z-20 bg-background border border-border rounded-app p-[.35rem] w-full shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="demo-picker-popover" role="listbox" aria-label="Choose a demo persona" hidden>
+          <div id="demo-picker-list"></div>
+        </div>
+      </div>
+
+      <p class="text-sm text-muted mb-8">Browse the <a class="text-accent" href="/help/">help section</a> to learn more.</p>
+
+      {# Always shown: this static page can't see whether the beta gate is on. #}
+      <p class="text-sm text-muted">
+        Currently in a closed beta — signing up needs an invite code.
+      </p>
     </div>
-
-    <p class="text-sm text-muted mb-8">Browse the <a class="text-accent" href="/help/">help section</a> to learn more.</p>
-
-    {# Always shown: this static page can't see whether the beta gate is on. #}
-    <p class="text-sm text-muted">
-      Currently in a closed beta — signing up needs an invite code.
-    </p>
-  </div>
+  </main>
   <script type="module" src="/-/home-app.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
 </body>
 </html>

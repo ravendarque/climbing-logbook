@@ -2,6 +2,7 @@
 layout: app-layout.njk
 title: Help – Climbing Logbook
 bundle: help
+menu: help
 ---
 
 <link rel="stylesheet" href="/help/pagefind/pagefind-component-ui.css">
@@ -36,8 +37,6 @@ bundle: help
 </style>
 
 <div class="max-w-[960px] mx-auto">
-  {% set menu = "help" %}{% include "page-header.njk" %}
-
   <div class="flex gap-8 mt-6 max-[600px]:flex-col" id="help-layout">
     {# A gap, not a margin: Pagefind's unlayered all: initial beats Tailwind's layered utilities. #}
     <nav class="flex flex-col gap-8 flex-[0_0_14rem] max-[600px]:flex-[0_0_auto] min-w-0" id="help-nav" aria-label="Help topics">

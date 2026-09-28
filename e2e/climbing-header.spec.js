@@ -6,7 +6,7 @@ test.use({ storageState: { cookies: [], origins: [] } });
 test("renders the logo/title and opens/closes the footnote modal via Escape", async ({ page }) => {
   await page.goto("/login/");
 
-  await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
+  await expect(page.locator("climbing-header [data-brand-name]")).toHaveText("Climbing Logbook");
   await expect(page.locator("#footnote-overlay")).toBeHidden();
 
   await page.locator("#footnote-trigger").click();
@@ -49,15 +49,15 @@ test("footnote modal closes via its close button and via backdrop click", async 
 test("renders on /register/", async ({ page }) => {
   await mockTurnstile(page);
   await page.goto("/register/");
-  await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
+  await expect(page.locator("climbing-header [data-brand-name]")).toHaveText("Climbing Logbook");
 });
 
 test("renders on /reset-password/", async ({ page }) => {
   await page.goto("/reset-password/");
-  await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
+  await expect(page.locator("climbing-header [data-brand-name]")).toHaveText("Climbing Logbook");
 });
 
 test("renders on the apex marketing page", async ({ page }) => {
   await page.goto("/");
-  await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
+  await expect(page.locator("climbing-header [data-brand-name]")).toHaveText("Climbing Logbook");
 });

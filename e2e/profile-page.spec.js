@@ -18,7 +18,7 @@ async function visitProfile(page, owner, seed) {
 test("renders the shared chrome readonly -- no edit affordances or admin rows anywhere", async ({ page, owner }) => {
   await visitProfile(page, owner, SEED);
 
-  await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
+  await expect(page.locator("climbing-header [data-brand-name]")).toHaveText("Climbing Logbook");
   await expect(page.locator("climbing-entries-table")).toBeVisible();
 
   await expect(page.locator("#add-btn")).toHaveCount(0);

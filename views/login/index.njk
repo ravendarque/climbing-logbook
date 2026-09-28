@@ -23,34 +23,38 @@
   </script>
 </head>
 <body class="bg-background text-foreground font-sans min-h-screen flex items-center justify-center px-4">
-  {# display:none, not [hidden], so it doesn't depend on the stylesheet having loaded. #}
-  <div class="flex flex-col items-center gap-6" id="page-content" style="display:none">
-    <climbing-header variant="brand"></climbing-header>
-    <form class="w-full max-w-[360px] bg-surface border border-border rounded-app p-6" id="login-form" novalidate>
-      <label class="block text-sm text-muted mb-1" for="email">Email</label>
-      <input
-        class="text-input w-full mb-4"
-        type="email" id="email" name="email" required autocomplete="email">
+  {% include "skip-link.njk" %}
+  <main class="focus:outline-none" id="main" tabindex="-1">
+    {# display:none, not [hidden], so it doesn't depend on the stylesheet having loaded. #}
+    <div class="flex flex-col items-center gap-6" id="page-content" style="display:none">
+      <climbing-header variant="brand"></climbing-header>
+      <form class="w-full max-w-[360px] bg-surface border border-border rounded-app p-6" id="login-form" novalidate>
+        <h1 class="sr-only">Log in</h1>
+        <label class="block text-sm text-muted mb-1" for="email">Email</label>
+        <input
+          class="text-input w-full mb-4"
+          type="email" id="email" name="email" required autocomplete="email">
 
-      <label class="block text-sm text-muted mb-1" for="password">Password</label>
-      <input
-        class="text-input w-full mb-2"
-        type="password" id="password" name="password" required autocomplete="current-password">
+        <label class="block text-sm text-muted mb-1" for="password">Password</label>
+        <input
+          class="text-input w-full mb-2"
+          type="password" id="password" name="password" required autocomplete="current-password">
 
-      <p class="text-sm text-right mb-4">
-        <button type="button" class="text-accent bg-transparent border-0 p-0 cursor-pointer" id="forgot-password-btn">Forgot password?</button>
-      </p>
+        <p class="text-sm text-right mb-4">
+          <button type="button" class="text-accent bg-transparent border-0 p-0 cursor-pointer" id="forgot-password-btn">Forgot password?</button>
+        </p>
 
-      <p class="mb-4 error-message" id="login-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>
-      <p class="text-sm text-muted mb-4" id="login-info" hidden></p>
+        <p class="mb-4 error-message" id="login-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>
+        <p class="text-sm text-muted mb-4" id="login-info" hidden></p>
 
-      <button type="submit" class="btn btn-primary w-full disabled:opacity-[.45] disabled:cursor-not-allowed" id="login-submit-btn">Log in</button>
+        <button type="submit" class="btn btn-primary w-full disabled:opacity-[.45] disabled:cursor-not-allowed" id="login-submit-btn">Log in</button>
 
-      <p class="text-sm text-muted mt-4 text-center">
-        Don't have an account? <a class="text-accent" href="/register/">Sign up</a>
-      </p>
-    </form>
-  </div>
+        <p class="text-sm text-muted mt-4 text-center">
+          Don't have an account? <a class="text-accent" href="/register/">Sign up</a>
+        </p>
+      </form>
+    </div>
+  </main>
   <script type="module" src="/-/login-app.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
 </body>
 </html>

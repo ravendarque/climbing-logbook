@@ -18,7 +18,7 @@ test.describe("logged out", () => {
 
   test("shows the apex marketing page normally", async ({ page }) => {
     await page.goto("/");
-    await expect(page.locator("climbing-header h1")).toBeVisible();
+    await expect(page.locator("climbing-header [data-brand-name]")).toBeVisible();
     await expect(page.getByRole("link", { name: "Sign up" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Log in" })).toBeVisible();
     await expect(page).toHaveURL(/\/$/);

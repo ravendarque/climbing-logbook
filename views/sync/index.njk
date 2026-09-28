@@ -12,10 +12,10 @@ staticShellNote: |-
          transient stop nothing should navigate into deliberately, so
          there's nothing to highlight as "current" and no other page is
          usable yet anyway.
+headerClass: mb-6
 ---
 <div class="max-w-[960px] mx-auto">
-  {% set headerClass = "mb-6" %}{% include "page-header.njk" %}
-
+  <h1 class="sr-only">Sync</h1>
   <div class="row-card text-center max-w-[420px] mx-auto mt-8" id="sync-card">
     <p class="text-[.95rem] text-foreground" id="sync-message">Syncing your logbook&hellip;</p>
     <p class="text-[.82rem] text-muted mt-1" id="sync-detail">Setting things up</p>

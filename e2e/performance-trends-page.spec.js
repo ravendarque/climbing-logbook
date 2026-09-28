@@ -15,7 +15,7 @@ test("shows the zero-sends headline, time-window control, and Sources section wi
   await owner.settings({ athleteMode: true });
   await page.goto(owner.url("/performance/trends"));
 
-  await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
+  await expect(page.locator("climbing-header [data-brand-name]")).toHaveText("Climbing Logbook");
   await expect(page.locator("climbing-tab-bar a", { hasText: "Performance" })).toHaveAttribute("aria-current", "page");
   await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", `/${owner.username}/performance`);
   await expect(page.locator("#view-explainer")).toContainText("every logged send's grade");

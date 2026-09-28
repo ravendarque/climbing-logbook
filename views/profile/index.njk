@@ -12,10 +12,10 @@ staticShellNote: |-
          (logbook_public + anti-enumeration 404) runs *before* this shell is
          ever served -- a private or nonexistent username never reaches this
          file at all.
+menu: profile
 ---
 <div class="max-w-[960px] mx-auto">
-  {% set menu = "profile" %}{% include "page-header.njk" %}
-
+  <h1 class="sr-only" id="profile-title">Logbook</h1>
   <div class="tab-nav mb-5" id="view-tabs" role="tablist" aria-label="View">
     <button type="button" class="tab-nav-item" id="view-tab-logbook" role="tab" data-view="logbook" aria-selected="true" aria-controls="panel-logbook">Logbook</button>
     <button type="button" class="tab-nav-item" id="view-tab-map" role="tab" data-view="map" aria-selected="false" aria-controls="panel-map">Map</button>

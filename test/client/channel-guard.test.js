@@ -23,7 +23,7 @@ const offline = () => vi.fn().mockRejectedValue(new TypeError("Failed to fetch")
 const flush = () => new Promise(r => setTimeout(r, 0));
 
 beforeEach(() => {
-  document.body.innerHTML = `<div id="wrap"><climbing-page-header></climbing-page-header><div id="content">app</div></div>`;
+  document.body.innerHTML = `<div><climbing-page-header></climbing-page-header></div><main id="main"><div id="content">app</div></main>`;
 });
 const message = () => document.getElementById("beta-not-enrolled");
 

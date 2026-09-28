@@ -21,48 +21,51 @@
   </script>
 </head>
 <body class="bg-background text-foreground font-sans min-h-screen flex flex-col items-center justify-center gap-6 px-4">
-  <climbing-header variant="brand"></climbing-header>
-  <form class="w-full max-w-[360px] bg-surface border border-border rounded-app p-6" id="register-form" novalidate>
-    <label class="block text-sm text-muted mb-1" for="code">Invite code</label>
-    <input
-      class="text-input w-full mb-4"
-      type="text" id="code" name="code" autocomplete="off">
+  {% include "skip-link.njk" %}
+  <main class="flex flex-col items-center gap-6 w-full focus:outline-none" id="main" tabindex="-1">
+    <climbing-header variant="brand"></climbing-header>
+    <form class="w-full max-w-[360px] bg-surface border border-border rounded-app p-6" id="register-form" novalidate>
+      <h1 class="sr-only">Create an account</h1>
+      <label class="block text-sm text-muted mb-1" for="code">Invite code</label>
+      <input
+        class="text-input w-full mb-4"
+        type="text" id="code" name="code" autocomplete="off">
 
-    <label class="block text-sm text-muted mb-1" for="email">Email</label>
-    <input
-      class="text-input w-full mb-4"
-      type="email" id="email" name="email" required autocomplete="email">
+      <label class="block text-sm text-muted mb-1" for="email">Email</label>
+      <input
+        class="text-input w-full mb-4"
+        type="email" id="email" name="email" required autocomplete="email">
 
-    <label class="block text-sm text-muted mb-1" for="username">Username</label>
-    <input
-      class="text-input w-full mb-1"
-      type="text" id="username" name="username" required autocomplete="username"
-      pattern="[a-z0-9._]+" minlength="1" maxlength="30"
-      title="Lowercase letters, numbers, periods, and underscores only">
-    {# A hint for the browser; the server's username policy is the real check. #}
-    <p class="text-xs text-muted mb-4">Lowercase letters, numbers, periods, and underscores only.</p>
+      <label class="block text-sm text-muted mb-1" for="username">Username</label>
+      <input
+        class="text-input w-full mb-1"
+        type="text" id="username" name="username" required autocomplete="username"
+        pattern="[a-z0-9._]+" minlength="1" maxlength="30"
+        title="Lowercase letters, numbers, periods, and underscores only">
+      {# A hint for the browser; the server's username policy is the real check. #}
+      <p class="text-xs text-muted mb-4">Lowercase letters, numbers, periods, and underscores only.</p>
 
-    <label class="block text-sm text-muted mb-1" for="password">Password</label>
-    <input
-      class="text-input w-full mb-4"
-      type="password" id="password" name="password" required autocomplete="new-password">
+      <label class="block text-sm text-muted mb-1" for="password">Password</label>
+      <input
+        class="text-input w-full mb-4"
+        type="password" id="password" name="password" required autocomplete="new-password">
 
-    <div id="turnstile-widget" class="mb-4"></div>
+      <div id="turnstile-widget" class="mb-4"></div>
 
-    <p class="mb-4 error-message" id="register-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>
+      <p class="mb-4 error-message" id="register-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>
 
-    <button type="submit" class="btn btn-primary w-full disabled:opacity-[.45] disabled:cursor-not-allowed" id="register-submit-btn">Sign up</button>
+      <button type="submit" class="btn btn-primary w-full disabled:opacity-[.45] disabled:cursor-not-allowed" id="register-submit-btn">Sign up</button>
 
-    <p class="text-sm text-muted mt-4 text-center">
-      Already have an account? <a class="text-accent" href="../login/">Log in</a>
-    </p>
-  </form>
+      <p class="text-sm text-muted mt-4 text-center">
+        Already have an account? <a class="text-accent" href="../login/">Log in</a>
+      </p>
+    </form>
 
-  <div class="w-full max-w-[360px] bg-surface border border-border rounded-app p-6 text-center" id="register-success" hidden>
-    <h1 class="font-display text-3xl mb-4 tracking-wide">Check your email</h1>
-    <p class="text-muted">We've sent a verification link to <strong id="register-success-email"></strong>. Click it to activate your account and log in.</p>
-  </div>
-
+    <div class="w-full max-w-[360px] bg-surface border border-border rounded-app p-6 text-center" id="register-success" hidden>
+      <h1 class="font-display text-3xl mb-4 tracking-wide">Check your email</h1>
+      <p class="text-muted">We've sent a verification link to <strong id="register-success-email"></strong>. Click it to activate your account and log in.</p>
+    </div>
+  </main>
   <script type="module" src="/-/register-app.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
 </body>
 </html>
