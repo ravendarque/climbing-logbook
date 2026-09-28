@@ -7,7 +7,6 @@
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "dev:vite": "concurrently -n vite,tailwind,html -c blue,magenta,green \"vite dev\" \"tailwindcss -i ./styles/tailwind.css -o ./public/-/tailwind.css --watch\" \"pnpm run html:watch\"",
-    "deploy": "pnpm run html:build && pnpm run tailwind:build && pnpm run deploy:build && wrangler deploy",
     "html:build": "eleventy",
     "html:watch": "eleventy --watch",
     "tailwind:build": "tailwindcss -i ./styles/tailwind.css -o ./public/-/tailwind.css --minify",
