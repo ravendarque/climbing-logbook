@@ -125,3 +125,17 @@ describe("focus restoration after a re-render (#805)", () => {
     outsideBtn.remove();
   });
 });
+
+describe("video links (#1104)", () => {
+  it("open without sending the page as the referrer", async () => {
+    el.places = [{ id: "p1", locationId: "loc1", area: "" }];
+    el.entries = [entry({ video: "https://www.youtube.com/watch?v=abc" })];
+    el.locations = [{ id: "loc1", name: "Fontainebleau", country: "France" }];
+    await Promise.resolve();
+    el.querySelector(".place-header").click();
+    await Promise.resolve();
+
+    const link = el.querySelector('a[href="https://www.youtube.com/watch?v=abc"]');
+    expect(link.rel.split(" ")).toEqual(expect.arrayContaining(["noopener", "noreferrer"]));
+  });
+});

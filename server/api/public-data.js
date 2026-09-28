@@ -1,8 +1,8 @@
 import { json } from "../lib/json.js";
 import { resolvePublicUser } from "./public-profile.js";
 import { handlePublicGet } from "./entries.js";
-import { handleGet as handleGetPlaces } from "./places.js";
-import { handleGet as handleGetLocations } from "./locations.js";
+import { rowToJson as placeRowToJson } from "./places.js";
+import { rowToJson as locationRowToJson } from "./locations.js";
 import { handleGetMapCounts } from "./map.js";
 import { handleGetProfileCounts } from "./profile-counts.js";
 import {
@@ -14,11 +14,38 @@ import {
   handleGetVolume,
 } from "./performance.js";
 
+const LIVE_ENTRY_AT_PLACE = "SELECT 1 FROM entries e WHERE e.place_id = p.id AND e.deleted_at IS NULL";
+
+async function listLive(env, sql, userId, key, rowToJson) {
+  const { results } = await env.LOGBOOK_DB.prepare(sql).bind(userId).all();
+  return json({ [key]: results.map(rowToJson) }, 200, { "Cache-Control": "no-store" });
+}
+
+function handlePublicPlaces(_request, env, userId) {
+  return listLive(
+    env,
+    `SELECT p.* FROM places p WHERE p.user_id = ? AND EXISTS (${LIVE_ENTRY_AT_PLACE}) ORDER BY p.created_at`,
+    userId,
+    "places",
+    placeRowToJson,
+  );
+}
+
+function handlePublicLocations(_request, env, userId) {
+  return listLive(
+    env,
+    `SELECT l.* FROM locations l WHERE l.user_id = ? AND EXISTS (SELECT 1 FROM places p WHERE p.location_id = l.id AND EXISTS (${LIVE_ENTRY_AT_PLACE})) ORDER BY l.created_at`,
+    userId,
+    "locations",
+    locationRowToJson,
+  );
+}
+
 // A private or unknown username gets the same 404, so accounts can't be enumerated.
 const HANDLERS = {
   entries: handlePublicGet,
-  places: handleGetPlaces,
-  locations: handleGetLocations,
+  places: handlePublicPlaces,
+  locations: handlePublicLocations,
   "map/counts": handleGetMapCounts,
   "entries/counts": handleGetProfileCounts,
 };
