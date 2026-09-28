@@ -18,6 +18,28 @@ beforeEach(async () => {
 });
 
 describe("public data API", () => {
+  it("#1104 -- lists only places and locations a live entry uses", async () => {
+    const { cookie } = await createAuthedSession({ username: "publiclistsuser" });
+    const post = body => jsonRequest("POST", "/-/api/entries", body, { Cookie: cookie }).then(r => r.json());
+    const entry = placeId => ({ placeId, name: "Climb", grade: "7A", type: "boulder", status: "send" });
+
+    const livePlace = await seedPlace(cookie, { locationName: "Fontainebleau", country: "France", area: "Bas Cuvier" });
+    await post(entry(livePlace));
+    const deletedPlace = await seedPlace(cookie, {
+      locationName: "Magic Wood",
+      country: "Switzerland",
+      area: "Sector 1",
+    });
+    const { entry: removed } = await post(entry(deletedPlace));
+    await fetchJson(`/-/api/entries?id=${removed.id}`, { method: "DELETE", headers: { Cookie: cookie } });
+    await seedPlace(cookie, { locationName: "Albarracín", country: "Spain", area: "El Ventorrillo" });
+
+    const { places } = await (await fetchPublic("publiclistsuser", "places")).json();
+    expect(places.map(p => p.id)).toEqual([livePlace]);
+    const { locations } = await (await fetchPublic("publiclistsuser", "locations")).json();
+    expect(locations.map(l => l.name)).toEqual(["Fontainebleau"]);
+  });
+
   it("returns a public user's entries/places/locations without a session", async () => {
     const { cookie } = await createAuthedSession({ username: "publicdatauser" });
     const placeId = await seedPlace(cookie, { locationName: "Fontainebleau", country: "France", area: "Bas Cuvier" });
