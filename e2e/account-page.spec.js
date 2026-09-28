@@ -1,38 +1,32 @@
-import { expect, test } from "@playwright/test";
-import { mockApi } from "./mock-api.js";
+import { DEV_USER } from "../scripts/lib/dev-session.mjs";
+import { ownedRouteUrl } from "./owned-route-url.js";
+import { expect, test } from "./owner.js";
 
-test("renders the shared chrome, no discipline picker, and the My account link/username", async ({ page }) => {
-  await mockApi(page, { username: "nix" });
-  await page.goto("/e2e-fixtures/pages/account.html");
+test("renders the shared chrome, no discipline picker, and the My account link/username", async ({ page, owner }) => {
+  await page.goto(owner.url("/account"));
 
   await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
 
   await expect(page.locator("#discipline-btn")).toHaveCount(0);
 
   await page.locator("#header-menu-btn").click();
-  await expect(page.locator("#menu-username")).toHaveText("nix");
-  await expect(page.locator("#my-account-link")).toHaveAttribute("href", "/nix/account");
+  await expect(page.locator("#menu-username")).toHaveText(owner.username);
+  await expect(page.locator("#my-account-link")).toHaveAttribute("href", `/${owner.username}/account`);
 
-  await expect(page.locator("#edit-account-link")).toHaveAttribute("href", "/e2e-fixtures/account/edit");
-  await expect(page.locator("#import-link")).toHaveAttribute("href", "/e2e-fixtures/account/import");
-  await expect(page.locator("#back-to-logbook-link")).toHaveAttribute("href", "/e2e-fixtures/log");
+  await expect(page.locator("#edit-account-link")).toHaveAttribute("href", `/${owner.username}/account/edit`);
+  await expect(page.locator("#import-link")).toHaveAttribute("href", `/${owner.username}/account/import`);
+  await expect(page.locator("#back-to-logbook-link")).toHaveAttribute("href", `/${owner.username}/log`);
 });
 
-test("logged out -- username/My account link/settings rows all hidden", async ({ page }) => {
-  await mockApi(page, { loggedIn: false });
-  await page.goto("/e2e-fixtures/pages/account.html");
+test("logged out, the page sends you to log in rather than showing an empty account", async ({ page, context }) => {
+  await context.clearCookies();
+  await page.goto(ownedRouteUrl(DEV_USER.username, "/account"));
 
-  await page.locator("#header-menu-btn").click();
-  await expect(page.locator("#menu-username")).toBeHidden();
-  await expect(page.locator("#my-account-link")).toBeHidden();
-  await expect(page.locator("#athlete-mode-row")).toBeHidden();
-  await expect(page.locator("#public-logbook-row")).toBeHidden();
-  await expect(page.locator("#beta-row")).toBeHidden();
+  await page.waitForURL(url => url.pathname.includes("login"));
 });
 
-test("Athlete Mode toggle (#445) switches and persists via the settings PATCH", async ({ page }) => {
-  await mockApi(page, { settings: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true } });
-  await page.goto("/e2e-fixtures/pages/account.html");
+test("Athlete Mode toggle (#445) switches and persists via the settings PATCH", async ({ page, owner }) => {
+  await page.goto(owner.url("/account"));
 
   const athleteToggle = page.locator("#athlete-mode-toggle");
   await expect(page.locator("#athlete-mode-row")).toBeVisible();
@@ -50,10 +44,9 @@ test("Athlete Mode toggle (#445) switches and persists via the settings PATCH", 
 
 test("Public Logbook toggle (#301, moved to this page by #445) switches and persists via the settings PATCH", async ({
   page,
+  owner,
 }) => {
-  await mockApi(page);
-
-  await page.goto("/e2e-fixtures/pages/account.html");
+  await page.goto(owner.url("/account"));
 
   const publicToggle = page.locator("#public-logbook-toggle");
   await expect(page.locator("#public-logbook-row")).toBeVisible();
@@ -69,40 +62,25 @@ test("Public Logbook toggle (#301, moved to this page by #445) switches and pers
   await expect(page.locator("#public-logbook-toggle")).toHaveAttribute("aria-checked", "false");
 });
 
-test("the Check our beta row links to its sub-page and shows the saved status", async ({ page }) => {
-  await mockApi(page, {
-    settings: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: true },
-  });
-  await page.goto("/e2e-fixtures/pages/account.html");
+test("the Check our beta row links to its sub-page and shows the saved status", async ({ page, owner }) => {
+  await owner.settings({ betaOptIn: true });
+  await page.goto(owner.url("/account"));
 
   const row = page.locator("#beta-row");
   await expect(row).toBeVisible();
-  await expect(row).toHaveAttribute("href", "/e2e-fixtures/account/beta");
+  await expect(row).toHaveAttribute("href", `/${owner.username}/account/beta`);
   await expect(page.locator("#beta-status")).toHaveText("You're enrolled in the beta.");
 });
 
 const EXPORT_FIXTURE = {
-  entries: [
-    {
-      id: "e1",
-      name: "La Marie-Rose",
-      grade: "6B",
-      placeId: "p1",
-      type: "boulder",
-      status: "send",
-      firstAttempt: true,
-      date: "2026-07-30",
-      video: null,
-      notes: null,
-    },
-  ],
-  places: [{ id: "p1", locationId: "l1", area: "Bas Cuvier" }],
   locations: [{ id: "l1", name: "Fontainebleau", country: "France" }],
+  places: [{ id: "p1", locationId: "l1", area: "Bas Cuvier" }],
+  entries: [{ name: "La Marie-Rose", grade: "6B", firstAttempt: true, date: "2026-07-30" }],
 };
 
-test("Export CSV downloads a file built from this user's own entries/places/locations", async ({ page }) => {
-  await mockApi(page, EXPORT_FIXTURE);
-  await page.goto("/e2e-fixtures/pages/account.html");
+test("Export CSV downloads a file built from this user's own entries/places/locations", async ({ page, owner }) => {
+  await owner.seed(EXPORT_FIXTURE);
+  await page.goto(owner.url("/account"));
 
   const [download] = await Promise.all([page.waitForEvent("download"), page.locator("#export-csv-btn").click()]);
   expect(download.suggestedFilename()).toBe("climbing-logbook-export.csv");
@@ -112,9 +90,9 @@ test("Export CSV downloads a file built from this user's own entries/places/loca
   expect(csv).toContain("La Marie-Rose,6B,boulder,send,true,2026-07-30,Fontainebleau,Bas Cuvier,France,,");
 });
 
-test("Export JSON downloads the resolved rows as JSON", async ({ page }) => {
-  await mockApi(page, EXPORT_FIXTURE);
-  await page.goto("/e2e-fixtures/pages/account.html");
+test("Export JSON downloads the resolved rows as JSON", async ({ page, owner }) => {
+  await owner.seed(EXPORT_FIXTURE);
+  await page.goto(owner.url("/account"));
 
   const [download] = await Promise.all([page.waitForEvent("download"), page.locator("#export-json-btn").click()]);
   expect(download.suggestedFilename()).toBe("climbing-logbook-export.json");
@@ -136,15 +114,15 @@ test("Export JSON downloads the resolved rows as JSON", async ({ page }) => {
       sportStyle: "",
       attemptsToSend: "",
       rpe: "",
-      gradeScale: "",
+      gradeScale: "font-non-standard",
     },
   ]);
 });
 
-test("Export shows an error message instead of a download when the data fetch fails", async ({ page }) => {
-  await mockApi(page, EXPORT_FIXTURE);
-  await page.route("**/-/api/entries", route => route.fulfill({ status: 500 }));
-  await page.goto("/e2e-fixtures/pages/account.html");
+test("Export shows an error message instead of a download when the data fetch fails", async ({ page, owner }) => {
+  await owner.seed(EXPORT_FIXTURE);
+  await page.route("**/-/api/entries*", route => route.fulfill({ status: 500 }));
+  await page.goto(owner.url("/account"));
 
   await page.locator("#export-csv-btn").click();
   await expect(page.locator("#export-error")).toBeVisible();

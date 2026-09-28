@@ -6,16 +6,14 @@ import { OWNED_ORIGIN, ownedRouteUrl } from "./owned-route-url.js";
 export const OWNER_POOL_PATH = "e2e/.auth/owners.json";
 const OWNER_NEXT_PATH = "e2e/.auth/owners-next";
 // Raise this when a run runs out: one user per test that uses `owner`.
-export const OWNER_POOL_SIZE = 60;
+export const OWNER_POOL_SIZE = 100;
+
+function ownerIdentity(username) {
+  return { username, email: `${username}@climbinglogbook.local`, password: "correct-horse-battery-staple" };
+}
 
 export function ownerPoolUser(i) {
-  const username = `e2eowner${String(i).padStart(3, "0")}`;
-  return {
-    email: `${username}@climbinglogbook.local`,
-    password: "correct-horse-battery-staple",
-    name: "E2E Owner",
-    username,
-  };
+  return { ...ownerIdentity(`e2eowner${String(i).padStart(3, "0")}`), name: "E2E Owner" };
 }
 
 export function resetOwnerPool(owners) {
@@ -50,7 +48,7 @@ function createOwner(username, request) {
   const ownId = id => (id == null ? id : `${username}-${id}`);
 
   return {
-    username,
+    ...ownerIdentity(username),
     url: path => ownedRouteUrl(username, path),
     ownId,
     async settings(fields) {
