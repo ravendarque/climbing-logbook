@@ -58,6 +58,7 @@ export default defineConfig({
             "test/scripts/headers-entries.test.js",
             "test/client/turnstile.test.js",
             "test/client/failed-writes.test.js",
+            "test/scripts/wrangler-e2e-env.test.js",
           ],
           setupFiles: ["./test/apply-migrations.js"],
           // obscenity's ESM entry re-exports CommonJS, which workerd can't load unbundled.
@@ -115,6 +116,7 @@ export default defineConfig({
             "test/scripts/headers-entries.test.js",
             "test/client/turnstile.test.js",
             "test/client/failed-writes.test.js",
+            "test/scripts/wrangler-e2e-env.test.js",
           ],
           environment: "happy-dom",
         },

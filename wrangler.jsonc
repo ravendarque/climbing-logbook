@@ -65,13 +65,14 @@
         { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook-preview", "database_id": "845753a5-abfc-4d74-995b-94d802b4964e", "migrations_dir": "migrations" }
       ]
     },
-    // Like preview, but never deployed, so no rate limiting (no real client IP).
+    // Like preview, but never deployed, so no rate limiting (no real client IP) and no real email.
     "e2e": {
       "workers_dev": true,
       "routes": [],
       "vars": {
         "BETA_GATE_ENABLED": "true",
-        "TURNSTILE_SECRET_KEY": "1x0000000000000000000000000000000AA"
+        "TURNSTILE_SECRET_KEY": "1x0000000000000000000000000000000AA",
+        "EMAIL_DELIVERY": "off"
       },
       "d1_databases": [
         { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook-preview", "database_id": "845753a5-abfc-4d74-995b-94d802b4964e", "migrations_dir": "migrations" }
