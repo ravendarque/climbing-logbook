@@ -51,6 +51,8 @@ function createOwner(username, request) {
     ...ownerIdentity(username),
     url: path => ownedRouteUrl(username, path),
     ownId,
+    // Another device's write: it goes straight to the API, so a page.route() can't intercept it.
+    api,
     async settings(fields) {
       await api("PATCH", "settings", fields);
     },
