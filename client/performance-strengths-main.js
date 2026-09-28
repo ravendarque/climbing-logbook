@@ -92,7 +92,7 @@ function renderStrengths({ headline, anchors }) {
   const pickerHtml = headline
     ? `<div class="mb-4">
         <label class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 block" for="strengths-anchor-select">Drill into</label>
-        <select class="w-full bg-surface border border-border rounded-app px-2 py-2 text-[.9rem]" id="strengths-anchor-select">
+        <select class="w-full bg-surface border border-field-border rounded-app px-2 py-2 text-[.9rem]" id="strengths-anchor-select">
           <option value="">Choose one…</option>
           ${anchorOptionsHtml(anchors)}
         </select>

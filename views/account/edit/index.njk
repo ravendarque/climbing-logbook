@@ -26,7 +26,7 @@ headerClass: mb-6
         <button type="button" class="btn shrink-0" id="username-edit-btn">Change</button>
       </div>
       <form class="flex items-center gap-2" id="username-form" hidden>
-        <input class="flex-1 min-w-0 bg-background border border-border rounded-app px-3 py-2 text-foreground text-[1rem] leading-normal" id="username-input" name="username" type="text" required>
+        <input class="flex-1 min-w-0 bg-background border border-field-border rounded-app px-3 py-2 text-foreground text-[1rem] leading-normal" id="username-input" name="username" type="text" required>
         <button type="submit" class="btn btn-primary shrink-0 max-[480px]:w-9 max-[480px]:px-0 max-[480px]:justify-center" id="username-save-btn" aria-label="Save">
           <span class="max-[480px]:hidden">Save</span>
           <svg class="hidden max-[480px]:block w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
@@ -36,7 +36,7 @@ headerClass: mb-6
           <svg class="hidden max-[480px]:block w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>
         </button>
       </form>
-      <p class="text-[.85rem] text-accent mt-2" id="username-error" hidden></p>
+      <p class="text-[.85rem] text-accent-ink mt-2" id="username-error" hidden></p>
     </div>
 
     <div class="row-card" id="email-row">
@@ -46,7 +46,7 @@ headerClass: mb-6
         <button type="button" class="btn shrink-0" id="email-edit-btn">Change</button>
       </div>
       <form class="flex items-center gap-2" id="email-form" hidden>
-        <input class="flex-1 min-w-0 bg-background border border-border rounded-app px-3 py-2 text-foreground text-[1rem] leading-normal" id="email-input" name="email" type="email" required>
+        <input class="flex-1 min-w-0 bg-background border border-field-border rounded-app px-3 py-2 text-foreground text-[1rem] leading-normal" id="email-input" name="email" type="email" required>
         <button type="submit" class="btn btn-primary shrink-0 max-[480px]:w-9 max-[480px]:px-0 max-[480px]:justify-center" id="email-save-btn" aria-label="Save">
           <span class="max-[480px]:hidden">Save</span>
           <svg class="hidden max-[480px]:block w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
@@ -56,7 +56,7 @@ headerClass: mb-6
           <svg class="hidden max-[480px]:block w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>
         </button>
       </form>
-      <p class="text-[.85rem] text-accent mt-2" id="email-error" hidden></p>
+      <p class="text-[.85rem] text-accent-ink mt-2" id="email-error" hidden></p>
       <p class="text-[.82rem] text-foreground bg-background border border-border rounded-app px-3 py-2 mt-2" id="email-pending" hidden></p>
     </div>
 
@@ -68,10 +68,10 @@ headerClass: mb-6
       </div>
       <form class="mt-2" id="password-form" hidden>
         <label class="text-[.72rem] text-muted font-semibold uppercase tracking-wide" for="current-password-input">Current password</label>
-        <input class="w-full mt-1 mb-2 bg-background border border-border rounded-app px-3 py-2 text-foreground text-[1rem] leading-normal" id="current-password-input" name="currentPassword" type="password" autocomplete="current-password" required>
+        <input class="w-full mt-1 mb-2 bg-background border border-field-border rounded-app px-3 py-2 text-foreground text-[1rem] leading-normal" id="current-password-input" name="currentPassword" type="password" autocomplete="current-password" required>
         <label class="text-[.72rem] text-muted font-semibold uppercase tracking-wide" for="new-password-input">New password</label>
-        <input class="w-full mt-1 mb-2 bg-background border border-border rounded-app px-3 py-2 text-foreground text-[1rem] leading-normal" id="new-password-input" name="newPassword" type="password" autocomplete="new-password" minlength="8" required>
-        <p class="text-[.85rem] text-accent mb-2" id="password-error" hidden></p>
+        <input class="w-full mt-1 mb-2 bg-background border border-field-border rounded-app px-3 py-2 text-foreground text-[1rem] leading-normal" id="new-password-input" name="newPassword" type="password" autocomplete="new-password" minlength="8" required>
+        <p class="text-[.85rem] text-accent-ink mb-2" id="password-error" hidden></p>
         <div class="flex gap-2">
           <button type="submit" class="btn btn-primary" id="password-save-btn">Save</button>
           <button type="button" class="btn" id="password-cancel-btn">Cancel</button>

@@ -1,7 +1,7 @@
 import { escapeHtml } from "../escape-html.js";
 import { formatDate } from "../../shared/date-helpers.js";
 import { placeOf, sortEntries } from "../entries.js";
-import { gradeColor, gradeTierColor } from "../../shared/grade-data.js";
+import { gradeColor, gradeInk, gradeTierColor } from "../../shared/grade-data.js";
 import { VALID_SPORT_STYLES } from "../../shared/entry-schema.js";
 import { disciplineLabel, statusBadge } from "../status.js";
 import { COUNTRY_BY_NAME } from "../countries.js";
@@ -73,9 +73,9 @@ export function shellHtml(allDisciplines) {
 
   return `
   <div class="flex flex-wrap items-center gap-3 mb-6">
-    <input class="flex-[0_1_220px] min-w-[140px] bg-surface border border-border rounded-app px-[.85rem] py-[.4rem] text-foreground text-[.9rem] outline-none placeholder:text-muted focus:border-accent" id="search" placeholder="Search entries…" autocomplete="off">
+    <input class="flex-[0_1_220px] min-w-[140px] bg-surface border border-field-border rounded-app px-[.85rem] py-[.4rem] text-foreground text-[.9rem] outline-none placeholder:text-muted focus:border-accent" id="search" placeholder="Search entries…" autocomplete="off">
     <div class="filter-wrap relative ml-auto">
-      <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&.active]:border-accent [&.active]:text-accent [&.active]:bg-[color-mix(in_srgb,var(--color-accent)_12%,var(--color-surface))]" id="filter-btn" aria-label="Filter" aria-expanded="false" aria-pressed="false">
+      <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&.active]:border-accent [&.active]:text-accent-ink [&.active]:bg-[color-mix(in_srgb,var(--color-accent)_12%,var(--color-surface))]" id="filter-btn" aria-label="Filter" aria-expanded="false" aria-pressed="false">
         <svg class="w-[1.1rem] h-[1.1rem] stroke-current fill-none" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"></path></svg>
       </button>
       <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 bg-background border border-border rounded-app p-[.9rem] w-80 max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="filter-panel" hidden>
@@ -98,7 +98,7 @@ export function shellHtml(allDisciplines) {
 
   <div class="flex items-center justify-between mb-2">
     <div class="flex flex-wrap items-center gap-2" id="entries-table-actions"></div>
-    <button type="button" class="bg-transparent border-0 text-muted text-[.8rem] font-semibold cursor-pointer px-[.3rem] py-[.2rem] hover:text-accent" id="collapse-all-btn">Expand all</button>
+    <button type="button" class="bg-transparent border-0 text-muted text-[.8rem] font-semibold cursor-pointer px-[.3rem] py-[.2rem] hover:text-accent-ink" id="collapse-all-btn">Expand all</button>
   </div>
 
   <div id="sections"></div>
@@ -106,7 +106,7 @@ export function shellHtml(allDisciplines) {
   <div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-center justify-center px-4 py-6 overflow-y-auto" id="notes-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="notes-modal-title" tabindex="-1">
     <div class="bg-background border border-border rounded-app p-5 w-full max-w-[380px]">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-[1.15rem] font-bold text-accent" id="notes-modal-title">Notes</h2>
+        <h2 class="text-[1.15rem] font-bold text-accent-ink" id="notes-modal-title">Notes</h2>
         <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-[1.1rem] leading-none p-[.2rem] hover:text-foreground" id="notes-close" aria-label="Close">✕</button>
       </div>
       <p class="text-foreground text-[.95rem] whitespace-pre-wrap" id="notes-modal-text"></p>
@@ -154,7 +154,7 @@ export function renderLocationSectionHtml(
   const sortIcon = c =>
     c !== col
       ? `<i class="ml-[.3rem] not-italic opacity-40">↕</i>`
-      : `<i class="ml-[.3rem] not-italic opacity-100 text-accent">${dir === "asc" ? "↑" : "↓"}</i>`;
+      : `<i class="ml-[.3rem] not-italic opacity-100 text-accent-ink">${dir === "asc" ? "↑" : "↓"}</i>`;
   const sortAria = c => (c !== col ? "none" : dir === "asc" ? "ascending" : "descending");
 
   const visibleRows = sorted.slice(0, revealed);
@@ -170,21 +170,21 @@ export function renderLocationSectionHtml(
       const pendingBadge = e._pendingDelete
         ? `<span class="text-red-400" title="Pending delete"> ${PENDING_ICON}</span>`
         : e._pending
-          ? `<span class="text-accent" title="Pending sync"> ${PENDING_ICON}</span>`
+          ? `<span class="text-accent-ink" title="Pending sync"> ${PENDING_ICON}</span>`
           : "";
       return `
     <tr class="border-b border-[color-mix(in_srgb,var(--color-border)_40%,transparent)] last:border-b-0 ${rowBg}">
       <td class="${TD_BASE} text-center">${statusBadge(e)}</td>
-      <td class="${TD_BASE}"><span class="grade-badge" style="background:${gradeColor(e.grade, e.type)}">${escapeHtml(e.grade)}</span></td>
+      <td class="${TD_BASE}"><span class="grade-badge" style="background:${gradeColor(e.grade, e.type)};color:${gradeInk(e.grade, e.type)}">${escapeHtml(e.grade)}</span></td>
       <td class="${TD_BASE} overflow-hidden">
         <span class="font-medium truncate inline-block max-w-full align-bottom ${e._pendingDelete ? "line-through text-muted" : ""}">${escapeHtml(e.name)}</span>
         ${pendingBadge}
       </td>
       <td class="${TD_BASE} text-muted text-[.82rem] truncate">${escapeHtml(placeOf(e, places).area)}</td>
       <td class="${TD_BASE} text-muted text-[.82rem] whitespace-nowrap">${escapeHtml(formatDate(e.date))}</td>
-      <td class="${TD_BASE} text-center">${e.notes ? `<button type="button" class="notes-btn border-0 bg-transparent cursor-pointer text-muted inline-flex align-middle p-[.2rem] hover:text-accent" data-notes-id="${escapeHtml(e.id)}" aria-label="View notes"><svg class="w-[.95rem] h-[.95rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg></button>` : ""}</td>
-      <td class="${TD_BASE} text-center">${e.video ? `<a class="inline-flex align-middle p-[.2rem] text-muted hover:text-accent" href="${escapeHtml(e.video)}" target="_blank" rel="noopener" title="Watch video" aria-label="Watch video"><svg class="w-[.95rem] h-[.95rem] fill-current" viewBox="0 0 24 24"><path d="M6 4.5v15l14-7.5z"></path></svg></a>` : ""}</td>
-      <td class="${TD_BASE} text-center">${editable ? `<button type="button" class="edit-btn border-0 bg-transparent cursor-pointer text-muted inline-flex p-[.2rem] hover:text-accent [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:stroke-current [&_svg]:fill-none" data-edit-id="${escapeHtml(e.id)}" aria-label="Edit">${EDIT_ICON}</button>` : ""}</td>
+      <td class="${TD_BASE} text-center">${e.notes ? `<button type="button" class="notes-btn border-0 bg-transparent cursor-pointer text-muted inline-flex align-middle p-[.2rem] hover:text-accent-ink" data-notes-id="${escapeHtml(e.id)}" aria-label="View notes"><svg class="w-[.95rem] h-[.95rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg></button>` : ""}</td>
+      <td class="${TD_BASE} text-center">${e.video ? `<a class="inline-flex align-middle p-[.2rem] text-muted hover:text-accent-ink" href="${escapeHtml(e.video)}" target="_blank" rel="noopener" title="Watch video" aria-label="Watch video"><svg class="w-[.95rem] h-[.95rem] fill-current" viewBox="0 0 24 24"><path d="M6 4.5v15l14-7.5z"></path></svg></a>` : ""}</td>
+      <td class="${TD_BASE} text-center">${editable ? `<button type="button" class="edit-btn border-0 bg-transparent cursor-pointer text-muted inline-flex p-[.2rem] hover:text-accent-ink [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:stroke-current [&_svg]:fill-none" data-edit-id="${escapeHtml(e.id)}" aria-label="Edit">${EDIT_ICON}</button>` : ""}</td>
     </tr>
   `;
     })
@@ -248,8 +248,8 @@ export function renderLocationSectionHtml(
             ? `
         <div class="flex items-center justify-center gap-3 flex-wrap px-[.9rem] py-[.6rem] border-t border-border text-[.82rem]">
           <span class="text-muted">${visibleRows.length} of ${sorted.length} shown</span>
-          <button type="button" class="show-more-btn border-0 bg-transparent cursor-pointer text-accent font-medium hover:underline" data-section-key="${escapeHtml(key)}">Show more</button>
-          <button type="button" class="show-all-btn border-0 bg-transparent cursor-pointer text-accent font-medium hover:underline" data-section-key="${escapeHtml(key)}">Show all</button>
+          <button type="button" class="show-more-btn border-0 bg-transparent cursor-pointer text-accent-ink font-medium hover:underline" data-section-key="${escapeHtml(key)}">Show more</button>
+          <button type="button" class="show-all-btn border-0 bg-transparent cursor-pointer text-accent-ink font-medium hover:underline" data-section-key="${escapeHtml(key)}">Show all</button>
         </div>`
             : ""
         }

@@ -18,7 +18,7 @@ const MONTHS = [
 ];
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 const DAY_CELL_CLASSES =
-  "h-7 flex items-center justify-center rounded-[calc(var(--radius-app)-2px)] text-[.78rem] text-foreground border-0 bg-transparent cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] aria-selected:bg-accent aria-selected:text-accent-foreground aria-selected:hover:bg-accent aria-[current=date]:font-bold aria-[current=date]:text-accent";
+  "h-7 flex items-center justify-center rounded-[calc(var(--radius-app)-2px)] text-[.78rem] text-foreground border-0 bg-transparent cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] aria-selected:bg-accent-strong aria-selected:text-accent-foreground aria-selected:hover:bg-accent-strong aria-[current=date]:font-bold aria-[current=date]:text-accent-ink";
 
 const CALENDAR_ICON = `<svg class="w-[1.1rem] h-[1.1rem] stroke-current" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <rect x="3" y="5" width="18" height="16" rx="2"></rect>
