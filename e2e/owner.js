@@ -6,7 +6,7 @@ import { OWNED_ORIGIN, ownedRouteUrl } from "./owned-route-url.js";
 export const OWNER_POOL_PATH = "e2e/.auth/owners.json";
 const OWNER_NEXT_PATH = "e2e/.auth/owners-next";
 // Raise this when a run runs out: one user per test that uses `owner`.
-export const OWNER_POOL_SIZE = 100;
+export const OWNER_POOL_SIZE = 200;
 
 function ownerIdentity(username) {
   return { username, email: `${username}@climbinglogbook.local`, password: "correct-horse-battery-staple" };
@@ -55,7 +55,11 @@ function createOwner(username, request) {
       await api("PATCH", "settings", fields);
     },
     // Entries default to a boulder send yesterday at one crag, so a test states only what it asserts on.
-    async seed({ locations = [DEFAULT_LOCATION], places = [DEFAULT_PLACE], entries = [] }) {
+    async seed({
+      entries = [],
+      locations = entries.length ? [DEFAULT_LOCATION] : [],
+      places = entries.length ? [DEFAULT_PLACE] : [],
+    }) {
       for (const l of locations) await api("POST", "locations", { ...l, id: ownId(l.id) });
       for (const p of places) await api("POST", "places", { ...p, id: ownId(p.id), locationId: ownId(p.locationId) });
       for (const [i, e] of entries.entries()) {
@@ -65,6 +69,13 @@ function createOwner(username, request) {
       }
     },
   };
+}
+
+// A device that has done its first full sync, as a returning owner's is.
+export async function gotoSyncedLog(page, owner) {
+  await page.goto(owner.url(`/sync?returnTo=${encodeURIComponent(`/${owner.username}/log`)}`));
+  await page.waitForURL(`**/${owner.username}/log`);
+  await expect(page.locator("climbing-entries-table")).toBeVisible();
 }
 
 export const test = base.extend({
