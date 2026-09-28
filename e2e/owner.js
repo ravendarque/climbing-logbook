@@ -73,11 +73,13 @@ function createOwner(username, request) {
   };
 }
 
-// A device that has done its first full sync, as a returning owner's is.
+// A device that has done its first full sync and cached its settings, as a returning owner's has.
 export async function gotoSyncedLog(page, owner) {
   await page.goto(owner.url(`/sync?returnTo=${encodeURIComponent(`/${owner.username}/log`)}`));
   await page.waitForURL(`**/${owner.username}/log`);
   await expect(page.locator("climbing-entries-table")).toBeVisible();
+  const settingsKey = `logbook_settings_cache:${owner.username}`;
+  await expect.poll(() => page.evaluate(key => localStorage.getItem(key) !== null, settingsKey)).toBe(true);
 }
 
 export const test = base.extend({

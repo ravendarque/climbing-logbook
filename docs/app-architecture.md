@@ -494,9 +494,9 @@ in dev.
   `coverage/`. CI runs it, publishes the report and enforces a floor on
   `server/` and `shared/` (`vitest.config.js`).
 - `pnpm run test:e2e` runs Playwright against the production build served
-  by `vite preview`. Page tests run against the real Worker and D1; some
-  older ones still use mocked API responses (`e2e/mock-api.js`) until they
-  are moved (#1095).
+  by `vite preview`, against the real Worker and D1. Only states the backend
+  can't produce on demand (a 5xx, a hung request, a full device) are
+  intercepted, one request at a time with `page.route()`.
 - [ADR-0030](adr/0030-test-against-the-real-worker-mock-only-what-it-cant-produce.md)
   records the test layers.
 
@@ -506,14 +506,13 @@ in dev.
 dev user's data and saves that session for every test. It resets on every
 run, because seeding only adds missing rows and a changed setting would
 otherwise carry over. The Worker under test is built with
-`CLOUDFLARE_ENV=preview`, so setup targets the preview database.
+`CLOUDFLARE_ENV=e2e`, which uses the preview database, so setup targets that.
 
-Three kinds of test:
+Two kinds of test:
 
 | Kind | How | Used for |
 |---|---|---|
 | Component harness | `e2e/fixtures/*-entry.js`, built by `pnpm run e2e:build-fixtures` into `/e2e-fixtures/`, mount a real component against made-up data | Component behaviour: map zoom, the pyramid |
-| Page harness | A copy of a built shell at `/e2e-fixtures/pages/<page>.html`, running its real bundle, with `/-/api/*` faked by `e2e/mock-api.js` | Older page tests, being moved to real routes |
 | Real route | `my.localhost` against the real Worker and D1: the `owner` fixture (`e2e/owner.js`) for a test that needs a user of its own, or `ownedRouteUrl()` and `addOwnedRouteSessionCookie()` (`e2e/owned-route-url.js`) for the seeded dev user | Page tests, routing, sessions, the service worker, per-user storage |
 
 `e2e/global-setup.js` also signs up a pool of users (`OWNER_POOL_SIZE` in
@@ -523,11 +522,9 @@ test can change settings and data without affecting any other. Its
 with the username because ids are unique across users. A run with more
 `owner` tests than the pool holds fails with a message saying to raise it.
 
-In the page harness the first path segment is `e2e-fixtures`, so links built
-from the URL use that as the username, and navigation to another page is
-stubbed with `page.route()`. `mockApi()` keeps writes for the length of a
-test, clears localStorage on every navigation, and seeds a warm device's
-caches unless `synced: false`.
+`gotoSyncedLog()` goes through a real `/sync` first, so a page starts from a
+synced device, as a returning owner's does. `owner.api()` writes as
+another device would: it bypasses `page.route()`.
 
 Things that have caught this suite out:
 
@@ -535,15 +532,16 @@ Things that have caught this suite out:
   string, so `DELETE …/entries?id=` falls through to the real network.
 - `context.setOffline()` doesn't affect `route.fulfill()`. Fail a write with
   `route.abort("failed")` instead.
-- `page.unroute(pattern)` removes every handler for that pattern, including
-  `mockApi()`'s. Toggle a flag inside one handler, and pass everything else
-  on with `route.fallback()` (not `continue()`, which goes to the network).
+- `page.unroute(pattern)` removes every handler for that pattern. Toggle a
+  flag inside one handler, and pass everything else on with
+  `route.fallback()`.
 - `toBeVisible()` can't see clipping by a transformed ancestor; assert
   `inert` for the entry form's off-screen page.
 - `force: true` skips the actionability checks, so it can click mid-animation.
   Click the visible label instead.
 - Hold a response open with a promise the test resolves, never a timer.
-- A real sign-out ends the suite's shared session; stub it.
+- A real sign-out ends that user's session: sign out as an `owner`, never
+  as the shared dev user.
 - A first visit to `/log` goes through `/sync` and back; wait for it to
   settle before touching storage.
 - `vite preview` doesn't compress like the edge does, so load timing under

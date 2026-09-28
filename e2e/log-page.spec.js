@@ -1,4 +1,3 @@
-import { mockApi } from "./mock-api.js";
 import { expect, gotoSyncedLog, test } from "./owner.js";
 
 const SEED = {
@@ -33,12 +32,6 @@ async function gotoLog(page, owner, { settings, ...data } = SEED) {
   if (settings) await owner.settings(settings);
   await owner.seed(data);
   await gotoSyncedLog(page, owner);
-}
-
-async function gotoLogHarness(page, seed = SEED) {
-  await mockApi(page, seed);
-  await page.goto("/e2e-fixtures/pages/log.html");
-  await expect(page.locator("climbing-entries-table")).toBeVisible();
 }
 
 test("#470 -- shows a loading state before real data resolves, then flips to the real empty state once confirmed", async ({
@@ -1295,10 +1288,23 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
   });
 });
 
+// Holds the real session check open until the test releases it, so the page is still syncing.
+async function holdSessionCheck(page) {
+  let release;
+  const gate = new Promise(resolve => {
+    release = resolve;
+  });
+  await page.route("**/-/api/auth/get-session", async route => {
+    await gate;
+    return route.fallback();
+  });
+  return release;
+}
+
 const ACTIVE_CLASS = /bg-\[color-mix\(in_srgb,var\(--color-accent\)_16%,transparent\)\]/;
 
-test("place picker: ArrowDown/ArrowUp/Enter navigate and commit a real row", async ({ page }) => {
-  await gotoLogHarness(page, {
+test("place picker: ArrowDown/ArrowUp/Enter navigate and commit a real row", async ({ page, owner }) => {
+  await gotoLog(page, owner, {
     ...SEED,
     places: [...SEED.places, { id: "p2", locationId: "l1", area: "Sector 2" }],
   });
@@ -1331,8 +1337,8 @@ test("place picker: ArrowDown/ArrowUp/Enter navigate and commit a real row", asy
   await expect(page.locator("#place-btn-label")).toHaveText(committedText);
 });
 
-test("add-place country picker: ArrowDown/ArrowUp/Enter navigate and commit a real row", async ({ page }) => {
-  await gotoLogHarness(page);
+test("add-place country picker: ArrowDown/ArrowUp/Enter navigate and commit a real row", async ({ page, owner }) => {
+  await gotoLog(page, owner);
   await page.locator("#add-btn").click();
   await page.locator("#place-btn").click();
   await page.locator("#place-add-new-btn").click();
@@ -1366,8 +1372,11 @@ test("add-place country picker: ArrowDown/ArrowUp/Enter navigate and commit a re
   await expect(page.locator("#add-place-country-label")).toHaveText(firstCountryName);
 });
 
-test("notes overlay shows the entry's real notes text, closes via Escape or its own close button", async ({ page }) => {
-  await gotoLogHarness(page, {
+test("notes overlay shows the entry's real notes text, closes via Escape or its own close button", async ({
+  page,
+  owner,
+}) => {
+  await gotoLog(page, owner, {
     ...SEED,
     entries: [{ ...SEED.entries[0], notes: "A real note to display" }],
   });
@@ -1388,32 +1397,25 @@ test("notes overlay shows the entry's real notes text, closes via Escape or its 
 
 test("#847 -- the sync status ring actually disappears (not just the data attribute) once background reconcile settles", async ({
   page,
+  owner,
 }) => {
-  await mockApi(page, SEED);
-  await page.route("**/-/api/auth/get-session", async route => {
-    await new Promise(r => setTimeout(r, 400));
-    await route.fulfill({
-      json: { session: { id: "s1" }, user: { id: "u1", username: "e2euser", email: "e2e@example.com" } },
-    });
-  });
-  await page.goto("/e2e-fixtures/pages/log.html");
+  await gotoLog(page, owner);
+  const releaseSession = await holdSessionCheck(page);
+  await page.reload();
 
   const ring = page.locator("#header-menu-btn .menu-sync-ring");
   await expect(ring).not.toHaveCSS("opacity", "0");
+  releaseSession();
   await expect(ring).toHaveCSS("opacity", "0", { timeout: 5000 });
 });
 
 test("#847 -- the burger menu shows a status row while syncing; #878 -- Help is always present regardless; #893 -- the sync live region announces start and completion", async ({
   page,
+  owner,
 }) => {
-  await mockApi(page, SEED);
-  await page.route("**/-/api/auth/get-session", async route => {
-    await new Promise(r => setTimeout(r, 400));
-    await route.fulfill({
-      json: { session: { id: "s1" }, user: { id: "u1", username: "e2euser", email: "e2e@example.com" } },
-    });
-  });
-  await page.goto("/e2e-fixtures/pages/log.html");
+  await gotoLog(page, owner);
+  const releaseSession = await holdSessionCheck(page);
+  await page.reload();
 
   await expect(page.locator("#menu-sync-announce")).toHaveText("Syncing…");
 
@@ -1422,6 +1424,7 @@ test("#847 -- the burger menu shows a status row while syncing; #878 -- Help is 
   await expect(page.locator("#menu-status-text")).toHaveText("Status: Syncing…");
   await expect(page.locator("#menu-help-link")).toHaveAttribute("href", "/help/");
 
+  releaseSession();
   await expect(page.locator("#menu-status-row")).toBeHidden({ timeout: 5000 });
   await expect(page.locator("#menu-sync-announce")).toHaveText("Synced.");
   await expect(page.locator("#menu-help-link")).toBeVisible();
@@ -1429,8 +1432,9 @@ test("#847 -- the burger menu shows a status row while syncing; #878 -- Help is 
 
 test("#847 -- going offline turns the burger menu ring solid red and updates the status row; #893 -- and announces it", async ({
   page,
+  owner,
 }) => {
-  await gotoLogHarness(page);
+  await gotoLog(page, owner);
 
   await page.context().setOffline(true);
   try {
@@ -1447,7 +1451,7 @@ test("#847 -- going offline turns the burger menu ring solid red and updates the
 });
 
 // Routes are held open by deferred promises, not timers, so the ordering is guaranteed.
-test("#893 -- the live region doesn't re-announce while already syncing", async ({ page }) => {
+test("#893 -- the live region doesn't re-announce while already syncing", async ({ page, owner }) => {
   let releaseSession, releaseSettings;
   const sessionGate = new Promise(r => {
     releaseSession = r;
@@ -1456,18 +1460,16 @@ test("#893 -- the live region doesn't re-announce while already syncing", async 
     releaseSettings = r;
   });
 
-  await mockApi(page, SEED);
+  await gotoLog(page, owner);
   await page.route("**/-/api/auth/get-session", async route => {
     await sessionGate;
-    await route.fulfill({
-      json: { session: { id: "s1" }, user: { id: "u1", username: "e2euser", email: "e2e@example.com" } },
-    });
+    return route.fallback();
   });
   await page.route("**/-/api/settings", async route => {
     await settingsGate;
-    await route.fulfill({ json: { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true } });
+    return route.fallback();
   });
-  await page.goto("/e2e-fixtures/pages/log.html");
+  await page.reload();
 
   await expect(page.locator("#menu-sync-announce")).toHaveText("Syncing…");
   await page.evaluate(() => {
@@ -1500,24 +1502,24 @@ test.describe("A full device (#1083)", () => {
     }, stillFull.toString());
   }
 
-  async function saveWhileOffline(page, entryName) {
+  async function saveWhileOffline(page, owner, entryName) {
     await page.route("**/-/api/entries**", route =>
       route.request().method() === "GET" ? route.fallback() : route.abort("failed"),
     );
     await page.locator("#add-btn").click();
     await page.locator("#entry-name").fill(entryName);
     await page.locator("#place-btn").click();
-    await page.locator('#place-listbox li[data-key="p1"]').click();
+    await page.locator(`#place-listbox li[data-key="${owner.ownId("p1")}"]`).click();
     await page.locator("#entry-submit-btn").click();
   }
 
-  test("drops the entries cache to make room for an offline save, which is then queued", async ({ page }) => {
+  test("drops the entries cache to make room for an offline save, which is then queued", async ({ page, owner }) => {
     await fillStorageForTheQueue(page, () =>
       Object.keys(localStorage).some(key => key.startsWith("logbook_entries_cache")),
     );
-    await gotoLogHarness(page);
+    await gotoLog(page, owner);
 
-    await saveWhileOffline(page, `E2E made room ${Date.now()}`);
+    await saveWhileOffline(page, owner, `E2E made room ${Date.now()}`);
 
     await expect(page.locator("#entry-overlay")).toBeHidden();
     await expect(page.locator("#sync-btn")).toHaveText(/Sync \(1\)/);
@@ -1527,12 +1529,12 @@ test.describe("A full device (#1083)", () => {
     expect(cacheKeys).toEqual([]);
   });
 
-  test("keeps the form open with a clear message when even that isn't enough", async ({ page }) => {
+  test("keeps the form open with a clear message when even that isn't enough", async ({ page, owner }) => {
     await fillStorageForTheQueue(page, () => true);
-    await gotoLogHarness(page);
+    await gotoLog(page, owner);
 
     const entryName = `E2E no room ${Date.now()}`;
-    await saveWhileOffline(page, entryName);
+    await saveWhileOffline(page, owner, entryName);
 
     await expect(page.locator("#entry-msg")).toContainText("Your device's storage is full");
     await expect(page.locator("#entry-overlay")).toBeVisible();
@@ -1547,8 +1549,8 @@ test.describe("Safari in a tab (#1083)", () => {
       "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1",
   });
 
-  test("suggests installing the app while there are unsynced climbs", async ({ page }) => {
-    await gotoLogHarness(page);
+  test("suggests installing the app while there are unsynced climbs", async ({ page, owner }) => {
+    await gotoLog(page, owner);
     const nudge = page.locator("#install-nudge");
     await expect(nudge).toBeHidden();
 
@@ -1558,7 +1560,7 @@ test.describe("Safari in a tab (#1083)", () => {
     await page.locator("#add-btn").click();
     await page.locator("#entry-name").fill(`E2E Safari ${Date.now()}`);
     await page.locator("#place-btn").click();
-    await page.locator('#place-listbox li[data-key="p1"]').click();
+    await page.locator(`#place-listbox li[data-key="${owner.ownId("p1")}"]`).click();
     await page.locator("#entry-submit-btn").click();
 
     await expect(nudge).toBeVisible();

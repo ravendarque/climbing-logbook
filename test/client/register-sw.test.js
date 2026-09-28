@@ -39,7 +39,7 @@ describe("registerServiceWorker", () => {
     expect(active.postMessage).toHaveBeenCalledWith({ type: "precache" });
   });
 
-  it.each(["/raven", "/help/", "/login/", "/e2e-fixtures/pages/log.html", "/beginnerdemo/log"])(
+  it.each(["/raven", "/help/", "/login/", "/raven/not-a-page", "/beginnerdemo/log"])(
     "never registers on %s (not a signed-in owner's page)",
     async path => {
       const container = { getRegistrations: vi.fn(), register: vi.fn() };
