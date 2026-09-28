@@ -263,9 +263,9 @@ export class ClimbingEntriesTable extends HTMLElement {
         return;
       }
 
-      const sortTh = e.target.closest("th[data-sort]");
-      if (sortTh) {
-        this.#toggleSort(sortTh.dataset.locationId, sortTh.dataset.sort);
+      const sortBtn = e.target.closest("button[data-sort]");
+      if (sortBtn) {
+        this.#toggleSort(sortBtn.dataset.locationId, sortBtn.dataset.sort);
         return;
       }
 
@@ -336,13 +336,6 @@ export class ClimbingEntriesTable extends HTMLElement {
     this.addEventListener("keydown", e => {
       if (e.key !== "Enter" && e.key !== " ") return;
 
-      const sortTh = e.target.closest?.("th[data-sort]");
-      if (sortTh) {
-        e.preventDefault();
-        this.#toggleSort(sortTh.dataset.locationId, sortTh.dataset.sort);
-        return;
-      }
-
       const header = e.target.closest?.(".place-header");
       if (header) {
         e.preventDefault();
@@ -376,9 +369,9 @@ export class ClimbingEntriesTable extends HTMLElement {
     if (!el || !this.contains(el)) return null;
     if (el.matches(".place-header[data-location-id]"))
       return { selector: `.place-header[data-location-id="${CSS.escape(el.dataset.locationId)}"]` };
-    if (el.matches("th[data-sort][data-location-id]"))
+    if (el.matches("button[data-sort][data-location-id]"))
       return {
-        selector: `th[data-sort="${CSS.escape(el.dataset.sort)}"][data-location-id="${CSS.escape(el.dataset.locationId)}"]`,
+        selector: `button[data-sort="${CSS.escape(el.dataset.sort)}"][data-location-id="${CSS.escape(el.dataset.locationId)}"]`,
       };
     if (el.matches(".show-more-btn[data-section-key]"))
       return {
@@ -470,7 +463,7 @@ export class ClimbingEntriesTable extends HTMLElement {
       setDiffersFrom(this.#gradeTiers, GRADE_TIER_IDS);
     const filterBtn = this.querySelector("#filter-btn");
     filterBtn.classList.toggle("active", anyActive);
-    filterBtn.setAttribute("aria-pressed", String(anyActive));
+    filterBtn.setAttribute("aria-label", anyActive ? "Filter, filters applied" : "Filter");
   }
 
   #updateCollapseAllBtn() {
