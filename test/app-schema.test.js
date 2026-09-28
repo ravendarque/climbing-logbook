@@ -435,3 +435,61 @@ describe("entry_pain_moves (#572)", () => {
     expect(remaining).toBeNull();
   });
 });
+
+describe("dedup and tenancy are enforced by the schema (#1103)", () => {
+  const insertLocation = (id, userId, name) =>
+    env.LOGBOOK_DB.prepare(`INSERT INTO locations (id, user_id, name) VALUES (?, ?, ?)`).bind(id, userId, name).run();
+  const insertPlace = (id, userId, locationId, area) =>
+    env.LOGBOOK_DB.prepare(`INSERT INTO places (id, user_id, location_id, area) VALUES (?, ?, ?, ?)`)
+      .bind(id, userId, locationId, area)
+      .run();
+  const insertEntry = (id, userId, placeId) =>
+    env.LOGBOOK_DB.prepare(
+      `INSERT INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id) VALUES (?, ?, ?, 'x', '6A', 'boulder', 'send')`,
+    )
+      .bind(id, userId, placeId)
+      .run();
+
+  it("rejects a second location with the same name for one user, ignoring case", async () => {
+    const userId = await seedUser();
+    await insertLocation("loc-1", userId, "Fontainebleau");
+    await expect(insertLocation("loc-2", userId, "FONTAINEBLEAU")).rejects.toThrow("UNIQUE constraint failed");
+  });
+
+  it("lets two users each have a location with the same name", async () => {
+    await insertLocation("loc-1", await seedUser("user-1"), "Fontainebleau");
+    await expect(insertLocation("loc-2", await seedUser("user-2"), "Fontainebleau")).resolves.toBeDefined();
+  });
+
+  it("rejects a second place with the same area at one location, ignoring case", async () => {
+    const userId = await seedUser();
+    const locationId = await seedLocation(userId);
+    await insertPlace("place-1", userId, locationId, "Bas Cuvier");
+    await expect(insertPlace("place-2", userId, locationId, "bas cuvier")).rejects.toThrow("UNIQUE constraint failed");
+  });
+
+  it("rejects a place that points at another user's location", async () => {
+    const owner = await seedUser("user-1");
+    const other = await seedUser("user-2");
+    const locationId = await seedLocation(owner);
+    await expect(insertPlace("place-x", other, locationId, "Sector")).rejects.toThrow(
+      "A place must belong to the same user as its location",
+    );
+  });
+
+  it("rejects an entry that points at another user's place, on insert and on update", async () => {
+    const owner = await seedUser("user-1");
+    const other = await seedUser("user-2");
+    const ownersPlace = await seedPlace(owner, await seedLocation(owner));
+    const othersPlace = await seedPlace(other, await seedLocation(other, "loc-2"), "place-2");
+
+    await expect(insertEntry("entry-x", other, ownersPlace)).rejects.toThrow(
+      "An entry must belong to the same user as its place",
+    );
+
+    await insertEntry("entry-1", other, othersPlace);
+    await expect(
+      env.LOGBOOK_DB.prepare(`UPDATE entries SET place_id = ? WHERE id = 'entry-1'`).bind(ownersPlace).run(),
+    ).rejects.toThrow("An entry must belong to the same user as its place");
+  });
+});
