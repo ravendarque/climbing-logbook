@@ -175,3 +175,14 @@ describe("createEmailSender HTML escaping (defense in depth, #754)", () => {
     expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
   });
 });
+
+describe("createEmailSender with delivery off (#1170)", () => {
+  const sender = createEmailSender({ ...env, EMAIL_DELIVERY: "off" });
+
+  it("never calls Resend, for any kind of email", async () => {
+    await sender.sendVerificationEmail("owner@example.com", "https://example.com/verify?token=abc");
+    await sender.sendPasswordResetEmail("owner@example.com", "https://example.com/reset?token=abc");
+    await sender.sendChangeEmailConfirmation("owner@example.com", "new@example.com", "https://example.com/c?t=abc");
+    expect(resendCalls).toEqual([]);
+  });
+});

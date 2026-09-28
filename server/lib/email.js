@@ -4,9 +4,14 @@ import { escapeHtml } from "./html-escape.js";
 const FROM_ADDRESS = "Climbing Logbook <myaccount@climbinglogbook.com>";
 
 // Never throws: new Resend() throws synchronously without a key, which would break the whole auth request.
-async function send(apiKey, payload) {
+async function send(env, payload) {
+  // Test environments sign up users by the dozen; real sends there burn the Resend quota (#1170).
+  if (env.EMAIL_DELIVERY === "off") {
+    console.log(`[email] Delivery off, not sent: "${payload.subject}" to ${payload.to}`);
+    return;
+  }
   try {
-    const resend = new Resend(apiKey);
+    const resend = new Resend(env.RESEND_API_KEY);
     const result = await resend.emails.send(payload);
     if (result.error) console.error("[email] Resend returned an error:", result.error);
   } catch (err) {
@@ -18,7 +23,7 @@ export function createEmailSender(env) {
   return {
     sendVerificationEmail(to, url) {
       const safeUrl = escapeHtml(url);
-      return send(env.RESEND_API_KEY, {
+      return send(env, {
         from: FROM_ADDRESS,
         to,
         subject: "Verify your email",
@@ -27,7 +32,7 @@ export function createEmailSender(env) {
     },
     sendPasswordResetEmail(to, url) {
       const safeUrl = escapeHtml(url);
-      return send(env.RESEND_API_KEY, {
+      return send(env, {
         from: FROM_ADDRESS,
         to,
         subject: "Reset your password",
@@ -38,7 +43,7 @@ export function createEmailSender(env) {
     sendChangeEmailConfirmation(to, newEmail, url) {
       const safeUrl = escapeHtml(url);
       const safeNewEmail = escapeHtml(newEmail);
-      return send(env.RESEND_API_KEY, {
+      return send(env, {
         from: FROM_ADDRESS,
         to,
         subject: "Confirm your email change",
