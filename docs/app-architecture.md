@@ -408,7 +408,8 @@ Tables (see `migrations/` for columns and constraints):
     username;
   - `/-/chunks/*` and `?v=` assets: cache-first;
   - fonts: stale-while-revalidate;
-  - everything else under `/-/`: network-first with a cache fallback;
+  - everything else under `/-/`: network-first, falling back to the cached copy if the
+    network fails or hasn't answered within 3 seconds (`client/sw/network-first.js`);
   - the API, non-GETs and cross-origin requests: passed straight through.
     The service worker never caches data.
 - **Derived views** (performance reports, map counts) are computed on the

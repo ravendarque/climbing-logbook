@@ -3,6 +3,7 @@ import { classifyRequest, LAUNCH_PATH } from "./classify.js";
 import { cacheNameFor, cachesToDelete } from "./caches.js";
 import { isCacheableAsset, isCacheableShell, shellCacheKey } from "./responses.js";
 import { fillPrecache, precacheUsername } from "./precache.js";
+import { networkFirst } from "./network-first.js";
 
 /* global __BUILD_ID__, __PRECACHE__ */
 const BUILD_ID = __BUILD_ID__;
@@ -122,18 +123,14 @@ async function staleWhileRevalidate(event) {
   return refresh;
 }
 
-// Other /-/ static files (icons, manifest, world-map data): the
-// network when there is one, the last good copy when there isn't.
-async function networkFirst(event) {
-  try {
-    const response = await fetch(event.request);
-    if (isCacheableAsset(response)) event.waitUntil(put(event.request, response.clone()));
-    return response;
-  } catch (err) {
-    const cached = await caches.match(event.request, MATCH);
-    if (cached) return cached;
-    throw err;
-  }
+function staticAsset(event) {
+  return networkFirst({
+    request: event.request,
+    fetchImpl: fetch,
+    matchCached: request => caches.match(request, MATCH),
+    store: put,
+    waitUntil: promise => event.waitUntil(promise),
+  });
 }
 
 self.addEventListener("fetch", event => {
@@ -154,7 +151,7 @@ self.addEventListener("fetch", event => {
     case "font":
       return event.respondWith(staleWhileRevalidate(event));
     case "static":
-      return event.respondWith(networkFirst(event));
+      return event.respondWith(staticAsset(event));
     default:
       return; // passthrough: the browser handles it as if there were no worker
   }
