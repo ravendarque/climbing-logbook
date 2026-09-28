@@ -842,11 +842,10 @@ test("theme toggle flips data-theme and persists to localStorage", async ({ page
   await expect(html).toHaveAttribute("data-theme", next);
 });
 
-// Writes fail via route.abort: setOffline doesn't reach fulfilled routes. One toggled handler,
-// because unroute(pattern) also removes mockApi's; and ** so DELETE's ?id= still matches.
+// Writes fail via route.abort, toggled in one handler (unroute would drop it); ** so DELETE's ?id= matches.
 test.describe("Offline queue (client/offline-sync.js)", () => {
-  test("queues an entry while offline, then syncs it once back online", async ({ page }) => {
-    await gotoLogHarness(page);
+  test("queues an entry while offline, then syncs it once back online", async ({ page, owner }) => {
+    await gotoLog(page, owner);
 
     const entryName = `E2E offline climb ${Date.now()}`;
 
@@ -858,7 +857,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await page.locator("#add-btn").click();
     await page.locator("#entry-name").fill(entryName);
     await page.locator("#place-btn").click();
-    await page.locator('#place-listbox li[data-key="p1"]').click();
+    await page.locator(`#place-listbox li[data-key="${owner.ownId("p1")}"]`).click();
     await page.locator("#entry-submit-btn").click();
 
     await expect(page.locator("#entry-overlay")).toBeHidden();
@@ -875,34 +874,42 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await expect(page.locator("#sync-btn")).toBeHidden();
   });
 
-  async function queueEntryOffline(page, entryName) {
+  // The real server rejects it for good: a write the form can't produce, as after a rule change.
+  async function invalidateQueuedWrite(page, owner) {
+    await page.evaluate(key => {
+      const queue = JSON.parse(localStorage.getItem(key));
+      queue[0].record.grade = "not-a-grade";
+      localStorage.setItem(key, JSON.stringify(queue));
+    }, `logbook_pending_queue:${owner.username}`);
+  }
+
+  async function queueEntryOffline(page, owner, entryName) {
     await page.locator("#add-btn").click();
     await page.locator("#entry-name").fill(entryName);
     await page.locator("#place-btn").click();
-    await page.locator('#place-listbox li[data-key="p1"]').click();
+    await page.locator(`#place-listbox li[data-key="${owner.ownId("p1")}"]`).click();
     await page.locator("#entry-submit-btn").click();
     await expect(page.locator("#entry-overlay")).toBeHidden();
     await expect(page.locator("#sync-btn")).toHaveText(/Sync \(1\)/);
   }
 
-  test("a queued add the server rejects moves to the banner, and Discard clears it", async ({ page }) => {
-    await gotoLogHarness(page);
-    let mode = "offline";
-    await page.route("**/-/api/entries**", route => {
-      if (route.request().method() === "GET") return route.fallback();
-      if (mode === "offline") return route.abort("failed");
-      return route.fulfill({ status: 400, json: { error: "grade is not a valid grade for boulder" } });
-    });
+  test("a queued add the server rejects moves to the banner, and Discard clears it", async ({ page, owner }) => {
+    await gotoLog(page, owner);
+    let failing = true;
+    await page.route("**/-/api/entries**", route =>
+      failing && route.request().method() !== "GET" ? route.abort("failed") : route.fallback(),
+    );
 
     const entryName = `E2E rejected ${Date.now()}`;
-    await queueEntryOffline(page, entryName);
+    await queueEntryOffline(page, owner, entryName);
+    await invalidateQueuedWrite(page, owner);
 
-    mode = "reject";
+    failing = false;
     await page.evaluate(() => window.dispatchEvent(new Event("online")));
 
     const banner = page.locator("#failed-writes");
     await expect(banner).toBeVisible();
-    await expect(banner).toContainText(`Couldn't save “${entryName}”: grade is not a valid grade for boulder`);
+    await expect(banner).toContainText(`Couldn't save “${entryName}”: grade`);
     await expect(page.locator("#sync-btn")).toBeHidden();
     await expect(page.locator("#sections")).not.toContainText(entryName);
 
@@ -912,23 +919,20 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await expect(page.locator("#failed-writes")).toBeHidden();
   });
 
-  test("Edit on a rejected add reopens it in the form, and saving it clears the banner", async ({ page }) => {
-    await gotoLogHarness(page);
-    let mode = "offline";
-    await page.route("**/-/api/entries**", route => {
-      if (route.request().method() === "GET") return route.fallback();
-      if (mode === "offline") return route.abort("failed");
-      if (mode === "reject") return route.fulfill({ status: 400, json: { error: "Missing required field: grade" } });
-      return route.fallback();
-    });
+  test("Edit on a rejected add reopens it in the form, and saving it clears the banner", async ({ page, owner }) => {
+    await gotoLog(page, owner);
+    let failing = true;
+    await page.route("**/-/api/entries**", route =>
+      failing && route.request().method() !== "GET" ? route.abort("failed") : route.fallback(),
+    );
 
     const entryName = `E2E fix me ${Date.now()}`;
-    await queueEntryOffline(page, entryName);
-    mode = "reject";
+    await queueEntryOffline(page, owner, entryName);
+    await invalidateQueuedWrite(page, owner);
+    failing = false;
     await page.evaluate(() => window.dispatchEvent(new Event("online")));
     await expect(page.locator("#failed-writes")).toBeVisible();
 
-    mode = "accept";
     await page.locator("#failed-writes").getByRole("button", { name: "Edit" }).click();
     await expect(page.locator("#entry-overlay")).toBeVisible();
     await expect(page.locator("#entry-modal-title")).toHaveText("Add entry");
@@ -940,8 +944,8 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await expect(page.locator("#sections")).toContainText(entryName);
   });
 
-  test("a 503 stops the replay at the failing item, keeping everything queued in order", async ({ page }) => {
-    await gotoLogHarness(page);
+  test("a 503 stops the replay at the failing item, keeping everything queued in order", async ({ page, owner }) => {
+    await gotoLog(page, owner);
     let mode = "offline";
     const sentWhileDown = [];
     await page.route("**/-/api/entries**", route => {
@@ -952,11 +956,11 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     });
 
     const first = `E2E first ${Date.now()}`;
-    await queueEntryOffline(page, first);
+    await queueEntryOffline(page, owner, first);
     await page.locator("#add-btn").click();
     await page.locator("#entry-name").fill(`E2E second ${Date.now()}`);
     await page.locator("#place-btn").click();
-    await page.locator('#place-listbox li[data-key="p1"]').click();
+    await page.locator(`#place-listbox li[data-key="${owner.ownId("p1")}"]`).click();
     await page.locator("#entry-submit-btn").click();
     await expect(page.locator("#sync-btn")).toHaveText(/Sync \(2\)/);
 
@@ -972,8 +976,8 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     expect(new Set(sentWhileDown)).toEqual(new Set([first]));
   });
 
-  test("a direct save answered with a non-JSON 500 shows an error instead of queueing", async ({ page }) => {
-    await gotoLogHarness(page);
+  test("a direct save answered with a non-JSON 500 shows an error instead of queueing", async ({ page, owner }) => {
+    await gotoLog(page, owner);
     await page.route("**/-/api/entries**", route =>
       route.request().method() === "POST"
         ? route.fulfill({ status: 500, contentType: "text/html", body: "<h1>Error 1101</h1>" })
@@ -983,7 +987,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await page.locator("#add-btn").click();
     await page.locator("#entry-name").fill(`E2E server error ${Date.now()}`);
     await page.locator("#place-btn").click();
-    await page.locator('#place-listbox li[data-key="p1"]').click();
+    await page.locator(`#place-listbox li[data-key="${owner.ownId("p1")}"]`).click();
     await page.locator("#entry-submit-btn").click();
 
     await expect(page.locator("#entry-msg")).toContainText("Error 500");
@@ -991,19 +995,15 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await expect(page.locator("#sync-btn")).toBeHidden();
   });
 
-  test("queues a save the server answers with a 401, and shows the page as signed out", async ({ page }) => {
-    await gotoLogHarness(page);
-    await page.route("**/-/api/entries**", route =>
-      route.request().method() === "POST"
-        ? route.fulfill({ status: 401, json: { error: "Unauthorized" } })
-        : route.fallback(),
-    );
+  test("queues a save the server answers with a 401, and shows the page as signed out", async ({ page, owner }) => {
+    await gotoLog(page, owner);
+    await page.context().clearCookies();
 
     const entryName = `E2E 401 save ${Date.now()}`;
     await page.locator("#add-btn").click();
     await page.locator("#entry-name").fill(entryName);
     await page.locator("#place-btn").click();
-    await page.locator('#place-listbox li[data-key="p1"]').click();
+    await page.locator(`#place-listbox li[data-key="${owner.ownId("p1")}"]`).click();
     await page.locator("#entry-submit-btn").click();
 
     await expect(page.locator("#entry-overlay")).toBeHidden();
@@ -1016,8 +1016,8 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await expect(page.locator("#login-toggle-btn")).toHaveText("Log in");
   });
 
-  test("queues a save whose request hangs, once the write timeout passes", async ({ page }) => {
-    await gotoLogHarness(page);
+  test("queues a save whose request hangs, once the write timeout passes", async ({ page, owner }) => {
+    await gotoLog(page, owner);
     await page.route("**/-/api/entries**", route =>
       route.request().method() === "POST" ? undefined : route.fallback(),
     );
@@ -1026,7 +1026,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await page.locator("#add-btn").click();
     await page.locator("#entry-name").fill(entryName);
     await page.locator("#place-btn").click();
-    await page.locator('#place-listbox li[data-key="p1"]').click();
+    await page.locator(`#place-listbox li[data-key="${owner.ownId("p1")}"]`).click();
     await page.locator("#entry-submit-btn").click();
 
     await expect(page.locator("#entry-overlay")).toBeHidden({ timeout: 15_000 });
@@ -1046,8 +1046,9 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
 
   test("queues an add then a delete for the same never-synced entry, replays both in order on sync (#268)", async ({
     page,
+    owner,
   }) => {
-    await gotoLogHarness(page);
+    await gotoLog(page, owner);
 
     const entryName = `E2E add-then-delete ${Date.now()}`;
 
@@ -1060,7 +1061,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await page.locator("#add-btn").click();
     await page.locator("#entry-name").fill(entryName);
     await page.locator("#place-btn").click();
-    await page.locator('#place-listbox li[data-key="p1"]').click();
+    await page.locator(`#place-listbox li[data-key="${owner.ownId("p1")}"]`).click();
     await page.locator("#entry-submit-btn").click();
 
     await expect(page.locator("#entry-overlay")).toBeHidden();
@@ -1086,8 +1087,9 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
 
   test("reconnect drift: a queued pending delete still executes when the same entry was edited on another device first", async ({
     page,
+    owner,
   }) => {
-    await gotoLogHarness(page);
+    await gotoLog(page, owner);
 
     let failing = true;
     await page.route("**/-/api/entries**", route =>
@@ -1102,22 +1104,14 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await expect(page.locator("#entry-overlay")).toBeHidden();
     await expect(page.locator("#sections")).toContainText("Boulder Seed");
 
-    failing = false;
-    await page.evaluate(() =>
-      fetch("/-/api/entries", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: "e1",
-          placeId: "p1",
-          type: "boulder",
-          status: "send",
-          grade: "6A",
-          name: "Edited By Other Device",
-        }),
-      }).then(res => res.json()),
-    );
-    failing = true;
+    await owner.api("PUT", "entries", {
+      id: owner.ownId("e1"),
+      placeId: owner.ownId("p1"),
+      type: "boulder",
+      status: "send",
+      grade: "6A",
+      name: "Edited By Other Device",
+    });
 
     const deleteResponsePromise = page.waitForResponse(
       res => res.url().includes("/-/api/entries") && res.request().method() === "DELETE",
@@ -1130,14 +1124,18 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await expect(page.locator("#sections")).not.toContainText("Edited By Other Device");
     await expect(page.locator("#sync-btn")).toBeHidden();
 
-    const cached = await page.evaluate(() => JSON.parse(localStorage.getItem("logbook_entries_cache") || "[]"));
+    const cached = await page.evaluate(
+      key => JSON.parse(localStorage.getItem(key) || "[]"),
+      `logbook_entries_cache:${owner.username}`,
+    );
     expect(cached.some(e => e._pending || e._pendingDelete)).toBe(false);
   });
 
   test("reconnect re-entrancy: two online events in quick succession don't double-POST a queued item", async ({
     page,
+    owner,
   }) => {
-    await gotoLogHarness(page);
+    await gotoLog(page, owner);
 
     const entryName = `E2E reentrancy ${Date.now()}`;
 
@@ -1150,7 +1148,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await page.locator("#add-btn").click();
     await page.locator("#entry-name").fill(entryName);
     await page.locator("#place-btn").click();
-    await page.locator('#place-listbox li[data-key="p1"]').click();
+    await page.locator(`#place-listbox li[data-key="${owner.ownId("p1")}"]`).click();
     await page.locator("#entry-submit-btn").click();
     await expect(page.locator("#entry-overlay")).toBeHidden();
     await expect(page.locator("#sections")).toContainText(entryName);
@@ -1167,16 +1165,11 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
 
   test("#490 -- an offline-created place/location dedups against a same-named row from another device, with the queued entry correctly remapped to it", async ({
     page,
+    owner,
   }) => {
-    await gotoLogHarness(page, { entries: [], places: [], locations: [] });
+    await gotoLog(page, owner, {});
 
-    await page.evaluate(() =>
-      fetch("/-/api/locations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: crypto.randomUUID(), name: "Existing Crag", country: "France" }),
-      }),
-    );
+    await owner.seed({ locations: [{ id: "existing", name: "Existing Crag", country: "France" }] });
 
     let failing = true;
     await page.route("**/-/api/locations", route =>
@@ -1219,16 +1212,11 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
 
   test("an online add-place that dedups against another device's location saves the entry under it", async ({
     page,
+    owner,
   }) => {
-    await gotoLogHarness(page, { entries: [], places: [], locations: [] });
+    await gotoLog(page, owner, {});
 
-    await page.evaluate(() =>
-      fetch("/-/api/locations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: crypto.randomUUID(), name: "Existing Crag", country: "France" }),
-      }),
-    );
+    await owner.seed({ locations: [{ id: "existing", name: "Existing Crag", country: "France" }] });
 
     const entryName = `E2E online dedup ${Date.now()}`;
     await page.locator("#add-btn").click();
@@ -1252,28 +1240,12 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
 
   test("#939 -- reloading the page alone picks up an entry added on another device, no click or online event needed", async ({
     page,
+    owner,
   }) => {
-    await gotoLogHarness(page);
+    await gotoLog(page, owner);
 
     const entryName = `E2E boot reconcile ${Date.now()}`;
-    await page.evaluate(
-      name =>
-        fetch("/-/api/entries", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: crypto.randomUUID(),
-            placeId: "p1",
-            type: "boulder",
-            status: "send",
-            grade: "6A",
-            gradeScale: "font",
-            date: "2026-05-03",
-            name,
-          }),
-        }),
-      entryName,
-    );
+    await owner.seed({ locations: [], places: [], entries: [{ date: "2026-05-03", name: entryName }] });
 
     await expect(page.locator("#sections")).not.toContainText(entryName);
 
@@ -1285,42 +1257,16 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
 
   test("#939 -- a new entry and its new place, both added on another device together, group under the real location after reload (no empty/unknown section)", async ({
     page,
+    owner,
   }) => {
-    await gotoLogHarness(page);
+    await gotoLog(page, owner);
 
-    const locationId = crypto.randomUUID();
-    const placeId = crypto.randomUUID();
     const entryName = `E2E new-place reconcile ${Date.now()}`;
-
-    await page.evaluate(
-      async ({ locationId, placeId, entryName }) => {
-        await fetch("/-/api/locations", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: locationId, name: "New Crag", country: "France" }),
-        });
-        await fetch("/-/api/places", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: placeId, locationId, area: "Sector 1" }),
-        });
-        await fetch("/-/api/entries", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: crypto.randomUUID(),
-            placeId,
-            type: "boulder",
-            status: "send",
-            grade: "6A",
-            gradeScale: "font",
-            date: "2026-05-04",
-            name: entryName,
-          }),
-        });
-      },
-      { locationId, placeId, entryName },
-    );
+    await owner.seed({
+      locations: [{ id: "new-crag", name: "New Crag", country: "France" }],
+      places: [{ id: "new-place", locationId: "new-crag", area: "Sector 1" }],
+      entries: [{ id: "new-entry", placeId: "new-place", date: "2026-05-04", name: entryName }],
+    });
 
     await page.reload();
     await expect(page.locator("climbing-entries-table")).toBeVisible();
@@ -1333,8 +1279,11 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await expect(page.locator(".place-header[data-location-id='']")).toHaveCount(0);
   });
 
-  test("#939 -- a manually expanded section survives a later background reconcile (online event)", async ({ page }) => {
-    await gotoLogHarness(page);
+  test("#939 -- a manually expanded section survives a later background reconcile (online event)", async ({
+    page,
+    owner,
+  }) => {
+    await gotoLog(page, owner);
 
     const row = page.locator("tr", { has: page.getByText("Boulder Seed", { exact: true }) });
     await expect(row).toBeHidden();
