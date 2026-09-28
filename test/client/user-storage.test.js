@@ -28,7 +28,7 @@ describe("userKey / ownerOfPath", () => {
   });
 
   it("leaves the key alone anywhere that isn't an owner page", () => {
-    for (const path of ["/", "/raven", "/help/", "/e2e-fixtures/pages/log.html", "/login/"]) {
+    for (const path of ["/", "/raven", "/help/", "/raven/not-a-page", "/login/"]) {
       expect(userKey("logbook_entries_cache", path), path).toBe("logbook_entries_cache");
     }
   });
