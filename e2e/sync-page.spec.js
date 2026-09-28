@@ -1,98 +1,94 @@
-// The harness path makes the username "e2e-fixtures"; cross-page hops are stubbed with page.route().
-import { expect, test } from "@playwright/test";
-import { mockApi } from "./mock-api.js";
+import { expect, test } from "./owner.js";
 
 const SEED = {
   entries: [
-    { id: "e1", placeId: "p1", type: "boulder", status: "send", grade: "6A", date: "2026-05-01", name: "Boulder Seed" },
-    { id: "e2", placeId: "p1", type: "sport", status: "send", grade: "6a", date: "2026-05-02", name: "Sport Seed" },
+    { type: "boulder", name: "Boulder Seed" },
+    { type: "sport", grade: "6a", name: "Sport Seed" },
   ],
-  places: [{ id: "p1", locationId: "l1", area: "" }],
-  locations: [{ id: "l1", name: "Test Crag", country: "United Kingdom" }],
 };
 
-async function stubReturnTarget(page, path) {
-  await page.route(`**${path}*`, route =>
-    route.fulfill({ contentType: "text/html", body: "<html><body>stub</body></html>" }),
-  );
+function storedJson(page, key, username) {
+  return page.evaluate(k => JSON.parse(localStorage.getItem(k)), `${key}:${username}`);
 }
 
-test("cold start: fetches everything in chunks and redirects to returnTo once synced", async ({ page }) => {
-  await mockApi(page, { ...SEED, synced: false });
-  await stubReturnTarget(page, "/e2e-fixtures/log");
+const syncUrl = owner => owner.url(`/sync?returnTo=${encodeURIComponent(`/${owner.username}/log`)}`);
 
-  // No storage assertions after the redirect: mockApi clears storage on every navigation.
-  await page.goto("/e2e-fixtures/pages/sync.html?returnTo=%2Fe2e-fixtures%2Flog");
-  await page.waitForURL("**/e2e-fixtures/log");
+async function syncOnce(page, owner) {
+  await page.goto(syncUrl(owner));
+  await page.waitForURL(`**/${owner.username}/log`);
+  await expect(page.locator("climbing-entries-table")).toBeVisible();
+}
+
+test("cold start: fetches everything in chunks and redirects to returnTo once synced", async ({ page, owner }) => {
+  await owner.seed(SEED);
+
+  await page.goto(syncUrl(owner));
+  await page.waitForURL(`**/${owner.username}/log`);
+
+  const cached = await storedJson(page, "logbook_entries_cache", owner.username);
+  expect(cached.map(e => e.name).toSorted()).toEqual(["Boulder Seed", "Sport Seed"]);
 });
 
-test("an unsafe returnTo falls back to /:username/log", async ({ page }) => {
-  await mockApi(page, { ...SEED, synced: false });
-  await stubReturnTarget(page, "/e2e-fixtures/log");
-
-  await page.goto("/e2e-fixtures/pages/sync.html?returnTo=https%3A%2F%2Fevil.example%2Fpwned");
-  await page.waitForURL("**/e2e-fixtures/log");
+test("an unsafe returnTo falls back to /:username/log", async ({ page, owner }) => {
+  await page.goto(owner.url(`/sync?returnTo=${encodeURIComponent("https://evil.example/pwned")}`));
+  await page.waitForURL(`**/${owner.username}/log`);
 });
 
-test("a failed fetch shows the error state with a retry button, not a silent hang", async ({ page }) => {
-  await mockApi(page, { ...SEED, synced: false });
+test("a failed fetch shows the error state with a retry button, not a silent hang", async ({ page, owner }) => {
   await page.route("**/-/api/places*", route => route.abort());
 
-  await page.goto("/e2e-fixtures/pages/sync.html?returnTo=%2Fe2e-fixtures%2Flog");
+  await page.goto(syncUrl(owner));
   await expect(page.locator("#sync-error")).toBeVisible();
   await expect(page.locator("#sync-card")).toBeHidden();
   await expect(page.locator("#sync-retry-btn")).toBeVisible();
 });
 
-test("/log redirects to /:username/sync when not yet synced, preserving returnTo", async ({ page }) => {
-  await mockApi(page, { ...SEED, synced: false });
-  await stubReturnTarget(page, "/e2e-fixtures/sync");
+test("/log redirects to /:username/sync when not yet synced, preserving returnTo", async ({ page, owner }) => {
+  let redirectedTo = null;
+  await page.goto(owner.url("/log"));
+  await page.waitForURL(url => {
+    if (url.pathname === `/${owner.username}/sync`) redirectedTo = url;
+    return redirectedTo !== null;
+  });
 
-  await page.goto("/e2e-fixtures/pages/log.html");
-  await page.waitForURL(url => url.pathname.includes("/e2e-fixtures/sync"));
-  expect(new URL(page.url()).searchParams.get("returnTo")).toBe("/e2e-fixtures/log");
+  expect(redirectedTo.searchParams.get("returnTo")).toBe(`/${owner.username}/log`);
 });
 
-// Asserts the request, not the response: the body races the redirect that follows.
 test("warm with drift: /sync takes the delta path and catches up on a change from another session", async ({
   page,
+  owner,
 }) => {
-  await mockApi(page, SEED); // synced: true (default) -- seeds pre-drift cursors ({entries: 2, ...} for this SEED)
+  await owner.seed(SEED);
+  await syncOnce(page, owner);
+  const seededCursor = (await storedJson(page, "logbook_sync_cursors", owner.username)).entries;
 
-  await page.goto("/e2e-fixtures/pages/log.html");
-  await page.evaluate(() =>
-    fetch("/-/api/entries", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: "drift-1",
-        placeId: "p1",
-        type: "boulder",
-        status: "send",
-        grade: "7A",
-        name: "Drifted In",
-      }),
-    }),
-  );
-
-  const seededCursor = await page.evaluate(() => JSON.parse(localStorage.getItem("logbook_sync_cursors")).entries);
+  await owner.seed({ locations: [], places: [], entries: [{ id: "drift-1", grade: "7A", name: "Drifted In" }] });
 
   const entriesRequests = [];
   page.on("request", req => {
     if (req.url().includes("/-/api/entries") && req.method() === "GET") entriesRequests.push(req.url());
   });
-
-  await stubReturnTarget(page, "/e2e-fixtures/log");
-  await page.goto("/e2e-fixtures/pages/sync.html?returnTo=%2Fe2e-fixtures%2Flog");
-  await page.waitForURL("**/e2e-fixtures/log");
+  await page.goto(syncUrl(owner));
+  await page.waitForURL(`**/${owner.username}/log`);
 
   expect(entriesRequests.some(url => url.includes(`?since=${seededCursor}`))).toBe(true);
   expect(entriesRequests.some(url => url.includes("?limit="))).toBe(false);
+  const cached = await storedJson(page, "logbook_entries_cache", owner.username);
+  expect(cached.map(e => e.name)).toContain("Drifted In");
 });
 
-test("/log does NOT redirect to /sync once already synced", async ({ page }) => {
-  await mockApi(page, SEED); // synced: true (default)
-  await page.goto("/e2e-fixtures/pages/log.html");
-  await expect(page.locator("climbing-entries-table")).toBeVisible();
-  expect(page.url()).toContain("/e2e-fixtures/pages/log");
+test("/log does NOT redirect to /sync once already synced", async ({ page, owner }) => {
+  await owner.seed(SEED);
+  await syncOnce(page, owner);
+
+  const visited = [];
+  page.on("framenavigated", frame => {
+    if (frame === page.mainFrame()) visited.push(new URL(frame.url()).pathname);
+  });
+  await page.reload();
+  // The table is in the static shell; the cached rows and a quiet network mean boot has decided.
+  await expect(page.locator("climbing-entries-table")).toContainText("Test Crag");
+  await page.waitForLoadState("networkidle");
+
+  expect(visited).toEqual([`/${owner.username}/log`]);
 });

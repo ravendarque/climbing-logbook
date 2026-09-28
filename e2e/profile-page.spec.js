@@ -1,45 +1,22 @@
-import { expect, test } from "@playwright/test";
-import { mockApi } from "./mock-api.js";
+import { expect, test } from "./owner.js";
 
-const SEED = {
-  entries: [
-    { id: "e1", placeId: "p1", type: "boulder", status: "send", grade: "6A", date: "2026-05-01", name: "Boulder Seed" },
-  ],
-  places: [{ id: "p1", locationId: "l1", area: "" }],
-  locations: [{ id: "l1", name: "Test Crag", country: "United Kingdom" }],
-};
-
+const SEED = { entries: [{ name: "Boulder Seed" }] };
 const MIXED_SEED = {
   entries: [
-    {
-      id: "e1",
-      placeId: "p1",
-      type: "boulder",
-      status: "send",
-      firstAttempt: true,
-      grade: "6A",
-      date: "2026-05-01",
-      name: "Boulder Seed",
-    },
-    {
-      id: "e2",
-      placeId: "p1",
-      type: "sport",
-      status: "send",
-      firstAttempt: false,
-      grade: "6a",
-      date: "2026-05-02",
-      name: "Sport Seed",
-      sportStyle: "lead",
-    },
+    { firstAttempt: true, name: "Boulder Seed" },
+    { type: "sport", grade: "6a", name: "Sport Seed" },
   ],
-  places: [{ id: "p1", locationId: "l1", area: "" }],
-  locations: [{ id: "l1", name: "Test Crag", country: "United Kingdom" }],
 };
 
-test("renders the shared chrome readonly -- no edit affordances or admin rows anywhere", async ({ page }) => {
-  await mockApi(page, SEED);
-  await page.goto("/e2e-fixtures/pages/profile.html");
+// Seeds as the owner, then visits signed out: the profile is what the public sees.
+async function visitProfile(page, owner, seed) {
+  if (seed) await owner.seed(seed);
+  await page.context().clearCookies();
+  await page.goto(owner.url(""));
+}
+
+test("renders the shared chrome readonly -- no edit affordances or admin rows anywhere", async ({ page, owner }) => {
+  await visitProfile(page, owner, SEED);
 
   await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
   await expect(page.locator("climbing-entries-table")).toBeVisible();
@@ -58,12 +35,12 @@ test("renders the shared chrome readonly -- no edit affordances or admin rows an
 
 test("Grade Pyramid is never present -- no <climbing-tab-bar>, no pyramid markup, no performance bundle request", async ({
   page,
+  owner,
 }) => {
   const requests = [];
   page.on("request", req => requests.push(req.url()));
 
-  await mockApi(page, SEED);
-  await page.goto("/e2e-fixtures/pages/profile.html");
+  await visitProfile(page, owner, SEED);
   await expect(page.locator("climbing-entries-table")).toBeVisible();
 
   await expect(page.locator("climbing-tab-bar")).toHaveCount(0);
@@ -73,9 +50,8 @@ test("Grade Pyramid is never present -- no <climbing-tab-bar>, no pyramid markup
   ).toBe(false);
 });
 
-test("Map tab (#333) switches to a real read-only map and back, without a page navigation", async ({ page }) => {
-  await mockApi(page, SEED);
-  await page.goto("/e2e-fixtures/pages/profile.html");
+test("Map tab (#333) switches to a real read-only map and back, without a page navigation", async ({ page, owner }) => {
+  await visitProfile(page, owner, SEED);
   await expect(page.locator("climbing-entries-table")).toBeVisible();
 
   await expect(page.locator("#panel-map")).toBeHidden();
@@ -94,9 +70,9 @@ test("Map tab (#333) switches to a real read-only map and back, without a page n
 
 test("no discipline picker anymore -- combined view shows both disciplines as separate table sections", async ({
   page,
+  owner,
 }) => {
-  await mockApi(page, MIXED_SEED);
-  await page.goto("/e2e-fixtures/pages/profile.html");
+  await visitProfile(page, owner, MIXED_SEED);
   await expect(page.locator("climbing-entries-table")).toBeVisible();
 
   await expect(page.locator("#discipline-btn")).toHaveCount(0);
@@ -109,9 +85,8 @@ test("no discipline picker anymore -- combined view shows both disciplines as se
   await expect(page.locator("#sections")).toContainText("Sport Seed");
 });
 
-test("discipline filter (#460) narrows to just the checked discipline's table section", async ({ page }) => {
-  await mockApi(page, MIXED_SEED);
-  await page.goto("/e2e-fixtures/pages/profile.html");
+test("discipline filter (#460) narrows to just the checked discipline's table section", async ({ page, owner }) => {
+  await visitProfile(page, owner, MIXED_SEED);
   await expect(page.locator("climbing-entries-table")).toBeVisible();
 
   await page.locator("#collapse-all-btn").click();
@@ -125,24 +100,10 @@ test("discipline filter (#460) narrows to just the checked discipline's table se
   await expect(page.locator("#sections")).not.toContainText("Test Crag (Boulder)");
 });
 
-test("Style filter is hidden until Sport is in view, and narrows the combined table", async ({ page }) => {
-  await mockApi(page, {
-    ...MIXED_SEED,
-    entries: [
-      ...MIXED_SEED.entries,
-      {
-        id: "e3",
-        placeId: "p1",
-        type: "sport",
-        status: "send",
-        grade: "6b",
-        date: "2026-05-03",
-        name: "Top Rope Seed",
-        sportStyle: "top_rope",
-      },
-    ],
+test("Style filter is hidden until Sport is in view, and narrows the combined table", async ({ page, owner }) => {
+  await visitProfile(page, owner, {
+    entries: [...MIXED_SEED.entries, { type: "sport", grade: "6b", name: "Top Rope Seed", sportStyle: "top_rope" }],
   });
-  await page.goto("/e2e-fixtures/pages/profile.html");
   await expect(page.locator("climbing-entries-table")).toBeVisible();
 
   await page.locator("#collapse-all-btn").click();
@@ -166,9 +127,11 @@ test("Style filter is hidden until Sport is in view, and narrows the combined ta
   await expect(page.locator("#sections")).toContainText("Top Rope Seed");
 });
 
-test("combined status filter labels span both disciplines, and there's no grade-tier filter", async ({ page }) => {
-  await mockApi(page, MIXED_SEED);
-  await page.goto("/e2e-fixtures/pages/profile.html");
+test("combined status filter labels span both disciplines, and there's no grade-tier filter", async ({
+  page,
+  owner,
+}) => {
+  await visitProfile(page, owner, MIXED_SEED);
   await expect(page.locator("climbing-entries-table")).toBeVisible();
 
   await page.locator("#filter-btn").click();
@@ -179,9 +142,9 @@ test("combined status filter labels span both disciplines, and there's no grade-
 
 test("filter panel status icons render real SVG content (#63 -- this page never loads entry-form.js, which used to be the only thing hydrating them)", async ({
   page,
+  owner,
 }) => {
-  await mockApi(page, MIXED_SEED);
-  await page.goto("/e2e-fixtures/pages/profile.html");
+  await visitProfile(page, owner, MIXED_SEED);
   await expect(page.locator("climbing-entries-table")).toBeVisible();
 
   await page.locator("#filter-btn").click();
@@ -190,9 +153,8 @@ test("filter panel status icons render real SVG content (#63 -- this page never 
   }
 });
 
-test("map pin popover (#460) shows both disciplines' own status breakdown together", async ({ page }) => {
-  await mockApi(page, MIXED_SEED);
-  await page.goto("/e2e-fixtures/pages/profile.html");
+test("map pin popover (#460) shows both disciplines' own status breakdown together", async ({ page, owner }) => {
+  await visitProfile(page, owner, MIXED_SEED);
   await page.locator('#view-tabs [data-view="map"]').click();
   await expect(page.locator("#map-container svg")).toBeVisible();
 
@@ -207,12 +169,9 @@ test("map pin popover (#460) shows both disciplines' own status breakdown togeth
 
 test("notes overlay shows the entry's real notes text (#425 -- previously did nothing at all on this page)", async ({
   page,
+  owner,
 }) => {
-  await mockApi(page, {
-    ...SEED,
-    entries: [{ ...SEED.entries[0], notes: "A real note to display" }],
-  });
-  await page.goto("/e2e-fixtures/pages/profile.html");
+  await visitProfile(page, owner, { entries: [{ name: "Boulder Seed", notes: "A real note to display" }] });
   await expect(page.locator("climbing-entries-table")).toBeVisible();
 
   await page.locator("#collapse-all-btn").click();
@@ -226,15 +185,17 @@ test("notes overlay shows the entry's real notes text (#425 -- previously did no
 
 test("shell-then-expand: collapsed with a count badge by default, expands to real rows on one fetch, doesn't re-fetch on re-expand", async ({
   page,
+  owner,
 }) => {
-  await mockApi(page, SEED);
+  await owner.seed(SEED);
+  await page.context().clearCookies();
 
   const entriesRequests = [];
   page.on("request", req => {
     if (req.url().includes("/-/api/public/") && req.url().includes("/entries?")) entriesRequests.push(req.url());
   });
 
-  await page.goto("/e2e-fixtures/pages/profile.html");
+  await page.goto(owner.url(""));
   await expect(page.locator("climbing-entries-table")).toBeVisible();
 
   await expect(page.locator("#sections")).toContainText("Test Crag");
@@ -246,7 +207,7 @@ test("shell-then-expand: collapsed with a count badge by default, expands to rea
 
   await expect(page.locator("#sections")).toContainText("Boulder Seed");
   expect(entriesRequests).toHaveLength(1);
-  expect(entriesRequests[0]).toContain("locationId=l1");
+  expect(entriesRequests[0]).toContain(`locationId=${owner.ownId("l1")}`);
 
   await placeHeader.click();
   await expect(page.getByText("Boulder Seed")).toBeHidden();
@@ -255,26 +216,25 @@ test("shell-then-expand: collapsed with a count badge by default, expands to rea
   expect(entriesRequests).toHaveLength(1);
 });
 
-test("shows the entries table's own empty state when the target user has no data", async ({ page }) => {
-  await mockApi(page, { entries: [], places: [], locations: [] });
-  await page.goto("/e2e-fixtures/pages/profile.html");
+test("shows the entries table's own empty state when the target user has no data", async ({ page, owner }) => {
+  await visitProfile(page, owner);
   await expect(page.locator("#sections")).toContainText("Nothing to show here");
 });
 
 test("#470 -- shows a loading state before the counts-only shell fetch resolves, then flips to the real empty state once confirmed", async ({
   page,
+  owner,
 }) => {
   let resolveCounts;
   const countsDelay = new Promise(resolve => {
     resolveCounts = resolve;
   });
-  await mockApi(page, { entries: [], places: [], locations: [] });
   await page.route("**/-/api/public/*/entries/counts", async route => {
     await countsDelay;
     return route.fallback();
   });
 
-  await page.goto("/e2e-fixtures/pages/profile.html");
+  await visitProfile(page, owner);
 
   await expect(page.locator("#sections")).toContainText("Loading");
   await expect(page.locator("#sections")).not.toContainText("Nothing to show here");
