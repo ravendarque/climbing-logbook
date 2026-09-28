@@ -9,8 +9,8 @@ afterAll(() => {
   env.BETA_GATE_ENABLED = "true";
 });
 
-function fetchProfile(username, hostname = "my.example.com") {
-  return exports.default.fetch(`https://${hostname}/${username}`);
+function fetchProfile(username, hostname = "my.example.com", method = "GET") {
+  return exports.default.fetch(`https://${hostname}/${username}`, { method });
 }
 
 beforeEach(async () => {
@@ -75,5 +75,22 @@ describe("public profile visibility", () => {
     const res = await fetchProfile("privateuser");
     expect(res.status).toBe(404);
     expect(await res.text()).toContain("doesn&#39;t exist");
+  });
+});
+
+describe("HEAD requests (#1107)", () => {
+  it("answer a public profile with GET's status and headers and no body", async () => {
+    await createAuthedSession({ username: "headprofile" });
+    const get = await fetchProfile("headprofile");
+    const head = await fetchProfile("headprofile", "my.example.com", "HEAD");
+
+    expect(head.status).toBe(200);
+    expect(Object.fromEntries(head.headers)).toEqual(Object.fromEntries(get.headers));
+    expect(await head.text()).toBe("");
+  });
+
+  it("404 an unknown username, as GET does", async () => {
+    const head = await fetchProfile("nobody-by-this-name", "my.example.com", "HEAD");
+    expect(head.status).toBe(404);
   });
 });
