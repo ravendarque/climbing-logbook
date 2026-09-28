@@ -1,21 +1,31 @@
-import { expect, test } from "@playwright/test";
-import { mockApi } from "./mock-api.js";
+import { CSV_COLUMNS } from "../shared/csv-import.js";
+import { expect, test } from "./owner.js";
 
-const VALID_CSV =
-  "name,grade,discipline,status,firstAttempt,date,location,area,country,video,notes\n" +
-  "Test Route,6B,boulder,send,true,2026-07-30,Test Crag,Sector 1,Testland,,\n";
+// Built from the real template, so a new column can't leave these files behind.
+const csv = (...rows) =>
+  [CSV_COLUMNS, ...rows].map(cells => `${CSV_COLUMNS.map((_, i) => cells[i] ?? "").join(",")}\n`).join("");
+const row = (name, grade, location) => [
+  name,
+  grade,
+  "boulder",
+  "send",
+  "true",
+  "2026-07-30",
+  location,
+  "Sector 1",
+  "Testland",
+];
+const VALID_CSV = csv(row("Test Route", "6B", "Test Crag"));
 
-test("downloads the CSV template client-side, no network request", async ({ page }) => {
-  await mockApi(page);
-  await page.goto("/e2e-fixtures/pages/account-import.html");
+test("downloads the CSV template client-side, no network request", async ({ page, owner }) => {
+  await page.goto(owner.url("/account/import"));
 
   const [download] = await Promise.all([page.waitForEvent("download"), page.locator("#download-template-btn").click()]);
   expect(download.suggestedFilename()).toBe("climbing-logbook-import-template.csv");
 });
 
-test("uploads a valid CSV and shows the success summary", async ({ page }) => {
-  await mockApi(page);
-  await page.goto("/e2e-fixtures/pages/account-import.html");
+test("uploads a valid CSV and shows the success summary", async ({ page, owner }) => {
+  await page.goto(owner.url("/account/import"));
 
   await page.locator("#import-file-input").setInputFiles({
     name: "import.csv",
@@ -32,9 +42,11 @@ test("uploads a valid CSV and shows the success summary", async ({ page }) => {
   await expect(page.locator("#import-errors")).toBeHidden();
 });
 
-test("uploads a valid JSON export and shows the success summary, with the right Content-Type", async ({ page }) => {
-  await mockApi(page);
-  await page.goto("/e2e-fixtures/pages/account-import.html");
+test("uploads a valid JSON export and shows the success summary, with the right Content-Type", async ({
+  page,
+  owner,
+}) => {
+  await page.goto(owner.url("/account/import"));
 
   const validJson = JSON.stringify([
     {
@@ -67,25 +79,13 @@ test("uploads a valid JSON export and shows the success summary, with the right 
   await expect(page.locator("#import-success-message")).toHaveText("Imported 1 entry.");
 });
 
-test("shows every row's error at once when the server rejects the file", async ({ page }) => {
-  await mockApi(page);
-  await page.route("**/-/api/entries/import", route =>
-    route.fulfill({
-      status: 400,
-      json: {
-        errors: [
-          { row: 2, error: "Missing required field: location" },
-          { row: 3, error: "grade must be one of: 5, 5+, 5A" },
-        ],
-      },
-    }),
-  );
-  await page.goto("/e2e-fixtures/pages/account-import.html");
+test("shows every row's error at once when the server rejects the file", async ({ page, owner }) => {
+  await page.goto(owner.url("/account/import"));
 
   await page.locator("#import-file-input").setInputFiles({
     name: "bad-import.csv",
     mimeType: "text/csv",
-    buffer: Buffer.from(VALID_CSV),
+    buffer: Buffer.from(csv(row("No Location", "6B", ""), row("Bad Grade", "99Z", "Test Crag"))),
   });
   await Promise.all([
     page.waitForResponse(res => res.url().includes("/-/api/entries/import")),
@@ -95,17 +95,13 @@ test("shows every row's error at once when the server rejects the file", async (
   await expect(page.locator("#import-errors")).toBeVisible();
   const items = page.locator("#import-errors-list li");
   await expect(items).toHaveCount(2);
-  await expect(items.nth(0)).toHaveText("Row 2: Missing required field: location");
-  await expect(items.nth(1)).toHaveText("Row 3: grade must be one of: 5, 5+, 5A");
+  await expect(items.nth(0)).toHaveText(/^Row 2: .*location/);
+  await expect(items.nth(1)).toHaveText(/^Row 3: .*grade/);
   await expect(page.locator("#import-success")).toBeHidden();
 });
 
-test("a structural error (e.g. bad header) shows as a single-item list, same panel", async ({ page }) => {
-  await mockApi(page);
-  await page.route("**/-/api/entries/import", route =>
-    route.fulfill({ status: 400, json: { error: "CSV file is empty." } }),
-  );
-  await page.goto("/e2e-fixtures/pages/account-import.html");
+test("a structural error (e.g. bad header) shows as a single-item list, same panel", async ({ page, owner }) => {
+  await page.goto(owner.url("/account/import"));
 
   await page.locator("#import-file-input").setInputFiles({
     name: "empty.csv",
@@ -120,9 +116,8 @@ test("a structural error (e.g. bad header) shows as a single-item list, same pan
   await expect(page.locator("#import-errors-list li")).toHaveText("CSV file is empty.");
 });
 
-test("back-to-account-link is built from this page's own URL", async ({ page }) => {
-  await mockApi(page);
-  await page.goto("/e2e-fixtures/pages/account-import.html");
+test("back-to-account-link is built from this page's own URL", async ({ page, owner }) => {
+  await page.goto(owner.url("/account/import"));
 
-  await expect(page.locator("#back-to-account-link")).toHaveAttribute("href", "/e2e-fixtures/account");
+  await expect(page.locator("#back-to-account-link")).toHaveAttribute("href", `/${owner.username}/account`);
 });
