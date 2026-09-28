@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BOULDER_GRADES, LEAD_GRADES, gradeColor, gradeRank, gradeTier } from "../../shared/grade-data.js";
+import { BOULDER_GRADES, LEAD_GRADES, gradeColor, gradeInk, gradeRank, gradeTier } from "../../shared/grade-data.js";
 import {
   nonStandardOrdinal,
   nonStandardLabel,
@@ -21,6 +21,7 @@ import {
   gradeRankForScale,
   gradeTierForScale,
   gradeColorForScale,
+  gradeInkForScale,
   gradePyramidColorForScale,
   resolveScaleId,
   DEFAULT_SCALE_BY_TYPE,
@@ -758,5 +759,20 @@ describe("gradeTier", () => {
   it("#710 -- Sport's boundaries genuinely diverge from Boulder's past Intermediate: 7A is Boulder-advanced, but 7a is still Sport-intermediate", () => {
     expect(gradeTier("7A", "boulder")).toBe("advanced");
     expect(gradeTier("7a", "sport")).toBe("intermediate");
+  });
+});
+
+describe("gradeInk / gradeInkForScale", () => {
+  const beginner = BOULDER_GRADES.map(({ g }) => g).find(g => gradeTier(g, "boulder") === "beginner");
+  const elite = BOULDER_GRADES.map(({ g }) => g).find(g => gradeTier(g, "boulder") === "elite");
+
+  it("gives a beginner grade the beginner ink, and every other tier the shared badge ink", () => {
+    expect(gradeInk(beginner, "boulder")).toBe("var(--grade-tier-beginner-ink)");
+    expect(gradeInk(elite, "boulder")).toBe("var(--grade-badge-ink)");
+  });
+
+  it("does the same for a grade in any scale", () => {
+    expect(gradeInkForScale("3", "font", "boulder")).toBe(gradeInk("3", "boulder"));
+    expect(gradeInkForScale("8a", "font", "boulder")).toBe("var(--grade-badge-ink)");
   });
 });
