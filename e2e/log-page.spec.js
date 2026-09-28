@@ -1,5 +1,5 @@
-import { expect, test } from "@playwright/test";
 import { mockApi } from "./mock-api.js";
+import { expect, gotoSyncedLog, test } from "./owner.js";
 
 const SEED = {
   entries: [
@@ -29,6 +29,12 @@ const SEED = {
   locations: [{ id: "l1", name: "Test Crag", country: "United Kingdom" }],
 };
 
+async function gotoLog(page, owner, { settings, ...data } = SEED) {
+  if (settings) await owner.settings(settings);
+  await owner.seed(data);
+  await gotoSyncedLog(page, owner);
+}
+
 async function gotoLogHarness(page, seed = SEED) {
   await mockApi(page, seed);
   await page.goto("/e2e-fixtures/pages/log.html");
@@ -37,18 +43,19 @@ async function gotoLogHarness(page, seed = SEED) {
 
 test("#470 -- shows a loading state before real data resolves, then flips to the real empty state once confirmed", async ({
   page,
+  owner,
 }) => {
+  await gotoLog(page, owner, {});
   let resolvePlaces;
   const placesDelay = new Promise(resolve => {
     resolvePlaces = resolve;
   });
-  await mockApi(page, { entries: [], places: [], locations: [] });
   await page.route("**/-/api/places*", async route => {
     await placesDelay;
     return route.fallback();
   });
 
-  await page.goto("/e2e-fixtures/pages/log.html");
+  await page.reload();
 
   await expect(page.locator("#sections")).toContainText("Loading");
   await expect(page.locator("#sections")).not.toContainText("Nothing to show here");
@@ -57,8 +64,8 @@ test("#470 -- shows a loading state before real data resolves, then flips to the
   await expect(page.locator("#sections")).toContainText("Nothing to show here");
 });
 
-test("renders the shared chrome and a real entries table, and switches discipline", async ({ page }) => {
-  await gotoLogHarness(page);
+test("renders the shared chrome and a real entries table, and switches discipline", async ({ page, owner }) => {
+  await gotoLog(page, owner);
 
   await expect(page.locator("climbing-header h1")).toHaveText("Climbing Logbook");
   await expect(page.locator("climbing-tab-bar a", { hasText: "Logbook" })).toHaveAttribute("aria-current", "page");
@@ -78,8 +85,9 @@ test("renders the shared chrome and a real entries table, and switches disciplin
 
 test("#939 follow-up -- location sections start collapsed on the very first paint, no expand-then-collapse flash", async ({
   page,
+  owner,
 }) => {
-  await gotoLogHarness(page);
+  await gotoLog(page, owner);
 
   const header = page.locator(".place-header", { hasText: "Test Crag" });
   await expect(header).toHaveAttribute("aria-expanded", "false");
@@ -93,6 +101,7 @@ test("#939 follow-up -- location sections start collapsed on the very first pain
 
 test("#501 -- a table past one page shows Show more/Show all, both reveal the rest client-side (no fetch)", async ({
   page,
+  owner,
 }) => {
   const manyEntries = Array.from({ length: 125 }, (_, i) => ({
     id: `many-${i}`,
@@ -103,7 +112,7 @@ test("#501 -- a table past one page shows Show more/Show all, both reveal the re
     date: "2026-05-01",
     name: `Many Seed ${i}`,
   }));
-  await gotoLogHarness(page, { ...SEED, entries: manyEntries });
+  await gotoLog(page, owner, { ...SEED, entries: manyEntries });
   await page.locator("#collapse-all-btn").click();
 
   await expect(page.locator("#sections")).toContainText("100 of 125 shown");
@@ -123,7 +132,7 @@ test("#501 -- a table past one page shows Show more/Show all, both reveal the re
   expect(entriesRequests).toEqual([]);
 });
 
-test("#501 -- Show all reveals the exact remainder client-side, no fetch", async ({ page }) => {
+test("#501 -- Show all reveals the exact remainder client-side, no fetch", async ({ page, owner }) => {
   const manyEntries = Array.from({ length: 130 }, (_, i) => ({
     id: `many-${i}`,
     placeId: "p1",
@@ -133,7 +142,7 @@ test("#501 -- Show all reveals the exact remainder client-side, no fetch", async
     date: "2026-05-01",
     name: `Many Seed ${i}`,
   }));
-  await gotoLogHarness(page, { ...SEED, entries: manyEntries });
+  await gotoLog(page, owner, { ...SEED, entries: manyEntries });
   await page.locator("#collapse-all-btn").click();
   await expect(page.locator("#sections")).toContainText("100 of 130 shown");
 
@@ -150,8 +159,9 @@ test("#501 -- Show all reveals the exact remainder client-side, no fetch", async
 
 test("archived climbs are hidden by default (#63), shown once explicitly filtered for, and Clear restores the default", async ({
   page,
+  owner,
 }) => {
-  await gotoLogHarness(page, {
+  await gotoLog(page, owner, {
     ...SEED,
     entries: [
       ...SEED.entries,
@@ -189,8 +199,8 @@ test("archived climbs are hidden by default (#63), shown once explicitly filtere
   await expect(page.locator('#filter-status-group input[data-filter="flash"]')).toBeChecked();
 });
 
-test("grade-tier filter narrows the table by tier, and Clear restores every tier", async ({ page }) => {
-  await gotoLogHarness(page, {
+test("grade-tier filter narrows the table by tier, and Clear restores every tier", async ({ page, owner }) => {
+  await gotoLog(page, owner, {
     ...SEED,
     entries: [
       ...SEED.entries,
@@ -224,8 +234,8 @@ test("grade-tier filter narrows the table by tier, and Clear restores every tier
   await expect(page.locator('#filter-grade-tier-group input[data-grade-tier="hyper-elite"]')).toBeChecked();
 });
 
-test("search matches an as-logged grade label, case-insensitively, per the modifier rule", async ({ page }) => {
-  await gotoLogHarness(page, {
+test("search matches an as-logged grade label, case-insensitively, per the modifier rule", async ({ page, owner }) => {
+  await gotoLog(page, owner, {
     ...SEED,
     entries: [
       ...SEED.entries,
@@ -257,15 +267,15 @@ test("search matches an as-logged grade label, case-insensitively, per the modif
   await expect(page.locator("#sections")).not.toContainText("Plus Route");
 });
 
-test("adds and then deletes an entry via the Add/Edit modal", async ({ page }) => {
-  await gotoLogHarness(page);
+test("adds and then deletes an entry via the Add/Edit modal", async ({ page, owner }) => {
+  await gotoLog(page, owner);
 
   const entryName = `E2E log-page test ${Date.now()}`;
   await page.locator("#add-btn").click();
   await expect(page.locator("#entry-overlay")).toBeVisible();
   await page.locator("#entry-name").fill(entryName);
   await page.locator("#place-btn").click();
-  await page.locator('#place-listbox li[data-key="p1"]').click();
+  await page.locator(`#place-listbox li[data-key="${owner.ownId("p1")}"]`).click();
   await Promise.all([
     page.waitForResponse(res => res.url().includes("/-/api/entries") && res.request().method() === "POST"),
     page.locator("#entry-submit-btn").click(),
@@ -289,8 +299,9 @@ test("adds and then deletes an entry via the Add/Edit modal", async ({ page }) =
 
 test("date picker: opens on the field's current month, navigates, selects a day, and re-syncs on reopen", async ({
   page,
+  owner,
 }) => {
-  await gotoLogHarness(page);
+  await gotoLog(page, owner);
   await page.locator("#add-btn").click();
   await expect(page.locator("#entry-overlay")).toBeVisible();
 
@@ -321,8 +332,11 @@ test("date picker: opens on the field's current month, navigates, selects a day,
   );
 });
 
-test("Style control is hidden for Boulder, shown+required for Sport, and pre-fills on edit", async ({ page }) => {
-  await gotoLogHarness(page);
+test("Style control is hidden for Boulder, shown+required for Sport, and pre-fills on edit", async ({
+  page,
+  owner,
+}) => {
+  await gotoLog(page, owner);
 
   await page.locator("#add-btn").click();
   await expect(page.locator("#entry-overlay")).toBeVisible();
@@ -338,7 +352,7 @@ test("Style control is hidden for Boulder, shown+required for Sport, and pre-fil
   const entryName = `E2E sport-style test ${Date.now()}`;
   await page.locator("#entry-name").fill(entryName);
   await page.locator("#place-btn").click();
-  await page.locator('#place-listbox li[data-key="p1"]').click();
+  await page.locator(`#place-listbox li[data-key="${owner.ownId("p1")}"]`).click();
   await page.locator('#sport-style-group input[value="top_rope"]').check({ force: true });
 
   const [postReq] = await Promise.all([
@@ -355,8 +369,8 @@ test("Style control is hidden for Boulder, shown+required for Sport, and pre-fil
   await expect(page.locator('#sport-style-group input[value="top_rope"]')).toBeChecked();
 });
 
-test("Attempts field's gap-view hint matches the active discipline's own status wording", async ({ page }) => {
-  await gotoLogHarness(page, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
+test("Attempts field's gap-view hint matches the active discipline's own status wording", async ({ page, owner }) => {
+  await gotoLog(page, owner, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
 
   await page.locator("#add-btn").click();
   await page.locator("#entry-nav-forward").click();
@@ -370,8 +384,8 @@ test("Attempts field's gap-view hint matches the active discipline's own status 
   await expect(page.locator("#attempts-gap-hint")).toHaveText("Feeds your onsight/redpoint gap view.");
 });
 
-test("Style filter is hidden for Boulder, shown for Sport, and narrows the table", async ({ page }) => {
-  await gotoLogHarness(page, {
+test("Style filter is hidden for Boulder, shown for Sport, and narrows the table", async ({ page, owner }) => {
+  await gotoLog(page, owner, {
     ...SEED,
     entries: [
       ...SEED.entries,
@@ -412,8 +426,8 @@ test("Style filter is hidden for Boulder, shown for Sport, and narrows the table
   await expect(page.locator('#filter-sport-style-group input[data-sport-style="top_rope"]')).toBeChecked();
 });
 
-test("Exertion is visible for Send/Flash and hidden for Project/Check out/Archived", async ({ page }) => {
-  await gotoLogHarness(page, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
+test("Exertion is visible for Send/Flash and hidden for Project/Check out/Archived", async ({ page, owner }) => {
+  await gotoLog(page, owner, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
   await page.locator("#add-btn").click();
   await expect(page.locator("#entry-overlay")).toBeVisible();
 
@@ -442,8 +456,8 @@ test("Exertion is visible for Send/Flash and hidden for Project/Check out/Archiv
   await expect(page.locator("#exertion-field")).toBeVisible();
 });
 
-test("Attempts stepper increments/decrements and cannot go below 0", async ({ page }) => {
-  await gotoLogHarness(page, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
+test("Attempts stepper increments/decrements and cannot go below 0", async ({ page, owner }) => {
+  await gotoLog(page, owner, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
   await page.locator("#add-btn").click();
   await expect(page.locator("#entry-overlay")).toBeVisible();
   await page.locator("#entry-nav-forward").click();
@@ -470,39 +484,34 @@ test("Attempts stepper increments/decrements and cannot go below 0", async ({ pa
   await expect(page.locator("#attempts-minus")).toBeEnabled();
 });
 
-test("adding a move and saving submits it in the entry payload", async ({ page }) => {
-  await gotoLogHarness(page, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
-
-  let submittedBody;
-  await page.route("**/-/api/entries*", async route => {
-    if (route.request().method() !== "POST") return route.fallback();
-    submittedBody = route.request().postDataJSON();
-    await route.fulfill({ status: 201, json: { entry: { ...submittedBody, id: "new-id" } } });
-  });
+test("adding a move and saving submits it in the entry payload", async ({ page, owner }) => {
+  await gotoLog(page, owner, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
 
   const entryName = `E2E move payload ${Date.now()}`;
   await page.locator("#add-btn").click();
   await page.locator("#entry-name").fill(entryName);
   await page.locator("#place-btn").click();
-  await page.locator('#place-listbox li[data-key="p1"]').click();
+  await page.locator(`#place-listbox li[data-key="${owner.ownId("p1")}"]`).click();
 
   await page.locator("#entry-nav-forward").click();
   await page.locator("#hardest-moves-add").click();
   await page.locator('#hardest-moves-list [data-field="limbSide"]').selectOption("foot-right");
 
-  await Promise.all([
+  const [post] = await Promise.all([
     page.waitForResponse(res => res.url().includes("/-/api/entries") && res.request().method() === "POST"),
     page.locator("#entry-submit-btn-2").click(),
   ]);
   await expect(page.locator("#entry-overlay")).toBeHidden();
 
+  expect(post.status()).toBe(201);
+  const submittedBody = post.request().postDataJSON();
   expect(submittedBody.name).toBe(entryName);
   expect(submittedBody.moves).toHaveLength(1);
   expect(submittedBody.moves[0]).toMatchObject({ difficulty: "hardest", limb: "foot", side: "right" });
 });
 
-test("editing an entry pre-populates its existing moves into the right list", async ({ page }) => {
-  await gotoLogHarness(page, {
+test("editing an entry pre-populates its existing moves into the right list", async ({ page, owner }) => {
+  await gotoLog(page, owner, {
     ...SEED,
     settings: { athleteMode: true, activeDiscipline: "boulder" },
     entries: [
@@ -545,8 +554,8 @@ test("editing an entry pre-populates its existing moves into the right list", as
 
 // inert, not toBeVisible: the inactive page is clipped by a transformed ancestor, which
 // toBeVisible can't see.
-test("the Performance data page is only reachable in Athlete Mode", async ({ page }) => {
-  await gotoLogHarness(page, { ...SEED, settings: { athleteMode: false, activeDiscipline: "boulder" } });
+test("the Performance data page is only reachable in Athlete Mode", async ({ page, owner }) => {
+  await gotoLog(page, owner, { ...SEED, settings: { athleteMode: false, activeDiscipline: "boulder" } });
   await page.locator("#add-btn").click();
   await expect(page.locator("#entry-overlay")).toBeVisible();
 
@@ -554,9 +563,9 @@ test("the Performance data page is only reachable in Athlete Mode", async ({ pag
   await expect(page.locator("#entry-page-2")).toHaveJSProperty("inert", true);
 });
 
-test("Performance -> and <- Log entry slide between the form's two pages", async ({ page }) => {
+test("Performance -> and <- Log entry slide between the form's two pages", async ({ page, owner }) => {
   await page.emulateMedia({ reducedMotion: "reduce" }); // no animation to wait out between steps
-  await gotoLogHarness(page, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
+  await gotoLog(page, owner, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
   await page.locator("#add-btn").click();
 
   await expect(page.locator("#entry-page-1")).toHaveJSProperty("inert", false);
@@ -571,9 +580,9 @@ test("Performance -> and <- Log entry slide between the form's two pages", async
   await expect(page.locator("#entry-page-2")).toHaveJSProperty("inert", true);
 });
 
-test("reopening the form after navigating to page 2 starts back on page 1", async ({ page }) => {
+test("reopening the form after navigating to page 2 starts back on page 1", async ({ page, owner }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await gotoLogHarness(page, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
+  await gotoLog(page, owner, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
   await page.locator("#add-btn").click();
   await page.locator("#entry-nav-forward").click();
   await expect(page.locator("#entry-page-2")).toHaveJSProperty("inert", false);
@@ -586,8 +595,9 @@ test("reopening the form after navigating to page 2 starts back on page 1", asyn
 
 test("Boulder defaults to the Font scale (button + popover), and the picker lists Boulder's 3 scales", async ({
   page,
+  owner,
 }) => {
-  await gotoLogHarness(page);
+  await gotoLog(page, owner);
   await page.locator("#add-btn").click();
   await expect(page.locator("#entry-overlay")).toBeVisible();
 
@@ -605,20 +615,14 @@ test("Boulder defaults to the Font scale (button + popover), and the picker list
 
 test("choosing Font (Non-standard) switches to the number/letter/modifier fields, and submits the built label + scale", async ({
   page,
+  owner,
 }) => {
-  await gotoLogHarness(page);
-
-  let submittedBody;
-  await page.route("**/-/api/entries*", async route => {
-    if (route.request().method() !== "POST") return route.fallback();
-    submittedBody = route.request().postDataJSON();
-    await route.fulfill({ status: 201, json: { entry: { ...submittedBody, id: "new-id" } } });
-  });
+  await gotoLog(page, owner);
 
   await page.locator("#add-btn").click();
   await page.locator("#entry-name").fill("Non-standard test");
   await page.locator("#place-btn").click();
-  await page.locator('#place-listbox li[data-key="p1"]').click();
+  await page.locator(`#place-listbox li[data-key="${owner.ownId("p1")}"]`).click();
 
   await page.locator("#grade-scale-btn").click();
   await page.locator('#grade-scale-listbox [role="option"]', { hasText: "Font (Non-standard)" }).click();
@@ -638,17 +642,19 @@ test("choosing Font (Non-standard) switches to the number/letter/modifier fields
   await page.locator("#grade-ns-modifier-btn").click();
   await page.locator('#grade-ns-modifier-listbox [role="option"][data-key="+"]').click();
 
-  await Promise.all([
+  const [post] = await Promise.all([
     page.waitForResponse(res => res.url().includes("/-/api/entries") && res.request().method() === "POST"),
     page.locator("#entry-submit-btn").click(),
   ]);
 
+  expect(post.status()).toBe(201);
+  const submittedBody = post.request().postDataJSON();
   expect(submittedBody.grade).toBe("6a+");
   expect(submittedBody.gradeScale).toBe("font-non-standard");
 });
 
-test("switching scale preserves the equivalent grade via the shared canonical ordinal", async ({ page }) => {
-  await gotoLogHarness(page);
+test("switching scale preserves the equivalent grade via the shared canonical ordinal", async ({ page, owner }) => {
+  await gotoLog(page, owner);
   await page.locator("#add-btn").click();
   await page.locator("#grade-value-btn").click();
   // data-key, not hasText: "6A" also matches "6A+".
@@ -659,18 +665,27 @@ test("switching scale preserves the equivalent grade via the shared canonical or
   await expect(page.locator("#grade-value-btn")).toHaveText("V3");
 });
 
-test("the entry-form grade scale preference persists to localStorage", async ({ page }) => {
-  await gotoLogHarness(page);
+test("the entry-form grade scale preference persists to localStorage", async ({ page, owner }) => {
+  await gotoLog(page, owner);
   await page.locator("#add-btn").click();
   await page.locator("#grade-scale-btn").click();
   await page.locator('#grade-scale-listbox [role="option"]', { hasText: "V-scale" }).click();
 
-  // mockApi clears localStorage on every navigation, so check the stored value, not a reload.
   expect(await page.evaluate(() => localStorage.getItem("logbook_grade_scale_entry_boulder"))).toBe("v-scale");
+
+  await page.reload();
+  await page.locator("#add-btn").click();
+  await page.locator("#grade-scale-btn").click();
+  await expect(page.locator('#grade-scale-listbox [role="option"][aria-selected="true"]')).toHaveText(
+    "V-scale (Hueco)",
+  );
 });
 
-test("editing an entry shows its own actual gradeScale, not the current entry-form preference", async ({ page }) => {
-  await gotoLogHarness(page, {
+test("editing an entry shows its own actual gradeScale, not the current entry-form preference", async ({
+  page,
+  owner,
+}) => {
+  await gotoLog(page, owner, {
     ...SEED,
     entries: [
       ...SEED.entries,
@@ -704,8 +719,8 @@ test("editing an entry shows its own actual gradeScale, not the current entry-fo
   await expect(page.locator("#grade-ns-modifier-btn")).toHaveText("+");
 });
 
-test("add-place modal: brand-new location leaves the country field open", async ({ page }) => {
-  await gotoLogHarness(page);
+test("add-place modal: brand-new location leaves the country field open", async ({ page, owner }) => {
+  await gotoLog(page, owner);
   await page.locator("#add-btn").click();
   await page.locator("#place-btn").click();
   await page.locator("#place-add-new-btn").click();
@@ -729,8 +744,8 @@ test("add-place modal: brand-new location leaves the country field open", async 
   await expect(page.locator("#place-btn")).toContainText(locationName);
 });
 
-test("add-place modal: an existing location name locks the country field", async ({ page }) => {
-  await gotoLogHarness(page, {
+test("add-place modal: an existing location name locks the country field", async ({ page, owner }) => {
+  await gotoLog(page, owner, {
     ...SEED,
     locations: [...SEED.locations, { id: "l2", name: "Fontainebleau", country: "France" }],
   });
@@ -753,8 +768,8 @@ test("add-place modal: an existing location name locks the country field", async
   await expect(page.locator("#place-btn")).toContainText(areaName);
 });
 
-test("edits an existing entry via the table's Edit button", async ({ page }) => {
-  await gotoLogHarness(page);
+test("edits an existing entry via the table's Edit button", async ({ page, owner }) => {
+  await gotoLog(page, owner);
 
   await page.locator("#collapse-all-btn").click();
   const row = page.locator("tr", { has: page.getByText("Boulder Seed", { exact: true }) });
@@ -773,8 +788,8 @@ test("edits an existing entry via the table's Edit button", async ({ page }) => 
 });
 
 test.describe("Shared popover behavior (createDisclosure)", () => {
-  test("Escape closes the popover and refocuses the trigger", async ({ page }) => {
-    await gotoLogHarness(page);
+  test("Escape closes the popover and refocuses the trigger", async ({ page, owner }) => {
+    await gotoLog(page, owner);
     const trigger = page.locator("#discipline-btn");
     const popover = page.locator("#discipline-popover");
 
@@ -786,8 +801,8 @@ test.describe("Shared popover behavior (createDisclosure)", () => {
     await expect(trigger).toBeFocused();
   });
 
-  test("clicking outside the popover closes it", async ({ page }) => {
-    await gotoLogHarness(page);
+  test("clicking outside the popover closes it", async ({ page, owner }) => {
+    await gotoLog(page, owner);
     const trigger = page.locator("#discipline-btn");
     const popover = page.locator("#discipline-popover");
 
@@ -801,16 +816,17 @@ test.describe("Shared popover behavior (createDisclosure)", () => {
 
 test("#561 -- logging out navigates away instead of leaving the visitor stranded on an owner-only page", async ({
   page,
+  owner,
 }) => {
-  await gotoLogHarness(page);
+  await gotoLog(page, owner);
   await page.locator("#header-menu-btn").click();
   await expect(page.locator("#login-toggle-btn")).toHaveText("Log out");
 
   await Promise.all([page.waitForURL(/\/login\/?$/), page.locator("#login-toggle-btn").click()]);
 });
 
-test("theme toggle flips data-theme and persists to localStorage", async ({ page }) => {
-  await gotoLogHarness(page);
+test("theme toggle flips data-theme and persists to localStorage", async ({ page, owner }) => {
+  await gotoLog(page, owner);
   await page.locator("#header-menu-btn").click();
 
   const html = page.locator("html");
@@ -820,8 +836,10 @@ test("theme toggle flips data-theme and persists to localStorage", async ({ page
   await page.locator("#theme-toggle-btn").click();
   await expect(html).toHaveAttribute("data-theme", next);
 
-  // mockApi clears localStorage on every navigation, so check the stored value, not a reload.
   expect(await page.evaluate(() => localStorage.getItem("logbook_theme"))).toBe(next);
+
+  await page.reload();
+  await expect(html).toHaveAttribute("data-theme", next);
 });
 
 // Writes fail via route.abort: setOffline doesn't reach fulfilled routes. One toggled handler,

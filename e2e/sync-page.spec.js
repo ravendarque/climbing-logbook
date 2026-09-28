@@ -1,4 +1,4 @@
-import { expect, test } from "./owner.js";
+import { expect, gotoSyncedLog, test } from "./owner.js";
 
 const SEED = {
   entries: [
@@ -12,12 +12,6 @@ function storedJson(page, key, username) {
 }
 
 const syncUrl = owner => owner.url(`/sync?returnTo=${encodeURIComponent(`/${owner.username}/log`)}`);
-
-async function syncOnce(page, owner) {
-  await page.goto(syncUrl(owner));
-  await page.waitForURL(`**/${owner.username}/log`);
-  await expect(page.locator("climbing-entries-table")).toBeVisible();
-}
 
 test("cold start: fetches everything in chunks and redirects to returnTo once synced", async ({ page, owner }) => {
   await owner.seed(SEED);
@@ -59,7 +53,7 @@ test("warm with drift: /sync takes the delta path and catches up on a change fro
   owner,
 }) => {
   await owner.seed(SEED);
-  await syncOnce(page, owner);
+  await gotoSyncedLog(page, owner);
   const seededCursor = (await storedJson(page, "logbook_sync_cursors", owner.username)).entries;
 
   await owner.seed({ locations: [], places: [], entries: [{ id: "drift-1", grade: "7A", name: "Drifted In" }] });
@@ -79,7 +73,7 @@ test("warm with drift: /sync takes the delta path and catches up on a change fro
 
 test("/log does NOT redirect to /sync once already synced", async ({ page, owner }) => {
   await owner.seed(SEED);
-  await syncOnce(page, owner);
+  await gotoSyncedLog(page, owner);
 
   const visited = [];
   page.on("framenavigated", frame => {
