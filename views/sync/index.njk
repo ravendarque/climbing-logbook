@@ -17,16 +17,16 @@ headerClass: mb-6
 <div class="max-w-[960px] mx-auto">
   <h1 class="sr-only">Sync</h1>
   <div class="row-card text-center max-w-[420px] mx-auto mt-8" id="sync-card">
-    <p class="text-[.95rem] text-foreground" id="sync-message">Syncing your logbook&hellip;</p>
-    <p class="text-[.82rem] text-muted mt-1" id="sync-detail">Setting things up</p>
+    <p class="text-base text-foreground" id="sync-message">Syncing your logbook&hellip;</p>
+    <p class="text-sm text-muted mt-1" id="sync-detail">Setting things up</p>
     <div class="mt-4 h-2 rounded-full bg-[color-mix(in_srgb,var(--color-text)_12%,transparent)] overflow-hidden" role="progressbar" aria-labelledby="sync-message" aria-valuemin="0" aria-valuemax="100" id="sync-progress-track">
       <div class="h-full rounded-full bg-accent transition-[width] duration-300" id="sync-progress-fill" style="width: 0%"></div>
     </div>
   </div>
 
   <div class="row-card text-center max-w-[420px] mx-auto mt-8" id="sync-error" hidden>
-    <p class="text-[.9rem] text-foreground">Couldn't sync your logbook.</p>
-    <p class="text-[.82rem] text-muted mt-2">Check your connection and try again.</p>
+    <p class="text-sm text-foreground">Couldn't sync your logbook.</p>
+    <p class="text-sm text-muted mt-2">Check your connection and try again.</p>
     <button type="button" class="btn btn-primary mt-4" id="sync-retry-btn">Retry</button>
   </div>
 

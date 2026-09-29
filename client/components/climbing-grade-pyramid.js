@@ -11,13 +11,13 @@ const PYRAMID_GOLD = "var(--pyramid-status-promoted)";
 
 // 8-4-2-1 stays a coaching heuristic; Draper et al. doesn't validate the ratio.
 const SHELL = `
-  <p class="text-[.82rem] text-muted leading-[1.7] mb-4" id="window-note"></p>
+  <p class="text-sm text-muted leading-[1.7] mb-4" id="window-note"></p>
   <div class="pyramid-card bg-surface border border-border rounded-app pt-[22px] px-5 max-[480px]:px-2 pb-4 mb-5" id="pyramid" role="group" aria-label="Grade pyramid"></div>
   <div class="flex gap-3 px-4 py-[14px] rounded-app mb-7 [&_svg]:w-[1.2rem] [&_svg]:h-[1.2rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:mt-[2px] [&_svg]:shrink-0" id="health-card" role="status"></div>
 
   <h2 class="sources-heading">Sources</h2>
-  <p class="text-[.82rem] text-muted leading-[1.7] mb-3">The 8-4-2-1 ratio is a coaching heuristic corroborated across independent sources, not a peer-reviewed or data-validated ratio.</p>
-  <ol class="m-0 pl-[1.2rem] text-[.84rem] leading-[1.6] text-foreground [&>li+li]:mt-[10px]">
+  <p class="text-sm text-muted leading-[1.7] mb-3">The 8-4-2-1 ratio is a coaching heuristic corroborated across independent sources, not a peer-reviewed or data-validated ratio.</p>
+  <ol class="m-0 pl-[1.2rem] text-sm leading-[1.6] text-foreground [&>li+li]:mt-[10px]">
     <li>Hörst, E. J. <em class="text-muted italic">How to Climb 5.12</em> — originating source for the route-pyramid training concept (print only, no stable link available).</li>
     <li>Hampton, K. "Great Pyramids." Power Company Climbing (2010). <a class="text-accent-ink underline underline-offset-2" href="https://www.powercompanyclimbing.com/blog/2010/08/great-pyramids.html" target="_blank" rel="noopener">powercompanyclimbing.com ↗</a></li>
     <li>Draper, N., Giles, D., Schöffl, V., Fuss, F. K., Watts, P., Wolf, P., et al. (2016). "Comparative grading scales, statistical analyses, climber descriptors and ability grouping: IRCRA position statement." <em class="text-muted italic">Sports Technology</em>, 8, 88–94. IRCRA-endorsed adjacent reference for grade-tier bucketing -- doesn't validate the 8-4-2-1 ratio itself.</li>
@@ -68,11 +68,11 @@ function pyramidBarRow(row, { ideal, scaleMax, type, promoted = false, viewScale
   const rowClasses = promoted
     ? "grid grid-cols-[3.2rem_1fr_4.2rem] max-[480px]:grid-cols-[2rem_1fr_3.4rem] items-center gap-[10px] max-[480px]:gap-[8px] mb-[14px] -mx-[.5rem] px-[.5rem] py-[.25rem] rounded-[8px] bg-[color-mix(in_srgb,var(--pyramid-status-promoted)_10%,transparent)]"
     : "grid grid-cols-[3.2rem_1fr_4.2rem] max-[480px]:grid-cols-[2rem_1fr_3.4rem] items-center gap-[10px] max-[480px]:gap-[8px] mb-[14px]";
-  const countClasses = "flex items-center gap-[.35rem] text-[.82rem] font-bold tabular-nums text-foreground";
+  const countClasses = "flex items-center gap-[.35rem] text-sm font-bold tabular-nums text-foreground";
   const countText = `${row.count}/${ideal}`;
   return `
     <div class="${rowClasses}">
-      <div class="text-[.8rem] font-bold text-right tabular-nums text-muted">${escapeHtml(row.grade)}</div>
+      <div class="text-sm font-bold text-right tabular-nums text-muted">${escapeHtml(row.grade)}</div>
       <div class="relative h-[1.3rem]">
         <div class="absolute top-0 left-1/2 -translate-x-1/2 h-full rounded-[4px] transition-[width] duration-300" style="${barStyle}"></div>
         ${idealOutline}
@@ -136,7 +136,7 @@ export class ClimbingGradePyramid extends HTMLElement {
     const windowNoteEl = this.querySelector("#window-note");
 
     if (!hasSends) {
-      pyramidEl.innerHTML = `<p class="text-[.9rem] text-muted">No ${disciplineLabel(type)} sends logged in the last 12 months yet -- log a send to see your pyramid.</p>`;
+      pyramidEl.innerHTML = `<p class="text-sm text-muted">No ${disciplineLabel(type)} sends logged in the last 12 months yet -- log a send to see your pyramid.</p>`;
       healthEl.innerHTML = "";
       windowNoteEl.innerHTML = "";
       return;
@@ -171,14 +171,14 @@ export class ClimbingGradePyramid extends HTMLElement {
         ? `
           <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${PYRAMID_ICON_PROMOTED}</svg>
           <div>
-            <p class="text-[.86rem] leading-[1.5] text-foreground">Still building your pyramid from the base up — but you've already got enough mileage to give ${escapeHtml(health.grade)} a go.</p>
-            <p class="text-[.8rem] leading-[1.5] text-muted mt-[6px]">Keep adding sends at your lower tiers too — a full 8-4-2-1 pyramid needs volume all the way down, not just at the top.</p>
+            <p class="text-sm leading-[1.5] text-foreground">Still building your pyramid from the base up — but you've already got enough mileage to give ${escapeHtml(health.grade)} a go.</p>
+            <p class="text-sm leading-[1.5] text-muted mt-[6px]">Keep adding sends at your lower tiers too — a full 8-4-2-1 pyramid needs volume all the way down, not just at the top.</p>
           </div>`
         : `
           <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${PYRAMID_ICON_PROMOTED}</svg>
           <div>
-            <p class="text-[.86rem] leading-[1.5] text-foreground">You've logged enough at every tier below to be ready to push into ${escapeHtml(health.grade)}.</p>
-            <p class="text-[.8rem] leading-[1.5] text-muted mt-[6px]">Heuristic guidance, not diagnosis — only you know if the moves suit you.</p>
+            <p class="text-sm leading-[1.5] text-foreground">You've logged enough at every tier below to be ready to push into ${escapeHtml(health.grade)}.</p>
+            <p class="text-sm leading-[1.5] text-muted mt-[6px]">Heuristic guidance, not diagnosis — only you know if the moves suit you.</p>
           </div>`;
       return;
     }
@@ -188,22 +188,22 @@ export class ClimbingGradePyramid extends HTMLElement {
       healthEl.innerHTML = `
         <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
         <div>
-          <p class="text-[.86rem] leading-[1.5] text-foreground">No sends logged at ${escapeHtml(health.grade)} in the last 12 months, right in the middle of your pyramid window.</p>
-          <p class="text-[.8rem] leading-[1.5] text-muted mt-[6px]">Heuristic guidance, not diagnosis — might be worth spending more mileage there before pushing your top grade again.</p>
+          <p class="text-sm leading-[1.5] text-foreground">No sends logged at ${escapeHtml(health.grade)} in the last 12 months, right in the middle of your pyramid window.</p>
+          <p class="text-sm leading-[1.5] text-muted mt-[6px]">Heuristic guidance, not diagnosis — might be worth spending more mileage there before pushing your top grade again.</p>
         </div>`;
     } else if (health.kind === "top-heavy") {
       healthEl.className = heuristicClass;
       healthEl.innerHTML = `
         <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
         <div>
-          <p class="text-[.86rem] leading-[1.5] text-foreground">This pyramid is top-heavy — you've got fewer sends at ${escapeHtml(health.grade)} than at the harder tier above it.</p>
-          <p class="text-[.8rem] leading-[1.5] text-muted mt-[6px]">Heuristic guidance, not diagnosis — a broader base at the easier tiers usually means a more sustainable base to build from.</p>
+          <p class="text-sm leading-[1.5] text-foreground">This pyramid is top-heavy — you've got fewer sends at ${escapeHtml(health.grade)} than at the harder tier above it.</p>
+          <p class="text-sm leading-[1.5] text-muted mt-[6px]">Heuristic guidance, not diagnosis — a broader base at the easier tiers usually means a more sustainable base to build from.</p>
         </div>`;
     } else {
       healthEl.className = heuristicClass;
       healthEl.innerHTML = `
         <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
-        <div><p class="text-[.86rem] leading-[1.5] text-foreground">No gaps or inversions in this window — sends build up from your base to your max, the shape a healthy pyramid is expected to have.</p></div>`;
+        <div><p class="text-sm leading-[1.5] text-foreground">No gaps or inversions in this window — sends build up from your base to your max, the shape a healthy pyramid is expected to have.</p></div>`;
     }
   }
 }

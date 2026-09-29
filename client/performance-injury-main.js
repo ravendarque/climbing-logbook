@@ -30,21 +30,21 @@ function logRowHtml(entry) {
     .join(", ");
   return `<div class="row-card" id="injury-log-${escapeHtml(entry.id)}">
     <span class="row-card-title">${escapeHtml(entry.name)}</span>
-    <p class="text-[.82rem] text-muted mt-1">${escapeHtml(formatDate(entry.date))}</p>
-    <p class="text-[.82rem] text-foreground mt-1">${moves}</p>
+    <p class="text-sm text-muted mt-1">${escapeHtml(formatDate(entry.date))}</p>
+    <p class="text-sm text-foreground mt-1">${moves}</p>
   </div>`;
 }
 
-const CAVEAT_HTML = `<p class="text-[.75rem] text-muted mb-3" id="injury-caveat">A pattern-noticing tool, not medical advice.</p>`;
+const CAVEAT_HTML = `<p class="text-xs text-muted mb-3" id="injury-caveat">A pattern-noticing tool, not medical advice.</p>`;
 
 function renderInjuryLog({ log, cluster }) {
   const headlineHtml = cluster
-    ? `<p class="text-[.95rem] font-semibold text-foreground mb-4" id="injury-headline">${escapeHtml(describeCluster(cluster))}</p>`
-    : `<p class="text-[.85rem] text-muted mb-4" id="injury-headline">Not enough data yet to spot a pattern -- keep tagging pain moves as they come up.</p>`;
+    ? `<p class="text-base font-semibold text-foreground mb-4" id="injury-headline">${escapeHtml(describeCluster(cluster))}</p>`
+    : `<p class="text-sm text-muted mb-4" id="injury-headline">Not enough data yet to spot a pattern -- keep tagging pain moves as they come up.</p>`;
 
   const logHtml = log.length
     ? `<div class="flex flex-col gap-2" id="injury-log-list">${log.map(logRowHtml).join("")}</div>`
-    : `<p class="text-[.85rem] text-muted" id="injury-log-empty">No pain flags logged yet. This is a good thing.</p>`;
+    : `<p class="text-sm text-muted" id="injury-log-empty">No pain flags logged yet. This is a good thing.</p>`;
 
   injuryRootEl.innerHTML = CAVEAT_HTML + headlineHtml + logHtml;
 }

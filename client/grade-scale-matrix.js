@@ -94,7 +94,7 @@ export function gradeScaleMatrixHtml(discipline) {
   const headerCells = scales
     .map(
       s =>
-        `<th scope="col" class="text-left font-semibold text-muted text-[.78rem] py-[.5rem] px-[.6rem] whitespace-nowrap">${escapeHtml(s.name)}</th>`,
+        `<th scope="col" class="text-left font-semibold text-muted text-sm py-[.5rem] px-[.6rem] whitespace-nowrap">${escapeHtml(s.name)}</th>`,
     )
     .join("");
   const bodyRows = rows
@@ -110,14 +110,14 @@ export function gradeScaleMatrixHtml(discipline) {
     .join("");
 
   const baseNote = BASE_TABLE_NOTE[discipline]
-    ? `<p class="text-[.82rem] text-muted leading-[1.7] mb-4">${BASE_TABLE_NOTE[discipline]}</p>`
+    ? `<p class="text-sm text-muted leading-[1.7] mb-4">${BASE_TABLE_NOTE[discipline]}</p>`
     : "";
 
   return `
-    <p class="text-[.82rem] text-muted leading-[1.7] mb-4">${CAVEATS_BY_DISCIPLINE[discipline] ?? ""}</p>
+    <p class="text-sm text-muted leading-[1.7] mb-4">${CAVEATS_BY_DISCIPLINE[discipline] ?? ""}</p>
     ${baseNote}
     <div class="overflow-x-auto rounded-app border border-border" id="grade-scale-matrix-${discipline}" tabindex="0" role="region" aria-label="${discipline === "sport" ? "Sport" : "Boulder"} grade conversions">
-      <table class="w-full border-collapse text-[.85rem]">
+      <table class="w-full border-collapse text-sm">
         <thead><tr>${headerCells}</tr></thead>
         <tbody>${bodyRows}</tbody>
       </table>
@@ -136,6 +136,6 @@ export function gradeScaleSourcesHtml() {
     .join("");
   return `
     <h2 class="sources-heading">Sources</h2>
-    <ol class="m-0 pl-[1.2rem] text-[.84rem] leading-[1.6] text-foreground [&>li+li]:mt-[10px]">${items}</ol>
+    <ol class="m-0 pl-[1.2rem] text-sm leading-[1.6] text-foreground [&>li+li]:mt-[10px]">${items}</ol>
   `;
 }
