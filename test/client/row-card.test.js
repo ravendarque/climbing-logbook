@@ -30,7 +30,7 @@ describe("rowCardHtml", () => {
       status: "3 sends logged",
       controlHtml: "<button>Go</button>",
     });
-    expect(html).toContain("text-[.78rem] text-accent-ink mt-1");
+    expect(html).toContain("text-sm text-accent-ink mt-1");
     expect(html).toContain("3 sends logged");
   });
 

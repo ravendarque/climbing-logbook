@@ -268,6 +268,10 @@ decision and why it's an ongoing constraint, not a single shipped feature.
   `<th>`.
 - Modals need `role="dialog"`, `aria-modal="true"`, a focus trap, and
   Escape-to-close.
+- **Text sizes come from the type scale**: `text-xs` 12px, `text-sm` 14px,
+  `text-base` 16px, `text-lg` 18px, `text-2xl` 24px, `text-3xl` 32px
+  (`styles/tailwind.css`, `@theme`). No arbitrary `text-[…]` sizes, and
+  nothing a reader needs is smaller than 12px.
 - **Links in running text are underlined**, not told apart by colour alone
   (WCAG 1.4.1).
 - **Every page passes axe's WCAG 2.2 AA rules** at phone width in both
