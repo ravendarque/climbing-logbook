@@ -4,7 +4,7 @@ import { OWNED_ORIGIN, ownedRouteUrl } from "./owned-route-url.js";
 
 export const OWNER_POOL_PATH = "e2e/.auth/owners.json";
 const OWNER_NEXT_PATH = "e2e/.auth/owners-next";
-export const OWNER_POOL_SIZE = 200;
+export const OWNER_POOL_SIZE = 300;
 
 function ownerIdentity(username) {
   return { username, email: `${username}@climbinglogbook.local`, password: "correct-horse-battery-staple" };

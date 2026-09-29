@@ -29,29 +29,29 @@ function rowHtml(row, listLabel) {
   const { limb, side, holdType, movementStyle, wallAngle } = row;
   const limbSideValue = `${limb}-${side}`;
   return `<div class="row-card mb-2" data-move-row>
-    <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-[.9rem] mb-2 hover:text-foreground" data-remove-row aria-label="Remove ${escapeHtml(listLabel)}">✕ Remove</button>
+    <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-sm mb-2 hover:text-foreground" data-remove-row aria-label="Remove ${escapeHtml(listLabel)}">✕ Remove</button>
     <div class="grid gap-2" style="grid-template-columns: repeat(auto-fit, minmax(85px, 1fr));">
       <label class="block">
-        <span class="text-[.65rem] text-muted block mb-1">Limb</span>
-        <select class="w-full bg-surface border border-field-border rounded-app px-2 py-1 text-[.85rem] text-foreground" data-field="limbSide">
+        <span class="text-xs text-muted block mb-1">Limb</span>
+        <select class="w-full bg-surface border border-field-border rounded-app px-2 py-1 text-sm text-foreground" data-field="limbSide">
           ${LIMB_SIDE_OPTIONS.map(o => `<option value="${o.value}"${o.value === limbSideValue ? " selected" : ""}>${escapeHtml(o.label)}</option>`).join("")}
         </select>
       </label>
       <label class="block">
-        <span class="text-[.65rem] text-muted block mb-1">Hold type</span>
-        <select class="w-full bg-surface border border-field-border rounded-app px-2 py-1 text-[.85rem] text-foreground" data-field="holdType">
+        <span class="text-xs text-muted block mb-1">Hold type</span>
+        <select class="w-full bg-surface border border-field-border rounded-app px-2 py-1 text-sm text-foreground" data-field="holdType">
           ${optionsHtml(HOLD_TYPES_BY_LIMB[limb], holdType)}
         </select>
       </label>
       <label class="block">
-        <span class="text-[.65rem] text-muted block mb-1">Movement</span>
-        <select class="w-full bg-surface border border-field-border rounded-app px-2 py-1 text-[.85rem] text-foreground" data-field="movementStyle">
+        <span class="text-xs text-muted block mb-1">Movement</span>
+        <select class="w-full bg-surface border border-field-border rounded-app px-2 py-1 text-sm text-foreground" data-field="movementStyle">
           ${optionsHtml(MOVEMENT_STYLES_BY_LIMB[limb], movementStyle)}
         </select>
       </label>
       <label class="block">
-        <span class="text-[.65rem] text-muted block mb-1">Wall angle</span>
-        <select class="w-full bg-surface border border-field-border rounded-app px-2 py-1 text-[.85rem] text-foreground" data-field="wallAngle">
+        <span class="text-xs text-muted block mb-1">Wall angle</span>
+        <select class="w-full bg-surface border border-field-border rounded-app px-2 py-1 text-sm text-foreground" data-field="wallAngle">
           ${optionsHtml(VALID_WALL_ANGLES, wallAngle)}
         </select>
       </label>

@@ -10,7 +10,7 @@ const EDIT_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-
 const PENDING_ICON = `<svg class="inline-block w-[.8rem] h-[.8rem] align-[-1px] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
 
 const TH_BASE =
-  "text-left px-[.65rem] py-[.35rem] text-muted font-medium text-[.72rem] uppercase tracking-wider border-b border-border whitespace-nowrap";
+  "text-left px-[.65rem] py-[.35rem] text-muted font-medium text-xs uppercase tracking-wider border-b border-border whitespace-nowrap";
 const SORT_BTN =
   "inline-flex items-center bg-transparent border-0 p-0 font-medium uppercase tracking-wider text-inherit cursor-pointer hover:text-foreground";
 const TD_BASE = "px-[.65rem] py-[.35rem] align-middle";
@@ -35,9 +35,9 @@ export const setDiffersFrom = (set, defaults) => set.size !== defaults.length ||
 
 export function shellHtml(allDisciplines) {
   const toggleBtn = (dataAttr, value, iconOrLabelId, label) => `
-    <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-[color-mix(in_srgb,var(--color-accent)_10%,var(--color-surface))] has-checked:text-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] min-h-[2.6rem] text-left first:rounded-t-app last:rounded-b-app shadow-[inset_0_-1px_0_var(--color-border)] last:shadow-none">
+    <label class="toggle-btn bg-surface text-muted text-sm font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-[color-mix(in_srgb,var(--color-accent)_10%,var(--color-surface))] has-checked:text-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] min-h-[2.6rem] text-left first:rounded-t-app last:rounded-b-app shadow-[inset_0_-1px_0_var(--color-border)] last:shadow-none">
       <input type="checkbox" class="peer sr-only" data-${dataAttr}="${value}">
-      ${iconOrLabelId}<span class="text-[.58rem] font-bold uppercase tracking-[.03em] whitespace-nowrap"${label.id ? ` id="${label.id}"` : ""}>${label.text}</span>
+      ${iconOrLabelId}<span class="text-xs font-bold uppercase tracking-[.03em] whitespace-nowrap"${label.id ? ` id="${label.id}"` : ""}>${label.text}</span>
       <span class="ml-auto inline-flex items-center justify-center w-4 h-4 rounded-[3px] border border-border shrink-0 text-transparent peer-checked:bg-accent peer-checked:border-accent peer-checked:text-white transition-colors duration-150">
         <svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>
       </span>
@@ -45,7 +45,7 @@ export function shellHtml(allDisciplines) {
 
   const disciplineGroup = allDisciplines
     ? `
-        <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mb-[.4rem]" id="filter-discipline-label">Discipline</div>
+        <div class="text-xs font-bold uppercase tracking-wider text-muted mb-[.4rem]" id="filter-discipline-label">Discipline</div>
         <fieldset class="border border-border rounded-app flex flex-col w-full min-w-0 mb-[.9rem]" id="filter-discipline-group" aria-labelledby="filter-discipline-label">
           ${DISCIPLINE_ORDER.map(d => toggleBtn("discipline", d, "", { text: disciplineLabel(d) })).join("")}
         </fieldset>`
@@ -58,7 +58,7 @@ export function shellHtml(allDisciplines) {
     ? ""
     : `
         <div class="mt-[.9rem]" id="filter-grade-tier-wrap">
-          <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mb-[.4rem]" id="filter-grade-tier-label">Grade</div>
+          <div class="text-xs font-bold uppercase tracking-wider text-muted mb-[.4rem]" id="filter-grade-tier-label">Grade</div>
           <fieldset class="border border-border rounded-app flex flex-col w-full min-w-0" id="filter-grade-tier-group" aria-labelledby="filter-grade-tier-label">
             ${GRADE_TIERS.map(tier => toggleBtn("grade-tier", tier.id, tierSwatch(tier.id), { text: tier.label })).join("")}
           </fieldset>
@@ -66,7 +66,7 @@ export function shellHtml(allDisciplines) {
 
   const sportStyleFilter = `
       <div class="mt-[.9rem]" id="filter-sport-style-wrap" hidden>
-        <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mb-[.4rem]" id="filter-sport-style-label">Style</div>
+        <div class="text-xs font-bold uppercase tracking-wider text-muted mb-[.4rem]" id="filter-sport-style-label">Style</div>
         <fieldset class="border border-border rounded-app flex flex-col w-full min-w-0" id="filter-sport-style-group" aria-labelledby="filter-sport-style-label">
           ${VALID_SPORT_STYLES.map(style => toggleBtn("sport-style", style, "", { text: SPORT_STYLE_LABEL[style] })).join("")}
         </fieldset>
@@ -74,14 +74,14 @@ export function shellHtml(allDisciplines) {
 
   return `
   <div class="flex flex-wrap items-center gap-3 mb-6">
-    <input class="flex-[0_1_220px] min-w-[140px] bg-surface border border-border rounded-app px-[.85rem] py-[.4rem] text-foreground text-[.9rem] outline-none placeholder:text-muted focus:border-accent" id="search" placeholder="Search entries…" autocomplete="off">
+    <input class="flex-[0_1_220px] min-w-[140px] bg-surface border border-border rounded-app px-[.85rem] py-[.4rem] text-foreground text-sm outline-none placeholder:text-muted focus:border-accent" id="search" placeholder="Search entries…" autocomplete="off">
     <div class="filter-wrap relative ml-auto">
       <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&.active]:border-accent [&.active]:text-accent-ink [&.active]:bg-[color-mix(in_srgb,var(--color-accent)_12%,var(--color-surface))]" id="filter-btn" aria-label="Filter" aria-expanded="false">
         <svg class="w-[1.1rem] h-[1.1rem] stroke-current fill-none" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"></path></svg>
       </button>
       <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 bg-background border border-border rounded-app p-[.9rem] w-80 max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="filter-panel" hidden>
         ${disciplineGroup}
-        <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mb-[.4rem]" id="filter-status-label">Status</div>
+        <div class="text-xs font-bold uppercase tracking-wider text-muted mb-[.4rem]" id="filter-status-label">Status</div>
         <fieldset class="border border-border rounded-app flex flex-col w-full min-w-0" id="filter-status-group" aria-labelledby="filter-status-label">
           ${toggleBtn("filter", "flash", `<span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="flash"></span>`, { id: "filter-flash-label", text: "Flash" })}
           ${toggleBtn("filter", "send", `<span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="send"></span>`, { id: "filter-send-label", text: "Send" })}
@@ -92,14 +92,14 @@ export function shellHtml(allDisciplines) {
         ${gradeFilter}
         ${sportStyleFilter}
 
-        <button type="button" class="block w-full mt-[.9rem] bg-transparent border-0 text-muted text-[.78rem] cursor-pointer text-center hover:text-foreground" id="filter-clear-btn">Reset filters</button>
+        <button type="button" class="block w-full mt-[.9rem] bg-transparent border-0 text-muted text-sm cursor-pointer text-center hover:text-foreground" id="filter-clear-btn">Reset filters</button>
       </div>
     </div>
   </div>
 
   <div class="flex items-center justify-between mb-2">
     <div class="flex flex-wrap items-center gap-2" id="entries-table-actions"></div>
-    <button type="button" class="bg-transparent border-0 text-muted text-[.8rem] font-semibold cursor-pointer px-[.3rem] py-[.2rem] hover:text-accent-ink" id="collapse-all-btn">Expand all</button>
+    <button type="button" class="bg-transparent border-0 text-muted text-sm font-semibold cursor-pointer px-[.3rem] py-[.2rem] hover:text-accent-ink" id="collapse-all-btn">Expand all</button>
   </div>
 
   <div id="sections"></div>
@@ -107,10 +107,10 @@ export function shellHtml(allDisciplines) {
   <div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-center justify-center px-4 py-6 overflow-y-auto" id="notes-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="notes-modal-title" tabindex="-1">
     <div class="bg-background border border-border rounded-app p-5 w-full max-w-[380px]">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-[1.15rem] font-bold text-accent-ink" id="notes-modal-title">Notes</h2>
-        <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-[1.1rem] leading-none p-[.2rem] hover:text-foreground" id="notes-close" aria-label="Close">✕</button>
+        <h2 class="text-lg font-bold text-accent-ink" id="notes-modal-title">Notes</h2>
+        <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-lg leading-none p-[.2rem] hover:text-foreground" id="notes-close" aria-label="Close">✕</button>
       </div>
-      <p class="text-foreground text-[.95rem] whitespace-pre-wrap" id="notes-modal-text"></p>
+      <p class="text-foreground text-base whitespace-pre-wrap" id="notes-modal-text"></p>
     </div>
   </div>
 `;
@@ -129,15 +129,15 @@ export function renderShellSectionHtml({ key, locationId, shellCount }, { locati
         ${
           locationCountry
             ? `<span class="inline-flex items-center gap-[.3rem] shrink-0">
-          <span class="max-[600px]:hidden text-[.78rem] text-muted font-normal whitespace-nowrap">${escapeHtml(locationCountry.name)}</span>
+          <span class="max-[600px]:hidden text-sm text-muted font-normal whitespace-nowrap">${escapeHtml(locationCountry.name)}</span>
           <span role="img" aria-label="${escapeHtml(locationCountry.name)}">${escapeHtml(locationCountry.flag)}</span>
         </span>`
             : ""
         }
-        <span class="inline-flex items-center justify-center min-w-[1.4rem] h-[1.4rem] px-1 rounded-full bg-[color-mix(in_srgb,var(--color-text)_12%,transparent)] text-muted text-[.72rem] font-semibold shrink-0" aria-label="${shellCount} ${shellCount === 1 ? "entry" : "entries"}">${shellCount}</span>
-        <span class="text-muted text-[.8rem] transition-transform duration-200 shrink-0 ${isCollapsed ? "-rotate-90" : ""}">▾</span>
+        <span class="inline-flex items-center justify-center min-w-[1.4rem] h-[1.4rem] px-1 rounded-full bg-[color-mix(in_srgb,var(--color-text)_12%,transparent)] text-muted text-xs font-semibold shrink-0" aria-label="${shellCount} ${shellCount === 1 ? "entry" : "entries"}">${shellCount}</span>
+        <span class="text-muted text-sm transition-transform duration-200 shrink-0 ${isCollapsed ? "-rotate-90" : ""}">▾</span>
       </div>
-      ${isCollapsed ? "" : `<div class="px-[.9rem] py-6 text-center text-muted text-[.85rem]" aria-live="polite">${isLoading ? "Loading…" : ""}</div>`}
+      ${isCollapsed ? "" : `<div class="px-[.9rem] py-6 text-center text-muted text-sm" aria-live="polite">${isLoading ? "Loading…" : ""}</div>`}
     </div>`;
 }
 
@@ -181,8 +181,8 @@ export function renderLocationSectionHtml(
         <span class="font-medium truncate inline-block max-w-full align-bottom ${e._pendingDelete ? "line-through text-muted" : ""}">${escapeHtml(e.name)}</span>
         ${pendingBadge}
       </td>
-      <td class="${TD_BASE} text-muted text-[.82rem] truncate">${escapeHtml(placeOf(e, places).area)}</td>
-      <td class="${TD_BASE} text-muted text-[.82rem] whitespace-nowrap">${escapeHtml(formatDate(e.date))}</td>
+      <td class="${TD_BASE} text-muted text-sm truncate">${escapeHtml(placeOf(e, places).area)}</td>
+      <td class="${TD_BASE} text-muted text-sm whitespace-nowrap">${escapeHtml(formatDate(e.date))}</td>
       <td class="${TD_BASE} text-center">${e.notes ? `<button type="button" class="notes-btn border-0 bg-transparent cursor-pointer text-muted inline-flex align-middle p-[.2rem] hover:text-accent-ink" data-notes-id="${escapeHtml(e.id)}" aria-label="View notes"><svg class="w-[.95rem] h-[.95rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg></button>` : ""}</td>
       <td class="${TD_BASE} text-center">${e.video ? `<a class="inline-flex align-middle p-[.2rem] text-muted hover:text-accent-ink" href="${escapeHtml(e.video)}" target="_blank" rel="noopener noreferrer" title="Watch video" aria-label="Watch video"><svg class="w-[.95rem] h-[.95rem] fill-current" viewBox="0 0 24 24"><path d="M6 4.5v15l14-7.5z"></path></svg></a>` : ""}</td>
       <td class="${TD_BASE} text-center">${editable ? `<button type="button" class="edit-btn border-0 bg-transparent cursor-pointer text-muted inline-flex p-[.2rem] hover:text-accent-ink [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:stroke-current [&_svg]:fill-none" data-edit-id="${escapeHtml(e.id)}" aria-label="Edit">${EDIT_ICON}</button>` : ""}</td>
@@ -200,16 +200,16 @@ export function renderLocationSectionHtml(
         ${
           locationCountry
             ? `<span class="inline-flex items-center gap-[.3rem] shrink-0">
-          <span class="max-[600px]:hidden text-[.78rem] text-muted font-normal whitespace-nowrap">${escapeHtml(locationCountry.name)}</span>
+          <span class="max-[600px]:hidden text-sm text-muted font-normal whitespace-nowrap">${escapeHtml(locationCountry.name)}</span>
           <span role="img" aria-label="${escapeHtml(locationCountry.name)}">${escapeHtml(locationCountry.flag)}</span>
         </span>`
             : ""
         }
-        <span class="inline-flex items-center justify-center min-w-[1.4rem] h-[1.4rem] px-1 rounded-full bg-[color-mix(in_srgb,var(--color-text)_12%,transparent)] text-muted text-[.72rem] font-semibold shrink-0" aria-label="${sorted.length} ${sorted.length === 1 ? "entry" : "entries"}">${sorted.length}</span>
-        <span class="text-muted text-[.8rem] transition-transform duration-200 shrink-0 ${isCollapsed ? "-rotate-90" : ""}">▾</span>
+        <span class="inline-flex items-center justify-center min-w-[1.4rem] h-[1.4rem] px-1 rounded-full bg-[color-mix(in_srgb,var(--color-text)_12%,transparent)] text-muted text-xs font-semibold shrink-0" aria-label="${sorted.length} ${sorted.length === 1 ? "entry" : "entries"}">${sorted.length}</span>
+        <span class="text-muted text-sm transition-transform duration-200 shrink-0 ${isCollapsed ? "-rotate-90" : ""}">▾</span>
       </div>
       <div class="overflow-x-auto ${isCollapsed ? "hidden" : ""}">
-        <table class="w-full border-collapse text-[.88rem] min-w-[42.5rem]" style="table-layout:fixed">
+        <table class="w-full border-collapse text-sm min-w-[42.5rem]" style="table-layout:fixed">
           <colgroup>
             <col style="width:2.5rem">
             <col style="width:3.75rem">
@@ -241,13 +241,13 @@ export function renderLocationSectionHtml(
             </tr>
           </thead>
           <tbody>
-            ${rows || `<tr><td class="text-center text-muted p-8 text-[.9rem]" colspan="8">No problems match.</td></tr>`}
+            ${rows || `<tr><td class="text-center text-muted p-8 text-sm" colspan="8">No problems match.</td></tr>`}
           </tbody>
         </table>
         ${
           hasMore
             ? `
-        <div class="flex items-center justify-center gap-3 flex-wrap px-[.9rem] py-[.6rem] border-t border-border text-[.82rem]">
+        <div class="flex items-center justify-center gap-3 flex-wrap px-[.9rem] py-[.6rem] border-t border-border text-sm">
           <span class="text-muted">${visibleRows.length} of ${sorted.length} shown</span>
           <button type="button" class="show-more-btn border-0 bg-transparent cursor-pointer text-accent-ink font-medium hover:underline" data-section-key="${escapeHtml(key)}">Show more</button>
           <button type="button" class="show-all-btn border-0 bg-transparent cursor-pointer text-accent-ink font-medium hover:underline" data-section-key="${escapeHtml(key)}">Show all</button>

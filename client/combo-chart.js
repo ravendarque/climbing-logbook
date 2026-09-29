@@ -128,7 +128,7 @@ export function renderComboChartHtml({ bucketLabels, bars, lines, headline }) {
   const maxValue = barMaxValue(bars);
   const y = barScale(maxValue);
   return `<div>
-    <p class="text-[.95rem] font-semibold text-foreground mb-3">${escapeHtml(headline)}</p>
+    <p class="text-base font-semibold text-foreground mb-3">${escapeHtml(headline)}</p>
     <svg viewBox="0 0 ${CHART_WIDTH} ${CHART_HEIGHT}" class="w-full h-auto">
       <rect x="${MARGIN.left}" y="${MARGIN.top}" width="${PLOT_WIDTH}" height="${PLOT_HEIGHT}" class="fill-none stroke-border" stroke-width="1" />
       <line x1="${MARGIN.left}" y1="${MARGIN.top + PLOT_HEIGHT}" x2="${MARGIN.left + PLOT_WIDTH}" y2="${MARGIN.top + PLOT_HEIGHT}" class="stroke-border" stroke-width="1" />

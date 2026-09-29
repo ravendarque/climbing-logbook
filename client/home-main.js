@@ -14,8 +14,8 @@ const list = document.getElementById("demo-picker-list");
 list.innerHTML = DEMO_PERSONAS.map(
   p => `
   <a class="flex flex-col gap-[.15rem] px-[.7rem] py-[.6rem] rounded-[calc(var(--radius-app)-2px)] text-left no-underline hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)]" href="${APP_ORIGIN}/${encodeURIComponent(p.username)}/log">
-    <span class="text-[.9rem] font-bold text-foreground">${p.label}</span>
-    <span class="text-[.78rem] text-muted">${p.description}</span>
+    <span class="text-sm font-bold text-foreground">${p.label}</span>
+    <span class="text-sm text-muted">${p.description}</span>
   </a>
 `,
 ).join("");

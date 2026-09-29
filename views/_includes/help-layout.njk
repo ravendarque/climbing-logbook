@@ -51,7 +51,7 @@ menu: help
         {%- for entry in collections.all | eleventyNavigation %}
         <li>
           <a
-            class="block px-3 py-[.4rem] rounded-app text-[.85rem] {% if entry.url == page.url %}bg-surface text-accent-ink font-semibold{% else %}text-muted hover:text-foreground{% endif %}"
+            class="block px-3 py-[.4rem] rounded-app text-sm {% if entry.url == page.url %}bg-surface text-accent-ink font-semibold{% else %}text-muted hover:text-foreground{% endif %}"
             href="{{ entry.url }}"
             {% if entry.url == page.url %}aria-current="page"{% endif %}
           >{{ entry.title }}</a>

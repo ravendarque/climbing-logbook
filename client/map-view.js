@@ -289,7 +289,7 @@ export function createMapView({ store, allDisciplines = false }) {
   function statBlock(type, countryName) {
     const { flashes, sends, projects } = countryStatusBreakdown(countryName, type);
     return `
-      <div class="flex flex-col gap-[.35rem] text-[.82rem]">
+      <div class="flex flex-col gap-[.35rem] text-sm">
         ${statRow(STATUS_ICONS.flash, flashLabel(type), flashes, flashLabel(type), flashLabel(type, true))}
         ${statRow(STATUS_ICONS.send, sendLabel(type), sends, sendLabel(type), sendLabel(type, true))}
         ${statRow(STATUS_ICONS.project, "Project", projects, "Project", "Projects")}
@@ -304,7 +304,7 @@ export function createMapView({ store, allDisciplines = false }) {
             .map(
               type => `
             <div class="flex-1 min-w-0">
-              <div class="text-[.68rem] font-bold uppercase tracking-wider text-muted mb-[.3rem]">${disciplineLabel(type)}</div>
+              <div class="text-xs font-bold uppercase tracking-wider text-muted mb-[.3rem]">${disciplineLabel(type)}</div>
               ${statBlock(type, countryName)}
             </div>`,
             )
@@ -317,7 +317,7 @@ export function createMapView({ store, allDisciplines = false }) {
           ${c ? `<span role="img" aria-label="${escapeHtml(c.name)}">${escapeHtml(c.flag)}</span>` : ""}
           ${escapeHtml(countryName)}
         </span>
-        <button type="button" class="bg-transparent border-0 text-muted cursor-pointer p-0 leading-none text-[1rem] hover:text-foreground" id="map-pin-popover-close" aria-label="Close">✕</button>
+        <button type="button" class="bg-transparent border-0 text-muted cursor-pointer p-0 leading-none text-base hover:text-foreground" id="map-pin-popover-close" aria-label="Close">✕</button>
       </div>
       ${body}`;
   }
@@ -451,8 +451,8 @@ export function createMapView({ store, allDisciplines = false }) {
       if (mapLoadError) {
         container.innerHTML = `
           <div class="bg-surface border border-border rounded-app p-6 mb-5 text-center">
-            <p class="text-[.85rem] text-muted mb-3">You need to be online to view the map.</p>
-            <button type="button" class="text-[.85rem] font-semibold text-accent-ink bg-transparent border-0 cursor-pointer" id="map-load-retry">Retry</button>
+            <p class="text-sm text-muted mb-3">You need to be online to view the map.</p>
+            <button type="button" class="text-sm font-semibold text-accent-ink bg-transparent border-0 cursor-pointer" id="map-load-retry">Retry</button>
           </div>`;
         document.getElementById("map-load-retry").addEventListener("click", () => {
           mapLoadError = null;
@@ -462,7 +462,7 @@ export function createMapView({ store, allDisciplines = false }) {
         ensureMapVariantLoading(variant);
         container.innerHTML = `
           <div class="bg-surface border border-border rounded-app p-6 mb-5 text-center">
-            <p class="text-[.85rem] text-muted mb-2" id="map-load-progress-label">Loading map…</p>
+            <p class="text-sm text-muted mb-2" id="map-load-progress-label">Loading map…</p>
             <div class="h-1.5 bg-border rounded-full overflow-hidden">
               <div class="h-full bg-accent transition-[width] duration-150" id="map-load-progress-bar" style="width: 0%"></div>
             </div>
@@ -507,7 +507,7 @@ export function createMapView({ store, allDisciplines = false }) {
 
     container.innerHTML = `
       <div class="bg-surface border border-border rounded-app overflow-hidden mb-5">
-        <svg viewBox="0 0 ${MAP_WIDTH} ${mapData.height}" role="img" aria-label="${mapAriaLabel}" class="w-full h-auto block touch-none cursor-grab">
+        <svg viewBox="0 0 ${MAP_WIDTH} ${mapData.height}" role="group" aria-label="${mapAriaLabel}" class="w-full h-auto block touch-none cursor-grab">
           <path d="${mapData.graticulePath}" class="stroke-border fill-none" stroke-width="0.5"></path>
           <path d="${mapData.worldLandPath}" class="fill-border stroke-none"></path>
           <path d="${mapData.countryBordersPath}" class="stroke-[color-mix(in_srgb,var(--color-accent)_20%,var(--color-muted)_80%)] fill-none" stroke-width="0.35" stroke-linejoin="round"></path>

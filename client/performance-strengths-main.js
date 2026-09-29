@@ -28,7 +28,7 @@ function cellRowHtml(cell) {
   const label = `${humanize(`${cell.side}-${cell.limb}`)} · ${humanize(cell.holdType)} · ${humanize(cell.movementStyle)} · ${humanize(cell.wallAngle)}`;
   return `<div class="row-card">
     <span class="row-card-title">${escapeHtml(label)}</span>
-    <p class="text-[.82rem] text-muted mt-1">${pct}% hardest (${cell.hardestCount}/${cell.total})</p>
+    <p class="text-sm text-muted mt-1">${pct}% hardest (${cell.hardestCount}/${cell.total})</p>
   </div>`;
 }
 
@@ -56,10 +56,10 @@ async function onAnchorChange(select) {
     if (requestId !== latestAnchorRequestId) return; // a newer selection has already superseded this response
     rankedListEl.innerHTML = ranked.length
       ? ranked.map(cellRowHtml).join("")
-      : `<p class="text-[.85rem] text-muted">No combinations for this anchor clear the confidence gate yet.</p>`;
+      : `<p class="text-sm text-muted">No combinations for this anchor clear the confidence gate yet.</p>`;
   } catch {
     if (requestId !== latestAnchorRequestId) return;
-    rankedListEl.innerHTML = `<p class="text-[.85rem] text-muted">Couldn't load this drill-down -- try again.</p>`;
+    rankedListEl.innerHTML = `<p class="text-sm text-muted">Couldn't load this drill-down -- try again.</p>`;
   }
 }
 
@@ -85,14 +85,14 @@ function anchorOptionsHtml(anchors) {
 
 function renderStrengths({ headline, anchors }) {
   const headlineHtml = headline
-    ? `<p class="text-[.95rem] font-semibold text-foreground mb-4" id="strengths-headline">${escapeHtml(headline.text)}</p>`
-    : `<p class="text-[.85rem] text-muted mb-4" id="strengths-headline">Not enough data yet to spot a pattern -- keep tagging moves as you climb.</p>`;
+    ? `<p class="text-base font-semibold text-foreground mb-4" id="strengths-headline">${escapeHtml(headline.text)}</p>`
+    : `<p class="text-sm text-muted mb-4" id="strengths-headline">Not enough data yet to spot a pattern -- keep tagging moves as you climb.</p>`;
 
   // On headline, not anchors: some tags can exist before any combination clears the gate.
   const pickerHtml = headline
     ? `<div class="mb-4">
-        <label class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 block" for="strengths-anchor-select">Drill into</label>
-        <select class="w-full bg-surface border border-field-border rounded-app px-2 py-2 text-[.9rem]" id="strengths-anchor-select">
+        <label class="text-xs font-semibold uppercase tracking-[.07em] text-muted mb-2 block" for="strengths-anchor-select">Drill into</label>
+        <select class="w-full bg-surface border border-field-border rounded-app px-2 py-2 text-sm" id="strengths-anchor-select">
           <option value="">Choose one…</option>
           ${anchorOptionsHtml(anchors)}
         </select>

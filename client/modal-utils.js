@@ -75,13 +75,13 @@ export function createSearchableListbox({
       ? filtered
           .map(
             (item, i) => `
-          <li id="${optionId(i)}" role="option" data-key="${escapeHtml(getItemKey(item))}" aria-selected="${isSelected(item)}" class="flex items-center justify-between gap-[.5rem] px-[.6rem] py-[.5rem] rounded-[calc(var(--radius-app)-2px)] cursor-pointer text-[.9rem] text-foreground hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible">
+          <li id="${optionId(i)}" role="option" data-key="${escapeHtml(getItemKey(item))}" aria-selected="${isSelected(item)}" class="flex items-center justify-between gap-[.5rem] px-[.6rem] py-[.5rem] rounded-[calc(var(--radius-app)-2px)] cursor-pointer text-sm text-foreground hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible">
             ${renderItemContent(item)}
             <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
           </li>`,
           )
           .join("")
-      : `<li class="px-[.6rem] py-[.5rem] text-[.85rem] text-muted">No matches</li>`;
+      : `<li class="px-[.6rem] py-[.5rem] text-sm text-muted">No matches</li>`;
     updateActiveDescendant();
   }
 
@@ -158,7 +158,7 @@ export function renderOptionList(listboxEl, items, { getKey, getLabel, isSelecte
   listboxEl.innerHTML = items
     .map(
       item => `
-    <li role="option" data-key="${escapeHtml(getKey(item))}" aria-selected="${isSelected(item)}" class="flex items-center justify-between gap-[.5rem] px-[.6rem] py-[.5rem] rounded-[calc(var(--radius-app)-2px)] cursor-pointer text-[.85rem] text-foreground hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible">
+    <li role="option" data-key="${escapeHtml(getKey(item))}" aria-selected="${isSelected(item)}" class="flex items-center justify-between gap-[.5rem] px-[.6rem] py-[.5rem] rounded-[calc(var(--radius-app)-2px)] cursor-pointer text-sm text-foreground hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible">
       ${escapeHtml(getLabel(item))}
       <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
     </li>`,
