@@ -10,7 +10,7 @@ export const STATUS_ICONS = {
     </g>
   </svg>`,
 
-  send: `<svg width="14" height="14" viewBox="-33.1 -30.6 257.2 257.2" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  send: `<svg width="14" height="14" viewBox="-21.4 -18.9 233.8 233.8" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
     <g transform="matrix(1,0,0,1,-2.078254,0.226197)">
         <g transform="matrix(2.6,0,0,2.6,-30,-30)">
             <g transform="matrix(1.275565,-0.141258,0.145283,1.311915,-7.95315,4.582837)">
@@ -21,7 +21,7 @@ export const STATUS_ICONS = {
     </g>
   </svg>`,
 
-  project: `<svg width="14" height="14" viewBox="-13.6 -14.8 127.7 127.7" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  project: `<svg width="14" height="14" viewBox="-7.8 -9.0 116.1 116.1" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
     <g id="Background" transform="matrix(0.707616,0.706597,-0.706597,0.707616,49.959271,-14.535333)">
         <path d="M52.557,20.38C52.557,20.38 76.098,74.44 76.159,74.5C76.868,75.201 77.114,74.817 77.819,75.515C77.726,75.862 77.845,76.244 77.752,76.591C77.718,76.718 77.51,77.495 76.541,77.687C76.197,77.754 75.834,77.615 75.491,77.683C75.036,77.276 75.05,76.467 74.595,76.06C74.339,75.831 20.74,52.056 20.74,52.056L52.557,20.38Z" style="fill:rgb(215,27,37);"/>
         <path d="M70.59,2.278C71.012,2.73 71.633,2.417 71.815,4.467C72.084,7.495 77.757,74.635 77.819,75.515C77.114,74.817 76.868,75.201 76.159,74.5C76.098,74.44 53.182,22.371 52.557,20.38C55.401,18.384 55.197,18.167 57.682,15.682C66.781,6.584 67.364,6.055 68.244,5.257C68.96,4.607 68.893,4.56 70.59,2.278Z" style="fill:rgb(254,63,83);"/>

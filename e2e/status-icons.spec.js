@@ -1,6 +1,6 @@
 import { expect, gotoSyncedLog, test } from "./owner.js";
 
-test("Flash, Send and Project draw their ink as large as Archived's, so no status icon looks smaller", async ({
+test("Flash matches Archived's size, and Send and Project run 2px larger, so none looks smaller", async ({
   page,
   owner,
 }) => {
@@ -21,7 +21,12 @@ test("Flash, Send and Project draw their ink as large as Archived's, so no statu
     return sides;
   });
 
-  for (const icon of ["flash", "send", "project"]) {
-    expect(Math.abs(longestInkSide[icon] - longestInkSide.archived), icon).toBeLessThanOrEqual(1);
+  const expected = {
+    flash: longestInkSide.archived,
+    send: longestInkSide.archived + 2,
+    project: longestInkSide.archived + 2,
+  };
+  for (const [icon, side] of Object.entries(expected)) {
+    expect(Math.abs(longestInkSide[icon] - side), icon).toBeLessThanOrEqual(1);
   }
 });
