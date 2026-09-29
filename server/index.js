@@ -59,18 +59,21 @@ export default {
       return env.ASSETS.fetch(new Request(new URL("/login/", request.url), request));
     }
 
-    if (hostname.startsWith("my.") && method === "GET") {
+    const isRead = method === "GET" || method === "HEAD";
+    const forMethod = response => (method === "HEAD" ? new Response(null, response) : response);
+
+    if (hostname.startsWith("my.") && isRead) {
       const ownerRoute = matchOwnerRoute(pathname);
-      if (ownerRoute) return handleOwnedRoute(request, env, ownerRoute.username, ownerRoute.page);
+      if (ownerRoute) return forMethod(await handleOwnedRoute(request, env, ownerRoute.username, ownerRoute.page));
 
       const match = pathname.match(/^\/([^/]+)\/?$/);
-      if (match) return handlePublicProfile(request, env, match[1]);
+      if (match) return forMethod(await handlePublicProfile(request, env, match[1]));
     }
 
     // Beta enrolment is checked by the page (client/channel-guard.js): a cached shell never reaches here.
-    if (hostname.startsWith("beta.") && method === "GET") {
+    if (hostname.startsWith("beta.") && isRead) {
       const ownerRoute = matchOwnerRoute(pathname);
-      if (ownerRoute) return handleOwnedRoute(request, env, ownerRoute.username, ownerRoute.page);
+      if (ownerRoute) return forMethod(await handleOwnedRoute(request, env, ownerRoute.username, ownerRoute.page));
     }
 
     const perHostAsset = perHostAssetPath(hostname, pathname);

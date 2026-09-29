@@ -1,7 +1,7 @@
 import { escapeHtml } from "../escape-html.js";
 import { formatDate } from "../../shared/date-helpers.js";
 import { placeOf, sortEntries } from "../entries.js";
-import { gradeColor, gradeInk, gradeTierColor } from "../../shared/grade-data.js";
+import { gradeColor, gradeTierColor } from "../../shared/grade-data.js";
 import { VALID_SPORT_STYLES } from "../../shared/entry-schema.js";
 import { disciplineLabel, statusBadge } from "../status.js";
 import { COUNTRY_BY_NAME } from "../countries.js";
@@ -11,7 +11,8 @@ const PENDING_ICON = `<svg class="inline-block w-[.8rem] h-[.8rem] align-[-1px] 
 
 const TH_BASE =
   "text-left px-[.65rem] py-[.35rem] text-muted font-medium text-[.72rem] uppercase tracking-wider border-b border-border whitespace-nowrap";
-const TH_SORTABLE = "cursor-pointer hover:text-foreground";
+const SORT_BTN =
+  "inline-flex items-center bg-transparent border-0 p-0 font-medium uppercase tracking-wider text-inherit cursor-pointer hover:text-foreground";
 const TD_BASE = "px-[.65rem] py-[.35rem] align-middle";
 
 export const DISCIPLINE_ORDER = ["boulder", "sport"];
@@ -73,9 +74,9 @@ export function shellHtml(allDisciplines) {
 
   return `
   <div class="flex flex-wrap items-center gap-3 mb-6">
-    <input class="flex-[0_1_220px] min-w-[140px] bg-surface border border-field-border rounded-app px-[.85rem] py-[.4rem] text-foreground text-[.9rem] outline-none placeholder:text-muted focus:border-accent" id="search" placeholder="Search entries…" autocomplete="off">
+    <input class="flex-[0_1_220px] min-w-[140px] bg-surface border border-border rounded-app px-[.85rem] py-[.4rem] text-foreground text-[.9rem] outline-none placeholder:text-muted focus:border-accent" id="search" placeholder="Search entries…" autocomplete="off">
     <div class="filter-wrap relative ml-auto">
-      <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&.active]:border-accent [&.active]:text-accent-ink [&.active]:bg-[color-mix(in_srgb,var(--color-accent)_12%,var(--color-surface))]" id="filter-btn" aria-label="Filter" aria-expanded="false" aria-pressed="false">
+      <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&.active]:border-accent [&.active]:text-accent-ink [&.active]:bg-[color-mix(in_srgb,var(--color-accent)_12%,var(--color-surface))]" id="filter-btn" aria-label="Filter" aria-expanded="false">
         <svg class="w-[1.1rem] h-[1.1rem] stroke-current fill-none" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"></path></svg>
       </button>
       <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 bg-background border border-border rounded-app p-[.9rem] w-80 max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="filter-panel" hidden>
@@ -153,8 +154,8 @@ export function renderLocationSectionHtml(
 
   const sortIcon = c =>
     c !== col
-      ? `<i class="ml-[.3rem] not-italic opacity-40">↕</i>`
-      : `<i class="ml-[.3rem] not-italic opacity-100 text-accent-ink">${dir === "asc" ? "↑" : "↓"}</i>`;
+      ? `<i class="ml-[.3rem] not-italic opacity-40" aria-hidden="true">↕</i>`
+      : `<i class="ml-[.3rem] not-italic opacity-100 text-accent-ink" aria-hidden="true">${dir === "asc" ? "↑" : "↓"}</i>`;
   const sortAria = c => (c !== col ? "none" : dir === "asc" ? "ascending" : "descending");
 
   const visibleRows = sorted.slice(0, revealed);
@@ -175,7 +176,7 @@ export function renderLocationSectionHtml(
       return `
     <tr class="border-b border-[color-mix(in_srgb,var(--color-border)_40%,transparent)] last:border-b-0 ${rowBg}">
       <td class="${TD_BASE} text-center">${statusBadge(e)}</td>
-      <td class="${TD_BASE}"><span class="grade-badge" style="background:${gradeColor(e.grade, e.type)};color:${gradeInk(e.grade, e.type)}">${escapeHtml(e.grade)}</span></td>
+      <td class="${TD_BASE}"><span class="grade-badge" style="background:${gradeColor(e.grade, e.type)}">${escapeHtml(e.grade)}</span></td>
       <td class="${TD_BASE} overflow-hidden">
         <span class="font-medium truncate inline-block max-w-full align-bottom ${e._pendingDelete ? "line-through text-muted" : ""}">${escapeHtml(e.name)}</span>
         ${pendingBadge}
@@ -183,7 +184,7 @@ export function renderLocationSectionHtml(
       <td class="${TD_BASE} text-muted text-[.82rem] truncate">${escapeHtml(placeOf(e, places).area)}</td>
       <td class="${TD_BASE} text-muted text-[.82rem] whitespace-nowrap">${escapeHtml(formatDate(e.date))}</td>
       <td class="${TD_BASE} text-center">${e.notes ? `<button type="button" class="notes-btn border-0 bg-transparent cursor-pointer text-muted inline-flex align-middle p-[.2rem] hover:text-accent-ink" data-notes-id="${escapeHtml(e.id)}" aria-label="View notes"><svg class="w-[.95rem] h-[.95rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg></button>` : ""}</td>
-      <td class="${TD_BASE} text-center">${e.video ? `<a class="inline-flex align-middle p-[.2rem] text-muted hover:text-accent-ink" href="${escapeHtml(e.video)}" target="_blank" rel="noopener" title="Watch video" aria-label="Watch video"><svg class="w-[.95rem] h-[.95rem] fill-current" viewBox="0 0 24 24"><path d="M6 4.5v15l14-7.5z"></path></svg></a>` : ""}</td>
+      <td class="${TD_BASE} text-center">${e.video ? `<a class="inline-flex align-middle p-[.2rem] text-muted hover:text-accent-ink" href="${escapeHtml(e.video)}" target="_blank" rel="noopener noreferrer" title="Watch video" aria-label="Watch video"><svg class="w-[.95rem] h-[.95rem] fill-current" viewBox="0 0 24 24"><path d="M6 4.5v15l14-7.5z"></path></svg></a>` : ""}</td>
       <td class="${TD_BASE} text-center">${editable ? `<button type="button" class="edit-btn border-0 bg-transparent cursor-pointer text-muted inline-flex p-[.2rem] hover:text-accent-ink [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:stroke-current [&_svg]:fill-none" data-edit-id="${escapeHtml(e.id)}" aria-label="Edit">${EDIT_ICON}</button>` : ""}</td>
     </tr>
   `;
@@ -221,22 +222,22 @@ export function renderLocationSectionHtml(
           </colgroup>
           <thead>
             <tr>
-              <th class="${TH_BASE}"></th>
-              <th class="${TH_BASE} ${TH_SORTABLE}" data-sort="grade" data-location-id="${escapeHtml(key)}" role="button" tabindex="0" aria-sort="${sortAria("grade")}">
-                Grd ${sortIcon("grade")}
+              <th class="${TH_BASE}"><span class="sr-only">Status</span></th>
+              <th class="${TH_BASE}" aria-sort="${sortAria("grade")}">
+                <button type="button" class="${SORT_BTN}" data-sort="grade" data-location-id="${escapeHtml(key)}">Grd ${sortIcon("grade")}</button>
               </th>
-              <th class="${TH_BASE} ${TH_SORTABLE}" data-sort="name" data-location-id="${escapeHtml(key)}" role="button" tabindex="0" aria-sort="${sortAria("name")}">
-                Name ${sortIcon("name")}
+              <th class="${TH_BASE}" aria-sort="${sortAria("name")}">
+                <button type="button" class="${SORT_BTN}" data-sort="name" data-location-id="${escapeHtml(key)}">Name ${sortIcon("name")}</button>
               </th>
-              <th class="${TH_BASE} ${TH_SORTABLE} truncate" data-sort="area" data-location-id="${escapeHtml(key)}" role="button" tabindex="0" aria-sort="${sortAria("area")}">
-                Area ${sortIcon("area")}
+              <th class="${TH_BASE} truncate" aria-sort="${sortAria("area")}">
+                <button type="button" class="${SORT_BTN}" data-sort="area" data-location-id="${escapeHtml(key)}">Area ${sortIcon("area")}</button>
               </th>
-              <th class="${TH_BASE} ${TH_SORTABLE}" data-sort="date" data-location-id="${escapeHtml(key)}" role="button" tabindex="0" aria-sort="${sortAria("date")}">
-                Date ${sortIcon("date")}
+              <th class="${TH_BASE}" aria-sort="${sortAria("date")}">
+                <button type="button" class="${SORT_BTN}" data-sort="date" data-location-id="${escapeHtml(key)}">Date ${sortIcon("date")}</button>
               </th>
-              <th class="${TH_BASE}"></th>
-              <th class="${TH_BASE}"></th>
-              <th class="${TH_BASE}"></th>
+              <th class="${TH_BASE}"><span class="sr-only">Notes</span></th>
+              <th class="${TH_BASE}"><span class="sr-only">Video</span></th>
+              <th class="${TH_BASE}"><span class="sr-only">Edit</span></th>
             </tr>
           </thead>
           <tbody>

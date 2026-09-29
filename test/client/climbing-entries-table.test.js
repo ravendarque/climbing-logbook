@@ -64,15 +64,15 @@ describe("focus restoration after a re-render (#805)", () => {
     expect(newHeader).not.toBe(header); // genuinely a new DOM node, not the old one surviving
   });
 
-  it("keeps focus on the sortable column header after a sort-toggle click", async () => {
+  it("keeps focus on the column's sort button after a sort-toggle click", async () => {
     await seedOneEntry();
-    const sortTh = el.querySelector('th[data-sort="grade"]');
-    sortTh.focus();
-    sortTh.click();
+    const sortBtn = el.querySelector('button[data-sort="grade"]');
+    sortBtn.focus();
+    sortBtn.click();
     await Promise.resolve();
-    const newSortTh = el.querySelector('th[data-sort="grade"][data-location-id="loc1"]');
-    expect(document.activeElement).toBe(newSortTh);
-    expect(newSortTh).not.toBe(sortTh);
+    const newSortBtn = el.querySelector('button[data-sort="grade"][data-location-id="loc1"]');
+    expect(document.activeElement).toBe(newSortBtn);
+    expect(newSortBtn).not.toBe(sortBtn);
   });
 
   it("keeps focus on the Show more button after revealing another page", async () => {
@@ -123,5 +123,19 @@ describe("focus restoration after a re-render (#805)", () => {
 
     expect(document.activeElement).toBe(outsideBtn);
     outsideBtn.remove();
+  });
+});
+
+describe("video links (#1104)", () => {
+  it("open without sending the page as the referrer", async () => {
+    el.places = [{ id: "p1", locationId: "loc1", area: "" }];
+    el.entries = [entry({ video: "https://www.youtube.com/watch?v=abc" })];
+    el.locations = [{ id: "loc1", name: "Fontainebleau", country: "France" }];
+    await Promise.resolve();
+    el.querySelector(".place-header").click();
+    await Promise.resolve();
+
+    const link = el.querySelector('a[href="https://www.youtube.com/watch?v=abc"]');
+    expect(link.rel.split(" ")).toEqual(expect.arrayContaining(["noopener", "noreferrer"]));
   });
 });

@@ -1,7 +1,6 @@
 import { daysAgo, expect, test } from "./owner.js";
 import { expectWiderWindowRefetch } from "./performance-window.js";
 
-// Five sends (the confidence gate), with grade and effort both rising from one week to a later one.
 const RISING_EFFORT = [
   ...[1, 2, 3].map(() => ({ date: daysAgo(30), grade: "6B", rpe: 70 })),
   ...[1, 2].map(() => ({ date: daysAgo(2), grade: "6C", rpe: 80 })),

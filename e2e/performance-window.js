@@ -1,6 +1,5 @@
 import { expect } from "./owner.js";
 
-// Switching to 52w must re-fetch with an earlier start than the default window.
 export async function expectWiderWindowRefetch(page, url, apiPath) {
   const isReport = req => req.url().includes(`/-/api/performance/${apiPath}`);
   const first = page.waitForRequest(isReport);

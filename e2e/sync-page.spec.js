@@ -60,7 +60,8 @@ test("warm with drift: /sync takes the delta path and catches up on a change fro
 
   const entriesRequests = [];
   page.on("request", req => {
-    if (req.url().includes("/-/api/entries") && req.method() === "GET") entriesRequests.push(req.url());
+    const fromSync = new URL(req.frame().url()).pathname === `/${owner.username}/sync`;
+    if (fromSync && req.url().includes("/-/api/entries") && req.method() === "GET") entriesRequests.push(req.url());
   });
   await page.goto(syncUrl(owner));
   await page.waitForURL(`**/${owner.username}/log`);
@@ -80,7 +81,6 @@ test("/log does NOT redirect to /sync once already synced", async ({ page, owner
     if (frame === page.mainFrame()) visited.push(new URL(frame.url()).pathname);
   });
   await page.reload();
-  // The table is in the static shell; the cached rows and a quiet network mean boot has decided.
   await expect(page.locator("climbing-entries-table")).toContainText("Test Crag");
   await page.waitForLoadState("networkidle");
 

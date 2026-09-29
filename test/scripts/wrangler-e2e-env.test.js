@@ -2,7 +2,6 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// Vitest runs from the repo root (happy-dom's import.meta.url isn't a file URL).
 const wrangler = JSON.parse(
   readFileSync(join(process.cwd(), "wrangler.jsonc"), "utf8")
     .split("\n")

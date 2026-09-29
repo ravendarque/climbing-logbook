@@ -132,3 +132,27 @@ describe("decorateRows", () => {
     expect((await res.json()).place.decorated).toBe(true);
   });
 });
+
+describe("a create that loses a race to an equal row", () => {
+  it("returns the row that won, as a dedup, rather than a 409", async () => {
+    const locationId = await seedLocation(userId);
+    await env.LOGBOOK_DB.prepare("INSERT INTO places (id, user_id, location_id, area) VALUES (?, ?, ?, ?)")
+      .bind("won", userId, locationId, "Bas Cuvier")
+      .run();
+    let lookups = 0;
+    const { handlePost } = createD1ResourceHandlers({
+      table: "places",
+      resourceKey: "places",
+      rowKey: "place",
+      validateFields,
+      buildRow,
+      rowToJson,
+      findDuplicate: async () => (lookups++ === 0 ? null : { id: "won" }),
+    });
+
+    const res = await post(handlePost, { id: "lost", locationId, area: "BAS CUVIER" });
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ place: { id: "won" }, dedupedTo: "won" });
+  });
+});

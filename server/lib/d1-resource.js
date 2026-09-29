@@ -136,6 +136,8 @@ export function createD1ResourceHandlers({
       ]);
     } catch (e) {
       if (!e.message?.includes("UNIQUE constraint failed")) throw e;
+      const duplicate = findDuplicate ? await findDuplicate(env, userId, record) : null;
+      if (duplicate) return respondWithRow(env, userId, duplicate.id, 200, { dedupedTo: duplicate.id });
       if (!(await findOwnedRow(env, table, id, userId))) return json({ error: "That id is already in use" }, 409);
       return respondWithRow(env, userId, id, 200);
     }

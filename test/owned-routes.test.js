@@ -18,8 +18,9 @@ afterAll(() => {
   env.BETA_GATE_ENABLED = "true";
 });
 
-function fetchOwnedRoute(username, page, { hostname = "my.climbinglogbook.com", cookie } = {}) {
+function fetchOwnedRoute(username, page, { hostname = "my.climbinglogbook.com", cookie, method = "GET" } = {}) {
   return exports.default.fetch(`https://${hostname}/${username}/${page}`, {
+    method,
     redirect: "manual",
     headers: cookie ? { Cookie: cookie } : {},
   });
@@ -364,5 +365,23 @@ describe("shell identity header (#959)", () => {
     await createAuthedSession({ username: "profilenoheader", hostname: "climbinglogbook.com" });
     const res = await exports.default.fetch("https://my.climbinglogbook.com/profilenoheader", { redirect: "manual" });
     expect(res.headers.get(SHELL_HEADER)).toBeNull();
+  });
+});
+
+describe("HEAD requests (#1107)", () => {
+  it("answer an owner page with GET's status and headers and no body", async () => {
+    const { cookie } = await createAuthedSession({ username: "headowner", hostname: "climbinglogbook.com" });
+    const get = await fetchOwnedRoute("headowner", "log", { cookie });
+    const head = await fetchOwnedRoute("headowner", "log", { cookie, method: "HEAD" });
+
+    expect(head.status).toBe(get.status);
+    expect(Object.fromEntries(head.headers)).toEqual(Object.fromEntries(get.headers));
+    expect(await head.text()).toBe("");
+  });
+
+  it("send a signed-out HEAD to login, as GET does", async () => {
+    const head = await fetchOwnedRoute("someone", "log", { method: "HEAD" });
+    expect(head.status).toBe(302);
+    expect(head.headers.get("Location")).toBe("https://my.climbinglogbook.com/-/login/?returnTo=%2Fsomeone%2Flog");
   });
 });

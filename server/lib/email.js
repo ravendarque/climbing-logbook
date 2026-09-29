@@ -5,7 +5,6 @@ const FROM_ADDRESS = "Climbing Logbook <myaccount@climbinglogbook.com>";
 
 // Never throws: new Resend() throws synchronously without a key, which would break the whole auth request.
 async function send(env, payload) {
-  // Test environments sign up users by the dozen; real sends there burn the Resend quota (#1170).
   if (env.EMAIL_DELIVERY === "off") {
     console.log(`[email] Delivery off, not sent: "${payload.subject}" to ${payload.to}`);
     return;

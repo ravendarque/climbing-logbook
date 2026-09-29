@@ -64,5 +64,4 @@ infra/*.tfplan
 infra/*.tfstate
 infra/*.tfstate.*
 
-# Vitest coverage report (`pnpm test:coverage`).
 coverage/

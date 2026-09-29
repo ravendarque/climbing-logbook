@@ -1,7 +1,6 @@
 import { daysAgo, expect, test } from "./owner.js";
 import { expectWiderWindowRefetch } from "./performance-window.js";
 
-// Best flash 6B, best send 6C, in two different weeks.
 const FLASH_AND_SENDS = [
   { date: daysAgo(15), grade: "6B", firstAttempt: true, attemptsToSend: 1 },
   { date: daysAgo(15), grade: "6B", attemptsToSend: 2 },

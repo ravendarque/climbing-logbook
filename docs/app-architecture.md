@@ -306,7 +306,7 @@ Tables (see `migrations/` for columns and constraints):
 |---|---|
 | `entries` | One climb: name, grade and `grade_scale`, discipline, status, flash, date, video, notes, attempts, RPE, sport style. Soft-deleted (`deleted_at`) and stamped with `sync_cursor` for delta sync. |
 | `entry_moves`, `entry_pain_moves` | Per-move tags for the strengths and injury reports |
-| `places`, `locations` | An area within a crag, and the crag with its country. Entries reference a place; a place references a location. |
+| `places`, `locations` | An area within a crag, and the crag with its country. Entries reference a place; a place references a location. A user's location names, and area names within a location, are unique ignoring case, and triggers stop a row from referencing another user's place or location. |
 | `settings` | One row per user: Athlete Mode, active discipline, public logbook, beta enrollment |
 | `disciplines`, `statuses` | Lookup tables ([ADR-0009](adr/0009-normalized-d1-schema-with-lookup-tables.md)) |
 | `user`, `session`, `account`, `verification`, `rateLimit` | Better Auth's own |
@@ -408,7 +408,8 @@ Tables (see `migrations/` for columns and constraints):
     username;
   - `/-/chunks/*` and `?v=` assets: cache-first;
   - fonts: stale-while-revalidate;
-  - everything else under `/-/`: network-first with a cache fallback;
+  - everything else under `/-/`: network-first, falling back to the cached copy if the
+    network fails or hasn't answered within 3 seconds (`client/sw/network-first.js`);
   - the API, non-GETs and cross-origin requests: passed straight through.
     The service worker never caches data.
 - **Derived views** (performance reports, map counts) are computed on the

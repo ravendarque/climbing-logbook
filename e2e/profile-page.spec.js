@@ -8,11 +8,11 @@ const MIXED_SEED = {
   ],
 };
 
-// Seeds as the owner, then visits signed out: the profile is what the public sees.
 async function visitProfile(page, owner, seed) {
   if (seed) await owner.seed(seed);
   await page.context().clearCookies();
   await page.goto(owner.url(""));
+  if (seed) await expect(page.locator(".place-header").first()).toBeVisible();
 }
 
 test("renders the shared chrome readonly -- no edit affordances or admin rows anywhere", async ({ page, owner }) => {

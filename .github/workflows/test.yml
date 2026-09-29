@@ -49,7 +49,6 @@ jobs:
       # The ASSETS binding the tests hit serves the 11ty output.
       - run: pnpm run html:build
       - run: pnpm test:coverage
-      # No report is written when a test fails.
       - name: Coverage summary
         if: ${{ !cancelled() && hashFiles('coverage/coverage-summary.json') != '' }}
         run: |

@@ -835,7 +835,6 @@ test("theme toggle flips data-theme and persists to localStorage", async ({ page
   await expect(html).toHaveAttribute("data-theme", next);
 });
 
-// Writes fail via route.abort, toggled in one handler (unroute would drop it); ** so DELETE's ?id= matches.
 test.describe("Offline queue (client/offline-sync.js)", () => {
   test("queues an entry while offline, then syncs it once back online", async ({ page, owner }) => {
     await gotoLog(page, owner);
@@ -867,7 +866,6 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await expect(page.locator("#sync-btn")).toBeHidden();
   });
 
-  // The real server rejects it for good: a write the form can't produce, as after a rule change.
   async function invalidateQueuedWrite(page, owner) {
     await page.evaluate(key => {
       const queue = JSON.parse(localStorage.getItem(key));
@@ -1288,7 +1286,6 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
   });
 });
 
-// Holds the real session check open until the test releases it, so the page is still syncing.
 async function holdSessionCheck(page) {
   let release;
   const gate = new Promise(resolve => {
