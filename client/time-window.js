@@ -19,7 +19,7 @@ const PILL_LABELS = { "12w": "12 weeks", "52w": "52 weeks", custom: "Custom" };
 
 // aria-pressed buttons, not radio labels. A fixed width so the segments match.
 const PILL_CLASSES =
-  "border border-border rounded-app bg-surface text-muted text-[.82rem] font-semibold cursor-pointer transition-colors duration-150 hover:text-foreground px-3 py-1 min-w-[5.5rem] text-center aria-[pressed=true]:bg-accent aria-[pressed=true]:text-accent-foreground aria-[pressed=true]:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2";
+  "border border-border rounded-app bg-surface text-muted text-[.82rem] font-semibold cursor-pointer transition-colors duration-150 hover:text-foreground px-3 py-1 min-w-[5.5rem] text-center aria-[pressed=true]:bg-accent-strong aria-[pressed=true]:text-accent-foreground aria-[pressed=true]:border-accent-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2";
 
 const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 

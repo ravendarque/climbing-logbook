@@ -28,7 +28,7 @@ staticShellNote: |-
   </button>
 
   <ul class="flex flex-col gap-2 mb-4 p-3 border border-accent rounded-app bg-surface text-[.88rem] text-foreground" id="failed-writes" role="status" aria-live="polite" hidden></ul>
-  <p class="mb-4 text-[.85rem] text-muted" id="install-nudge" hidden>Safari can delete climbs that haven't synced yet if you don't visit for seven days. <a class="text-accent font-semibold" data-apex-link href="/help/install/">Install the app</a> to keep them safe.</p>
+  <p class="mb-4 text-[.85rem] text-muted" id="install-nudge" hidden>Safari can delete climbs that haven't synced yet if you don't visit for seven days. <a class="text-accent-ink font-semibold" data-apex-link href="/help/install/">Install the app</a> to keep them safe.</p>
 
   <climbing-entries-table editable loading></climbing-entries-table>
 
@@ -37,7 +37,7 @@ staticShellNote: |-
 <div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-start justify-center px-4 py-6 overflow-y-auto" id="entry-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="entry-modal-title" tabindex="-1">
   <div class="bg-background border border-border rounded-app p-5 w-full max-w-[460px]">
     <div class="flex items-center justify-between mb-4">
-      <h2 class="section-heading text-accent mb-0" id="entry-modal-title">Add entry</h2>
+      <h2 class="section-heading text-accent-ink mb-0" id="entry-modal-title">Add entry</h2>
       <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-[1.1rem] leading-none p-[.2rem] hover:text-foreground" id="entry-close" aria-label="Close">✕</button>
     </div>
 
@@ -53,13 +53,13 @@ staticShellNote: |-
       <div class="mb-3">
         <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Place</div>
         <div class="relative" id="place-wrap">
-          <button type="button" class="w-full flex items-center gap-[.6rem] bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] cursor-pointer hover:border-accent text-left [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:shrink-0" id="place-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Place: none selected">
+          <button type="button" class="w-full flex items-center gap-[.6rem] bg-surface border border-field-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] cursor-pointer hover:border-accent text-left [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:shrink-0" id="place-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Place: none selected">
             <span class="flex items-center justify-center shrink-0" id="place-btn-flag" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20Z"></path></svg></span>
             <span class="truncate text-muted" id="place-btn-label">Select a place…</span>
           </button>
           <div class="absolute top-[calc(100%+.4rem)] left-0 z-20 bg-background border border-border rounded-app p-[.5rem] w-full max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="place-popover" hidden>
-            <input type="text" class="bg-surface border border-border rounded-app px-[.7rem] py-[.5rem] text-foreground text-[.9rem] outline-none focus:border-accent w-full" id="place-search" placeholder="Search places…" autocomplete="off" aria-label="Search places" aria-controls="place-listbox">
-            <button type="button" class="flex items-center gap-[.5rem] w-full mt-[.4rem] px-[.6rem] py-[.5rem] rounded-[calc(var(--radius-app)-2px)] cursor-pointer text-[.9rem] font-semibold text-accent bg-transparent border-0 hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-current [&_svg]:fill-none" id="place-add-new-btn">
+            <input type="text" class="bg-surface border border-field-border rounded-app px-[.7rem] py-[.5rem] text-foreground text-[.9rem] outline-none focus:border-accent w-full" id="place-search" placeholder="Search places…" autocomplete="off" aria-label="Search places" aria-controls="place-listbox">
+            <button type="button" class="flex items-center gap-[.5rem] w-full mt-[.4rem] px-[.6rem] py-[.5rem] rounded-[calc(var(--radius-app)-2px)] cursor-pointer text-[.9rem] font-semibold text-accent-ink bg-transparent border-0 hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-current [&_svg]:fill-none" id="place-add-new-btn">
               <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
               Add new place
             </button>
@@ -110,7 +110,7 @@ staticShellNote: |-
               </button>
               <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 bg-background border border-border rounded-app p-[.35rem] w-56 max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="grade-scale-popover" role="listbox" aria-label="Grade scale" hidden>
                 <ul class="m-0 p-0 list-none" id="grade-scale-listbox"></ul>
-                <a class="block text-[.72rem] text-accent text-center pt-[.4rem] mt-[.2rem] border-t border-border hover:brightness-90" id="grade-scale-reference-link" data-apex-link href="#">What's this?</a>
+                <a class="block text-[.72rem] text-accent-ink text-center pt-[.4rem] mt-[.2rem] border-t border-border hover:brightness-90" id="grade-scale-reference-link" data-apex-link href="#">What's this?</a>
               </div>
             </div>
           </div>
@@ -128,11 +128,11 @@ staticShellNote: |-
       <div class="mt-[1.1rem]" id="sport-style-field" hidden>
         <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2" id="sport-style-label">Style</div>
         <fieldset class="border border-border rounded-app overflow-x-auto flex flex-nowrap w-full mb-3 min-w-0" id="sport-style-group" aria-labelledby="sport-style-label">
-          <label class="toggle-btn bg-surface text-muted text-[.85rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex items-center justify-center px-[.3rem] py-[.65rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
+          <label class="toggle-btn bg-surface text-muted text-[.85rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent-strong has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex items-center justify-center px-[.3rem] py-[.65rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
             <input type="radio" name="sport-style" value="lead" class="sr-only">
             Lead
           </label>
-          <label class="toggle-btn bg-surface text-muted text-[.85rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex items-center justify-center px-[.3rem] py-[.65rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
+          <label class="toggle-btn bg-surface text-muted text-[.85rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent-strong has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex items-center justify-center px-[.3rem] py-[.65rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
             <input type="radio" name="sport-style" value="top_rope" class="sr-only">
             Top Rope
           </label>
@@ -141,23 +141,23 @@ staticShellNote: |-
 
       <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]" id="status-group-label">Status</div>
       <fieldset class="border border-border rounded-app overflow-x-auto flex flex-nowrap w-full mb-3 min-w-0" id="status-group" aria-labelledby="status-group-label">
-        <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
+        <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent-strong has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
           <input type="radio" name="entry-status" value="flash" class="sr-only">
           <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="flash"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]" id="form-flash-label">Flash</span>
         </label>
-        <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
+        <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent-strong has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
           <input type="radio" name="entry-status" value="send" class="sr-only" checked>
           <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="send"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]" id="form-send-label">Send</span>
         </label>
-        <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
+        <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent-strong has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
           <input type="radio" name="entry-status" value="project" class="sr-only">
           <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="project"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Project</span>
         </label>
-        <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
+        <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent-strong has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
           <input type="radio" name="entry-status" value="checkout" class="sr-only">
           <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="checkout"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Check out</span>
         </label>
-        <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
+        <label class="toggle-btn bg-surface text-muted text-[.78rem] font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-accent-strong has-checked:text-accent-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] flex-1 min-w-[4.5rem] flex flex-col items-center justify-center gap-[.15rem] px-[.3rem] py-[.45rem] first:rounded-l-app last:rounded-r-app shadow-[inset_-1px_0_0_var(--color-border)] last:shadow-none">
           <input type="radio" name="entry-status" value="archived" class="sr-only">
           <span class="flex [&>svg]:w-6 [&>svg]:h-6" data-icon="archived"></span><span class="text-[.58rem] font-bold uppercase tracking-[.03em]">Archived</span>
         </label>
@@ -165,7 +165,7 @@ staticShellNote: |-
 
       <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]">Notes</div>
       <div class="mb-3">
-        <textarea class="bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground font-sans text-[1rem] outline-none focus:border-accent w-full resize-y min-h-[72px]" id="entry-notes"></textarea>
+        <textarea class="bg-surface border border-field-border rounded-app px-[.85rem] py-[.65rem] text-foreground font-sans text-[1rem] outline-none focus:border-accent w-full resize-y min-h-[72px]" id="entry-notes"></textarea>
       </div>
 
       <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]">Video URL</div>
@@ -175,7 +175,7 @@ staticShellNote: |-
 
       {# No wrapping at narrow widths: the two buttons share half the modal each. #}
       <div class="flex items-center justify-between gap-3 mt-4">
-        <button type="submit" class="flex-1 bg-accent text-accent-foreground border-none rounded-app py-[.9rem] text-[1rem] max-[400px]:text-[.85rem] font-bold cursor-pointer whitespace-nowrap disabled:opacity-[.45] disabled:cursor-not-allowed" id="entry-submit-btn">Save &amp; close</button>
+        <button type="submit" class="flex-1 bg-accent-strong text-accent-foreground border-none rounded-app py-[.9rem] text-[1rem] max-[400px]:text-[.85rem] font-bold cursor-pointer whitespace-nowrap disabled:opacity-[.45] disabled:cursor-not-allowed" id="entry-submit-btn">Save &amp; close</button>
         <button type="button" class="flex-1 bg-surface text-foreground border border-border rounded-app py-[.9rem] text-[1rem] max-[400px]:text-[.85rem] font-bold cursor-pointer whitespace-nowrap hover:border-accent" id="entry-nav-forward">Performance →</button>
       </div>
       </div>
@@ -204,23 +204,23 @@ staticShellNote: |-
           <p class="text-[.75rem] text-muted mb-2">Feeds your Strengths / Weaknesses view.</p>
           <div class="text-[.8rem] font-semibold text-foreground mb-1">Hardest moves for you</div>
           <div id="hardest-moves-list"></div>
-          <button type="button" class="text-[.85rem] font-semibold text-accent bg-transparent border-0 cursor-pointer p-0 mb-2" id="hardest-moves-add" aria-label="Add a hardest move">+ Add a move</button>
+          <button type="button" class="text-[.85rem] font-semibold text-accent-ink bg-transparent border-0 cursor-pointer p-0 mb-2" id="hardest-moves-add" aria-label="Add a hardest move">+ Add a move</button>
 
           <div class="text-[.8rem] font-semibold text-foreground mb-1 mt-2">Easiest moves for you</div>
           <div id="easiest-moves-list"></div>
-          <button type="button" class="text-[.85rem] font-semibold text-accent bg-transparent border-0 cursor-pointer p-0" id="easiest-moves-add" aria-label="Add an easiest move">+ Add a move</button>
+          <button type="button" class="text-[.85rem] font-semibold text-accent-ink bg-transparent border-0 cursor-pointer p-0" id="easiest-moves-add" aria-label="Add an easiest move">+ Add a move</button>
         </div>
 
         <div class="mt-6">
           <h3 class="section-heading">Pain/injury during this climb</h3>
           <p class="text-[.75rem] text-muted mb-2">Feeds your Injury / Pain Log.</p>
           <div id="pain-moves-list"></div>
-          <button type="button" class="text-[.85rem] font-semibold text-accent bg-transparent border-0 cursor-pointer p-0" id="pain-moves-add" aria-label="Add a pain/injury move">+ Add a move</button>
+          <button type="button" class="text-[.85rem] font-semibold text-accent-ink bg-transparent border-0 cursor-pointer p-0" id="pain-moves-add" aria-label="Add a pain/injury move">+ Add a move</button>
         </div>
 
         <div class="flex items-center justify-between gap-3 mt-6">
           <button type="button" class="flex-1 bg-surface text-foreground border border-border rounded-app py-[.9rem] text-[1rem] max-[400px]:text-[.85rem] font-bold cursor-pointer whitespace-nowrap hover:border-accent" id="entry-nav-back">← Log entry</button>
-          <button type="submit" class="flex-1 bg-accent text-accent-foreground border-none rounded-app py-[.9rem] text-[1rem] max-[400px]:text-[.85rem] font-bold cursor-pointer whitespace-nowrap disabled:opacity-[.45] disabled:cursor-not-allowed" id="entry-submit-btn-2">Save &amp; close</button>
+          <button type="submit" class="flex-1 bg-accent-strong text-accent-foreground border-none rounded-app py-[.9rem] text-[1rem] max-[400px]:text-[.85rem] font-bold cursor-pointer whitespace-nowrap disabled:opacity-[.45] disabled:cursor-not-allowed" id="entry-submit-btn-2">Save &amp; close</button>
         </div>
       </div>
       </div>
@@ -235,7 +235,7 @@ staticShellNote: |-
 <div class="fixed inset-0 z-[110] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-start justify-center px-4 py-6 overflow-y-auto" id="add-place-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="add-place-modal-title" tabindex="-1">
   <div class="bg-background border border-border rounded-app p-5 w-full max-w-[380px]">
     <div class="flex items-center justify-between mb-4">
-      <h2 class="text-[1.15rem] font-bold text-accent" id="add-place-modal-title">Add place</h2>
+      <h2 class="text-[1.15rem] font-bold text-accent-ink" id="add-place-modal-title">Add place</h2>
       <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-[1.1rem] leading-none p-[.2rem] hover:text-foreground" id="add-place-close" aria-label="Close">✕</button>
     </div>
 
@@ -253,18 +253,18 @@ staticShellNote: |-
 
       <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Country</div>
       <div class="relative mb-1" id="add-place-country-wrap">
-        <button type="button" class="w-full flex items-center gap-[.6rem] bg-surface border border-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] cursor-pointer hover:border-accent text-left disabled:cursor-not-allowed disabled:opacity-70 [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:shrink-0" id="add-place-country-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Country: none selected">
+        <button type="button" class="w-full flex items-center gap-[.6rem] bg-surface border border-field-border rounded-app px-[.85rem] py-[.65rem] text-foreground text-[1rem] cursor-pointer hover:border-accent text-left disabled:cursor-not-allowed disabled:opacity-70 [&_svg]:w-[1.1rem] [&_svg]:h-[1.1rem] [&_svg]:stroke-current [&_svg]:fill-none [&_svg]:shrink-0" id="add-place-country-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Country: none selected">
           <span class="flex items-center justify-center shrink-0" id="add-place-country-flag" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20Z"></path></svg></span>
           <span class="truncate text-muted" id="add-place-country-label">Select a country…</span>
         </button>
         <div class="absolute top-[calc(100%+.4rem)] left-0 z-20 bg-background border border-border rounded-app p-[.5rem] w-full max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="add-place-country-popover" hidden>
-          <input type="text" class="bg-surface border border-border rounded-app px-[.7rem] py-[.5rem] text-foreground text-[.9rem] outline-none focus:border-accent w-full" id="add-place-country-search" placeholder="Search countries…" autocomplete="off" aria-label="Search countries" aria-controls="add-place-country-listbox">
+          <input type="text" class="bg-surface border border-field-border rounded-app px-[.7rem] py-[.5rem] text-foreground text-[.9rem] outline-none focus:border-accent w-full" id="add-place-country-search" placeholder="Search countries…" autocomplete="off" aria-label="Search countries" aria-controls="add-place-country-listbox">
           <ul class="max-h-[13rem] overflow-y-auto listbox-scrollbar m-0 mt-[.4rem] p-0 list-none" id="add-place-country-listbox" role="listbox" aria-label="Country"></ul>
         </div>
       </div>
       <p class="text-[.78rem] text-muted mt-1 mb-3" id="add-place-country-hint" hidden>Inherited from the existing location — edit the location itself to change it.</p>
 
-      <button type="submit" class="w-full mt-4 bg-accent text-accent-foreground border-none rounded-app py-[.9rem] text-[1rem] font-bold cursor-pointer disabled:opacity-[.45] disabled:cursor-not-allowed" id="add-place-submit-btn">Add place</button>
+      <button type="submit" class="w-full mt-4 bg-accent-strong text-accent-foreground border-none rounded-app py-[.9rem] text-[1rem] font-bold cursor-pointer disabled:opacity-[.45] disabled:cursor-not-allowed" id="add-place-submit-btn">Add place</button>
       <div class="hidden" id="add-place-msg" role="alert" aria-live="assertive" tabindex="-1"></div>
     </form>
   </div>

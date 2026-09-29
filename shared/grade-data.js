@@ -677,8 +677,14 @@ const GRADE_TIER_COLORS = {
   "hyper-elite": "var(--grade-tier-hyper-elite)",
 };
 
+const GRADE_TIER_INKS = { beginner: "var(--grade-tier-beginner-ink)" };
+
 export function gradeColor(g, type) {
   return GRADE_TIER_COLORS[gradeTier(g, type)];
+}
+
+export function gradeInk(g, type) {
+  return GRADE_TIER_INKS[gradeTier(g, type)] ?? "var(--grade-badge-ink)";
 }
 
 export function gradeTierColor(tierId) {
@@ -719,6 +725,10 @@ export function gradeTierForScale(grade, scaleId, type) {
 
 export function gradeColorForScale(grade, scaleId, type) {
   return GRADE_TIER_COLORS[gradeTierForScale(grade, scaleId, type)];
+}
+
+export function gradeInkForScale(grade, scaleId, type) {
+  return GRADE_TIER_INKS[gradeTierForScale(grade, scaleId, type)] ?? "var(--grade-badge-ink)";
 }
 
 export function gradePyramidColorForScale(grade, scaleId, type) {

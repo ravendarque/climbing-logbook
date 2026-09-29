@@ -33,25 +33,25 @@ function rowHtml(row, listLabel) {
     <div class="grid gap-2" style="grid-template-columns: repeat(auto-fit, minmax(85px, 1fr));">
       <label class="block">
         <span class="text-[.65rem] text-muted block mb-1">Limb</span>
-        <select class="w-full bg-surface border border-border rounded-app px-2 py-1 text-[.85rem] text-foreground" data-field="limbSide">
+        <select class="w-full bg-surface border border-field-border rounded-app px-2 py-1 text-[.85rem] text-foreground" data-field="limbSide">
           ${LIMB_SIDE_OPTIONS.map(o => `<option value="${o.value}"${o.value === limbSideValue ? " selected" : ""}>${escapeHtml(o.label)}</option>`).join("")}
         </select>
       </label>
       <label class="block">
         <span class="text-[.65rem] text-muted block mb-1">Hold type</span>
-        <select class="w-full bg-surface border border-border rounded-app px-2 py-1 text-[.85rem] text-foreground" data-field="holdType">
+        <select class="w-full bg-surface border border-field-border rounded-app px-2 py-1 text-[.85rem] text-foreground" data-field="holdType">
           ${optionsHtml(HOLD_TYPES_BY_LIMB[limb], holdType)}
         </select>
       </label>
       <label class="block">
         <span class="text-[.65rem] text-muted block mb-1">Movement</span>
-        <select class="w-full bg-surface border border-border rounded-app px-2 py-1 text-[.85rem] text-foreground" data-field="movementStyle">
+        <select class="w-full bg-surface border border-field-border rounded-app px-2 py-1 text-[.85rem] text-foreground" data-field="movementStyle">
           ${optionsHtml(MOVEMENT_STYLES_BY_LIMB[limb], movementStyle)}
         </select>
       </label>
       <label class="block">
         <span class="text-[.65rem] text-muted block mb-1">Wall angle</span>
-        <select class="w-full bg-surface border border-border rounded-app px-2 py-1 text-[.85rem] text-foreground" data-field="wallAngle">
+        <select class="w-full bg-surface border border-field-border rounded-app px-2 py-1 text-[.85rem] text-foreground" data-field="wallAngle">
           ${optionsHtml(VALID_WALL_ANGLES, wallAngle)}
         </select>
       </label>

@@ -452,7 +452,7 @@ export function createMapView({ store, allDisciplines = false }) {
         container.innerHTML = `
           <div class="bg-surface border border-border rounded-app p-6 mb-5 text-center">
             <p class="text-[.85rem] text-muted mb-3">You need to be online to view the map.</p>
-            <button type="button" class="text-[.85rem] font-semibold text-accent bg-transparent border-0 cursor-pointer" id="map-load-retry">Retry</button>
+            <button type="button" class="text-[.85rem] font-semibold text-accent-ink bg-transparent border-0 cursor-pointer" id="map-load-retry">Retry</button>
           </div>`;
         document.getElementById("map-load-retry").addEventListener("click", () => {
           mapLoadError = null;
@@ -487,7 +487,7 @@ export function createMapView({ store, allDisciplines = false }) {
         return `
         <g class="cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2" role="button" tabindex="0" data-pin-country="${escapeHtml(c.name)}" aria-label="${escapeHtml(label)}">
           <title>${escapeHtml(label)}</title>
-          <circle cx="${c.x}" cy="${c.y}" r="${PIN_BASE_R}" class="fill-accent stroke-background" stroke-width="${PIN_BASE_STROKE}"></circle>
+          <circle cx="${c.x}" cy="${c.y}" r="${PIN_BASE_R}" class="fill-accent-strong stroke-background" stroke-width="${PIN_BASE_STROKE}"></circle>
           <text x="${c.x}" y="${c.y}" text-anchor="middle" dominant-baseline="central" class="fill-accent-foreground font-bold select-none" style="font-size: ${PIN_BASE_FONT}px">${count}</text>
         </g>`;
       })

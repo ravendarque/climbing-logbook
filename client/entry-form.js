@@ -3,6 +3,7 @@ import {
   SCALES_BY_DISCIPLINE,
   gradeOrdinal,
   gradeColorForScale,
+  gradeInkForScale,
   nonStandardLabel,
   parseNonStandardLabel,
   resolveScaleId,
@@ -244,8 +245,10 @@ export function createEntryForm({
     gradeNsLetterPicker.trigger.textContent = nsButtonLabel(nsLetter);
     gradeNsModifierPicker.trigger.textContent = nsButtonLabel(nsModifier);
     const bg = gradeColorForScale(selectedGrade, currentGradeScaleId(), store.getActiveType());
+    const ink = gradeInkForScale(selectedGrade, currentGradeScaleId(), store.getActiveType());
     [gradeNsNumberPicker.trigger, gradeNsLetterPicker.trigger, gradeNsModifierPicker.trigger].forEach(el => {
       el.style.backgroundColor = bg;
+      el.style.color = ink;
     });
   }
   function setNonStandardFieldsFromLabel(label) {
@@ -297,6 +300,7 @@ export function createEntryForm({
       currentGradeScaleId(),
       store.getActiveType(),
     );
+    gradeValuePicker.trigger.style.color = gradeInkForScale(g, currentGradeScaleId(), store.getActiveType());
   }
   function selectGradeByValue(value, scaleId) {
     if (isNonStandardScaleId(scaleId)) {
