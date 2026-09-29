@@ -27,6 +27,7 @@
   "devDependencies": {
     "@11ty/eleventy": "3.1.6",
     "@11ty/eleventy-navigation": "^1.0.5",
+    "@axe-core/playwright": "^4.13.0",
     "@biomejs/biome": "^2.5.14",
     "@cloudflare/vite-plugin": "^1.56.0",
     "@cloudflare/vitest-pool-workers": "^0.22.0",

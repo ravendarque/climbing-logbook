@@ -28,7 +28,7 @@ staticShellNote: |-
   </button>
 
   <ul class="flex flex-col gap-2 mb-4 p-3 border border-accent rounded-app bg-surface text-[.88rem] text-foreground" id="failed-writes" role="status" aria-live="polite" hidden></ul>
-  <p class="mb-4 text-[.85rem] text-muted" id="install-nudge" hidden>Safari can delete climbs that haven't synced yet if you don't visit for seven days. <a class="text-accent-ink font-semibold" data-apex-link href="/help/install/">Install the app</a> to keep them safe.</p>
+  <p class="mb-4 text-[.85rem] text-muted" id="install-nudge" hidden>Safari can delete climbs that haven't synced yet if you don't visit for seven days. <a class="text-accent-ink font-semibold underline underline-offset-2" data-apex-link href="/help/install/">Install the app</a> to keep them safe.</p>
 
   <climbing-entries-table editable loading></climbing-entries-table>
 
@@ -45,7 +45,7 @@ staticShellNote: |-
     <div class="overflow-hidden" id="entry-pages-viewport">
       <div class="flex items-start transition-[transform,height] duration-300 ease-out motion-reduce:transition-none" id="entry-pages-track">
       <div class="w-full shrink-0" id="entry-page-1" tabindex="-1">
-      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 first:mt-0 mt-[1.1rem]" id="form-name-label">Problem name</div>
+      <label class="block text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 first:mt-0 mt-[1.1rem]" id="form-name-label" for="entry-name">Problem name</label>
       <div class="mb-3">
         <input type="text" class="text-input w-full" id="entry-name" required>
       </div>
@@ -116,7 +116,7 @@ staticShellNote: |-
           </div>
         </div>
         <div class="flex-[0_1_10.5rem] min-w-[9rem]">
-          <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2">Date</div>
+          <label class="block text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2" for="entry-date">Date</label>
           <div class="flex items-stretch gap-2">
             <input type="text" class="text-input flex-1 min-w-0" id="entry-date">
             <div class="flex-[0_0_2.75rem] flex" id="date-picker-mount"></div>
@@ -163,12 +163,12 @@ staticShellNote: |-
         </label>
       </fieldset>
 
-      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]">Notes</div>
+      <label class="block text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]" for="entry-notes">Notes</label>
       <div class="mb-3">
         <textarea class="bg-surface border border-field-border rounded-app px-[.85rem] py-[.65rem] text-foreground font-sans text-[1rem] outline-none focus:border-accent w-full resize-y min-h-[72px]" id="entry-notes"></textarea>
       </div>
 
-      <div class="text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]">Video URL</div>
+      <label class="block text-[.72rem] font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]" for="entry-video">Video URL</label>
       <div class="mb-3">
         <input type="url" class="text-input w-full" id="entry-video">
       </div>

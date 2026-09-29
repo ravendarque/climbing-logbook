@@ -268,6 +268,10 @@ decision and why it's an ongoing constraint, not a single shipped feature.
   `<th>`.
 - Modals need `role="dialog"`, `aria-modal="true"`, a focus trap, and
   Escape-to-close.
+- **Links in running text are underlined**, not told apart by colour alone
+  (WCAG 1.4.1).
+- **Every page passes axe's WCAG 2.2 AA rules** at phone width in both
+  themes (`e2e/accessibility.spec.js`); a new page joins its list.
 - **A button that opens or closes something uses `aria-expanded`; a
   button that switches a setting on or off uses `aria-pressed`.** Never
   both on the same button.

@@ -507,7 +507,7 @@ export function createMapView({ store, allDisciplines = false }) {
 
     container.innerHTML = `
       <div class="bg-surface border border-border rounded-app overflow-hidden mb-5">
-        <svg viewBox="0 0 ${MAP_WIDTH} ${mapData.height}" role="img" aria-label="${mapAriaLabel}" class="w-full h-auto block touch-none cursor-grab">
+        <svg viewBox="0 0 ${MAP_WIDTH} ${mapData.height}" role="group" aria-label="${mapAriaLabel}" class="w-full h-auto block touch-none cursor-grab">
           <path d="${mapData.graticulePath}" class="stroke-border fill-none" stroke-width="0.5"></path>
           <path d="${mapData.worldLandPath}" class="fill-border stroke-none"></path>
           <path d="${mapData.countryBordersPath}" class="stroke-[color-mix(in_srgb,var(--color-accent)_20%,var(--color-muted)_80%)] fill-none" stroke-width="0.35" stroke-linejoin="round"></path>

@@ -116,7 +116,7 @@ export function gradeScaleMatrixHtml(discipline) {
   return `
     <p class="text-[.82rem] text-muted leading-[1.7] mb-4">${CAVEATS_BY_DISCIPLINE[discipline] ?? ""}</p>
     ${baseNote}
-    <div class="overflow-x-auto rounded-app border border-border" id="grade-scale-matrix-scroll">
+    <div class="overflow-x-auto rounded-app border border-border" id="grade-scale-matrix-${discipline}" tabindex="0" role="region" aria-label="${discipline === "sport" ? "Sport" : "Boulder"} grade conversions">
       <table class="w-full border-collapse text-[.85rem]">
         <thead><tr>${headerCells}</tr></thead>
         <tbody>${bodyRows}</tbody>
