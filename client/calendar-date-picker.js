@@ -18,7 +18,7 @@ const MONTHS = [
 ];
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 const DAY_CELL_CLASSES =
-  "h-7 flex items-center justify-center rounded-[calc(var(--radius-app)-2px)] text-[.78rem] text-foreground border-0 bg-transparent cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] aria-selected:bg-accent-strong aria-selected:text-accent-foreground aria-selected:hover:bg-accent-strong aria-[current=date]:font-bold aria-[current=date]:text-accent-ink";
+  "h-7 flex items-center justify-center rounded-[calc(var(--radius-app)-2px)] text-sm text-foreground border-0 bg-transparent cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] aria-selected:bg-accent-strong aria-selected:text-accent-foreground aria-selected:hover:bg-accent-strong aria-[current=date]:font-bold aria-[current=date]:text-accent-ink";
 
 const CALENDAR_ICON = `<svg class="w-[1.1rem] h-[1.1rem] stroke-current" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <rect x="3" y="5" width="18" height="16" rx="2"></rect>
@@ -47,12 +47,12 @@ export function calendarDatePickerHtml(
           <button type="button" class="w-7 h-7 flex items-center justify-center border-0 bg-transparent text-foreground cursor-pointer rounded-[calc(var(--radius-app)-2px)] hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)]" id="${p}-prev-month" aria-label="Previous month">
             <svg class="w-[.7rem] h-[.7rem] fill-current" viewBox="0 0 24 24"><polygon points="16 5 6 12 16 19"></polygon></svg>
           </button>
-          <span class="text-[.85rem] font-semibold text-foreground" id="${p}-month-label"></span>
+          <span class="text-sm font-semibold text-foreground" id="${p}-month-label"></span>
           <button type="button" class="w-7 h-7 flex items-center justify-center border-0 bg-transparent text-foreground cursor-pointer rounded-[calc(var(--radius-app)-2px)] hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)]" id="${p}-next-month" aria-label="Next month">
             <svg class="w-[.7rem] h-[.7rem] fill-current" viewBox="0 0 24 24"><polygon points="8 5 18 12 8 19"></polygon></svg>
           </button>
         </div>
-        <div class="grid grid-cols-7 gap-[.15rem] text-center text-[.68rem] font-semibold text-muted mb-1" id="${p}-weekdays"></div>
+        <div class="grid grid-cols-7 gap-[.15rem] text-center text-xs font-semibold text-muted mb-1" id="${p}-weekdays"></div>
         <div class="grid grid-cols-7 gap-[.15rem]" id="${p}-grid"></div>
       </div>
     </div>`;

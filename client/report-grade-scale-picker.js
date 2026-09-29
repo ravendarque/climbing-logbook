@@ -26,7 +26,7 @@ function savePref(type, scaleId) {
 }
 
 const TRIGGER_CLASSES =
-  "group inline-flex items-center gap-[.35rem] h-[var(--field-h)] px-[.8rem] bg-surface border border-border rounded-app text-foreground text-[.85rem] font-semibold cursor-pointer hover:border-accent [&_svg]:stroke-current [&_svg]:fill-none [&_.chevron-icon]:transition-transform [&_.chevron-icon]:duration-150 aria-expanded:[&_.chevron-icon]:rotate-180";
+  "group inline-flex items-center gap-[.35rem] h-[var(--field-h)] px-[.8rem] bg-surface border border-border rounded-app text-foreground text-sm font-semibold cursor-pointer hover:border-accent [&_svg]:stroke-current [&_svg]:fill-none [&_.chevron-icon]:transition-transform [&_.chevron-icon]:duration-150 aria-expanded:[&_.chevron-icon]:rotate-180";
 const CHEVRON_SVG = `<svg class="chevron-icon w-3 h-3" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>`;
 
 // A getter: the discipline can change after construction.
@@ -39,7 +39,7 @@ export function createReportGradeScalePicker({ containerEl, getType, onChange })
       </button>
       <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 bg-background border border-border rounded-app p-[.35rem] min-w-full w-max max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="report-grade-scale-popover" role="listbox" aria-label="Grade scale" hidden>
         <ul class="max-h-[13rem] overflow-y-auto listbox-scrollbar m-0 p-0 list-none" id="report-grade-scale-listbox"></ul>
-        <a class="block text-[.72rem] text-accent-ink text-center pt-[.4rem] mt-[.2rem] border-t border-border hover:brightness-90" id="report-grade-scale-reference-link" data-apex-link href="#">What's this?</a>
+        <a class="block text-xs text-accent-ink text-center pt-[.4rem] mt-[.2rem] border-t border-border hover:brightness-90" id="report-grade-scale-reference-link" data-apex-link href="#">What's this?</a>
       </div>
     </div>`;
 
