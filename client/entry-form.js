@@ -18,6 +18,7 @@ import { createListPicker, renderOptionList } from "./modal-utils.js";
 import { calendarDatePickerHtml, createCalendarDatePicker } from "./calendar-date-picker.js";
 import { isUnauthorized } from "./api-fetch.js";
 import { STORAGE_FULL_MESSAGE } from "./storage-quota.js";
+import "./components/climbing-status-picker.js";
 
 const ERROR_MSG_CLASS = "mt-[.85rem] error-message";
 
@@ -66,6 +67,7 @@ export function createEntryForm({
     entryMsg.focus();
   }
   const statusGroup = document.getElementById("status-group");
+  const statusPicker = document.querySelector("climbing-status-picker");
   const sportStyleField = document.getElementById("sport-style-field");
   const sportStyleGroup = document.getElementById("sport-style-group");
   const exertionField = document.getElementById("exertion-field");
@@ -327,17 +329,6 @@ export function createEntryForm({
   let selectedStatus = "send";
   let isFlash = false;
 
-  // Fades only the edge that has more to scroll to.
-  function updateStatusScrollFade() {
-    const atStart = statusGroup.scrollLeft <= 1;
-    const atEnd = statusGroup.scrollLeft + statusGroup.clientWidth >= statusGroup.scrollWidth - 1;
-    const mask = `linear-gradient(to right, ${atStart ? "black" : "transparent"}, black 24px, black calc(100% - 24px), ${atEnd ? "black" : "transparent"})`;
-    statusGroup.style.maskImage = mask;
-    statusGroup.style.webkitMaskImage = mask;
-  }
-  statusGroup.addEventListener("scroll", updateStatusScrollFade);
-  window.addEventListener("resize", updateStatusScrollFade);
-
   statusGroup.addEventListener("change", e => {
     if (e.target.name !== "entry-status") return;
     const value = e.target.value;
@@ -387,7 +378,7 @@ export function createEntryForm({
 
   function setStatusToggle(status, flash) {
     const value = flash ? "flash" : status;
-    document.querySelector(`#status-group input[value="${value}"]`).checked = true;
+    statusPicker.value = value;
     selectedStatus = status;
     isFlash = flash;
   }
@@ -483,7 +474,6 @@ export function createEntryForm({
 
     openModal(entryOverlay);
     nameInput.focus();
-    requestAnimationFrame(updateStatusScrollFade);
   }
   document.getElementById("add-btn").addEventListener("click", () => open(null));
   document.getElementById("entry-close").addEventListener("click", () => closeModal(entryOverlay));
