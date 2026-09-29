@@ -1,50 +1,5 @@
-/**
- * Status icons (#63) -- replaces the previous Streamline Flex set with a
- * new pictorial set (some Icons8-sourced -- see #190 for the attribution
- * this app owes them, tracked on the help/legal pages issue).
- *
- * flash/send/project/abandoned were later hand-tweaked by Raven for a
- * cohesive diagonal angle across the set (all four now lean the same
- * way as the ruby project icon) -- reapplied this file's own color
- * choices on top of each reshaped SVG rather than the shapes carrying
- * their own colors.
- *
- * flash: Icons8's bolt, recolored to this app's existing amber-gold
- * (#f4b400/#b8860b, the same two fills the old flash icon used -- the
- * source SVG's own colors didn't match the app). Originally two
- * illustrative overlapping shapes (a shading detail on the second path,
- * not an outline); restructured to a single shape duplicated with fill+
- * stroke (stroke-width 5) for an outward border, matching send's own
- * border technique, once the two icons' angles converged and a visual
- * "match the stroke width to send" request no longer had anything to
- * apply to on the original two-shape construction.
- * send: not Icons8 -- a custom two-tone checkmark, green fill matching
- * the original send.svg's own background color (#26d93b), lighter green
- * outline (#24923f, tuned down from an earlier, more contrasty
- * #0a4a1c/#1a6b2e) sitting entirely outside the fill (not straddling it,
- * unlike a plain SVG stroke).
- * project: the ruby option from #63's two choices (not fire), lines
- * later simplified -- same colors throughout, ruby was never recolored.
- * wishlist: Icons8's eye icon, unmodified.
- * abandoned: not Icons8 -- a folder icon, recolored violet (#8b5cf6
- * body / #5b21b6 tab) after comparing red (too close to the ruby project
- * icon), lilac, and indigo. Reshaped so the body ("front") sits shorter,
- * letting the tab ("back") show across the whole top edge.
- *
- * wishlist/abandoned kept their original keys here when this file was
- * first written -- the "Checkout"/"Archive" rename mentioned in #63's
- * original body was a separate, bigger decision (touches label copy
- * across the app, not just the icon), not part of that pass. Done now,
- * as checkout/archived (#483) -- the STATUS_ICONS keys below, same eye/
- * folder artwork, no new icons (that half of #63's original mockups was
- * never adopted either).
- *
- * Used by logbook/index.html (list badges, stats bar, and the entry form).
- */
-
-// viewBoxes padded so every icon's ink fills the same share of its box.
 export const STATUS_ICONS = {
-  flash: `<svg width="14" height="14" viewBox="-42.6 -25 150 150" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  flash: `<svg width="14" height="14" viewBox="-27.6 -10.0 120.0 120.0" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
     <g transform="matrix(1,0,0,1,-17.61265,-0)">
         <g transform="matrix(1,0,0,1,19.997168,4.002098)">
             <g transform="matrix(1.195005,0,0,1.158261,-5.850764,-7.279803)">
@@ -55,7 +10,7 @@ export const STATUS_ICONS = {
     </g>
   </svg>`,
 
-  send: `<svg width="14" height="14" viewBox="-56.2 -53.7 303.3 303.3" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  send: `<svg width="14" height="14" viewBox="-33.1 -30.6 257.2 257.2" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
     <g transform="matrix(1,0,0,1,-2.078254,0.226197)">
         <g transform="matrix(2.6,0,0,2.6,-30,-30)">
             <g transform="matrix(1.275565,-0.141258,0.145283,1.311915,-7.95315,4.582837)">
@@ -66,7 +21,7 @@ export const STATUS_ICONS = {
     </g>
   </svg>`,
 
-  project: `<svg width="14" height="14" viewBox="-30.1 -38.3 160.5 160.5" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  project: `<svg width="14" height="14" viewBox="-13.6 -14.8 127.7 127.7" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
     <g id="Background" transform="matrix(0.707616,0.706597,-0.706597,0.707616,49.959271,-14.535333)">
         <path d="M52.557,20.38C52.557,20.38 76.098,74.44 76.159,74.5C76.868,75.201 77.114,74.817 77.819,75.515C77.726,75.862 77.845,76.244 77.752,76.591C77.718,76.718 77.51,77.495 76.541,77.687C76.197,77.754 75.834,77.615 75.491,77.683C75.036,77.276 75.05,76.467 74.595,76.06C74.339,75.831 20.74,52.056 20.74,52.056L52.557,20.38Z" style="fill:rgb(215,27,37);"/>
         <path d="M70.59,2.278C71.012,2.73 71.633,2.417 71.815,4.467C72.084,7.495 77.757,74.635 77.819,75.515C77.114,74.817 76.868,75.201 76.159,74.5C76.098,74.44 53.182,22.371 52.557,20.38C55.401,18.384 55.197,18.167 57.682,15.682C66.781,6.584 67.364,6.055 68.244,5.257C68.96,4.607 68.893,4.56 70.59,2.278Z" style="fill:rgb(254,63,83);"/>
