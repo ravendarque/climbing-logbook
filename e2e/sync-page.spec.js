@@ -1,3 +1,4 @@
+import { cachedEntries } from "./entries-cache.js";
 import { expect, gotoSyncedLog, test } from "./owner.js";
 
 const SEED = {
@@ -19,7 +20,7 @@ test("cold start: fetches everything in chunks and redirects to returnTo once sy
   await page.goto(syncUrl(owner));
   await page.waitForURL(`**/${owner.username}/log`);
 
-  const cached = await storedJson(page, "logbook_entries_cache", owner.username);
+  const cached = await cachedEntries(page, owner.username);
   expect(cached.map(e => e.name).toSorted()).toEqual(["Boulder Seed", "Sport Seed"]);
 });
 
@@ -68,7 +69,7 @@ test("warm with drift: /sync takes the delta path and catches up on a change fro
 
   expect(entriesRequests.some(url => url.includes(`?since=${seededCursor}`))).toBe(true);
   expect(entriesRequests.some(url => url.includes("?limit="))).toBe(false);
-  const cached = await storedJson(page, "logbook_entries_cache", owner.username);
+  const cached = await cachedEntries(page, owner.username);
   expect(cached.map(e => e.name)).toContain("Drifted In");
 });
 

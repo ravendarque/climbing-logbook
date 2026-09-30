@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { DEV_USER } from "../scripts/lib/dev-session.mjs";
+import { cachedEntries } from "./entries-cache.js";
 import { addOwnedRouteSessionCookie, ownedRouteUrl } from "./owned-route-url.js";
 
 const OWNER = DEV_USER.username.toLowerCase();
@@ -15,12 +16,14 @@ async function storageSnapshot(page) {
 test("an owner page records the signed-in user and keeps its data under that user's namespace", async ({ page }) => {
   await page.goto(ownedRouteUrl(DEV_USER.username, "/log"));
   await expect(page.locator("climbing-entries-table")).toBeVisible();
-  await expect.poll(async () => (await storageSnapshot(page))[`logbook_entries_cache:${OWNER}`]).toBeTruthy();
+  await expect.poll(async () => (await cachedEntries(page, OWNER))?.length).toBeGreaterThan(0);
 
   const keys = await storageSnapshot(page);
   expect(keys.logbook_signed_in_user).toBe(OWNER);
-  expect(keys.logbook_entries_cache).toBeUndefined();
+  expect(keys.logbook_sync_status).toBeUndefined();
   expect(keys[`logbook_sync_status:${OWNER}`]).toBeTruthy();
+  const databases = (await page.evaluate(() => indexedDB.databases())).map(db => db.name);
+  expect(databases).not.toContain("logbook_entries");
 });
 
 test("pre-#960 data is adopted by the user the server authorised, not left global", async ({ page }) => {
@@ -31,7 +34,7 @@ test("pre-#960 data is adopted by the user the server authorised, not left globa
   await expect
     .poll(async () => {
       const keys = await storageSnapshot(page).catch(() => ({}));
-      return keys.logbook_signed_in_user === OWNER && !!keys[`logbook_entries_cache:${OWNER}`];
+      return keys.logbook_signed_in_user === OWNER && !!keys[`logbook_sync_status:${OWNER}`];
     })
     .toBe(true);
   await page.waitForLoadState("networkidle");
@@ -50,9 +53,8 @@ test("pre-#960 data is adopted by the user the server authorised, not left globa
   // The table is in the static shell, so it shows before the ownership check has adopted the data.
   await expect.poll(async () => (await storageSnapshot(page)).logbook_signed_in_user).toBe(OWNER);
   const keys = await storageSnapshot(page);
-  expect(keys.logbook_entries_cache).toBeUndefined();
   expect(keys.logbook_sync_status).toBeUndefined();
-  expect(keys[`logbook_entries_cache:${OWNER}`]).toBeTruthy();
+  expect(keys[`logbook_sync_status:${OWNER}`]).toBeTruthy();
   expect(new URL(page.url()).pathname).toBe(`/${DEV_USER.username}/log`);
 });
 
@@ -79,7 +81,7 @@ test("another user's cached data on the same device never shows on this user's p
   await expect(page.locator("climbing-entries-table")).toBeVisible();
   await expect(page.getByText("Someone else's secret climb")).toHaveCount(0);
   const keys = await storageSnapshot(page);
-  expect(keys[`logbook_entries_cache:${OWNER}`] ?? "").not.toContain("alien-entry-1");
+  expect((await cachedEntries(page, OWNER)) ?? []).not.toContainEqual(expect.objectContaining({ id: "alien-entry-1" }));
   expect(keys[`logbook_pending_queue:${OWNER}`] ?? "").not.toContain("alien-entry-1");
   expect(keys.logbook_signed_in_user).toBe(OWNER);
 });

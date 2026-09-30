@@ -13,7 +13,7 @@ document.getElementById("profile-title").textContent = `${USERNAME}'s logbook`;
 
 const entriesTable = document.querySelector("climbing-entries-table");
 
-const store = createStore({ storage: { getItem: () => null, setItem: () => {} } });
+const store = createStore({ storage: { getItem: () => null, setItem: () => {} }, openEntries: null });
 const mapView = createMapView({ store, allDisciplines: true });
 
 function render() {

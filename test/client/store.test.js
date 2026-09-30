@@ -1,4 +1,6 @@
+import { IDBFactory } from "fake-indexeddb";
 import { beforeEach, describe, expect, it } from "vitest";
+import { openEntriesDb } from "../../client/entries-db.js";
 import { createStore } from "../../client/store.js";
 
 // The Workers pool has no localStorage global.
@@ -7,6 +9,7 @@ function fakeStorage() {
   return {
     getItem: k => (map.has(k) ? map.get(k) : null),
     setItem: (k, v) => map.set(k, String(v)),
+    removeItem: k => map.delete(k),
     _map: map,
   };
 }
@@ -42,11 +45,34 @@ const ENTRIES = [
   },
 ];
 
-let storage, store;
+const DB_NAME = "logbook_entries";
+
+let storage, factory, store;
+const openEntries = () => openEntriesDb(DB_NAME, factory);
+const storedEntries = async () => (await openEntries()).load();
+const cursors = () => JSON.parse(storage.getItem("logbook_sync_cursors") ?? "{}");
+
 beforeEach(() => {
   storage = fakeStorage();
-  store = createStore({ storage });
+  factory = new IDBFactory();
+  store = createStore({ storage, openEntries });
 });
+
+function failingEntriesDb(err) {
+  const cleared = [];
+  const db = {
+    isCached: async () => true,
+    load: async () => [],
+    replace: async () => {
+      throw err;
+    },
+    apply: async () => {
+      throw err;
+    },
+    clear: async () => cleared.push(true),
+  };
+  return { openEntries: async () => db, cleared };
+}
 
 describe("entries/places/locations", () => {
   it("starts empty", () => {
@@ -55,144 +81,194 @@ describe("entries/places/locations", () => {
     expect(store.getLocations()).toEqual([]);
   });
 
-  it("setEntries replaces the collection and persists it", () => {
-    store.setEntries(ENTRIES);
+  it("setEntries replaces the collection at once and persists it to IndexedDB", async () => {
+    const written = store.setEntries(ENTRIES);
     expect(store.getEntries()).toEqual(ENTRIES);
-    expect(JSON.parse(storage.getItem("logbook_entries_cache"))).toEqual(ENTRIES);
+    expect(await written).toBe(true);
+    expect(await storedEntries()).toEqual(ENTRIES);
   });
 
-  it("setPlaces/setLocations replace and persist the same way", () => {
+  it("setPlaces/setLocations replace and persist to localStorage", () => {
     store.setPlaces(PLACES);
     store.setLocations(LOCATIONS);
     expect(JSON.parse(storage.getItem("logbook_places_cache"))).toEqual(PLACES);
     expect(JSON.parse(storage.getItem("logbook_locations_cache"))).toEqual(LOCATIONS);
   });
 
-  it("persists unconditionally, including a delete down to an empty array", () => {
-    store.setEntries(ENTRIES);
-    store.setEntries([]);
-    expect(JSON.parse(storage.getItem("logbook_entries_cache"))).toEqual([]);
+  it("persists unconditionally, including a delete down to an empty array", async () => {
+    await store.setEntries(ENTRIES);
+    await store.setEntries([]);
+    expect(await storedEntries()).toEqual([]);
+  });
+
+  it("caches nothing without a database, and says so", async () => {
+    const uncached = createStore({ storage, openEntries: null });
+    expect(await uncached.setEntries(ENTRIES)).toBe(false);
+    expect(uncached.getEntries()).toEqual(ENTRIES);
+    expect(await uncached.loadEntriesFromCache()).toBe(false);
   });
 });
 
-describe("a full device", () => {
-  function quotaStorage(fullKeys) {
-    const storage = fakeStorage();
-    const setItem = storage.setItem;
-    storage.setItem = (k, v) => {
-      if (fullKeys.includes(k)) throw new DOMException("full", "QuotaExceededError");
-      setItem(k, v);
-    };
-    storage.removeItem = k => storage._map.delete(k);
-    return storage;
-  }
+describe("a failed entries write", () => {
+  it("keeps the entries in memory, clears the cache and resets only its cursor", async () => {
+    storage.setItem("logbook_sync_cursors", JSON.stringify({ entries: 42, places: 7 }));
+    const { openEntries, cleared } = failingEntriesDb(new DOMException("full", "QuotaExceededError"));
+    const full = createStore({ storage, openEntries });
 
-  it("keeps the new entries in memory, drops the stale cache and resets its cursor, without throwing", () => {
-    const storage = quotaStorage(["logbook_entries_cache"]);
-    storage._map.set("logbook_entries_cache", JSON.stringify([ENTRIES[0]]));
-    storage._map.set("logbook_sync_cursors", JSON.stringify({ entries: 42, places: 7 }));
-    const full = createStore({ storage });
-
-    expect(() => full.setEntries(ENTRIES)).not.toThrow();
+    expect(await full.setEntries(ENTRIES)).toBe(false);
     expect(full.getEntries()).toEqual(ENTRIES);
-    expect(storage.getItem("logbook_entries_cache")).toBeNull();
-    expect(JSON.parse(storage.getItem("logbook_sync_cursors"))).toEqual({ places: 7 });
+    await new Promise(resolve => setTimeout(resolve));
+    expect(cleared).toHaveLength(1);
+    expect(cursors()).toEqual({ places: 7 });
   });
 
-  it("reports whether the cache was written, so a caller only advances the cursor when it was", () => {
-    const full = createStore({ storage: quotaStorage(["logbook_entries_cache"]) });
-    expect(full.mergeConfirmed("entries", ENTRIES)).toBe(false);
-    expect(full.mergeConfirmed("places", PLACES)).toBe(true);
+  it("reports false for any error, so a caller only advances the cursor when the write landed", async () => {
+    const broken = createStore({ storage, openEntries: failingEntriesDb(new TypeError("boom")).openEntries });
+    expect(await broken.mergeConfirmed("entries", ENTRIES)).toBe(false);
+    expect(await broken.mergeConfirmed("places", PLACES)).toBe(true);
+  });
+});
+
+describe("a write that overlaps a failed one", () => {
+  it("reports false, so its caller can't advance the cursor past the dropped cache", async () => {
+    let failNext = true;
+    const db = await openEntries();
+    const flaky = {
+      ...db,
+      apply: async rows => {
+        if (failNext) {
+          failNext = false;
+          await new Promise(resolve => setTimeout(resolve));
+          throw new DOMException("full", "QuotaExceededError");
+        }
+        return db.apply(rows);
+      },
+    };
+    const overlapping = createStore({ storage, openEntries: async () => flaky });
+    const failed = overlapping.mergeConfirmed("entries", [{ id: "a" }]);
+    const landed = overlapping.mergeConfirmed("entries", [{ id: "b" }]);
+    expect(await failed).toBe(false);
+    expect(await landed).toBe(false);
+  });
+});
+
+describe("a full device for places and locations", () => {
+  it("drops the stale cache and resets its cursor", () => {
+    storage.setItem("logbook_places_cache", JSON.stringify([PLACES[0]]));
+    storage.setItem("logbook_sync_cursors", JSON.stringify({ entries: 42, places: 7 }));
+    const setItem = storage.setItem;
+    storage.setItem = (k, v) => {
+      if (k === "logbook_places_cache") throw new DOMException("full", "QuotaExceededError");
+      setItem(k, v);
+    };
+    expect(store.setPlaces(PLACES)).toBe(false);
+    expect(storage.getItem("logbook_places_cache")).toBeNull();
+    expect(cursors()).toEqual({ entries: 42 });
   });
 
   it("still throws an error that isn't about storage being full", () => {
-    const storage = fakeStorage();
     storage.setItem = () => {
       throw new TypeError("boom");
     };
-    expect(() => createStore({ storage }).setEntries(ENTRIES)).toThrow("boom");
+    expect(() => store.setPlaces(PLACES)).toThrow("boom");
   });
 });
 
 describe("mergeConfirmed", () => {
-  it("upserts confirmed rows into the stored cache and persists the result", () => {
-    store.setEntries(ENTRIES);
-    store.mergeConfirmed("entries", [
+  it("upserts confirmed rows in place, appends new ones, and persists the result", async () => {
+    await store.setEntries(ENTRIES);
+    await store.mergeConfirmed("entries", [
       { ...ENTRIES[0], name: "Renamed" },
       { id: "e3", placeId: "p1", name: "New" },
     ]);
     const expected = [{ ...ENTRIES[0], name: "Renamed" }, ENTRIES[1], { id: "e3", placeId: "p1", name: "New" }];
     expect(store.getEntries()).toEqual(expected);
-    expect(JSON.parse(storage.getItem("logbook_entries_cache"))).toEqual(expected);
+    expect(await storedEntries()).toEqual(expected);
   });
 
-  it("drops a row confirmed deleted", () => {
-    store.setEntries(ENTRIES);
-    store.mergeConfirmed("entries", [{ id: "e1", deleted: true }]);
+  it("drops a row confirmed deleted", async () => {
+    await store.setEntries(ENTRIES);
+    await store.mergeConfirmed("entries", [{ id: "e1", deleted: true }]);
     expect(store.getEntries()).toEqual([ENTRIES[1]]);
+    expect(await storedEntries()).toEqual([ENTRIES[1]]);
   });
 
-  it("merges onto the stored cache, so pending rows in the view are never persisted", () => {
-    store.setEntries(ENTRIES);
+  it("merges onto the confirmed rows, so pending rows in the view are never persisted", async () => {
+    await store.setEntries(ENTRIES);
     store.applyPendingQueue([{ kind: "entry", op: "add", record: { id: "queued", placeId: "p1", name: "Queued" } }]);
-    store.mergeConfirmed("entries", [{ id: "e3", placeId: "p1", name: "New" }]);
-    expect(JSON.parse(storage.getItem("logbook_entries_cache")).map(e => e.id)).toEqual(["e1", "e2", "e3"]);
+    await store.mergeConfirmed("entries", [{ id: "e3", placeId: "p1", name: "New" }]);
+    expect((await storedEntries()).map(e => e.id)).toEqual(["e1", "e2", "e3"]);
+    expect(store.getEntries().map(e => e.id)).toEqual(["e1", "e2", "e3"]);
   });
 
-  it("merges places and locations the same way", () => {
+  it("merges places and locations the same way", async () => {
     store.setPlaces(PLACES);
-    store.mergeConfirmed("places", [{ id: "p3", locationId: "l1", area: "Apremont" }]);
-    store.mergeConfirmed("locations", [{ id: "l3", name: "Albarracín", country: "Spain" }]);
+    await store.mergeConfirmed("places", [{ id: "p3", locationId: "l1", area: "Apremont" }]);
+    await store.mergeConfirmed("locations", [{ id: "l3", name: "Albarracín", country: "Spain" }]);
     expect(store.getPlaces().map(p => p.id)).toEqual(["p1", "p2", "p3"]);
     expect(store.getLocations().map(l => l.id)).toEqual(["l3"]);
   });
 });
 
 describe("loadEntriesFromCache", () => {
-  it("returns false and leaves entries empty when nothing was ever cached", () => {
-    expect(store.loadEntriesFromCache()).toBe(false);
+  it("returns false, resets the cursor and doesn't notify when nothing was ever cached", async () => {
+    storage.setItem("logbook_sync_cursors", JSON.stringify({ entries: 42 }));
+    let calls = 0;
+    store.subscribe(() => calls++);
+    expect(await store.loadEntriesFromCache()).toBe(false);
     expect(store.getEntries()).toEqual([]);
-  });
-
-  it("returns true and loads the cached value when present", () => {
-    storage.setItem("logbook_entries_cache", JSON.stringify(ENTRIES));
-    expect(store.loadEntriesFromCache()).toBe(true);
-    expect(store.getEntries()).toEqual(ENTRIES);
-  });
-
-  it("returns true but falls back to an empty array for corrupt cached JSON", () => {
-    storage.setItem("logbook_entries_cache", "{not valid json");
-    expect(store.loadEntriesFromCache()).toBe(true);
-    expect(store.getEntries()).toEqual([]);
-  });
-
-  it("notifies subscribers so cached entries reach the DOM immediately, not on some later unrelated mutation (#762)", () => {
-    storage.setItem("logbook_entries_cache", JSON.stringify(ENTRIES));
-    let calls = 0;
-    store.subscribe(() => {
-      calls++;
-    });
-    store.loadEntriesFromCache();
-    expect(calls).toBe(1);
-  });
-
-  it("still notifies even when the cached JSON is corrupt", () => {
-    storage.setItem("logbook_entries_cache", "{not valid json");
-    let calls = 0;
-    store.subscribe(() => {
-      calls++;
-    });
-    store.loadEntriesFromCache();
-    expect(calls).toBe(1);
-  });
-
-  it("does not notify when nothing was ever cached", () => {
-    let calls = 0;
-    store.subscribe(() => {
-      calls++;
-    });
-    store.loadEntriesFromCache();
+    expect(cursors()).toEqual({});
     expect(calls).toBe(0);
+  });
+
+  it("loads the cached rows and notifies once, so they reach the DOM at once (#762)", async () => {
+    await createStore({ storage, openEntries }).setEntries(ENTRIES);
+    let calls = 0;
+    store.subscribe(() => calls++);
+    expect(await store.loadEntriesFromCache()).toBe(true);
+    expect(store.getEntries()).toEqual(ENTRIES);
+    expect(calls).toBe(1);
+  });
+
+  it("treats a database that won't open as no cache, and resets the cursor", async () => {
+    storage.setItem("logbook_sync_cursors", JSON.stringify({ entries: 42 }));
+    const blocked = createStore({ storage, openEntries: () => Promise.reject(new Error("blocked")) });
+    expect(await blocked.loadEntriesFromCache()).toBe(false);
+    expect(cursors()).toEqual({});
+  });
+});
+
+describe("moving the localStorage cache to IndexedDB (#1164)", () => {
+  it("moves an existing cache over on first load, with no refetch", async () => {
+    storage.setItem("logbook_entries_cache", JSON.stringify(ENTRIES));
+    storage.setItem("logbook_sync_cursors", JSON.stringify({ entries: 42 }));
+    expect(await store.loadEntriesFromCache()).toBe(true);
+    expect(store.getEntries()).toEqual(ENTRIES);
+    expect(await storedEntries()).toEqual(ENTRIES);
+    expect(storage.getItem("logbook_entries_cache")).toBeNull();
+    expect(cursors()).toEqual({ entries: 42 });
+  });
+
+  it("moves it before a write, so a delta never lands on an empty database first", async () => {
+    storage.setItem("logbook_entries_cache", JSON.stringify(ENTRIES));
+    await store.mergeConfirmed("entries", [{ id: "e3", placeId: "p1", name: "New" }]);
+    expect((await storedEntries()).map(e => e.id)).toEqual(["e1", "e2", "e3"]);
+  });
+
+  it("never overwrites a database that already has rows", async () => {
+    await createStore({ storage, openEntries }).setEntries([ENTRIES[1]]);
+    storage.setItem("logbook_entries_cache", JSON.stringify(ENTRIES));
+    await createStore({ storage, openEntries }).loadEntriesFromCache();
+    expect(await storedEntries()).toEqual([ENTRIES[1]]);
+    expect(storage.getItem("logbook_entries_cache")).toBeNull();
+  });
+
+  it("discards a corrupt copy and resets the cursor, so the next delta refills the cache", async () => {
+    storage.setItem("logbook_entries_cache", "{not valid json");
+    storage.setItem("logbook_sync_cursors", JSON.stringify({ entries: 42 }));
+    expect(await store.loadEntriesFromCache()).toBe(false);
+    expect(storage.getItem("logbook_entries_cache")).toBeNull();
+    expect(cursors()).toEqual({});
   });
 });
 
@@ -298,8 +374,8 @@ describe("subscribe/notify (#264)", () => {
 });
 
 describe("applyPendingQueue (#264)", () => {
-  beforeEach(() => {
-    store.setEntries(ENTRIES);
+  beforeEach(async () => {
+    await store.setEntries(ENTRIES);
     store.setPlaces(PLACES);
     store.setLocations(LOCATIONS);
   });
@@ -309,11 +385,9 @@ describe("applyPendingQueue (#264)", () => {
     expect(store.getEntries().find(e => e.id === "e3")).toMatchObject({ _pending: true });
   });
 
-  it("does not write the merged result to the entries cache", () => {
-    const before = storage.getItem("logbook_entries_cache");
+  it("does not write the merged result to the entries cache", async () => {
     store.applyPendingQueue([{ kind: "entry", op: "add", record: { id: "e3", grade: "6A" } }]);
-    expect(storage.getItem("logbook_entries_cache")).toBe(before);
-    expect(JSON.parse(before).find(e => e.id === "e3")).toBeUndefined();
+    expect(await storedEntries()).toEqual(ENTRIES);
   });
 
   it("notifies subscribers", () => {
