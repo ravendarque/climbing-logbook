@@ -488,7 +488,7 @@ climbing-status-picker { display: block; }
 .status-picker-frame {
   position: absolute;
   inset: 0 auto 0 50%;
-  width: min(var(--status-slot), 4.75rem);
+  width: 5.25rem;
   transform: translateX(-50%);
   pointer-events: none;
   color: var(--color-accent-ink);
