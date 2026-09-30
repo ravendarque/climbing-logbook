@@ -419,6 +419,14 @@ test("Style filter is hidden for Boulder, shown for Sport, and narrows the table
   await expect(page.locator('#filter-sport-style-group input[data-sport-style="top_rope"]')).toBeChecked();
 });
 
+async function chooseStatus(page, status) {
+  const radio = page.locator(`#status-group input[value="${status}"]`);
+  for (let step = 0; step < 5 && !(await radio.isChecked()); step++) {
+    await page.locator('.status-picker-arrow[data-step="1"]').click();
+  }
+  await expect(radio).toBeChecked();
+}
+
 test("Exertion is visible for Send/Flash and hidden for Project/Check out/Archived", async ({ page, owner }) => {
   await gotoLog(page, owner, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
   await page.locator("#add-btn").click();
@@ -427,24 +435,23 @@ test("Exertion is visible for Send/Flash and hidden for Project/Check out/Archiv
   await page.locator("#entry-nav-forward").click();
   await expect(page.locator("#exertion-field")).toBeVisible();
 
-  // Click the label, not a forced radio check: force skips actionability and raced the slide.
   await page.locator("#entry-nav-back").click();
-  await page.locator('#status-group label:has(input[value="project"])').click();
+  await chooseStatus(page, "project");
   await page.locator("#entry-nav-forward").click();
   await expect(page.locator("#exertion-field")).toBeHidden();
 
   await page.locator("#entry-nav-back").click();
-  await page.locator('#status-group label:has(input[value="checkout"])').click();
+  await chooseStatus(page, "checkout");
   await page.locator("#entry-nav-forward").click();
   await expect(page.locator("#exertion-field")).toBeHidden();
 
   await page.locator("#entry-nav-back").click();
-  await page.locator('#status-group label:has(input[value="archived"])').click();
+  await chooseStatus(page, "archived");
   await page.locator("#entry-nav-forward").click();
   await expect(page.locator("#exertion-field")).toBeHidden();
 
   await page.locator("#entry-nav-back").click();
-  await page.locator('#status-group label:has(input[value="flash"])').click();
+  await chooseStatus(page, "flash");
   await page.locator("#entry-nav-forward").click();
   await expect(page.locator("#exertion-field")).toBeVisible();
 });
