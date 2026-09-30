@@ -30,19 +30,13 @@ export function createOfflineSync({
       return [];
     }
   }
-  // The queue is the only copy of unsynced climbs, so the entries cache makes way for it. False if even that isn't enough.
+  // False when storage is full.
   function setQueue(queue) {
     try {
       localStorage.setItem(queueKey, JSON.stringify(queue));
     } catch (err) {
       if (!isQuotaError(err)) throw err;
-      store.dropCache("entries");
-      try {
-        localStorage.setItem(queueKey, JSON.stringify(queue));
-      } catch (retryErr) {
-        if (!isQuotaError(retryErr)) throw retryErr;
-        return false;
-      }
+      return false;
     }
     updateSyncButton();
     return true;
@@ -96,7 +90,7 @@ export function createOfflineSync({
       });
       if (!res.ok) return;
       const { [table]: rows, cursor } = await res.json();
-      if (store.mergeConfirmed(table, rows)) setCursor(table, cursor);
+      if (await store.mergeConfirmed(table, rows)) setCursor(table, cursor);
     } catch (err) {
       // Offline: skip. A real timeout flags the indicator, since onLine can read true on a dead link.
       if (err.name === "TimeoutError") syncStatusIcon.reportTimeout();

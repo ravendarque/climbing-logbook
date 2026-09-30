@@ -16,7 +16,7 @@ export function createAppShell({ render, noCacheForDemo = false, adminBarExtras 
 
   // A demo never caches: anyone can open it, including an owner signed in on this browser.
   const store = createStore(
-    noCacheForDemo && isDemo ? { storage: { getItem: () => null, setItem: () => {} } } : undefined,
+    noCacheForDemo && isDemo ? { storage: { getItem: () => null, setItem: () => {} }, openEntries: null } : undefined,
   );
   const syncStatusIcon = createSyncStatusIcon();
   store.subscribe(render);

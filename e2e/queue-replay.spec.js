@@ -142,6 +142,7 @@ test("a save made while an older edit is queued is sent after it, and wins", asy
   );
   await page.reload();
   await expect(page.locator("#sync-btn")).toHaveText(/Sync \(1\)/);
+  await expect(page.locator("#sections")).toContainText("Older queued edit");
 
   const writes = [];
   page.on("request", req => {

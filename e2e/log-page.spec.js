@@ -1,3 +1,4 @@
+import { cachedEntries } from "./entries-cache.js";
 import { expect, gotoSyncedLog, test } from "./owner.js";
 
 const SEED = {
@@ -1122,10 +1123,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await expect(page.locator("#sections")).not.toContainText("Edited By Other Device");
     await expect(page.locator("#sync-btn")).toBeHidden();
 
-    const cached = await page.evaluate(
-      key => JSON.parse(localStorage.getItem(key) || "[]"),
-      `logbook_entries_cache:${owner.username}`,
-    );
+    const cached = await cachedEntries(page, owner.username);
     expect(cached.some(e => e._pending || e._pendingDelete)).toBe(false);
   });
 
@@ -1492,18 +1490,16 @@ test("#893 -- the live region doesn't re-announce while already syncing", async 
 });
 
 test.describe("A full device (#1083)", () => {
-  // Throws the browser's quota error for the queue, while `stillFull()` holds in the page.
-  async function fillStorageForTheQueue(page, stillFull) {
-    await page.addInitScript(stillFullSource => {
-      const stillFull = new Function(`return (${stillFullSource})()`);
+  async function fillStorageForTheQueue(page) {
+    await page.addInitScript(() => {
       const setItem = Storage.prototype.setItem;
       Storage.prototype.setItem = function (key, value) {
-        if (key.startsWith("logbook_pending_queue") && stillFull()) {
+        if (key.startsWith("logbook_pending_queue")) {
           throw new DOMException("The quota has been exceeded.", "QuotaExceededError");
         }
         return setItem.call(this, key, value);
       };
-    }, stillFull.toString());
+    });
   }
 
   async function saveWhileOffline(page, owner, entryName) {
@@ -1517,24 +1513,8 @@ test.describe("A full device (#1083)", () => {
     await page.locator("#entry-submit-btn").click();
   }
 
-  test("drops the entries cache to make room for an offline save, which is then queued", async ({ page, owner }) => {
-    await fillStorageForTheQueue(page, () =>
-      Object.keys(localStorage).some(key => key.startsWith("logbook_entries_cache")),
-    );
-    await gotoLog(page, owner);
-
-    await saveWhileOffline(page, owner, `E2E made room ${Date.now()}`);
-
-    await expect(page.locator("#entry-overlay")).toBeHidden();
-    await expect(page.locator("#sync-btn")).toHaveText(/Sync \(1\)/);
-    const cacheKeys = await page.evaluate(() =>
-      Object.keys(localStorage).filter(key => key.startsWith("logbook_entries_cache")),
-    );
-    expect(cacheKeys).toEqual([]);
-  });
-
   test("keeps the form open with a clear message when even that isn't enough", async ({ page, owner }) => {
-    await fillStorageForTheQueue(page, () => true);
+    await fillStorageForTheQueue(page);
     await gotoLog(page, owner);
 
     const entryName = `E2E no room ${Date.now()}`;

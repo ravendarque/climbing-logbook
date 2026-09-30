@@ -125,7 +125,7 @@ async function boot() {
     store.loadLocationsFromCache();
   }
 
-  if (!IS_DEMO) store.loadEntriesFromCache();
+  if (!IS_DEMO) await store.loadEntriesFromCache();
 
   const sessionPromise = syncStatusIcon.track(adminAuth.checkSession());
   const settingsPromise = syncStatusIcon.track(adminAuth.fetchSettings());

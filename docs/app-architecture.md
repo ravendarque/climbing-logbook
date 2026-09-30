@@ -22,7 +22,8 @@ PRs. Update this map in the same PR as any change that makes it wrong.
 - **Offline first** for the owner's own app
   ([ADR-0006](adr/0006-design-for-poor-connectivity-first.md),
   [ADR-0017](adr/0017-connectivity-first-scoped-to-owner-write-path.md)):
-  data lives in localStorage and syncs in the background; a service worker
+  data lives on the device (IndexedDB for entries, localStorage for the
+  rest) and syncs in the background; a service worker
   makes the pages open with no signal
   ([ADR-0028](adr/0028-service-worker-owns-the-owner-app-shell.md)).
 
@@ -212,9 +213,9 @@ page's objects and wires them together. Before `boot()`:
 
 Then `boot()` ([ADR-0023](adr/0023-instant-shell-decoupled-content-loading.md)):
 
-2. Reads everything it can from localStorage first (settings, entries,
-   places, locations) and renders, so the shell and cached data appear
-   with no network wait.
+2. Reads everything it can from the device first (settings, places and
+   locations from localStorage, entries from IndexedDB) and renders, so
+   the shell and cached data appear with no network wait.
 3. Starts the session check, settings fetch and places/locations refresh
    in the background; the header's sync ring
    (`client/sync-status-icon.js`) shows they're running.
@@ -232,8 +233,12 @@ A new device (no local sync yet) is sent to `/:username/sync` first
 State and data:
 
 - `client/store.js` holds page state (entries, places, locations, filters,
-  login state) behind methods, persists server-confirmed data to
-  localStorage, and notifies a single `render` subscriber.
+  login state) behind methods, persists server-confirmed data, and
+  notifies a single `render` subscriber. Entries go to IndexedDB
+  (`client/entries-db.js`), one row per entry written in a single
+  transaction, so two tabs never overwrite each other's rows; a device's
+  old localStorage copy moves over on first use. Places and locations
+  stay in localStorage.
 - `client/user-storage.js` namespaces every per-user localStorage key by
   username, so data never crosses accounts on a shared device.
 - `client/offline-queue.js` applies queued writes on top of loaded data;
@@ -366,7 +371,7 @@ Tables (see `migrations/` for columns and constraints):
 
 ## Offline and sync
 
-- **Data.** Every owner page reads localStorage first (`client/store.js`).
+- **Data.** Every owner page reads its local cache first (`client/store.js`).
   A save goes straight to the server when nothing is queued. If it can't
   reach the server, or older writes are still queued (a save must never
   overtake them), it joins the queue (`logbook_pending_queue`): an
@@ -386,9 +391,9 @@ Tables (see `migrations/` for columns and constraints):
 - **Storage limits** (`client/storage-quota.js`). localStorage is the only
   copy of unsynced climbs, so a full device is handled rather than
   thrown: a cache that can't be written is dropped and its sync cursor
-  reset, so the next delta refetches it; the queue takes priority, so the
-  entries cache is dropped to make room for it, and if even that fails the
-  form stays open with a message. Once signed in, a page asks for
+  reset, so the next delta refetches it. The entries cache lives in
+  IndexedDB, so it doesn't compete with the queue for localStorage; if the
+  queue still can't be written, the form stays open with a message. Once signed in, a page asks for
   persistent storage (`navigator.storage.persist()`). Safari clears
   script-written storage after seven days without a visit, except for an
   installed app, so a Safari tab with unsynced climbs suggests installing. A new place created offline

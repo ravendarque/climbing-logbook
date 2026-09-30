@@ -5,14 +5,29 @@ import { mergeDelta } from "./delta-merge.js";
 import { userKey } from "./user-storage.js";
 import { isQuotaError } from "./storage-quota.js";
 import { resetCursor } from "./sync-cursors.js";
+import { openEntriesDb } from "./entries-db.js";
 
 const ENTRIES_CACHE_KEY = userKey("logbook_entries_cache");
 const PLACES_CACHE_KEY = userKey("logbook_places_cache");
 const LOCATIONS_CACHE_KEY = userKey("logbook_locations_cache");
+const ENTRIES_DB_NAME = userKey("logbook_entries");
 
-// Injectable: the Workers test pool has no localStorage.
-export function createStore({ storage = typeof localStorage !== "undefined" ? localStorage : undefined } = {}) {
+function parseRows(json) {
+  try {
+    const rows = JSON.parse(json);
+    return Array.isArray(rows) ? rows : null;
+  } catch {
+    return null;
+  }
+}
+
+// Injectable: the Workers test pool has no localStorage or IndexedDB. A null openEntries caches no entries.
+export function createStore({
+  storage = typeof localStorage !== "undefined" ? localStorage : undefined,
+  openEntries = typeof indexedDB !== "undefined" ? () => openEntriesDb(ENTRIES_DB_NAME) : null,
+} = {}) {
   let entries = [];
+  let confirmedEntries = [];
   let places = [];
   let locations = [];
   let loggedIn = false;
@@ -40,17 +55,52 @@ export function createStore({ storage = typeof localStorage !== "undefined" ? lo
       return false;
     }
   }
+  let entriesDrops = 0;
   function dropCache(table) {
-    storage.removeItem(TABLES[table].key);
+    if (table === "entries") entriesDrops++;
     resetCursor(table, storage);
+    if (table !== "entries") storage.removeItem(TABLES[table].key);
+    else if (openEntries)
+      openEntriesCache()
+        .then(db => db.clear())
+        .catch(() => {});
   }
 
+  // The localStorage copy moves over only into an empty database, so it never overwrites newer rows.
+  let entriesDb = null;
+  function openEntriesCache() {
+    entriesDb ??= openEntries().then(async db => {
+      const legacy = storage.getItem(ENTRIES_CACHE_KEY);
+      if (legacy === null) return db;
+      if (!(await db.isCached())) {
+        const rows = parseRows(legacy);
+        if (rows) await db.replace(rows);
+        else resetCursor("entries", storage);
+      }
+      storage.removeItem(ENTRIES_CACHE_KEY);
+      return db;
+    });
+    return entriesDb;
+  }
+
+  // Any failed write drops the cache and its cursor; a write that overlapped a drop reports false too.
+  async function persistEntries(write) {
+    if (!openEntries) return false;
+    const drops = entriesDrops;
+    try {
+      await write(await openEntriesCache());
+      return drops === entriesDrops;
+    } catch {
+      dropCache("entries");
+      return false;
+    }
+  }
+
+  // Always persisted, or a locally deleted entry reappears from cache.
   function setEntries(next) {
-    entries = next;
-    // Always persisted, or a locally deleted entry reappears from cache.
-    const cached = persist("entries", ENTRIES_CACHE_KEY, entries);
+    entries = confirmedEntries = next;
     notify();
-    return cached;
+    return persistEntries(db => db.replace(next));
   }
   function setPlaces(next) {
     places = next;
@@ -66,15 +116,19 @@ export function createStore({ storage = typeof localStorage !== "undefined" ? lo
   }
 
   const TABLES = {
-    entries: { key: ENTRIES_CACHE_KEY, set: setEntries },
     places: { key: PLACES_CACHE_KEY, set: setPlaces },
     locations: { key: LOCATIONS_CACHE_KEY, set: setLocations },
   };
 
-  // Onto the stored cache, not the in-memory view, so pending flags never get persisted.
-  function mergeConfirmed(table, rows) {
-    const { key, set } = TABLES[table];
-    return set(mergeDelta(readCached(key), rows));
+  // Onto the confirmed rows, not the in-memory view, so pending flags never get persisted.
+  async function mergeConfirmed(table, rows) {
+    if (table !== "entries") {
+      const { key, set } = TABLES[table];
+      return set(mergeDelta(readCached(key), rows));
+    }
+    entries = confirmedEntries = mergeDelta(confirmedEntries, rows);
+    notify();
+    return persistEntries(db => db.apply(rows));
   }
   function readCached(key) {
     try {
@@ -93,15 +147,20 @@ export function createStore({ storage = typeof localStorage !== "undefined" ? lo
     notify();
   }
 
-  // Never cached versus cached-but-corrupt: boot() treats them differently.
-  function loadEntriesFromCache() {
-    const cached = storage.getItem(ENTRIES_CACHE_KEY);
-    if (cached === null) return false;
+  // A cache that can't be read resets the cursor, so the next delta fills it.
+  async function loadEntriesFromCache() {
+    if (!openEntries) return false;
+    let rows;
     try {
-      entries = JSON.parse(cached);
+      rows = await (await openEntriesCache()).load();
     } catch {
-      entries = [];
+      rows = null;
     }
+    if (rows === null) {
+      resetCursor("entries", storage);
+      return false;
+    }
+    entries = confirmedEntries = rows;
     notify();
     return true;
   }
@@ -158,7 +217,6 @@ export function createStore({ storage = typeof localStorage !== "undefined" ? lo
     getLocations: () => locations,
     setLocations,
     mergeConfirmed,
-    dropCache,
     loadEntriesFromCache,
     loadPlacesFromCache,
     loadLocationsFromCache,
