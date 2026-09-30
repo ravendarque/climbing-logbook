@@ -217,7 +217,6 @@ export function createStore({
     getLocations: () => locations,
     setLocations,
     mergeConfirmed,
-    dropCache,
     loadEntriesFromCache,
     loadPlacesFromCache,
     loadLocationsFromCache,
