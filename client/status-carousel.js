@@ -24,7 +24,7 @@ export function itemLook(distance) {
   const d = Math.min(Math.abs(distance), 2);
   const near = Math.min(d, 1);
   const far = Math.max(d - 1, 0);
-  return { scale: 1 - 0.2 * near - 0.1 * far, opacity: 1 - 0.4 * near - 0.3 * far, muted: near };
+  return { scale: 1 - 0.2 * near - 0.1 * far, opacity: 1 - 0.25 * near - 0.25 * far, muted: near };
 }
 
 export function easeOutCubic(t) {

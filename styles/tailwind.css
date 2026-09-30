@@ -459,6 +459,7 @@ climbing-status-picker { display: block; }
   overflow: hidden;
   touch-action: pan-y;
   cursor: grab;
+  mask-image: linear-gradient(to right, transparent, black 1.5rem, black calc(100% - 1.5rem), transparent);
 }
 .status-picker-viewport:active { cursor: grabbing; }
 .status-picker-track {
@@ -487,10 +488,10 @@ climbing-status-picker { display: block; }
 .status-picker-frame {
   position: absolute;
   inset: 0 auto 0 50%;
-  width: var(--status-slot);
+  width: min(var(--status-slot), 4.75rem);
   transform: translateX(-50%);
   pointer-events: none;
-  color: var(--color-text);
+  color: var(--color-accent-ink);
   border-radius: 2px;
 }
 .status-picker-frame span {

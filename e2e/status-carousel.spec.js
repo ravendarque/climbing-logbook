@@ -38,8 +38,12 @@ async function expectSelected(page, status) {
 }
 
 async function neighbour(page, side) {
-  const viewport = await page.locator(".status-picker-viewport").boundingBox();
-  return { x: viewport.x + viewport.width * (side < 0 ? 1 / 6 : 5 / 6), y: viewport.y + viewport.height / 2 };
+  const viewport = page.locator(".status-picker-viewport");
+  const box = await viewport.boundingBox();
+  const slot = await viewport.evaluate(el =>
+    parseFloat(getComputedStyle(el.closest("climbing-status-picker")).getPropertyValue("--status-slot")),
+  );
+  return { x: box.x + box.width / 2 + side * slot, y: box.y + box.height / 2 };
 }
 
 test.describe("status carousel (#1200)", () => {

@@ -44,7 +44,7 @@ describe("status carousel maths (#1200)", () => {
     expect(itemLook(0)).toEqual({ scale: 1, opacity: 1, muted: 0 });
     expect(itemLook(3).muted).toBe(1);
     expect(itemLook(1).scale).toBeCloseTo(0.8);
-    expect(itemLook(-1).opacity).toBeCloseTo(0.6);
+    expect(itemLook(-1).opacity).toBeCloseTo(0.75);
     expect(itemLook(2)).toEqual(itemLook(7));
     expect(itemLook(0.5).scale).toBeCloseTo(0.9);
   });

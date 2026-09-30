@@ -11,6 +11,7 @@ import {
 
 const SETTLE_MS = 260;
 const VISIBLE = 3;
+const MAX_SLOT_REM = 5;
 const TAP_SLOP_PX = 6;
 const FLICK_MS = 120;
 
@@ -111,9 +112,11 @@ class ClimbingStatusPicker extends HTMLElement {
 
   #render() {
     if (!this.#viewport) return;
-    this.#slot = this.#viewport.clientWidth / VISIBLE;
+    const width = this.#viewport.clientWidth;
+    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    this.#slot = Math.min(width / VISIBLE, MAX_SLOT_REM * rem);
     this.style.setProperty("--status-slot", `${this.#slot}px`);
-    this.#track.style.transform = `translateX(${this.#slot * ((VISIBLE - 1) / 2 - this.#position)}px)`;
+    this.#track.style.transform = `translateX(${(width - this.#slot) / 2 - this.#slot * this.#position}px)`;
     this.#items.forEach((item, k) => {
       const { scale, opacity, muted } = itemLook(k - this.#position);
       item.style.transform = `scale(${scale})`;
