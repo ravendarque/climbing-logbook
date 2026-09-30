@@ -176,6 +176,45 @@ describe("createEmailSender HTML escaping (defense in depth, #754)", () => {
   });
 });
 
+describe("createEmailSender parts (#1106)", () => {
+  const sender = createEmailSender(env);
+  const url = "https://my.climbinglogbook.com/-/api/auth/verify-email?token=abc";
+
+  it.each([
+    ["verification", () => sender.sendVerificationEmail("owner@example.com", url)],
+    ["password reset", () => sender.sendPasswordResetEmail("owner@example.com", url)],
+    ["email change", () => sender.sendChangeEmailConfirmation("owner@example.com", "new@example.com", url)],
+  ])("sends the %s email with a plain-text part and an HTML part", async (_name, sendIt) => {
+    await sendIt();
+    const { html, text } = resendCalls[0].body;
+    expect(html).toContain(`href="${url}"`);
+    expect(text).toContain(url);
+    expect(text).not.toMatch(/<[a-z]/i);
+  });
+
+  it("keeps every style attribute whole, so a quote in a font name can't cut it short", async () => {
+    await sender.sendVerificationEmail("owner@example.com", url);
+    const { html } = resendCalls[0].body;
+    const opened = html.match(/style="/g).length;
+    const whole = html.match(/style="[^"]*"(?=[\s>])/g).length;
+    expect(whole).toBe(opened);
+  });
+
+  it("names the new address in both parts of the email change", async () => {
+    await sender.sendChangeEmailConfirmation("owner@example.com", "new@example.com", url);
+    expect(resendCalls[0].body.text).toContain("new@example.com");
+    expect(resendCalls[0].body.html).toContain("new@example.com");
+  });
+
+  it("loads the brand image from the link's own origin, and falls back to text when the link has none", async () => {
+    await sender.sendVerificationEmail("owner@example.com", url);
+    expect(resendCalls[0].body.html).toContain('src="https://my.climbinglogbook.com/-/email-lockup.png"');
+    await sender.sendVerificationEmail("owner@example.com", "not a url");
+    expect(resendCalls[1].body.html).not.toContain("<img");
+    expect(resendCalls[1].body.html).toContain("CLIMBING LOGBOOK");
+  });
+});
+
 describe("createEmailSender with delivery off (#1170)", () => {
   const sender = createEmailSender({ ...env, EMAIL_DELIVERY: "off" });
 
