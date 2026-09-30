@@ -174,7 +174,7 @@ Everything else reaches `server/index.js`:
 | `/-/api/entries`, `/places`, `/locations`, `/settings`, `/entries/import`, `/performance/*`, `/map/counts` | any | session, every method | `RESOURCE_ROUTES` in `server/index.js` |
 | `/-/api/public/:username/*` | any | none; `logbook_public`, or a demo account | `server/api/public-data.js` |
 | `/-/api/auth/*` | any | Better Auth's own | `server/lib/auth.js` |
-| `/-/api/report-issue`, `/-/api/feedback` | any | none; Turnstile and a rate limit | `server/api/report-issue.js`, `server/api/feedback.js` |
+| `/-/api/report-issue`, `/-/api/feedback` | any | none; Turnstile and a rate limit | `server/api/submissions.js` |
 | `/-/manifest.json` and the touch icon | any | none | `server/api/app-identity.js` (beta has its own identity) |
 
 No session is a 401, never an empty 200, so a page with a lapsed session

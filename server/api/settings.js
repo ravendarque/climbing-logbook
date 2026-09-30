@@ -14,12 +14,7 @@ function rowToJson(row) {
 
 export async function handleGetSettings(_request, env, userId) {
   const row = await env.LOGBOOK_DB.prepare(`SELECT * FROM settings WHERE user_id = ?`).bind(userId).first();
-  return new Response(JSON.stringify(row ? rowToJson(row) : DEFAULT_SETTINGS), {
-    headers: {
-      "Content-Type": "application/json",
-      "Cache-Control": "no-store",
-    },
-  });
+  return json(row ? rowToJson(row) : DEFAULT_SETTINGS, 200, { "Cache-Control": "no-store" });
 }
 
 // PATCH merges: callers send only the field they change.
