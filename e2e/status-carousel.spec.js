@@ -95,6 +95,12 @@ test.describe("status carousel (#1200)", () => {
     await expectSelected(page, "checkout");
   });
 
+  test("a caption wider than its slot, as with a fallback font, keeps the choice centred", async ({ page }) => {
+    await page.addStyleTag({ content: ".status-picker-caption { letter-spacing: .3em; }" });
+    await page.locator('.status-picker-arrow[data-step="1"]').click();
+    await expectSelected(page, "project");
+  });
+
   test("dragging one slot left moves to the next status", async ({ page }) => {
     const viewport = await page.locator(".status-picker-viewport").boundingBox();
     const y = viewport.y + viewport.height / 2;
