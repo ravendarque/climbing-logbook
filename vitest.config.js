@@ -65,8 +65,9 @@ export default defineConfig({
           setupFiles: ["./test/apply-migrations.js"],
           // obscenity's ESM entry re-exports CommonJS, which workerd can't load unbundled.
           deps: { optimizer: { ssr: { enabled: true, include: ["obscenity"] } } },
-          // D1 setup and migrations make each file's first request slow.
+          // D1 setup and migrations make each file's first request slow, in a hook or a test.
           testTimeout: 20000,
+          hookTimeout: 20000,
         },
         plugins: [
           cloudflareTest({
