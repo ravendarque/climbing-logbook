@@ -36,7 +36,7 @@ export function renderEmail({ title, paragraphs, action, note }) {
   const url = escapeHtml(action.url);
   const origin = originOf(action.url);
   const brand = origin
-    ? `<img src="${escapeHtml(origin + LOCKUP_PATH)}" width="200" height="30" alt="Climbing Logbook" style="display:block;border:0;width:200px;height:30px;font-family:${DISPLAY_FONT};font-size:24px;color:${COLOURS.text}">`
+    ? `<img src="${escapeHtml(origin + LOCKUP_PATH)}" width="220" height="24" alt="Climbing Logbook" style="display:block;border:0;width:220px;height:24px;font-family:${DISPLAY_FONT};font-size:24px;color:${COLOURS.text}">`
     : `<span style="font-family:${DISPLAY_FONT};font-size:24px;letter-spacing:.02em;color:${COLOURS.text}">CLIMBING LOGBOOK</span>`;
 
   const html = `<!DOCTYPE html>
