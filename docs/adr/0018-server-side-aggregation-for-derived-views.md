@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by [ADR-0031](0031-owner-reports-from-the-synced-store.md).
 
 ## Context
 

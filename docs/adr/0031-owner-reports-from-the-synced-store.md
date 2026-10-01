@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed. Would supersede [ADR-0018](0018-server-side-aggregation-for-derived-views.md).
+Accepted. Supersedes [ADR-0018](0018-server-side-aggregation-for-derived-views.md).
 
 ## Context
 

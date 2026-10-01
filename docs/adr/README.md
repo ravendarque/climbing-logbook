@@ -55,7 +55,7 @@ GitHub, the same treatment every other doc in this repo already gets.
 | [0015](0015-web-analytics-eu-exclusion-not-consent-banner.md) | Cloudflare Web Analytics with EU exclusion, not a cookie consent banner | Accepted |
 | [0016](0016-beta-gate-request-level-wrapper-not-hook.md) | Beta invite claim/release runs as a request-level wrapper, not a Better Auth hook | Accepted |
 | [0017](0017-connectivity-first-scoped-to-owner-write-path.md) | Connectivity-first resilience is scoped to the owner's write-path, not every page | Accepted |
-| [0018](0018-server-side-aggregation-for-derived-views.md) | Server-side aggregation for derived views, no client-side fallback | Accepted |
+| [0018](0018-server-side-aggregation-for-derived-views.md) | Server-side aggregation for derived views, no client-side fallback | Superseded by 0031 |
 | [0019](0019-local-first-sync-chunked-initial-load-and-delta.md) | Local-first sync for /log: chunked initial load + delta sync, not click-driven pagination | Accepted |
 | [0020](0020-beta-environment-shared-data-tag-promotion.md) | Beta environment: shared production data, tag-cumulative promotion, opt-in gate | Accepted, access control superseded by 0029 |
 | [0021](0021-vite-for-production-build-client-and-worker.md) | Vite as the production build tool: client bundling, Worker build, and explicit environment selection | Accepted |
@@ -68,4 +68,4 @@ GitHub, the same treatment every other doc in this repo already gets.
 | [0028](0028-service-worker-owns-the-owner-app-shell.md) | The service worker owns the owner app's shell: offline cold launch, cache-first per build, never data | Accepted |
 | [0029](0029-beta-channel-enrollment-model.md) | Beta channel: two-state enrollment, checked on the page, one channel per origin | Accepted |
 | [0030](0030-test-against-the-real-worker-mock-only-what-it-cant-produce.md) | Test against the real Worker, mock only what it can't produce, measure coverage | Accepted |
-| [0031](0031-owner-reports-from-the-synced-store.md) | Owner reports and map counts are computed on the device, from the synced store | Proposed, would supersede 0018 |
+| [0031](0031-owner-reports-from-the-synced-store.md) | Owner reports and map counts are computed on the device, from the synced store | Accepted, supersedes 0018 |
