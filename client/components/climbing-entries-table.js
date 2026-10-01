@@ -468,8 +468,10 @@ export class ClimbingEntriesTable extends HTMLElement {
 
   #updateCollapseAllBtn() {
     const keys = this.#visibleSections().map(s => s.key);
-    const allCollapsed = keys.length > 0 && keys.every(k => this.#collapsed.has(k));
-    this.querySelector("#collapse-all-btn").textContent = allCollapsed ? "Expand all" : "Collapse all";
+    const allCollapsed = keys.every(k => this.#collapsed.has(k));
+    const button = this.querySelector("#collapse-all-btn");
+    button.textContent = allCollapsed ? "Expand all" : "Collapse all";
+    button.disabled = keys.length === 0;
   }
 
   #renderShellSection(section) {
