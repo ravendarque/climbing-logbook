@@ -99,7 +99,7 @@ export function shellHtml(allDisciplines) {
 
   <div class="flex items-center justify-between mb-2">
     <div class="flex flex-wrap items-center gap-2" id="entries-table-actions"></div>
-    <button type="button" class="bg-transparent border-0 text-muted text-sm font-semibold cursor-pointer px-[.3rem] py-[.2rem] hover:text-accent-ink" id="collapse-all-btn">Expand all</button>
+    <button type="button" class="bg-transparent border-0 text-muted text-sm font-semibold cursor-pointer px-[.3rem] py-[.2rem] hover:text-accent-ink disabled:opacity-[.45] disabled:cursor-not-allowed disabled:hover:text-muted" id="collapse-all-btn" disabled>Expand all</button>
   </div>
 
   <div id="sections"></div>
