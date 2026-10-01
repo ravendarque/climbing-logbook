@@ -25,6 +25,23 @@ You decide. In My account, the **Public Logbook** setting controls whether anyon
 
 We use one cookie, and it keeps you logged in. The app needs it to work, so there's no cookie banner. We don't use tracking or advertising cookies.
 
+## On your device
+
+So that Climbing Logbook opens and works with no signal, each device you use it on keeps a copy of your logbook in the browser's storage:
+
+- your climbs, including notes, moves and pain flags;
+- your places, locations and settings;
+- any changes that haven't synced yet;
+- the app itself, so its pages open offline.
+
+It's kept under your account. Someone else who logs in on the same browser can't see it in Climbing Logbook.
+
+**Logging out** removes the saved app pages, but keeps your logbook and any unsynced changes on the device, so nothing you logged offline is lost. They sync the next time you log in there.
+
+**To remove everything from a device,** clear Climbing Logbook's site data in your browser's settings. Check first that the menu shows no *Offline* or *Syncing…* status, or changes that haven't synced will be lost. Do this before handing a device back if you've used someone else's.
+
+If your browser or an extension stops Climbing Logbook storing your logbook, it still works online, but it downloads your logbook every time you open it and won't work offline. If it blocks cookies too, you won't be able to log in. [Working offline](/help/working-offline/) has more on using it at the crag.
+
 ## Visit statistics
 
 We count visits to see which pages get used and what devices people use. It doesn't use cookies, and it doesn't follow you around or build a profile of you.
