@@ -1,69 +1,39 @@
 import { json } from "../lib/json.js";
 import { listForUser } from "../lib/d1-resource.js";
 import { attachChildRows, rowToJson } from "./entries.js";
-import { pyramidSplitRows, ROW_SCALE_BY_TYPE } from "../../shared/pyramid-stats.js";
-import { resolveScaleId, STANDARD_SCALES_BY_DISCIPLINE } from "../../shared/grade-data.js";
-import { painLogEntries, topPainCluster } from "../../shared/injury-stats.js";
-import { availableAnchors, describeWeakness, rankedForAnchor, topWeakness } from "../../shared/strengths-stats.js";
-import { volumeByBucket, weekBuckets, weekBucketLabel } from "../../shared/volume-stats.js";
-import { gapByBucket, gapHeadline } from "../../shared/gap-stats.js";
-import { effortByBucket, effortHeadline } from "../../shared/effort-stats.js";
+import {
+  buildEffortReport,
+  buildGapReport,
+  buildInjuryReport,
+  buildPyramidReport,
+  buildStrengthsReport,
+  buildVolumeReport,
+} from "../../shared/reports.js";
 
-// Reachable anonymously for the demo accounts, so only standard scales are honoured.
-function resolveViewScale(type, requested) {
-  return resolveScaleId(type, requested, ROW_SCALE_BY_TYPE[type], STANDARD_SCALES_BY_DISCIPLINE[type]);
+const NO_STORE = { "Cache-Control": "no-store" };
+
+function listEntries(env, userId) {
+  return listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
+}
+
+async function listEntriesWithChildRows(env, userId) {
+  return attachChildRows(await listEntries(env, userId), env);
 }
 
 export async function handleGetPyramid(request, env, userId) {
   const url = new URL(request.url);
-  const boulderScale = resolveViewScale("boulder", url.searchParams.get("boulderScale"));
-  const sportScale = resolveViewScale("sport", url.searchParams.get("sportScale"));
-
-  const entries = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
-  return json(
-    {
-      boulder: pyramidSplitRows("boulder", entries, boulderScale),
-      sport: pyramidSplitRows("sport", entries, sportScale),
-    },
-    200,
-    { "Cache-Control": "no-store" },
-  );
+  const scales = { boulderScale: url.searchParams.get("boulderScale"), sportScale: url.searchParams.get("sportScale") };
+  return json(buildPyramidReport(await listEntries(env, userId), scales), 200, NO_STORE);
 }
 
 export async function handleGetInjuryLog(_request, env, userId) {
-  const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
-  const entries = await attachChildRows(rows, env);
-  return json(
-    {
-      log: painLogEntries(entries),
-      cluster: topPainCluster(entries),
-    },
-    200,
-    { "Cache-Control": "no-store" },
-  );
+  return json(buildInjuryReport(await listEntriesWithChildRows(env, userId)), 200, NO_STORE);
 }
 
 export async function handleGetStrengthsWeaknesses(request, env, userId) {
-  const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
-  const entries = await attachChildRows(rows, env);
-
   const url = new URL(request.url);
-  const dimension = url.searchParams.get("dimension");
-  const value = url.searchParams.get("value");
-
-  if (dimension && value) {
-    return json({ ranked: rankedForAnchor(entries, dimension, value) }, 200, { "Cache-Control": "no-store" });
-  }
-
-  const weakest = topWeakness(entries);
-  return json(
-    {
-      headline: weakest ? { cell: weakest, text: describeWeakness(weakest) } : null,
-      anchors: availableAnchors(entries),
-    },
-    200,
-    { "Cache-Control": "no-store" },
-  );
+  const anchor = { dimension: url.searchParams.get("dimension"), value: url.searchParams.get("value") };
+  return json(buildStrengthsReport(await listEntriesWithChildRows(env, userId), anchor), 200, NO_STORE);
 }
 
 const DATE_SHAPE = /^\d{4}-\d{2}-\d{2}$/;
@@ -90,92 +60,17 @@ function validateDateRange(start, end) {
   return null;
 }
 
-export async function handleGetVolume(request, env, userId) {
-  const url = new URL(request.url);
-  const start = url.searchParams.get("start");
-  const end = url.searchParams.get("end");
-  const dateError = validateDateRange(start, end);
-  if (dateError) return json({ error: dateError }, 400);
-
-  const buckets = weekBuckets(start, end);
-  const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
-
-  function forDiscipline(type) {
-    const { sendCounts, maxGradeByBucket } = volumeByBucket(
-      rows.filter(e => e.type === type),
-      buckets,
-      type,
-    );
-    return { buckets: buckets.map(weekBucketLabel), sendCounts, maxGradeByBucket };
-  }
-
-  return json({ boulder: forDiscipline("boulder"), sport: forDiscipline("sport") }, 200, {
-    "Cache-Control": "no-store",
-  });
+function windowedReport(build) {
+  return async (request, env, userId) => {
+    const url = new URL(request.url);
+    const start = url.searchParams.get("start");
+    const end = url.searchParams.get("end");
+    const dateError = validateDateRange(start, end);
+    if (dateError) return json({ error: dateError }, 400);
+    return json(build(await listEntries(env, userId), { start, end }), 200, NO_STORE);
+  };
 }
 
-export async function handleGetGap(request, env, userId) {
-  const url = new URL(request.url);
-  const start = url.searchParams.get("start");
-  const end = url.searchParams.get("end");
-  const dateError = validateDateRange(start, end);
-  if (dateError) return json({ error: dateError }, 400);
-
-  const buckets = weekBuckets(start, end);
-  const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
-
-  function forDiscipline(type) {
-    const { flashMaxByBucket, sendMaxByBucket, avgAttemptsByBucket } = gapByBucket(
-      rows.filter(e => e.type === type),
-      buckets,
-      type,
-    );
-    return {
-      buckets: buckets.map(weekBucketLabel),
-      flashMaxByBucket,
-      sendMaxByBucket,
-      avgAttemptsByBucket,
-      headline: gapHeadline(flashMaxByBucket, sendMaxByBucket, type),
-    };
-  }
-
-  return json({ boulder: forDiscipline("boulder"), sport: forDiscipline("sport") }, 200, {
-    "Cache-Control": "no-store",
-  });
-}
-
-export async function handleGetEffort(request, env, userId) {
-  const url = new URL(request.url);
-  const start = url.searchParams.get("start");
-  const end = url.searchParams.get("end");
-  const dateError = validateDateRange(start, end);
-  if (dateError) return json({ error: dateError }, 400);
-
-  const buckets = weekBuckets(start, end);
-  const rows = await listForUser(env, "entries", userId, rowToJson, { excludeDeleted: true });
-
-  function forDiscipline(type) {
-    const { maxGradeByBucket, avgExertionByBucket, rpeCountByBucket, overallAvgExertion, totalSends } = effortByBucket(
-      rows.filter(e => e.type === type),
-      buckets,
-      type,
-    );
-    return {
-      buckets: buckets.map(weekBucketLabel),
-      maxGradeByBucket,
-      avgExertionByBucket,
-      headline: effortHeadline(
-        maxGradeByBucket,
-        avgExertionByBucket,
-        rpeCountByBucket,
-        overallAvgExertion,
-        totalSends,
-        type,
-      ),
-    };
-  }
-
-  return json({ boulder: forDiscipline("boulder"), sport: forDiscipline("sport") }, 200, {
-    "Cache-Control": "no-store",
-  });
-}
+export const handleGetVolume = windowedReport(buildVolumeReport);
+export const handleGetGap = windowedReport(buildGapReport);
+export const handleGetEffort = windowedReport(buildEffortReport);
