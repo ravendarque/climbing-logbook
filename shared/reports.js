@@ -17,7 +17,7 @@ function resolveViewScale(type, requested) {
   return resolveScaleId(type, requested, ROW_SCALE_BY_TYPE[type], STANDARD_SCALES_BY_DISCIPLINE[type]);
 }
 
-export function buildPyramidReport(entries, { boulderScale, sportScale } = {}) {
+export function buildPyramidReport(entries, { boulderScale, sportScale }) {
   const requested = { boulder: boulderScale, sport: sportScale };
   return byDiscipline(type => pyramidSplitRows(type, entries, resolveViewScale(type, requested[type])));
 }
@@ -26,7 +26,7 @@ export function buildInjuryReport(entries) {
   return { log: painLogEntries(entries), cluster: topPainCluster(entries) };
 }
 
-export function buildStrengthsReport(entries, { dimension, value } = {}) {
+export function buildStrengthsReport(entries, { dimension, value }) {
   if (dimension && value) return { ranked: rankedForAnchor(entries, dimension, value) };
   const weakest = topWeakness(entries);
   return {

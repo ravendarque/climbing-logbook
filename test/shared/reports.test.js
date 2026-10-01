@@ -38,7 +38,7 @@ const WINDOW = { start: "2026-01-01", end: "2026-01-31" };
 describe("Performance report builders (#1100)", () => {
   it("builds every report per discipline, from that discipline's entries only", () => {
     for (const report of [
-      buildPyramidReport(ENTRIES),
+      buildPyramidReport(ENTRIES, {}),
       buildVolumeReport(ENTRIES, WINDOW),
       buildGapReport(ENTRIES, WINDOW),
       buildEffortReport(ENTRIES, WINDOW),
@@ -62,12 +62,12 @@ describe("Performance report builders (#1100)", () => {
 
   it("falls back to each discipline's default scale for a scale that isn't a standard one", () => {
     expect(buildPyramidReport(ENTRIES, { boulderScale: "made-up", sportScale: "also-made-up" })).toEqual(
-      buildPyramidReport(ENTRIES),
+      buildPyramidReport(ENTRIES, {}),
     );
   });
 
   it("returns the strengths overview without an anchor, and the ranking with one", () => {
-    expect(Object.keys(buildStrengthsReport(ENTRIES))).toEqual(["headline", "anchors"]);
+    expect(Object.keys(buildStrengthsReport(ENTRIES, {}))).toEqual(["headline", "anchors"]);
     expect(Object.keys(buildStrengthsReport(ENTRIES, { dimension: "holdType", value: "crimp" }))).toEqual(["ranked"]);
     expect(Object.keys(buildStrengthsReport(ENTRIES, { dimension: "holdType" }))).toEqual(["headline", "anchors"]);
   });
