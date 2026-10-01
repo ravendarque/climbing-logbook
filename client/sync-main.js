@@ -15,13 +15,14 @@ const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 
 // Rebuilt from fixed parts rather than returning the query value, so it can only be one of these paths.
 const OWNED_PAGES = ["log", "map", "performance"];
+const PERFORMANCE_REPORTS = ["pyramid", "injury", "strengths", "trends", "gap", "rpe"];
 function safeReturnTo() {
   const raw = new URL(location.href).searchParams.get("returnTo");
-  const match = raw?.match(/^\/([^/]+)\/([^/]+)\/?$/);
-  if (match && match[1] === USERNAME && OWNED_PAGES.includes(match[2])) {
-    return `/${encodeURIComponent(match[1])}/${encodeURIComponent(match[2])}`;
-  }
-  return `/${encodeURIComponent(USERNAME)}/log`;
+  const match = raw?.match(/^\/([^/]+)\/([^/]+)(?:\/([^/]+))?\/?$/);
+  if (!match || match[1] !== USERNAME || !OWNED_PAGES.includes(match[2])) return `/${encodeURIComponent(USERNAME)}/log`;
+  const page = `/${encodeURIComponent(match[1])}/${encodeURIComponent(match[2])}`;
+  if (!match[3]) return page;
+  return match[2] === "performance" && PERFORMANCE_REPORTS.includes(match[3]) ? `${page}/${match[3]}` : page;
 }
 
 const messageEl = document.getElementById("sync-message");

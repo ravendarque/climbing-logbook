@@ -1,3 +1,4 @@
+import { blockIndexedDb } from "./entries-cache.js";
 import { expect, test } from "./owner.js";
 
 test("renders the shared chrome and a real grade pyramid, and switches discipline", async ({ page, owner }) => {
@@ -23,8 +24,12 @@ test("renders the shared chrome and a real grade pyramid, and switches disciplin
   await expect(page.locator("#discipline-btn-label")).toHaveText("Boulder");
 });
 
-test("shows the offline message instead of a pyramid when the fetch fails", async ({ page, owner }) => {
+test("shows the offline message instead of a pyramid when the device keeps no data and the server fails", async ({
+  page,
+  owner,
+}) => {
   await owner.settings({ athleteMode: true });
+  await blockIndexedDb(page);
   await page.route("**/-/api/performance/pyramid**", route => route.fulfill({ status: 500 }));
   await page.goto(owner.url("/performance/pyramid"));
 

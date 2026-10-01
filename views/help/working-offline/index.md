@@ -29,6 +29,7 @@ Climbing Logbook is a Progressive Web App (PWA): you can install it from your br
 
 - **Your changes are saved straight away.** Add a climb, edit it or delete it and it appears in your log immediately, connection or not.
 - **Places you add work the same way.** A new place is saved on your device and synced later.
+- **Performance Insights works too.** Your reports are worked out on your device from your logbook, so they include climbs that haven't synced yet.
 - **Your changes wait in a queue.** They're sent to your account, in order, as soon as your connection comes back. You don't need to do anything.
 - **The menu shows what's going on.** Open the menu and look for the status: *Offline* means your changes are waiting, *Syncing…* means they're being sent. When nothing shows, you're up to date.
 
@@ -41,7 +42,6 @@ New versions of Climbing Logbook download in the background while you're online.
 - **Logging in, logging out and registering.** These need a connection. Log in before you go.
 - **Getting your logbook onto a new device.** The first time you log in on a device, it has to download your logbook, so do that online.
 - **Seeing changes from another device.** Something you logged on your phone won't appear on your laptop until both have synced.
-- **Performance Insights reports.** They're worked out on the server, so each report shows a message asking you to connect.
 - **The world map, until you've opened Map online once.** The Map page itself works offline, but the world map downloads the first time you open Map with a connection. Until then, you'll see a message asking you to connect.
 - **Importing and exporting entries, changing account details and resetting your password.** These need a connection.
 - **Other people's public logbooks.** You'll need a connection to view them.

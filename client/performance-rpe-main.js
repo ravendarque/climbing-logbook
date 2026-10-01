@@ -1,12 +1,13 @@
 import { createReportPage } from "./report-page.js";
 import { renderComboChartHtml } from "./combo-chart.js";
 import { reportGradePoint, reportPositionOrder } from "../shared/volume-stats.js";
+import { buildEffortReport } from "../shared/reports.js";
 
 createReportPage({
   view: "performance-rpe",
   rootId: "rpe-root",
-  endpoint: "/-/api/performance/rpe",
-  demoPath: "performance/rpe",
+  path: "performance/rpe",
+  build: buildEffortReport,
   renderChart({ buckets, maxGradeByBucket, avgExertionByBucket, headline }, { type, viewScaleId }) {
     return renderComboChartHtml({
       bucketLabels: buckets,

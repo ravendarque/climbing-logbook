@@ -289,8 +289,8 @@ its bundle:
   was on. Sections start collapsed once, when data first arrives; after
   that, the user's choices stand. On `/log` the data is already complete
   locally, so "Show more" only reveals rows, in steps of 100.
-- `climbing-grade-pyramid` renders the server-computed pyramid for both
-  disciplines, so switching discipline needs no fetch.
+- `climbing-grade-pyramid` renders the pyramid report for both
+  disciplines, so switching discipline needs no new report.
 - `climbing-tab-bar` is a navigation landmark with `aria-current`, not an
   ARIA tablist, because each tab is a different page. It renders once, when
   the page calls `markReady()` after the settings load, so the Performance
@@ -417,9 +417,14 @@ Tables (see `migrations/` for columns and constraints):
     network fails or hasn't answered within 3 seconds (`client/sw/network-first.js`);
   - the API, non-GETs and cross-origin requests: passed straight through.
     The service worker never caches data.
-- **Derived views** (performance reports, map counts) are computed on the
-  server ([ADR-0018](adr/0018-server-side-aggregation-for-derived-views.md))
-  by the pure functions in `shared/*-stats.js`.
+- **Performance reports** are computed on the device from the synced store,
+  queued changes included, by the builders in `shared/reports.js`
+  ([ADR-0031](adr/0031-owner-reports-from-the-synced-store.md),
+  `client/report-data.js`). Report pages share `/log`'s sync gate and pull an
+  entries delta in the background. A demo, or a device that can't open
+  IndexedDB, gets the same builders' result from `/-/api/performance/*`.
+  Map counts are still computed on the server until ADR-0031's map step
+  lands.
 
 ## Authentication
 

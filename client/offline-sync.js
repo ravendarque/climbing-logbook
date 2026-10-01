@@ -1,5 +1,4 @@
-import { getCursor, setCursor } from "./sync-cursors.js";
-import { BACKGROUND_FETCH_TIMEOUT_MS } from "./sync-status-icon.js";
+import { pullDelta as pullTableDelta, readPendingQueue } from "./delta-pull.js";
 import { isUnauthorized } from "./api-fetch.js";
 import { addFailedWrite, isPermanentFailure } from "./failed-writes.js";
 import { isQuotaError, isSafariTab } from "./storage-quota.js";
@@ -24,11 +23,7 @@ export function createOfflineSync({
   const showInstallNudge = isSafariTab();
 
   function getQueue() {
-    try {
-      return JSON.parse(localStorage.getItem(queueKey)) ?? [];
-    } catch {
-      return [];
-    }
+    return readPendingQueue(queueKey);
   }
   // False when storage is full.
   function setQueue(queue) {
@@ -83,18 +78,8 @@ export function createOfflineSync({
         });
   }
 
-  async function pullDelta(url, table) {
-    try {
-      const res = await fetch(`${url}?since=${getCursor(table)}`, {
-        signal: AbortSignal.timeout(BACKGROUND_FETCH_TIMEOUT_MS),
-      });
-      if (!res.ok) return;
-      const { [table]: rows, cursor } = await res.json();
-      if (await store.mergeConfirmed(table, rows)) setCursor(table, cursor);
-    } catch (err) {
-      // Offline: skip. A real timeout flags the indicator, since onLine can read true on a dead link.
-      if (err.name === "TimeoutError") syncStatusIcon.reportTimeout();
-    }
+  function pullDelta(url, table) {
+    return pullTableDelta({ store, url, table, onTimeout: syncStatusIcon.reportTimeout });
   }
 
   async function pullDeltas() {

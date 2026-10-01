@@ -60,6 +60,7 @@ export default defineConfig({
             "test/scripts/contrast-tokens.test.js",
             "test/client/entries-db.test.js",
             "test/client/store.test.js",
+            "test/client/report-data.test.js",
           ],
           setupFiles: ["./test/apply-migrations.js"],
           // obscenity's ESM entry re-exports CommonJS, which workerd can't load unbundled.
@@ -121,6 +122,7 @@ export default defineConfig({
             "test/scripts/contrast-tokens.test.js",
             "test/client/entries-db.test.js",
             "test/client/store.test.js",
+            "test/client/report-data.test.js",
           ],
           environment: "happy-dom",
         },
