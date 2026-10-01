@@ -1,12 +1,13 @@
 import { createReportPage } from "./report-page.js";
 import { renderComboChartHtml } from "./combo-chart.js";
 import { reportGradePoint, reportPositionOrder, volumeHeadline } from "../shared/volume-stats.js";
+import { buildVolumeReport } from "../shared/reports.js";
 
 createReportPage({
   view: "performance-trends",
   rootId: "trends-root",
-  endpoint: "/-/api/performance/volume",
-  demoPath: "performance/volume",
+  path: "performance/volume",
+  build: buildVolumeReport,
   renderChart({ buckets, sendCounts, maxGradeByBucket }, { type, viewScaleId }) {
     return renderComboChartHtml({
       bucketLabels: buckets,

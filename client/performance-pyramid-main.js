@@ -1,11 +1,20 @@
 import { createAppShell } from "./app-shell.js";
 import { createReportGradeScalePicker } from "./report-grade-scale-picker.js";
-import { demoDataUrl } from "./demo-mode.js";
+import { createReportData } from "./report-data.js";
+import { buildPyramidReport } from "../shared/reports.js";
 import "./components/climbing-grade-pyramid.js";
 import { startPage } from "./boot-gate.js";
 
-const { username: USERNAME, store, headerChrome, updateAdminBar, authenticateAthlete } = createAppShell({ render });
-const PYRAMID_URL = demoDataUrl(USERNAME, "/-/api/performance/pyramid", "performance/pyramid");
+const {
+  username: USERNAME,
+  isDemo,
+  store,
+  syncStatusIcon,
+  headerChrome,
+  updateAdminBar,
+  authenticateAthlete,
+} = createAppShell({ render });
+const reportData = createReportData({ username: USERNAME, isDemo, store, syncStatusIcon, onRefresh: loadPyramid });
 
 document.getElementById("back-to-performance-link").href = `/${encodeURIComponent(USERNAME)}/performance`;
 
@@ -27,24 +36,17 @@ function render() {
   updateAdminBar();
 }
 
-async function fetchPyramid() {
-  const params = new URLSearchParams({
-    boulderScale: gradeScalePicker.getScaleIdFor("boulder"),
-    sportScale: gradeScalePicker.getScaleIdFor("sport"),
-  });
-  const res = await fetch(`${PYRAMID_URL}?${params}`);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
-}
-
 // Drop a response that a newer request has overtaken.
 let latestPyramidRequestId = 0;
 
 async function loadPyramid() {
   const requestId = ++latestPyramidRequestId;
   try {
-    const data = await fetchPyramid();
-    if (requestId !== latestPyramidRequestId) return; // a newer request has since started
+    const data = await reportData.report("performance/pyramid", buildPyramidReport, {
+      boulderScale: gradeScalePicker.getScaleIdFor("boulder"),
+      sportScale: gradeScalePicker.getScaleIdFor("sport"),
+    });
+    if (requestId !== latestPyramidRequestId) return;
     pyramidEl.viewScaleId = gradeScalePicker.getScaleId();
     pyramidEl.pyramidData = data;
     offlineEl.hidden = true;
@@ -58,11 +60,11 @@ async function loadPyramid() {
 
 async function boot() {
   if (!(await authenticateAthlete("pyramid"))) return;
+  if (!(await reportData.open())) return;
 
   render();
-
-  // Online-only: never show a stale or locally computed number.
   await loadPyramid();
+  reportData.refresh();
 }
 
 startPage(boot);

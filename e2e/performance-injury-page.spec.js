@@ -1,3 +1,4 @@
+import { blockIndexedDb } from "./entries-cache.js";
 import { daysAgo, expect, test } from "./owner.js";
 
 const LEFT_CRIMP = { limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" };
@@ -30,8 +31,12 @@ test("renders the ranked headline and log rows when a cluster clears the confide
   await expect(rows).toHaveText(["Painful Route 3", "Painful Route 2", "Painful Route 1"]);
 });
 
-test("shows the offline message instead of the log when the fetch fails", async ({ page, owner }) => {
+test("shows the offline message instead of the log when the device keeps no data and the server fails", async ({
+  page,
+  owner,
+}) => {
   await owner.settings({ athleteMode: true });
+  await blockIndexedDb(page);
   await page.route("**/-/api/performance/injury", route => route.fulfill({ status: 500 }));
   await page.goto(owner.url("/performance/injury"));
 

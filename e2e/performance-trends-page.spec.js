@@ -1,3 +1,4 @@
+import { blockIndexedDb } from "./entries-cache.js";
 import { daysAgo, expect, test } from "./owner.js";
 import { expectWiderWindowRefetch } from "./performance-window.js";
 
@@ -47,16 +48,20 @@ test("switching the report grade scale relabels the chart's grade point", async 
   expect(await page.evaluate(() => localStorage.getItem("logbook_grade_scale_reports_boulder"))).toBe("v-scale");
 });
 
-test("switching the time window to 52w re-fetches with a wider range", async ({ page, owner }) => {
-  await owner.settings({ athleteMode: true });
-  await expectWiderWindowRefetch(page, owner.url("/performance/trends"), "volume");
-});
-
-test("Custom range: picking a start date via the calendar popover re-fetches with that date", async ({
+test("on a device that keeps no data, switching the time window to 52w re-fetches with a wider range", async ({
   page,
   owner,
 }) => {
   await owner.settings({ athleteMode: true });
+  await expectWiderWindowRefetch(page, owner.url("/performance/trends"), "volume");
+});
+
+test("Custom range: on a device that keeps no data, picking a start date via the calendar popover re-fetches with that date", async ({
+  page,
+  owner,
+}) => {
+  await owner.settings({ athleteMode: true });
+  await blockIndexedDb(page);
   await page.goto(owner.url("/performance/trends"));
   await expect(page.locator('[data-window="custom"]')).toBeVisible();
 
@@ -80,8 +85,12 @@ test("Custom range: picking a start date via the calendar popover re-fetches wit
   await expect(page.locator("#time-window-root")).toContainText(`${MONTHS_SHORT[+mo - 1]} ${+d}, ${y}`);
 });
 
-test("shows the offline message instead of the chart when the fetch fails", async ({ page, owner }) => {
+test("shows the offline message instead of the chart when the device keeps no data and the server fails", async ({
+  page,
+  owner,
+}) => {
   await owner.settings({ athleteMode: true });
+  await blockIndexedDb(page);
   await page.route("**/-/api/performance/volume**", route => route.fulfill({ status: 500 }));
   await page.goto(owner.url("/performance/trends"));
 

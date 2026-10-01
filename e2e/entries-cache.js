@@ -23,3 +23,12 @@ export function cachedEntries(page, username) {
     `logbook_entries:${username.toLowerCase()}`,
   );
 }
+
+// A browser that won't keep site data in IndexedDB, as some privacy settings do.
+export async function blockIndexedDb(page) {
+  await page.addInitScript(() => {
+    IDBFactory.prototype.open = () => {
+      throw new DOMException("IndexedDB is blocked", "SecurityError");
+    };
+  });
+}

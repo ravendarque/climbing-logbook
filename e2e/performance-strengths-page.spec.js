@@ -1,3 +1,4 @@
+import { blockIndexedDb } from "./entries-cache.js";
 import { expect, test } from "./owner.js";
 
 const HARDEST_LEFT_CRIMP = {
@@ -47,8 +48,12 @@ test("renders the headline and drill-down picker, and re-ranks on anchor change"
   await expect(page.locator("#strengths-ranked-list")).toContainText("100% hardest (3/3)");
 });
 
-test("shows the offline message instead of the view when the fetch fails", async ({ page, owner }) => {
+test("shows the offline message instead of the view when the device keeps no data and the server fails", async ({
+  page,
+  owner,
+}) => {
   await owner.settings({ athleteMode: true });
+  await blockIndexedDb(page);
   await page.route("**/-/api/performance/strengths", route => route.fulfill({ status: 500 }));
   await page.goto(owner.url("/performance/strengths"));
 

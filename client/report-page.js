@@ -1,13 +1,13 @@
 import { createAppShell } from "./app-shell.js";
 import { createTimeWindowControl } from "./time-window.js";
 import { createReportGradeScalePicker } from "./report-grade-scale-picker.js";
-import { demoDataUrl } from "./demo-mode.js";
+import { createReportData } from "./report-data.js";
 import { startPage } from "./boot-gate.js";
 
-// A time-windowed report with a grade-scale picker: Gap, RPE and Trends differ only in endpoint and chart.
-export function createReportPage({ view, rootId, endpoint, demoPath, renderChart }) {
+// A time-windowed report with a grade-scale picker: Gap, RPE and Trends differ only in report and chart.
+export function createReportPage({ view, rootId, path, build, renderChart }) {
   const shell = createAppShell({ render });
-  const { username, store, headerChrome, updateAdminBar } = shell;
+  const { username, isDemo, store, syncStatusIcon, headerChrome, updateAdminBar } = shell;
 
   document.getElementById("back-to-performance-link").href = `/${encodeURIComponent(username)}/performance`;
 
@@ -16,8 +16,17 @@ export function createReportPage({ view, rootId, endpoint, demoPath, renderChart
   const offlineEl = document.getElementById("performance-offline");
 
   let latestData = null;
+  let timeWindow = null;
   // Drop a response that a newer request has overtaken.
   let latestRequestId = 0;
+
+  const reportData = createReportData({
+    username,
+    isDemo,
+    store,
+    syncStatusIcon,
+    onRefresh: () => timeWindow && loadReport(timeWindow.getRange()),
+  });
 
   const gradeScalePicker = createReportGradeScalePicker({
     containerEl: document.getElementById("report-grade-scale-root"),
@@ -43,38 +52,26 @@ export function createReportPage({ view, rootId, endpoint, demoPath, renderChart
     rootEl.hidden = offline;
   }
 
-  async function fetchReport(start, end) {
-    const url = `${demoDataUrl(username, endpoint, demoPath)}?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
+  async function loadReport({ start, end }) {
+    const requestId = ++latestRequestId;
+    try {
+      const data = await reportData.report(path, build, { start, end });
+      if (requestId !== latestRequestId) return;
+      latestData = data;
+      showOffline(false);
+      renderReport();
+    } catch {
+      if (requestId !== latestRequestId) return;
+      showOffline(true);
+    }
   }
 
   async function boot() {
     if (!(await shell.authenticateAthlete(view))) return;
+    if (!(await reportData.open())) return;
     render();
-
-    // Online-only: never show a stale or locally computed number.
-    try {
-      createTimeWindowControl({
-        containerEl: timeWindowRootEl,
-        onChange: async ({ start, end }) => {
-          const requestId = ++latestRequestId;
-          try {
-            const data = await fetchReport(start, end);
-            if (requestId !== latestRequestId) return;
-            latestData = data;
-            showOffline(false);
-            renderReport();
-          } catch {
-            if (requestId !== latestRequestId) return;
-            showOffline(true);
-          }
-        },
-      });
-    } catch {
-      showOffline(true);
-    }
+    timeWindow = createTimeWindowControl({ containerEl: timeWindowRootEl, onChange: loadReport });
+    reportData.refresh();
   }
 
   startPage(boot);

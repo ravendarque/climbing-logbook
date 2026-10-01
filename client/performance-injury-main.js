@@ -2,11 +2,20 @@ import { createAppShell } from "./app-shell.js";
 import { describeCluster } from "../shared/injury-stats.js";
 import { escapeHtml } from "./escape-html.js";
 import { formatDate } from "../shared/date-helpers.js";
-import { demoDataUrl } from "./demo-mode.js";
+import { createReportData } from "./report-data.js";
+import { buildInjuryReport } from "../shared/reports.js";
 import { startPage } from "./boot-gate.js";
 
-const { username: USERNAME, headerChrome, updateAdminBar, authenticateAthlete } = createAppShell({ render });
-const INJURY_URL = demoDataUrl(USERNAME, "/-/api/performance/injury", "performance/injury");
+const {
+  username: USERNAME,
+  isDemo,
+  store,
+  syncStatusIcon,
+  headerChrome,
+  updateAdminBar,
+  authenticateAthlete,
+} = createAppShell({ render });
+const reportData = createReportData({ username: USERNAME, isDemo, store, syncStatusIcon, onRefresh: loadInjuryLog });
 
 document.getElementById("back-to-performance-link").href = `/${encodeURIComponent(USERNAME)}/performance`;
 
@@ -16,12 +25,6 @@ const offlineEl = document.getElementById("performance-offline");
 function render() {
   headerChrome.updateDisciplinePicker();
   updateAdminBar();
-}
-
-async function fetchInjuryLog() {
-  const res = await fetch(INJURY_URL);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
 }
 
 function logRowHtml(entry) {
@@ -49,14 +52,9 @@ function renderInjuryLog({ log, cluster }) {
   injuryRootEl.innerHTML = CAVEAT_HTML + headlineHtml + logHtml;
 }
 
-async function boot() {
-  if (!(await authenticateAthlete("performance-injury"))) return;
-
-  render();
-
-  // Online-only: never show a stale or locally computed number.
+async function loadInjuryLog() {
   try {
-    const data = await fetchInjuryLog();
+    const data = await reportData.report("performance/injury", buildInjuryReport);
     offlineEl.hidden = true;
     injuryRootEl.hidden = false;
     renderInjuryLog(data);
@@ -64,6 +62,15 @@ async function boot() {
     offlineEl.hidden = false;
     injuryRootEl.hidden = true;
   }
+}
+
+async function boot() {
+  if (!(await authenticateAthlete("performance-injury"))) return;
+  if (!(await reportData.open())) return;
+
+  render();
+  await loadInjuryLog();
+  reportData.refresh();
 }
 
 startPage(boot);

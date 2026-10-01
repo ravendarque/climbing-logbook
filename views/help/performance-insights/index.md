@@ -10,7 +10,7 @@ eleventyNavigation:
 
 Performance Insights turns what you log into six reports on your Performance tab. You need [Athlete Mode](/help/athlete-mode/) switched on to see it, and the reports are only ever visible to you.
 
-They follow the discipline you're on, Boulder or Sport, and they need a connection to load.
+They follow the discipline you're on, Boulder or Sport. They're worked out on your device from your logbook, so they work with no signal and include climbs that haven't synced yet.
 
 ## The reports
 

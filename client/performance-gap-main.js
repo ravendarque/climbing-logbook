@@ -3,12 +3,13 @@ import { renderComboChartHtml } from "./combo-chart.js";
 import { flashLabel, sendLabel } from "./status.js";
 import { reportGradePoint, reportPositionOrder } from "../shared/volume-stats.js";
 import { gapHeadline } from "../shared/gap-stats.js";
+import { buildGapReport } from "../shared/reports.js";
 
 createReportPage({
   view: "performance-gap",
   rootId: "gap-root",
-  endpoint: "/-/api/performance/gap",
-  demoPath: "performance/gap",
+  path: "performance/gap",
+  build: buildGapReport,
   renderChart({ buckets, flashMaxByBucket, sendMaxByBucket, avgAttemptsByBucket }, { type, viewScaleId }) {
     const positionOrder = reportPositionOrder(type);
     return renderComboChartHtml({

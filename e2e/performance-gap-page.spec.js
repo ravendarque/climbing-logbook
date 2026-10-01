@@ -1,3 +1,4 @@
+import { blockIndexedDb } from "./entries-cache.js";
 import { daysAgo, expect, test } from "./owner.js";
 import { expectWiderWindowRefetch } from "./performance-window.js";
 
@@ -48,13 +49,20 @@ test("switching the report grade scale relabels both grade line series", async (
   await expect(page.locator("#gap-root")).toContainText("V5"); // reportGradeLabel("6C", "boulder", "v-scale")
 });
 
-test("switching the time window to 52w re-fetches with a wider range", async ({ page, owner }) => {
+test("on a device that keeps no data, switching the time window to 52w re-fetches with a wider range", async ({
+  page,
+  owner,
+}) => {
   await owner.settings({ athleteMode: true });
   await expectWiderWindowRefetch(page, owner.url("/performance/gap"), "gap");
 });
 
-test("shows the offline message instead of the chart when the fetch fails", async ({ page, owner }) => {
+test("shows the offline message instead of the chart when the device keeps no data and the server fails", async ({
+  page,
+  owner,
+}) => {
   await owner.settings({ athleteMode: true });
+  await blockIndexedDb(page);
   await page.route("**/-/api/performance/gap**", route => route.fulfill({ status: 500 }));
   await page.goto(owner.url("/performance/gap"));
 

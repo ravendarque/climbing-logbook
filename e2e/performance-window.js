@@ -1,6 +1,8 @@
+import { blockIndexedDb } from "./entries-cache.js";
 import { expect } from "./owner.js";
 
 export async function expectWiderWindowRefetch(page, url, apiPath) {
+  await blockIndexedDb(page);
   const isReport = req => req.url().includes(`/-/api/performance/${apiPath}`);
   const first = page.waitForRequest(isReport);
   await page.goto(url);

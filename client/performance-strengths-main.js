@@ -1,11 +1,20 @@
 import { createAppShell } from "./app-shell.js";
 import { escapeHtml } from "./escape-html.js";
 import { humanize } from "../shared/tag-stats-helpers.js";
-import { demoDataUrl } from "./demo-mode.js";
+import { createReportData } from "./report-data.js";
+import { buildStrengthsReport } from "../shared/reports.js";
 import { startPage } from "./boot-gate.js";
 
-const { username: USERNAME, headerChrome, updateAdminBar, authenticateAthlete } = createAppShell({ render });
-const STRENGTHS_URL = demoDataUrl(USERNAME, "/-/api/performance/strengths", "performance/strengths");
+const {
+  username: USERNAME,
+  isDemo,
+  store,
+  syncStatusIcon,
+  headerChrome,
+  updateAdminBar,
+  authenticateAthlete,
+} = createAppShell({ render });
+const reportData = createReportData({ username: USERNAME, isDemo, store, syncStatusIcon, onRefresh: loadStrengths });
 
 document.getElementById("back-to-performance-link").href = `/${encodeURIComponent(USERNAME)}/performance`;
 
@@ -17,12 +26,6 @@ function render() {
   updateAdminBar();
 }
 
-async function fetchStrengths() {
-  const res = await fetch(STRENGTHS_URL);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
-}
-
 function cellRowHtml(cell) {
   const pct = Math.round(cell.score * 100);
   const label = `${humanize(`${cell.side}-${cell.limb}`)} · ${humanize(cell.holdType)} · ${humanize(cell.movementStyle)} · ${humanize(cell.wallAngle)}`;
@@ -30,14 +33,6 @@ function cellRowHtml(cell) {
     <span class="row-card-title">${escapeHtml(label)}</span>
     <p class="text-sm text-muted mt-1">${pct}% hardest (${cell.hardestCount}/${cell.total})</p>
   </div>`;
-}
-
-async function fetchRankedForAnchor(dimension, value) {
-  const res = await fetch(
-    `${STRENGTHS_URL}?dimension=${encodeURIComponent(dimension)}&value=${encodeURIComponent(value)}`,
-  );
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
 }
 
 let latestAnchorRequestId = 0;
@@ -52,7 +47,7 @@ async function onAnchorChange(select) {
     return;
   }
   try {
-    const { ranked } = await fetchRankedForAnchor(dimension, value);
+    const { ranked } = await reportData.report("performance/strengths", buildStrengthsReport, { dimension, value });
     if (requestId !== latestAnchorRequestId) return; // a newer selection has already superseded this response
     rankedListEl.innerHTML = ranked.length
       ? ranked.map(cellRowHtml).join("")
@@ -100,20 +95,21 @@ function renderStrengths({ headline, anchors }) {
       <div id="strengths-ranked-list"></div>`
     : "";
 
+  const previousAnchor = document.getElementById("strengths-anchor-select")?.value ?? "";
   strengthsRootEl.innerHTML = headlineHtml + pickerHtml;
 
   const select = document.getElementById("strengths-anchor-select");
-  if (select) select.addEventListener("change", () => onAnchorChange(select));
+  if (!select) return;
+  select.addEventListener("change", () => onAnchorChange(select));
+  if (previousAnchor && [...select.options].some(option => option.value === previousAnchor)) {
+    select.value = previousAnchor;
+    onAnchorChange(select);
+  }
 }
 
-async function boot() {
-  if (!(await authenticateAthlete("performance-strengths"))) return;
-
-  render();
-
-  // Online-only: never show a stale or locally computed number.
+async function loadStrengths() {
   try {
-    const data = await fetchStrengths();
+    const data = await reportData.report("performance/strengths", buildStrengthsReport);
     offlineEl.hidden = true;
     strengthsRootEl.hidden = false;
     renderStrengths(data);
@@ -121,6 +117,15 @@ async function boot() {
     offlineEl.hidden = false;
     strengthsRootEl.hidden = true;
   }
+}
+
+async function boot() {
+  if (!(await authenticateAthlete("performance-strengths"))) return;
+  if (!(await reportData.open())) return;
+
+  render();
+  await loadStrengths();
+  reportData.refresh();
 }
 
 startPage(boot);
