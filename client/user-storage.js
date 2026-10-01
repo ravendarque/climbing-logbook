@@ -14,7 +14,6 @@ export const PER_USER_KEYS = [
   "logbook_locations_cache",
   "logbook_pending_queue",
   "logbook_settings_cache",
-  "logbook_map_counts_cache",
   "logbook_sync_cursors",
   "logbook_sync_status",
 ];

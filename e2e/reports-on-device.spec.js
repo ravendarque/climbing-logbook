@@ -24,7 +24,7 @@ function trackReportRequests(page) {
   return requests;
 }
 
-test.describe("Performance on the device (ADR-0031)", () => {
+test.describe("Reports and map counts on the device (ADR-0031)", () => {
   test("every report renders from the device with no connection to the API", async ({ page, owner }) => {
     await syncedAthlete(page, owner);
     await page.route("**/-/api/**", route => route.abort("internetdisconnected"));
@@ -113,5 +113,46 @@ test.describe("Performance on the device (ADR-0031)", () => {
     await expect(page.locator("#gap-root svg")).toBeVisible();
     expect(visited).toContain(`/${owner.username}/sync`);
     expect(visited.at(-1)).toBe(`/${owner.username}/performance/gap`);
+  });
+
+  test("the map counts its pins on the device with no connection to the API", async ({ page, owner }) => {
+    await syncedAthlete(page, owner);
+    await page.route("**/-/api/**", route => route.abort("internetdisconnected"));
+
+    await page.goto(owner.url("/map"));
+    await expect(page.locator("#subtitle")).toContainText("1 Country");
+  });
+
+  test("the map picks up a climb logged on another device once the background sync lands", async ({ page, owner }) => {
+    await syncedAthlete(page, owner, []);
+    await owner.api("POST", "locations", { id: owner.ownId("l1"), name: "Test Crag", country: "United Kingdom" });
+    await owner.api("POST", "places", { id: owner.ownId("p1"), locationId: owner.ownId("l1"), area: "" });
+    await owner.api("POST", "entries", {
+      id: owner.ownId("elsewhere"),
+      placeId: owner.ownId("p1"),
+      type: "boulder",
+      status: "send",
+      grade: "6B",
+      date: daysAgo(1),
+      name: "Logged elsewhere",
+    });
+    const requests = [];
+    page.on("request", req => {
+      if (req.url().includes("/-/api/map/counts")) requests.push(req.url());
+    });
+
+    await page.goto(owner.url("/map"));
+    await expect(page.locator("#subtitle")).toContainText("1 Country");
+    expect(requests).toEqual([]);
+  });
+
+  test("on a device that keeps no data, the map's counts come from the server", async ({ page, owner }) => {
+    await blockIndexedDb(page);
+    await syncedAthlete(page, owner);
+    const counts = page.waitForResponse(res => res.url().includes("/-/api/map/counts"));
+
+    await page.goto(owner.url("/map"));
+    await counts;
+    await expect(page.locator("#subtitle")).toContainText("1 Country");
   });
 });
