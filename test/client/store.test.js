@@ -131,23 +131,31 @@ describe("a failed entries write", () => {
 
 describe("a write that overlaps a failed one", () => {
   it("reports false, so its caller can't advance the cursor past the dropped cache", async () => {
-    let failNext = true;
+    let failFirst, finishSecond;
+    const firstFails = new Promise(resolve => (failFirst = resolve));
+    const secondFinishes = new Promise(resolve => (finishSecond = resolve));
     const db = await openEntries();
+    let calls = 0;
     const flaky = {
       ...db,
       apply: async rows => {
-        if (failNext) {
-          failNext = false;
-          await new Promise(resolve => setTimeout(resolve));
+        if (++calls === 1) {
+          await firstFails;
           throw new DOMException("full", "QuotaExceededError");
         }
-        return db.apply(rows);
+        await db.apply(rows);
+        await secondFinishes;
       },
     };
     const overlapping = createStore({ storage, openEntries: async () => flaky });
     const failed = overlapping.mergeConfirmed("entries", [{ id: "a" }]);
     const landed = overlapping.mergeConfirmed("entries", [{ id: "b" }]);
+    await new Promise(resolve => setTimeout(resolve));
+    expect(calls).toBe(2);
+
+    failFirst();
     expect(await failed).toBe(false);
+    finishSecond();
     expect(await landed).toBe(false);
   });
 });
