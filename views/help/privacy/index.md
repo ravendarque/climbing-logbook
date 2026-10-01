@@ -40,7 +40,7 @@ It's kept under your account. Someone else who logs in on the same browser can't
 
 **To remove everything from a device,** clear Climbing Logbook's site data in your browser's settings. Check first that the menu shows no *Offline* or *Syncing…* status, or changes that haven't synced will be lost. Do this before handing a device back if you've used someone else's.
 
-If your browser or an extension stops Climbing Logbook storing your logbook, it still works online, but it downloads your logbook every time you open it and won't work offline. If it blocks cookies too, you won't be able to log in. [Working offline](/help/working-offline/) has more on using it at the crag.
+If your browser or an extension stops Climbing Logbook storing your logbook, it still works online, but it downloads your logbook every time you open it and won't work offline. If it blocks cookies too, you won't be able to log in. [Working offline](/help/working-offline/) has more on using it at the crag, and [Troubleshooting](/help/troubleshooting/) covers what to do if something looks wrong.
 
 ## Visit statistics
 
