@@ -53,30 +53,55 @@ only the demo accounts, which never cache data on a device.
    the client.** Each server handler's body (filter by discipline, bucket,
    headline) moves into a builder such as `buildGapReport(entries, { start,
    end })`, so the server and the client can't compute different numbers.
-3. **The server keeps the report routes only for the demo accounts**, under
-   `/-/api/public/:username/performance/*`, calling the same builders. The
-   owner routes `/-/api/performance/*` are removed.
+3. **The server keeps the report routes, as thin wrappers round the same
+   builders**: for the demo accounts under
+   `/-/api/public/:username/performance/*`, and for an owner whose device
+   has no usable store (decision 6) under `/-/api/performance/*`. Because
+   the client and the server wrap the same builder, the fallback can't
+   drift from the device's answer.
 4. **The owner map counts its pins on the device** with a shared
-   `mapCounts(entries, places, locations)`. `logbook_map_counts_cache` and
-   the owner `/-/api/map/counts` route go. The public profile keeps its SQL
-   route, because a visitor has no synced copy; a test holds the SQL and the
-   shared function to the same answer on the same seed.
+   `mapCounts(entries, places, locations)`, and `logbook_map_counts_cache`
+   goes. The server's map-counts route keeps its SQL, which is cheaper than
+   loading every entry into the Worker, for the public profile (whose
+   visitors have no synced copy) and as the owner's fallback. A test holds
+   the SQL and the shared function to the same answer on the same seed.
 5. **Performance pages and the map get `/log`'s sync gate**: an unsynced
    device goes to `/:username/sync` first, and `/sync` accepts their paths
    as `returnTo`. Each page renders from the store at once, pulls an
    entries delta in the background like `/log`, and re-renders when it
-   lands; the header's sync ring shows the delta. The "offline" state on
-   these pages goes.
+   lands; the header's sync ring shows the delta.
+6. **A device with no usable store asks the server.** If the entries
+   database can't be opened, a Performance page or the map fetches the
+   computed result from the server route, as it does today, rather than
+   downloading the whole logbook to work it out. Only then can these pages
+   still show "offline".
+
+### How each storage setting behaves
+
+- **Persistent storage declined (the usual case).** Storage still works, as
+  "best effort", and everything computes on the device. If the browser
+  later clears the site's data, the next visit goes through `/sync` and
+  downloads everything again. Climbs not yet synced are lost in that case,
+  which is why a Safari tab with unsynced climbs suggests installing the
+  app.
+- **All site data blocked.** The session cookie is blocked too, so the
+  owner can't sign in, and no owner page works.
+- **localStorage allowed, IndexedDB unavailable** (a hardened browser
+  setting, some privacy extensions, an old private mode). Reports and map
+  counts come from the server (decision 6), and `/log` downloads every
+  entry from the server on each visit. Someone who has chosen not to keep
+  data on the device should expect that, and nothing works offline.
 
 ## Consequences
 
 - Performance and the map work offline, and a time-window or scale change
   is instant.
-- The Worker stops scanning the whole logbook per report view, for owners.
+- The Worker stops scanning the whole logbook per report view, except for a
+  demo or an owner on the fallback.
 - ADR-0018's rule for future derived views is replaced: a view of the
   owner's own data computes on the device from the synced store; a view of
-  someone else's data (a public profile, a demo) computes on the server with
-  the same shared function.
+  someone else's data (a public profile, a demo), or the owner's on a device
+  that keeps no data, computes on the server with the same shared function.
 - Computing on the main thread must stay cheap at 10,000 entries. The
   implementation measures each report at that size; one that's too slow
   moves to a Web Worker, which this ADR allows but doesn't require up front.
