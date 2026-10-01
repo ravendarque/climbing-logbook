@@ -68,3 +68,4 @@ GitHub, the same treatment every other doc in this repo already gets.
 | [0028](0028-service-worker-owns-the-owner-app-shell.md) | The service worker owns the owner app's shell: offline cold launch, cache-first per build, never data | Accepted |
 | [0029](0029-beta-channel-enrollment-model.md) | Beta channel: two-state enrollment, checked on the page, one channel per origin | Accepted |
 | [0030](0030-test-against-the-real-worker-mock-only-what-it-cant-produce.md) | Test against the real Worker, mock only what it can't produce, measure coverage | Accepted |
+| [0031](0031-owner-reports-from-the-synced-store.md) | Owner reports and map counts are computed on the device, from the synced store | Proposed, would supersede 0018 |
