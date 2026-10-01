@@ -4,10 +4,12 @@ import { userKey } from "./user-storage.js";
 import { pullDelta, readPendingQueue } from "./delta-pull.js";
 
 const ENTRIES_URL = "/-/api/entries";
+const PLACES_URL = "/-/api/places";
+const LOCATIONS_URL = "/-/api/locations";
 const QUEUE_KEY = userKey("logbook_pending_queue");
 
 // Reports come from the device's own copy; a demo, or a device that can't keep one, asks the server (ADR-0031).
-export function createReportData({ username, isDemo, store, syncStatusIcon, onRefresh }) {
+export function createReportData({ username, isDemo, store, syncStatusIcon, onRefresh, withPlaces = false }) {
   let local = false;
 
   function applyQueue() {
@@ -22,15 +24,22 @@ export function createReportData({ username, isDemo, store, syncStatusIcon, onRe
       return false;
     }
     local = await store.loadEntriesFromCache();
-    if (local) applyQueue();
+    if (!local) return true;
+    if (withPlaces) {
+      store.loadPlacesFromCache();
+      store.loadLocationsFromCache();
+    }
+    applyQueue();
     return true;
   }
 
   async function refresh() {
     if (!local) return;
-    await syncStatusIcon.track(
-      pullDelta({ store, url: ENTRIES_URL, table: "entries", onTimeout: syncStatusIcon.reportTimeout }),
-    );
+    const pull = (url, table) => pullDelta({ store, url, table, onTimeout: syncStatusIcon.reportTimeout });
+    if (withPlaces) {
+      await syncStatusIcon.track(Promise.all([pull(PLACES_URL, "places"), pull(LOCATIONS_URL, "locations")]));
+    }
+    await syncStatusIcon.track(pull(ENTRIES_URL, "entries"));
     applyQueue();
     onRefresh();
   }

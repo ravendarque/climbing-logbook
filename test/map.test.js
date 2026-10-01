@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
+import { mapCounts } from "../shared/map-counts.js";
 
 const MAP_COUNTS_URL = "/-/api/map/counts";
 const ENTRIES_URL = "/-/api/entries";
@@ -87,5 +88,33 @@ describe("handleGetMapCounts", () => {
     const userB = await createAuthedSession();
     const res = await get(userB.cookie);
     expect(await res.json()).toEqual({});
+  });
+});
+
+describe("the device's mapCounts (ADR-0031)", () => {
+  async function read(path) {
+    return (await fetchJson(`/-/api/${path}`, { headers: { Cookie: cookie } })).json();
+  }
+
+  it("gives the same answer as the server's SQL on the same logbook", async () => {
+    const france = await seedPlace(cookie, { country: "France" });
+    const spain = await seedPlace(cookie, { locationName: "Albarracín", country: "Spain" });
+    const nowhere = await seedPlace(cookie, { locationName: "Somewhere", country: "" });
+    await postEntry(france, { status: "send", firstAttempt: true });
+    await postEntry(france, { status: "send", firstAttempt: false });
+    await postEntry(france, { status: "project" });
+    await postEntry(france, { status: "checkout" });
+    await postEntry(france, { type: "sport", grade: "6a", status: "send", sportStyle: "lead" });
+    await postEntry(spain, { status: "archived" });
+    await postEntry(nowhere, { status: "send", firstAttempt: true });
+    const deleted = await (await postEntry(spain, { status: "send" })).json();
+    await fetchJson(`${ENTRIES_URL}?id=${deleted.entry.id}`, { method: "DELETE", headers: { Cookie: cookie } });
+
+    const [{ entries }, { places }, { locations }] = await Promise.all([
+      read("entries"),
+      read("places"),
+      read("locations"),
+    ]);
+    expect(mapCounts(entries, places, locations)).toEqual(await (await get()).json());
   });
 });

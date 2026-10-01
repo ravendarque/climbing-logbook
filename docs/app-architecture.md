@@ -417,14 +417,15 @@ Tables (see `migrations/` for columns and constraints):
     network fails or hasn't answered within 3 seconds (`client/sw/network-first.js`);
   - the API, non-GETs and cross-origin requests: passed straight through.
     The service worker never caches data.
-- **Performance reports** are computed on the device from the synced store,
-  queued changes included, by the builders in `shared/reports.js`
+- **Performance reports and the owner map's counts** are computed on the
+  device from the synced store, queued changes included, by
+  `shared/reports.js` and `shared/map-counts.js`
   ([ADR-0031](adr/0031-owner-reports-from-the-synced-store.md),
-  `client/report-data.js`). Report pages share `/log`'s sync gate and pull an
-  entries delta in the background. A demo, or a device that can't open
-  IndexedDB, gets the same builders' result from `/-/api/performance/*`.
-  Map counts are still computed on the server until ADR-0031's map step
-  lands.
+  `client/report-data.js`). These pages share `/log`'s sync gate and pull
+  deltas in the background. A demo, or a device that can't open IndexedDB,
+  gets the result from `/-/api/performance/*` or `/-/api/map/counts`; the
+  map route keeps its SQL, which `test/map.test.js` holds to
+  `shared/map-counts.js`.
 
 ## Authentication
 
