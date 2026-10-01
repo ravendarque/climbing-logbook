@@ -1,5 +1,5 @@
 import { Resend } from "resend";
-import { escapeHtml } from "./html-escape.js";
+import { renderEmail } from "./email-template.js";
 
 const FROM_ADDRESS = "Climbing Logbook <myaccount@climbinglogbook.com>";
 
@@ -19,34 +19,33 @@ async function send(env, payload) {
 }
 
 export function createEmailSender(env) {
+  function sendTemplated(to, subject, content) {
+    return send(env, { from: FROM_ADDRESS, to, subject, ...renderEmail({ title: subject, ...content }) });
+  }
+
   return {
     sendVerificationEmail(to, url) {
-      const safeUrl = escapeHtml(url);
-      return send(env, {
-        from: FROM_ADDRESS,
-        to,
-        subject: "Verify your email",
-        html: `<p>Click the link below to verify your email address.</p><p><a href="${safeUrl}">${safeUrl}</a></p>`,
+      return sendTemplated(to, "Verify your email", {
+        paragraphs: [
+          "Welcome to Climbing Logbook. Confirm this is your email address to finish setting up your account.",
+        ],
+        action: { label: "Verify email", url },
+        note: "If you didn't sign up, you can ignore this email.",
       });
     },
     sendPasswordResetEmail(to, url) {
-      const safeUrl = escapeHtml(url);
-      return send(env, {
-        from: FROM_ADDRESS,
-        to,
-        subject: "Reset your password",
-        html: `<p>Click the link below to reset your password. If you didn't request this, you can ignore this email.</p><p><a href="${safeUrl}">${safeUrl}</a></p>`,
+      return sendTemplated(to, "Reset your password", {
+        paragraphs: ["Someone asked to reset the password for your Climbing Logbook account."],
+        action: { label: "Choose a new password", url },
+        note: "If you didn't ask for this, you can ignore this email. Your password won't change.",
       });
     },
     // Goes to the current address, so a stolen session can't move the account silently.
     sendChangeEmailConfirmation(to, newEmail, url) {
-      const safeUrl = escapeHtml(url);
-      const safeNewEmail = escapeHtml(newEmail);
-      return send(env, {
-        from: FROM_ADDRESS,
-        to,
-        subject: "Confirm your email change",
-        html: `<p>Someone requested changing this account's email to <strong>${safeNewEmail}</strong>. Click the link below to confirm. If you didn't request this, you can ignore this email -- your email won't change.</p><p><a href="${safeUrl}">${safeUrl}</a></p>`,
+      return sendTemplated(to, "Confirm your email change", {
+        paragraphs: ["Someone asked to change your Climbing Logbook account's email address to:", { strong: newEmail }],
+        action: { label: "Confirm the change", url },
+        note: "If you didn't ask for this, you can ignore this email. Your email address won't change.",
       });
     },
   };
