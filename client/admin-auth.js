@@ -91,6 +91,10 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
     return result;
   }
 
+  function completeOnboarding() {
+    return patchSetting("onboardingCompleted", true);
+  }
+
   async function checkSession() {
     // Optimistic, from the last session check, so login-gated chrome is right on first paint.
     store.setLoggedIn(localStorage.getItem(LOGIN_HINT_KEY) === "1");
@@ -171,6 +175,7 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
     setLogbookPublic,
     getBetaOptIn: () => betaOptIn,
     setBetaOptIn,
+    completeOnboarding,
     getUsername: () => username,
     getEmail: () => email,
     getPersistedDiscipline: () => persistedDiscipline,

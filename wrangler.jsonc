@@ -19,6 +19,7 @@
       "/profile", "/profile/*",
       "/account", "/account/*",
       "/sync", "/sync/*",
+      "/welcome", "/welcome/*",
       "/-/manifest.json", "/-/apple-touch-icon.png"
     ]
   },

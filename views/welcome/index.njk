@@ -1,0 +1,96 @@
+---
+layout: app-layout.njk
+title: Welcome – Climbing Logbook
+bundle: welcome
+headerClass: mb-6
+---
+<div class="max-w-[560px] mx-auto flex flex-col gap-5">
+  <div class="flex flex-col gap-3">
+    <p class="text-xs text-muted tabular-nums" id="welcome-progress-label">Step 1 of 4</p>
+    <div class="grid grid-cols-4 gap-1.5" id="welcome-progress" aria-hidden="true">
+      <span class="h-1 rounded-sm bg-border"></span>
+      <span class="h-1 rounded-sm bg-border"></span>
+      <span class="h-1 rounded-sm bg-border"></span>
+      <span class="h-1 rounded-sm bg-border"></span>
+    </div>
+  </div>
+
+  <section class="flex flex-col gap-4" data-step="1" aria-labelledby="welcome-visibility-title">
+    <h1 class="section-heading text-[2.5rem] leading-[.95] mb-0 focus:outline-none" id="welcome-visibility-title" tabindex="-1">Who can see your logbook?</h1>
+    <p class="text-muted">Your logbook and map can have a public page that anyone with the link can view. Your Performance Insights stay private either way.</p>
+    <fieldset class="flex flex-col gap-2.5 min-w-0 border-0">
+      <legend class="sr-only">Logbook visibility</legend>
+      <label class="group flex gap-3 items-start p-3.5 rounded-app bg-surface border-2 border-border cursor-pointer has-checked:border-accent-ink has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-2">
+        <input class="sr-only" type="radio" name="welcome-visibility" value="public" id="welcome-public">
+        <svg class="w-[1.375rem] h-[1.375rem] shrink-0 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2a15 15 0 0 1 0 20a15 15 0 0 1 0-20"></path></svg>
+        <span class="flex flex-col gap-1 flex-1 min-w-0">
+          <span class="font-semibold">Public</span>
+          <span class="text-sm text-muted [overflow-wrap:anywhere]">Share your climbs at <span id="welcome-profile-url">my.climbinglogbook.com/you</span></span>
+        </span>
+        <svg class="hidden group-has-checked:block w-5 h-5 shrink-0 stroke-accent-ink fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+      </label>
+      <label class="group flex gap-3 items-start p-3.5 rounded-app bg-surface border-2 border-border cursor-pointer has-checked:border-accent-ink has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-2">
+        <input class="sr-only" type="radio" name="welcome-visibility" value="private" id="welcome-private">
+        <svg class="w-[1.375rem] h-[1.375rem] shrink-0 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+        <span class="flex flex-col gap-1 flex-1 min-w-0">
+          <span class="font-semibold">Private</span>
+          <span class="text-sm text-muted">Only you can see your logbook and map</span>
+        </span>
+        <svg class="hidden group-has-checked:block w-5 h-5 shrink-0 stroke-accent-ink fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+      </label>
+    </fieldset>
+    <p class="text-sm text-muted">You can change this any time in My account.</p>
+  </section>
+
+  <section class="flex flex-col gap-4" data-step="2" aria-labelledby="welcome-athlete-title" hidden>
+    <h1 class="section-heading text-[2.5rem] leading-[.95] mb-0 focus:outline-none" id="welcome-athlete-title" tabindex="-1">Athlete Mode</h1>
+    <p class="text-muted">Turn it on if you train and want to see how you're progressing. It adds a few more details to each climb you log, and unlocks Performance Insights: your grade pyramid, trends and more.</p>
+    <fieldset class="flex flex-col gap-2.5 min-w-0 border-0">
+      <legend class="sr-only">Athlete Mode</legend>
+      <label class="group flex gap-3 items-start p-3.5 rounded-app bg-surface border-2 border-border cursor-pointer has-checked:border-accent-ink has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-2">
+        <input class="sr-only" type="radio" name="welcome-athlete" value="on" id="welcome-athlete-on">
+        <svg class="w-[1.375rem] h-[1.375rem] shrink-0 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18"></path><path d="M6 16v-4"></path><path d="M11 16V8"></path><path d="M16 16V4"></path></svg>
+        <span class="flex flex-col gap-1 flex-1 min-w-0">
+          <span class="font-semibold">On</span>
+          <span class="text-sm text-muted">Log more detail and get Performance Insights, visible only to you</span>
+        </span>
+        <svg class="hidden group-has-checked:block w-5 h-5 shrink-0 stroke-accent-ink fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+      </label>
+      <label class="group flex gap-3 items-start p-3.5 rounded-app bg-surface border-2 border-border cursor-pointer has-checked:border-accent-ink has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-2">
+        <input class="sr-only" type="radio" name="welcome-athlete" value="off" id="welcome-athlete-off">
+        <svg class="w-[1.375rem] h-[1.375rem] shrink-0 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16"></path><path d="M4 12h16"></path><path d="M4 18h10"></path></svg>
+        <span class="flex flex-col gap-1 flex-1 min-w-0">
+          <span class="font-semibold">Off</span>
+          <span class="text-sm text-muted">Keep it simple: just log your climbs</span>
+        </span>
+        <svg class="hidden group-has-checked:block w-5 h-5 shrink-0 stroke-accent-ink fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+      </label>
+    </fieldset>
+    <p class="text-sm text-muted">You can change this any time in My account.</p>
+  </section>
+
+  <section class="flex flex-col gap-4" data-step="3" aria-labelledby="welcome-import-title" hidden>
+    <h1 class="section-heading text-[2.5rem] leading-[.95] mb-0 focus:outline-none" id="welcome-import-title" tabindex="-1">Bring your climbs with you</h1>
+    <p class="text-muted">Already keep a log somewhere else? Import it from a CSV file and your logbook starts full. Or skip this and start fresh.</p>
+    {% include "import-panel.njk" %}
+    <p class="text-sm text-muted">You can import more any time from My account.</p>
+  </section>
+
+  <section class="flex flex-col gap-4" data-step="4" aria-labelledby="welcome-done-title" hidden>
+    <h1 class="section-heading text-[3rem] leading-[.9] mb-0 focus:outline-none" id="welcome-done-title" tabindex="-1">You're all set</h1>
+    <p class="text-muted">Your logbook's ready. Log your next session, at the crag or after, with or without signal.</p>
+    <dl class="bg-surface border border-border rounded-app flex flex-col">
+      <div class="flex justify-between items-center gap-3 px-4 py-3 border-b border-border text-sm"><dt>Logbook</dt><dd class="font-semibold" id="welcome-summary-visibility"></dd></div>
+      <div class="flex justify-between items-center gap-3 px-4 py-3 border-b border-border text-sm"><dt>Athlete Mode</dt><dd class="font-semibold" id="welcome-summary-athlete"></dd></div>
+      <div class="flex justify-between items-center gap-3 px-4 py-3 text-sm"><dt>Import</dt><dd class="font-semibold" id="welcome-summary-import"></dd></div>
+    </dl>
+    <p class="text-sm text-muted">All of these live in My account if you change your mind.</p>
+  </section>
+
+  <p class="text-sm text-accent-ink" id="welcome-error" role="alert" hidden></p>
+
+  <div class="flex gap-2.5">
+    <button type="button" class="btn h-12 px-[1.1rem] text-base" id="welcome-back" hidden>Back</button>
+    <button type="button" class="btn btn-primary h-12 flex-1 text-base" id="welcome-next">Continue</button>
+  </div>
+</div>
