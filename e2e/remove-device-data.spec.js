@@ -99,4 +99,3 @@ test("if some data can't be removed after logging out, the page still says so", 
   await expect(page.locator("#remove-data-error")).toContainText("clear this site's data in your browser's settings");
   expect(new URL(page.url()).pathname).toBe(`/${owner.username}/account`);
 });
-
