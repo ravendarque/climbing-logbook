@@ -1,3 +1,5 @@
+export const ENTRIES_DB_BASE = "logbook_entries";
+
 const ROWS = "rows";
 const META = "meta";
 const NEXT_SEQ = "nextSeq";

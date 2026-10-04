@@ -3,6 +3,8 @@ import { createAccountShell } from "./account-shell.js";
 import { loadResource } from "./fetch-json.js";
 import { buildEntriesCsv, resolveExportRows } from "../shared/csv-import.js";
 import { startPage } from "./boot-gate.js";
+import { removeDeviceData, unsyncedChangeCount } from "./device-data.js";
+import { LOGIN_PATH } from "./login-url.js";
 
 const DATA_URL = "/-/api/entries";
 const PLACES_URL = "/-/api/places";
@@ -26,12 +28,14 @@ const publicLogbookRow = document.getElementById("public-logbook-row");
 const publicLogbookToggle = document.getElementById("public-logbook-toggle");
 const betaRow = document.getElementById("beta-row");
 const betaStatus = document.getElementById("beta-status");
+const removeDataRow = document.getElementById("remove-data-row");
 
 function syncSettingsToggles() {
   const loggedIn = store.isLoggedIn();
   athleteModeRow.hidden = !loggedIn;
   publicLogbookRow.hidden = !loggedIn;
   betaRow.hidden = !loggedIn;
+  removeDataRow.hidden = !loggedIn;
   athleteModeToggle.setAttribute("aria-checked", String(adminAuth.isAthleteMode()));
   publicLogbookToggle.setAttribute("aria-checked", String(adminAuth.isLogbookPublic()));
   betaStatus.textContent = adminAuth.getBetaOptIn()
@@ -59,6 +63,49 @@ athleteModeToggle.addEventListener("click", () =>
 publicLogbookToggle.addEventListener("click", () =>
   handleSettingToggle(publicLogbookToggle, adminAuth.setLogbookPublic, "Public Logbook"),
 );
+
+const removeDataBtn = document.getElementById("remove-data-btn");
+const removeDataWarning = document.getElementById("remove-data-warning");
+const removeDataError = document.getElementById("remove-data-error");
+
+document.getElementById("remove-data-log-link").href = `/${encodeURIComponent(USERNAME)}/log`;
+
+function updateRemoveDataWarning() {
+  const count = unsyncedChangeCount();
+  removeDataWarning.hidden = count === 0;
+  document.getElementById("remove-data-warning-text").textContent =
+    count === 1
+      ? "1 change hasn't synced yet. If you clear your data now, it will be lost."
+      : `${count} changes haven't synced yet. If you clear your data now, they will be lost.`;
+}
+
+function showRemoveDataError(message) {
+  removeDataError.textContent = message;
+  removeDataError.hidden = false;
+  removeDataBtn.disabled = false;
+}
+
+async function removeDataAndLogOut() {
+  removeDataError.hidden = true;
+  removeDataBtn.disabled = true;
+  try {
+    await adminAuth.signOut();
+  } catch {
+    showRemoveDataError("Couldn't log you out, so nothing was cleared. Check your connection and try again.");
+    return;
+  }
+  if (await removeDeviceData(USERNAME)) {
+    window.location.href = LOGIN_PATH;
+    return;
+  }
+  showRemoveDataError(
+    "You're logged out, but some of your data couldn't be cleared from this device. To clear the rest, clear this site's data in your browser's settings.",
+  );
+}
+
+updateRemoveDataWarning();
+window.addEventListener("storage", updateRemoveDataWarning);
+removeDataBtn.addEventListener("click", removeDataAndLogOut);
 
 // Fetched on click: most visits never export.
 const exportError = document.getElementById("export-error");

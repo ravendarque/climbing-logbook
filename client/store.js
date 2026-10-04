@@ -5,12 +5,12 @@ import { mergeDelta } from "./delta-merge.js";
 import { userKey } from "./user-storage.js";
 import { isQuotaError } from "./storage-quota.js";
 import { resetCursor } from "./sync-cursors.js";
-import { openEntriesDb } from "./entries-db.js";
+import { ENTRIES_DB_BASE, openEntriesDb } from "./entries-db.js";
 
 const ENTRIES_CACHE_KEY = userKey("logbook_entries_cache");
 const PLACES_CACHE_KEY = userKey("logbook_places_cache");
 const LOCATIONS_CACHE_KEY = userKey("logbook_locations_cache");
-const ENTRIES_DB_NAME = userKey("logbook_entries");
+const ENTRIES_DB_NAME = userKey(ENTRIES_DB_BASE);
 
 function parseRows(json) {
   try {

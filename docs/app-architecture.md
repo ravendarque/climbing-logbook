@@ -252,7 +252,14 @@ Page chrome and auth:
 
 - `client/admin-auth.js`: session check, settings (Athlete Mode, public
   logbook, beta enrollment, discipline), login and logout. Logout clears
-  the service worker's caches.
+  the service worker's caches. `client/settings-cache.js` is the settings
+  cache's one read, write and fetch path, shared with `/sync`.
+- `client/device-data.js` backs My account's *Clear device data*: after
+  `signOut()` it deletes every `base:username` localStorage key and the
+  user's entries database, keeping device-level choices (theme, grade
+  scales). Nothing is deleted from the account, and the next login takes
+  the cold `/sync` path. The card warns, live, while queued or failed
+  writes would be lost.
 - `client/header-chrome.js`, `client/admin-bar.js`, `client/theme-toggle.js`,
   `client/modal-utils.js` (disclosures, modals, focus traps).
 - `client/login-url.js`, `client/apex-links.js`,

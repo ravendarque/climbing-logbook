@@ -141,21 +141,23 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
     if (persistedDiscipline) store.setActiveType(persistedDiscipline);
   }
 
+  async function signOut() {
+    await fetch(AUTH_SIGN_OUT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+    store.setLoggedIn(false);
+    localStorage.setItem(LOGIN_HINT_KEY, "0");
+    // Their data stays in their own namespace: an unsynced queue is never discarded.
+    clearSignedInUser(localStorage);
+    // Cached shells mustn't outlive the session on a shared device.
+    await clearWorkerCaches();
+  }
+
   loginToggleBtn.addEventListener("click", async () => {
     const wasLoggedIn = store.isLoggedIn();
-    if (wasLoggedIn) {
-      await fetch(AUTH_SIGN_OUT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: "{}",
-      });
-      store.setLoggedIn(false);
-      localStorage.setItem(LOGIN_HINT_KEY, "0");
-      // Their data stays in their own namespace: an unsynced queue is never discarded.
-      clearSignedInUser(localStorage);
-      // Cached shells mustn't outlive the session on a shared device.
-      await clearWorkerCaches();
-    }
+    if (wasLoggedIn) await signOut();
     // The page is owner-only, so a logged-out visitor goes to login rather than a page that only looks logged out.
     window.location.href = wasLoggedIn ? LOGIN_PATH : loginPageUrl();
   });
@@ -172,6 +174,7 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
     getUsername: () => username,
     getEmail: () => email,
     getPersistedDiscipline: () => persistedDiscipline,
+    signOut,
     setInitialActiveType,
     reconcileActiveType,
   };

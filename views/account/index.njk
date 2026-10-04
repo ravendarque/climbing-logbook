@@ -39,6 +39,16 @@ headerClass: mb-6
           </div>
         </div>
         <p class="text-sm text-accent-ink" id="export-error" hidden></p>
+        <div class="row-card" id="remove-data-row" hidden>
+          <span class="row-card-title">Clear my data from this device</span>
+          <p class="text-sm text-muted mt-2" id="remove-data-description">Nothing is deleted from your account. Your logbook is taken off this device and you're logged out, and it all syncs back the next time you log in here.</p>
+          <div class="flex gap-2 mt-3 p-3 rounded-app border border-warning-border bg-warning-bg text-sm text-warning-ink" id="remove-data-warning" role="status" hidden>
+            <svg class="w-4 h-4 mt-[.15rem] shrink-0 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+            <p><span id="remove-data-warning-text"></span> <a class="underline" id="remove-data-log-link" href="#">Check on your log.</a></p>
+          </div>
+          <button type="button" class="btn btn-primary mt-3" id="remove-data-btn" aria-describedby="remove-data-description">Clear device data</button>
+          <p class="text-sm text-accent-ink mt-3" id="remove-data-error" role="alert" hidden></p>
+        </div>
       </div>
     </div>
 

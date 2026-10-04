@@ -38,7 +38,9 @@ It's kept under your account. Someone else who logs in on the same browser can't
 
 **Logging out** removes the saved app pages, but keeps your logbook and any unsynced changes on the device, so nothing you logged offline is lost. They sync the next time you log in there.
 
-**To remove everything from a device,** clear Climbing Logbook's site data in your browser's settings. Check first that the menu shows no *Offline* or *Syncing…* status, or changes that haven't synced will be lost. Do this before handing a device back if you've used someone else's.
+**To remove everything from a device,** go to My account and choose *Clear device data*. It logs you out. Nothing is deleted from your account, and your logbook syncs back the next time you log in on that device. If changes are still waiting to sync, a warning says so first, because clearing the device would lose them. Do this before handing a device back if you've used someone else's.
+
+You can also clear Climbing Logbook's site data in your browser's settings. Check first that the menu shows no *Offline* or *Syncing…* status, or changes that haven't synced will be lost.
 
 If your browser or an extension stops Climbing Logbook storing your logbook, it still works online, but it downloads your logbook every time you open it and won't work offline. If it blocks cookies too, you won't be able to log in. [Working offline](/help/working-offline/) has more on using it at the crag, and [Troubleshooting](/help/troubleshooting/) covers what to do if something looks wrong.
 
