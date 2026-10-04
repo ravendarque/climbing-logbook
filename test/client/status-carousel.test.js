@@ -5,6 +5,7 @@ import {
   itemLook,
   nearestCopyIndex,
   recentre,
+  releaseTarget,
   statusAt,
 } from "../../client/status-carousel.js";
 
@@ -53,5 +54,35 @@ describe("status carousel maths (#1200)", () => {
     expect(easeOutCubic(0)).toBe(0);
     expect(easeOutCubic(1)).toBe(1);
     expect(easeOutCubic(0.5)).toBeGreaterThan(0.5);
+  });
+});
+
+describe("releaseTarget (#1226)", () => {
+  const base = { position: 6.75, slot: 80, flickMs: 120, releaseX: 100, releaseTime: 1000 };
+
+  it("settles on the nearest status after a pause, however fast the drag was before it", () => {
+    const samples = [
+      { x: 160, t: 600 },
+      { x: 100, t: 650 },
+    ];
+    expect(releaseTarget({ ...base, samples })).toBe(7);
+  });
+
+  it("carries a quick flick on past where the finger lifted", () => {
+    const samples = [
+      { x: 140, t: 960 },
+      { x: 100, t: 990 },
+    ];
+    expect(releaseTarget({ ...base, samples })).toBe(8);
+  });
+
+  it("never carries more than two statuses beyond the release point", () => {
+    const samples = [{ x: 400, t: 999 }];
+    expect(releaseTarget({ ...base, samples })).toBe(9);
+    expect(releaseTarget({ ...base, releaseX: 400, samples: [{ x: 100, t: 999 }] })).toBe(5);
+  });
+
+  it("settles on the nearest status when there's no movement at all", () => {
+    expect(releaseTarget({ ...base, samples: [] })).toBe(7);
   });
 });
