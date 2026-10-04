@@ -11,6 +11,8 @@
 @layer base {
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  html:has([aria-modal="true"]:not([hidden])) { overflow: hidden; }
+
   /* Form controls don't inherit font-family by default. */
   button, input, select, textarea { font-family: inherit; }
 
