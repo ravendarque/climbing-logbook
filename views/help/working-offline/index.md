@@ -50,7 +50,7 @@ New versions of Climbing Logbook download in the background while you're online.
 
 Logging out removes the saved copy of Climbing Logbook from the device, so the next person to use it can't open your pages offline. Any changes that haven't synced yet are kept, and they sync the next time you log in. To use it offline again, log in and open it once while you're online.
 
-If you'd rather leave nothing on the device, choose *Remove my data from this device and log out* in My account instead. Your logbook syncs back the next time you log in there.
+If you'd rather leave nothing on the device, choose *Clear device data* in My account instead. Your logbook syncs back the next time you log in there.
 
 ## If you clear your browser data
 

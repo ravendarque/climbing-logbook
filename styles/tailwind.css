@@ -34,6 +34,9 @@
   --color-border:            var(--color-border);
   --color-field-border:      var(--color-field-border);
   --color-error:             var(--color-error-text);
+  --color-warning-bg:        var(--color-warning-bg);
+  --color-warning-border:    var(--color-warning-border);
+  --color-warning-ink:       var(--color-warning-ink);
 
   --color-tier-heuristic:    var(--tier-heuristic);
 
@@ -308,6 +311,9 @@
   --color-accent-text:   #ffffff;
   --color-border:        #2e2e2e;
   --color-field-border:  #2e2e2e;
+  --color-warning-bg:     #2a2208;
+  --color-warning-border: #a6740a;
+  --color-warning-ink:    #f6d365;
   --r: 8px;
   --font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-display: "Bebas Neue", sans-serif;
@@ -347,6 +353,9 @@
   --color-accent-text:   #ffffff;
   --color-border:        #dcdcdc;
   --color-field-border:  #8a8a8a;
+  --color-warning-bg:     #fff4cc;
+  --color-warning-border: #a16207;
+  --color-warning-ink:    #5c4400;
   --grade-tier-beginner:     #dc2f02;
   --grade-tier-intermediate: #e85d04;
   --grade-tier-advanced:     #f48c06;

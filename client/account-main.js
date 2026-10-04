@@ -65,28 +65,33 @@ publicLogbookToggle.addEventListener("click", () =>
 );
 
 const removeDataBtn = document.getElementById("remove-data-btn");
-const removeDataUnsynced = document.getElementById("remove-data-unsynced");
-const removeDataConfirmBtn = document.getElementById("remove-data-confirm-btn");
-const removeDataCancelBtn = document.getElementById("remove-data-cancel-btn");
+const removeDataWarning = document.getElementById("remove-data-warning");
 const removeDataError = document.getElementById("remove-data-error");
 
-function setRemoveDataBusy(busy) {
-  for (const btn of [removeDataBtn, removeDataConfirmBtn, removeDataCancelBtn]) btn.disabled = busy;
+document.getElementById("remove-data-log-link").href = `/${encodeURIComponent(USERNAME)}/log`;
+
+function updateRemoveDataWarning() {
+  const count = unsyncedChangeCount();
+  removeDataWarning.hidden = count === 0;
+  document.getElementById("remove-data-warning-text").textContent =
+    count === 1
+      ? "1 change hasn't synced yet. If you clear your data now, it will be lost."
+      : `${count} changes haven't synced yet. If you clear your data now, they will be lost.`;
 }
 
 function showRemoveDataError(message) {
   removeDataError.textContent = message;
   removeDataError.hidden = false;
-  setRemoveDataBusy(false);
+  removeDataBtn.disabled = false;
 }
 
 async function removeDataAndLogOut() {
   removeDataError.hidden = true;
-  setRemoveDataBusy(true);
+  removeDataBtn.disabled = true;
   try {
     await adminAuth.signOut();
   } catch {
-    showRemoveDataError("Couldn't log you out, so nothing was removed. Check your connection and try again.");
+    showRemoveDataError("Couldn't log you out, so nothing was cleared. Check your connection and try again.");
     return;
   }
   if (await removeDeviceData(USERNAME)) {
@@ -94,30 +99,13 @@ async function removeDataAndLogOut() {
     return;
   }
   showRemoveDataError(
-    "You're logged out, but some of your data couldn't be removed from this device. To remove the rest, clear this site's data in your browser's settings.",
+    "You're logged out, but some of your data couldn't be cleared from this device. To clear the rest, clear this site's data in your browser's settings.",
   );
 }
 
-function askAboutUnsyncedChanges(count) {
-  document.getElementById("remove-data-unsynced-text").textContent =
-    count === 1
-      ? "1 change hasn't synced yet. If you remove your data now, it will be lost. You can check it first on your log."
-      : `${count} changes haven't synced yet. If you remove your data now, they will be lost. You can check them first on your log.`;
-  removeDataUnsynced.hidden = false;
-  removeDataCancelBtn.focus();
-}
-
-removeDataBtn.addEventListener("click", () => {
-  removeDataError.hidden = true;
-  const count = unsyncedChangeCount();
-  if (count > 0) askAboutUnsyncedChanges(count);
-  else removeDataAndLogOut();
-});
-removeDataConfirmBtn.addEventListener("click", removeDataAndLogOut);
-removeDataCancelBtn.addEventListener("click", () => {
-  removeDataUnsynced.hidden = true;
-  removeDataBtn.focus();
-});
+updateRemoveDataWarning();
+window.addEventListener("storage", updateRemoveDataWarning);
+removeDataBtn.addEventListener("click", removeDataAndLogOut);
 
 // Fetched on click: most visits never export.
 const exportError = document.getElementById("export-error");
