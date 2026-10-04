@@ -30,3 +30,11 @@ export function itemLook(distance) {
 export function easeOutCubic(t) {
   return 1 - (1 - t) ** 3;
 }
+
+export function releaseTarget({ position, samples, releaseX, releaseTime, slot, flickMs }) {
+  const first = samples.find(sample => releaseTime - sample.t <= flickMs);
+  const elapsed = first ? releaseTime - first.t : 0;
+  const velocity = elapsed > 0 ? (releaseX - first.x) / elapsed : 0;
+  const projected = position - (velocity * flickMs) / slot;
+  return Math.round(Math.max(position - 2, Math.min(position + 2, projected)));
+}

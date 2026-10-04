@@ -6,12 +6,12 @@ import {
   itemLook,
   nearestCopyIndex,
   recentre,
+  releaseTarget,
   statusAt,
 } from "../status-carousel.js";
 
 const SETTLE_MS = 260;
-const VISIBLE = 3;
-const MAX_SLOT_REM = 5;
+const SLOT_REM = 5;
 const TAP_SLOP_PX = 6;
 const FLICK_MS = 120;
 
@@ -114,7 +114,7 @@ class ClimbingStatusPicker extends HTMLElement {
     if (!this.#viewport) return;
     const width = this.#viewport.clientWidth;
     const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
-    this.#slot = Math.min(width / VISIBLE, MAX_SLOT_REM * rem);
+    this.#slot = SLOT_REM * rem;
     this.style.setProperty("--status-slot", `${this.#slot}px`);
     this.#track.style.transform = `translateX(${(width - this.#slot) / 2 - this.#slot * this.#position}px)`;
     this.#items.forEach((item, k) => {
@@ -187,11 +187,14 @@ class ClimbingStatusPicker extends HTMLElement {
       else this.#goTo(Math.round(this.#position));
       return;
     }
-    const first = drag.samples[0];
-    const elapsed = e.timeStamp - first.t;
-    const velocity = elapsed > 0 ? (e.clientX - first.x) / elapsed : 0;
-    const projected = this.#position - (velocity * FLICK_MS) / this.#slot;
-    const target = Math.round(Math.max(this.#position - 2, Math.min(this.#position + 2, projected)));
+    const target = releaseTarget({
+      position: this.#position,
+      samples: drag.samples,
+      releaseX: e.clientX,
+      releaseTime: e.timeStamp,
+      slot: this.#slot,
+      flickMs: FLICK_MS,
+    });
     this.#goTo(target);
   }
 }

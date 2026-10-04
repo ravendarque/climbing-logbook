@@ -443,13 +443,17 @@ climbing-page-header { display: flex; align-items: flex-start; justify-content: 
 
 climbing-status-picker { display: block; }
 .status-picker {
-  display: flex;
-  align-items: stretch;
-  gap: .25rem;
+  position: relative;
+  max-width: 21rem;
+  margin-inline: auto;
   user-select: none;
 }
 .status-picker-arrow {
-  flex: 0 0 2rem;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  width: 2rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -459,16 +463,16 @@ climbing-status-picker { display: block; }
   color: var(--color-text-muted);
   cursor: pointer;
 }
+.status-picker-arrow[data-step="-1"] { left: 0; }
+.status-picker-arrow[data-step="1"] { right: 0; }
 .status-picker-arrow:hover { color: var(--color-text); }
 .status-picker-arrow svg { width: .7rem; height: .85rem; }
 .status-picker-viewport {
   position: relative;
-  flex: 1 1 auto;
-  min-width: 0;
   overflow: hidden;
   touch-action: pan-y;
   cursor: grab;
-  mask-image: linear-gradient(to right, transparent, black 1.5rem, black calc(100% - 1.5rem), transparent);
+  mask-image: linear-gradient(to right, transparent, black 2.5rem, black calc(100% - 2.5rem), transparent);
 }
 .status-picker-viewport:active { cursor: grabbing; }
 .status-picker-track {
