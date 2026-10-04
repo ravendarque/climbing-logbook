@@ -1,7 +1,13 @@
 import { json, parseJsonBody } from "../lib/json.js";
 import { VALID_TYPES } from "../../shared/entry-schema.js";
 
-const DEFAULT_SETTINGS = { athleteMode: false, activeDiscipline: "boulder", logbookPublic: true, betaOptIn: false };
+const DEFAULT_SETTINGS = {
+  athleteMode: false,
+  activeDiscipline: "boulder",
+  logbookPublic: true,
+  betaOptIn: false,
+  onboardingCompleted: false,
+};
 
 function rowToJson(row) {
   return {
@@ -9,6 +15,7 @@ function rowToJson(row) {
     activeDiscipline: row.active_discipline,
     logbookPublic: !!row.logbook_public,
     betaOptIn: !!row.beta_opt_in,
+    onboardingCompleted: !!row.onboarding_completed,
   };
 }
 
@@ -40,6 +47,9 @@ export async function handlePatchSettings(request, env, userId) {
   if ("betaOptIn" in body && typeof body.betaOptIn !== "boolean") {
     return json({ error: "betaOptIn must be a boolean" }, 400);
   }
+  if ("onboardingCompleted" in body && typeof body.onboardingCompleted !== "boolean") {
+    return json({ error: "onboardingCompleted must be a boolean" }, 400);
+  }
 
   // No row exists until a user's first PATCH.
   await env.LOGBOOK_DB.prepare(`INSERT INTO settings (user_id) VALUES (?) ON CONFLICT(user_id) DO NOTHING`)
@@ -63,6 +73,10 @@ export async function handlePatchSettings(request, env, userId) {
   if ("betaOptIn" in body) {
     sets.push("beta_opt_in = ?");
     values.push(body.betaOptIn ? 1 : 0);
+  }
+  if ("onboardingCompleted" in body) {
+    sets.push("onboarding_completed = ?");
+    values.push(body.onboardingCompleted ? 1 : 0);
   }
 
   if (sets.length > 0) {
