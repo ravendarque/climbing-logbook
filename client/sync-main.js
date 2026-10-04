@@ -1,6 +1,7 @@
 import { createStore } from "./store.js";
 import { isSynced, markSynced } from "./sync-status.js";
 import { getCursor, setCursor } from "./sync-cursors.js";
+import { pullSettings } from "./settings-cache.js";
 import { startPage } from "./boot-gate.js";
 import { pointApexLinksAtApex } from "./apex-links.js";
 
@@ -10,6 +11,8 @@ const ENTRIES_URL = "/-/api/entries";
 
 // A bulk transfer, sized for about 20 requests at 10,000 entries.
 const CHUNK_SIZE = 500;
+
+const SETTINGS_GRACE_MS = 5000;
 
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 
@@ -76,12 +79,15 @@ async function runSync(store) {
   const warm = isSynced();
   setProgress(0, 0);
 
+  const settings = pullSettings();
+
   // Places and locations first: entries reference them.
   await Promise.all([syncByDelta(store, "places", PLACES_URL), syncByDelta(store, "locations", LOCATIONS_URL)]);
 
   if (warm) await syncByDelta(store, "entries", ENTRIES_URL);
   else await syncEntriesCold(store);
 
+  await Promise.race([settings, new Promise(resolve => setTimeout(resolve, SETTINGS_GRACE_MS))]);
   markSynced();
 }
 
