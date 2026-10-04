@@ -301,6 +301,7 @@ describe("settings", () => {
       activeDiscipline: "boulder",
       logbookPublic: true,
       betaOptIn: false,
+      onboardingCompleted: false,
     });
   });
 
@@ -335,6 +336,7 @@ describe("settings", () => {
       activeDiscipline: "boulder",
       logbookPublic: true,
       betaOptIn: false,
+      onboardingCompleted: false,
     });
   });
 
@@ -346,6 +348,7 @@ describe("settings", () => {
       activeDiscipline: "sport",
       logbookPublic: true,
       betaOptIn: false,
+      onboardingCompleted: false,
     });
   });
 
@@ -357,6 +360,7 @@ describe("settings", () => {
       activeDiscipline: "boulder",
       logbookPublic: false,
       betaOptIn: false,
+      onboardingCompleted: false,
     });
   });
 
@@ -368,6 +372,7 @@ describe("settings", () => {
       activeDiscipline: "sport",
       logbookPublic: true,
       betaOptIn: false,
+      onboardingCompleted: false,
     });
   });
 
@@ -381,6 +386,20 @@ describe("settings", () => {
     const res = await patchJson("/-/api/settings", JSON.stringify(body));
     expect(res.status).toBe(400);
     expect((await res.json()).error).toBe("Invalid JSON");
+  });
+
+  it("marks onboarding completed", async () => {
+    const res = await patchJson("/-/api/settings", { onboardingCompleted: true });
+    expect(res.status).toBe(200);
+    expect((await res.json()).onboardingCompleted).toBe(true);
+    const read = await fetchJson("/-/api/settings", { headers: { Cookie: cookie } });
+    expect((await read.json()).onboardingCompleted).toBe(true);
+  });
+
+  it("rejects a non-boolean onboardingCompleted", async () => {
+    const res = await patchJson("/-/api/settings", { onboardingCompleted: "yes" });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("onboardingCompleted must be a boolean");
   });
 
   it("rejects a non-boolean athleteMode", async () => {
@@ -414,6 +433,7 @@ describe("settings", () => {
       activeDiscipline: "boulder",
       logbookPublic: true,
       betaOptIn: true,
+      onboardingCompleted: false,
     });
   });
 
@@ -425,6 +445,7 @@ describe("settings", () => {
       activeDiscipline: "boulder",
       logbookPublic: true,
       betaOptIn: false,
+      onboardingCompleted: false,
     });
   });
 
@@ -444,6 +465,7 @@ describe("settings", () => {
       activeDiscipline: "boulder",
       logbookPublic: true,
       betaOptIn: false,
+      onboardingCompleted: false,
     });
   });
 });
