@@ -59,7 +59,9 @@
       "vars": {
         "BETA_GATE_ENABLED": "true",
         "TURNSTILE_SECRET_KEY": "1x0000000000000000000000000000000AA",
-        "RATE_LIMITING_ENABLED": "true"
+        "RATE_LIMITING_ENABLED": "true",
+        // A preview has one workers.dev host, with no my. to put owner pages on.
+        "OWNER_PAGES_ON_ANY_HOST": "true"
       },
       "d1_databases": [
         { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook-preview", "database_id": "845753a5-abfc-4d74-995b-94d802b4964e", "migrations_dir": "migrations" }
