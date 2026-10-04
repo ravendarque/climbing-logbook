@@ -104,7 +104,7 @@ export function shellHtml(allDisciplines) {
 
   <div id="sections"></div>
 
-  <div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-center justify-center px-4 py-6 overflow-y-auto" id="notes-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="notes-modal-title" tabindex="-1">
+  <div class="fixed inset-0 z-[100] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-center justify-center px-4 py-6 overflow-y-auto overscroll-contain" id="notes-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="notes-modal-title" tabindex="-1">
     <div class="bg-background border border-border rounded-app p-5 w-full max-w-[380px]">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-lg font-bold text-accent-ink" id="notes-modal-title">Notes</h2>
