@@ -1,7 +1,7 @@
-import { VALID_TYPES } from "../shared/entry-schema.js";
 import { BACKGROUND_FETCH_TIMEOUT_MS } from "./sync-status-icon.js";
 import { LOGIN_PATH, loginPageUrl } from "./login-url.js";
-import { clearSignedInUser, ownerOfPath, userKey, writeSignedInUser } from "./user-storage.js";
+import { clearSignedInUser, ownerOfPath, writeSignedInUser } from "./user-storage.js";
+import { pullSettings, readSettingsCache, validDiscipline, writeSettingsCache } from "./settings-cache.js";
 import { isDemoUsername } from "./demo-mode.js";
 import { isWorkerCache } from "./sw/caches.js";
 import { isUnauthorized } from "./api-fetch.js";
@@ -19,22 +19,12 @@ async function clearWorkerCaches() {
 export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, onFetchTimeout = () => {} }) {
   const AUTH_SESSION_URL = "/-/api/auth/get-session";
   const AUTH_SIGN_OUT_URL = "/-/api/auth/sign-out";
-  const SETTINGS_URL = "/-/api/settings";
   const LOGIN_HINT_KEY = "logbook_logged_in_hint";
-  // Cached so the first paint (tab bar, discipline) is right before the network answers.
-  const SETTINGS_CACHE_KEY = userKey("logbook_settings_cache");
-
-  function loadSettingsFromCache() {
-    try {
-      return JSON.parse(localStorage.getItem(SETTINGS_CACHE_KEY));
-    } catch {
-      return null;
-    }
-  }
 
   const loginToggleBtn = document.getElementById("login-toggle-btn");
 
-  const cachedSettings = loadSettingsFromCache();
+  // Cached so the first paint (tab bar, discipline) is right before the network answers.
+  const cachedSettings = readSettingsCache();
   let athleteMode = !!cachedSettings?.athleteMode;
   let logbookPublic = cachedSettings ? !!cachedSettings.logbookPublic : true;
   let betaOptIn = cachedSettings?.betaOptIn === true;
@@ -42,37 +32,19 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
   let email = null;
 
   // Applied by boot(), not here: settings and entries race, and the heuristic mustn't clobber it.
-  let persistedDiscipline =
-    cachedSettings && VALID_TYPES.includes(cachedSettings.activeDiscipline) ? cachedSettings.activeDiscipline : null;
+  let persistedDiscipline = validDiscipline(cachedSettings?.activeDiscipline);
 
   function persistSettingsCache() {
-    localStorage.setItem(
-      SETTINGS_CACHE_KEY,
-      JSON.stringify({
-        athleteMode,
-        logbookPublic,
-        betaOptIn,
-        activeDiscipline: persistedDiscipline,
-      }),
-    );
+    writeSettingsCache({ athleteMode, logbookPublic, betaOptIn, activeDiscipline: persistedDiscipline });
   }
 
   async function fetchSettings() {
-    try {
-      const res = await fetch(SETTINGS_URL, { signal: AbortSignal.timeout(BACKGROUND_FETCH_TIMEOUT_MS) });
-      const data = await res.json();
-      if (!res.ok) return;
-      athleteMode = !!data.athleteMode;
-      if (VALID_TYPES.includes(data.activeDiscipline)) {
-        persistedDiscipline = data.activeDiscipline;
-      }
-      logbookPublic = !!data.logbookPublic;
-      betaOptIn = data.betaOptIn === true;
-      persistSettingsCache();
-    } catch (err) {
-      // Offline: keep the last known values. Only a real timeout (TimeoutError) flags the indicator.
-      if (err.name === "TimeoutError") onFetchTimeout();
-    }
+    const settings = await pullSettings({ onTimeout: onFetchTimeout });
+    if (!settings) return;
+    athleteMode = settings.athleteMode;
+    persistedDiscipline = settings.activeDiscipline;
+    logbookPublic = settings.logbookPublic;
+    betaOptIn = settings.betaOptIn;
   }
 
   // A failed PATCH is a normal, displayable outcome, so it returns { ok } rather than throwing.

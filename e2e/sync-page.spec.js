@@ -73,6 +73,47 @@ test("warm with drift: /sync takes the delta path and catches up on a change fro
   expect(cached.map(e => e.name)).toContain("Drifted In");
 });
 
+test("a freshly synced device already has its settings when /log renders, so the form shows Performance (#1177)", async ({
+  page,
+  owner,
+}) => {
+  await owner.settings({ athleteMode: true });
+  await owner.seed(SEED);
+  await page.route("**/-/api/settings", route =>
+    new URL(route.request().frame().url()).pathname === `/${owner.username}/sync`
+      ? route.fallback()
+      : route.abort("failed"),
+  );
+
+  await page.goto(syncUrl(owner));
+  await page.waitForURL(`**/${owner.username}/log`);
+  await page.locator("#add-btn").click();
+
+  await expect(page.locator("#entry-nav-forward")).toBeVisible();
+  const cached = await storedJson(page, "logbook_settings_cache", owner.username);
+  expect(cached).toMatchObject({ athleteMode: true, logbookPublic: true, betaOptIn: false });
+});
+
+test("a settings request that never answers delays leaving /sync by seconds, not minutes", async ({ page, owner }) => {
+  await owner.seed(SEED);
+  await page.route("**/-/api/settings", () => new Promise(() => {}));
+
+  await page.goto(syncUrl(owner));
+  await page.waitForURL(`**/${owner.username}/log`, { timeout: 20000 });
+  await expect(page.locator("climbing-entries-table")).toContainText("Test Crag");
+});
+
+test("a settings request that fails doesn't stop the sync", async ({ page, owner }) => {
+  await owner.seed(SEED);
+  await page.route("**/-/api/settings", route => route.abort("failed"));
+
+  await page.goto(syncUrl(owner));
+  await page.waitForURL(`**/${owner.username}/log`);
+
+  expect(await cachedEntries(page, owner.username)).toHaveLength(2);
+  await expect(page.locator("climbing-entries-table")).toContainText("Test Crag");
+});
+
 test("/log does NOT redirect to /sync once already synced", async ({ page, owner }) => {
   await owner.seed(SEED);
   await gotoSyncedLog(page, owner);
