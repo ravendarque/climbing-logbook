@@ -30,7 +30,10 @@ afterEach(() => {
 
 describe("ClimbingImport", () => {
   it("fires import-complete with the count after a successful import", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ imported: 3 }), { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ imported: 3 }), { status: 200 })),
+    );
     const complete = new Promise(resolve => el.addEventListener("import-complete", e => resolve(e.detail)));
     chooseFile("log.csv", "name\n");
     submit();
