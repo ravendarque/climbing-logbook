@@ -208,7 +208,7 @@ export function renderLocationSectionHtml(
         <span class="inline-flex items-center justify-center min-w-[1.4rem] h-[1.4rem] px-1 rounded-full bg-[color-mix(in_srgb,var(--color-text)_12%,transparent)] text-muted text-xs font-semibold shrink-0" aria-label="${sorted.length} ${sorted.length === 1 ? "entry" : "entries"}">${sorted.length}</span>
         <span class="text-muted text-sm transition-transform duration-200 shrink-0 ${isCollapsed ? "-rotate-90" : ""}">▾</span>
       </div>
-      <div class="overflow-x-auto ${isCollapsed ? "hidden" : ""}">
+      <div class="relative overflow-x-auto ${isCollapsed ? "hidden" : ""}">
         <table class="w-full border-collapse text-sm min-w-[42.5rem]" style="table-layout:fixed">
           <colgroup>
             <col style="width:2.5rem">
