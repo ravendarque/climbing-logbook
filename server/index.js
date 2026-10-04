@@ -70,7 +70,7 @@ export default {
     }
 
     // Beta enrolment is checked by the page (client/channel-guard.js): a cached shell never reaches here.
-    if (hostname.startsWith("beta.") && isRead) {
+    if ((hostname.startsWith("beta.") || env.OWNER_PAGES_ON_ANY_HOST === "true") && isRead) {
       const ownerRoute = matchOwnerRoute(pathname);
       if (ownerRoute) return forMethod(await handleOwnedRoute(request, env, ownerRoute.username, ownerRoute.page));
     }

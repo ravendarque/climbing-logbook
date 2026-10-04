@@ -194,7 +194,10 @@ entry, its `run_worker_first` paths (checked by
 **Owner pages** (`/:username/…` on `my.` and `beta.`): `log`, `map`, `sync`,
 the `performance` hub and its reports (`pyramid`, `trends`, `gap`, `rpe`,
 `injury`, `strengths`), and `account` with `account/edit`,
-`account/import` and `account/beta`.
+`account/import` and `account/beta`. PR previews have a single
+workers.dev host, so `OWNER_PAGES_ON_ANY_HOST` serves owner pages on it;
+public profiles aren't routed there, as `/:username` would swallow
+`/login/` and the other apex pages.
 
 **Other pages:** the public profile (`client/profile-main.js`), `/help/*`
 (`client/help-main.js`, with its own bundles for the report-an-issue and

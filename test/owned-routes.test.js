@@ -1,5 +1,5 @@
 import { env, exports } from "cloudflare:workers";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, resetAuthTables } from "./support.js";
 import { SHELL_HEADER, SHELL_PATHS } from "../shared/owner-routes.js";
 
@@ -282,6 +282,45 @@ describe("beta.x owned routes", () => {
   it("no public-profile equivalent on beta.x -- a bare :username path 404s regardless of session", async () => {
     const res = await exports.default.fetch("https://beta.climbinglogbook.com/anyone", { redirect: "manual" });
     expect(res.status).toBe(404);
+  });
+});
+
+describe("owner pages on a single-host preview (#1229)", () => {
+  const PREVIEW_HOST = "pr-1-climbing-logbook-preview.ravendarque.workers.dev";
+
+  afterEach(() => {
+    delete env.OWNER_PAGES_ON_ANY_HOST;
+  });
+
+  it("404s on a host without my. or beta. when the switch is off", async () => {
+    const { cookie } = await createAuthedSession({ username: "previewowner", hostname: PREVIEW_HOST });
+    const res = await fetchOwnedRoute("previewowner", "log", { hostname: PREVIEW_HOST, cookie });
+    expect(res.status).toBe(404);
+  });
+
+  it("serves the owner's page when the switch is on", async () => {
+    env.OWNER_PAGES_ON_ANY_HOST = "true";
+    const { cookie } = await createAuthedSession({ username: "previewowner", hostname: PREVIEW_HOST });
+    const res = await fetchOwnedRoute("previewowner", "log", { hostname: PREVIEW_HOST, cookie });
+    expect(res.status).toBe(200);
+    expect(res.headers.get(SHELL_HEADER)).toBe("log");
+  });
+
+  it("still sends someone else to login on the same host", async () => {
+    env.OWNER_PAGES_ON_ANY_HOST = "true";
+    await createAuthedSession({ username: "previewowner", hostname: PREVIEW_HOST });
+    const { cookie } = await createAuthedSession({ username: "previewother", hostname: PREVIEW_HOST });
+    const res = await fetchOwnedRoute("previewowner", "log", { hostname: PREVIEW_HOST, cookie });
+    expect(res.status).toBe(302);
+    expect(new URL(res.headers.get("Location")).origin).toBe(`https://${PREVIEW_HOST}`);
+  });
+
+  it("leaves single-segment pages like /login/ alone, with no public-profile route", async () => {
+    const off = await exports.default.fetch(`https://${PREVIEW_HOST}/login/`, { redirect: "manual" });
+    env.OWNER_PAGES_ON_ANY_HOST = "true";
+    const on = await exports.default.fetch(`https://${PREVIEW_HOST}/login/`, { redirect: "manual" });
+    expect(on.status).toBe(off.status);
+    expect(await on.text()).toBe(await off.text());
   });
 });
 
