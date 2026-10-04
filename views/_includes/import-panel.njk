@@ -1,0 +1,28 @@
+<climbing-import class="flex flex-col gap-4">
+  <div class="row-card">
+    <div class="row-card-title mb-1">1. Download the template, or use an existing JSON export</div>
+    <p class="text-sm text-muted mb-3">A CSV file with the columns this page expects -- fill in one row per entry, keeping the header row as-is. Already have a JSON file from this app's own "Export as JSON"? That's importable as-is, no template needed.</p>
+    <button type="button" class="btn" id="download-template-btn">Download CSV template</button>
+  </div>
+
+  <div class="row-card">
+    <div class="row-card-title mb-1" id="import-file-label">2. Upload your filled-in file</div>
+    <p class="text-sm text-muted mb-3">CSV (from the template above) or JSON (from this app's own export) -- nothing is imported until every row/entry in the file is valid, so you'll see every problem at once and can fix the whole file in one pass.</p>
+    <form class="flex flex-wrap items-center gap-2" id="import-form">
+      <input class="flex-1 min-w-0 text-sm" id="import-file-input" aria-labelledby="import-file-label" name="file" type="file" accept=".csv,.json,text/csv,application/json" required>
+      <button type="submit" class="btn btn-primary shrink-0" id="import-submit-btn">Import</button>
+    </form>
+  </div>
+
+  <p class="text-sm text-muted" id="import-status" hidden></p>
+
+  <div class="row-card" id="import-errors" hidden>
+    <div class="row-card-title mb-2 text-accent-ink">Some rows couldn't be imported</div>
+    <ul class="text-sm flex flex-col gap-1 list-disc pl-5" id="import-errors-list"></ul>
+  </div>
+
+  <div class="row-card" id="import-success" hidden>
+    <div class="row-card-title mb-1">Import complete</div>
+    <p class="text-sm text-muted" id="import-success-message"></p>
+  </div>
+</climbing-import>
