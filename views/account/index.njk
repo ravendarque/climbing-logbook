@@ -39,6 +39,19 @@ headerClass: mb-6
           </div>
         </div>
         <p class="text-sm text-accent-ink" id="export-error" hidden></p>
+        <div class="row-card" id="remove-data-row" hidden>
+          <span class="row-card-title">Remove my data from this device</span>
+          <p class="text-sm text-muted mt-2" id="remove-data-description">Nothing is deleted from your account. Your logbook is taken off this device and you're logged out, and it all syncs back the next time you log in here.</p>
+          <button type="button" class="btn h-auto! py-[.55rem]! mt-3" id="remove-data-btn" aria-describedby="remove-data-description">Remove my data from this device and log out</button>
+          <div class="mt-3" id="remove-data-unsynced" hidden>
+            <p class="text-sm text-foreground" id="remove-data-unsynced-text"></p>
+            <div class="flex gap-2 mt-2">
+              <button type="button" class="btn" id="remove-data-confirm-btn">Remove anyway</button>
+              <button type="button" class="btn" id="remove-data-cancel-btn">Cancel</button>
+            </div>
+          </div>
+          <p class="text-sm text-accent-ink mt-3" id="remove-data-error" role="alert" hidden></p>
+        </div>
       </div>
     </div>
 

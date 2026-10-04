@@ -62,6 +62,7 @@ export default defineConfig({
             "test/client/store.test.js",
             "test/client/report-data.test.js",
             "test/client/settings-cache.test.js",
+            "test/client/device-data.test.js",
           ],
           setupFiles: ["./test/apply-migrations.js"],
           // obscenity's ESM entry re-exports CommonJS, which workerd can't load unbundled.
@@ -126,6 +127,7 @@ export default defineConfig({
             "test/client/store.test.js",
             "test/client/report-data.test.js",
             "test/client/settings-cache.test.js",
+            "test/client/device-data.test.js",
           ],
           environment: "happy-dom",
         },

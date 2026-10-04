@@ -3,6 +3,8 @@ import { createAccountShell } from "./account-shell.js";
 import { loadResource } from "./fetch-json.js";
 import { buildEntriesCsv, resolveExportRows } from "../shared/csv-import.js";
 import { startPage } from "./boot-gate.js";
+import { removeDeviceData, unsyncedChangeCount } from "./device-data.js";
+import { LOGIN_PATH } from "./login-url.js";
 
 const DATA_URL = "/-/api/entries";
 const PLACES_URL = "/-/api/places";
@@ -26,12 +28,14 @@ const publicLogbookRow = document.getElementById("public-logbook-row");
 const publicLogbookToggle = document.getElementById("public-logbook-toggle");
 const betaRow = document.getElementById("beta-row");
 const betaStatus = document.getElementById("beta-status");
+const removeDataRow = document.getElementById("remove-data-row");
 
 function syncSettingsToggles() {
   const loggedIn = store.isLoggedIn();
   athleteModeRow.hidden = !loggedIn;
   publicLogbookRow.hidden = !loggedIn;
   betaRow.hidden = !loggedIn;
+  removeDataRow.hidden = !loggedIn;
   athleteModeToggle.setAttribute("aria-checked", String(adminAuth.isAthleteMode()));
   publicLogbookToggle.setAttribute("aria-checked", String(adminAuth.isLogbookPublic()));
   betaStatus.textContent = adminAuth.getBetaOptIn()
@@ -59,6 +63,61 @@ athleteModeToggle.addEventListener("click", () =>
 publicLogbookToggle.addEventListener("click", () =>
   handleSettingToggle(publicLogbookToggle, adminAuth.setLogbookPublic, "Public Logbook"),
 );
+
+const removeDataBtn = document.getElementById("remove-data-btn");
+const removeDataUnsynced = document.getElementById("remove-data-unsynced");
+const removeDataConfirmBtn = document.getElementById("remove-data-confirm-btn");
+const removeDataCancelBtn = document.getElementById("remove-data-cancel-btn");
+const removeDataError = document.getElementById("remove-data-error");
+
+function setRemoveDataBusy(busy) {
+  for (const btn of [removeDataBtn, removeDataConfirmBtn, removeDataCancelBtn]) btn.disabled = busy;
+}
+
+function showRemoveDataError(message) {
+  removeDataError.textContent = message;
+  removeDataError.hidden = false;
+  setRemoveDataBusy(false);
+}
+
+async function removeDataAndLogOut() {
+  removeDataError.hidden = true;
+  setRemoveDataBusy(true);
+  try {
+    await adminAuth.signOut();
+  } catch {
+    showRemoveDataError("Couldn't log you out, so nothing was removed. Check your connection and try again.");
+    return;
+  }
+  if (await removeDeviceData(USERNAME)) {
+    window.location.href = LOGIN_PATH;
+    return;
+  }
+  showRemoveDataError(
+    "You're logged out, but some of your data couldn't be removed from this device. To remove the rest, clear this site's data in your browser's settings.",
+  );
+}
+
+function askAboutUnsyncedChanges(count) {
+  document.getElementById("remove-data-unsynced-text").textContent =
+    count === 1
+      ? "1 change hasn't synced yet. If you remove your data now, it will be lost. You can check it first on your log."
+      : `${count} changes haven't synced yet. If you remove your data now, they will be lost. You can check them first on your log.`;
+  removeDataUnsynced.hidden = false;
+  removeDataCancelBtn.focus();
+}
+
+removeDataBtn.addEventListener("click", () => {
+  removeDataError.hidden = true;
+  const count = unsyncedChangeCount();
+  if (count > 0) askAboutUnsyncedChanges(count);
+  else removeDataAndLogOut();
+});
+removeDataConfirmBtn.addEventListener("click", removeDataAndLogOut);
+removeDataCancelBtn.addEventListener("click", () => {
+  removeDataUnsynced.hidden = true;
+  removeDataBtn.focus();
+});
 
 // Fetched on click: most visits never export.
 const exportError = document.getElementById("export-error");
