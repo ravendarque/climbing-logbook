@@ -354,6 +354,34 @@ export class ClimbingEntriesTable extends HTMLElement {
       this.#search = e.target.value;
       this.#update();
     });
+
+    const searchBtn = this.querySelector("#search-btn");
+    searchBtn.addEventListener("click", () => this.#setSearchOpen(searchInput.hidden));
+    searchInput.addEventListener("keydown", e => {
+      if (e.key !== "Escape") return;
+      this.#setSearchOpen(false);
+      searchBtn.focus();
+    });
+  }
+
+  // Hiding the box clears the search, so nothing stays filtered out of sight.
+  #setSearchOpen(open) {
+    const searchInput = this.querySelector("#search");
+    const searchBtn = this.querySelector("#search-btn");
+    searchInput.hidden = !open;
+    searchBtn.classList.toggle("active", open);
+    searchBtn.setAttribute("aria-expanded", String(open));
+    const label = open ? "Close search" : "Search";
+    searchBtn.setAttribute("aria-label", label);
+    searchBtn.title = label;
+    if (open) {
+      searchInput.focus();
+      return;
+    }
+    if (searchInput.value === "" && this.#search === "") return;
+    searchInput.value = "";
+    this.#search = "";
+    this.#update();
   }
 
   #toggleSort(locationId, col) {
@@ -470,7 +498,11 @@ export class ClimbingEntriesTable extends HTMLElement {
     const keys = this.#visibleSections().map(s => s.key);
     const allCollapsed = keys.every(k => this.#collapsed.has(k));
     const button = this.querySelector("#collapse-all-btn");
-    button.textContent = allCollapsed ? "Expand all" : "Collapse all";
+    const label = allCollapsed ? "Expand all" : "Collapse all";
+    button.setAttribute("aria-label", label);
+    button.title = label;
+    button.querySelector('[data-collapse-icon="expand"]').hidden = !allCollapsed;
+    button.querySelector('[data-collapse-icon="collapse"]').hidden = allCollapsed;
     button.disabled = keys.length === 0;
   }
 

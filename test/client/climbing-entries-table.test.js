@@ -144,7 +144,7 @@ describe("Expand all while the table has nothing to expand (#1184)", () => {
   it("is disabled, reading Expand all, until sections arrive, then enabled", async () => {
     await Promise.resolve();
     expect(el.querySelector("#collapse-all-btn").disabled).toBe(true);
-    expect(el.querySelector("#collapse-all-btn").textContent).toBe("Expand all");
+    expect(el.querySelector("#collapse-all-btn").getAttribute("aria-label")).toBe("Expand all");
 
     el.places = [{ id: "p1", locationId: "loc1", area: "" }];
     el.locations = [{ id: "loc1", name: "Fontainebleau", country: "France" }];
