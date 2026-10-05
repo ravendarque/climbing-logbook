@@ -8,6 +8,13 @@ export async function pageAllowsBoot() {
 
 export function startPage(boot) {
   pageAllowsBoot().then(allowed => {
-    if (allowed) registerServiceWorker({ after: boot() });
+    if (!allowed) return;
+    const booted = boot();
+    registerServiceWorker({ after: booted });
+    if (new URLSearchParams(window.location.search).has("tour")) {
+      Promise.resolve(booted)
+        .then(() => import("./tour/tour.js"))
+        .then(({ startTour }) => startTour());
+    }
   });
 }
