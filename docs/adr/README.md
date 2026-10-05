@@ -69,4 +69,4 @@ GitHub, the same treatment every other doc in this repo already gets.
 | [0029](0029-beta-channel-enrollment-model.md) | Beta channel: two-state enrollment, checked on the page, one channel per origin | Accepted |
 | [0030](0030-test-against-the-real-worker-mock-only-what-it-cant-produce.md) | Test against the real Worker, mock only what it can't produce, measure coverage | Accepted |
 | [0031](0031-owner-reports-from-the-synced-store.md) | Owner reports and map counts are computed on the device, from the synced store | Accepted, supersedes 0018 |
-| [0032](0032-combined-view-on-the-owner-pages.md) | The combined view lives on the owner pages, not the public profile | Proposed |
+| [0032](0032-combined-view-on-the-owner-pages.md) | The combined view lives on the owner pages, not the public profile | Accepted |
