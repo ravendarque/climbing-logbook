@@ -33,6 +33,9 @@ export const DEFAULT_STATUS_FILTERS = ["flash", "send", "project", "checkout"];
 // Filters default to all-checked, so "changed" means differing from the default.
 export const setDiffersFrom = (set, defaults) => set.size !== defaults.length || defaults.some(v => !set.has(v));
 
+const ICON_BTN =
+  "inline-flex shrink-0 items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&.active]:border-accent [&.active]:text-accent-ink [&.active]:bg-[color-mix(in_srgb,var(--color-accent)_12%,var(--color-surface))]";
+
 export function shellHtml(allDisciplines) {
   const toggleBtn = (dataAttr, value, iconOrLabelId, label) => `
     <label class="toggle-btn bg-surface text-muted text-sm font-semibold cursor-pointer whitespace-nowrap transition-colors duration-150 hover:text-foreground has-checked:bg-[color-mix(in_srgb,var(--color-accent)_10%,var(--color-surface))] has-checked:text-foreground has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-[-2px] w-full flex flex-row items-center justify-start gap-[.6rem] px-[.7rem] py-[.55rem] min-h-[2.6rem] text-left first:rounded-t-app last:rounded-b-app shadow-[inset_0_-1px_0_var(--color-border)] last:shadow-none">
@@ -73,11 +76,16 @@ export function shellHtml(allDisciplines) {
       </div>`;
 
   return `
-  <div class="flex flex-wrap items-center gap-3 mb-6">
-    <input class="flex-[0_1_220px] min-w-[140px] bg-surface border border-border rounded-app px-[.85rem] py-[.4rem] text-foreground text-sm outline-none placeholder:text-muted focus:border-accent" id="search" placeholder="Search entries…" autocomplete="off">
-    <div class="filter-wrap relative ml-auto">
-      <button type="button" class="inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-app text-foreground cursor-pointer hover:border-accent [&.active]:border-accent [&.active]:text-accent-ink [&.active]:bg-[color-mix(in_srgb,var(--color-accent)_12%,var(--color-surface))]" id="filter-btn" aria-label="Filter" aria-expanded="false">
-        <svg class="w-[1.1rem] h-[1.1rem] stroke-current fill-none" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"></path></svg>
+  <div class="relative flex flex-wrap items-center gap-2 mb-4">
+    <div class="flex flex-wrap items-center gap-2" id="entries-table-actions"></div>
+    <div class="flex flex-1 min-w-0 items-center justify-end gap-2 max-[480px]:contents">
+      <input type="search" class="h-9 min-w-40 basis-[220px] shrink bg-surface border border-field-border rounded-app px-3 text-foreground text-sm outline-none placeholder:text-muted focus:border-accent max-[480px]:order-last max-[480px]:basis-full" id="search" placeholder="Search entries…" aria-label="Search entries" autocomplete="off" hidden>
+      <button type="button" class="${ICON_BTN} max-[480px]:ml-auto" id="search-btn" aria-label="Search" title="Search" aria-controls="search" aria-expanded="false">
+        <svg class="w-5 h-5 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+      </button>
+    <div class="filter-wrap">
+      <button type="button" class="${ICON_BTN}" id="filter-btn" aria-label="Filter" title="Filter" aria-expanded="false">
+        <svg class="w-[1.05rem] h-[1.05rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"></path></svg>
       </button>
       <div class="absolute top-[calc(100%+.4rem)] right-0 z-20 bg-background border border-border rounded-app p-[.9rem] w-80 max-w-[calc(100vw-2rem)] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="filter-panel" hidden>
         ${disciplineGroup}
@@ -95,11 +103,11 @@ export function shellHtml(allDisciplines) {
         <button type="button" class="block w-full mt-[.9rem] bg-transparent border-0 text-muted text-sm cursor-pointer text-center hover:text-foreground" id="filter-clear-btn">Reset filters</button>
       </div>
     </div>
-  </div>
-
-  <div class="flex items-center justify-between mb-2">
-    <div class="flex flex-wrap items-center gap-2" id="entries-table-actions"></div>
-    <button type="button" class="bg-transparent border-0 text-muted text-sm font-semibold cursor-pointer px-[.3rem] py-[.2rem] hover:text-accent-ink disabled:opacity-[.45] disabled:cursor-not-allowed disabled:hover:text-muted" id="collapse-all-btn" disabled>Expand all</button>
+      <button type="button" class="${ICON_BTN} disabled:opacity-[.45] disabled:cursor-not-allowed disabled:hover:border-border" id="collapse-all-btn" aria-label="Expand all" title="Expand all" disabled>
+        <svg class="w-5 h-5 stroke-current fill-none" data-collapse-icon="expand" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 15 5 5 5-5"></path><path d="m7 9 5-5 5 5"></path></svg>
+        <svg class="w-5 h-5 stroke-current fill-none" data-collapse-icon="collapse" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="m7 20 5-5 5 5"></path><path d="m7 4 5 5 5-5"></path></svg>
+      </button>
+    </div>
   </div>
 
   <div id="sections"></div>

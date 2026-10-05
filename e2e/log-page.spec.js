@@ -246,6 +246,7 @@ test("search matches an as-logged grade label, case-insensitively, per the modif
     ],
   });
 
+  await page.locator("#search-btn").click();
   await page.locator("#search").fill("6a");
   await expect(page.locator("#sections")).toContainText("Boulder Seed");
   await expect(page.locator("#sections")).not.toContainText("Plus Route");
