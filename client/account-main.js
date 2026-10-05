@@ -5,6 +5,7 @@ import { buildEntriesCsv, resolveExportRows } from "../shared/csv-import.js";
 import { startPage } from "./boot-gate.js";
 import { removeDeviceData, unsyncedChangeCount } from "./device-data.js";
 import { LOGIN_PATH } from "./login-url.js";
+import { tourStartUrl } from "./tour/tour-url.js";
 
 const DATA_URL = "/-/api/entries";
 const PLACES_URL = "/-/api/places";
@@ -19,6 +20,7 @@ const {
 
 document.getElementById("edit-account-link").href = `/${encodeURIComponent(USERNAME)}/account/edit`;
 document.getElementById("import-link").href = `/${encodeURIComponent(USERNAME)}/account/import`;
+document.getElementById("tour-link").href = tourStartUrl(USERNAME, `/${encodeURIComponent(USERNAME)}/account`);
 document.getElementById("beta-row").href = `/${encodeURIComponent(USERNAME)}/account/beta`;
 document.getElementById("back-to-logbook-link").href = `/${encodeURIComponent(USERNAME)}/log`;
 

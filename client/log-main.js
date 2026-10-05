@@ -10,6 +10,7 @@ import { startPage } from "./boot-gate.js";
 import { userKey } from "./user-storage.js";
 import { resolveApexUrl } from "./resolve-cross-hostname-url.js";
 import { apiFetch } from "./api-fetch.js";
+import { carryTourParams } from "./tour/tour-url.js";
 import { createFailedWritesBanner, getFailedWrites, removeFailedWrite } from "./failed-writes.js";
 
 const {
@@ -111,7 +112,7 @@ document.getElementById("grade-scale-reference-link").href = resolveApexUrl(loca
 async function boot() {
   // An unsynced device goes to /sync first rather than render a partial table.
   if (!IS_DEMO && !isSynced()) {
-    location.href = `/${encodeURIComponent(USERNAME)}/sync?returnTo=${encodeURIComponent(`/${USERNAME}/log`)}`;
+    location.href = `/${encodeURIComponent(USERNAME)}/sync?returnTo=${encodeURIComponent(`/${USERNAME}/log`)}${carryTourParams(location.search)}`;
     return;
   }
 

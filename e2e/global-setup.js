@@ -1,4 +1,5 @@
 import { mkdirSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { dirname } from "node:path";
 import {
   applyMigrations,
@@ -35,6 +36,7 @@ export default async function globalSetup() {
 
   applyMigrations(D1_OPTIONS);
   resetDatabase(D1_OPTIONS);
+  execFileSync("node", ["scripts/seed-demo-accounts.mjs", "--env", "preview"], { stdio: "inherit" });
 
   const setCookieHeader = await bootstrapDevSession(BASE_URL, D1_OPTIONS);
   mkdirSync(dirname(STORAGE_STATE_PATH), { recursive: true });
