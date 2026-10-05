@@ -1,6 +1,5 @@
 export const CLIENT_ENTRIES = {
   log: "client/log-main.js",
-  map: "client/map-main.js",
   "performance-hub": "client/performance-hub-main.js",
   "performance-pyramid": "client/performance-pyramid-main.js",
   "performance-trends": "client/performance-trends-main.js",

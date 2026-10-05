@@ -15,7 +15,7 @@ test("the manifest names no user and starts at /-/launch/", async ({ page }) => 
 
 test("opening the app lands the signed-in user on their own logbook", async ({ page, context }) => {
   await addOwnedRouteSessionCookie(context);
-  await page.goto(ownedRouteUrl(DEV_USER.username, "/map"));
+  await page.goto(ownedRouteUrl(DEV_USER.username, "/view/map"));
   await expect
     .poll(() => page.evaluate(() => localStorage.getItem("logbook_signed_in_user")))
     .toBe(DEV_USER.username.toLowerCase());

@@ -95,17 +95,17 @@ test("forgot password requires an email first", async ({ page }) => {
 });
 
 test("an owner page with no session logs in on its own origin and comes back to the same page", async ({ page }) => {
-  await page.goto(ownedRouteUrl(DEV_USER.username, "/map"));
+  await page.goto(ownedRouteUrl(DEV_USER.username, "/view/map"));
   await page.waitForURL(url => url.pathname === "/-/login/");
   const loginUrl = new URL(page.url());
-  expect(loginUrl.host).toBe(new URL(ownedRouteUrl(DEV_USER.username, "/map")).host);
-  expect(loginUrl.searchParams.get("returnTo")).toBe(`/${DEV_USER.username}/map`);
+  expect(loginUrl.host).toBe(new URL(ownedRouteUrl(DEV_USER.username, "/view/map")).host);
+  expect(loginUrl.searchParams.get("returnTo")).toBe(`/${DEV_USER.username}/view/map`);
 
   await page.locator("#email").fill(DEV_USER.email);
   await page.locator("#password").fill(DEV_USER.password);
   await page.locator("#login-submit-btn").click();
 
-  await page.waitForURL(ownedRouteUrl(DEV_USER.username, "/map"));
+  await page.waitForURL(ownedRouteUrl(DEV_USER.username, "/view/map"));
   await expect(page.locator("climbing-tab-bar")).toBeAttached();
 });
 

@@ -24,7 +24,7 @@ describe("userKey / ownerOfPath", () => {
   it("namespaces a key to the owner page's username, normalised", () => {
     expect(userKey("logbook_entries_cache", "/raven/log")).toBe("logbook_entries_cache:raven");
     expect(userKey("logbook_entries_cache", "/Raven/performance/rpe")).toBe("logbook_entries_cache:raven");
-    expect(ownerOfPath("/r%61ven/map")).toBe("raven");
+    expect(ownerOfPath("/r%61ven/view/map")).toBe("raven");
   });
 
   it("leaves the key alone anywhere that isn't an owner page", () => {

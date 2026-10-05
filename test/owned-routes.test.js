@@ -66,25 +66,42 @@ describe("owned route authorization", () => {
 
   it("looks up the username case-insensitively", async () => {
     const { cookie } = await createAuthedSession({ username: "mixedcaseowner", hostname: "climbinglogbook.com" });
-    const res = await fetchOwnedRoute("MixedCaseOwner", "map", { cookie });
+    const res = await fetchOwnedRoute("MixedCaseOwner", "view", { cookie });
     expect(res.status).toBe(200);
   });
 
   it("accepts all page shapes: log, map, performance, sync, account, account/edit, account/import", async () => {
     const { cookie } = await createAuthedSession({ username: "allpagesuser", hostname: "climbinglogbook.com" });
-    for (const page of ["log", "map", "performance", "sync", "account", "account/edit", "account/import"]) {
+    for (const page of [
+      "log",
+      "view",
+      "view/map",
+      "performance",
+      "sync",
+      "account",
+      "account/edit",
+      "account/import",
+    ]) {
       const res = await fetchOwnedRoute("allpagesuser", page, { cookie });
       expect(res.status).toBe(200);
     }
   });
 
-  it("serves the real static shell for map", async () => {
-    const { cookie } = await createAuthedSession({ username: "mapshelluser", hostname: "climbinglogbook.com" });
-    const res = await fetchOwnedRoute("mapshelluser", "map", { cookie });
-    expect(res.status).toBe(200);
-    const html = await res.text();
-    expect(html).toContain("<climbing-tab-bar");
-    expect(html).toMatch(/src="\/-\/map-app\.js(\?v=\d+)?"/);
+  it("serves the combined view's one shell for both its tabs", async () => {
+    const { cookie } = await createAuthedSession({ username: "viewshelluser", hostname: "climbinglogbook.com" });
+    for (const page of ["view", "view/map"]) {
+      const res = await fetchOwnedRoute("viewshelluser", page, { cookie });
+      expect(res.status).toBe(200);
+      const html = await res.text();
+      expect(html).toContain("<climbing-tab-bar");
+      expect(html).toMatch(/src="\/-\/view-app\.js(\?v=\d+)?"/);
+    }
+  });
+
+  it("no longer serves the old per-discipline /map page", async () => {
+    const { cookie } = await createAuthedSession({ username: "oldmapuser", hostname: "climbinglogbook.com" });
+    const res = await fetchOwnedRoute("oldmapuser", "map", { cookie });
+    expect(res.status).toBe(404);
   });
 
   it("serves the real static shell for performance", async () => {
@@ -189,7 +206,7 @@ describe("owned route authorization", () => {
     expect(html).toMatch(/src="\/-\/account-import-app\.js(\?v=\d+)?"/);
   });
 
-  it("falls through (404) for a fourth path segment that isn't log/map/performance", async () => {
+  it("falls through (404) for a fourth path segment that isn't an owner page", async () => {
     const { cookie } = await createAuthedSession({ username: "unknownpageuser", hostname: "climbinglogbook.com" });
     const res = await fetchOwnedRoute("unknownpageuser", "settings", { cookie });
     expect(res.status).toBe(404);
@@ -239,12 +256,12 @@ describe("beta.x owned routes", () => {
       hostname: "climbinglogbook.com",
     });
     await setBetaOptIn(userId, value);
-    const res = await fetchOwnedRoute(`betanogate${value === null ? "null" : "0"}`, "map", {
+    const res = await fetchOwnedRoute(`betanogate${value === null ? "null" : "0"}`, "view/map", {
       hostname: "beta.climbinglogbook.com",
       cookie,
     });
     expect(res.status).toBe(200);
-    expect(res.headers.get(SHELL_HEADER)).toBe("map");
+    expect(res.headers.get(SHELL_HEADER)).toBe("view/map");
     expect(await res.text()).not.toContain("<beta-opt-in-modal");
   });
 
@@ -325,11 +342,11 @@ describe("owner pages on a single-host preview (#1229)", () => {
 });
 
 describe("demo account owned pages (#251)", () => {
-  it("serves log/view/map/performance and every performance sub-page shell with no session", async () => {
+  it("serves log, view, view/map, performance and every performance sub-page shell with no session", async () => {
     for (const page of [
       "log",
       "view",
-      "map",
+      "view/map",
       "performance",
       "performance/pyramid",
       "performance/injury",
@@ -357,8 +374,8 @@ describe("demo account owned pages (#251)", () => {
     }
   });
 
-  it("a real (non-demo) username's log/map/performance pages are still session-gated as normal", async () => {
-    for (const page of ["log", "map", "performance"]) {
+  it("a real (non-demo) username's log, view and performance pages are still session-gated as normal", async () => {
+    for (const page of ["log", "view", "view/map", "performance"]) {
       const res = await fetchOwnedRoute("notademoaccount", page);
       expect(res.status, `${page} should still be session-gated`).toBe(302);
     }
@@ -390,9 +407,9 @@ describe("shell identity header (#959)", () => {
       hostname: "climbinglogbook.com",
     });
     await setBetaOptIn(userId, true);
-    const res = await fetchOwnedRoute("betashellheader", "map", { hostname: "beta.climbinglogbook.com", cookie });
+    const res = await fetchOwnedRoute("betashellheader", "view/map", { hostname: "beta.climbinglogbook.com", cookie });
     expect(res.status).toBe(200);
-    expect(res.headers.get(SHELL_HEADER)).toBe("map");
+    expect(res.headers.get(SHELL_HEADER)).toBe("view/map");
   });
 
   it("does not mark the unauthenticated login redirect", async () => {

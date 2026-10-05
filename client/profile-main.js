@@ -6,7 +6,6 @@ import { createDisclosure } from "./modal-utils.js";
 import { loadResource } from "./fetch-json.js";
 import { createThemeToggle } from "./theme-toggle.js";
 import "./components/climbing-entries-table.js";
-import { launchTourWhenRequested } from "./tour/launch.js";
 
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 document.title = `${USERNAME} – Climbing Logbook`;
@@ -89,4 +88,4 @@ async function boot() {
   render();
 }
 
-launchTourWhenRequested(boot());
+boot();

@@ -1,21 +1,19 @@
 import { safeReturnTo } from "../resolve-app-origin.js";
-import { resolveMyXUrl } from "../resolve-cross-hostname-url.js";
 import { matchOwnerRoute } from "../../shared/owner-routes.js";
 import { normalizeUsername } from "../user-storage.js";
 
 export const TOUR_FIRST_PAGE = "log";
 
-// The profile is the one page that only exists on the my. host.
+const TOUR_PAGES = ["log", "view", "view/map", "performance"];
+
 export function pagePath(user, page) {
-  const base = `/${encodeURIComponent(user)}`;
-  return page === "profile" ? base : `${base}/${page}`;
+  return `/${encodeURIComponent(user)}/${page}`;
 }
 
-export function tourUrl({ user, page, step, returnTo, hostname = globalThis.location?.hostname ?? "" }) {
+export function tourUrl({ user, page, step, returnTo }) {
   const params = new URLSearchParams({ tour: String(step + 1) });
   if (returnTo) params.set("returnTo", returnTo);
-  const url = `${pagePath(user, page)}?${params}`;
-  return page === "profile" ? resolveMyXUrl(hostname, url) : url;
+  return `${pagePath(user, page)}?${params}`;
 }
 
 export function tourStartUrl(user, returnTo) {
@@ -26,17 +24,13 @@ export function isOnPage(pathname, user, page) {
   return pathname.replace(/\/$/, "") === pagePath(user, page);
 }
 
-const TOUR_PAGES = ["log", "map", "performance"];
-
 // Only the pages the tour shows: /sync and the account pages carry their own returnTo.
 function tourPageOwner(pathname) {
   const route = matchOwnerRoute(pathname);
-  if (route) return TOUR_PAGES.includes(route.page) ? normalizeUsername(route.username) : null;
-  const profile = pathname.match(/^\/([^/]+)\/?$/);
-  return profile ? normalizeUsername(profile[1]) : null;
+  return route && TOUR_PAGES.includes(route.page) ? normalizeUsername(route.username) : null;
 }
 
-// Whose pages the tour is on is whose pages these are: a demo account's for a visitor, or the signed-in owner's own.
+// The tour runs on whoever's pages these are: a demo account's for a visitor, or the signed-in owner's own.
 export function readTourRequest(loc = window.location, stepCount = Number.POSITIVE_INFINITY) {
   const params = new URLSearchParams(loc.search);
   if (!params.has("tour")) return null;

@@ -55,14 +55,14 @@ test.describe("beta channel enrollment check", () => {
     page,
   }) => {
     await setEnrollment(page, true);
-    const map = `/${DEV_USER.username}/map`;
+    const map = `/${DEV_USER.username}/view/map`;
     await page.goto(`${BETA}/${DEV_USER.username}/sync?returnTo=${encodeURIComponent(map)}`);
     await page.waitForURL(`${BETA}${map}`);
     await page.waitForLoadState("networkidle");
     await expect(page.locator("#beta-not-enrolled")).toHaveCount(0);
 
     await setEnrollment(page, false);
-    await page.goto(`${BETA}/${DEV_USER.username}/map`);
+    await page.goto(`${BETA}/${DEV_USER.username}/view/map`);
     await expect(page.locator("#beta-not-enrolled")).toBeVisible();
   });
 });
