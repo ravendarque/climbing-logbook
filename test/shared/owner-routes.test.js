@@ -5,7 +5,7 @@ const PRE_958_REGEX =
   /^\/([^/]+)\/(log|map|performance(?:\/(?:pyramid|injury|strengths|trends|gap|rpe))?|sync|account(?:\/edit|\/import)?)\/?$/;
 
 const PAGES = Object.keys(SHELL_PATHS);
-const ADDED_SINCE_958 = ["account/beta"];
+const ADDED_SINCE_958 = ["account/beta", "welcome"];
 
 describe("matchOwnerRoute (#958)", () => {
   it("matches every owner page, with and without one trailing slash", () => {
