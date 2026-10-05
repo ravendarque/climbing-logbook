@@ -20,6 +20,7 @@
       "/account", "/account/*",
       "/sync", "/sync/*",
       "/welcome", "/welcome/*",
+      "/view", "/view/*",
       "/-/manifest.json", "/-/apple-touch-icon.png"
     ]
   },

@@ -325,9 +325,10 @@ describe("owner pages on a single-host preview (#1229)", () => {
 });
 
 describe("demo account owned pages (#251)", () => {
-  it("serves log/map/performance and every performance sub-page shell with no session", async () => {
+  it("serves log/view/map/performance and every performance sub-page shell with no session", async () => {
     for (const page of [
       "log",
+      "view",
       "map",
       "performance",
       "performance/pyramid",

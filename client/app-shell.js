@@ -10,7 +10,12 @@ import "./components/climbing-tab-bar.js";
 const SETTINGS_URL = "/-/api/settings";
 
 // Everything a page with the tab bar and discipline picker sets up the same way.
-export function createAppShell({ render, noCacheForDemo = false, adminBarExtras = () => ({}) }) {
+export function createAppShell({
+  render,
+  noCacheForDemo = false,
+  showing = "discipline",
+  adminBarExtras = () => ({}),
+}) {
   const username = location.pathname.split("/").filter(Boolean)[0] || "";
   const isDemo = isDemoUsername(username);
 
@@ -35,7 +40,7 @@ export function createAppShell({ render, noCacheForDemo = false, adminBarExtras 
     updateAdminBar,
     onFetchTimeout: syncStatusIcon.reportTimeout,
   });
-  const headerChrome = createHeaderChrome({ store, apiFetch, settingsUrl: SETTINGS_URL });
+  const headerChrome = createHeaderChrome({ store, apiFetch, settingsUrl: SETTINGS_URL, username, showing });
 
   // Waits for real settings before the Athlete Mode redirect: a cached "on" may be stale.
   async function authenticateAthlete(view) {

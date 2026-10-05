@@ -9,14 +9,24 @@
       <span class="chevron-icon text-sm shrink-0" aria-hidden="true">▾</span>
     </button>
     <div class="absolute top-[calc(100%+.4rem)] left-0 z-20 bg-background border border-border rounded-app p-[.35rem] min-w-[9rem] shadow-[0_8px_24px_color-mix(in_srgb,black_35%,transparent)]" id="discipline-popover" role="listbox" aria-label="Discipline" hidden>
-      <button type="button" class="discipline-option flex items-center justify-between w-full font-sans text-sm font-semibold text-foreground bg-transparent border-0 rounded-[calc(var(--radius-app)-2px)] px-[.6rem] py-[.55rem] cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible" role="option" data-discipline="boulder" aria-selected="true">
-        Boulder
-        <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
-      </button>
-      <button type="button" class="discipline-option flex items-center justify-between w-full font-sans text-sm font-semibold text-foreground bg-transparent border-0 rounded-[calc(var(--radius-app)-2px)] px-[.6rem] py-[.55rem] cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible" role="option" data-discipline="sport" aria-selected="false">
-        Sport
-        <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
-      </button>
+      <div role="group" aria-labelledby="discipline-group-log">
+        <div class="px-[.6rem] pt-[.4rem] pb-[.2rem] text-xs font-bold uppercase tracking-wider text-muted" id="discipline-group-log">Log</div>
+        <button type="button" class="discipline-option flex items-center justify-between w-full font-sans text-sm font-semibold text-foreground bg-transparent border-0 rounded-[calc(var(--radius-app)-2px)] px-[.6rem] py-[.55rem] cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible" role="option" data-discipline="boulder" aria-selected="true">
+          Boulder
+          <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+        </button>
+        <button type="button" class="discipline-option flex items-center justify-between w-full font-sans text-sm font-semibold text-foreground bg-transparent border-0 rounded-[calc(var(--radius-app)-2px)] px-[.6rem] py-[.55rem] cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible" role="option" data-discipline="sport" aria-selected="false">
+          Sport
+          <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+        </button>
+      </div>
+      <div class="mt-1 pt-1 border-t border-border" role="group" aria-labelledby="discipline-group-view">
+        <div class="px-[.6rem] pt-[.4rem] pb-[.2rem] text-xs font-bold uppercase tracking-wider text-muted" id="discipline-group-view">View</div>
+        <button type="button" class="discipline-option flex items-center justify-between w-full font-sans text-sm font-semibold text-foreground bg-transparent border-0 rounded-[calc(var(--radius-app)-2px)] px-[.6rem] py-[.55rem] cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] [&_svg]:w-4 [&_svg]:h-4 [&_svg]:stroke-accent [&_svg]:fill-none [&_svg]:invisible aria-selected:[&_svg]:visible" role="option" data-choice="combined" aria-selected="false">
+          Combined
+          <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+        </button>
+      </div>
     </div>
   </div>
 `;
