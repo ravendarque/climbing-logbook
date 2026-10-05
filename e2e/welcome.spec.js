@@ -28,7 +28,7 @@ test("walks the four steps, saving each choice, and finishes on the logbook", as
   await Promise.all([settingsPatch(page), page.getByText("On", { exact: true }).tap()]);
   await page.locator("#welcome-next").tap();
 
-  await expect(page.getByRole("heading", { name: "Bring your climbs with you" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Import your climbs" })).toBeVisible();
   await expect(page.locator("#welcome-next")).toHaveText("Skip for now");
   await page.locator("#welcome-next").tap();
 
@@ -62,7 +62,7 @@ test("importing on step 3 turns Skip into Continue and shows in the summary", as
   await expect(page.locator("#welcome-public")).toBeChecked();
   await page.locator("#welcome-next").tap();
   await page.locator("#welcome-next").tap();
-  await expect(page.getByRole("heading", { name: "Bring your climbs with you" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Import your climbs" })).toBeVisible();
 
   await page
     .locator("#import-file-input")

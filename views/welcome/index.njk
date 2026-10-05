@@ -16,7 +16,7 @@ headerClass: mb-6
   </div>
 
   <section class="flex flex-col gap-4" data-step="1" aria-labelledby="welcome-visibility-title">
-    <h1 class="section-heading text-[2.5rem] leading-[.95] mb-0 focus:outline-none" id="welcome-visibility-title" tabindex="-1">Who can see your logbook?</h1>
+    <h1 class="section-heading mb-0 focus:outline-none" id="welcome-visibility-title" tabindex="-1">Who can see your logbook?</h1>
     <p class="text-muted">Your logbook and map can have a public page that anyone with the link can view. Your Performance Insights stay private either way.</p>
     <fieldset class="flex flex-col gap-2.5 min-w-0 border-0">
       <legend class="sr-only">Logbook visibility</legend>
@@ -43,7 +43,7 @@ headerClass: mb-6
   </section>
 
   <section class="flex flex-col gap-4" data-step="2" aria-labelledby="welcome-athlete-title" hidden>
-    <h1 class="section-heading text-[2.5rem] leading-[.95] mb-0 focus:outline-none" id="welcome-athlete-title" tabindex="-1">Athlete Mode</h1>
+    <h1 class="section-heading mb-0 focus:outline-none" id="welcome-athlete-title" tabindex="-1">Athlete Mode</h1>
     <p class="text-muted">Turn it on if you train and want to see how you're progressing. It adds a few more details to each climb you log, and unlocks Performance Insights: your grade pyramid, trends and more.</p>
     <fieldset class="flex flex-col gap-2.5 min-w-0 border-0">
       <legend class="sr-only">Athlete Mode</legend>
@@ -70,15 +70,15 @@ headerClass: mb-6
   </section>
 
   <section class="flex flex-col gap-4" data-step="3" aria-labelledby="welcome-import-title" hidden>
-    <h1 class="section-heading text-[2.5rem] leading-[.95] mb-0 focus:outline-none" id="welcome-import-title" tabindex="-1">Bring your climbs with you</h1>
-    <p class="text-muted">Already keep a log somewhere else? Import it from a CSV file and your logbook starts full. Or skip this and start fresh.</p>
+    <h1 class="section-heading mb-0 focus:outline-none" id="welcome-import-title" tabindex="-1">Import your climbs</h1>
+    <p class="text-muted">Import entries using a CSV template, or from a Climbing Logbook JSON export. Skip this step to start fresh.</p>
     {% include "import-panel.njk" %}
     <p class="text-sm text-muted">You can import more any time from My account.</p>
   </section>
 
   <section class="flex flex-col gap-4" data-step="4" aria-labelledby="welcome-done-title" hidden>
-    <h1 class="section-heading text-[3rem] leading-[.9] mb-0 focus:outline-none" id="welcome-done-title" tabindex="-1">You're all set</h1>
-    <p class="text-muted">Your logbook's ready. Log your next session, at the crag or after, with or without signal.</p>
+    <h1 class="section-heading mb-0 focus:outline-none" id="welcome-done-title" tabindex="-1">You're all set</h1>
+    <p class="text-muted">Your logbook is ready and it's synced to your device so you can use it offline.</p>
     <dl class="bg-surface border border-border rounded-app flex flex-col">
       <div class="flex justify-between items-center gap-3 px-4 py-3 border-b border-border text-sm"><dt>Logbook</dt><dd class="font-semibold" id="welcome-summary-visibility"></dd></div>
       <div class="flex justify-between items-center gap-3 px-4 py-3 border-b border-border text-sm"><dt>Athlete Mode</dt><dd class="font-semibold" id="welcome-summary-athlete"></dd></div>
