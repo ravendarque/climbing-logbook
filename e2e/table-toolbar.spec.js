@@ -110,3 +110,23 @@ test("Expand/Collapse names itself for what it will do", async ({ page, owner })
   await button.click();
   await expect(button).toHaveAttribute("aria-label", "Expand all");
 });
+
+for (const width of [312, 480, 1024]) {
+  test(`at ${width}px the filter panel opens on screen, lined up with the right of the tables`, async ({
+    page,
+    owner,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await owner.seed(SEED);
+    await gotoSyncedLog(page, owner);
+
+    await page.locator("#filter-btn").click();
+    await expect(page.locator("#filter-panel")).toBeVisible();
+    const panel = await box(page.locator("#filter-panel"));
+    const sections = await box(page.locator("#sections"));
+    expect(panel.x).toBeGreaterThanOrEqual(0);
+    expect(panel.x + panel.width).toBeLessThanOrEqual(width);
+    expect(Math.abs(panel.x + panel.width - (sections.x + sections.width))).toBeLessThan(1);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+  });
+}

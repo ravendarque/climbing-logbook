@@ -76,14 +76,14 @@ export function shellHtml(allDisciplines) {
       </div>`;
 
   return `
-  <div class="flex flex-wrap items-center gap-2 mb-4">
+  <div class="relative flex flex-wrap items-center gap-2 mb-4">
     <div class="flex flex-wrap items-center gap-2" id="entries-table-actions"></div>
     <div class="flex flex-1 min-w-0 items-center justify-end gap-2 max-[480px]:contents">
       <input type="search" class="h-9 min-w-40 basis-[220px] shrink bg-surface border border-field-border rounded-app px-3 text-foreground text-sm outline-none placeholder:text-muted focus:border-accent max-[480px]:order-last max-[480px]:basis-full" id="search" placeholder="Search entries…" aria-label="Search entries" autocomplete="off" hidden>
       <button type="button" class="${ICON_BTN} max-[480px]:ml-auto" id="search-btn" aria-label="Search" title="Search" aria-controls="search" aria-expanded="false">
         <svg class="w-5 h-5 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
       </button>
-    <div class="filter-wrap relative">
+    <div class="filter-wrap">
       <button type="button" class="${ICON_BTN}" id="filter-btn" aria-label="Filter" title="Filter" aria-expanded="false">
         <svg class="w-[1.05rem] h-[1.05rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"></path></svg>
       </button>
