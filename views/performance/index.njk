@@ -11,11 +11,12 @@ staticShellNote: |-
          sub-page. client/performance-hub-main.js reads the username from
          location.pathname itself, same as every other owned page.
 ---
+{% from "tab-bar.njk" import tabBar %}
 <div class="max-w-[960px] mx-auto">
   <h1 class="sr-only">Performance</h1>
   <div class="flex items-end gap-3 mb-5" id="picker-tabs-row">
     <climbing-discipline-picker></climbing-discipline-picker>
-    <climbing-tab-bar active-page="performance"></climbing-tab-bar>
+    {% call tabBar("performance") %}{% include "tabs-log.njk" %}{% endcall %}
   </div>
 
   <div class="grid grid-cols-2 gap-x-8 gap-y-2 max-[600px]:grid-cols-1" id="insight-tiles"></div>

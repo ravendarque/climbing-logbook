@@ -303,9 +303,13 @@ its bundle:
 - `climbing-grade-pyramid` renders the pyramid report for both
   disciplines, so switching discipline needs no new report.
 - `climbing-tab-bar` is a navigation landmark with `aria-current`, not an
-  ARIA tablist, because each tab is a different page. It renders once, when
-  the page calls `markReady()` after the settings load, so the Performance
-  tab doesn't pop in afterwards.
+  ARIA tablist, because each tab is a different page. It's presentational
+  (ADR-0032): the page supplies its links through an include
+  (`tabs-log.njk` inside the `tabBar()` macro), and the control points
+  them at the user's pages and marks the current one. Which tabs show is
+  the page's call, such as Performance for Athlete Mode in `admin-bar.js`.
+  It stays invisible, holding its space, until the page calls
+  `markReady()` after the settings load, so a tab doesn't pop in.
 
 The header components (`static/-/components/`) are classic scripts,
 not modules. `climbing-header.js` and `climbing-discipline-picker.js`

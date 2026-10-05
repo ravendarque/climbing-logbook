@@ -10,11 +10,12 @@ staticShellNote: |-
          the username from location.pathname itself rather than this file
          being templated.
 ---
+{% from "tab-bar.njk" import tabBar %}
 <div class="max-w-[960px] mx-auto">
   <h1 class="sr-only">Logbook</h1>
   <div class="flex items-end gap-3 mb-5" id="picker-tabs-row">
     <climbing-discipline-picker></climbing-discipline-picker>
-    <climbing-tab-bar active-page="log"></climbing-tab-bar>
+    {% call tabBar("log") %}{% include "tabs-log.njk" %}{% endcall %}
   </div>
 
   <button type="button" class="btn btn-primary min-w-24 justify-center" id="add-btn" hidden>

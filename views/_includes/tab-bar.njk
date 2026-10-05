@@ -1,0 +1,7 @@
+{% macro tabBar(activePage) %}
+<climbing-tab-bar active-page="{{ activePage }}">
+  <nav class="tab-nav" aria-label="View">
+    {{ caller() }}
+  </nav>
+</climbing-tab-bar>
+{% endmacro %}
