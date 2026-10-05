@@ -14,11 +14,12 @@ staticShellNote: |-
          the username in the URL. client/map-main.js reads the username
          itself from location.pathname at runtime.
 ---
+{% from "tab-bar.njk" import tabBar %}
 <div class="max-w-[960px] mx-auto">
   <h1 class="sr-only">Map</h1>
   <div class="flex items-end gap-3 mb-5" id="picker-tabs-row">
     <climbing-discipline-picker></climbing-discipline-picker>
-    <climbing-tab-bar active-page="map"></climbing-tab-bar>
+    {% call tabBar("map") %}{% include "tabs-log.njk" %}{% endcall %}
   </div>
 
   <p class="text-base mb-4" id="subtitle"></p>

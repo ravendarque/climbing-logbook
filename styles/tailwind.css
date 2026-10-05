@@ -419,6 +419,7 @@ climbing-page-header { display: flex; align-items: flex-start; justify-content: 
 @media (prefers-reduced-motion: reduce) { .animate-spin { animation: none; } #header-menu-btn[data-sync-state="working"] .menu-sync-ring, #header-menu-btn[data-sync-state="working"] .menu-sync-glow { animation: none; opacity: .8; } }
 /* Shared by climbing-tab-bar (links) and the profile's tabs (role=tab): one look, two ARIA patterns. */
 .tab-nav { display: flex; gap: .75rem; }
+climbing-tab-bar:not([ready]) { visibility: hidden; }
 .tab-nav-item {
   background: transparent;
   border-width: 0 0 2px 0;

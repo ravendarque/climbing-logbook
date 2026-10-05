@@ -9,10 +9,11 @@ staticShellNote: |-
          and client/performance-gap-main.js reads the username from
          location.pathname itself rather than this file being templated.
 ---
+{% from "tab-bar.njk" import tabBar %}
 <div class="max-w-[960px] mx-auto">
   <div class="flex items-end gap-3 mb-2" id="picker-tabs-row">
     <climbing-discipline-picker></climbing-discipline-picker>
-    <climbing-tab-bar active-page="performance"></climbing-tab-bar>
+    {% call tabBar("performance") %}{% include "tabs-log.njk" %}{% endcall %}
   </div>
 
   <a class="back-link mt-4 mb-5" id="back-to-performance-link" href="#">

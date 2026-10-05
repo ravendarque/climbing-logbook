@@ -19,9 +19,7 @@ export function syncAdminBar({ store, adminAuth, headerChrome, tabBar, addBtn, o
   if (username) myAccountLink.href = `/${encodeURIComponent(username)}/account`;
   headerChrome.updateMenuDivider();
   if (offlineSync) offlineSync.updateSyncButton();
-  // Called on every render; the tab bar ignores all but the first.
-  if (tabBar) {
-    tabBar.toggleAttribute("show-performance", isDemo || (store.isLoggedIn() && adminAuth.isAthleteMode()));
-    tabBar.markReady();
-  }
+  const performanceTab = document.getElementById("performance-tab");
+  if (performanceTab) performanceTab.hidden = !(isDemo || (store.isLoggedIn() && adminAuth.isAthleteMode()));
+  if (tabBar) tabBar.markReady();
 }

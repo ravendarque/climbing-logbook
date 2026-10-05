@@ -17,7 +17,7 @@ beforeEach(() => {
 describe("syncAdminBar", () => {
   it("calls tabBar.markReady() when a tabBar is present", () => {
     const markReady = vi.fn();
-    const tabBar = { toggleAttribute: vi.fn(), markReady };
+    const tabBar = { markReady };
     const headerChrome = { updateMenuDivider: vi.fn() };
     const store = { isLoggedIn: () => false };
     syncAdminBar({ store, adminAuth: makeAdminAuth(), headerChrome, tabBar });
@@ -32,11 +32,34 @@ describe("syncAdminBar", () => {
 
   it("calls markReady() on every invocation, not just the first (component itself is idempotent)", () => {
     const markReady = vi.fn();
-    const tabBar = { toggleAttribute: vi.fn(), markReady };
+    const tabBar = { markReady };
     const headerChrome = { updateMenuDivider: vi.fn() };
     const store = { isLoggedIn: () => false };
     syncAdminBar({ store, adminAuth: makeAdminAuth(), headerChrome, tabBar });
     syncAdminBar({ store, adminAuth: makeAdminAuth(), headerChrome, tabBar });
     expect(markReady).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows the page's Performance tab only for a signed-in owner in Athlete Mode", () => {
+    document.body.insertAdjacentHTML("beforeend", '<a id="performance-tab" hidden></a>');
+    const headerChrome = { updateMenuDivider: vi.fn() };
+    const tab = document.getElementById("performance-tab");
+
+    syncAdminBar({
+      store: { isLoggedIn: () => true },
+      adminAuth: makeAdminAuth({ isAthleteMode: () => true }),
+      headerChrome,
+    });
+    expect(tab.hidden).toBe(false);
+
+    syncAdminBar({ store: { isLoggedIn: () => true }, adminAuth: makeAdminAuth(), headerChrome });
+    expect(tab.hidden).toBe(true);
+
+    syncAdminBar({
+      store: { isLoggedIn: () => false },
+      adminAuth: makeAdminAuth({ isAthleteMode: () => true }),
+      headerChrome,
+    });
+    expect(tab.hidden).toBe(true);
   });
 });

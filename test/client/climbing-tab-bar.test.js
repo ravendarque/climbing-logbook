@@ -1,64 +1,55 @@
 // @vitest-environment happy-dom
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import "../../client/components/climbing-tab-bar.js";
 
-let el;
-
-beforeEach(() => {
-  el = document.createElement("climbing-tab-bar");
-});
+function mount({ activePage = "log", username = "raven", links }) {
+  const el = document.createElement("climbing-tab-bar");
+  el.setAttribute("active-page", activePage);
+  el.setAttribute("username", username);
+  el.innerHTML = `<nav class="tab-nav">${links}</nav>`;
+  document.body.append(el);
+  return el;
+}
 
 afterEach(() => {
-  el.remove();
+  document.body.innerHTML = "";
 });
 
 describe("ClimbingTabBar", () => {
-  it("does not render on connect -- stays empty until markReady()", () => {
-    el.setAttribute("active-page", "log");
-    document.body.append(el);
-    expect(el.innerHTML).toBe("");
+  it("points each supplied link at that page of the user's logbook", () => {
+    const el = mount({ links: '<a data-page="log">Logbook</a><a data-page="map">Map</a>' });
+    expect([...el.querySelectorAll("a")].map(a => a.getAttribute("href"))).toEqual(["/raven/log", "/raven/map"]);
   });
 
-  it("does not render on an attribute change before markReady()", () => {
-    document.body.append(el);
-    el.setAttribute("username", "raven");
-    el.setAttribute("active-page", "log");
-    el.toggleAttribute("show-performance", true);
-    expect(el.innerHTML).toBe("");
+  it("marks the active page's link, and only that one", () => {
+    const el = mount({ activePage: "map", links: '<a data-page="log">Logbook</a><a data-page="map">Map</a>' });
+    const [log, map] = el.querySelectorAll("a");
+    expect(log.hasAttribute("aria-current")).toBe(false);
+    expect(map.getAttribute("aria-current")).toBe("page");
   });
 
-  it("markReady() renders exactly once, reflecting whatever attributes are already set", () => {
+  it("encodes the username", () => {
+    const el = mount({ username: "a b", links: '<a data-page="log">Logbook</a>' });
+    expect(el.querySelector("a").getAttribute("href")).toBe("/a%20b/log");
+  });
+
+  it("follows a username set after it connects", () => {
+    const el = mount({ username: "", links: '<a data-page="log">Logbook</a>' });
     el.setAttribute("username", "raven");
-    el.setAttribute("active-page", "log");
-    document.body.append(el);
+    expect(el.querySelector("a").getAttribute("href")).toBe("/raven/log");
+  });
+
+  it("leaves whether a link shows to the page", () => {
+    const el = mount({ links: '<a data-page="log">Logbook</a><a data-page="performance" hidden>Performance</a>' });
     el.markReady();
-    const links = el.querySelectorAll("a");
-    expect(links).toHaveLength(1); // Logbook only -- show-performance never set
-    expect(links[0].getAttribute("href")).toBe("/raven/log");
-    expect(links[0].getAttribute("aria-current")).toBe("page");
+    expect(el.querySelector('[data-page="performance"]').hidden).toBe(true);
   });
 
-  it("markReady() is idempotent -- a second call doesn't re-render", () => {
-    el.setAttribute("username", "raven");
-    el.setAttribute("active-page", "log");
-    document.body.append(el);
+  it("is marked ready only when the page says so, and stays ready", () => {
+    const el = mount({ links: '<a data-page="log">Logbook</a>' });
+    expect(el.hasAttribute("ready")).toBe(false);
     el.markReady();
-    const firstHtml = el.innerHTML;
-    expect(() => el.markReady()).not.toThrow();
-    expect(el.innerHTML).toBe(firstHtml);
-  });
-
-  it("still reacts normally to attribute changes once ready (e.g. show-performance flips true later)", () => {
-    el.setAttribute("username", "raven");
-    el.setAttribute("active-page", "performance");
-    document.body.append(el);
     el.markReady();
-    expect(el.querySelectorAll("a")).toHaveLength(1);
-
-    el.toggleAttribute("show-performance", true);
-    const links = el.querySelectorAll("a");
-    expect(links).toHaveLength(2);
-    expect(links[1].textContent).toBe("Performance");
-    expect(links[1].getAttribute("aria-current")).toBe("page");
+    expect(el.hasAttribute("ready")).toBe(true);
   });
 });
