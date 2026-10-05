@@ -1,0 +1,16 @@
+---
+layout: app-layout.njk
+title: Combined logbook – Climbing Logbook
+discipline: true
+bundle: view
+---
+{% from "tab-bar.njk" import tabBar %}
+<div class="max-w-[960px] mx-auto">
+  <h1 class="sr-only">Combined logbook</h1>
+  <div class="flex items-end gap-3 mb-5" id="picker-tabs-row">
+    <climbing-discipline-picker></climbing-discipline-picker>
+    {% call tabBar("view") %}{% include "tabs-view.njk" %}{% endcall %}
+  </div>
+
+  <climbing-entries-table all-disciplines loading></climbing-entries-table>
+</div>

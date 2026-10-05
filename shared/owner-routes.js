@@ -15,6 +15,7 @@ export const SHELL_PATHS = {
   "account/import": "/account/import/index.html",
   "account/beta": "/account/beta/index.html",
   welcome: "/welcome/index.html",
+  view: "/view/index.html",
 };
 
 // The username is left percent-encoded, exactly as in the URL.

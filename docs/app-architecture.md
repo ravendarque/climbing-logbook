@@ -191,7 +191,8 @@ entry, its `run_worker_first` paths (checked by
 
 ## Pages
 
-**Owner pages** (`/:username/…` on `my.` and `beta.`): `log`, `map`, `sync`,
+**Owner pages** (`/:username/…` on `my.` and `beta.`): `log`, `view` (every
+discipline combined, ADR-0032), `map`, `sync`,
 the `performance` hub and its reports (`pyramid`, `trends`, `gap`, `rpe`,
 `injury`, `strengths`), and `account` with `account/edit`,
 `account/import` and `account/beta`, and `welcome`, the one-off setup

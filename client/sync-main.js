@@ -18,7 +18,7 @@ const SETTINGS_GRACE_MS = 5000;
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 
 // Rebuilt from fixed parts rather than returning the query value, so it can only be one of these paths.
-const OWNED_PAGES = ["log", "map", "performance"];
+const OWNED_PAGES = ["log", "view", "map", "performance"];
 const PERFORMANCE_REPORTS = ["pyramid", "injury", "strengths", "trends", "gap", "rpe"];
 function safeReturnTo() {
   const raw = new URL(location.href).searchParams.get("returnTo");

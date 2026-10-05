@@ -56,5 +56,5 @@ export function createReportData({ username, isDemo, store, syncStatusIcon, onRe
     return res.json();
   }
 
-  return { open, refresh, report };
+  return { open, refresh, report, isLocal: () => local };
 }

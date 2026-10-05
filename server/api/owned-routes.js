@@ -26,7 +26,10 @@ async function resolveOwnedSession(request, env, username) {
 
 // The demo accounts' read-only pages need no session.
 function isDemoOwnedPage(username, page) {
-  return DEMO_USERNAMES.includes(username) && (page === "log" || page === "map" || page.startsWith("performance"));
+  return (
+    DEMO_USERNAMES.includes(username) &&
+    (page === "log" || page === "view" || page === "map" || page.startsWith("performance"))
+  );
 }
 
 // The header is the service worker's proof that a response is this page's shell.

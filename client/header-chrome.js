@@ -3,8 +3,12 @@ import { createDisclosure } from "./modal-utils.js";
 import { createThemeToggle } from "./theme-toggle.js";
 import { disciplineLabel } from "./status.js";
 import { isUnauthorized } from "./api-fetch.js";
+import { readSettingsCache, writeSettingsCache } from "./settings-cache.js";
 
-export function createHeaderChrome({ store, apiFetch, settingsUrl }) {
+// showing: what this page shows, a single discipline or every discipline combined.
+const SAVE_WAIT_MS = 1500;
+
+export function createHeaderChrome({ store, apiFetch, settingsUrl, username, showing = "discipline" }) {
   createThemeToggle();
 
   pointApexLinksAtApex();
@@ -13,29 +17,59 @@ export function createHeaderChrome({ store, apiFetch, settingsUrl }) {
   const disciplinePopover = document.getElementById("discipline-popover");
   const { close: closeDisciplinePopover } = createDisclosure(disciplineBtn, disciplinePopover, "#discipline-wrap");
 
+  const combined = showing === "combined";
+  const pagePath = page => `/${encodeURIComponent(username)}/${page}`;
+
   function updateDisciplinePicker() {
-    document.getElementById("discipline-btn-label").textContent = disciplineLabel(store.getActiveType());
+    const label = combined ? "Combined" : disciplineLabel(store.getActiveType());
+    document.getElementById("discipline-btn-label").textContent = label;
     // aria-label wins over visible text, and the label is hidden at narrow widths.
-    disciplineBtn.setAttribute("aria-label", `Discipline: ${disciplineLabel(store.getActiveType())}`);
+    disciplineBtn.setAttribute("aria-label", `Discipline: ${label}`);
     for (const opt of document.querySelectorAll(".discipline-option")) {
-      opt.setAttribute("aria-selected", String(opt.dataset.discipline === store.getActiveType()));
+      const selected =
+        opt.dataset.choice === "combined" ? combined : !combined && opt.dataset.discipline === store.getActiveType();
+      opt.setAttribute("aria-selected", String(selected));
     }
+  }
+
+  function saveDiscipline(discipline, { keepalive = false } = {}) {
+    return apiFetch(settingsUrl, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ activeDiscipline: discipline }),
+      keepalive,
+    });
   }
 
   disciplinePopover.addEventListener("click", async e => {
     const opt = e.target.closest(".discipline-option");
     if (!opt) return;
-    store.setActiveType(opt.dataset.discipline);
     closeDisciplinePopover();
+
+    if (opt.dataset.choice === "combined") {
+      if (!combined) location.href = pagePath("view");
+      else disciplineBtn.focus();
+      return;
+    }
+
+    // Leaving Combined: /log opens on the chosen discipline straight away, even offline.
+    if (combined) {
+      try {
+        writeSettingsCache({ ...readSettingsCache(), activeDiscipline: opt.dataset.discipline });
+      } catch {}
+      // Online, wait briefly for the save so /log's own settings read doesn't get the old value.
+      const saved = saveDiscipline(opt.dataset.discipline, { keepalive: true }).catch(() => {});
+      if (navigator.onLine) await Promise.race([saved, new Promise(resolve => setTimeout(resolve, SAVE_WAIT_MS))]);
+      location.href = pagePath("log");
+      return;
+    }
+
+    store.setActiveType(opt.dataset.discipline);
     disciplineBtn.focus();
 
     // Best effort: offline or logged out, the switch stays local.
     try {
-      const res = await apiFetch(settingsUrl, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ activeDiscipline: store.getActiveType() }),
-      });
+      const res = await saveDiscipline(store.getActiveType());
       if (isUnauthorized(res)) {
         store.setLoggedIn(false);
       }
