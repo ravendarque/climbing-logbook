@@ -73,11 +73,17 @@ test("the tour never runs over someone's own logbook", async ({ page, owner }) =
   await expect(dialog(page)).toHaveCount(0);
 });
 
-test("the card never widens the page at 312px", async ({ page, owner }) => {
+test("the tour doesn't change the page's width", async ({ page, owner }) => {
   await page.goto(owner.url("/account"));
   await page.getByRole("link", { name: "Take the tour" }).tap();
   await expect(dialog(page)).toBeVisible();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(312);
+  const during = await page.evaluate(() => document.documentElement.scrollWidth);
+
+  await page.keyboard.press("Escape");
+  await page.waitForURL(`**/${owner.username}/account`);
+  await page.goto("http://my.localhost:8787/intermediatedemo/log");
+  await expect(page.locator("#add-btn")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(during);
 });
 
 test("a step that can't run ends the tour instead of leaving the page inert", async ({ page }) => {
