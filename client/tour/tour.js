@@ -1,5 +1,7 @@
-import { TOUR_STEPS } from "./steps.js";
-import { readTourRequest, tourUrl } from "./tour-url.js";
+import { isDemoUsername } from "../demo-mode.js";
+import { readSettingsCache } from "../settings-cache.js";
+import { resolveStep, TOUR_STEPS } from "./steps.js";
+import { isOnPage, readTourRequest, tourUrl } from "./tour-url.js";
 
 const TARGET_TIMEOUT_MS = 8000;
 const SPOT_PAD_PX = 6;
@@ -14,7 +16,21 @@ const STATES = {
       doc.getElementById("entry-close").click();
     },
   },
+  "profile-map": {
+    async enter(doc) {
+      doc.getElementById("view-tab-map").click();
+      await waitFor(() => !doc.getElementById("panel-map").hidden);
+    },
+    exit(doc) {
+      doc.getElementById("view-tab-logbook").click();
+    },
+  },
 };
+
+// A demo is always public. Anyone else's own setting: a private logbook has no profile page to show.
+function logbookIsPublic(user) {
+  return isDemoUsername(user) || readSettingsCache()?.logbookPublic !== false;
+}
 
 function nextFrame() {
   return new Promise(resolve => requestAnimationFrame(() => resolve()));
@@ -95,6 +111,8 @@ function buildLayer(doc) {
 export function runTour(request, { doc = document, loc = window.location } = {}) {
   const ui = buildLayer(doc);
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const isPublic = logbookIsPublic(request.user);
+  const stepAt = i => resolveStep(TOUR_STEPS[i], isPublic);
   const inerted = [...doc.body.children].filter(node => node.tagName !== "SCRIPT");
   let index = request.step;
   let activeState = null;
@@ -118,7 +136,7 @@ export function runTour(request, { doc = document, loc = window.location } = {})
     ui.spot.style.width = `${rect.width + SPOT_PAD_PX * 2}px`;
     ui.spot.style.height = `${rect.height + SPOT_PAD_PX * 2}px`;
     const inLowerHalf = rect.top + rect.height / 2 > window.innerHeight / 2;
-    ui.card.style.cssText = inLowerHalf ? "top:12px" : "bottom:12px";
+    ui.card.style.cssText = inLowerHalf && stepAt(index).placement !== "bottom" ? "top:12px" : "bottom:12px";
   }
 
   function schedulePlace() {
@@ -135,10 +153,10 @@ export function runTour(request, { doc = document, loc = window.location } = {})
   }
 
   async function show() {
-    const step = TOUR_STEPS[index];
+    const step = stepAt(index);
     const mine = ++token;
     await setState(step.state ?? null);
-    const found = await waitFor(() => doc.querySelector(step.target), TARGET_TIMEOUT_MS, doc);
+    const found = step.target ? await waitFor(() => doc.querySelector(step.target), TARGET_TIMEOUT_MS, doc) : null;
     if (mine !== token) return;
 
     target = found;
@@ -182,8 +200,8 @@ export function runTour(request, { doc = document, loc = window.location } = {})
       leave();
       return;
     }
-    const from = TOUR_STEPS[index];
-    const to = TOUR_STEPS[next];
+    const from = stepAt(index);
+    const to = stepAt(next);
     index = next;
     if (to.page !== from.page) {
       token++;
@@ -227,8 +245,8 @@ export function runTour(request, { doc = document, loc = window.location } = {})
 export function startTour() {
   const request = readTourRequest(window.location, TOUR_STEPS.length);
   if (!request) return Promise.resolve();
-  const step = TOUR_STEPS[request.step];
-  if (!window.location.pathname.endsWith(`/${step.page}`)) {
+  const step = resolveStep(TOUR_STEPS[request.step], logbookIsPublic(request.user));
+  if (!isOnPage(window.location.pathname, request.user, step.page)) {
     window.location.replace(
       tourUrl({ user: request.user, page: step.page, step: request.step, returnTo: request.returnTo }),
     );

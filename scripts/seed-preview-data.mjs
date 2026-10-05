@@ -1,5 +1,6 @@
 // Resets and seeds the shared preview D1 for a PR preview. The account comes from repo secrets; previews are public. One database serves every open PR, so the latest push wins (#392).
 //   PREVIEW_DEV_EMAIL=... PREVIEW_DEV_PASSWORD=... PREVIEW_BETA_INVITE_CODE=... node scripts/seed-preview-data.mjs <preview-url>
+import { execFileSync } from "node:child_process";
 import { bootstrapDevSession, resetDatabase } from "./lib/dev-session.mjs";
 import { seedLogbookData } from "./lib/seed-data.mjs";
 
@@ -42,6 +43,9 @@ async function seed() {
 
   console.log(`Resetting the preview database (${D1_OPTIONS.database})...`);
   resetDatabase(D1_OPTIONS);
+
+  console.log("Seeding the demo accounts...");
+  execFileSync("node", ["scripts/seed-demo-accounts.mjs", "--remote", "--env", "preview"], { stdio: "inherit" });
 
   console.log(`Bootstrapping a dev session against ${baseUrl}...`);
   const setCookieHeader = await bootstrapDevSession(baseUrl, {
