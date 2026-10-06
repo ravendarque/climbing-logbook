@@ -1,5 +1,6 @@
 import { isDemoUsername } from "./demo-mode.js";
 import { resolveMyXUrl } from "./resolve-cross-hostname-url.js";
+import { tourStartUrl } from "./tour/tour-url.js";
 // A demo visitor has no session, so is treated as logged in here for every page.
 function isDemoVisitor() {
   return isDemoUsername(location.pathname.split("/").filter(Boolean)[0] || "");
@@ -18,6 +19,11 @@ export function syncAdminBar({ store, adminAuth, headerChrome, tabBar, addBtn, o
   menuUsername.textContent = username ?? "";
   myAccountLink.hidden = !username;
   if (username) myAccountLink.href = `/${encodeURIComponent(username)}/account`;
+  const demoTourLink = document.getElementById("demo-tour-link");
+  if (demoTourLink) {
+    demoTourLink.hidden = !isDemo;
+    if (isDemo) demoTourLink.href = tourStartUrl(location.pathname, location.pathname.split("/")[1]);
+  }
   const publicLogbookLink = document.getElementById("public-logbook-link");
   if (publicLogbookLink) {
     publicLogbookLink.hidden = !username || !adminAuth.isLogbookPublic();

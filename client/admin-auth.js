@@ -134,7 +134,9 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
       username = null;
       email = null;
     }
-    localStorage.setItem(LOGIN_HINT_KEY, store.isLoggedIn() ? "1" : "0");
+    // Removed rather than set to "0", so a demo visitor's browser keeps nothing.
+    if (store.isLoggedIn()) localStorage.setItem(LOGIN_HINT_KEY, "1");
+    else localStorage.removeItem(LOGIN_HINT_KEY);
     // Recorded for the offline ownership check; a cached page for someone else redirects home.
     if (username) {
       writeSignedInUser(localStorage, username);
@@ -169,7 +171,7 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
       body: "{}",
     });
     store.setLoggedIn(false);
-    localStorage.setItem(LOGIN_HINT_KEY, "0");
+    localStorage.removeItem(LOGIN_HINT_KEY);
     // Their data stays in their own namespace: an unsynced queue is never discarded.
     clearSignedInUser(localStorage);
     // Cached shells mustn't outlive the session on a shared device.

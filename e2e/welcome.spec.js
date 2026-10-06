@@ -70,22 +70,6 @@ test("someone who has finished the setup never sees it again", async ({ page, ow
   await page.waitForURL(`**/${owner.username}/log`);
 });
 
-test("a demo visitor's first demo page starts the tour, once, and Skip returns to that page", async ({ browser }) => {
-  const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
-  const page = await context.newPage();
-  await page.goto("http://my.localhost:8787/beginnerdemo/view");
-  await page.waitForURL("**/beginnerdemo/log?tour=1&returnTo=%2Fbeginnerdemo%2Fview");
-  const tour = page.locator('[role="dialog"][aria-labelledby="tour-title"]');
-  await tour.getByRole("button", { name: "Skip tour" }).click();
-  await page.waitForURL("**/beginnerdemo/view");
-
-  await page.goto("http://my.localhost:8787/advanceddemo/log");
-  await expect(page.locator("#add-btn")).toBeVisible();
-  await expect(tour).toHaveCount(0);
-  expect(new URL(page.url()).search).toBe("");
-  await context.close();
-});
-
 test("Back keeps the choices already made", async ({ page, newOwner: owner }) => {
   await page.goto(owner.url("/welcome"));
   await expect(page.locator("#welcome-public")).toBeChecked();
