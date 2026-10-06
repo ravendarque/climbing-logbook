@@ -5,7 +5,7 @@ const STEPS = [
     page: "log",
     target: "#discipline-btn",
     title: "Discipline",
-    body: "We'll show you round a demo logbook. Use this when you're logging climbs, to choose the discipline you're working in. When you view your logbook, all your disciplines are shown together.",
+    body: "Use this when you're logging climbs, to choose the discipline you're working in. When you view your logbook, all your disciplines are shown together.",
   },
   {
     page: "log",

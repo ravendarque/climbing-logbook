@@ -24,7 +24,7 @@ test("My account's Take the tour card starts the tour on the demo logbook", asyn
   await expect(dialog(page)).toBeVisible();
   await expect(title(page)).toBeFocused();
   await expectStep(page, 1, "Discipline");
-  await expect(dialog(page)).toContainText("We'll show you round a demo logbook.");
+  await expect(dialog(page)).toContainText("shown together");
   await expect(dialog(page).getByRole("button", { name: "Back" })).toBeHidden();
 });
 
