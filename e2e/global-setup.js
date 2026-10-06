@@ -9,14 +9,7 @@ import {
   toPlaywrightCookie,
 } from "../scripts/lib/dev-session.mjs";
 import { seedLogbookData } from "../scripts/lib/seed-data.mjs";
-import {
-  DEMO_TOUR_SEEN,
-  NEW_OWNER_POOL_SIZE,
-  newOwnerPoolUser,
-  OWNER_POOL_SIZE,
-  ownerPoolUser,
-  resetOwnerPool,
-} from "./owner.js";
+import { NEW_OWNER_POOL_SIZE, newOwnerPoolUser, OWNER_POOL_SIZE, ownerPoolUser, resetOwnerPool } from "./owner.js";
 
 const BASE_URL = "http://localhost:8787";
 export const STORAGE_STATE_PATH = "e2e/.auth/dev-session.json";
@@ -49,10 +42,7 @@ export default async function globalSetup() {
   mkdirSync(dirname(STORAGE_STATE_PATH), { recursive: true });
   writeFileSync(
     STORAGE_STATE_PATH,
-    JSON.stringify({
-      cookies: [toPlaywrightCookie(setCookieHeader, BASE_URL)],
-      origins: [{ origin: "http://my.localhost:8787", localStorage: [DEMO_TOUR_SEEN] }],
-    }),
+    JSON.stringify({ cookies: [toPlaywrightCookie(setCookieHeader, BASE_URL)], origins: [] }),
   );
 
   if ((await seedLogbookData(BASE_URL, setCookieHeader.split(";")[0])) > 0)

@@ -1,13 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { tourSteps } from "../../client/tour/steps.js";
-import {
-  firstDemoVisitTourUrl,
-  isOnPage,
-  readTourRequest,
-  TOUR_FIRST_PAGE,
-  tourStartUrl,
-  tourUrl,
-} from "../../client/tour/tour-url.js";
+import { isOnPage, readTourRequest, TOUR_FIRST_PAGE, tourStartUrl, tourUrl } from "../../client/tour/tour-url.js";
 
 const loc = (pathname, search) => ({ pathname, search, origin: "https://my.climbinglogbook.com" });
 
@@ -28,6 +21,9 @@ describe("tourUrl", () => {
 
   it("starts on the first step's page, on the demo account", () => {
     expect(tourStartUrl("/raven/account")).toBe("/intermediatedemo/log?tour=1&returnTo=%2Fraven%2Faccount");
+    expect(tourStartUrl("/beginnerdemo/view", "beginnerdemo")).toBe(
+      "/beginnerdemo/log?tour=1&returnTo=%2Fbeginnerdemo%2Fview",
+    );
     expect(tourSteps()[0].page).toBe(TOUR_FIRST_PAGE);
   });
 });
@@ -115,38 +111,5 @@ describe("tourSteps", () => {
       expect(step.title).toBeTruthy();
       expect(typeof step.body).toBe("string");
     }
-  });
-});
-
-describe("firstDemoVisitTourUrl", () => {
-  const storage = () => {
-    const items = new Map();
-    return { getItem: k => items.get(k) ?? null, setItem: (k, v) => items.set(k, v) };
-  };
-
-  it("starts the tour on a visitor's first demo page, and only the first", () => {
-    const seen = storage();
-    expect(firstDemoVisitTourUrl(loc("/beginnerdemo/view", ""), seen)).toBe(
-      "/beginnerdemo/log?tour=1&returnTo=%2Fbeginnerdemo%2Fview",
-    );
-    expect(firstDemoVisitTourUrl(loc("/advanceddemo/log", ""), seen)).toBeNull();
-  });
-
-  it("leaves your own logbook, other pages and a tour already running alone", () => {
-    const seen = storage();
-    expect(firstDemoVisitTourUrl(loc("/raven/log", ""), seen)).toBeNull();
-    expect(firstDemoVisitTourUrl(loc("/beginnerdemo", ""), seen)).toBeNull();
-    expect(firstDemoVisitTourUrl(loc("/beginnerdemo/log", "?tour=3"), seen)).toBeNull();
-    expect(firstDemoVisitTourUrl(loc("/beginnerdemo/log", ""), seen)).not.toBeNull();
-  });
-
-  it("doesn't start when the device can't remember it did", () => {
-    const blocked = {
-      getItem: () => null,
-      setItem: () => {
-        throw new DOMException("blocked", "SecurityError");
-      },
-    };
-    expect(firstDemoVisitTourUrl(loc("/beginnerdemo/log", ""), blocked)).toBeNull();
   });
 });

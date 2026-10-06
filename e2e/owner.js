@@ -8,7 +8,6 @@ export const OWNER_POOL_SIZE = 300;
 export const NEW_OWNER_POOL_PATH = "e2e/.auth/new-owners.json";
 const NEW_OWNER_NEXT_PATH = "e2e/.auth/new-owners-next";
 export const NEW_OWNER_POOL_SIZE = 10;
-export const DEMO_TOUR_SEEN = { name: "logbook_demo_tour_seen", value: "1" };
 
 function ownerIdentity(username) {
   return { username, email: `${username}@climbinglogbook.local`, password: "correct-horse-battery-staple" };

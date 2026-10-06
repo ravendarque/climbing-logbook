@@ -80,11 +80,12 @@ export function createHeaderChrome({ store, apiFetch, settingsUrl, username, sho
   const headerMenuBtn = document.getElementById("header-menu-btn");
   const headerMenuPopover = document.getElementById("header-menu-popover");
   const headerMenuBottomRow = document.getElementById("header-menu-bottom-row");
-  const menuUsername = document.getElementById("menu-username");
 
   // The divider only shows when the username is above it.
   function updateMenuDivider() {
-    const hasTopContent = !menuUsername.hidden;
+    const hasTopContent = [...headerMenuBottomRow.parentElement.children].some(
+      item => item !== headerMenuBottomRow && !item.hidden,
+    );
     headerMenuBottomRow.classList.toggle("border-t", hasTopContent);
     headerMenuBottomRow.classList.toggle("pt-2", hasTopContent);
     headerMenuBottomRow.classList.toggle("mt-1", hasTopContent);

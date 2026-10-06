@@ -1,6 +1,7 @@
 import { DEMO_PERSONAS } from "../shared/demo-personas.js";
 import { resolveAppOrigin } from "./resolve-app-origin.js";
 import { redirectIfLoggedIn } from "./session-redirect.js";
+import { tourStartUrl } from "./tour/tour-url.js";
 
 redirectIfLoggedIn(document.getElementById("page-content"));
 
@@ -11,9 +12,10 @@ const popover = document.getElementById("demo-picker-popover");
 const list = document.getElementById("demo-picker-list");
 
 // The full app, not the read-only profile: demo accounts' pages need no session.
+const demoTourUrl = username => tourStartUrl(`/${encodeURIComponent(username)}/log`, username);
 list.innerHTML = DEMO_PERSONAS.map(
   p => `
-  <a class="flex flex-col gap-[.15rem] px-[.7rem] py-[.6rem] rounded-[calc(var(--radius-app)-2px)] text-left no-underline hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)]" href="${APP_ORIGIN}/${encodeURIComponent(p.username)}/log">
+  <a class="flex flex-col gap-[.15rem] px-[.7rem] py-[.6rem] rounded-[calc(var(--radius-app)-2px)] text-left no-underline hover:bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)]" href="${APP_ORIGIN}${demoTourUrl(p.username)}">
     <span class="text-sm font-bold text-foreground">${p.label}</span>
     <span class="text-sm text-muted">${p.description}</span>
   </a>
