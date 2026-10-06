@@ -33,7 +33,7 @@ test("offline cold launch: a fresh navigation to a visited owner page renders fr
   context,
 }) => {
   await warm(page, "/log");
-  await warm(page, "/map");
+  await warm(page, "/view/map");
   await context.setOffline(true);
 
   const log = await context.newPage();
@@ -41,7 +41,7 @@ test("offline cold launch: a fresh navigation to a visited owner page renders fr
   await expect(log.locator(".place-header[data-location-id]").first()).toBeVisible();
 
   const map = await context.newPage();
-  await map.goto(ownedRouteUrl(DEV_USER.username, "/map"));
+  await map.goto(ownedRouteUrl(DEV_USER.username, "/view/map"));
   await expect(map.locator("climbing-tab-bar")).toBeAttached();
   await context.setOffline(false);
 });
@@ -140,7 +140,7 @@ test("pages that aren't owner pages are never served by the worker", async ({ pa
 
 test("API responses never end up in the worker's cache", async ({ page }) => {
   await warm(page, "/log");
-  await warm(page, "/map");
+  await warm(page, "/view/map");
   const cachedUrls = await page.evaluate(async () => {
     const urls = [];
     for (const name of await caches.keys()) {

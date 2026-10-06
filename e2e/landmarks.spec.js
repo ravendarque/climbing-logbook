@@ -17,7 +17,8 @@ async function expectLandmarksAndSkipLink(page) {
 
 const OWNER_PAGES = [
   "/log",
-  "/map",
+  "/view",
+  "/view/map",
   "/performance",
   "/performance/pyramid",
   "/performance/trends",

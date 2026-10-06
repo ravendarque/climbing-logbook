@@ -1,7 +1,6 @@
 // Each page also needs run_worker_first paths in wrangler.jsonc, or its shell skips the session check.
 export const SHELL_PATHS = {
   log: "/log/index.html",
-  map: "/map/index.html",
   performance: "/performance/index.html",
   "performance/pyramid": "/performance/pyramid/index.html",
   "performance/injury": "/performance/injury/index.html",
@@ -16,6 +15,7 @@ export const SHELL_PATHS = {
   "account/beta": "/account/beta/index.html",
   welcome: "/welcome/index.html",
   view: "/view/index.html",
+  "view/map": "/view/index.html",
 };
 
 // The username is left percent-encoded, exactly as in the URL.

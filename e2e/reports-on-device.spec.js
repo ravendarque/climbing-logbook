@@ -119,7 +119,7 @@ test.describe("Reports and map counts on the device (ADR-0031)", () => {
     await syncedAthlete(page, owner);
     await page.route("**/-/api/**", route => route.abort("internetdisconnected"));
 
-    await page.goto(owner.url("/map"));
+    await page.goto(owner.url("/view/map"));
     await expect(page.locator("#subtitle")).toContainText("1 Country");
   });
 
@@ -141,7 +141,7 @@ test.describe("Reports and map counts on the device (ADR-0031)", () => {
       if (req.url().includes("/-/api/map/counts")) requests.push(req.url());
     });
 
-    await page.goto(owner.url("/map"));
+    await page.goto(owner.url("/view/map"));
     await expect(page.locator("#subtitle")).toContainText("1 Country");
     expect(requests).toEqual([]);
   });
@@ -151,7 +151,7 @@ test.describe("Reports and map counts on the device (ADR-0031)", () => {
     await syncedAthlete(page, owner);
     const counts = page.waitForResponse(res => res.url().includes("/-/api/map/counts"));
 
-    await page.goto(owner.url("/map"));
+    await page.goto(owner.url("/view/map"));
     await counts;
     await expect(page.locator("#subtitle")).toContainText("1 Country");
   });

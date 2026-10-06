@@ -12,5 +12,13 @@ bundle: view
     {% call tabBar("view") %}{% include "tabs-view.njk" %}{% endcall %}
   </div>
 
-  <climbing-entries-table all-disciplines loading></climbing-entries-table>
+  <div id="panel-logbook">
+    <climbing-entries-table all-disciplines loading></climbing-entries-table>
+  </div>
+
+  <div id="panel-map" hidden>
+    {% include "map-panel.njk" %}
+  </div>
 </div>
+
+{% include "map-pin-popover.njk" %}

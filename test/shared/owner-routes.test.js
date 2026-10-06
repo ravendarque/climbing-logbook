@@ -5,7 +5,8 @@ const PRE_958_REGEX =
   /^\/([^/]+)\/(log|map|performance(?:\/(?:pyramid|injury|strengths|trends|gap|rpe))?|sync|account(?:\/edit|\/import)?)\/?$/;
 
 const PAGES = Object.keys(SHELL_PATHS);
-const ADDED_SINCE_958 = ["account/beta", "welcome", "view"];
+const ADDED_SINCE_958 = ["account/beta", "welcome", "view", "view/map"];
+const REMOVED_SINCE_958 = ["map"];
 
 describe("matchOwnerRoute (#958)", () => {
   it("matches every owner page, with and without one trailing slash", () => {
@@ -31,6 +32,7 @@ describe("matchOwnerRoute (#958)", () => {
     "/devuser/performance/grades",
     "/devuser/account/display",
     "/devuser/settings",
+    "/devuser/map",
     "/devuser/LOG",
     "/help/",
     "/help/working-offline/",
@@ -70,7 +72,7 @@ describe("matchOwnerRoute (#958)", () => {
 
     for (const pathname of corpus) {
       const old = pathname.match(PRE_958_REGEX);
-      const expected = old ? { username: old[1], page: old[2] } : null;
+      const expected = old && !REMOVED_SINCE_958.includes(old[2]) ? { username: old[1], page: old[2] } : null;
       expect(matchOwnerRoute(pathname), pathname).toEqual(expected);
     }
   });

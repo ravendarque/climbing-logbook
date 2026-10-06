@@ -19,7 +19,7 @@ test.beforeEach(async ({ context }) => {
   await addOwnedRouteSessionCookie(context);
 });
 
-for (const path of ["/log", "/map", "/performance", "/performance/pyramid", "/account", "/sync"]) {
+for (const path of ["/log", "/view", "/view/map", "/performance", "/performance/pyramid", "/account", "/sync"]) {
   test(`${path}: every link to an apex page is marked for the apex`, async ({ page }) => {
     await page.goto(ownedRouteUrl(DEV_USER.username, path));
     await expect(page.locator("footer")).toBeAttached();

@@ -1,6 +1,4 @@
-import { isDemoUsername } from "../demo-mode.js";
-import { readSettingsCache } from "../settings-cache.js";
-import { resolveStep, TOUR_STEPS } from "./steps.js";
+import { TOUR_STEPS } from "./steps.js";
 import { isOnPage, readTourRequest, tourUrl } from "./tour-url.js";
 
 const TARGET_TIMEOUT_MS = 8000;
@@ -16,21 +14,7 @@ const STATES = {
       doc.getElementById("entry-close").click();
     },
   },
-  "profile-map": {
-    async enter(doc) {
-      doc.getElementById("view-tab-map").click();
-      await waitFor(() => !doc.getElementById("panel-map").hidden);
-    },
-    exit(doc) {
-      doc.getElementById("view-tab-logbook").click();
-    },
-  },
 };
-
-// A demo is always public. Anyone else's own setting: a private logbook has no profile page to show.
-function logbookIsPublic(user) {
-  return isDemoUsername(user) || readSettingsCache()?.logbookPublic !== false;
-}
 
 function nextFrame() {
   return new Promise(resolve => requestAnimationFrame(() => resolve()));
@@ -111,8 +95,7 @@ function buildLayer(doc) {
 export function runTour(request, { doc = document, loc = window.location } = {}) {
   const ui = buildLayer(doc);
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const isPublic = logbookIsPublic(request.user);
-  const stepAt = i => resolveStep(TOUR_STEPS[i], isPublic);
+  const stepAt = i => TOUR_STEPS[i];
   const inerted = [...doc.body.children].filter(node => node.tagName !== "SCRIPT");
   let index = request.step;
   let activeState = null;
@@ -245,7 +228,7 @@ export function runTour(request, { doc = document, loc = window.location } = {})
 export function startTour() {
   const request = readTourRequest(window.location, TOUR_STEPS.length);
   if (!request) return Promise.resolve();
-  const step = resolveStep(TOUR_STEPS[request.step], logbookIsPublic(request.user));
+  const step = TOUR_STEPS[request.step];
   if (!isOnPage(window.location.pathname, request.user, step.page)) {
     window.location.replace(
       tourUrl({ user: request.user, page: step.page, step: request.step, returnTo: request.returnTo }),

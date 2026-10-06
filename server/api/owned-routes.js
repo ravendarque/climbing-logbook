@@ -28,7 +28,7 @@ async function resolveOwnedSession(request, env, username) {
 function isDemoOwnedPage(username, page) {
   return (
     DEMO_USERNAMES.includes(username) &&
-    (page === "log" || page === "view" || page === "map" || page.startsWith("performance"))
+    (page === "log" || page === "view" || page === "view/map" || page.startsWith("performance"))
   );
 }
 

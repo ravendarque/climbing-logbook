@@ -42,7 +42,7 @@ New versions of Climbing Logbook download in the background while you're online.
 - **Logging in, logging out and registering.** These need a connection. Log in before you go.
 - **Getting your logbook onto a new device.** The first time you log in on a device, it has to download your logbook, so do that online.
 - **Seeing changes from another device.** Something you logged on your phone won't appear on your laptop until both have synced.
-- **The world map, until you've opened Map online once.** The Map page itself works offline, but the world map downloads the first time you open Map with a connection. Until then, you'll see a message asking you to connect.
+- **The world map, until you've opened Map online once.** The Map tab itself works offline, but the world map downloads the first time you open it with a connection. Until then, you'll see a message asking you to connect.
 - **Importing and exporting entries, changing account details and resetting your password.** These need a connection.
 - **Other people's public logbooks.** You'll need a connection to view them.
 

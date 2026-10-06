@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveStep, TOUR_STEPS } from "../../client/tour/steps.js";
+import { TOUR_STEPS } from "../../client/tour/steps.js";
 import {
   carryTourParams,
   isOnPage,
@@ -23,31 +23,23 @@ describe("tourUrl", () => {
     expect(tourUrl({ user: "beginnerdemo", page: "log", step: 0 })).toBe("/beginnerdemo/log?tour=1");
   });
 
-  it("sends the profile, which only exists on my., to my.", () => {
-    expect(tourUrl({ user: "raven", page: "profile", step: 3, hostname: "my.climbinglogbook.com" })).toBe(
-      "/raven?tour=4",
-    );
-    expect(tourUrl({ user: "raven", page: "profile", step: 3, hostname: "beta.climbinglogbook.com" })).toBe(
-      "https://my.climbinglogbook.com/raven?tour=4",
-    );
-    expect(tourUrl({ user: "raven", page: "log", step: 0, hostname: "beta.climbinglogbook.com" })).toBe(
-      "/raven/log?tour=1",
-    );
+  it("handles a two-part page", () => {
+    expect(tourUrl({ user: "raven", page: "view/map", step: 4 })).toBe("/raven/view/map?tour=5");
   });
 
   it("starts on the first step's page, on the given account", () => {
     expect(tourStartUrl("raven", "/raven/account")).toBe("/raven/log?tour=1&returnTo=%2Fraven%2Faccount");
-    expect(resolveStep(TOUR_STEPS[0], true).page).toBe(TOUR_FIRST_PAGE);
+    expect(TOUR_STEPS[0].page).toBe(TOUR_FIRST_PAGE);
   });
 });
 
 describe("isOnPage", () => {
-  it("matches the profile at /:user with or without a trailing slash, and other pages by name", () => {
-    expect(isOnPage("/raven", "raven", "profile")).toBe(true);
-    expect(isOnPage("/raven/", "raven", "profile")).toBe(true);
-    expect(isOnPage("/raven/log", "raven", "profile")).toBe(false);
-    expect(isOnPage("/raven/map", "raven", "map")).toBe(true);
-    expect(isOnPage("/raven/map", "raven", "log")).toBe(false);
+  it("matches a page with or without a trailing slash, and only that page", () => {
+    expect(isOnPage("/raven/view", "raven", "view")).toBe(true);
+    expect(isOnPage("/raven/view/", "raven", "view")).toBe(true);
+    expect(isOnPage("/raven/view/map", "raven", "view/map")).toBe(true);
+    expect(isOnPage("/raven/view/map", "raven", "view")).toBe(false);
+    expect(isOnPage("/raven/log", "raven", "view")).toBe(false);
   });
 });
 
@@ -60,8 +52,8 @@ describe("readTourRequest", () => {
     });
   });
 
-  it("reads the user from a profile page too", () => {
-    expect(readTourRequest(loc("/Raven", "?tour=4"), 5)).toEqual({ user: "raven", step: 3, returnTo: null });
+  it("reads the user from the combined map too", () => {
+    expect(readTourRequest(loc("/Raven/view/map", "?tour=5"), 5)).toEqual({ user: "raven", step: 4, returnTo: null });
   });
 
   it("is null without a tour parameter, and on pages that aren't a logbook's", () => {
@@ -69,6 +61,7 @@ describe("readTourRequest", () => {
     expect(readTourRequest(loc("/help/install/", "?tour=1"), 5)).toBeNull();
     expect(readTourRequest(loc("/raven/sync", "?tour=1&returnTo=%2Fraven%2Flog"), 5)).toBeNull();
     expect(readTourRequest(loc("/raven/account", "?tour=1"), 5)).toBeNull();
+    expect(readTourRequest(loc("/raven", "?tour=4"), 5)).toBeNull();
   });
 
   it("clamps a step outside the tour, and falls back to the first for rubbish", () => {
@@ -86,23 +79,13 @@ describe("readTourRequest", () => {
 });
 
 describe("TOUR_STEPS", () => {
-  it("each has a page, a title and a body, and a target unless it's a card on its own", () => {
+  it("each is on an owner page, with a target, a title and a body", () => {
     for (const step of TOUR_STEPS) {
-      expect(["log", "map", "performance", "profile"]).toContain(step.page);
+      expect(["log", "view", "view/map", "performance"]).toContain(step.page);
+      expect(step.target).toBeTruthy();
       expect(step.title).toBeTruthy();
       expect(step.body).toBeTruthy();
-      expect(step.target === undefined ? false : step.target !== "").toBe(true);
     }
-  });
-
-  it("a private logbook's steps never land on the profile page", () => {
-    for (const step of TOUR_STEPS) expect(resolveStep(step, false).page).not.toBe("profile");
-    expect(resolveStep(TOUR_STEPS[3], false).target).toBeNull();
-    expect(resolveStep(TOUR_STEPS[4], false).state).toBeNull();
-  });
-
-  it("a public logbook's steps are used as written", () => {
-    for (const step of TOUR_STEPS) expect(resolveStep(step, true)).toBe(step);
   });
 });
 

@@ -41,12 +41,13 @@ test("walks every step on your own pages, then Done returns to My account", asyn
 
   await next(page).tap();
   await next(page).tap();
-  await page.waitForURL(`**/${owner.username}?tour=4&**`);
+  await page.waitForURL(`**/${owner.username}/view?tour=4&**`);
   await expect(dialog(page)).toContainText("4 of 5");
   await expect(dialog(page)).toContainText("Your combined logbook");
   await expect(page.locator("#panel-logbook")).toBeVisible();
 
   await next(page).tap();
+  await page.waitForURL(`**/${owner.username}/view/map?tour=5&**`);
   await expect(dialog(page)).toContainText("5 of 5");
   await expect(page.locator("#panel-map")).toBeVisible();
   const card = await dialog(page).boundingBox();
@@ -62,7 +63,7 @@ test("walks every step on your own pages, then Done returns to My account", asyn
   await expect(dialog(page)).toHaveCount(0);
 });
 
-test("a private logbook has no profile to show, so those steps stay on your own pages", async ({ page, owner }) => {
+test("a private logbook gets the same tour, on its own combined view", async ({ page, owner }) => {
   await owner.settings({ logbookPublic: false });
   await startFromMyAccount(page, owner);
   await page.waitForURL(`**/${owner.username}/log?tour=1&**`);
@@ -70,14 +71,10 @@ test("a private logbook has no profile to show, so those steps stay on your own 
   await next(page).tap();
   await next(page).tap();
 
-  await expect(dialog(page)).toContainText("4 of 5");
-  await expect(dialog(page)).toContainText("Yours is private");
-  expect(new URL(page.url()).pathname).toBe(`/${owner.username}/log`);
-
+  await page.waitForURL(`**/${owner.username}/view?tour=4&**`);
+  await expect(dialog(page)).toContainText("Your combined logbook");
   await next(page).tap();
-  await page.waitForURL(`**/${owner.username}/map?tour=5&**`);
-  await expect(dialog(page)).toContainText("5 of 5");
-  await expect(dialog(page)).toContainText("Every place you've climbed");
+  await page.waitForURL(`**/${owner.username}/view/map?tour=5&**`);
   await expect(page.locator("#map-container")).toBeVisible();
 });
 
@@ -96,13 +93,13 @@ test("a visitor on a demo account stays on that account all the way through", as
   await next(page).tap();
   await next(page).tap();
   await next(page).tap();
-  await page.waitForURL("**/beginnerdemo?tour=4");
+  await page.waitForURL("**/beginnerdemo/view?tour=4");
   await expect(dialog(page)).toContainText("4 of 5");
 
   await page.keyboard.press("Escape");
   await expect(dialog(page)).toHaveCount(0);
   expect(new URL(page.url()).search).toBe("");
-  expect(await page.evaluate(() => document.getElementById("view-tabs").inert)).toBe(false);
+  expect(await page.evaluate(() => document.getElementById("main").inert)).toBe(false);
 });
 
 test("Escape ends the tour and the page is usable again", async ({ page }) => {
