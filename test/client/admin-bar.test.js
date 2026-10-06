@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { syncAdminBar } from "../../client/admin-bar.js";
 
 function makeAdminAuth(overrides = {}) {
-  return { getUsername: () => null, isAthleteMode: () => false, ...overrides };
+  return { getUsername: () => null, isAthleteMode: () => false, isLogbookPublic: () => true, ...overrides };
 }
 
 beforeEach(() => {
@@ -61,5 +61,26 @@ describe("syncAdminBar", () => {
       headerChrome,
     });
     expect(tab.hidden).toBe(true);
+  });
+
+  it("shows View public logbook only for a signed-in owner whose logbook is public, pointing at their profile", () => {
+    document.body.insertAdjacentHTML("beforeend", '<a id="public-logbook-link" hidden></a>');
+    const headerChrome = { updateMenuDivider: vi.fn() };
+    const store = { isLoggedIn: () => true };
+    const link = document.getElementById("public-logbook-link");
+
+    syncAdminBar({ store, adminAuth: makeAdminAuth({ getUsername: () => "raven" }), headerChrome });
+    expect(link.hidden).toBe(false);
+    expect(link.getAttribute("href")).toBe("/raven");
+
+    syncAdminBar({
+      store,
+      adminAuth: makeAdminAuth({ getUsername: () => "raven", isLogbookPublic: () => false }),
+      headerChrome,
+    });
+    expect(link.hidden).toBe(true);
+
+    syncAdminBar({ store, adminAuth: makeAdminAuth(), headerChrome });
+    expect(link.hidden).toBe(true);
   });
 });
