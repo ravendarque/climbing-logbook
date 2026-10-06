@@ -1,8 +1,27 @@
-import { TOUR_STEPS } from "./steps.js";
+import { readSettingsCache } from "../settings-cache.js";
+import { tourSteps } from "./steps.js";
 import { isOnPage, readTourRequest, tourUrl } from "./tour-url.js";
 
 const TARGET_TIMEOUT_MS = 8000;
 const SPOT_PAD_PX = 6;
+
+function currentSteps() {
+  return tourSteps({ discipline: readSettingsCache()?.activeDiscipline });
+}
+
+function isTall(rect) {
+  return !!rect && rect.height > window.innerHeight * 0.6;
+}
+
+function unionRect(elements) {
+  const rects = elements.map(element => element.getBoundingClientRect()).filter(rect => rect.width || rect.height);
+  if (!rects.length) return null;
+  const left = Math.min(...rects.map(r => r.left));
+  const top = Math.min(...rects.map(r => r.top));
+  const right = Math.max(...rects.map(r => r.right));
+  const bottom = Math.max(...rects.map(r => r.bottom));
+  return { left, top, width: right - left, height: bottom - top };
+}
 
 const STATES = {
   "add-form": {
@@ -49,6 +68,7 @@ function buildLayer(doc) {
   const layer = el(doc, "div", "fixed inset-0 z-[1000]");
   const shield = el(doc, "div", "absolute inset-0");
   const spot = el(doc, "div", "fixed rounded-[10px] pointer-events-none");
+  spot.id = "tour-spot";
   spot.style.cssText =
     "box-shadow:0 0 0 100vmax rgba(0,0,0,.68);outline:2px solid var(--color-accent);outline-offset:2px";
 
@@ -95,7 +115,8 @@ function buildLayer(doc) {
 export function runTour(request, { doc = document, loc = window.location } = {}) {
   const ui = buildLayer(doc);
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const stepAt = i => TOUR_STEPS[i];
+  const steps = currentSteps();
+  const stepAt = i => steps[i];
   const inerted = [...doc.body.children].filter(node => node.tagName !== "SCRIPT");
   let index = request.step;
   let activeState = null;
@@ -105,21 +126,22 @@ export function runTour(request, { doc = document, loc = window.location } = {})
 
   function place() {
     frame = 0;
-    if (!target) {
+    const rect = target && unionRect(target);
+    if (!rect) {
       ui.spot.hidden = true;
       ui.shield.style.background = "rgba(0,0,0,.68)";
       ui.card.style.cssText = "bottom:12px";
       return;
     }
     ui.shield.style.background = "";
-    const rect = target.getBoundingClientRect();
     ui.spot.hidden = false;
     ui.spot.style.left = `${rect.left - SPOT_PAD_PX}px`;
     ui.spot.style.top = `${rect.top - SPOT_PAD_PX}px`;
     ui.spot.style.width = `${rect.width + SPOT_PAD_PX * 2}px`;
     ui.spot.style.height = `${rect.height + SPOT_PAD_PX * 2}px`;
     const inLowerHalf = rect.top + rect.height / 2 > window.innerHeight / 2;
-    ui.card.style.cssText = inLowerHalf && stepAt(index).placement !== "bottom" ? "top:12px" : "bottom:12px";
+    const cardOnTop = inLowerHalf && !isTall(rect) && stepAt(index).placement !== "bottom";
+    ui.card.style.cssText = cardOnTop ? "top:12px" : "bottom:12px";
   }
 
   function schedulePlace() {
@@ -139,16 +161,19 @@ export function runTour(request, { doc = document, loc = window.location } = {})
     const step = stepAt(index);
     const mine = ++token;
     await setState(step.state ?? null);
-    const found = step.target ? await waitFor(() => doc.querySelector(step.target), TARGET_TIMEOUT_MS, doc) : null;
+    const found = await waitFor(() => doc.querySelector(step.target), TARGET_TIMEOUT_MS, doc);
+    const matches = found ? [...doc.querySelectorAll(step.target)] : null;
     if (mine !== token) return;
 
-    target = found;
-    target?.scrollIntoView({ block: "center", behavior: reduceMotion ? "auto" : "smooth" });
-    ui.count.textContent = `${index + 1} of ${TOUR_STEPS.length}`;
+    target = matches;
+    // A target taller than most of the screen shows its start, with the card below.
+    const block = matches && isTall(unionRect(matches)) ? "start" : "center";
+    found?.scrollIntoView({ block, behavior: reduceMotion ? "auto" : "smooth" });
+    ui.count.textContent = `${index + 1} of ${steps.length}`;
     ui.title.textContent = step.title;
     ui.body.textContent = step.body;
     ui.back.hidden = index === 0;
-    ui.next.textContent = index === TOUR_STEPS.length - 1 ? "Done" : "Next";
+    ui.next.textContent = index === steps.length - 1 ? "Done" : "Next";
     window.history.replaceState(
       null,
       "",
@@ -179,7 +204,7 @@ export function runTour(request, { doc = document, loc = window.location } = {})
 
   function go(next) {
     if (next < 0) return;
-    if (next >= TOUR_STEPS.length) {
+    if (next >= steps.length) {
       leave();
       return;
     }
@@ -226,9 +251,10 @@ export function runTour(request, { doc = document, loc = window.location } = {})
 }
 
 export function startTour() {
-  const request = readTourRequest(window.location, TOUR_STEPS.length);
+  const steps = currentSteps();
+  const request = readTourRequest(window.location, steps.length);
   if (!request) return Promise.resolve();
-  const step = TOUR_STEPS[request.step];
+  const step = steps[request.step];
   if (!isOnPage(window.location.pathname, request.user, step.page)) {
     window.location.replace(
       tourUrl({ user: request.user, page: step.page, step: request.step, returnTo: request.returnTo }),

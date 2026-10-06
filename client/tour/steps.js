@@ -1,4 +1,6 @@
-export const TOUR_STEPS = [
+import { flashLabel, sendLabel } from "../status.js";
+
+const STEPS = [
   {
     page: "log",
     target: "#discipline-btn",
@@ -14,9 +16,28 @@ export const TOUR_STEPS = [
   {
     page: "log",
     state: "add-form",
+    target: "#place-wrap",
+    title: "Where you climbed",
+    body: "Pick a place from your list, or add a new one: the crag or wall, its area and its country. You only add each place once, then reuse it.",
+  },
+  {
+    page: "log",
+    state: "add-form",
     target: "climbing-status-picker",
     title: "How did it go?",
     body: "Swipe to pick how it went. Enter the name, location, grade, status and other info. If you've enabled Athlete Mode, you can also enter additional information that feeds your Performance Insights reports.",
+  },
+  {
+    page: "log",
+    target: "#header-menu-btn",
+    title: "Working offline",
+    body: "No signal at the crag? Keep logging. Everything saves on your phone and syncs by itself when you're back online. Until then, a red badge on the menu shows how many changes are waiting, and you can sync from the menu straight away.",
+  },
+  {
+    page: "log",
+    target: "#search-btn, #filter-btn, #collapse-all-btn",
+    title: "Find a climb",
+    body: "Search by name, filter by status, grade or style, and expand or collapse every place at once.",
   },
   {
     page: "view",
@@ -31,4 +52,28 @@ export const TOUR_STEPS = [
     title: "Your map",
     body: "Every place you've climbed, with a count for each. Tap a pin to see them.",
   },
+  {
+    page: "log",
+    target: "#performance-tab",
+    title: "Performance Insights",
+    body: "Reports built from your climbs, visible only to you. Turn on Athlete Mode in My account to get them.",
+  },
+  {
+    page: "log",
+    state: "add-form",
+    target: "#entry-nav-forward",
+    title: "Log more detail",
+    body: "With Athlete Mode on, the form's second page records your exertion, attempts, how hard each move felt and any pain. That's what your reports are built from.",
+  },
+  {
+    page: "performance",
+    target: "#insight-tiles",
+    title: "Your reports",
+    body: ({ discipline }) =>
+      `Grade Pyramid, Volume / Intensity, the ${sendLabel(discipline)} / ${flashLabel(discipline)} Gap, Effort / RPE Trend, Strengths / Weaknesses and the Injury / Pain Log. Open any of them for the detail.`,
+  },
 ];
+
+export function tourSteps({ discipline = "boulder" } = {}) {
+  return STEPS.map(step => (typeof step.body === "function" ? { ...step, body: step.body({ discipline }) } : step));
+}
