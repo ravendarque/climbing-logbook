@@ -1,4 +1,3 @@
-import { isDemoUsername } from "../demo-mode.js";
 import { readSettingsCache } from "../settings-cache.js";
 import { tourSteps } from "./steps.js";
 import { isOnPage, readTourRequest, tourUrl } from "./tour-url.js";
@@ -6,11 +5,8 @@ import { isOnPage, readTourRequest, tourUrl } from "./tour-url.js";
 const TARGET_TIMEOUT_MS = 8000;
 const SPOT_PAD_PX = 6;
 
-// The same on every page of the tour, so step numbers in the URL always mean the same step.
-function stepsFor(user) {
-  const settings = readSettingsCache();
-  const athlete = !isDemoUsername(user) && settings?.athleteMode === true;
-  return tourSteps({ insights: athlete || isDemoUsername(user), athlete, discipline: settings?.activeDiscipline });
+function currentSteps() {
+  return tourSteps({ discipline: readSettingsCache()?.activeDiscipline });
 }
 
 function isTall(rect) {
@@ -119,7 +115,7 @@ function buildLayer(doc) {
 export function runTour(request, { doc = document, loc = window.location } = {}) {
   const ui = buildLayer(doc);
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const steps = stepsFor(request.user);
+  const steps = currentSteps();
   const stepAt = i => steps[i];
   const inerted = [...doc.body.children].filter(node => node.tagName !== "SCRIPT");
   let index = request.step;
@@ -165,7 +161,7 @@ export function runTour(request, { doc = document, loc = window.location } = {})
     const step = stepAt(index);
     const mine = ++token;
     await setState(step.state ?? null);
-    const found = step.target ? await waitFor(() => doc.querySelector(step.target), TARGET_TIMEOUT_MS, doc) : null;
+    const found = await waitFor(() => doc.querySelector(step.target), TARGET_TIMEOUT_MS, doc);
     const matches = found ? [...doc.querySelectorAll(step.target)] : null;
     if (mine !== token) return;
 
@@ -255,9 +251,7 @@ export function runTour(request, { doc = document, loc = window.location } = {})
 }
 
 export function startTour() {
-  const user = readTourRequest(window.location)?.user;
-  if (!user) return Promise.resolve();
-  const steps = stepsFor(user);
+  const steps = currentSteps();
   const request = readTourRequest(window.location, steps.length);
   if (!request) return Promise.resolve();
   const step = steps[request.step];

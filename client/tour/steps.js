@@ -1,13 +1,11 @@
 import { flashLabel, sendLabel } from "../status.js";
 
-// when: which accounts see the step. "insights" while Performance Insights shows (Athlete Mode, or a demo),
-// "athlete" only with Athlete Mode, "no-insights" otherwise. A target may match several controls.
 const STEPS = [
   {
     page: "log",
     target: "#discipline-btn",
     title: "Discipline",
-    body: "Use this when you're logging climbs, to choose the discipline you're working in. When you view your logbook, all your disciplines are shown together.",
+    body: "We'll show you round a demo logbook. Use this when you're logging climbs, to choose the discipline you're working in. When you view your logbook, all your disciplines are shown together.",
   },
   {
     page: "log",
@@ -33,7 +31,7 @@ const STEPS = [
     page: "log",
     target: "#header-menu-btn",
     title: "Working offline",
-    body: "No signal at the crag? Keep logging. Everything saves on your phone and syncs by itself when you're back online. Until then, a Sync button appears next to Add if you want to sync straight away, and the menu shows what's waiting.",
+    body: "No signal at the crag? Keep logging. Everything saves on your phone and syncs by itself when you're back online. Until then, a red badge on the menu shows how many changes are waiting, and you can sync from the menu straight away.",
   },
   {
     page: "log",
@@ -55,40 +53,27 @@ const STEPS = [
     body: "Every place you've climbed, with a count for each. Tap a pin to see them.",
   },
   {
-    when: "insights",
     page: "log",
     target: "#performance-tab",
     title: "Performance Insights",
-    body: "Reports built from your climbs, visible only to you.",
+    body: "Reports built from your climbs, visible only to you. Turn on Athlete Mode in My account to get them.",
   },
   {
-    when: "athlete",
     page: "log",
     state: "add-form",
     target: "#entry-nav-forward",
     title: "Log more detail",
-    body: "The form's second page records your exertion, attempts, how hard each move felt and any pain. That's what your reports are built from.",
+    body: "With Athlete Mode on, the form's second page records your exertion, attempts, how hard each move felt and any pain. That's what your reports are built from.",
   },
   {
-    when: "insights",
     page: "performance",
     target: "#insight-tiles",
     title: "Your reports",
     body: ({ discipline }) =>
       `Grade Pyramid, Volume / Intensity, the ${sendLabel(discipline)} / ${flashLabel(discipline)} Gap, Effort / RPE Trend, Strengths / Weaknesses and the Injury / Pain Log. Open any of them for the detail.`,
   },
-  {
-    when: "no-insights",
-    page: "log",
-    target: null,
-    title: "Athlete Mode",
-    body: "Train and want to see how you're progressing? Turn on Athlete Mode in My account to log more detail and unlock Performance Insights.",
-  },
 ];
 
-export function tourSteps({ insights, athlete, discipline = "boulder" }) {
-  const shows = { insights, athlete, "no-insights": !insights };
-  return STEPS.filter(step => !step.when || shows[step.when]).map(step =>
-    typeof step.body === "function" ? { ...step, body: step.body({ discipline }) } : step,
-  );
+export function tourSteps({ discipline = "boulder" } = {}) {
+  return STEPS.map(step => (typeof step.body === "function" ? { ...step, body: step.body({ discipline }) } : step));
 }

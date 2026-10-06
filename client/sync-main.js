@@ -4,7 +4,6 @@ import { getCursor, setCursor } from "./sync-cursors.js";
 import { pullSettings } from "./settings-cache.js";
 import { startPage } from "./boot-gate.js";
 import { pointApexLinksAtApex } from "./apex-links.js";
-import { restoreTourParams } from "./tour/tour-url.js";
 
 const PLACES_URL = "/-/api/places";
 const LOCATIONS_URL = "/-/api/locations";
@@ -101,7 +100,7 @@ async function boot() {
   try {
     messageEl.textContent = "Syncing your logbook…";
     await runSync(store);
-    location.href = safeReturnTo() + restoreTourParams(new URL(location.href).searchParams, location.origin);
+    location.href = safeReturnTo();
   } catch {
     cardEl.hidden = true;
     errorEl.hidden = false;

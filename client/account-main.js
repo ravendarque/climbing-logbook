@@ -20,7 +20,7 @@ const {
 
 document.getElementById("edit-account-link").href = `/${encodeURIComponent(USERNAME)}/account/edit`;
 document.getElementById("import-link").href = `/${encodeURIComponent(USERNAME)}/account/import`;
-document.getElementById("tour-link").href = tourStartUrl(USERNAME, `/${encodeURIComponent(USERNAME)}/account`);
+document.getElementById("tour-link").href = tourStartUrl(`/${encodeURIComponent(USERNAME)}/account`);
 document.getElementById("beta-row").href = `/${encodeURIComponent(USERNAME)}/account/beta`;
 document.getElementById("back-to-logbook-link").href = `/${encodeURIComponent(USERNAME)}/log`;
 
