@@ -55,9 +55,7 @@ const offlineSync = createOfflineSync({
 const entriesTable = document.querySelector("climbing-entries-table");
 
 // Moved into the table's action row, which the component has rendered by the time this runs.
-document
-  .getElementById("entries-table-actions")
-  .append(document.getElementById("add-btn"), document.getElementById("sync-btn"));
+document.getElementById("entries-table-actions").append(document.getElementById("add-btn"));
 
 function render() {
   headerChrome.updateDisciplinePicker();

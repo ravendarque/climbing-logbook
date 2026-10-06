@@ -33,6 +33,22 @@ const STATES = {
       doc.getElementById("entry-close").click();
     },
   },
+  // A copy, since a demo never has changes waiting and the page keeps its own line hidden.
+  "sync-line": {
+    enter(doc) {
+      const sample = doc.getElementById("sync-line").cloneNode(true);
+      for (const node of sample.querySelectorAll("[id]")) node.removeAttribute("id");
+      sample.id = "tour-sync-line";
+      sample.querySelector("span").textContent = "3 changes waiting to sync";
+      sample.querySelector("button").hidden = false;
+      sample.querySelector("svg").setAttribute("hidden", "");
+      sample.hidden = false;
+      doc.getElementById("sync-line").after(sample);
+    },
+    exit(doc) {
+      doc.getElementById("tour-sync-line")?.remove();
+    },
+  },
 };
 
 function nextFrame() {

@@ -22,7 +22,7 @@ test("renders the shared chrome readonly -- no edit affordances or admin rows an
   await expect(page.locator("climbing-entries-table")).toBeVisible();
 
   await expect(page.locator("#add-btn")).toHaveCount(0);
-  await expect(page.locator("#sync-btn")).toHaveCount(0);
+  await expect(page.locator("#sync-line")).toHaveCount(0);
   await expect(page.locator(".edit-btn")).toHaveCount(0);
   await expect(page.locator("#entry-overlay")).toHaveCount(0);
   await expect(page.locator("#add-place-overlay")).toHaveCount(0);
