@@ -116,3 +116,27 @@ test("the old per-discipline /map page is gone", async ({ page, owner }) => {
   const res = await page.goto(owner.url("/map"));
   expect(res.status()).toBe(404);
 });
+
+test("the menu's View public logbook opens the public profile in a new tab, and only while it's public", async ({
+  page,
+  owner,
+  context,
+}) => {
+  await owner.seed(SEED);
+  await gotoSyncedLog(page, owner);
+  await page.locator("#header-menu-btn").click();
+  const link = page.locator("#public-logbook-link");
+  await expect(link).toBeVisible();
+  await expect(link).toHaveAccessibleName("View public logbook (opens in a new tab)");
+
+  const [profile] = await Promise.all([context.waitForEvent("page"), link.click()]);
+  await profile.waitForLoadState();
+  expect(new URL(profile.url()).pathname).toBe(`/${owner.username}`);
+  await profile.close();
+
+  await owner.settings({ logbookPublic: false });
+  await page.goto(owner.url("/view"));
+  await page.locator("#header-menu-btn").click();
+  await expect(page.locator("#header-menu-popover")).toBeVisible();
+  await expect(link).toBeHidden();
+});

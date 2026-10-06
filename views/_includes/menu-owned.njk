@@ -1,6 +1,11 @@
 {% from "burger-menu.njk" import themeToggle %}
 <div class="self-start max-w-[11rem] truncate text-sm font-bold text-accent-ink text-left" id="menu-username" hidden></div>
 <a class="self-start text-sm font-semibold text-foreground text-left" id="my-account-link" href="#" hidden>My account</a>
+<a class="self-start inline-flex items-center gap-1 text-sm font-semibold text-foreground text-left" id="public-logbook-link" href="#" target="_blank" rel="noopener" hidden>
+  View public logbook
+  <svg class="w-[.85rem] h-[.85rem] shrink-0 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"></path><path d="M10 14 21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>
+  <span class="sr-only">(opens in a new tab)</span>
+</a>
 <div class="flex flex-col gap-2 self-stretch pt-2 mt-1 border-t border-border" id="header-menu-bottom-row">
   <a class="text-sm text-foreground text-left" data-apex-link href="/help/" id="menu-help-link">Help</a>
   <div class="flex items-center gap-3 text-sm" id="menu-status-row" hidden>
