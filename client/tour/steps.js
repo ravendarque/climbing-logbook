@@ -32,7 +32,7 @@ const STEPS = [
     state: "sync-line",
     target: "#tour-sync-line",
     title: "Working offline",
-    body: "No signal at the crag? Keep logging. Everything saves on your phone and syncs by itself when you're back online. Until then, a line under the tabs shows how many changes are waiting, with Sync now if you want to sync straight away.",
+    body: "No signal at the crag? Keep logging: everything is saved on your device until you're back in signal. This line shows how many changes are waiting. They sync automatically when you reconnect, or you can tap Sync now.",
   },
   {
     page: "log",
