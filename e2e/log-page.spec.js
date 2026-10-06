@@ -863,7 +863,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
 
     await expect(page.locator("#entry-overlay")).toBeHidden();
     await expect(page.locator("#sections")).toContainText(entryName);
-    await expect(page.locator("#sync-btn")).toBeVisible();
+    await expect(page.locator("#sync-line")).toBeVisible();
 
     const responsePromise = page.waitForResponse(
       res => res.url().includes("/-/api/entries") && res.request().method() === "POST",
@@ -872,7 +872,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await page.evaluate(() => window.dispatchEvent(new Event("online")));
     await responsePromise;
 
-    await expect(page.locator("#sync-btn")).toBeHidden();
+    await expect(page.locator("#sync-line")).toBeHidden();
   });
 
   async function invalidateQueuedWrite(page, owner) {
@@ -890,7 +890,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await page.locator(`#place-listbox li[data-key="${owner.ownId("p1")}"]`).click();
     await page.locator("#entry-submit-btn").click();
     await expect(page.locator("#entry-overlay")).toBeHidden();
-    await expect(page.locator("#sync-btn")).toHaveText(/Sync \(1\)/);
+    await expect(page.locator("#sync-line-text")).toHaveText("1 change waiting to sync");
   }
 
   test("a queued add the server rejects moves to the banner, and Discard clears it", async ({ page, owner }) => {
@@ -910,7 +910,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     const banner = page.locator("#failed-writes");
     await expect(banner).toBeVisible();
     await expect(banner).toContainText(`Couldn't save “${entryName}”: grade`);
-    await expect(page.locator("#sync-btn")).toBeHidden();
+    await expect(page.locator("#sync-line")).toBeHidden();
     await expect(page.locator("#sections")).not.toContainText(entryName);
 
     await banner.getByRole("button", { name: "Discard" }).click();
@@ -962,14 +962,14 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await page.locator("#place-btn").click();
     await page.locator(`#place-listbox li[data-key="${owner.ownId("p1")}"]`).click();
     await page.locator("#entry-submit-btn").click();
-    await expect(page.locator("#sync-btn")).toHaveText(/Sync \(2\)/);
+    await expect(page.locator("#sync-line-text")).toHaveText("2 changes waiting to sync");
 
     mode = "down";
     const replayed = page.waitForResponse(res => res.url().includes("/-/api/entries") && res.status() === 503);
     await page.evaluate(() => window.dispatchEvent(new Event("online")));
     await replayed;
 
-    await expect(page.locator("#sync-btn")).toHaveText(/Sync \(2\)/);
+    await expect(page.locator("#sync-line-text")).toHaveText("2 changes waiting to sync");
     await expect(page.locator("#failed-writes")).toBeHidden();
     // Another trigger may retry the head of the queue, but nothing behind a failing item is ever sent.
     expect(sentWhileDown.length).toBeGreaterThan(0);
@@ -992,7 +992,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
 
     await expect(page.locator("#entry-msg")).toContainText("Error 500");
     await expect(page.locator("#entry-overlay")).toBeVisible();
-    await expect(page.locator("#sync-btn")).toBeHidden();
+    await expect(page.locator("#sync-line")).toBeHidden();
   });
 
   test("queues a save the server answers with a 401, and shows the page as signed out", async ({ page, owner }) => {
@@ -1031,7 +1031,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
 
     await expect(page.locator("#entry-overlay")).toBeHidden({ timeout: 15_000 });
     await expect(page.locator("#sections")).toContainText(entryName);
-    await expect(page.locator("#sync-btn")).toHaveText(/Sync \(1\)/);
+    await expect(page.locator("#sync-line-text")).toHaveText("1 change waiting to sync");
   });
 
   // Responses, not requests: an aborted write has none, and one sent before a listener attaches still arrives.
@@ -1080,7 +1080,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await page.evaluate(() => window.dispatchEvent(new Event("online")));
 
     await expect(page.locator("#sections")).not.toContainText(entryName);
-    await expect(page.locator("#sync-btn")).toBeHidden();
+    await expect(page.locator("#sync-line")).toBeHidden();
 
     await expect.poll(() => savedWrites).toEqual(["POST", "DELETE"]);
   });
@@ -1122,7 +1122,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
 
     await expect(page.locator("#sections")).not.toContainText("Boulder Seed");
     await expect(page.locator("#sections")).not.toContainText("Edited By Other Device");
-    await expect(page.locator("#sync-btn")).toBeHidden();
+    await expect(page.locator("#sync-line")).toBeHidden();
 
     const cached = await cachedEntries(page, owner.username);
     expect(cached.some(e => e._pending || e._pendingDelete)).toBe(false);
@@ -1156,7 +1156,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
       window.dispatchEvent(new Event("online"));
     });
 
-    await expect(page.locator("#sync-btn")).toBeHidden();
+    await expect(page.locator("#sync-line")).toBeHidden();
     await expect.poll(() => savedWrites).toEqual(["POST"]);
   });
 
@@ -1197,11 +1197,11 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
     await page.locator("#entry-submit-btn").click();
     await expect(page.locator("#entry-overlay")).toBeHidden();
     await expect(page.locator("#sections")).toContainText(entryName);
-    await expect(page.locator("#sync-btn")).toBeVisible();
+    await expect(page.locator("#sync-line")).toBeVisible();
 
     failing = false;
     await page.evaluate(() => window.dispatchEvent(new Event("online")));
-    await expect(page.locator("#sync-btn")).toBeHidden();
+    await expect(page.locator("#sync-line")).toBeHidden();
 
     await expect(page.locator("#sections")).toContainText(entryName);
     await expect(page.locator(".place-header", { hasText: "Existing Crag" })).toHaveCount(1);
@@ -1230,7 +1230,7 @@ test.describe("Offline queue (client/offline-sync.js)", () => {
 
     await page.locator("#entry-submit-btn").click();
     await expect(page.locator("#entry-overlay")).toBeHidden();
-    await expect(page.locator("#sync-btn")).toBeHidden();
+    await expect(page.locator("#sync-line")).toBeHidden();
     await expect(page.locator(".place-header", { hasText: "Existing Crag" })).toHaveCount(1);
     await expect(page.locator("#sections")).toContainText(entryName);
   });
@@ -1524,7 +1524,7 @@ test.describe("A full device (#1083)", () => {
     await expect(page.locator("#entry-msg")).toContainText("Your device's storage is full");
     await expect(page.locator("#entry-overlay")).toBeVisible();
     await expect(page.locator("#entry-name")).toHaveValue(entryName);
-    await expect(page.locator("#sync-btn")).toBeHidden();
+    await expect(page.locator("#sync-line")).toBeHidden();
   });
 });
 

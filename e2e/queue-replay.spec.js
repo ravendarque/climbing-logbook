@@ -34,7 +34,7 @@ test("a queued add and delete, in the pre-#992 shape, replay to /-/api/entries",
     { owner: OWNER, record },
   );
   await page.reload();
-  await expect(page.locator("#sync-btn")).toHaveText(/Sync \(2\)/);
+  await expect(page.locator("#sync-line-text")).toHaveText("2 changes waiting to sync");
 
   const writes = [];
   page.on("response", res => {
@@ -42,8 +42,8 @@ test("a queued add and delete, in the pre-#992 shape, replay to /-/api/entries",
       writes.push(`${res.request().method()} ${new URL(res.url()).pathname} ${res.status()}`);
     }
   });
-  await page.locator("#sync-btn").click();
-  await expect(page.locator("#sync-btn")).toBeHidden();
+  await page.locator("#sync-now").click();
+  await expect(page.locator("#sync-line")).toBeHidden();
 
   expect(writes).toEqual(["POST /-/api/entries 201", "DELETE /-/api/entries 204"]);
   const queue = await page.evaluate(owner => localStorage.getItem(`logbook_pending_queue:${owner}`), OWNER);
@@ -71,7 +71,7 @@ test("a write queued while a sync is in flight is still queued afterwards", asyn
     { key: queueKey(OWNER), record },
   );
   await page.reload();
-  await expect(page.locator("#sync-btn")).toHaveText(/Sync \(1\)/);
+  await expect(page.locator("#sync-line-text")).toHaveText("1 change waiting to sync");
 
   // Hold the replayed POST so the sync is still in flight.
   let postReached;
@@ -92,8 +92,11 @@ test("a write queued while a sync is in flight is still queued afterwards", asyn
       await route.continue();
     },
   );
-  await page.locator("#sync-btn").click();
+  await page.locator("#sync-now").click();
   await reached;
+  await expect(page.locator("#sync-line-text")).toHaveText("Syncing 1 change…");
+  await expect(page.locator("#sync-now")).toBeHidden();
+  await expect(page.locator("#sync-line-spinner")).toBeVisible();
 
   // What entry-form.js does when a save can't reach the server. A delete
   // of the same entry, so the shared dev data ends up unchanged.
@@ -106,13 +109,13 @@ test("a write queued while a sync is in flight is still queued afterwards", asyn
   );
   releasePost();
 
-  await expect(page.locator("#sync-btn")).toBeEnabled();
-  await expect(page.locator("#sync-btn")).toHaveText(/Sync \(1\)/);
+  await expect(page.locator("#sync-now")).toBeVisible();
+  await expect(page.locator("#sync-line-text")).toHaveText("1 change waiting to sync");
   const queue = JSON.parse(await page.evaluate(key => localStorage.getItem(key), queueKey(OWNER)));
   expect(queue.map(({ op, record }) => `${op} ${record.id}`)).toEqual([`delete ${record.id}`]);
 
-  await page.locator("#sync-btn").click();
-  await expect(page.locator("#sync-btn")).toBeHidden();
+  await page.locator("#sync-now").click();
+  await expect(page.locator("#sync-line")).toBeHidden();
 });
 
 test("a save made while an older edit is queued is sent after it, and wins", async ({ page }) => {
@@ -141,7 +144,7 @@ test("a save made while an older edit is queued is sent after it, and wins", asy
     { key: queueKey(OWNER), record: { ...entry, name: "Older queued edit" } },
   );
   await page.reload();
-  await expect(page.locator("#sync-btn")).toHaveText(/Sync \(1\)/);
+  await expect(page.locator("#sync-line-text")).toHaveText("1 change waiting to sync");
   await expect(page.locator("#sections")).toContainText("Older queued edit");
 
   const writes = [];
@@ -153,7 +156,7 @@ test("a save made while an older edit is queued is sent after it, and wins", asy
   await expect(page.locator("#entry-name")).toBeVisible();
   await page.locator("#entry-name").fill("Newer edit");
   await page.locator("#entry-submit-btn").click();
-  await expect(page.locator("#sync-btn")).toBeHidden();
+  await expect(page.locator("#sync-line")).toBeHidden();
 
   expect(writes).toEqual(["PUT Older queued edit", "PUT Newer edit"]);
   const saved = await page.evaluate(

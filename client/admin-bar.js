@@ -30,7 +30,7 @@ export function syncAdminBar({ store, adminAuth, headerChrome, tabBar, addBtn, o
     if (username) publicLogbookLink.href = resolveMyXUrl(location.hostname, `/${encodeURIComponent(username)}`);
   }
   headerChrome.updateMenuDivider();
-  if (offlineSync) offlineSync.updateSyncButton();
+  if (offlineSync) offlineSync.updateSyncLine();
   const performanceTab = document.getElementById("performance-tab");
   if (performanceTab) performanceTab.hidden = !(isDemo || (store.isLoggedIn() && adminAuth.isAthleteMode()));
   if (tabBar) tabBar.markReady();

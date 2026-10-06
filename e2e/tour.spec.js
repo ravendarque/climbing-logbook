@@ -53,11 +53,13 @@ test("the same eleven steps for everyone, across the log, the combined view and 
 
   await next(page).tap();
   await expectStep(page, 5, "Working offline");
-  await expect(dialog(page)).toContainText("a red badge on the menu");
+  await expect(page.locator("#tour-sync-line")).toHaveText(/3 changes waiting to sync\s*Sync now/);
+  await expect(page.locator("#sync-line")).toBeHidden();
   await expect(page.locator("#entry-overlay")).toBeHidden();
 
   await next(page).tap();
   await expectStep(page, 6, "Find a climb");
+  await expect(page.locator("#tour-sync-line")).toHaveCount(0);
 
   await next(page).tap();
   await page.waitForURL("**/intermediatedemo/view?tour=7&**");

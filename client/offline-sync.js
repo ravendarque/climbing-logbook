@@ -16,11 +16,13 @@ export function createOfflineSync({
   queueKey,
   onFailedWrites = () => {},
 }) {
-  const syncBtn = document.getElementById("sync-btn");
-  const syncBtnLabel = document.getElementById("sync-btn-label");
-  const syncBtnIcon = document.getElementById("sync-btn-icon");
+  const syncLine = document.getElementById("sync-line");
+  const syncLineText = document.getElementById("sync-line-text");
+  const syncNow = document.getElementById("sync-now");
+  const syncSpinner = document.getElementById("sync-line-spinner");
   const installNudge = document.getElementById("install-nudge");
   const showInstallNudge = isSafariTab();
+  let syncInFlight = false;
 
   function getQueue() {
     return readPendingQueue(queueKey);
@@ -33,7 +35,7 @@ export function createOfflineSync({
       if (!isQuotaError(err)) throw err;
       return false;
     }
-    updateSyncButton();
+    updateSyncLine();
     return true;
   }
   // Read and write storage with no await between, or a concurrent change is lost. qid identifies an item.
@@ -46,11 +48,14 @@ export function createOfflineSync({
     if (queue.every(item => item.qid)) return;
     setQueue(queue.map(item => (item.qid ? item : { ...item, qid: crypto.randomUUID() })));
   }
-  function updateSyncButton() {
+  function updateSyncLine() {
     const n = getQueue().length;
+    const changes = `${n} ${n === 1 ? "change" : "changes"}`;
     // Hidden while logged out: a sync needs a session.
-    syncBtn.hidden = n === 0 || !store.isLoggedIn();
-    syncBtnLabel.textContent = n ? `Sync (${n})` : "Sync";
+    syncLine.hidden = n === 0 || !store.isLoggedIn();
+    syncLineText.textContent = syncInFlight ? `Syncing ${changes}…` : `${changes} waiting to sync`;
+    syncNow.hidden = syncInFlight;
+    syncSpinner.toggleAttribute("hidden", !syncInFlight);
     installNudge.hidden = n === 0 || !showInstallNudge;
   }
 
@@ -112,7 +117,6 @@ export function createOfflineSync({
     retryDelay = Math.min(retryDelay * 2, MAX_RETRY_MS);
   }
 
-  let syncInFlight = false;
   // A save queued mid-replay asks for another pass rather than waiting for the next trigger.
   let syncAgain = false;
 
@@ -215,8 +219,7 @@ export function createOfflineSync({
       return;
     }
     syncInFlight = true;
-    syncBtn.disabled = true;
-    syncBtnIcon.classList.add("animate-spin");
+    updateSyncLine();
 
     try {
       await syncStatusIcon.track(pullDeltas());
@@ -229,15 +232,14 @@ export function createOfflineSync({
     } finally {
       syncInFlight = false;
       syncAgain = false;
-      syncBtn.disabled = false;
-      syncBtnIcon.classList.remove("animate-spin");
+      updateSyncLine();
     }
   }
 
-  syncBtn.addEventListener("click", syncPending);
+  syncNow.addEventListener("click", syncPending);
   window.addEventListener("online", () => {
     if (store.isLoggedIn()) syncPending();
   });
 
-  return { getQueue, setQueue, enqueue, syncPending, updateSyncButton, reconcileEntries };
+  return { getQueue, setQueue, enqueue, syncPending, updateSyncLine, reconcileEntries };
 }

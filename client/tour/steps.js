@@ -29,9 +29,10 @@ const STEPS = [
   },
   {
     page: "log",
-    target: "#header-menu-btn",
+    state: "sync-line",
+    target: "#tour-sync-line",
     title: "Working offline",
-    body: "No signal at the crag? Keep logging. Everything saves on your phone and syncs by itself when you're back online. Until then, a red badge on the menu shows how many changes are waiting, and you can sync from the menu straight away.",
+    body: "No signal at the crag? Keep logging. Everything saves on your phone and syncs by itself when you're back online. Until then, a line under the tabs shows how many changes are waiting, with Sync now if you want to sync straight away.",
   },
   {
     page: "log",
