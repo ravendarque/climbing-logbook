@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { pullSettings, readSettingsCache, SETTINGS_CACHE_KEY } from "../../client/settings-cache.js";
+import { needsOnboarding, pullSettings, readSettingsCache, SETTINGS_CACHE_KEY } from "../../client/settings-cache.js";
 
-const SERVER = { athleteMode: true, logbookPublic: false, betaOptIn: true, activeDiscipline: "sport" };
+const SERVER = {
+  athleteMode: true,
+  logbookPublic: false,
+  betaOptIn: true,
+  activeDiscipline: "sport",
+  onboardingCompleted: true,
+};
 
 function answer(body, ok = true) {
   vi.stubGlobal(
@@ -29,6 +35,7 @@ describe("pullSettings (#1177)", () => {
       logbookPublic: false,
       betaOptIn: false,
       activeDiscipline: "boulder",
+      onboardingCompleted: false,
     });
   });
 
@@ -88,5 +95,17 @@ describe("readSettingsCache", () => {
     expect(readSettingsCache()).toBeNull();
     localStorage.setItem(SETTINGS_CACHE_KEY, "{not json");
     expect(readSettingsCache()).toBeNull();
+  });
+});
+
+describe("needsOnboarding", () => {
+  it("only when the server said onboarding isn't done, not when nothing is known", async () => {
+    expect(needsOnboarding()).toBe(false);
+    answer({ ...SERVER, onboardingCompleted: false });
+    await pullSettings();
+    expect(needsOnboarding()).toBe(true);
+    answer(SERVER);
+    await pullSettings();
+    expect(needsOnboarding()).toBe(false);
   });
 });

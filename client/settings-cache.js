@@ -18,10 +18,17 @@ export function readSettingsCache(storage = localStorage) {
 }
 
 export function writeSettingsCache(
-  { athleteMode, logbookPublic, betaOptIn, activeDiscipline },
+  { athleteMode, logbookPublic, betaOptIn, activeDiscipline, onboardingCompleted },
   storage = localStorage,
 ) {
-  storage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({ athleteMode, logbookPublic, betaOptIn, activeDiscipline }));
+  storage.setItem(
+    SETTINGS_CACHE_KEY,
+    JSON.stringify({ athleteMode, logbookPublic, betaOptIn, activeDiscipline, onboardingCompleted }),
+  );
+}
+
+export function needsOnboarding(storage = localStorage) {
+  return readSettingsCache(storage)?.onboardingCompleted === false;
 }
 
 export async function pullSettings({ onTimeout = () => {} } = {}) {
@@ -33,6 +40,7 @@ export async function pullSettings({ onTimeout = () => {} } = {}) {
       athleteMode: !!data.athleteMode,
       logbookPublic: !!data.logbookPublic,
       betaOptIn: data.betaOptIn === true,
+      onboardingCompleted: data.onboardingCompleted === true,
       activeDiscipline:
         validDiscipline(data.activeDiscipline) ?? validDiscipline(readSettingsCache()?.activeDiscipline),
     };

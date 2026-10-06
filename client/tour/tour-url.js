@@ -32,6 +32,22 @@ function tourPageOwner(pathname) {
   return isDemoUsername(user) ? user : null;
 }
 
+export const DEMO_TOUR_SEEN_KEY = "logbook_demo_tour_seen";
+
+// A visitor's first demo page on this device starts the tour there, once.
+export function firstDemoVisitTourUrl(loc = window.location, storage = localStorage) {
+  if (new URLSearchParams(loc.search).has("tour")) return null;
+  const user = tourPageOwner(loc.pathname);
+  if (!user) return null;
+  try {
+    if (storage.getItem(DEMO_TOUR_SEEN_KEY)) return null;
+    storage.setItem(DEMO_TOUR_SEEN_KEY, "1");
+  } catch {
+    return null;
+  }
+  return tourUrl({ user, page: TOUR_FIRST_PAGE, step: 0, returnTo: loc.pathname });
+}
+
 export function readTourRequest(loc = window.location, stepCount = Number.POSITIVE_INFINITY) {
   const params = new URLSearchParams(loc.search);
   if (!params.has("tour")) return null;

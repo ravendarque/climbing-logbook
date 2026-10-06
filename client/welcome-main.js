@@ -2,6 +2,7 @@ import { createAccountShell } from "./account-shell.js";
 import { startPage } from "./boot-gate.js";
 import { resolveMyXUrl } from "./resolve-cross-hostname-url.js";
 import "./components/climbing-import.js";
+import { tourStartUrl } from "./tour/tour-url.js";
 
 const STEP_COUNT = 4;
 
@@ -107,7 +108,7 @@ nextBtn.addEventListener("click", async () => {
     ok = (await adminAuth.completeOnboarding()).ok;
   } catch {}
   if (ok) {
-    window.location.href = `${USER_PATH}/log`;
+    window.location.href = tourStartUrl(`${USER_PATH}/log`);
     return;
   }
   nextBtn.disabled = false;
@@ -116,6 +117,10 @@ nextBtn.addEventListener("click", async () => {
 
 async function boot() {
   await Promise.all([adminAuth.checkSession(), adminAuth.fetchSettings()]);
+  if (adminAuth.isOnboardingCompleted()) {
+    window.location.replace(`${USER_PATH}/log`);
+    return;
+  }
   updateAdminBar();
   (adminAuth.isLogbookPublic() ? publicRadio : privateRadio).checked = true;
   (adminAuth.isAthleteMode() ? athleteOnRadio : athleteOffRadio).checked = true;

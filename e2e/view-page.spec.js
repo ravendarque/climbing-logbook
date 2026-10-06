@@ -1,4 +1,4 @@
-import { expect, gotoSyncedLog, test } from "./owner.js";
+import { DEMO_TOUR_SEEN, expect, gotoSyncedLog, test } from "./owner.js";
 
 const SEED = {
   entries: [
@@ -72,7 +72,9 @@ test("choosing Combined doesn't change the saved discipline", async ({ page, own
 });
 
 test("a demo account's combined view needs no session", async ({ browser }) => {
-  const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+  const context = await browser.newContext({
+    storageState: { cookies: [], origins: [{ origin: "http://my.localhost:8787", localStorage: [DEMO_TOUR_SEEN] }] },
+  });
   const page = await context.newPage();
   await page.goto("http://my.localhost:8787/intermediatedemo/view");
   await expect(page.locator("#discipline-btn-label")).toHaveText("Combined");

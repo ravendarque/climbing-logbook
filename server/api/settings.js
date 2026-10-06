@@ -47,8 +47,8 @@ export async function handlePatchSettings(request, env, userId) {
   if ("betaOptIn" in body && typeof body.betaOptIn !== "boolean") {
     return json({ error: "betaOptIn must be a boolean" }, 400);
   }
-  if ("onboardingCompleted" in body && typeof body.onboardingCompleted !== "boolean") {
-    return json({ error: "onboardingCompleted must be a boolean" }, 400);
+  if ("onboardingCompleted" in body && body.onboardingCompleted !== true) {
+    return json({ error: "onboardingCompleted can only be set to true" }, 400);
   }
 
   // No row exists until a user's first PATCH.
@@ -74,10 +74,7 @@ export async function handlePatchSettings(request, env, userId) {
     sets.push("beta_opt_in = ?");
     values.push(body.betaOptIn ? 1 : 0);
   }
-  if ("onboardingCompleted" in body) {
-    sets.push("onboarding_completed = ?");
-    values.push(body.onboardingCompleted ? 1 : 0);
-  }
+  if ("onboardingCompleted" in body) sets.push("onboarding_completed = 1");
 
   if (sets.length > 0) {
     await env.LOGBOOK_DB.prepare(

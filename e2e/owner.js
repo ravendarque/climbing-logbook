@@ -5,6 +5,10 @@ import { OWNED_ORIGIN, ownedRouteUrl } from "./owned-route-url.js";
 export const OWNER_POOL_PATH = "e2e/.auth/owners.json";
 const OWNER_NEXT_PATH = "e2e/.auth/owners-next";
 export const OWNER_POOL_SIZE = 300;
+export const NEW_OWNER_POOL_PATH = "e2e/.auth/new-owners.json";
+const NEW_OWNER_NEXT_PATH = "e2e/.auth/new-owners-next";
+export const NEW_OWNER_POOL_SIZE = 10;
+export const DEMO_TOUR_SEEN = { name: "logbook_demo_tour_seen", value: "1" };
 
 function ownerIdentity(username) {
   return { username, email: `${username}@climbinglogbook.local`, password: "correct-horse-battery-staple" };
@@ -14,16 +18,23 @@ export function ownerPoolUser(i) {
   return { ...ownerIdentity(`e2eowner${String(i).padStart(3, "0")}`), name: "E2E Owner" };
 }
 
-export function resetOwnerPool(owners) {
-  writeFileSync(OWNER_POOL_PATH, JSON.stringify(owners));
-  writeFileSync(OWNER_NEXT_PATH, "0");
+// Users who haven't been through the first-login setup yet.
+export function newOwnerPoolUser(i) {
+  return { ...ownerIdentity(`e2enew${String(i).padStart(3, "0")}`), name: "E2E New Owner" };
 }
 
-function claimOwner() {
-  const owners = JSON.parse(readFileSync(OWNER_POOL_PATH, "utf8"));
-  const next = Number(readFileSync(OWNER_NEXT_PATH, "utf8"));
-  if (next >= owners.length) throw new Error("The e2e owner pool is used up; raise OWNER_POOL_SIZE in e2e/owner.js");
-  writeFileSync(OWNER_NEXT_PATH, String(next + 1));
+export function resetOwnerPool(owners, newOwners) {
+  writeFileSync(OWNER_POOL_PATH, JSON.stringify(owners));
+  writeFileSync(OWNER_NEXT_PATH, "0");
+  writeFileSync(NEW_OWNER_POOL_PATH, JSON.stringify(newOwners));
+  writeFileSync(NEW_OWNER_NEXT_PATH, "0");
+}
+
+function claimFrom(poolPath, nextPath) {
+  const owners = JSON.parse(readFileSync(poolPath, "utf8"));
+  const next = Number(readFileSync(nextPath, "utf8"));
+  if (next >= owners.length) throw new Error(`The e2e pool in ${poolPath} is used up; raise its size in e2e/owner.js`);
+  writeFileSync(nextPath, String(next + 1));
   return owners[next];
 }
 
@@ -78,7 +89,12 @@ export async function gotoSyncedLog(page, owner) {
 
 export const test = base.extend({
   owner: async ({ context }, use) => {
-    const { username, cookie } = claimOwner();
+    const { username, cookie } = claimFrom(OWNER_POOL_PATH, OWNER_NEXT_PATH);
+    await context.addCookies([{ ...cookie, domain: "my.localhost" }]);
+    await use(createOwner(username, context.request));
+  },
+  newOwner: async ({ context }, use) => {
+    const { username, cookie } = claimFrom(NEW_OWNER_POOL_PATH, NEW_OWNER_NEXT_PATH);
     await context.addCookies([{ ...cookie, domain: "my.localhost" }]);
     await use(createOwner(username, context.request));
   },

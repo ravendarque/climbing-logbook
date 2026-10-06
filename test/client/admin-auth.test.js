@@ -73,7 +73,13 @@ describe("settings cache", () => {
   it("fetchSettings() writes a fresh cache entry on success", async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ athleteMode: true, logbookPublic: false, betaOptIn: false, activeDiscipline: "boulder" }),
+      json: async () => ({
+        athleteMode: true,
+        logbookPublic: false,
+        betaOptIn: false,
+        activeDiscipline: "boulder",
+        onboardingCompleted: true,
+      }),
     });
     const adminAuth = createAdminAuth({
       store: makeStore(),
@@ -87,6 +93,7 @@ describe("settings cache", () => {
       logbookPublic: false,
       betaOptIn: false,
       activeDiscipline: "boulder",
+      onboardingCompleted: true,
     });
   });
 

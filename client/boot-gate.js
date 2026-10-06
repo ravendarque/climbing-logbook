@@ -1,7 +1,7 @@
 import { ownershipAllowsBoot } from "./ownership-guard.js";
 import { enrollmentAllowsBoot } from "./channel-guard.js";
 import { registerServiceWorker } from "./register-sw.js";
-import { launchTourWhenRequested } from "./tour/launch.js";
+import { launchTourWhenRequested, startsFirstDemoTour } from "./tour/launch.js";
 
 export async function pageAllowsBoot() {
   return (await ownershipAllowsBoot()) && enrollmentAllowsBoot();
@@ -9,7 +9,7 @@ export async function pageAllowsBoot() {
 
 export function startPage(boot) {
   pageAllowsBoot().then(allowed => {
-    if (!allowed) return;
+    if (!allowed || startsFirstDemoTour()) return;
     const booted = boot();
     registerServiceWorker({ after: booted });
     launchTourWhenRequested(booted);
