@@ -28,6 +28,7 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
   let athleteMode = !!cachedSettings?.athleteMode;
   let logbookPublic = cachedSettings ? !!cachedSettings.logbookPublic : true;
   let betaOptIn = cachedSettings?.betaOptIn === true;
+  let onboardingCompleted = cachedSettings?.onboardingCompleted;
   let username = null;
   let email = null;
 
@@ -35,7 +36,13 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
   let persistedDiscipline = validDiscipline(cachedSettings?.activeDiscipline);
 
   function persistSettingsCache() {
-    writeSettingsCache({ athleteMode, logbookPublic, betaOptIn, activeDiscipline: persistedDiscipline });
+    writeSettingsCache({
+      athleteMode,
+      logbookPublic,
+      betaOptIn,
+      activeDiscipline: persistedDiscipline,
+      onboardingCompleted,
+    });
   }
 
   async function fetchSettings() {
@@ -45,6 +52,7 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
     persistedDiscipline = settings.activeDiscipline;
     logbookPublic = settings.logbookPublic;
     betaOptIn = settings.betaOptIn;
+    onboardingCompleted = settings.onboardingCompleted;
   }
 
   // A failed PATCH is a normal, displayable outcome, so it returns { ok } rather than throwing.
@@ -91,8 +99,17 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
     return result;
   }
 
-  function completeOnboarding() {
-    return patchSetting("onboardingCompleted", true);
+  async function completeOnboarding() {
+    const result = await patchSetting("onboardingCompleted", true);
+    if (result.ok) {
+      onboardingCompleted = true;
+      try {
+        persistSettingsCache();
+      } catch {
+        /* storage full or blocked */
+      }
+    }
+    return result;
   }
 
   async function checkSession() {
@@ -176,6 +193,7 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
     getBetaOptIn: () => betaOptIn,
     setBetaOptIn,
     completeOnboarding,
+    isOnboardingCompleted: () => onboardingCompleted === true,
     getUsername: () => username,
     getEmail: () => email,
     getPersistedDiscipline: () => persistedDiscipline,

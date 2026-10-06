@@ -396,10 +396,12 @@ describe("settings", () => {
     expect((await read.json()).onboardingCompleted).toBe(true);
   });
 
-  it("rejects a non-boolean onboardingCompleted", async () => {
-    const res = await patchJson("/-/api/settings", { onboardingCompleted: "yes" });
-    expect(res.status).toBe(400);
-    expect((await res.json()).error).toBe("onboardingCompleted must be a boolean");
+  it("only ever sets onboardingCompleted to true", async () => {
+    for (const value of ["yes", false]) {
+      const res = await patchJson("/-/api/settings", { onboardingCompleted: value });
+      expect(res.status).toBe(400);
+      expect((await res.json()).error).toBe("onboardingCompleted can only be set to true");
+    }
   });
 
   it("rejects a non-boolean athleteMode", async () => {

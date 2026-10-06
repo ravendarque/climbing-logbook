@@ -69,7 +69,7 @@ export async function bootstrapDevSession(baseUrl, { user = DEV_USER, inviteCode
 
 const sqlString = value => `'${String(value).replace(/'/g, "''")}'`;
 
-export async function provisionUsers(baseUrl, usersWithCodes, options = {}) {
+export async function provisionUsers(baseUrl, usersWithCodes, { onboarded = true, ...options } = {}) {
   const codes = usersWithCodes.map(u => u.inviteCode ?? `dev-seed-${crypto.randomUUID()}`);
   const users = usersWithCodes.map(({ inviteCode, ...user }) => user);
   d1Execute(
@@ -89,10 +89,15 @@ export async function provisionUsers(baseUrl, usersWithCodes, options = {}) {
     }
   }
 
-  d1Execute(
-    `UPDATE "user" SET emailVerified = 1 WHERE email IN (${users.map(u => sqlString(u.email)).join(", ")})`,
-    options,
-  );
+  const emails = users.map(u => sqlString(u.email)).join(", ");
+  d1Execute(`UPDATE "user" SET emailVerified = 1 WHERE email IN (${emails})`, options);
+  // Seeded users skip the first-login setup; the e2e pool of new users keeps it.
+  if (onboarded) {
+    d1Execute(
+      `INSERT INTO settings (user_id, onboarding_completed) SELECT id, 1 FROM "user" WHERE email IN (${emails}) ON CONFLICT(user_id) DO UPDATE SET onboarding_completed = 1`,
+      options,
+    );
+  }
 
   const cookies = [];
   for (const user of users) {

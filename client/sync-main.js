@@ -1,7 +1,7 @@
 import { createStore } from "./store.js";
 import { isSynced, markSynced } from "./sync-status.js";
 import { getCursor, setCursor } from "./sync-cursors.js";
-import { pullSettings } from "./settings-cache.js";
+import { needsOnboarding, pullSettings } from "./settings-cache.js";
 import { startPage } from "./boot-gate.js";
 import { pointApexLinksAtApex } from "./apex-links.js";
 
@@ -100,7 +100,7 @@ async function boot() {
   try {
     messageEl.textContent = "Syncing your logbook…";
     await runSync(store);
-    location.href = safeReturnTo();
+    location.href = needsOnboarding() ? `/${encodeURIComponent(USERNAME)}/welcome` : safeReturnTo();
   } catch {
     cardEl.hidden = true;
     errorEl.hidden = false;
