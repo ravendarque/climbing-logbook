@@ -39,18 +39,13 @@ function crossSubDomainCookies(hostname) {
   return { enabled: true, domain: "climbinglogbook.com" };
 }
 
-// Per hostname because crossSubDomainCookies() varies by it; env is fixed per isolate.
-const authCache = new Map();
-
 // The charset also keeps app-host paths collision-free: no username contains a hyphen.
 export function isValidUsername(candidate) {
   return checkUsername(candidate).ok;
 }
 
+// Built per request, never cached: a shared instance carried one request's I/O into another (#1253).
 export function createAuth(env, hostname) {
-  const cached = authCache.get(hostname);
-  if (cached) return cached;
-
   const emailSender = createEmailSender(env);
   const auth = betterAuth({
     database: env.LOGBOOK_DB,
@@ -97,6 +92,5 @@ export function createAuth(env, hostname) {
     },
     databaseHooks: { user: { create: { after: createBetaGateAfterHook(env) } } },
   });
-  authCache.set(hostname, auth);
   return auth;
 }
