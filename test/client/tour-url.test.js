@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TOUR_STEPS } from "../../client/tour/steps.js";
+import { tourSteps } from "../../client/tour/steps.js";
 import {
   carryTourParams,
   isOnPage,
@@ -29,7 +29,7 @@ describe("tourUrl", () => {
 
   it("starts on the first step's page, on the given account", () => {
     expect(tourStartUrl("raven", "/raven/account")).toBe("/raven/log?tour=1&returnTo=%2Fraven%2Faccount");
-    expect(TOUR_STEPS[0].page).toBe(TOUR_FIRST_PAGE);
+    expect(tourSteps({ insights: false, athlete: false })[0].page).toBe(TOUR_FIRST_PAGE);
   });
 });
 
@@ -78,14 +78,54 @@ describe("readTourRequest", () => {
   });
 });
 
-describe("TOUR_STEPS", () => {
-  it("each is on an owner page, with a target, a title and a body", () => {
-    for (const step of TOUR_STEPS) {
+describe("tourSteps", () => {
+  const titles = steps => steps.map(step => step.title);
+  const shared = [
+    "Discipline",
+    "Log a climb",
+    "Where you climbed",
+    "How did it go?",
+    "Working offline",
+    "Find a climb",
+    "Your combined logbook",
+    "Your map",
+  ];
+
+  it("with Athlete Mode: every insights step, and no prompt to turn it on", () => {
+    expect(titles(tourSteps({ insights: true, athlete: true }))).toEqual([
+      ...shared,
+      "Performance Insights",
+      "Log more detail",
+      "Your reports",
+    ]);
+  });
+
+  it("on a demo: the insights pages, but not the form's extra page, which a demo visitor doesn't have", () => {
+    expect(titles(tourSteps({ insights: true, athlete: false }))).toEqual([
+      ...shared,
+      "Performance Insights",
+      "Your reports",
+    ]);
+  });
+
+  it("without Athlete Mode: one card pointing to it instead", () => {
+    expect(titles(tourSteps({ insights: false, athlete: false }))).toEqual([...shared, "Athlete Mode"]);
+  });
+
+  it("names the gap report for the discipline", () => {
+    const reports = discipline =>
+      tourSteps({ insights: true, athlete: true, discipline }).find(step => step.title === "Your reports").body;
+    expect(reports("boulder")).toContain("Send / Flash Gap");
+    expect(reports("sport")).toContain("Redpoint / Onsight Gap");
+  });
+
+  it("each step is on a tour page, with a title and a body; only the card stands without a target", () => {
+    for (const step of tourSteps({ insights: true, athlete: true })) {
       expect(["log", "view", "view/map", "performance"]).toContain(step.page);
       expect(step.target).toBeTruthy();
-      expect(step.title).toBeTruthy();
-      expect(step.body).toBeTruthy();
+      expect(typeof step.body).toBe("string");
     }
+    expect(tourSteps({ insights: false, athlete: false }).at(-1).target).toBeNull();
   });
 });
 
