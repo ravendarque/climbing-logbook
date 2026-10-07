@@ -43,6 +43,7 @@ Everything provisionable, in `infra/`:
 | Minimum TLS 1.2, HSTS, DNSSEC, and the redirect ruleset (`www` → apex, and apex-only pages from the app hosts → apex) | `infra/tls-hardening.tf` |
 | WAF custom rule blocking non-JSON `POST`s to `/-/api/` | `infra/waf.tf` |
 | Cache rules: bypass `/-/api/`, cache static assets | `infra/cache-rules.tf` |
+| Email Routing: the apex MX and SPF records, and a rule forwarding `support@` to the address in the `TF_VAR_support_forward_email` secret | `infra/email-routing.tf` |
 
 The zone is looked up by name (`var.app_zone_name`), not a hardcoded id.
 
@@ -56,7 +57,9 @@ The zone is looked up by name (`var.app_zone_name`), not a hardcoded id.
   only the old single field would reset the rest. Current settings:
   - AI crawlers: Search allow, Agent block, Training block;
   - AI Labyrinth on, Bot Fight Mode on, JS detections on;
-  - `robots.txt` is Cloudflare's managed one.
+  - Cloudflare's managed `robots.txt` is on, but it isn't served in front of
+    a Worker, so crawlers get `static/robots.txt` (`ai-train=no`, AI
+    crawlers disallowed).
 - The `ravendarque.com/logbook` → `my.climbinglogbook.com/ravendarque`
   redirect. It lives on the `ravendarque.com` zone, which this project's
   token can't read, so it was removed from state and left running.
@@ -135,6 +138,8 @@ The token's current grants (rebuilt and verified 2026-09-20):
   next rebuild.
 - **Zone `climbinglogbook.com`:** Workers Routes Write, DNS Write, Zone WAF
   Write, Cache Settings Write, Dynamic URL Redirects Write.
+- **Needed for #1280, not yet added:** Email Routing Addresses Write
+  (account) and Email Routing Rules Write (zone).
 - No access to any other zone.
 
 ## Disaster recovery
