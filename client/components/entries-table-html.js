@@ -5,6 +5,7 @@ import { gradeColor, gradeTierColor } from "../../shared/grade-data.js";
 import { VALID_SPORT_STYLES } from "../../shared/entry-schema.js";
 import { disciplineLabel, statusBadge } from "../status.js";
 import { COUNTRY_BY_NAME } from "../countries.js";
+import { resolveApexUrl } from "../resolve-cross-hostname-url.js";
 
 const EDIT_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"></path></svg>`;
 const PENDING_ICON = `<svg class="inline-block w-[.8rem] h-[.8rem] align-[-1px] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
@@ -119,6 +120,7 @@ export function shellHtml(allDisciplines) {
         <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-lg leading-none p-[.2rem] hover:text-foreground" id="notes-close" aria-label="Close">✕</button>
       </div>
       <p class="text-foreground text-base whitespace-pre-wrap" id="notes-modal-text"></p>
+      <a class="inline-block mt-4 text-sm text-muted underline underline-offset-2 hover:text-accent-ink" id="notes-report-link" data-apex-link href="#" hidden>Report this entry</a>
     </div>
   </div>
 `;
@@ -188,6 +190,7 @@ export function renderLocationSectionHtml(
       <td class="${TD_BASE} overflow-hidden">
         <span class="font-medium truncate inline-block max-w-full align-bottom ${e._pendingDelete ? "line-through text-muted" : ""}">${escapeHtml(e.name)}</span>
         ${pendingBadge}
+        ${e.hidden ? `<span class="block text-xs text-accent-ink" title="Hidden from your public logbook">Hidden (<a class="underline underline-offset-2" data-apex-link href="${escapeHtml(resolveApexUrl(location.hostname, "/help/terms/#hidden-climbs"))}" aria-label="Why is this hidden from my public logbook?">Why?</a>)</span>` : ""}
       </td>
       <td class="${TD_BASE} text-muted text-sm truncate">${escapeHtml(placeOf(e, places).area)}</td>
       <td class="${TD_BASE} text-muted text-sm whitespace-nowrap">${escapeHtml(formatDate(e.date))}</td>

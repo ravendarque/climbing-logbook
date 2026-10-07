@@ -13,6 +13,8 @@ eleventyNavigation:
 
 <p class="text-muted mb-4">Found a bug, or something that isn't working right? Let us know below.</p>
 
+<p class="mb-4 p-3 bg-surface border border-border rounded-app text-sm" id="report-about" hidden></p>
+
 {# novalidate: the native tooltip can't be reworded, so the page shows its own message. #}
 <form id="report-issue-form" novalidate>
   {# The asterisk is aria-hidden; the required attribute is what's announced. #}
@@ -35,6 +37,7 @@ eleventyNavigation:
     <option value="account">My account</option>
     <option value="import_export">Import &amp; export</option>
     <option value="help">Help pages</option>
+    <option value="public_logbook">Someone's public logbook</option>
   </select>
 
   <div id="turnstile-widget" class="mb-4"></div>

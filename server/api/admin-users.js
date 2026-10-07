@@ -39,7 +39,7 @@ export async function listUsers(request, env) {
 
 export async function listAuditLog(env) {
   const { results } = await env.LOGBOOK_DB.prepare(
-    `SELECT id, action, user_id AS userId, username, email, created_at AS createdAt
+    `SELECT id, action, user_id AS userId, username, email, detail, created_at AS createdAt
      FROM admin_audit_log ORDER BY created_at DESC, rowid DESC LIMIT ?`,
   )
     .bind(LIST_LIMIT)
@@ -51,10 +51,10 @@ async function findUser(env, id) {
   return env.LOGBOOK_DB.prepare(`SELECT ${USER_COLUMNS} ${USER_JOINS} WHERE u.id = ?`).bind(id).first();
 }
 
-function audit(env, action, user) {
+function audit(env, action, user, detail = null) {
   return env.LOGBOOK_DB.prepare(
-    `INSERT INTO admin_audit_log (id, action, user_id, username, email) VALUES (?, ?, ?, ?, ?)`,
-  ).bind(crypto.randomUUID(), action, user.id, user.username, user.email);
+    `INSERT INTO admin_audit_log (id, action, user_id, username, email, detail) VALUES (?, ?, ?, ?, ?, ?)`,
+  ).bind(crypto.randomUUID(), action, user.id, user.username, user.email, detail);
 }
 
 // Deleting and banning can't be undone, so the request has to repeat the username, as the confirmation does.
@@ -112,4 +112,26 @@ export async function actOnUser(request, env, id, action) {
   await ACTIONS[action](env, user);
   if (action === "delete" || action === "ban") return new Response(null, { status: 204 });
   return json(toUser(await findUser(env, id)));
+}
+
+// Hiding takes a climb off its owner's public logbook; the sync cursor moves so the owner's devices learn of it.
+export async function setEntryHidden(env, entryId, hidden) {
+  const entry = await env.LOGBOOK_DB.prepare(
+    `SELECT e.id, e.name, e.user_id, u.displayUsername AS username, u.email
+     FROM entries e JOIN "user" u ON u.id = e.user_id WHERE e.id = ? AND e.deleted_at IS NULL`,
+  )
+    .bind(entryId)
+    .first();
+  if (!entry) return json({ error: "Not found" }, 404);
+
+  const owner = { id: entry.user_id, username: entry.username, email: entry.email };
+  await env.LOGBOOK_DB.batch([
+    env.LOGBOOK_DB.prepare(
+      `UPDATE entries SET hidden_at = ${hidden ? "COALESCE(hidden_at, datetime('now'))" : "NULL"},
+         sync_cursor = (SELECT COALESCE(MAX(sync_cursor), 0) + 1 FROM entries WHERE user_id = ?)
+       WHERE id = ?`,
+    ).bind(entry.user_id, entry.id),
+    audit(env, hidden ? "hide" : "unhide", owner, entry.name),
+  ]);
+  return json({ id: entry.id, hidden });
 }

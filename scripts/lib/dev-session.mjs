@@ -27,6 +27,15 @@ export function d1Execute(sql, { database = D1_DATABASE, remote, env } = {}) {
   });
 }
 
+export function d1Query(sql, { database = D1_DATABASE, remote, env } = {}) {
+  const output = execFileSync(
+    "pnpm",
+    ["exec", "wrangler", "d1", "execute", ...d1Args(database, { remote, env }), "--json", "--command", sql],
+    { encoding: "utf8" },
+  );
+  return JSON.parse(output).at(-1).results;
+}
+
 // --file, not --command: a big batch is too long for one argument.
 export function d1ExecuteBatch(sql, { database = D1_DATABASE, remote, env } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "d1-batch-"));
