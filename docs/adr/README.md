@@ -71,3 +71,4 @@ GitHub, the same treatment every other doc in this repo already gets.
 | [0031](0031-owner-reports-from-the-synced-store.md) | Owner reports and map counts are computed on the device, from the synced store | Accepted, supersedes 0018 |
 | [0032](0032-combined-view-on-the-owner-pages.md) | The combined view lives on the owner pages, not the public profile | Accepted |
 | [0033](0033-parallel-e2e-with-seeded-users.md) | Run the e2e suite in parallel, with users seeded straight into D1 | Accepted |
+| [0034](0034-admin-host-behind-cloudflare-access.md) | Admin pages live on their own host, behind Cloudflare Access | Accepted |

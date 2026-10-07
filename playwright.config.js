@@ -7,6 +7,7 @@ const BASE_URL = `http://localhost:${PORT}`;
 // These use the seeded dev user, change state other specs see, write D1 through wrangler, or measure timing, so they run one at a time.
 const SHARED_SPECS = [
   "account-page",
+  "admin",
   "apex-links",
   "asset-caching",
   "beta-channel",

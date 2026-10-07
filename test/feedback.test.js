@@ -65,8 +65,8 @@ describe("handleFeedback", () => {
       user_id: null,
       source_page: null,
       section: null,
-      sharing_consent: 1,
     });
+    expect(results[0]).not.toHaveProperty("sharing_consent");
   });
 
   it("rejects an empty message", async () => {
