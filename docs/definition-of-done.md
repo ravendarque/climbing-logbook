@@ -12,7 +12,12 @@ PR ready. Each item points at the rule it comes from rather than restating it.
    should-fix finding is fixed.
 3. **Tested.** New or changed behaviour is covered at the right layer
    ([ADR-0030](adr/0030-test-against-the-real-worker-mock-only-what-it-cant-produce.md)),
-   and `pnpm test` and `pnpm run test:e2e` both pass.
+   and `pnpm test` passes. For e2e, run the areas the change touches
+   (`pnpm e2e:area log tour`; the areas are in `e2e/areas.js`). Run the
+   whole suite (`pnpm run test:e2e`) when the change reaches every page:
+   shared chrome (header, menu, footer, tab bar), boot, sync, auth and
+   sign-up, the service worker, the build, or e2e setup. When in doubt, run
+   the whole suite. CI always runs all of it.
 4. **Verified.** User-facing changes have been driven in a browser, in light
    and dark themes, at desktop and phone widths
    ([coding-standards.md](coding-standards.md#verification)).

@@ -542,6 +542,8 @@ Access.
   by `vite preview`, against the real Worker and D1. Only states the backend
   can't produce on demand (a 5xx, a hung request, a full device) are
   intercepted, one request at a time with `page.route()`.
+- `pnpm e2e:area <area...>` runs only the specs `e2e/areas.js` lists for
+  those areas; a unit test fails if a spec isn't in an area.
 - [ADR-0030](adr/0030-test-against-the-real-worker-mock-only-what-it-cant-produce.md)
   records the test layers.
 
