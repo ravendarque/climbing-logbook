@@ -23,6 +23,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       TF_VAR_cloudflare_account_id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      TF_VAR_admin_email: ${{ secrets.ADMIN_EMAIL }}
     steps:
       - uses: actions/checkout@v7
 
@@ -98,6 +99,24 @@ jobs:
             }
           "
 
+      - name: Sync the admin Access audience
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        working-directory: .
+        run: |
+          AUD=$(cd infra && terraform output -raw admin_access_aud)
+          node -e "
+            const fs = require('node:fs');
+            const path = 'wrangler.jsonc';
+            const current = fs.readFileSync(path, 'utf8');
+            const updated = current.replace(/(\"ACCESS_AUD\":\s*\")[^\"]*(\")/g, \`\$1${AUD}\$2\`);
+            if (updated !== current) {
+              fs.writeFileSync(path, updated);
+              console.log('wrangler.jsonc updated with the admin Access audience');
+            } else {
+              console.log('wrangler.jsonc already up to date');
+            }
+          "
+
       - name: Open and merge PR if generated files changed
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         working-directory: .
@@ -119,7 +138,7 @@ jobs:
 
           PR_URL=$(gh pr create \
             --title "chore: sync generated infra config" \
-            --body "Automated sync of Terraform-derived config (D1 database id, Turnstile sitekey, provider lockfile) after an infra apply. See docs/infra-architecture.md." \
+            --body "Automated sync of Terraform-derived config (D1 database id, Turnstile sitekey, admin Access audience, provider lockfile) after an infra apply. See docs/infra-architecture.md." \
             --base main --head "$BRANCH")
           PR_NUM="${PR_URL##*/}"
 

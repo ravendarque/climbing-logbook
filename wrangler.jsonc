@@ -30,13 +30,17 @@
   ],
   // Named environments don't inherit vars, so each one repeats them. Rate limiting only on real
   // deployments: elsewhere there's no client IP (docs/app-architecture.md, Better Auth configuration).
+  // ACCESS_AUD is written by the Infra workflow; until it is, the admin host refuses everything (ADR-0034).
   "vars": {
     "BETA_GATE_ENABLED": "true",
-    "RATE_LIMITING_ENABLED": "true"
+    "RATE_LIMITING_ENABLED": "true",
+    "ACCESS_TEAM_DOMAIN": "ravendarque.cloudflareaccess.com",
+    "ACCESS_AUD": ""
   },
   "routes": [
     { "pattern": "climbinglogbook.com/*", "zone_name": "climbinglogbook.com" },
-    { "pattern": "my.climbinglogbook.com/*", "zone_name": "climbinglogbook.com" }
+    { "pattern": "my.climbinglogbook.com/*", "zone_name": "climbinglogbook.com" },
+    { "pattern": "admin.climbinglogbook.com/*", "zone_name": "climbinglogbook.com" }
   ],
   "observability": {
     "enabled": true
@@ -49,7 +53,9 @@
       "name": "climbing-logbook",
       "vars": {
         "BETA_GATE_ENABLED": "true",
-        "RATE_LIMITING_ENABLED": "true"
+        "RATE_LIMITING_ENABLED": "true",
+        "ACCESS_TEAM_DOMAIN": "ravendarque.cloudflareaccess.com",
+        "ACCESS_AUD": ""
       },
       "d1_databases": [
         { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook", "database_id": "8f094438-520c-4a67-a685-aee3db6198ad", "migrations_dir": "migrations" }

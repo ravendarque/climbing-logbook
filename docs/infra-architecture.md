@@ -101,6 +101,8 @@ Branch protection allows no direct pushes, even from the bot.
 | `TF_STATE_ACCESS_KEY_ID`, `TF_STATE_SECRET_ACCESS_KEY` | Actions secrets | R2 credentials for the state backend (created under R2 → Manage R2 API Tokens) |
 | `CLOUDFLARE_ACCOUNT_ID` | Actions variable | Not confidential |
 | `SYNTHETIC_USER_EMAIL`, `SYNTHETIC_USER_PASSWORD` | Actions secrets | The synthetic check's account (`infra/README.md`) |
+| `ADMIN_EMAIL` | Actions secret | The one email the admin host's Access policy lets in (`infra/access.tf`) |
+| `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD` | Worker variables (`wrangler.jsonc`) | What the Worker checks the admin host's Access token against. Infra writes `ACCESS_AUD` after apply; empty, the admin host refuses everything |
 | `BETTER_AUTH_SECRET` | Worker secret, per environment | Session signing |
 | `RESEND_API_KEY` | Worker secret, per environment | Verification and password-reset email (sent from `myaccount@climbinglogbook.com`) |
 | `EMAIL_DELIVERY` | Worker variable, `e2e` only (`wrangler.jsonc`) | `"off"` logs each email instead of sending it through Resend, since e2e registers and resets passwords for real users |
@@ -123,10 +125,10 @@ The token's current grants (rebuilt and verified 2026-09-20):
 
 - **Account:** Workers Editor, Workers Scripts Write, Workers R2 Storage
   Write, D1 Write, Turnstile Sites Write, Account WAF Write, Account
-  Rulesets Write, Account Rule Lists Write. Also Workers KV Storage Write,
-  Access: Policies Write, Access: Apps Write and Zero Trust Write, which
-  nothing in this repo uses any more (KV and Access are gone): drop them
-  at the next rebuild.
+  Rulesets Write, Account Rule Lists Write, Access: Policies Write, Access:
+  Apps Write and Zero Trust Write (the admin host, ADR-0034). Also Workers
+  KV Storage Write, which nothing in this repo uses any more: drop it at the
+  next rebuild.
 - **Zone `climbinglogbook.com`:** Workers Routes Write, DNS Write, Zone WAF
   Write, Cache Settings Write, Dynamic URL Redirects Write.
 - No access to any other zone.
