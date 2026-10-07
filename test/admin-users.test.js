@@ -1,14 +1,6 @@
 import { env, exports } from "cloudflare:workers";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  BASE_URL,
-  createAuthedSession,
-  createPublicSession,
-  fetchJson,
-  jsonRequest,
-  resetAuthTables,
-  seedPlace,
-} from "./support.js";
+import { BASE_URL, createPublicSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
 
 const ADMIN = "https://admin.example.com";
 const PASSWORD = "correct-horse-battery-staple";
