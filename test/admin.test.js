@@ -100,6 +100,21 @@ describe("the admin host's Access check", () => {
     expect(res.status).toBe(403);
   });
 
+  it("refuses a token signed another way, one not yet valid, one with no expiry, and one it can't fetch keys for", async () => {
+    const now = Math.floor(Date.now() / 1000);
+    const hs256 = (await signToken()).replace(/^[^.]+/, encodeJson({ alg: "HS256", kid: KID }));
+    for (const token of [hs256, await signToken({ nbf: now + 3600 }), await signToken({ exp: undefined })]) {
+      expect((await admin("/-/api/admin/reports", { token })).status).toBe(403);
+    }
+
+    clearAccessKeyCache();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("down", { status: 500 })),
+    );
+    expect((await adminJson("/-/api/admin/reports")).status).toBe(403);
+  });
+
   it("refuses everything when the audience isn't configured", async () => {
     delete env.ACCESS_AUD;
     const res = await adminJson("/-/api/admin/reports");
@@ -117,6 +132,38 @@ describe("the admin host's Access check", () => {
     const root = await admin("/", { token: await signToken(), redirect: "manual" });
     expect(root.status).toBe(302);
     expect(new URL(root.headers.get("Location")).pathname).toBe("/reports");
+  });
+});
+
+describe("the admin host's routes", () => {
+  it("serves its one page for /reports and /feedback, and assets under /-/", async () => {
+    const assets = vi
+      .spyOn(env.ASSETS, "fetch")
+      .mockImplementation(async request => new Response(new URL(request.url).pathname));
+    try {
+      for (const path of ["/reports", "/feedback"]) {
+        expect(await (await adminJson(path)).text(), path).toBe("/admin/");
+      }
+      expect(await (await adminJson("/-/tailwind.css")).text()).toBe("/-/tailwind.css");
+    } finally {
+      assets.mockRestore();
+    }
+  });
+
+  it("has nothing else, and no other methods", async () => {
+    expect((await adminJson("/raven/log")).status).toBe(404);
+    expect((await adminJson("/-/api/admin/counts", { method: "POST" })).status).toBe(404);
+    expect((await adminJson("/-/api/admin/reports", { method: "DELETE" })).status).toBe(404);
+    expect((await adminJson("/-/api/admin/reports/r1", { method: "GET" })).status).toBe(404);
+    expect((await adminJson("/-/api/admin/nonsense")).status).toBe(404);
+  });
+
+  it("rejects a body that isn't a JSON object, and an id that doesn't decode", async () => {
+    const patch = (path, body) =>
+      adminJson(path, { method: "PATCH", headers: { "Content-Type": "application/json" }, body });
+    expect((await patch("/-/api/admin/reports/r1", "{not json")).status).toBe(400);
+    expect((await patch("/-/api/admin/reports/r1", "[true]")).status).toBe(400);
+    expect((await patch("/-/api/admin/reports/%E0%A4%A", '{"read":true}')).status).toBe(404);
   });
 });
 
