@@ -1,9 +1,10 @@
 import { json, parseJsonBody } from "../lib/json.js";
 import { verifyAccessRequest } from "../lib/access.js";
 import { actOnUser, listAuditLog, listUsers } from "./admin-users.js";
+import { handleUsage } from "./admin-usage.js";
 
 const TABLES = { reports: "issue_reports", feedback: "feedback_submissions" };
-const PAGES = new Set(["/reports", "/feedback", "/users", "/activity"]);
+const PAGES = new Set(["/reports", "/feedback", "/users", "/usage", "/activity"]);
 const LIST_LIMIT = 500;
 
 export function isAdminHost(hostname) {
@@ -86,6 +87,7 @@ async function handleAdminApi(request, env, pathname) {
   if (pathname === "/-/api/admin/counts") return method === "GET" ? unreadCounts(env) : null;
   if (pathname === "/-/api/admin/users") return method === "GET" ? listUsers(request, env) : null;
   if (pathname === "/-/api/admin/audit") return method === "GET" ? listAuditLog(env) : null;
+  if (pathname === "/-/api/admin/usage") return method === "GET" ? handleUsage(env) : null;
   const userAction = pathname.match(/^\/-\/api\/admin\/users\/([^/]+)\/([a-z]+)$/);
   if (userAction) return method === "POST" ? actOnUser(request, env, safeDecode(userAction[1]), userAction[2]) : null;
 

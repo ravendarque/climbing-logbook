@@ -95,6 +95,12 @@ describe("handleImport", () => {
     expect((await res.json()).imported).toBe(500);
   });
 
+  it("records each import, so the admin usage figures can count who has imported", async () => {
+    await importCsv([csvRow(), csvRow()]);
+    const { results } = await env.LOGBOOK_DB.prepare(`SELECT entries FROM import_runs`).all();
+    expect(results).toEqual([{ entries: 2 }]);
+  });
+
   it("imports valid rows, minting a new location and place", async () => {
     const res = await importCsv([csvRow()]);
     expect(res.status).toBe(201);

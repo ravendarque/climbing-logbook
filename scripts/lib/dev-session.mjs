@@ -55,6 +55,8 @@ export function resetDatabase(options = {}) {
     "rate_limits",
     "issue_reports",
     "feedback_submissions",
+    "admin_audit_log",
+    "banned_identities",
     "user",
   ];
   d1Execute(tables.map(table => `DELETE FROM "${table}"`).join("; "), options);

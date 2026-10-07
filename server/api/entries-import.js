@@ -125,8 +125,13 @@ export async function handleImport(request, env, userId) {
       ),
     ),
     ...drafts.map(draft => buildInsertStatement(env, "entries", buildEntryRow(draft, crypto.randomUUID(), userId))),
+    env.LOGBOOK_DB.prepare(`INSERT INTO import_runs (id, user_id, entries) VALUES (?, ?, ?)`).bind(
+      crypto.randomUUID(),
+      userId,
+      drafts.length,
+    ),
   ];
-  if (statements.length > 0) await env.LOGBOOK_DB.batch(statements);
+  await env.LOGBOOK_DB.batch(statements);
 
   return json({ imported: drafts.length }, 201);
 }
