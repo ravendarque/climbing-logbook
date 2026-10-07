@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { username } from "better-auth/plugins";
 import { createBetaGateAfterHook } from "./beta-gate.js";
+import { createAccountStatusHooks } from "./account-status.js";
 import { createEmailSender } from "./email.js";
 import { createTurnstileHook } from "./turnstile.js";
 import { checkUsername, USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH } from "../../shared/username-policy.js";
@@ -47,6 +48,7 @@ export function isValidUsername(candidate) {
 // Built per request, never cached: a shared instance carried one request's I/O into another (#1253).
 export function createAuth(env, hostname) {
   const emailSender = createEmailSender(env);
+  const accountStatus = createAccountStatusHooks(env);
   const auth = betterAuth({
     database: env.LOGBOOK_DB,
     basePath: "/-/api/auth",
@@ -90,7 +92,13 @@ export function createAuth(env, hostname) {
     hooks: {
       before: createTurnstileHook(env),
     },
-    databaseHooks: { user: { create: { after: createBetaGateAfterHook(env) } } },
+    databaseHooks: {
+      user: {
+        create: { before: accountStatus.beforeUserCreate, after: createBetaGateAfterHook(env) },
+        update: { before: accountStatus.beforeUserUpdate },
+      },
+      session: { create: { before: accountStatus.beforeSessionCreate } },
+    },
   });
   return auth;
 }
