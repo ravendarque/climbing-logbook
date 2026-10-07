@@ -24,6 +24,9 @@
       "/-/manifest.json", "/-/apple-touch-icon.png"
     ]
   },
+  "ratelimits": [
+    { "name": "AUTH_RATE_LIMITER", "namespace_id": "1292", "simple": { "limit": 10, "period": 60 } }
+  ],
   // The id is a placeholder until the Infra workflow writes the real one; keep these three keys adjacent for its regex.
   "d1_databases": [
     { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook", "database_id": "8f094438-520c-4a67-a685-aee3db6198ad", "migrations_dir": "migrations" }
@@ -57,6 +60,9 @@
         "ACCESS_TEAM_DOMAIN": "ravendarque.cloudflareaccess.com",
         "ACCESS_AUD": "d63c4a6b2ab69f2f2cc6b3b43e1224a4f5b19a2534156329a52fcbb9177a6f7d"
       },
+      "ratelimits": [
+        { "name": "AUTH_RATE_LIMITER", "namespace_id": "1292", "simple": { "limit": 10, "period": 60 } }
+      ],
       "d1_databases": [
         { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook", "database_id": "8f094438-520c-4a67-a685-aee3db6198ad", "migrations_dir": "migrations" }
       ]
@@ -71,6 +77,9 @@
         // A preview has one workers.dev host, with no my. to put owner pages on.
         "OWNER_PAGES_ON_ANY_HOST": "true"
       },
+      "ratelimits": [
+        { "name": "AUTH_RATE_LIMITER", "namespace_id": "1292", "simple": { "limit": 10, "period": 60 } }
+      ],
       "d1_databases": [
         { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook-preview", "database_id": "845753a5-abfc-4d74-995b-94d802b4964e", "migrations_dir": "migrations" }
       ]
@@ -98,6 +107,9 @@
         "BETA_GATE_ENABLED": "true",
         "RATE_LIMITING_ENABLED": "true"
       },
+      "ratelimits": [
+        { "name": "AUTH_RATE_LIMITER", "namespace_id": "1292", "simple": { "limit": 10, "period": 60 } }
+      ],
       "d1_databases": [
         { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook", "database_id": "8f094438-520c-4a67-a685-aee3db6198ad", "migrations_dir": "migrations" }
       ]

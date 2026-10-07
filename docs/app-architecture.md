@@ -500,8 +500,14 @@ it for the isolate's lifetime.
 - **Cookies** span `climbinglogbook.com` and its subdomains, because sign-in
   happens on the apex. Everywhere else is one origin; a `Domain` that doesn't
   match the host would be rejected by the browser.
-- **Rate limiting** is stored in D1: in-memory counters are per isolate, so
-  they never trip. It's switched on by `RATE_LIMITING_ENABLED`, which only
+- **Rate limiting** of auth POSTs happens in the Worker before Better Auth
+  (`server/lib/auth-rate-limit.js`), through the `AUTH_RATE_LIMITER` Rate
+  Limiting binding: 10 a minute per IP and path, counted per Cloudflare
+  location, with no D1 writes. Better Auth's own limiter is off, because it
+  wrote a D1 row on every auth request, session checks included (#1292).
+  Reads are never limited. The report and feedback forms keep their hourly
+  D1 counter (`server/lib/rate-limit.js`), since the binding only counts per
+  10 or 60 seconds. It's all switched on by `RATE_LIMITING_ENABLED`, which only
   real deployments set. Local dev and tests have no `cf-connecting-ip`, so
   every request would share one bucket and the suites would hit 429s.
 - **Client IP** comes from `cf-connecting-ip`; Cloudflare never sends
