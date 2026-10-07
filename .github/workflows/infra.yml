@@ -117,11 +117,10 @@ jobs:
             }
           "
 
-      - name: Open and merge PR if generated files changed
+      # Actions may not open PRs here (repo setting kept off on purpose, #1272), so a person opens it.
+      - name: Push generated config for a PR
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         working-directory: .
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -136,15 +135,12 @@ jobs:
           git commit -m "chore: sync generated infra config"
           git push origin "$BRANCH"
 
-          PR_URL=$(gh pr create \
-            --title "chore: sync generated infra config" \
-            --body "Automated sync of Terraform-derived config (D1 database id, Turnstile sitekey, admin Access audience, provider lockfile) after an infra apply. See docs/infra-architecture.md." \
-            --base main --head "$BRANCH")
-          PR_NUM="${PR_URL##*/}"
-
-          # These files ship, so the label check rejects release: none (#995).
-          gh api "repos/${{ github.repository }}/issues/$PR_NUM/labels" -f "labels[]=release: patch"
-
-          gh pr checks "$PR_NUM" --watch
-          gh pr merge "$PR_NUM" --squash --delete-branch \
-            --subject "chore: sync generated infra config [skip ci]"
+          URL="${{ github.server_url }}/${{ github.repository }}/compare/main...$BRANCH?expand=1"
+          echo "::warning::Generated config changed. Open a PR from $BRANCH, label it release: patch, and merge it: $URL"
+          {
+            echo "## Generated config changed"
+            echo
+            echo "Terraform-derived config (D1 database id, Turnstile sitekey, admin Access audience, provider lockfile) changed in this apply."
+            echo
+            echo "[Open the PR]($URL), label it \`release: patch\` (these files ship), and merge it. Merging cuts the release that carries the change."
+          } >> "$GITHUB_STEP_SUMMARY"

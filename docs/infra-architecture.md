@@ -87,11 +87,14 @@ Node and pnpm setup. A new workflow can only be dispatched once it's on
 `main`.
 
 **Generated config sync.** After apply, `infra.yml` writes Terraform's
-outputs into the repo: the D1 id into `wrangler.jsonc`, and the Turnstile
-sitekey into `client/turnstile.js`, which every Turnstile form
-imports. When anything changed, it opens a PR, labels it `release: patch`
-(the files ship), waits for checks and merges it (`[skip ci]`).
-Branch protection allows no direct pushes, even from the bot.
+outputs into the repo: the D1 id and the admin Access audience into
+`wrangler.jsonc`, and the Turnstile sitekey into `client/turnstile.js`,
+which every Turnstile form imports. When anything changed, it pushes a
+`ci/sync-generated-config-<run>` branch and puts a link to open its PR in
+the run's summary and as a warning. Open the PR by hand, label it
+`release: patch` (the files ship), and merge it: merging cuts the release
+that carries the change. The repo doesn't let Actions open PRs, on purpose
+(#1272), and branch protection allows no direct pushes, even from the bot.
 
 ## Secrets and variables
 
@@ -137,10 +140,10 @@ The token's current grants (rebuilt and verified 2026-09-20):
 
 1. Run "Bootstrap Terraform state bucket".
 2. Run "Infra" (merge to `infra/**`, or dispatch it). Terraform recreates
-   the D1 database and the rest; the sync PR updates `wrangler.jsonc`.
+   the D1 database and the rest. Open and merge the sync PR its summary
+   links to, which updates `wrangler.jsonc` and cuts a release.
 3. Set the Worker secrets again (`wrangler secret put`, per environment).
-4. Dispatch "Deploy". The sync commit is `[skip ci]`, so it won't trigger
-   one.
+4. Promote that release to production.
 
 A deleted D1 database's data can't be restored from Cloudflare, which is
 why it's `prevent_destroy` and why every deploy logs a Time Travel
