@@ -66,6 +66,10 @@ form.addEventListener("submit", async event => {
 
     const data = await res.json().catch(() => null);
     // Same wording for every policy rule, so it doesn't reveal which list a name is on.
+    if (data?.code === "TERMS_NOT_AGREED") {
+      showError("The terms of use have changed. Reload the page to see them, then sign up.");
+      return;
+    }
     if (data?.code === "INVALID_USERNAME") {
       showError("That username isn't available. Try another.");
       return;
