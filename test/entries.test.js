@@ -505,11 +505,31 @@ describe("handlePost", () => {
     expect((await res.json()).error).toBe("video must be a valid URL");
   });
 
-  it("accepts a valid https video URL", async () => {
-    const res = await post({ ...validEntry(), video: "https://example.com/clip" });
-    expect(res.status).toBe(201);
-    const { entry } = await res.json();
-    expect(entry.video).toBe("https://example.com/clip");
+  it("accepts a video link from a known video host, including its subdomains", async () => {
+    for (const video of [
+      "https://m.youtube.com/watch?v=abc",
+      "https://youtu.be/abc",
+      "https://vimeo.com/123",
+      "https://www.instagram.com/reel/abc",
+      "https://vm.tiktok.com/abc",
+      "https://fb.watch/abc",
+    ]) {
+      const res = await post({ ...validEntry(), id: crypto.randomUUID(), video });
+      expect(res.status, video).toBe(201);
+      expect((await res.json()).entry.video).toBe(video);
+    }
+  });
+
+  it("rejects a video link from any other host, look-alikes included", async () => {
+    for (const video of [
+      "https://example.com/clip",
+      "https://youtube.com.evil.example/x",
+      "https://notyoutube.com/x",
+    ]) {
+      const res = await post({ ...validEntry(), id: crypto.randomUUID(), video });
+      expect(res.status, video).toBe(400);
+      expect((await res.json()).error).toBe("video must be a link to YouTube, Vimeo, Instagram, TikTok or Facebook");
+    }
   });
 
   it("rejects a placeId that doesn't exist", async () => {

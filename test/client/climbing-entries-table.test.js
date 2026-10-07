@@ -138,6 +138,35 @@ describe("video links (#1104)", () => {
     const link = el.querySelector('a[href="https://www.youtube.com/watch?v=abc"]');
     expect(link.rel.split(" ")).toEqual(expect.arrayContaining(["noopener", "noreferrer"]));
   });
+
+  it("earn no search ranking: they're marked nofollow and user-generated (#1047)", async () => {
+    el.places = [{ id: "p1", locationId: "loc1", area: "" }];
+    el.entries = [entry({ video: "https://www.youtube.com/watch?v=abc" })];
+    el.locations = [{ id: "loc1", name: "Fontainebleau", country: "France" }];
+    await Promise.resolve();
+    el.querySelector(".place-header").click();
+    await Promise.resolve();
+
+    const link = el.querySelector('a[href="https://www.youtube.com/watch?v=abc"]');
+    expect(link.rel.split(" ")).toEqual(expect.arrayContaining(["nofollow", "ugc"]));
+  });
+});
+
+describe("notes (#1047)", () => {
+  it("show as plain text, so a link in a note can't be clicked", async () => {
+    const note = 'Beta: https://scam.example <a href="https://scam.example">click</a>';
+    el.places = [{ id: "p1", locationId: "loc1", area: "" }];
+    el.entries = [entry({ notes: note })];
+    el.locations = [{ id: "loc1", name: "Fontainebleau", country: "France" }];
+    await Promise.resolve();
+    el.querySelector(".place-header").click();
+    await Promise.resolve();
+
+    el.querySelector(".notes-btn").click();
+    const text = el.querySelector("#notes-modal-text");
+    expect(text.textContent).toBe(note);
+    expect(text.querySelector("a")).toBeNull();
+  });
 });
 
 describe("Expand all while the table has nothing to expand (#1184)", () => {

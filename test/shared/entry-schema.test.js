@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   entrySchema,
+  isVideoHost,
   validateEntryShape,
   VALID_GRADES,
   VALID_STATUSES,
@@ -126,8 +127,51 @@ describe("validateEntryShape", () => {
     expect(validateEntryShape(validEntry({ video: "not a url" }))).toBe("video must be a valid URL");
   });
 
-  it("accepts a valid https video URL", () => {
-    expect(validateEntryShape(validEntry({ video: "https://example.com/clip" }))).toBeNull();
+  it("knows each platform's short and country domains, and refuses look-alikes", () => {
+    for (const host of [
+      "www.youtube.com",
+      "m.youtube.com",
+      "youtu.be",
+      "www.youtube-nocookie.com",
+      "youtube.co.uk",
+      "www.youtube.de",
+      "youtube.com.au",
+      "vimeo.com",
+      "player.vimeo.com",
+      "www.instagram.com",
+      "instagr.am",
+      "www.tiktok.com",
+      "vm.tiktok.com",
+      "vt.tiktok.com",
+      "www.facebook.com",
+      "m.facebook.com",
+      "facebook.com.br",
+      "fb.watch",
+      "fb.com",
+      "fb.me",
+    ]) {
+      expect(isVideoHost(host), host).toBe(true);
+    }
+    for (const host of [
+      "example.com",
+      "notyoutube.com",
+      "youtube.com.evil.example",
+      "youtube.example.com",
+      "my-youtube.com",
+      "fakefb.me",
+      "vimeo.com.example",
+      "youtube.museum",
+    ]) {
+      expect(isVideoHost(host), host).toBe(false);
+    }
+  });
+
+  it("accepts a video link from a known video host or its subdomains, and nothing else", () => {
+    expect(validateEntryShape(validEntry({ video: "https://www.youtube.com/watch?v=abc" }))).toBeNull();
+    expect(validateEntryShape(validEntry({ video: "https://YOUTU.BE./abc" }))).toBeNull();
+    expect(validateEntryShape(validEntry({ video: "https://example.com/clip" }))).toBe(
+      "video must be a link to YouTube, Vimeo, Instagram, TikTok or Facebook",
+    );
   });
 
   it("accepts a missing/null video", () => {
