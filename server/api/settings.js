@@ -4,7 +4,7 @@ import { VALID_TYPES } from "../../shared/entry-schema.js";
 const DEFAULT_SETTINGS = {
   athleteMode: false,
   activeDiscipline: "boulder",
-  logbookPublic: true,
+  logbookPublic: false,
   betaOptIn: false,
   onboardingCompleted: false,
 };
@@ -52,7 +52,9 @@ export async function handlePatchSettings(request, env, userId) {
   }
 
   // No row exists until a user's first PATCH.
-  await env.LOGBOOK_DB.prepare(`INSERT INTO settings (user_id) VALUES (?) ON CONFLICT(user_id) DO NOTHING`)
+  await env.LOGBOOK_DB.prepare(
+    `INSERT INTO settings (user_id, logbook_public) VALUES (?, 0) ON CONFLICT(user_id) DO NOTHING`,
+  )
     .bind(userId)
     .run();
 

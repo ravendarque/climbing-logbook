@@ -26,7 +26,7 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
   // Cached so the first paint (tab bar, discipline) is right before the network answers.
   const cachedSettings = readSettingsCache();
   let athleteMode = !!cachedSettings?.athleteMode;
-  let logbookPublic = cachedSettings ? !!cachedSettings.logbookPublic : true;
+  let logbookPublic = !!cachedSettings?.logbookPublic;
   let betaOptIn = cachedSettings?.betaOptIn === true;
   let onboardingCompleted = cachedSettings?.onboardingCompleted;
   let username = null;

@@ -11,7 +11,7 @@ function toUser(row) {
     createdAt: row.createdAt,
     lastSeenAt: row.lastSeenAt,
     climbs: row.climbs,
-    logbookPublic: row.logbook_public === null ? true : !!row.logbook_public,
+    logbookPublic: !!row.logbook_public,
     isDemo: !!row.is_demo,
     suspended: !!row.suspended,
   };

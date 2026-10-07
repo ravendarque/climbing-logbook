@@ -1,6 +1,6 @@
 import { env, exports } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
+import { createPublicSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
 
 beforeAll(() => {
   env.BETA_GATE_ENABLED = "false";
@@ -19,7 +19,7 @@ beforeEach(async () => {
 
 describe("public data API", () => {
   it("#1104 -- lists only places and locations a live entry uses", async () => {
-    const { cookie } = await createAuthedSession({ username: "publiclistsuser" });
+    const { cookie } = await createPublicSession({ username: "publiclistsuser" });
     const post = body => jsonRequest("POST", "/-/api/entries", body, { Cookie: cookie }).then(r => r.json());
     const entry = placeId => ({ placeId, name: "Climb", grade: "7A", type: "boulder", status: "send" });
 
@@ -41,7 +41,7 @@ describe("public data API", () => {
   });
 
   it("returns a public user's entries/places/locations without a session", async () => {
-    const { cookie } = await createAuthedSession({ username: "publicdatauser" });
+    const { cookie } = await createPublicSession({ username: "publicdatauser" });
     const placeId = await seedPlace(cookie, { locationName: "Fontainebleau", country: "France", area: "Bas Cuvier" });
     await jsonRequest(
       "POST",
@@ -66,14 +66,14 @@ describe("public data API", () => {
   });
 
   it("returns an empty list, not an error, for a public user with no entries", async () => {
-    await createAuthedSession({ username: "emptydatauser" });
+    await createPublicSession({ username: "emptydatauser" });
     const res = await fetchPublic("emptydatauser", "entries");
     expect(res.status).toBe(200);
     expect((await res.json()).entries).toEqual([]);
   });
 
   it("looks up the username case-insensitively, same as the profile page itself", async () => {
-    await createAuthedSession({ username: "mixedcasedatauser" });
+    await createPublicSession({ username: "mixedcasedatauser" });
     const res = await fetchPublic("MixedCaseDataUser", "entries");
     expect(res.status).toBe(200);
   });
@@ -84,7 +84,7 @@ describe("public data API", () => {
   });
 
   it("404s once logbook_public is turned off, same as the profile page itself", async () => {
-    const { cookie } = await createAuthedSession({ username: "privatedatauser" });
+    const { cookie } = await createPublicSession({ username: "privatedatauser" });
     await jsonRequest("PATCH", "/-/api/settings", {}, { Cookie: cookie }); // creates the settings row
     await env.LOGBOOK_DB.prepare(
       `UPDATE settings SET logbook_public = 0 WHERE user_id = (SELECT id FROM "user" WHERE username = 'privatedatauser')`,
@@ -95,7 +95,7 @@ describe("public data API", () => {
   });
 
   it("#497 -- serves the map/counts aggregate for a public user, same anti-enumeration 404 for a private/nonexistent one", async () => {
-    const { cookie } = await createAuthedSession({ username: "publicmapuser" });
+    const { cookie } = await createPublicSession({ username: "publicmapuser" });
     const placeId = await seedPlace(cookie, { locationName: "Fontainebleau", country: "France" });
     await jsonRequest(
       "POST",
@@ -114,7 +114,7 @@ describe("public data API", () => {
 
   describe("entries/counts (#494)", () => {
     it("returns per-location counts of live entries, plus locations/places, for a public user", async () => {
-      const { cookie } = await createAuthedSession({ username: "countsuser" });
+      const { cookie } = await createPublicSession({ username: "countsuser" });
       const placeIdA = await seedPlace(cookie, { locationName: "Fontainebleau", country: "France" });
       const placeIdB = await seedPlace(cookie, { locationName: "Magic Wood", country: "Switzerland" });
       await jsonRequest(
@@ -150,7 +150,7 @@ describe("public data API", () => {
     });
 
     it("excludes a soft-deleted entry from its location's count", async () => {
-      const { cookie } = await createAuthedSession({ username: "countsdeleteduser" });
+      const { cookie } = await createPublicSession({ username: "countsdeleteduser" });
       const placeId = await seedPlace(cookie, { locationName: "Fontainebleau" });
       const created = await (
         await jsonRequest(
@@ -168,7 +168,7 @@ describe("public data API", () => {
     });
 
     it("returns an empty counts object, not an error, for a public user with no entries", async () => {
-      await createAuthedSession({ username: "countsemptyuser" });
+      await createPublicSession({ username: "countsemptyuser" });
       const res = await fetchPublic("countsemptyuser", "entries/counts");
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual({ locations: [], places: [], counts: {} });
@@ -180,7 +180,7 @@ describe("public data API", () => {
     });
 
     it("never leaks a different user's counts for the same resource path", async () => {
-      const { cookie: cookieA } = await createAuthedSession({ username: "countsusera" });
+      const { cookie: cookieA } = await createPublicSession({ username: "countsusera" });
       const placeIdA = await seedPlace(cookieA, { locationName: "Location A" });
       await jsonRequest(
         "POST",
@@ -189,7 +189,7 @@ describe("public data API", () => {
         { Cookie: cookieA },
       );
 
-      await createAuthedSession({ username: "countsuserb" });
+      await createPublicSession({ username: "countsuserb" });
 
       const { locations } = await (await fetchPublic("countsuserb", "entries/counts")).json();
       expect(locations).toEqual([]);
@@ -197,7 +197,7 @@ describe("public data API", () => {
   });
 
   it("never leaks a different user's data for the same resource path", async () => {
-    const { cookie: cookieA } = await createAuthedSession({ username: "userdataa" });
+    const { cookie: cookieA } = await createPublicSession({ username: "userdataa" });
     const placeIdA = await seedPlace(cookieA);
     await jsonRequest(
       "POST",
@@ -206,7 +206,7 @@ describe("public data API", () => {
       { Cookie: cookieA },
     );
 
-    const { cookie: cookieB } = await createAuthedSession({ username: "userdatab" });
+    const { cookie: cookieB } = await createPublicSession({ username: "userdatab" });
     const placeIdB = await seedPlace(cookieB);
     await jsonRequest(
       "POST",
@@ -224,7 +224,7 @@ describe("public data API", () => {
 
   describe("?since= is neutralized on the public route (#511)", () => {
     it("a soft-deleted entry's content never appears publicly via ?since=, even at cursor 0", async () => {
-      const { cookie } = await createAuthedSession({ username: "sincedeleteduser" });
+      const { cookie } = await createPublicSession({ username: "sincedeleteduser" });
       const placeId = await seedPlace(cookie);
       const created = await (
         await jsonRequest(
@@ -243,7 +243,7 @@ describe("public data API", () => {
     });
 
     it("a live entry is still returned normally when ?since= is present, just via the plain (not delta) shape", async () => {
-      const { cookie } = await createAuthedSession({ username: "sincelivenuser" });
+      const { cookie } = await createPublicSession({ username: "sincelivenuser" });
       const placeId = await seedPlace(cookie);
       await jsonRequest(
         "POST",
@@ -260,7 +260,7 @@ describe("public data API", () => {
   });
 
   it("never returns rpe/attemptsToSend/moves/painMoves, even when the owner's entry has them (Task 7)", async () => {
-    const { cookie } = await createAuthedSession({ username: "sensitivedatauser" });
+    const { cookie } = await createPublicSession({ username: "sensitivedatauser" });
     const placeId = await seedPlace(cookie);
     await jsonRequest(
       "POST",
@@ -299,7 +299,7 @@ describe("public data API", () => {
   });
 
   it("returns sportStyle for a public Sport entry, unlike the deliberately-excluded fields above", async () => {
-    const { cookie } = await createAuthedSession({ username: "sportstyleuser" });
+    const { cookie } = await createPublicSession({ username: "sportstyleuser" });
     const placeId = await seedPlace(cookie);
     await jsonRequest(
       "POST",
@@ -323,13 +323,13 @@ describe("public data API", () => {
 
   describe("performance-insight data is demo-only (#251)", () => {
     it("404s a real (non-demo) public user's performance data, even though their logbook data is public", async () => {
-      await createAuthedSession({ username: "realpublicuser" });
+      await createPublicSession({ username: "realpublicuser" });
       const res = await fetchPublic("realpublicuser", "performance/pyramid");
       expect(res.status).toBe(404);
     });
 
     it("serves performance data for a user with is_demo set", async () => {
-      const { cookie } = await createAuthedSession({ username: "demoflaguser" });
+      const { cookie } = await createPublicSession({ username: "demoflaguser" });
       await jsonRequest("PATCH", "/-/api/settings", {}, { Cookie: cookie }); // creates the settings row
       await env.LOGBOOK_DB.prepare(
         `UPDATE settings SET is_demo = 1 WHERE user_id = (SELECT id FROM "user" WHERE username = 'demoflaguser')`,

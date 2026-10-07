@@ -103,3 +103,14 @@ export async function seedPlace(
   const { place } = await placeRes.json();
   return place.id;
 }
+
+// New logbooks start private (#1281), so a test about public logbooks makes one public first.
+export async function createPublicSession(options) {
+  const session = await createAuthedSession(options);
+  await env.LOGBOOK_DB.prepare(
+    `INSERT INTO settings (user_id, logbook_public) VALUES (?, 1) ON CONFLICT(user_id) DO UPDATE SET logbook_public = 1`,
+  )
+    .bind(session.userId)
+    .run();
+  return session;
+}

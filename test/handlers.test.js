@@ -299,7 +299,7 @@ describe("settings", () => {
     expect(await res.json()).toEqual({
       athleteMode: false,
       activeDiscipline: "boulder",
-      logbookPublic: true,
+      logbookPublic: false,
       betaOptIn: false,
       onboardingCompleted: false,
     });
@@ -334,7 +334,7 @@ describe("settings", () => {
     expect(await res.json()).toEqual({
       athleteMode: true,
       activeDiscipline: "boulder",
-      logbookPublic: true,
+      logbookPublic: false,
       betaOptIn: false,
       onboardingCompleted: false,
     });
@@ -346,7 +346,7 @@ describe("settings", () => {
     expect(await res.json()).toEqual({
       athleteMode: false,
       activeDiscipline: "sport",
-      logbookPublic: true,
+      logbookPublic: false,
       betaOptIn: false,
       onboardingCompleted: false,
     });
@@ -370,7 +370,7 @@ describe("settings", () => {
     expect(await res.json()).toEqual({
       athleteMode: true,
       activeDiscipline: "sport",
-      logbookPublic: true,
+      logbookPublic: false,
       betaOptIn: false,
       onboardingCompleted: false,
     });
@@ -433,7 +433,7 @@ describe("settings", () => {
     expect(await res.json()).toEqual({
       athleteMode: false,
       activeDiscipline: "boulder",
-      logbookPublic: true,
+      logbookPublic: false,
       betaOptIn: true,
       onboardingCompleted: false,
     });
@@ -445,7 +445,7 @@ describe("settings", () => {
     expect(await res.json()).toEqual({
       athleteMode: false,
       activeDiscipline: "boulder",
-      logbookPublic: true,
+      logbookPublic: false,
       betaOptIn: false,
       onboardingCompleted: false,
     });
@@ -465,7 +465,7 @@ describe("settings", () => {
     expect(await res.json()).toEqual({
       athleteMode: false,
       activeDiscipline: "boulder",
-      logbookPublic: true,
+      logbookPublic: false,
       betaOptIn: false,
       onboardingCompleted: false,
     });

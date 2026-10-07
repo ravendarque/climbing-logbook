@@ -19,7 +19,7 @@ We use this to run the app for you, and for nothing else.
 
 ## Who can see your logbook
 
-You decide. In My account, the **Public Logbook** setting controls whether anyone can view your logbook and map. Your Grade Pyramid and other Performance Insights are always private to you.
+You decide. Your logbook starts private. In My account, the **Public Logbook** setting controls whether anyone can view your logbook and map. Your Grade Pyramid and other Performance Insights are always private to you.
 
 ## Cookies
 
