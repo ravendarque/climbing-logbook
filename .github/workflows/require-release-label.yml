@@ -69,7 +69,7 @@ jobs:
           while IFS= read -r f; do
             [ -z "$f" ] && continue
             case "$f" in
-              docs/*|.github/*|scripts/seed-preview-data.mjs|scripts/lib/dev-session.mjs|.claude/*|.gitignore|.git-blame-ignore-revs|biome.json|test/*|e2e/*|playwright.config.js|vitest.config.js) continue ;;
+              docs/*|.github/*|scripts/seed-preview-data.mjs|scripts/lib/dev-session.mjs|scripts/lib/drop-order.mjs|.claude/*|.gitignore|.git-blame-ignore-revs|biome.json|test/*|e2e/*|playwright.config.js|vitest.config.js) continue ;;
               # #1002 -- a production monitor run from CI, never deployed.
               scripts/synthetic-check.mjs) continue ;;
             esac

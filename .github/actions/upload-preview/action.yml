@@ -1,0 +1,37 @@
+name: Build and upload a preview version
+description: Builds against the preview environment and uploads a Worker version under a preview alias. CLOUDFLARE_ENV=preview at build time is what binds the preview database.
+inputs:
+  alias:
+    description: The preview alias, e.g. pr-123 or main
+    required: true
+  api-token:
+    description: Cloudflare API token
+    required: true
+outputs:
+  url:
+    description: The alias URL
+    value: ${{ steps.upload.outputs.url }}
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: pnpm run html:build && pnpm run tailwind:build
+    - shell: bash
+      run: pnpm run deploy:build
+      env:
+        CLOUDFLARE_ENV: preview
+    - id: upload
+      shell: bash
+      env:
+        CLOUDFLARE_API_TOKEN: ${{ inputs.api-token }}
+        PREVIEW_ALIAS: ${{ inputs.alias }}
+      run: |
+        set -euo pipefail
+        OUTPUT=$(pnpm exec wrangler versions upload --env preview --preview-alias "$PREVIEW_ALIAS")
+        echo "$OUTPUT"
+        URL=$(echo "$OUTPUT" | grep -oE 'Version Preview Alias URL: https://\S+' | sed 's/^Version Preview Alias URL: //')
+        if [ -z "$URL" ]; then
+          echo "Couldn't find a preview alias URL in wrangler's output -- see the log above." >&2
+          exit 1
+        fi
+        echo "url=$URL" >> "$GITHUB_OUTPUT"

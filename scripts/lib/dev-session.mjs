@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { dropOrder } from "./drop-order.mjs";
 import { TERMS_VERSION } from "../../shared/terms.js";
 
 const D1_DATABASE = "climbing-logbook";
@@ -49,6 +50,20 @@ export function d1ExecuteBatch(sql, { database = D1_DATABASE, remote, env } = {}
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+}
+
+export function dropAllTables(options = {}) {
+  const tables = d1Query(
+    `SELECT name, sql FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%'`,
+    options,
+  );
+  if (tables.length === 0) return;
+  d1Execute(
+    dropOrder(tables)
+      .map(name => `DROP TABLE "${name}"`)
+      .join("; "),
+    options,
+  );
 }
 
 // Children before parents; beta_invites' user references don't cascade.
