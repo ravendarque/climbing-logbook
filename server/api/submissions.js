@@ -4,19 +4,40 @@ import { verifyTurnstile } from "../lib/turnstile.js";
 import { checkRateLimit } from "../lib/rate-limit.js";
 import { resolveUserId } from "../lib/session.js";
 import { SUBMISSION_SECTIONS } from "../../shared/submission-sections.js";
+import { resolvePublicUser } from "./public-profile.js";
 
 const SECTIONS = Object.keys(SUBMISSION_SECTIONS);
 
 const RATE_LIMIT_PER_HOUR = 5;
 
 // Rate limit first: the cheapest rejection, before parsing or Turnstile.
-function createSubmissionHandler({ table, rateLimitPrefix, tooManyMessage, emptyMessage }) {
+// A report can point at a public logbook, and at one climb in it. Anything that doesn't resolve is dropped, so a
+// report can't be used to find out whether a private logbook or a climb exists.
+/**
+ * @param {any} env
+ * @param {{ reportedUsername?: string, reportedEntryId?: string }} reported
+ */
+async function resolveReported(env, reported) {
+  const { reportedUsername, reportedEntryId } = reported;
+  const user = reportedUsername ? await resolvePublicUser(env, reportedUsername) : null;
+  if (!user) return { userId: null, entryId: null };
+  const entry = reportedEntryId
+    ? await env.LOGBOOK_DB.prepare(`SELECT id FROM entries WHERE id = ? AND user_id = ? AND deleted_at IS NULL`)
+        .bind(reportedEntryId, user.id)
+        .first()
+    : null;
+  return { userId: user.id, entryId: entry?.id ?? null };
+}
+
+function createSubmissionHandler({ table, rateLimitPrefix, tooManyMessage, emptyMessage, acceptsReported = false }) {
   const schema = v.object({
     message: v.pipe(v.string(), v.trim(), v.minLength(1, emptyMessage)),
     contactEmail: v.optional(v.pipe(v.string(), v.trim())),
     sourcePage: v.optional(v.pipe(v.string(), v.trim())),
     section: v.optional(v.picklist(SECTIONS)),
     turnstileToken: v.string(),
+    reportedUsername: v.optional(v.pipe(v.string(), v.trim(), v.maxLength(64))),
+    reportedEntryId: v.optional(v.pipe(v.string(), v.trim(), v.maxLength(64))),
   });
 
   return async function handleSubmission(request, env) {
@@ -40,19 +61,30 @@ function createSubmissionHandler({ table, rateLimitPrefix, tooManyMessage, empty
     // Optional: the form works logged out.
     const userId = await resolveUserId(request, env);
 
-    await env.LOGBOOK_DB.prepare(
-      `INSERT INTO ${table} (id, message, contact_email, user_id, source_page, section, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
-    )
-      .bind(
-        crypto.randomUUID(),
-        result.output.message,
-        result.output.contactEmail || null,
-        userId,
-        result.output.sourcePage || null,
-        result.output.section || null,
+    const values = [
+      crypto.randomUUID(),
+      result.output.message,
+      result.output.contactEmail || null,
+      userId,
+      result.output.sourcePage || null,
+      result.output.section || null,
+    ];
+    if (acceptsReported) {
+      const reported = await resolveReported(env, result.output);
+      await env.LOGBOOK_DB.prepare(
+        `INSERT INTO ${table} (id, message, contact_email, user_id, source_page, section, reported_user_id, reported_entry_id, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
       )
-      .run();
+        .bind(...values, reported.userId, reported.entryId)
+        .run();
+    } else {
+      await env.LOGBOOK_DB.prepare(
+        `INSERT INTO ${table} (id, message, contact_email, user_id, source_page, section, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
+      )
+        .bind(...values)
+        .run();
+    }
 
     return json({ ok: true }, 201);
   };
@@ -63,6 +95,7 @@ export const handleReportIssue = createSubmissionHandler({
   rateLimitPrefix: "report-issue",
   tooManyMessage: "Too many reports from this connection. Please try again later.",
   emptyMessage: "Please describe the issue.",
+  acceptsReported: true,
 });
 
 export const handleFeedback = createSubmissionHandler({

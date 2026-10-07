@@ -225,6 +225,11 @@ export class ClimbingEntriesTable extends HTMLElement {
       const entry = this.#entries.find(x => x.id === notesBtn.dataset.notesId);
       if (entry) {
         notesModalText.textContent = entry.notes;
+        // Set by a page that shows someone else's logbook; {id} is the climb.
+        const reportHref = this.getAttribute("report-href");
+        const reportLink = this.querySelector("#notes-report-link");
+        reportLink.hidden = !reportHref;
+        if (reportHref) reportLink.href = reportHref.replace("{id}", encodeURIComponent(entry.id));
         openModal(notesOverlay);
       }
     });

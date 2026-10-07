@@ -6,4 +6,5 @@ export const SUBMISSION_SECTIONS = {
   account: "My account",
   import_export: "Import & export",
   help: "Help pages",
+  public_logbook: "Someone's public logbook",
 };

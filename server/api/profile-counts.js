@@ -13,7 +13,7 @@ export async function handleGetProfileCounts(_request, env, userId) {
     env.LOGBOOK_DB.prepare(`
       SELECT p.location_id AS location_id, COUNT(*) AS count
       FROM entries e JOIN places p ON e.place_id = p.id
-      WHERE e.user_id = ? AND e.deleted_at IS NULL
+      WHERE e.user_id = ? AND e.deleted_at IS NULL AND e.hidden_at IS NULL
       GROUP BY p.location_id
     `)
       .bind(userId)
