@@ -13,6 +13,27 @@ export const VALID_GRADES = {
 
 export const VALID_SPORT_STYLES = ["lead", "top_rope"];
 
+// Only links to these, and their subdomains, are accepted: the one field that renders as a link (#1047).
+const VIDEO_HOSTS = [
+  "youtu.be",
+  "youtube-nocookie.com",
+  "vimeo.com",
+  "instagram.com",
+  "instagr.am",
+  "tiktok.com",
+  "fb.watch",
+  "fb.com",
+  "fb.me",
+];
+// These brands also run country domains: youtube.co.uk, youtube.de, facebook.com.br and so on.
+const COUNTRY_VIDEO_HOST = /(^|\.)(youtube|facebook)\.(com|[a-z]{2}|co\.[a-z]{2}|com\.[a-z]{2})$/;
+const VIDEO_HOST_MESSAGE = "video must be a link to YouTube, Vimeo, Instagram, TikTok or Facebook";
+
+export function isVideoHost(hostname) {
+  const host = hostname.toLowerCase().replace(/\.$/, "");
+  return COUNTRY_VIDEO_HOST.test(host) || VIDEO_HOSTS.some(allowed => host === allowed || host.endsWith(`.${allowed}`));
+}
+
 export const VALID_LIMBS = ["hand", "foot", "knee"];
 export const VALID_SIDES = ["left", "right"];
 export const VALID_WALL_ANGLES = ["slab", "vert", "overhang", "roof"];
@@ -158,8 +179,11 @@ export const entrySchema = v.pipe(
     }
     if (entry.video) {
       try {
-        if (!["http:", "https:"].includes(new URL(entry.video).protocol)) {
+        const url = new URL(entry.video);
+        if (!["http:", "https:"].includes(url.protocol)) {
           addIssue({ message: "video must be an http(s) URL", path: fieldPath(entry, "video") });
+        } else if (!isVideoHost(url.hostname)) {
+          addIssue({ message: VIDEO_HOST_MESSAGE, path: fieldPath(entry, "video") });
         }
       } catch {
         addIssue({ message: "video must be a valid URL", path: fieldPath(entry, "video") });

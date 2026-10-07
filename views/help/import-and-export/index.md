@@ -32,7 +32,7 @@ These are optional:
 - **date**: as YYYY, YYYY-MM or YYYY-MM-DD.
 - **area**: the area within the location.
 - **country**: the country.
-- **video**: a web link.
+- **video**: a link to YouTube, Vimeo, Instagram, TikTok or Facebook only, to prevent spam or malicious links.
 - **notes**: anything you want to remember.
 - **attemptsToSend**: how many tries it took to send.
 - **rpe**: how hard the climb felt (Exertion), 0–100 in steps of 10.

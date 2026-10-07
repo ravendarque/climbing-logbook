@@ -50,7 +50,10 @@ for (const colorScheme of ["light", "dark"]) {
       test(`${path} has no WCAG 2.2 AA violations`, async ({ page, owner }) => {
         await owner.settings({ athleteMode: true });
         await owner.seed({
-          entries: [{ name: "Alpha", notes: "A note", video: "https://example.com/video" }, { status: "project" }],
+          entries: [
+            { name: "Alpha", notes: "A note", video: "https://www.youtube.com/watch?v=abc" },
+            { status: "project" },
+          ],
         });
         await gotoSyncedLog(page, owner);
         await page.goto(owner.url(path));
