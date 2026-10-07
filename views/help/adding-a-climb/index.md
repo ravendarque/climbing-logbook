@@ -18,7 +18,7 @@ Open your Logbook, pick the Boulder or Sport tab, and press **Add**. The climb g
 4. **Date.** Type `YYYY-MM-DD` (or just `YYYY-MM`), or use the calendar. It starts as today.
 5. **Style** (Sport only). Lead or Top Rope.
 6. **Status.** Flash (Boulder) or Onsight (Sport), Send (Boulder) or Redpoint (Sport), Project, Check out or Archived. It starts on Send.
-7. **Notes** and a **Video URL** if you want them. The video link needs to be from YouTube, Vimeo, Instagram, TikTok or Facebook.
+7. **Notes** and a **Video URL** if you want them. The video link needs to be from YouTube, Vimeo, Instagram, TikTok or Facebook only, to prevent spam or malicious links.
 
 Press **Save & close** when you're done.
 
