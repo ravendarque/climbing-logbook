@@ -14,3 +14,9 @@ variable "d1_database_name" {
   type        = string
   default     = "climbing-logbook"
 }
+
+variable "admin_email" {
+  description = "The one email Access lets through to the admin host. Supplied by the ADMIN_EMAIL Actions secret, never committed."
+  type        = string
+  sensitive   = true
+}

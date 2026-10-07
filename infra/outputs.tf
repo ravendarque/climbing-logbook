@@ -21,3 +21,8 @@ output "turnstile_secret" {
   value       = cloudflare_turnstile_widget.register.secret
   sensitive   = true
 }
+
+output "admin_access_aud" {
+  description = "The admin Access application's audience tag. infra.yml writes it into wrangler.jsonc as ACCESS_AUD, which the Worker checks every admin request's token against."
+  value       = cloudflare_zero_trust_access_application.admin.aud
+}

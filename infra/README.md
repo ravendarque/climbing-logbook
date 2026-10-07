@@ -25,6 +25,8 @@ The only thing *not* managed here, by design: the logbook's actual data
    - `TF_STATE_ACCESS_KEY_ID` / `TF_STATE_SECRET_ACCESS_KEY` (secrets) —
      from step 1
    - `CLOUDFLARE_ACCOUNT_ID` (variable, not secret — not confidential)
+   - `ADMIN_EMAIL` (secret) — the one email the admin host's Access policy
+     lets in
 
 3. **Run the "Bootstrap Terraform state bucket" workflow** manually
    (Actions tab → workflow_dispatch). Creates the R2 bucket Terraform's
