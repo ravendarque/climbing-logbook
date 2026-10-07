@@ -60,6 +60,7 @@ export function rowToJson(row) {
     notes: row.notes,
     attemptsToSend: row.attempts_to_send,
     rpe: row.rpe,
+    hidden: !!row.hidden_at,
   };
 }
 
@@ -205,6 +206,9 @@ const PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 500;
 const MAX_CHUNK_SIZE = 1000;
 
+// A climb the admin has hidden stays in its owner's logbook but never reaches a public one.
+const VISIBLE = "deleted_at IS NULL AND hidden_at IS NULL";
+
 async function handleDelta(url, env, userId, { includeChildRows }) {
   const since = intParam(url, "since");
   if (since.response) return since.response;
@@ -215,7 +219,7 @@ async function handleDelta(url, env, userId, { includeChildRows }) {
 }
 
 // e.user_id scopes the join, so a foreign locationId just returns nothing.
-async function handleByLocation(locationId, url, env, userId, { shapeRow, includeChildRows }) {
+async function handleByLocation(locationId, url, env, userId, { shapeRow, includeChildRows, publicOnly }) {
   if (!userId) return json({ entries: [] }, 200, { "Cache-Control": "no-store" });
 
   const limit = intParam(url, "limit", { min: 1, max: MAX_PAGE_SIZE, fallback: PAGE_SIZE });
@@ -224,7 +228,7 @@ async function handleByLocation(locationId, url, env, userId, { shapeRow, includ
   if (offset.response) return offset.response;
   const { results } = await env.LOGBOOK_DB.prepare(`
       SELECT e.* FROM entries e JOIN places p ON e.place_id = p.id
-      WHERE e.user_id = ? AND p.location_id = ? AND e.deleted_at IS NULL
+      WHERE e.user_id = ? AND p.location_id = ? AND e.deleted_at IS NULL${publicOnly ? " AND e.hidden_at IS NULL" : ""}
       ORDER BY e.created_at LIMIT ? OFFSET ?
     `)
     .bind(userId, locationId, limit.value, offset.value)
@@ -235,7 +239,7 @@ async function handleByLocation(locationId, url, env, userId, { shapeRow, includ
   return json({ entries: decorated }, 200, { "Cache-Control": "no-store" });
 }
 
-async function handleChunked(url, env, userId, { shapeRow, includeChildRows }) {
+async function handleChunked(url, env, userId, { shapeRow, includeChildRows, publicOnly }) {
   if (!userId) return json({ entries: [], total: 0, cursor: 0 }, 200, { "Cache-Control": "no-store" });
 
   const limitParam = intParam(url, "limit", { min: 1, max: MAX_CHUNK_SIZE });
@@ -243,13 +247,14 @@ async function handleChunked(url, env, userId, { shapeRow, includeChildRows }) {
   const limit = limitParam.value;
   const afterCreatedAt = url.searchParams.get("afterCreatedAt") ?? "";
   const afterId = url.searchParams.get("afterId") ?? "";
+  const live = publicOnly ? VISIBLE : "deleted_at IS NULL";
   // Keyset, not offset: a delete mid-sync would shift later rows past the next page.
   const { results } = await env.LOGBOOK_DB.prepare(`
       SELECT *,
-        (SELECT COUNT(*) FROM entries WHERE user_id = ? AND deleted_at IS NULL) AS total,
+        (SELECT COUNT(*) FROM entries WHERE user_id = ? AND ${live}) AS total,
         (SELECT MAX(sync_cursor) FROM entries WHERE user_id = ?) AS max_cursor
       FROM entries
-      WHERE user_id = ? AND deleted_at IS NULL AND (created_at, id) > (?, ?)
+      WHERE user_id = ? AND ${live} AND (created_at, id) > (?, ?)
       ORDER BY created_at, id LIMIT ?
     `)
     .bind(userId, userId, userId, afterCreatedAt, afterId, limit)
@@ -263,8 +268,9 @@ async function handleChunked(url, env, userId, { shapeRow, includeChildRows }) {
   return json({ entries: decorated, total, cursor, next }, 200, { "Cache-Control": "no-store" });
 }
 
-async function handleAll(env, userId, { shapeRow, includeChildRows }) {
-  const rows = await listForUser(env, "entries", userId, shapeRow, { excludeDeleted: true });
+async function handleAll(env, userId, { shapeRow, includeChildRows, publicOnly }) {
+  const live = await listForUser(env, "entries", userId, row => row, { excludeDeleted: true });
+  const rows = (publicOnly ? live.filter(row => !row.hidden_at) : live).map(shapeRow);
   const decorated = includeChildRows ? await attachChildRows(rows, env) : rows;
   return json({ entries: decorated }, 200, { "Cache-Control": "no-store" });
 }
@@ -273,11 +279,16 @@ async function handleAll(env, userId, { shapeRow, includeChildRows }) {
  * @param {Request} request
  * @param {any} env
  * @param {string} userId
- * @param {{ shapeRow?: (row: any) => object, includeChildRows?: boolean }} [options]
+ * @param {{ shapeRow?: (row: any) => object, includeChildRows?: boolean, publicOnly?: boolean }} [options]
  */
-export async function handleGet(request, env, userId, { shapeRow = rowToJson, includeChildRows = true } = {}) {
+export async function handleGet(
+  request,
+  env,
+  userId,
+  { shapeRow = rowToJson, includeChildRows = true, publicOnly = false } = {},
+) {
   const url = new URL(request.url);
-  const opts = { shapeRow, includeChildRows };
+  const opts = { shapeRow, includeChildRows, publicOnly };
 
   const since = url.searchParams.get("since");
   if (since !== null) return handleDelta(url, env, userId, opts);
@@ -290,7 +301,7 @@ export async function handleGet(request, env, userId, { shapeRow = rowToJson, in
 }
 
 export function handlePublicGet(request, env, userId) {
-  return handleGet(request, env, userId, { shapeRow: publicRowToJson, includeChildRows: false });
+  return handleGet(request, env, userId, { shapeRow: publicRowToJson, includeChildRows: false, publicOnly: true });
 }
 
 export async function handlePut(request, env, userId) {

@@ -14,7 +14,8 @@ import {
   handleGetVolume,
 } from "./performance.js";
 
-const LIVE_ENTRY_AT_PLACE = "SELECT 1 FROM entries e WHERE e.place_id = p.id AND e.deleted_at IS NULL";
+const LIVE_ENTRY_AT_PLACE =
+  "SELECT 1 FROM entries e WHERE e.place_id = p.id AND e.deleted_at IS NULL AND e.hidden_at IS NULL";
 
 async function listLive(env, sql, userId, key, rowToJson) {
   const { results } = await env.LOGBOOK_DB.prepare(sql).bind(userId).all();
@@ -46,7 +47,7 @@ const HANDLERS = {
   entries: handlePublicGet,
   places: handlePublicPlaces,
   locations: handlePublicLocations,
-  "map/counts": handleGetMapCounts,
+  "map/counts": (request, env, userId) => handleGetMapCounts(request, env, userId, { publicOnly: true }),
   "entries/counts": handleGetProfileCounts,
 };
 

@@ -21,6 +21,9 @@ export function startSubmissions(kind) {
   const toggleRead = document.getElementById("toggle-read");
   const toggleArchived = document.getElementById("toggle-archived");
   const deleteDialog = document.getElementById("delete-dialog");
+  const reportedClimb = document.getElementById("reported-climb");
+  const reportedFields = document.getElementById("reported-climb-fields");
+  const toggleHidden = document.getElementById("toggle-hidden");
 
   let archived = new URLSearchParams(location.search).get("archived") === "1";
   let selectedId = new URLSearchParams(location.search).get("id");
@@ -91,10 +94,33 @@ export function startSubmissions(kind) {
       addField(detailFields, "Contact", "None given");
     }
     addField(detailFields, "Sent", formatDate(submission.createdAt, { withYear: true }));
+    if (submission.reportedUsername) addField(detailFields, "About", publicLogbookLink(submission.reportedUsername));
+    renderReportedClimb(submission.reportedEntry);
 
     toggleRead.textContent = submission.readAt ? "Mark as unread" : "Mark as read";
     toggleArchived.textContent = submission.archivedAt ? "Unarchive" : "Archive";
     document.getElementById("delete-title").textContent = `Delete this ${KINDS[kind].noun}?`;
+  }
+
+  // The admin host sits beside my., which serves public logbooks.
+  function publicLogbookLink(username) {
+    const link = el("a", "underline underline-offset-2", `${username}'s public logbook`);
+    link.href = `${location.protocol}//${location.host.replace(/^admin\./, "my.")}/${encodeURIComponent(username)}`;
+    link.target = "_blank";
+    link.rel = "noopener";
+    return link;
+  }
+
+  function renderReportedClimb(entry) {
+    reportedClimb.hidden = !entry;
+    if (!entry) return;
+    reportedFields.replaceChildren();
+    addField(reportedFields, "Name", entry.name);
+    addField(reportedFields, "Notes", entry.notes || "None");
+    // Shown, not linked: it's what was reported.
+    addField(reportedFields, "Video", entry.video || "None");
+    addField(reportedFields, "Public", entry.hidden ? "Hidden" : "Showing");
+    toggleHidden.textContent = entry.hidden ? "Unhide this entry" : "Hide this entry";
   }
 
   function render() {
@@ -191,6 +217,24 @@ export function startSubmissions(kind) {
       refreshCounts();
     }),
   );
+
+  toggleHidden.addEventListener("click", async () => {
+    const submission = submissions.find(s => s.id === selectedId);
+    const entry = submission.reportedEntry;
+    detailError.hidden = true;
+    try {
+      const { hidden } = await api(`entries/${encodeURIComponent(entry.id)}/${entry.hidden ? "unhide" : "hide"}`, {
+        method: "POST",
+      });
+      submissions = submissions.map(s =>
+        s.reportedEntry?.id === entry.id ? { ...s, reportedEntry: { ...s.reportedEntry, hidden } } : s,
+      );
+      render();
+    } catch {
+      detailError.textContent = SAVE_ERROR;
+      detailError.hidden = false;
+    }
+  });
 
   toggleArchived.addEventListener("click", () => act({ archived: !archived }, updated => leave(updated.id)));
 

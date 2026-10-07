@@ -6,12 +6,18 @@ import { createDisclosure } from "./modal-utils.js";
 import { loadResource } from "./fetch-json.js";
 import { createThemeToggle } from "./theme-toggle.js";
 import "./components/climbing-entries-table.js";
+import { resolveApexUrl } from "./resolve-cross-hostname-url.js";
 
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 document.title = `${USERNAME} – Climbing Logbook`;
 document.getElementById("profile-title").textContent = `${USERNAME}'s logbook`;
 
 const entriesTable = document.querySelector("climbing-entries-table");
+
+const reportUrl = new URL(resolveApexUrl(location.hostname, "/help/report-an-issue/"), location.origin);
+reportUrl.searchParams.set("logbook", USERNAME);
+document.getElementById("report-logbook-link").href = reportUrl.href;
+entriesTable.setAttribute("report-href", `${reportUrl.href}&climb={id}`);
 
 const store = createStore({ storage: { getItem: () => null, setItem: () => {} }, openEntries: null });
 const mapView = createMapView({ store, allDisciplines: true });

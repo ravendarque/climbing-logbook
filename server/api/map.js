@@ -1,7 +1,7 @@
 import { json } from "../lib/json.js";
 
 // Keeps the empty-country bucket: the subtitle totals count those entries too.
-export async function handleGetMapCounts(_request, env, userId) {
+export async function handleGetMapCounts(_request, env, userId, { publicOnly = false } = {}) {
   if (!userId) return json({}, 200, { "Cache-Control": "no-store" });
 
   const { results } = await env.LOGBOOK_DB.prepare(`
@@ -13,7 +13,7 @@ export async function handleGetMapCounts(_request, env, userId) {
     FROM entries e
     JOIN places p ON e.place_id = p.id
     JOIN locations l ON p.location_id = l.id
-    WHERE e.user_id = ? AND e.deleted_at IS NULL
+    WHERE e.user_id = ? AND e.deleted_at IS NULL${publicOnly ? " AND e.hidden_at IS NULL" : ""}
     GROUP BY l.country, e.discipline_id
   `)
     .bind(userId)
