@@ -44,7 +44,7 @@ form.addEventListener("submit", async event => {
     return;
   }
 
-  const turnstileToken = turnstile.getResponse();
+  const turnstileToken = await turnstile.waitForResponse();
   if (!turnstileToken) {
     showError("Please complete the verification check.");
     submitBtn.disabled = false;
