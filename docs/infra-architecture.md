@@ -103,7 +103,7 @@ Branch protection allows no direct pushes, even from the bot.
 | `SYNTHETIC_USER_EMAIL`, `SYNTHETIC_USER_PASSWORD` | Actions secrets | The synthetic check's account (`infra/README.md`) |
 | `BETTER_AUTH_SECRET` | Worker secret, per environment | Session signing |
 | `RESEND_API_KEY` | Worker secret, per environment | Verification and password-reset email (sent from `myaccount@climbinglogbook.com`) |
-| `EMAIL_DELIVERY` | Worker variable, `e2e` only (`wrangler.jsonc`) | `"off"` logs each email instead of sending it through Resend, since e2e signs up dozens of users per run |
+| `EMAIL_DELIVERY` | Worker variable, `e2e` only (`wrangler.jsonc`) | `"off"` logs each email instead of sending it through Resend, since e2e registers and resets passwords for real users |
 | `TURNSTILE_SECRET_KEY` | Worker secret, per environment | Turnstile verification. Production and beta each need the real value (`terraform output -raw turnstile_secret`); preview and local dev use Cloudflare's public always-passes test secret |
 
 Worker secrets are set once by hand with `wrangler secret put <name>

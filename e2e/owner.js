@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmdirSync, rmSync, writeFileSync } from "node:fs";
 import { expect, test as base } from "@playwright/test";
 import { OWNED_ORIGIN, ownedRouteUrl } from "./owned-route-url.js";
 
@@ -23,18 +23,41 @@ export function newOwnerPoolUser(i) {
 }
 
 export function resetOwnerPool(owners, newOwners) {
+  for (const next of [OWNER_NEXT_PATH, NEW_OWNER_NEXT_PATH]) rmSync(`${next}.lock`, { recursive: true, force: true });
   writeFileSync(OWNER_POOL_PATH, JSON.stringify(owners));
   writeFileSync(OWNER_NEXT_PATH, "0");
   writeFileSync(NEW_OWNER_POOL_PATH, JSON.stringify(newOwners));
   writeFileSync(NEW_OWNER_NEXT_PATH, "0");
 }
 
+// Parallel workers claim from the same pool, so the read and the write happen under a lock.
+function withLock(path, fn) {
+  const lock = `${path}.lock`;
+  for (;;) {
+    try {
+      mkdirSync(lock);
+      break;
+    } catch (err) {
+      if (err.code !== "EEXIST") throw err;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 5);
+    }
+  }
+  try {
+    return fn();
+  } finally {
+    rmdirSync(lock);
+  }
+}
+
 function claimFrom(poolPath, nextPath) {
-  const owners = JSON.parse(readFileSync(poolPath, "utf8"));
-  const next = Number(readFileSync(nextPath, "utf8"));
-  if (next >= owners.length) throw new Error(`The e2e pool in ${poolPath} is used up; raise its size in e2e/owner.js`);
-  writeFileSync(nextPath, String(next + 1));
-  return owners[next];
+  return withLock(nextPath, () => {
+    const owners = JSON.parse(readFileSync(poolPath, "utf8"));
+    const next = Number(readFileSync(nextPath, "utf8"));
+    if (next >= owners.length)
+      throw new Error(`The e2e pool in ${poolPath} is used up; raise its size in e2e/owner.js`);
+    writeFileSync(nextPath, String(next + 1));
+    return owners[next];
+  });
 }
 
 export function daysAgo(n) {

@@ -544,12 +544,27 @@ Two kinds of test:
 | Component harness | `e2e/fixtures/*-entry.js`, built by `pnpm run e2e:build-fixtures` into `/e2e-fixtures/`, mount a real component against made-up data | Component behaviour: map zoom, the pyramid |
 | Real route | `my.localhost` against the real Worker and D1: the `owner` fixture (`e2e/owner.js`) for a test that needs a user of its own, or `ownedRouteUrl()` and `addOwnedRouteSessionCookie()` (`e2e/owned-route-url.js`) for the seeded dev user | Page tests, routing, sessions, the service worker, per-user storage |
 
-`e2e/global-setup.js` also signs up a pool of users (`OWNER_POOL_SIZE` in
-`e2e/owner.js`), and the `owner` fixture hands each test the next one, so a
-test can change settings and data without affecting any other. Its
+`e2e/global-setup.js` also seeds a pool of users ([ADR-0033](adr/0033-parallel-e2e-with-seeded-users.md)) (`OWNER_POOL_SIZE` in
+`e2e/owner.js`) straight into D1, with a session each whose cookie it signs
+with `BETTER_AUTH_SECRET` from `.dev.vars` (CI writes a test-only one). The
+`owner` fixture hands each test the next one, so a test can change settings
+and data without affecting any other. A second pool, through the `newOwner`
+fixture, hasn't been through the first-login setup. Its
 `seed()` and `settings()` go through the real API; record ids are prefixed
 with the username because ids are unique across users. A run with more
 `owner` tests than the pool holds fails with a message saying to raise it.
+
+The suite runs as two Playwright projects (`playwright.config.js`):
+
+- **isolated** runs in parallel (`E2E_WORKERS`, default 4) with no session
+  by default, so each test signs in only as its own pool user.
+- **shared** runs one test at a time, after the isolated project. It holds
+  the specs in `SHARED_SPECS`: those using the seeded dev user (its settings
+  are visible to every test that uses it), those writing D1 through
+  `wrangler` (the CLI fails on a database the Worker is writing to), and the
+  timing check, which fails under load.
+
+A new spec belongs in isolated unless it does one of those things.
 
 `gotoSyncedLog()` goes through a real `/sync` first, so a page starts from a
 synced device, as a returning owner's does. `owner.api()` writes as

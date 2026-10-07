@@ -32,6 +32,8 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       # Cloudflare's public always-passes Turnstile test secret, not a credential.
       - run: echo 'TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA' >> .dev.vars
+      # A test-only value: e2e setup signs its seeded users' session cookies with it.
+      - run: echo 'BETTER_AUTH_SECRET=e2e-only-secret-not-used-anywhere-else-0000' >> .dev.vars
       - run: pnpm run test:e2e
       - uses: actions/upload-artifact@v7
         if: failure()

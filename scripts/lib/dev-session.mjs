@@ -1,6 +1,9 @@
 // Signs up and verifies a dev user (flipping emailVerified in D1) and returns its session cookie.
 // Used by local seeding, e2e setup and preview seeding. Safe to repeat.
 import { execFileSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const D1_DATABASE = "climbing-logbook";
 
@@ -24,9 +27,23 @@ export function d1Execute(sql, { database = D1_DATABASE, remote, env } = {}) {
   });
 }
 
+// --file, not --command: a big batch is too long for one argument.
+export function d1ExecuteBatch(sql, { database = D1_DATABASE, remote, env } = {}) {
+  const dir = mkdtempSync(join(tmpdir(), "d1-batch-"));
+  const file = join(dir, "batch.sql");
+  writeFileSync(file, sql);
+  try {
+    execFileSync("pnpm", ["exec", "wrangler", "d1", "execute", ...d1Args(database, { remote, env }), "--file", file], {
+      stdio: "inherit",
+    });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 // Children before parents; beta_invites' user references don't cascade.
 export function resetDatabase(options = {}) {
-  for (const table of [
+  const tables = [
     "session",
     "account",
     "entries",
@@ -35,10 +52,10 @@ export function resetDatabase(options = {}) {
     "settings",
     "beta_invites",
     "verification",
+    "rate_limits",
     "user",
-  ]) {
-    d1Execute(`DELETE FROM "${table}"`, options);
-  }
+  ];
+  d1Execute(tables.map(table => `DELETE FROM "${table}"`).join("; "), options);
 }
 
 // wrangler dev briefly drops connections right after a D1 CLI write; only network errors are retried.
@@ -69,7 +86,7 @@ export async function bootstrapDevSession(baseUrl, { user = DEV_USER, inviteCode
 
 const sqlString = value => `'${String(value).replace(/'/g, "''")}'`;
 
-export async function provisionUsers(baseUrl, usersWithCodes, { onboarded = true, ...options } = {}) {
+export async function provisionUsers(baseUrl, usersWithCodes, options = {}) {
   const codes = usersWithCodes.map(u => u.inviteCode ?? `dev-seed-${crypto.randomUUID()}`);
   const users = usersWithCodes.map(({ inviteCode, ...user }) => user);
   d1Execute(
@@ -91,13 +108,11 @@ export async function provisionUsers(baseUrl, usersWithCodes, { onboarded = true
 
   const emails = users.map(u => sqlString(u.email)).join(", ");
   d1Execute(`UPDATE "user" SET emailVerified = 1 WHERE email IN (${emails})`, options);
-  // Seeded users skip the first-login setup; the e2e pool of new users keeps it.
-  if (onboarded) {
-    d1Execute(
-      `INSERT INTO settings (user_id, onboarding_completed) SELECT id, 1 FROM "user" WHERE email IN (${emails}) ON CONFLICT(user_id) DO UPDATE SET onboarding_completed = 1`,
-      options,
-    );
-  }
+  // Seeded users skip the first-login setup.
+  d1Execute(
+    `INSERT INTO settings (user_id, onboarding_completed) SELECT id, 1 FROM "user" WHERE email IN (${emails}) ON CONFLICT(user_id) DO UPDATE SET onboarding_completed = 1`,
+    options,
+  );
 
   const cookies = [];
   for (const user of users) {

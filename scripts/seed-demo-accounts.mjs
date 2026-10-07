@@ -1,11 +1,7 @@
 // Seeds the three demo accounts with raw SQL: their names are reserved, so they can't sign up.
 // Tags cluster so the Strengths and Injury reports have a real signal. Fixed IDs, so safe to re-run.
 //   node scripts/seed-demo-accounts.mjs [--remote] [--env preview]
-import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { applyMigrations } from "./lib/dev-session.mjs";
+import { applyMigrations, d1ExecuteBatch } from "./lib/dev-session.mjs";
 import { BOULDER_GRADES, LEAD_GRADES } from "../shared/grade-data.js";
 import { DEMO_PERSONAS } from "../shared/demo-personas.js";
 
@@ -201,28 +197,10 @@ function buildPersonaSql(persona) {
   return statements.join("\n");
 }
 
-// --file, not --command: these batches are too big for one argument.
-function d1ExecuteFile(sql, { database = "climbing-logbook", remote, env } = {}) {
-  const dir = mkdtempSync(join(tmpdir(), "seed-demo-"));
-  const file = join(dir, "batch.sql");
-  writeFileSync(file, sql);
-  try {
-    const args = ["exec", "wrangler", "d1", "execute", database];
-    if (remote) args.push("--remote");
-    if (env) args.push("--env", env);
-    args.push("--file", file);
-    execFileSync("pnpm", args, { stdio: "inherit" });
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-}
-
 console.log("Applying migrations...");
 applyMigrations(d1Options);
 
-for (const persona of DEMO_PERSONAS) {
-  console.log(`Seeding ${persona.username}...`);
-  d1ExecuteFile(buildPersonaSql(persona), d1Options);
-}
+console.log(`Seeding ${DEMO_PERSONAS.map(persona => persona.username).join(", ")}...`);
+d1ExecuteBatch(DEMO_PERSONAS.map(buildPersonaSql).join("\n"), d1Options);
 
 console.log("Done.");

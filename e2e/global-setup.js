@@ -1,14 +1,9 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { dirname } from "node:path";
-import {
-  applyMigrations,
-  bootstrapDevSession,
-  provisionUsers,
-  resetDatabase,
-  toPlaywrightCookie,
-} from "../scripts/lib/dev-session.mjs";
+import { applyMigrations, DEV_USER, resetDatabase, toPlaywrightCookie } from "../scripts/lib/dev-session.mjs";
 import { seedLogbookData } from "../scripts/lib/seed-data.mjs";
+import { authSecret, seedUsers } from "./seed-users.js";
 import { NEW_OWNER_POOL_SIZE, newOwnerPoolUser, OWNER_POOL_SIZE, ownerPoolUser, resetOwnerPool } from "./owner.js";
 
 const BASE_URL = "http://localhost:8787";
@@ -38,21 +33,25 @@ export default async function globalSetup() {
   resetDatabase(D1_OPTIONS);
   execFileSync("node", ["scripts/seed-demo-accounts.mjs", "--env", "preview"], { stdio: "inherit" });
 
-  const setCookieHeader = await bootstrapDevSession(BASE_URL, D1_OPTIONS);
+  const owners = Array.from({ length: OWNER_POOL_SIZE }, (_, i) => ownerPoolUser(i));
+  const newOwners = Array.from({ length: NEW_OWNER_POOL_SIZE }, (_, i) => ({
+    ...newOwnerPoolUser(i),
+    onboarded: false,
+  }));
+  const [devCookie, ...cookies] = await seedUsers([DEV_USER, ...owners, ...newOwners], {
+    ...D1_OPTIONS,
+    secret: authSecret(),
+  });
+
   mkdirSync(dirname(STORAGE_STATE_PATH), { recursive: true });
   writeFileSync(
     STORAGE_STATE_PATH,
-    JSON.stringify({ cookies: [toPlaywrightCookie(setCookieHeader, BASE_URL)], origins: [] }),
+    JSON.stringify({ cookies: [toPlaywrightCookie(devCookie, BASE_URL)], origins: [] }),
   );
 
-  if ((await seedLogbookData(BASE_URL, setCookieHeader.split(";")[0])) > 0)
-    throw new Error("Seeding the dev user failed");
+  if ((await seedLogbookData(BASE_URL, devCookie.split(";")[0])) > 0) throw new Error("Seeding the dev user failed");
 
-  const owners = Array.from({ length: OWNER_POOL_SIZE }, (_, i) => ownerPoolUser(i));
-  const newOwners = Array.from({ length: NEW_OWNER_POOL_SIZE }, (_, i) => newOwnerPoolUser(i));
-  const cookies = await provisionUsers(BASE_URL, owners, D1_OPTIONS);
-  const newCookies = await provisionUsers(BASE_URL, newOwners, { ...D1_OPTIONS, onboarded: false });
   const pool = (users, userCookies) =>
     users.map((owner, i) => ({ username: owner.username, cookie: toPlaywrightCookie(userCookies[i], BASE_URL) }));
-  resetOwnerPool(pool(owners, cookies), pool(newOwners, newCookies));
+  resetOwnerPool(pool(owners, cookies.slice(0, owners.length)), pool(newOwners, cookies.slice(owners.length)));
 }
