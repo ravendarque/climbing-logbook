@@ -55,3 +55,7 @@ We may look at anonymised, combined figures across all users, like how many clim
 ## Sharing
 
 We only share what's needed to run the app, with the services that deliver it and send its emails, and only for that.
+
+<h2 id="ai-training">AI training</h2>
+
+Your logbook isn't used to train AI models. We block AI crawlers and bots, and tell them they may not use anything here for AI training. We don't use it for AI training ourselves either.

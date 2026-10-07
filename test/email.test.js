@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchJson, jsonRequest, resetAuthTables } from "./support.js";
 import { createEmailSender } from "../server/lib/email.js";
+import { TERMS_VERSION } from "../shared/terms.js";
 
 beforeEach(resetAuthTables);
 
@@ -18,6 +19,7 @@ const SIGNUP = {
   name: "Nix",
   username: "nix",
   turnstileToken: "test-token",
+  agreedTermsVersion: TERMS_VERSION,
 };
 
 let resendCalls;

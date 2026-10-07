@@ -1,3 +1,4 @@
+import { TERMS_VERSION } from "../shared/terms.js";
 import { renderTurnstile } from "./turnstile.js";
 
 const form = document.getElementById("register-form");
@@ -5,6 +6,7 @@ const errorEl = document.getElementById("register-error");
 const submitBtn = document.getElementById("register-submit-btn");
 const codeInput = document.getElementById("code");
 const successEl = document.getElementById("register-success");
+const agreeTerms = document.getElementById("agree-terms");
 
 function showError(message) {
   errorEl.textContent = message;
@@ -25,6 +27,12 @@ form.addEventListener("submit", async event => {
   const email = document.getElementById("email").value;
   const username = document.getElementById("username").value;
 
+  if (!agreeTerms.checked) {
+    showError("Agree to the terms of use to sign up.");
+    submitBtn.disabled = false;
+    return;
+  }
+
   const turnstileToken = turnstile.getResponse();
   if (!turnstileToken) {
     showError("Please complete the verification check.");
@@ -44,6 +52,7 @@ form.addEventListener("submit", async event => {
         password: document.getElementById("password").value,
         code: codeInput.value || undefined,
         turnstileToken,
+        agreedTermsVersion: TERMS_VERSION,
       }),
     });
 
@@ -57,6 +66,10 @@ form.addEventListener("submit", async event => {
 
     const data = await res.json().catch(() => null);
     // Same wording for every policy rule, so it doesn't reveal which list a name is on.
+    if (data?.code === "TERMS_NOT_AGREED") {
+      showError("The terms of use have changed. Reload the page to see them, then sign up.");
+      return;
+    }
     if (data?.code === "INVALID_USERNAME") {
       showError("That username isn't available. Try another.");
       return;

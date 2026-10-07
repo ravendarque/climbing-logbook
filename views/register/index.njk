@@ -50,6 +50,11 @@
         class="text-input w-full mb-4"
         type="password" id="password" name="password" required autocomplete="new-password">
 
+      <label class="flex items-start gap-2 text-sm mb-4 cursor-pointer" for="agree-terms">
+        <input class="mt-0.5 size-4 shrink-0 accent-accent-strong" type="checkbox" id="agree-terms" name="agree-terms" required>
+        <span>I agree to the <a class="text-accent-ink underline underline-offset-2" href="/help/terms/" target="_blank" rel="noopener">Terms of use</a></span>
+      </label>
+
       <div id="turnstile-widget" class="mb-4"></div>
 
       <p class="mb-4 error-message" id="register-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>

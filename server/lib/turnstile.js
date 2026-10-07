@@ -1,4 +1,4 @@
-import { createAuthMiddleware, APIError } from "better-auth/api";
+import { APIError } from "better-auth/api";
 
 const SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
@@ -9,37 +9,33 @@ const DUMMY_SECRET_RESPONSES = {
   "3x0000000000000000000000000000000AA": { success: false, "error-codes": ["timeout-or-duplicate"] },
 };
 
-export function createTurnstileHook(env) {
-  return createAuthMiddleware(async ctx => {
-    if (ctx.path !== "/sign-up/email") return;
+export async function requireTurnstile(env, body) {
+  const token = body?.turnstileToken;
+  if (typeof token !== "string" || !token) {
+    throw new APIError("FORBIDDEN", {
+      message: "Bot verification is required to sign up.",
+      code: "TURNSTILE_TOKEN_REQUIRED",
+    });
+  }
 
-    const token = /** @type {{ turnstileToken?: unknown } | undefined} */ (ctx.body)?.turnstileToken;
-    if (typeof token !== "string" || !token) {
-      throw new APIError("FORBIDDEN", {
-        message: "Bot verification is required to sign up.",
-        code: "TURNSTILE_TOKEN_REQUIRED",
-      });
-    }
+  // Fails closed, with its own code so an outage is distinguishable from a bad token.
+  let data;
+  try {
+    data =
+      DUMMY_SECRET_RESPONSES[env.TURNSTILE_SECRET_KEY] ?? (await verifySiteverify(env.TURNSTILE_SECRET_KEY, token));
+  } catch {
+    throw new APIError("FORBIDDEN", {
+      message: "Bot verification failed. Please try again.",
+      code: "TURNSTILE_VERIFICATION_UNAVAILABLE",
+    });
+  }
 
-    // Fails closed, with its own code so an outage is distinguishable from a bad token.
-    let data;
-    try {
-      data =
-        DUMMY_SECRET_RESPONSES[env.TURNSTILE_SECRET_KEY] ?? (await verifySiteverify(env.TURNSTILE_SECRET_KEY, token));
-    } catch {
-      throw new APIError("FORBIDDEN", {
-        message: "Bot verification failed. Please try again.",
-        code: "TURNSTILE_VERIFICATION_UNAVAILABLE",
-      });
-    }
-
-    if (!data.success) {
-      throw new APIError("FORBIDDEN", {
-        message: "Bot verification failed. Please try again.",
-        code: "TURNSTILE_VERIFICATION_FAILED",
-      });
-    }
-  });
+  if (!data.success) {
+    throw new APIError("FORBIDDEN", {
+      message: "Bot verification failed. Please try again.",
+      code: "TURNSTILE_VERIFICATION_FAILED",
+    });
+  }
 }
 
 async function verifySiteverify(secret, token) {

@@ -453,7 +453,10 @@ Tables (see `migrations/` for columns and constraints):
   cookies. It posts to Better Auth's `sign-in/email`.
 - **Sign-up** (`/register/`) needs an invite code while the beta gate is on
   (`server/lib/beta-gate.js`), is protected by Turnstile, and needs email
-  verification before the first login. A code is claimed before sign-up and
+  verification before the first login. It also needs `agreedTermsVersion` to
+  match `TERMS_VERSION` (`shared/terms.js`); the create hook records the
+  version and time on the user (`termsVersion`, `termsAgreedAt`). Changing
+  the terms means bumping that constant. A code is claimed before sign-up and
   released afterwards unless a user was actually created (the create hook
   sets `used_by`): an already-registered email gets a 200 and no account,
   so the response alone can't say. Emails, including a code's pinned one,

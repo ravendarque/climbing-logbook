@@ -1,6 +1,7 @@
 import { env, exports } from "cloudflare:workers";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { BASE_URL, createPublicSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
+import { TERMS_VERSION } from "../shared/terms.js";
 
 const ADMIN = "https://admin.example.com";
 const PASSWORD = "correct-horse-battery-staple";
@@ -47,6 +48,7 @@ function signUp(email, username) {
     name: "Test User",
     username,
     turnstileToken: "test-token",
+    agreedTermsVersion: TERMS_VERSION,
   });
 }
 

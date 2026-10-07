@@ -27,10 +27,25 @@ test("registers with a valid invite code, shows the check-your-email state", asy
   await page.locator("#email").fill(`e2e-register-${Date.now()}@example.com`);
   await page.locator("#username").fill(`e2euser${Date.now()}`);
   await page.locator("#password").fill("correct-horse-battery-staple");
+  await page.locator("#agree-terms").check();
   await page.locator("#register-submit-btn").click();
 
   await expect(page.locator("#register-form")).toBeHidden();
   await expect(page.locator("#register-success")).toBeVisible();
+});
+
+test("won't sign up until the terms of use are agreed", async ({ page }) => {
+  await mockTurnstile(page);
+  await page.goto("/register/");
+  await waitForTurnstile(page);
+  await page.locator("#email").fill(`e2e-noterms-${Date.now()}@example.com`);
+  await page.locator("#username").fill(`e2enoterms${Date.now()}`);
+  await page.locator("#password").fill("correct-horse-battery-staple");
+  await page.locator("#register-submit-btn").click();
+
+  await expect(page.locator("#register-error")).toHaveText("Agree to the terms of use to sign up.");
+  await expect(page.locator("#register-error")).toBeFocused();
+  await expect(page.getByRole("link", { name: "Terms of use" }).first()).toHaveAttribute("href", "/help/terms/");
 });
 
 test("rejects sign-up with no invite code", async ({ page }) => {
@@ -40,6 +55,7 @@ test("rejects sign-up with no invite code", async ({ page }) => {
   await page.locator("#email").fill(`e2e-noinvite-${Date.now()}@example.com`);
   await page.locator("#username").fill(`e2enoinvite${Date.now()}`);
   await page.locator("#password").fill("correct-horse-battery-staple");
+  await page.locator("#agree-terms").check();
   await page.locator("#register-submit-btn").click();
 
   await expect(page.locator("#register-error")).toBeVisible();
@@ -58,6 +74,7 @@ test("a reserved-lookalike username isn't available, and the invite code still w
   await page.locator("#email").fill(`e2e-reserved-${Date.now()}@example.com`);
   await page.locator("#username").fill("he1p");
   await page.locator("#password").fill("correct-horse-battery-staple");
+  await page.locator("#agree-terms").check();
   await page.locator("#register-submit-btn").click();
 
   await expect(page.locator("#register-error")).toHaveText("That username isn't available. Try another.");
