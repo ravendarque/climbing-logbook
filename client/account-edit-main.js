@@ -1,6 +1,8 @@
-// Three separate forms: resubmitting fields you didn't touch reads as risky.
+// One form per field: resubmitting fields you didn't touch reads as risky.
 import { createAccountShell } from "./account-shell.js";
+import { resolveApexUrl } from "./resolve-cross-hostname-url.js";
 import { startPage } from "./boot-gate.js";
+import { removeDeviceData } from "./device-data.js";
 
 const AUTH_BASE = "/-/api/auth";
 
@@ -93,6 +95,16 @@ wireEditableRow({
       currentPassword: formData.get("currentPassword"),
       newPassword: formData.get("newPassword"),
     });
+    return undefined;
+  },
+});
+
+wireEditableRow({
+  prefix: "delete-account",
+  onSubmit: async formData => {
+    await authPost("/delete-user", { password: formData.get("password") });
+    await removeDeviceData(USERNAME);
+    location.href = resolveApexUrl(location.hostname, "/");
     return undefined;
   },
 });

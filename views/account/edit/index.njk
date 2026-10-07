@@ -79,6 +79,24 @@ headerClass: mb-6
       </form>
     </div>
 
+    <div class="row-card" id="delete-account-row">
+      <div class="row-card-title mb-1">Delete account</div>
+      <div class="flex items-center gap-2" id="delete-account-view">
+        <p class="flex-1 min-w-0 text-sm text-muted" id="delete-account-description">Deletes your account and everything in it, on every device. It can't be undone.</p>
+        <button type="button" class="btn shrink-0" id="delete-account-edit-btn" aria-describedby="delete-account-description">Delete</button>
+      </div>
+      <form class="mt-2" id="delete-account-form" hidden>
+        <p class="text-sm text-foreground mb-3">This deletes your account, your logbook and your settings for good. If you want to keep your climbs, export them from My account first.</p>
+        <label class="text-xs text-muted font-semibold uppercase tracking-wide" for="delete-account-password">Password</label>
+        <input class="w-full mt-1 mb-2 bg-background border border-field-border rounded-app px-3 py-2 text-foreground text-base leading-normal" id="delete-account-password" name="password" type="password" autocomplete="current-password" required>
+        <p class="text-sm text-accent-ink mb-2" id="delete-account-error" role="alert" hidden></p>
+        <div class="flex gap-2">
+          <button type="submit" class="btn btn-primary" id="delete-account-save-btn">Delete my account</button>
+          <button type="button" class="btn" id="delete-account-cancel-btn">Cancel</button>
+        </div>
+      </form>
+    </div>
+
   </div>
 
 </div>

@@ -1,3 +1,4 @@
+import { OWNED_ORIGIN } from "./owned-route-url.js";
 import { expect, test } from "./owner.js";
 
 test("shows the current username/email, and each row is independently editable", async ({ page, owner }) => {
@@ -75,4 +76,27 @@ test("shows the server's own error message and keeps the form open on failure", 
 
   await expect(page.locator("#password-error")).toHaveText("Invalid password");
   await expect(page.locator("#password-form")).toBeVisible();
+});
+
+test("deleting the account needs the password, then removes it and leaves for the home page (#310)", async ({
+  page,
+  owner,
+}) => {
+  await owner.seed({ entries: [{}] });
+  await page.goto(owner.url("/account/edit"));
+
+  await page.locator("#delete-account-edit-btn").click();
+  await expect(page.locator("#delete-account-form")).toBeVisible();
+  await page.locator("#delete-account-password").fill("not-my-password");
+  await page.locator("#delete-account-save-btn").click();
+  await expect(page.locator("#delete-account-error")).toBeVisible();
+  await expect(page.locator("#delete-account-form")).toBeVisible();
+
+  await page.locator("#delete-account-password").fill(owner.password);
+  await page.locator("#delete-account-save-btn").click();
+  await page.waitForURL(url => url.pathname === "/");
+  await expect(page.getByRole("link", { name: "Sign up" })).toBeVisible();
+
+  const session = await page.request.get(`${OWNED_ORIGIN}/-/api/auth/get-session`);
+  expect(await session.json()).toBeNull();
 });
