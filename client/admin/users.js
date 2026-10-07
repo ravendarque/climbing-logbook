@@ -15,6 +15,30 @@ const CONFIRMATIONS = {
   },
 };
 
+const STATUSES = { send: "Send", project: "Project", archived: "Archived", checkout: "Check out" };
+const DISCIPLINES = { boulder: "Boulder", sport: "Sport" };
+
+function logbookItem(entry) {
+  const item = el("li", "flex flex-col gap-1 py-3 border-b border-border");
+  const top = el("span", "flex flex-wrap items-baseline gap-x-2");
+  top.append(el("span", "text-sm font-bold break-words", entry.name), el("span", "text-sm", entry.grade));
+  if (entry.hidden) top.append(el("span", "ml-auto text-xs font-semibold text-accent-ink", "Hidden"));
+  const status = entry.status === "send" && entry.firstAttempt ? "Flash" : (STATUSES[entry.status] ?? entry.status);
+  const place = [entry.area, entry.location, entry.country].filter(Boolean).join(", ");
+  item.append(
+    top,
+    el(
+      "span",
+      "text-xs text-muted",
+      [entry.date, DISCIPLINES[entry.discipline] ?? entry.discipline, status, place].filter(Boolean).join(" · "),
+    ),
+  );
+  if (entry.notes) item.append(el("p", "text-sm whitespace-pre-wrap break-words", entry.notes));
+  // Shown, not linked, as in a report.
+  if (entry.video) item.append(el("span", "text-xs text-muted break-all", entry.video));
+  return item;
+}
+
 function summary(user) {
   const climbs = `${user.climbs} ${user.climbs === 1 ? "climb" : "climbs"}`;
   return [
@@ -38,6 +62,9 @@ export function startUsers() {
   const dialog = document.getElementById("user-dialog");
   const confirmInput = document.getElementById("user-confirm");
   const confirmButton = document.getElementById("user-dialog-confirm");
+  const viewLogbook = document.getElementById("view-logbook");
+  const logbookStatus = document.getElementById("logbook-status");
+  const logbookList = document.getElementById("logbook-list");
 
   const params = new URLSearchParams(location.search);
   let query = params.get("q") ?? "";
@@ -108,6 +135,8 @@ export function startUsers() {
     actions.hidden = user.isDemo;
     demoNote.hidden = !user.isDemo;
     toggleSuspend.textContent = user.suspended ? "Unsuspend" : "Suspend";
+    logbookList.replaceChildren();
+    logbookStatus.textContent = "";
   }
 
   function render() {
@@ -157,6 +186,23 @@ export function startUsers() {
       navigate(urlFor(), { replace: true });
       load();
     }, SEARCH_DELAY_MS);
+  });
+
+  viewLogbook.addEventListener("click", async () => {
+    const user = selected();
+    if (!user) return;
+    logbookList.replaceChildren();
+    logbookStatus.textContent = "Loading…";
+    try {
+      const { entries } = await api(`users/${encodeURIComponent(user.id)}/logbook`);
+      if (selected()?.id !== user.id) return;
+      logbookList.replaceChildren(...entries.map(logbookItem));
+      logbookStatus.textContent = entries.length
+        ? `${entries.length} ${entries.length === 1 ? "climb" : "climbs"}`
+        : "No climbs yet.";
+    } catch {
+      logbookStatus.textContent = "Couldn't load this logbook. Check your connection and try again.";
+    }
   });
 
   toggleSuspend.addEventListener("click", async () => {

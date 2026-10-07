@@ -205,6 +205,32 @@ test("a user is found, suspended, unsuspended and deleted, and each step is in t
   ]);
 });
 
+test("a private logbook can be viewed read-only, and the view is in the activity log (#1279)", async ({
+  page,
+  owner,
+}) => {
+  await owner.settings({ logbookPublic: false });
+  await owner.seed({ entries: [{ name: "Quiet project", status: "project", notes: "Just for me" }] });
+
+  await page.goto(`${ADMIN}/users`);
+  await page.locator("#user-search").fill(owner.username);
+  await page.locator("#user-list a", { hasText: owner.username }).click();
+  await expect(page.locator("#logbook-list li")).toHaveCount(0);
+
+  await page.locator("#view-logbook").click();
+  await expect(page.locator("#logbook-status")).toHaveText("1 climb");
+  const climb = page.locator("#logbook-list li");
+  await expect(climb).toContainText("Quiet project");
+  await expect(climb).toContainText("Project");
+  await expect(climb).toContainText("Just for me");
+  await expect(climb.locator("button, input, a")).toHaveCount(0);
+
+  await page.locator("#tab-activity").click();
+  await expect(page.locator("#activity-list li", { hasText: owner.username }).first()).toContainText(
+    `Viewed ${owner.username}'s logbook`,
+  );
+});
+
 test("the usage tab shows the headline figures, the splits, and places by country that open to their locations", async ({
   page,
 }) => {

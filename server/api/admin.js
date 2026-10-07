@@ -1,6 +1,6 @@
 import { json, parseJsonBody } from "../lib/json.js";
 import { verifyAccessRequest } from "../lib/access.js";
-import { actOnUser, listAuditLog, listUsers, setEntryHidden } from "./admin-users.js";
+import { actOnUser, listAuditLog, listUsers, setEntryHidden, viewLogbook } from "./admin-users.js";
 import { handleUsage } from "./admin-usage.js";
 
 const TABLES = { reports: "issue_reports", feedback: "feedback_submissions" };
@@ -117,6 +117,8 @@ async function handleAdminApi(request, env, pathname) {
   if (pathname === "/-/api/admin/users") return method === "GET" ? listUsers(request, env) : null;
   if (pathname === "/-/api/admin/audit") return method === "GET" ? listAuditLog(env) : null;
   if (pathname === "/-/api/admin/usage") return method === "GET" ? handleUsage(env) : null;
+  const logbook = pathname.match(/^\/-\/api\/admin\/users\/([^/]+)\/logbook$/);
+  if (logbook) return method === "GET" ? viewLogbook(env, safeDecode(logbook[1])) : null;
   const userAction = pathname.match(/^\/-\/api\/admin\/users\/([^/]+)\/([a-z]+)$/);
   if (userAction) return method === "POST" ? actOnUser(request, env, safeDecode(userAction[1]), userAction[2]) : null;
   const entryAction = pathname.match(/^\/-\/api\/admin\/entries\/([^/]+)\/(hide|unhide)$/);

@@ -80,6 +80,15 @@ bundle: admin
       </div>
       <p class="text-sm text-muted" id="user-demo-note" hidden>A demo account. It can't be changed here.</p>
       <p class="error-message" id="user-error" role="alert" hidden></p>
+      <section class="flex flex-col gap-3 pt-4 border-t border-border" aria-labelledby="user-logbook-heading">
+        <div class="flex flex-wrap items-center gap-2">
+          <h3 class="text-base font-bold" id="user-logbook-heading">Logbook</h3>
+          <button type="button" class="btn ml-auto" id="view-logbook" aria-describedby="view-logbook-note">View logbook</button>
+        </div>
+        <p class="text-xs text-muted" id="view-logbook-note">Read-only. Each view is recorded in Activity.</p>
+        <p class="text-sm text-muted" id="logbook-status" role="status"></p>
+        <ol class="flex flex-col" id="logbook-list"></ol>
+      </section>
     </article>
   </div>
 

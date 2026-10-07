@@ -21,6 +21,8 @@ We use this to run the app for you, and for nothing else.
 
 You decide. Your logbook starts private. In My account, the **Public Logbook** setting controls whether anyone can view your logbook and map. Your Grade Pyramid and other Performance Insights are always private to you.
 
+We only look at a logbook to investigate a report, misuse, or a problem you've asked us to help with, and every look is logged.
+
 ## Cookies
 
 We use one cookie, and it keeps you logged in. The app needs it to work, so there's no cookie banner. We don't use tracking or advertising cookies.
