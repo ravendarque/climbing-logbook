@@ -22,6 +22,7 @@ import { handleBetaGatedSignUp } from "./lib/beta-gate.js";
 import { resolveUserId } from "./lib/session.js";
 import { json } from "./lib/json.js";
 import { handlePerHostAsset, perHostAssetPath } from "./api/app-identity.js";
+import { handleAdminHost, isAdminHost } from "./api/admin.js";
 
 const RESOURCE_ROUTES = {
   "/-/api/entries": {
@@ -47,6 +48,8 @@ export default {
   async fetch(request, env) {
     const { hostname, pathname } = new URL(request.url);
     const method = request.method;
+
+    if (isAdminHost(hostname)) return handleAdminHost(request, env);
 
     // App hosts serve login on their own origin so an installed app keeps its cookies.
     if (pathname === "/-/login" && (method === "GET" || method === "HEAD")) {
@@ -113,6 +116,9 @@ export default {
       if (!userId) return json({ error: "Unauthorized" }, 401);
       return handler(request, env, userId);
     }
+
+    // "/" comes through the Worker only so the admin host can claim it; everywhere else it's the home page.
+    if (pathname === "/" && isRead) return env.ASSETS.fetch(request);
 
     return new Response("Not found", { status: 404 });
   },

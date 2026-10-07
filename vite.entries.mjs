@@ -22,4 +22,5 @@ export const CLIENT_ENTRIES = {
   login: "client/login-main.js",
   register: "client/register-main.js",
   "reset-password": "client/reset-password-main.js",
+  admin: "client/admin-main.js",
 };

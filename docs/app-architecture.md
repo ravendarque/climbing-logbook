@@ -34,6 +34,7 @@ PRs. Update this map in the same PR as any change that makes it wrong.
 | `climbinglogbook.com` (apex) | Marketing home, `/help/*`, `/login/`, `/register/`, `/reset-password/` |
 | `my.climbinglogbook.com` | Each user's app at `/:username/<page>` and public profile at `/:username` ([ADR-0010](adr/0010-public-url-structure-my-domain-username.md)) |
 | `beta.climbinglogbook.com` | The same owner app from the beta channel, for enrolled users ([ADR-0020](adr/0020-beta-environment-shared-data-tag-promotion.md), [ADR-0029](adr/0029-beta-channel-enrollment-model.md)) |
+| `admin.climbinglogbook.com` | Raven's admin pages, behind Cloudflare Access. Nothing in the app links to it ([ADR-0034](adr/0034-admin-host-behind-cloudflare-access.md)) |
 
 Beta and production share one D1 database. Apex-only pages requested on an
 app host 301 to the apex (`infra/tls-hardening.tf`).
@@ -176,6 +177,7 @@ Everything else reaches `server/index.js`:
 | `/-/api/auth/*` | any | Better Auth's own | `server/lib/auth.js` |
 | `/-/api/report-issue`, `/-/api/feedback` | any | none; Turnstile and a rate limit | `server/api/submissions.js` |
 | `/-/manifest.json` and the touch icon | any | none | `server/api/app-identity.js` (beta has its own identity) |
+| everything | `admin.` | Cloudflare Access, and its token checked again in the Worker | `server/api/admin.js`; on every other host its paths 404 |
 
 No session is a 401, never an empty 200, so a page with a lapsed session
 keeps its cached data. Every handler scopes its queries to the session's
@@ -511,7 +513,9 @@ it for the isolate's lifetime.
 Tailwind and 11ty watchers, at `http://localhost:5173`. Owner pages need the
 `my.` host: `http://my.localhost:5173/<username>/log`. `pnpm run seed`
 creates a dev user and data. There's no service worker and no minification
-in dev.
+in dev. The admin pages are at `http://admin.localhost:5173/reports` once
+`.dev.vars` has `ADMIN_ACCESS_CHECK=off`, since nothing local stands in for
+Access.
 
 ## Testing
 

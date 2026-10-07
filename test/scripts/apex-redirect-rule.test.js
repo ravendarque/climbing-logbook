@@ -11,11 +11,12 @@ const list = name => JSON.parse(terraform.match(new RegExp(`${name}\\s*=\\s*(\\[
 const EXACT = list("apex_only_exact_paths");
 const PREFIXES = list("apex_only_path_prefixes");
 
-// Not apex pages: owner and profile shells, the launch page, /-/, and build-only entries.
+// Not apex pages: owner and profile shells, the admin host's shell, the launch page, /-/, and build-only entries.
 const APP_OR_BUILD = new Set([
   ...Object.values(SHELL_PATHS).map(path => path.split("/")[1]),
   "profile",
   "launch",
+  "admin",
   "-",
   "_includes",
   "_headers",

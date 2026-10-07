@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{{ title }}</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/-/favicon-32.png">
+  <link rel="preload" as="font" type="font/woff2" href="/-/fonts/BebasNeue-Regular.woff2" crossorigin>
+  <link rel="stylesheet" href="/-/tailwind.css{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}">
+  <script>
+    (function () {
+      var stored = localStorage.getItem("logbook_theme");
+      var theme = stored || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+  {%- if isDevBuild %}
+  <script type="module" src="/@vite/client"></script>
+  {%- endif %}
+</head>
+<body class="bg-background text-foreground font-sans px-4 pt-4 pb-16 min-w-[300px]">
+<div class="max-w-[1200px] mx-auto">
+  <header class="flex items-baseline gap-2">
+    <p class="font-display text-[1.75rem] leading-none tracking-wide"><span class="text-accent-ink">Climbing</span> Logbook</p>
+    <p class="font-display text-lg leading-none tracking-wider text-muted">Admin</p>
+  </header>
+  <main id="main">
+{{ content | safe }}
+  </main>
+</div>
+<script type="module" src="/-/{{ bundle }}-app.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
+</body>
+</html>

@@ -39,6 +39,8 @@
   Cache-Control: public, max-age=31556952, immutable
 /-/welcome-app.js
   Cache-Control: public, max-age=31556952, immutable
+/-/admin-app.js
+  Cache-Control: public, max-age=31556952, immutable
 /-/view-app.js
   Cache-Control: public, max-age=31556952, immutable
 /-/sync-app.js

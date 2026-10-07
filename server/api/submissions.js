@@ -3,9 +3,9 @@ import { json } from "../lib/json.js";
 import { verifyTurnstile } from "../lib/turnstile.js";
 import { checkRateLimit } from "../lib/rate-limit.js";
 import { resolveUserId } from "../lib/session.js";
+import { SUBMISSION_SECTIONS } from "../../shared/submission-sections.js";
 
-// Matches the section options in views/help/{report-an-issue,feedback}/index.njk.
-const SECTIONS = ["logbook", "map", "performance", "account", "import_export", "help"];
+const SECTIONS = Object.keys(SUBMISSION_SECTIONS);
 
 const RATE_LIMIT_PER_HOUR = 5;
 

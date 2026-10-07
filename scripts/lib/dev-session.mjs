@@ -53,6 +53,8 @@ export function resetDatabase(options = {}) {
     "beta_invites",
     "verification",
     "rate_limits",
+    "issue_reports",
+    "feedback_submissions",
     "user",
   ];
   d1Execute(tables.map(table => `DELETE FROM "${table}"`).join("; "), options);
