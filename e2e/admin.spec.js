@@ -204,3 +204,29 @@ test("a user is found, suspended, unsuspended and deleted, and each step is in t
     new RegExp(`Suspended ${owner.username}`),
   ]);
 });
+
+test("the usage tab shows the headline figures, the splits, and places by country that open to their locations", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 312, height: 680 });
+  await page.goto(`${ADMIN}/usage`);
+  await expect(page.locator("#tab-usage")).toHaveAttribute("aria-current", "page");
+  await expect(page.locator("#usage-view")).toContainText("the demo accounts aren't counted");
+
+  const tiles = page.locator("#usage-tiles > div");
+  await expect(tiles).toHaveCount(4);
+  await expect(tiles.nth(0)).toContainText("Users");
+  await expect(tiles.nth(1)).toContainText("Climbs");
+  await expect(page.locator("#usage-people")).toContainText("Athlete Mode on");
+  await expect(page.locator("#usage-people")).toContainText("Counted from");
+  await expect(page.locator("#usage-statuses")).toContainText("Send / Redpoint");
+  await expect(page.locator("#usage-disciplines")).toContainText("Boulder");
+
+  const firstCountry = page.locator("#usage-countries button").first();
+  const locations = page.locator("#usage-countries tr[data-country='0']");
+  await expect(locations.first()).toBeHidden();
+  await firstCountry.click();
+  await expect(firstCountry).toHaveAttribute("aria-expanded", "true");
+  await expect(locations.first()).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(312);
+});

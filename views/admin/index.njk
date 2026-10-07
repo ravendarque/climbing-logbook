@@ -10,6 +10,7 @@ bundle: admin
   <a class="{{ tabClass }}" id="tab-reports" href="/reports">Reports <span class="text-accent-ink" data-unread></span></a>
   <a class="{{ tabClass }}" id="tab-feedback" href="/feedback">Feedback <span class="text-accent-ink" data-unread></span></a>
   <a class="{{ tabClass }}" id="tab-users" href="/users">Users</a>
+  <a class="{{ tabClass }}" id="tab-usage" href="/usage">Usage</a>
   <a class="{{ tabClass }}" id="tab-activity" href="/activity">Activity</a>
 </nav>
 
@@ -91,6 +92,37 @@ bundle: admin
       </div>
     </form>
   </dialog>
+</section>
+
+<section id="usage-view" aria-label="Usage" hidden>
+  <p class="mt-3 text-xs min-[900px]:text-sm text-muted">Real accounts only: the demo accounts aren't counted.</p>
+  <p class="mt-3 text-sm text-muted" id="usage-status" role="status"></p>
+  <div class="flex flex-col gap-6 mt-3" id="usage-body" hidden>
+    <div class="grid grid-cols-2 min-[900px]:grid-cols-4 gap-2 min-[900px]:gap-3" id="usage-tiles"></div>
+    <div class="flex flex-wrap gap-6 items-start">
+      <div class="flex-[1_1_360px] min-w-0 flex flex-col gap-6">
+        <section class="flex flex-col gap-3" aria-labelledby="usage-people-heading">
+          <h2 class="text-[.95rem] font-bold" id="usage-people-heading">People</h2>
+          <div class="flex flex-col gap-3" id="usage-people"></div>
+        </section>
+        <section class="flex flex-col gap-3" aria-labelledby="usage-climbs-heading">
+          <h2 class="text-[.95rem] font-bold" id="usage-climbs-heading">Climbs</h2>
+          <div class="flex flex-col gap-1.5" id="usage-disciplines"></div>
+          <div class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 text-sm" id="usage-statuses"></div>
+        </section>
+      </div>
+      <section class="flex-[1_1_480px] min-w-0 flex flex-col gap-2" aria-labelledby="usage-places-heading">
+        <h2 class="text-[.95rem] font-bold" id="usage-places-heading">Places by country</h2>
+        <table class="w-full border-collapse text-sm tabular-nums">
+          <thead>
+            <tr class="text-left text-muted"><th class="py-1.5 font-semibold" scope="col">Country</th><th class="font-semibold text-right" scope="col">Places</th><th class="font-semibold text-right" scope="col">Climbs</th></tr>
+          </thead>
+          <tbody id="usage-countries"></tbody>
+        </table>
+        <p class="text-sm text-muted" id="usage-countries-empty" hidden>No places yet.</p>
+      </section>
+    </div>
+  </div>
 </section>
 
 <section id="activity-view" aria-labelledby="activity-heading" hidden>
