@@ -466,6 +466,15 @@ Tables (see `migrations/` for columns and constraints):
   `cf-connecting-ip` ([ADR-0027](adr/0027-database-backed-rate-limiting-on-sign-in.md)).
 - **Already logged in:** the apex home and login page send a signed-in
   visitor straight to their log (`client/session-redirect.js`).
+- **Suspended and banned accounts** are enforced in Better Auth's database
+  hooks (`server/lib/account-status.js`):
+  - A suspended account can't start a session. Suspending also ends the
+    sessions it has, and its public logbook 404s like a private one.
+  - A banned email gets sign-up's generic "check your email" reply, and no
+    account is created.
+  - A banned username reads as unavailable, at sign-up or on a change.
+  - The admin host's Users tab does the suspending, deleting and banning,
+    and records each action in `admin_audit_log` ([ADR-0034](adr/0034-admin-host-behind-cloudflare-access.md)).
 
 ### Better Auth configuration
 

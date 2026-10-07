@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./owner.js";
 import { d1Execute } from "../scripts/lib/dev-session.mjs";
 
 test.use({ storageState: { cookies: [], origins: [] } });
@@ -153,4 +153,54 @@ test("the admin pages and API don't exist on the app's own hosts", async ({ page
   }
   const home = await page.goto("http://localhost:8787/");
   expect(home.status()).toBe(200);
+});
+
+test("a user is found, suspended, unsuspended and deleted, and each step is in the activity log", async ({
+  page,
+  owner,
+  request,
+}) => {
+  await page.setViewportSize({ width: 312, height: 680 });
+  const settings = `http://my.localhost:8787/-/api/settings`;
+  const cookie = (await page.context().cookies("http://my.localhost:8787")).map(c => `${c.name}=${c.value}`).join("; ");
+  const ownSettings = () => request.get(settings, { headers: { Cookie: cookie } });
+  expect((await ownSettings()).status()).toBe(200);
+
+  await page.goto(`${ADMIN}/users`);
+  await expect(page.locator("#tab-users")).toHaveAttribute("aria-current", "page");
+  await page.locator("#user-search").fill(owner.username);
+  const row = page.locator("#user-list a", { hasText: owner.username });
+  await expect(row).toHaveCount(1);
+  await expect(row).toContainText(owner.email);
+  await row.click();
+
+  await expect(page.locator("#user-heading")).toHaveText(owner.username);
+  await expect(page.locator("#user-fields")).toContainText("Active");
+  await page.locator("#toggle-suspend").click();
+  await expect(page.locator("#user-fields")).toContainText("Suspended");
+  await expect(page.locator("#toggle-suspend")).toHaveText("Unsuspend");
+  expect((await ownSettings()).status()).toBe(401);
+
+  await page.locator("#toggle-suspend").click();
+  await expect(page.locator("#user-fields")).toContainText("Active");
+
+  await page.locator("#user-delete").click();
+  const dialog = page.locator("#user-dialog");
+  await expect(dialog).toContainText(`Delete ${owner.username}?`);
+  const confirm = dialog.locator("#user-dialog-confirm");
+  await expect(confirm).toBeDisabled();
+  await dialog.getByLabel("Type their username to confirm").fill("not-them");
+  await expect(confirm).toBeDisabled();
+  await dialog.getByLabel("Type their username to confirm").fill(owner.username);
+  await confirm.click();
+  await expect(page).toHaveURL(new RegExp(`${ADMIN}/users`));
+  await expect(row).toHaveCount(0);
+
+  await page.locator("#tab-activity").click();
+  const log = page.locator("#activity-list");
+  await expect(log.locator("li", { hasText: owner.username })).toHaveText([
+    new RegExp(`Deleted ${owner.username}`),
+    new RegExp(`Unsuspended ${owner.username}`),
+    new RegExp(`Suspended ${owner.username}`),
+  ]);
 });

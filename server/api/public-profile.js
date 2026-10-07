@@ -1,7 +1,8 @@
 import { escapeHtml } from "../lib/html-escape.js";
 import { lookupUserByUsername } from "../lib/user.js";
+import { isSuspended } from "../lib/account-status.js";
 
-// No user and a private logbook get the same 404, so accounts can't be enumerated.
+// No user, a private logbook and a suspended account get the same 404, so accounts can't be enumerated.
 export async function resolvePublicUser(env, username) {
   const user = await lookupUserByUsername(env, username);
   if (!user) return null;
@@ -11,7 +12,7 @@ export async function resolvePublicUser(env, username) {
     .first();
   // No settings row yet means the schema defaults: public, not a demo.
   const isPublic = settings ? !!settings.logbook_public : true;
-  if (!isPublic) return null;
+  if (!isPublic || (await isSuspended(env, user.id))) return null;
 
   return { id: user.id, displayUsername: user.displayUsername, isDemo: !!settings?.is_demo };
 }
