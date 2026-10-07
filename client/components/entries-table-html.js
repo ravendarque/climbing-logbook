@@ -120,7 +120,7 @@ export function shellHtml(allDisciplines) {
         <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-lg leading-none p-[.2rem] hover:text-foreground" id="notes-close" aria-label="Close">✕</button>
       </div>
       <p class="text-foreground text-base whitespace-pre-wrap" id="notes-modal-text"></p>
-      <a class="inline-block mt-4 text-sm text-muted underline underline-offset-2 hover:text-accent-ink" id="notes-report-link" data-apex-link href="#" hidden>Report this climb</a>
+      <a class="inline-block mt-4 text-sm text-muted underline underline-offset-2 hover:text-accent-ink" id="notes-report-link" data-apex-link href="#" hidden>Report this entry</a>
     </div>
   </div>
 `;
@@ -190,7 +190,7 @@ export function renderLocationSectionHtml(
       <td class="${TD_BASE} overflow-hidden">
         <span class="font-medium truncate inline-block max-w-full align-bottom ${e._pendingDelete ? "line-through text-muted" : ""}">${escapeHtml(e.name)}</span>
         ${pendingBadge}
-        ${e.hidden ? `<span class="block text-xs text-accent-ink whitespace-normal">Hidden from your public logbook · <a class="underline underline-offset-2" data-apex-link href="${escapeHtml(resolveApexUrl(location.hostname, "/help/terms/#hidden-climbs"))}">Why?</a></span>` : ""}
+        ${e.hidden ? `<span class="block text-xs text-accent-ink" title="Hidden from your public logbook">Hidden (<a class="underline underline-offset-2" data-apex-link href="${escapeHtml(resolveApexUrl(location.hostname, "/help/terms/#hidden-climbs"))}" aria-label="Why is this hidden from my public logbook?">Why?</a>)</span>` : ""}
       </td>
       <td class="${TD_BASE} text-muted text-sm truncate">${escapeHtml(placeOf(e, places).area)}</td>
       <td class="${TD_BASE} text-muted text-sm whitespace-nowrap">${escapeHtml(formatDate(e.date))}</td>

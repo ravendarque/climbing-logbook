@@ -120,7 +120,7 @@ export function startSubmissions(kind) {
     // Shown, not linked: it's what was reported.
     addField(reportedFields, "Video", entry.video || "None");
     addField(reportedFields, "Public", entry.hidden ? "Hidden" : "Showing");
-    toggleHidden.textContent = entry.hidden ? "Unhide this climb" : "Hide this climb";
+    toggleHidden.textContent = entry.hidden ? "Unhide this entry" : "Hide this entry";
   }
 
   function render() {

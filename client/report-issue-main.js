@@ -34,7 +34,7 @@ const turnstile = renderTurnstile("#turnstile-widget");
 // undefined, not "", so JSON.stringify omits it and the server sees it as absent.
 const sourcePage = document.referrer || undefined;
 
-// Set by "Report this logbook" and "Report this climb" on a public logbook.
+// Set by "Report this logbook" and "Report this entry" on a public logbook.
 const params = new URLSearchParams(location.search);
 const reportedUsername = params.get("logbook") || undefined;
 const reportedEntryId = (reportedUsername && params.get("climb")) || undefined;
@@ -42,7 +42,7 @@ if (reportedUsername) {
   const about = document.getElementById("report-about");
   const name = document.createElement("strong");
   name.textContent = reportedUsername;
-  about.append("You're reporting ", reportedEntryId ? "a climb in " : "", name, "'s public logbook.");
+  about.append("You're reporting ", reportedEntryId ? "an entry in " : "", name, "'s public logbook.");
   about.hidden = false;
   document.getElementById("report-issue-section").value = "public_logbook";
 }

@@ -5,8 +5,8 @@ const ACTIONS = {
   unsuspend: "Unsuspended",
   delete: "Deleted",
   ban: "Banned",
-  hide: "Hid a climb of",
-  unhide: "Unhid a climb of",
+  hide: "Hid an entry of",
+  unhide: "Unhid an entry of",
 };
 
 export async function startActivity() {

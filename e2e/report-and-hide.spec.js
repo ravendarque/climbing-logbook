@@ -28,7 +28,7 @@ test("a visitor reports a climb on a public logbook, the admin hides it, and onl
   await mockTurnstile(page);
   await page.goto(new URL(reportHref).pathname + new URL(reportHref).search);
   await expect(page.locator("#report-about")).toHaveText(
-    `You're reporting a climb in ${owner.username}'s public logbook.`,
+    `You're reporting an entry in ${owner.username}'s public logbook.`,
   );
   await expect(page.locator("#report-issue-section")).toHaveValue("public_logbook");
   await page.waitForFunction(() => window.turnstile?.getResponse());
@@ -45,7 +45,7 @@ test("a visitor reports a climb on a public logbook, the admin hides it, and onl
   await expect(reported).toContainText("Showing");
   await page.locator("#toggle-hidden").click();
   await expect(reported).toContainText("Hidden");
-  await expect(page.locator("#toggle-hidden")).toHaveText("Unhide this climb");
+  await expect(page.locator("#toggle-hidden")).toHaveText("Unhide this entry");
 
   const publicEntries = await (
     await page.request.get(owner.url("").replace(/\/[^/]+\/?$/, `/-/api/public/${owner.username}/entries`))
@@ -53,14 +53,17 @@ test("a visitor reports a climb on a public logbook, the admin hides it, and onl
   expect(publicEntries.entries.map(entry => entry.name)).toEqual(["Fine climb"]);
 
   await page.goto(`${ADMIN}/activity`);
-  await expect(page.locator("#activity-list li").first()).toContainText(`Hid a climb of ${owner.username}: ${climb}`);
+  await expect(page.locator("#activity-list li").first()).toContainText(`Hid an entry of ${owner.username}: ${climb}`);
 
   await page.context().addCookies(ownerCookies);
   await gotoSyncedLog(page, owner);
   await page.locator("#collapse-all-btn").click();
   const ownRow = page.locator("tr", { hasText: climb });
-  await expect(ownRow).toContainText("Hidden from your public logbook");
-  await expect(ownRow.getByRole("link", { name: "Why?" })).toHaveAttribute("href", "/help/terms/#hidden-climbs");
+  await expect(ownRow).toContainText("Hidden (Why?)");
+  await expect(ownRow.getByRole("link", { name: "Why is this hidden from my public logbook?" })).toHaveAttribute(
+    "href",
+    "/help/terms/#hidden-climbs",
+  );
 });
 
 test("your own logbook offers no way to report a climb", async ({ page, owner }) => {
