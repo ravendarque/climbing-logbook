@@ -35,7 +35,7 @@
     "BETA_GATE_ENABLED": "true",
     "RATE_LIMITING_ENABLED": "true",
     "ACCESS_TEAM_DOMAIN": "ravendarque.cloudflareaccess.com",
-    "ACCESS_AUD": ""
+    "ACCESS_AUD": "d63c4a6b2ab69f2f2cc6b3b43e1224a4f5b19a2534156329a52fcbb9177a6f7d"
   },
   "routes": [
     { "pattern": "climbinglogbook.com/*", "zone_name": "climbinglogbook.com" },
@@ -55,7 +55,7 @@
         "BETA_GATE_ENABLED": "true",
         "RATE_LIMITING_ENABLED": "true",
         "ACCESS_TEAM_DOMAIN": "ravendarque.cloudflareaccess.com",
-        "ACCESS_AUD": ""
+        "ACCESS_AUD": "d63c4a6b2ab69f2f2cc6b3b43e1224a4f5b19a2534156329a52fcbb9177a6f7d"
       },
       "d1_databases": [
         { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook", "database_id": "8f094438-520c-4a67-a685-aee3db6198ad", "migrations_dir": "migrations" }
