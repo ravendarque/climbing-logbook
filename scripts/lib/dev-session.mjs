@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { TERMS_VERSION } from "../../shared/terms.js";
 
 const D1_DATABASE = "climbing-logbook";
 
@@ -112,7 +113,12 @@ export async function provisionUsers(baseUrl, usersWithCodes, options = {}) {
     const signUpRes = await fetchWithRetry(`${baseUrl}/-/api/auth/sign-up/email`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Origin: baseUrl },
-      body: JSON.stringify({ ...user, code: codes[i], turnstileToken: "test-token" }),
+      body: JSON.stringify({
+        ...user,
+        code: codes[i],
+        turnstileToken: "test-token",
+        agreedTermsVersion: TERMS_VERSION,
+      }),
     });
     if (!signUpRes.ok) {
       throw new Error(`Failed to sign up ${user.email}: ${signUpRes.status} ${await signUpRes.text()}`);

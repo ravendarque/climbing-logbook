@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { afterEach, beforeEach, vi } from "vitest";
 import { jsonRequest } from "./support.js";
+import { TERMS_VERSION } from "../shared/terms.js";
 
 // Turnstile runs before the beta gate, so it must be stubbed to reach it.
 export function stubBetaGateFetch() {
@@ -44,6 +45,7 @@ export function signUp(body) {
     name: "Nix",
     username: "nix",
     turnstileToken: "test-token",
+    agreedTermsVersion: TERMS_VERSION,
     ...body,
   });
 }

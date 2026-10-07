@@ -1,6 +1,7 @@
 import { env, exports } from "cloudflare:workers";
 import { vi } from "vitest";
 import { checkUsername } from "../shared/username-policy.js";
+import { TERMS_VERSION } from "../shared/terms.js";
 
 export const BASE_URL = "https://example.com";
 
@@ -75,6 +76,7 @@ export async function createAuthedSession({
       name: "Test User",
       username,
       turnstileToken: "test-token",
+      agreedTermsVersion: TERMS_VERSION,
     }),
   });
 

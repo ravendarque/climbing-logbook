@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { jsonRequest, resetAuthTables } from "./support.js";
+import { TERMS_VERSION } from "../shared/terms.js";
 
 beforeEach(resetAuthTables);
 beforeAll(() => {
@@ -10,7 +11,13 @@ afterAll(() => {
   env.BETA_GATE_ENABLED = "true";
 });
 
-const SIGNUP = { email: "nix@example.com", password: "correct-horse-battery-staple", name: "Nix", username: "nix" };
+const SIGNUP = {
+  email: "nix@example.com",
+  password: "correct-horse-battery-staple",
+  name: "Nix",
+  username: "nix",
+  agreedTermsVersion: TERMS_VERSION,
+};
 
 let siteverifyCalls;
 function stubSiteverify(success) {

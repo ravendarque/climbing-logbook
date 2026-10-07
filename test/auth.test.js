@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { BASE_URL, fetchJson, jsonRequest, resetAuthTables } from "./support.js";
 import { trustedOriginsFor } from "../server/lib/auth.js";
+import { TERMS_VERSION } from "../shared/terms.js";
 
 beforeEach(resetAuthTables);
 
@@ -18,6 +19,7 @@ const VALID_SIGNUP = {
   name: "Nix",
   username: "nix",
   turnstileToken: "test-token",
+  agreedTermsVersion: TERMS_VERSION,
 };
 
 let resendCalls;
@@ -131,6 +133,47 @@ describe("sign-up", () => {
       expect((await res.json()).code, username).toBe("INVALID_USERNAME");
     }
     expect(resendCalls).toHaveLength(0);
+  });
+
+  it("records which terms of use the account agreed to, and when", async () => {
+    const before = Date.now();
+    await signUp();
+    const row = await env.LOGBOOK_DB.prepare(`SELECT termsVersion, termsAgreedAt FROM "user" WHERE email = ?`)
+      .bind(VALID_SIGNUP.email)
+      .first();
+    expect(row.termsVersion).toBe(TERMS_VERSION);
+    expect(Date.parse(row.termsAgreedAt)).toBeGreaterThanOrEqual(before - 1000);
+  });
+
+  it("refuses a sign-up that hasn't agreed to the current terms, creating no account", async () => {
+    for (const agreedTermsVersion of [undefined, "2000-01-01"]) {
+      const res = await signUp({ ...VALID_SIGNUP, agreedTermsVersion });
+      expect(res.status, String(agreedTermsVersion)).toBe(400);
+      expect((await res.json()).code).toBe("TERMS_NOT_AGREED");
+    }
+    const row = await env.LOGBOOK_DB.prepare(`SELECT 1 FROM "user" WHERE email = ?`).bind(VALID_SIGNUP.email).first();
+    expect(row).toBeNull();
+    expect(resendCalls).toHaveLength(0);
+  });
+
+  it("doesn't let an account change its recorded agreement", async () => {
+    await signUp();
+    await env.LOGBOOK_DB.prepare(`UPDATE "user" SET emailVerified = 1 WHERE email = ?`).bind(VALID_SIGNUP.email).run();
+    const signIn = await jsonRequest("POST", "/-/api/auth/sign-in/email", {
+      email: VALID_SIGNUP.email,
+      password: VALID_SIGNUP.password,
+    });
+    const cookie = signIn.headers.get("set-cookie").split(";")[0];
+    await jsonRequest(
+      "POST",
+      "/-/api/auth/update-user",
+      { termsVersion: "1999-01-01" },
+      { Cookie: cookie, Origin: BASE_URL },
+    );
+    const row = await env.LOGBOOK_DB.prepare(`SELECT termsVersion FROM "user" WHERE email = ?`)
+      .bind(VALID_SIGNUP.email)
+      .first();
+    expect(row.termsVersion).toBe(TERMS_VERSION);
   });
 });
 

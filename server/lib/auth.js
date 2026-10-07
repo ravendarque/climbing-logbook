@@ -1,9 +1,11 @@
 import { betterAuth } from "better-auth";
+import { createAuthMiddleware } from "better-auth/api";
 import { username } from "better-auth/plugins";
 import { createBetaGateAfterHook } from "./beta-gate.js";
 import { createAccountStatusHooks } from "./account-status.js";
 import { createEmailSender } from "./email.js";
-import { createTurnstileHook } from "./turnstile.js";
+import { requireTermsAgreement, stampTermsAgreement } from "./terms.js";
+import { requireTurnstile } from "./turnstile.js";
 import { checkUsername, USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH } from "../../shared/username-policy.js";
 
 // Why the list depends on the host: docs/app-architecture.md, Better Auth configuration.
@@ -76,6 +78,10 @@ export function createAuth(env, hostname) {
       autoSignInAfterVerification: true,
     },
     user: {
+      additionalFields: {
+        termsVersion: { type: "string", required: false, input: false },
+        termsAgreedAt: { type: "date", required: false, input: false },
+      },
       changeEmail: {
         enabled: true,
         sendChangeEmailConfirmation: ({ user, newEmail, url }) =>
@@ -90,11 +96,21 @@ export function createAuth(env, hostname) {
       }),
     ],
     hooks: {
-      before: createTurnstileHook(env),
+      before: createAuthMiddleware(async ctx => {
+        if (ctx.path !== "/sign-up/email") return;
+        requireTermsAgreement(ctx.body);
+        await requireTurnstile(env, ctx.body);
+      }),
     },
     databaseHooks: {
       user: {
-        create: { before: accountStatus.beforeUserCreate, after: createBetaGateAfterHook(env) },
+        create: {
+          before: async user => {
+            await accountStatus.beforeUserCreate(user);
+            return stampTermsAgreement(user);
+          },
+          after: createBetaGateAfterHook(env),
+        },
         update: { before: accountStatus.beforeUserUpdate },
       },
       session: { create: { before: accountStatus.beforeSessionCreate } },
