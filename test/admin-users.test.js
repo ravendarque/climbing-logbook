@@ -1,6 +1,6 @@
 import { env, exports } from "cloudflare:workers";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { BASE_URL, createAuthedSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
+import { BASE_URL, createPublicSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
 
 const ADMIN = "https://admin.example.com";
 const PASSWORD = "correct-horse-battery-staple";
@@ -52,7 +52,7 @@ function signUp(email, username) {
 
 async function newUser() {
   const email = `user-${crypto.randomUUID()}@example.com`;
-  const { cookie, userId } = await createAuthedSession({ email });
+  const { cookie, userId } = await createPublicSession({ email });
   const { username } = await env.LOGBOOK_DB.prepare(`SELECT username FROM "user" WHERE id = ?`).bind(userId).first();
   return { email, cookie, userId, username };
 }

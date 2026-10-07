@@ -1,6 +1,6 @@
 import { env, exports } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { createAuthedSession, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
+import { createAuthedSession, createPublicSession, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
 
 beforeAll(() => {
   env.BETA_GATE_ENABLED = "false";
@@ -41,8 +41,13 @@ describe("public profile routing", () => {
 });
 
 describe("public profile visibility", () => {
-  it("serves the real static shell by default (logbook_public defaults to 1)", async () => {
-    await createAuthedSession({ username: "publicuser" });
+  it("404s a new account's logbook until its owner makes it public (#1281)", async () => {
+    await createAuthedSession({ username: "brandnewuser" });
+    expect((await fetchProfile("brandnewuser")).status).toBe(404);
+  });
+
+  it("serves the real static shell for a public logbook", async () => {
+    await createPublicSession({ username: "publicuser" });
 
     const res = await fetchProfile("publicuser");
     expect(res.status).toBe(200);
@@ -52,13 +57,13 @@ describe("public profile visibility", () => {
   });
 
   it("looks up the username case-insensitively", async () => {
-    await createAuthedSession({ username: "mixedcaseuser" });
+    await createPublicSession({ username: "mixedcaseuser" });
     const res = await fetchProfile("MixedCaseUser");
     expect(res.status).toBe(200);
   });
 
   it("404s (not the shell) once logbook_public is turned off", async () => {
-    const { cookie } = await createAuthedSession({ username: "privateuser" });
+    const { cookie } = await createPublicSession({ username: "privateuser" });
     const placeId = await seedPlace(cookie);
     await jsonRequest(
       "POST",
@@ -80,7 +85,7 @@ describe("public profile visibility", () => {
 
 describe("HEAD requests (#1107)", () => {
   it("answer a public profile with GET's status and headers and no body", async () => {
-    await createAuthedSession({ username: "headprofile" });
+    await createPublicSession({ username: "headprofile" });
     const get = await fetchProfile("headprofile");
     const head = await fetchProfile("headprofile", "my.example.com", "HEAD");
 

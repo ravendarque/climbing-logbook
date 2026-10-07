@@ -51,7 +51,7 @@ describe("settings cache", () => {
       updateAdminBar: () => {},
     });
     expect(adminAuth.isAthleteMode()).toBe(false);
-    expect(adminAuth.isLogbookPublic()).toBe(true);
+    expect(adminAuth.isLogbookPublic()).toBe(false);
     expect(adminAuth.getBetaOptIn()).toBe(false);
     expect(adminAuth.getPersistedDiscipline()).toBe(null);
   });

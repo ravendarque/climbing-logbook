@@ -21,10 +21,10 @@ test("a new user's first visit syncs, then walks the four steps, then takes the 
   await page.waitForURL(`**/${owner.username}/welcome`);
   await expect(page.getByRole("heading", { name: "Who can see your logbook?" })).toBeVisible();
   await expect(page.locator("#welcome-progress-label")).toHaveText("Step 1 of 4");
-  await expect(page.locator("#welcome-public")).toBeChecked();
+  await expect(page.locator("#welcome-private")).toBeChecked();
   await expect(page.locator("#welcome-back")).toBeHidden();
 
-  await Promise.all([settingsPatch(page), page.getByText("Private", { exact: true }).tap()]);
+  await Promise.all([settingsPatch(page), page.getByText("Public", { exact: true }).tap()]);
   await page.locator("#welcome-next").tap();
 
   await expect(page.getByRole("heading", { name: "Athlete Mode" })).toBeFocused();
@@ -37,14 +37,14 @@ test("a new user's first visit syncs, then walks the four steps, then takes the 
   await page.locator("#welcome-next").tap();
 
   await expect(page.getByRole("heading", { name: "You're all set" })).toBeVisible();
-  await expect(page.locator("#welcome-summary-visibility")).toHaveText("Private");
+  await expect(page.locator("#welcome-summary-visibility")).toHaveText("Public");
   await expect(page.locator("#welcome-summary-athlete")).toHaveText("On");
   await expect(page.locator("#welcome-summary-import")).toHaveText("Skipped");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(312);
 
   await Promise.all([settingsPatch(page), page.locator("#welcome-next").tap()]);
   const settings = await (await owner.api("GET", "settings")).json();
-  expect(settings).toMatchObject({ logbookPublic: false, athleteMode: true, onboardingCompleted: true });
+  expect(settings).toMatchObject({ logbookPublic: true, athleteMode: true, onboardingCompleted: true });
 
   await page.waitForURL("**/intermediatedemo/log?tour=1&**");
   const tour = page.locator('[role="dialog"][aria-labelledby="tour-title"]');
@@ -72,19 +72,19 @@ test("someone who has finished the setup never sees it again", async ({ page, ow
 
 test("Back keeps the choices already made", async ({ page, newOwner: owner }) => {
   await page.goto(owner.url("/welcome"));
-  await expect(page.locator("#welcome-public")).toBeChecked();
-  await Promise.all([settingsPatch(page), page.getByText("Private", { exact: true }).tap()]);
+  await expect(page.locator("#welcome-private")).toBeChecked();
+  await Promise.all([settingsPatch(page), page.getByText("Public", { exact: true }).tap()]);
   await page.locator("#welcome-next").tap();
   await expect(page.getByRole("heading", { name: "Athlete Mode" })).toBeVisible();
 
   await page.locator("#welcome-back").tap();
   await expect(page.getByRole("heading", { name: "Who can see your logbook?" })).toBeFocused();
-  await expect(page.locator("#welcome-private")).toBeChecked();
+  await expect(page.locator("#welcome-public")).toBeChecked();
 });
 
 test("importing on step 3 turns Skip into Continue and shows in the summary", async ({ page, newOwner: owner }) => {
   await page.goto(owner.url("/welcome"));
-  await expect(page.locator("#welcome-public")).toBeChecked();
+  await expect(page.locator("#welcome-private")).toBeChecked();
   await page.locator("#welcome-next").tap();
   await page.locator("#welcome-next").tap();
   await expect(page.getByRole("heading", { name: "Import your climbs" })).toBeVisible();
@@ -103,14 +103,14 @@ test("importing on step 3 turns Skip into Continue and shows in the summary", as
 
 test("a failed save puts the choice back and says so", async ({ page, newOwner: owner }) => {
   await page.goto(owner.url("/welcome"));
-  await expect(page.locator("#welcome-public")).toBeChecked();
+  await expect(page.locator("#welcome-private")).toBeChecked();
   await page.route("**/-/api/settings", route =>
     route.request().method() === "PATCH" ? route.fulfill({ status: 500, body: "{}" }) : route.continue(),
   );
 
-  await page.getByText("Private", { exact: true }).tap();
+  await page.getByText("Public", { exact: true }).tap();
   await expect(page.locator("#welcome-error")).toHaveText(
     "Couldn't save who can see your logbook. Check your connection and try again.",
   );
-  await expect(page.locator("#welcome-public")).toBeChecked();
+  await expect(page.locator("#welcome-private")).toBeChecked();
 });

@@ -29,7 +29,7 @@ export async function usageFigures(env) {
          (SELECT count(DISTINCT country) FROM locations WHERE user_id IN (${REAL_USERS}) AND country != '') AS countryCount,
          (SELECT count(*) FROM settings WHERE athlete_mode = 1 AND user_id IN (${REAL_USERS})) AS athleteMode,
          (SELECT count(*) FROM (${REAL_USERS}) r LEFT JOIN settings s ON s.user_id = r.id
-            WHERE COALESCE(s.logbook_public, 1) = 1) AS publicLogbooks,
+            WHERE s.logbook_public = 1) AS publicLogbooks,
          (SELECT count(DISTINCT user_id) FROM import_runs WHERE user_id IN (${REAL_USERS})) AS importUsers,
          (SELECT since FROM usage_tracking WHERE metric = 'imports') AS importsSince`,
     ),

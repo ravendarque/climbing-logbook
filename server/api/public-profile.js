@@ -10,8 +10,8 @@ export async function resolvePublicUser(env, username) {
   const settings = await env.LOGBOOK_DB.prepare(`SELECT logbook_public, is_demo FROM settings WHERE user_id = ?`)
     .bind(user.id)
     .first();
-  // No settings row yet means the schema defaults: public, not a demo.
-  const isPublic = settings ? !!settings.logbook_public : true;
+  // No settings row yet means a new account, which starts private.
+  const isPublic = !!settings?.logbook_public;
   if (!isPublic || (await isSuspended(env, user.id))) return null;
 
   return { id: user.id, displayUsername: user.displayUsername, isDemo: !!settings?.is_demo };

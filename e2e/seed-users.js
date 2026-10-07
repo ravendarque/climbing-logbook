@@ -48,7 +48,7 @@ export async function seedUsers(users, { secret, ...d1Options }) {
     `INSERT INTO "user" (id, name, email, emailVerified, createdAt, updatedAt, username, displayUsername) VALUES (${[id, name, email, 1, at, at, username.toLowerCase(), username].map(sql).join(", ")})`,
     `INSERT INTO account (id, accountId, providerId, userId, password, createdAt, updatedAt) VALUES (${[randomId(), id, "credential", id, hashes.get(password), at, at].map(sql).join(", ")})`,
     `INSERT INTO session (id, expiresAt, token, createdAt, updatedAt, userId) VALUES (${[randomId(), expiresAt, token, at, at, id].map(sql).join(", ")})`,
-    `INSERT INTO settings (user_id, onboarding_completed) VALUES (${sql(id)}, ${onboarded ? 1 : 0})`,
+    `INSERT INTO settings (user_id, onboarding_completed, logbook_public) VALUES (${sql(id)}, ${onboarded ? 1 : 0}, ${onboarded ? 1 : 0})`,
   ]);
   d1ExecuteBatch(`${statements.join(";\n")};\n`, d1Options);
 

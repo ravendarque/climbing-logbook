@@ -1,6 +1,6 @@
 import { env, exports } from "cloudflare:workers";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
+import { createPublicSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
 
 const admin = (path, init) => exports.default.fetch(`https://admin.example.com${path}`, init);
 
@@ -21,7 +21,7 @@ function report(body) {
 }
 
 async function logbookWithClimbs() {
-  const { cookie, userId } = await createAuthedSession();
+  const { cookie, userId } = await createPublicSession();
   const { username } = await env.LOGBOOK_DB.prepare(`SELECT username FROM "user" WHERE id = ?`).bind(userId).first();
   const placeId = await seedPlace(cookie);
   const post = async name => {
@@ -80,9 +80,7 @@ describe("reporting a public logbook", () => {
 
   it("drops what doesn't resolve, so a report can't probe for private logbooks or climbs", async () => {
     const owner = await logbookWithClimbs();
-    await env.LOGBOOK_DB.prepare(`INSERT INTO settings (user_id, logbook_public) VALUES (?, 0)`)
-      .bind(owner.userId)
-      .run();
+    await env.LOGBOOK_DB.prepare(`UPDATE settings SET logbook_public = 0 WHERE user_id = ?`).bind(owner.userId).run();
     await report({ message: "Private", reportedUsername: owner.username, reportedEntryId: owner.reported });
     await report({ message: "Nobody", reportedUsername: "nobody-here", reportedEntryId: "nope" });
 
