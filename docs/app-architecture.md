@@ -179,6 +179,7 @@ Everything else reaches `server/index.js`:
 | `/-/api/public/:username/*` | any | none; `logbook_public`, or a demo account | `server/api/public-data.js` |
 | `/-/api/auth/*` | any | Better Auth's own | `server/lib/auth.js` |
 | `/-/api/report-issue`, `/-/api/feedback` | any | none; Turnstile and a rate limit | `server/api/submissions.js` |
+| `/-/api/health`, `/-/api/health/ready` | any | none. Liveness touches nothing; readiness runs `SELECT 1` with a 2 s timeout, cached for 15 s per isolate, and answers 503 `{ ok: false, check: "d1" }` on failure | `server/api/health.js` |
 | `/-/manifest.json` and the touch icon | any | none | `server/api/app-identity.js` (beta has its own identity) |
 | everything | `admin.` | Cloudflare Access, and its token checked again in the Worker | `server/api/admin.js`; on every other host its paths 404 |
 

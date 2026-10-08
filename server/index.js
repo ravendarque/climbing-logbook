@@ -12,6 +12,7 @@ import {
   handleGetVolume,
 } from "./api/performance.js";
 import { handleGetMapCounts } from "./api/map.js";
+import { handleLiveness, handleReadiness } from "./api/health.js";
 import { handlePublicProfile } from "./api/public-profile.js";
 import { handlePublicResource } from "./api/public-data.js";
 import { handleOwnedRoute } from "./api/owned-routes.js";
@@ -68,6 +69,8 @@ async function handleRequest(request, env, log) {
 
   const isRead = method === "GET" || method === "HEAD";
   const forMethod = response => (method === "HEAD" ? new Response(null, response) : response);
+  if (pathname === "/-/api/health" && isRead) return forMethod(handleLiveness(env));
+  if (pathname === "/-/api/health/ready" && isRead) return forMethod(await handleReadiness(env, log));
 
   if (hostname.startsWith("my.") && isRead) {
     const ownerRoute = matchOwnerRoute(pathname);
