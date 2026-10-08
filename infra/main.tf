@@ -6,6 +6,10 @@ terraform {
       source  = "cloudflare/cloudflare"
       version = "~> 5.0"
     }
+    betteruptime = {
+      source  = "BetterStackHQ/better-uptime"
+      version = "~> 0.22"
+    }
   }
 
   # State lives in an R2 bucket (S3-compatible API), bootstrapped once via
@@ -30,4 +34,8 @@ terraform {
 
 provider "cloudflare" {
   # Reads CLOUDFLARE_API_TOKEN from the environment.
+}
+
+provider "betteruptime" {
+  api_token = var.betterstack_api_token
 }

@@ -26,6 +26,8 @@ We made a trade-off. We accepted that impact so we could build something useful 
 - **GitHub** for our code.
 - **Cloudflare** to host the app.
 - **Resend** to send emails.
+- **Better Stack** to check the app is up, and to run our status page.
+- **Discord** for our own alerts when something goes wrong.
 - **Claude** (from Anthropic) to help write code.
 - **Bebas Neue**, a font we host ourselves, so your visit doesn't send a request to Google Fonts.
 

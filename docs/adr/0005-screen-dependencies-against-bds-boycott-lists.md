@@ -60,3 +60,15 @@ costs, same as any other tradeoff — but it must be surfaced, not skipped.
   GitHub (Microsoft) is one; TypeScript's `tsc` (Microsoft) is the second,
   adopted in #1093 as a dev-only type checker, since no maintained
   non-Microsoft JavaScript type checker exists.
+- **Checked 2026-10-08 for Stage 1 monitoring and backups (#1048, #1068):**
+  - **Better Stack** (private, Prague): not listed. Its infrastructure
+    includes AWS and Google, which are; used on the free tier, so nothing is
+    paid to them through it. Almost every multi-region monitor runs on AWS,
+    Google or Azure.
+  - **Discord** (private, US; investors include Tencent and Sony): not
+    listed. Runs on Google Cloud; free tier. Chosen over Slack, whose owner
+    Salesforce isn't listed but has bought several Israeli companies.
+  - **Backblaze** (public, Nasdaq BLZE): not listed, and runs on its own
+    hardware. One sub-processor, Rookout, was founded in Tel Aviv (now owned
+    by Dynatrace). Accepted on the free tier until launch; #1309 moves
+    backups to Hetzner (private, German, own EU data centres).

@@ -44,6 +44,8 @@ Everything provisionable, in `infra/`:
 | WAF custom rule blocking non-JSON `POST`s to `/-/api/` | `infra/waf.tf` |
 | Cache rules: bypass `/-/api/`, cache static assets | `infra/cache-rules.tf` |
 | Email Routing: the apex MX and SPF records, and a rule forwarding `support@` to the address in the `TF_VAR_support_forward_email` secret | `infra/email-routing.tf` |
+| Better Stack uptime monitors (home page, `my.` and `beta.` readiness, certificate and domain expiry), the status page at `status.`, its DNS record, and an incident webhook to Discord `#alerts` | `infra/uptime.tf` |
+| Cloudflare alert destinations for Discord `#alerts` and `#monitoring`, and the DDoS and certificate alerts to `#monitoring` | `infra/alerts.tf` |
 
 The zone is looked up by name (`var.app_zone_name`), not a hardcoded id.
 
@@ -60,6 +62,10 @@ The zone is looked up by name (`var.app_zone_name`), not a hardcoded id.
   - Cloudflare's managed `robots.txt` is on, but it isn't served in front of
     a Worker, so crawlers get `static/robots.txt` (`ai-train=no`, AI
     crawlers disallowed).
+- The **Worker errors** alert (`workers_observability_real_time_issue`) and its
+  Workers Issues automation. The Cloudflare provider doesn't support that
+  alert type yet (checked up to 5.27.0), so both were made once through the
+  API, pointing at the Terraform-managed `Discord #alerts` destination.
 - The `ravendarque.com/logbook` → `my.climbinglogbook.com/ravendarque`
   redirect. It lives on the `ravendarque.com` zone, which this project's
   token can't read, so it was removed from state and left running.
@@ -141,6 +147,7 @@ The token's current grants (rebuilt and verified 2026-09-20):
 - **For Email Routing (#1280):** Email Routing Addresses Write (account), and
   Email Routing Rules Write and Zone Settings Write (zone). Turning on Email
   Routing's DNS records needs Zone Settings Write.
+- **For alerts (#1052):** Notifications Write (account).
 - No access to any other zone.
 
 ## Disaster recovery

@@ -10,6 +10,8 @@ eleventyNavigation:
 
 Start from what you're seeing. If nothing here helps, [report an issue](/help/report-an-issue/).
 
+To check whether Climbing Logbook itself is down, see the [status page](https://status.climbinglogbook.com).
+
 ## My logbook downloads from scratch every time
 
 Climbing Logbook keeps a copy of your logbook on your device, so it opens straight away and works with no signal. If it's slow to open on every visit, or you see *Syncing your logbook…* with a progress bar each time, your browser isn't letting it keep that copy. The usual causes are:
