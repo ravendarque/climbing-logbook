@@ -64,7 +64,7 @@ GitHub, the same treatment every other doc in this repo already gets.
 | [0024](0024-sync-status-timeout-on-the-fetch-not-the-animation.md) | Sync/offline status timeout belongs on the fetch, not on how long the animation runs | Accepted |
 | [0025](0025-static-asset-caching-hash-or-version-query.md) | Static asset caching: content hashes where the build provides them, versioned query strings where it doesn't | Accepted, build-wide `?v=` superseded by 0028 |
 | [0026](0026-local-preview-cant-validate-network-performance.md) | Local preview tooling can't validate real network performance — automated tests stop at cache correctness | Accepted |
-| [0027](0027-database-backed-rate-limiting-on-sign-in.md) | Database-backed rate limiting, not Better Auth's in-memory default | Accepted |
+| [0027](0027-database-backed-rate-limiting-on-sign-in.md) | Database-backed rate limiting, not Better Auth's in-memory default | Superseded by the Rate Limiting binding (#1292) |
 | [0028](0028-service-worker-owns-the-owner-app-shell.md) | The service worker owns the owner app's shell: offline cold launch, cache-first per build, never data | Accepted |
 | [0029](0029-beta-channel-enrollment-model.md) | Beta channel: two-state enrollment, checked on the page, one channel per origin | Accepted |
 | [0030](0030-test-against-the-real-worker-mock-only-what-it-cant-produce.md) | Test against the real Worker, mock only what it can't produce, measure coverage | Accepted |
@@ -72,3 +72,4 @@ GitHub, the same treatment every other doc in this repo already gets.
 | [0032](0032-combined-view-on-the-owner-pages.md) | The combined view lives on the owner pages, not the public profile | Accepted |
 | [0033](0033-parallel-e2e-with-seeded-users.md) | Run the e2e suite in parallel, with users seeded straight into D1 | Accepted |
 | [0034](0034-admin-host-behind-cloudflare-access.md) | Admin pages live on their own host, behind Cloudflare Access | Accepted |
+| [0035](0035-capacity-and-operational-targets.md) | Capacity and operational targets: design for 50,000 users | Accepted |

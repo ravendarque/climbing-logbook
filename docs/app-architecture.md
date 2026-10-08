@@ -26,6 +26,9 @@ PRs. Update this map in the same PR as any change that makes it wrong.
   rest) and syncs in the background; a service worker
   makes the pages open with no signal
   ([ADR-0028](adr/0028-service-worker-owns-the-owner-app-shell.md)).
+- **Designed for 50,000 users.** The usage assumptions, load figures,
+  capacity triggers and operational targets are in
+  [ADR-0035](adr/0035-capacity-and-operational-targets.md).
 
 ## Hosts
 
