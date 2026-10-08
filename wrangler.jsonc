@@ -49,7 +49,8 @@
     { "pattern": "admin.climbinglogbook.com/*", "zone_name": "climbinglogbook.com" }
   ],
   "observability": {
-    "enabled": true
+    "enabled": true,
+    "issues": { "enabled": true }
   },
   // A separate Worker (climbing-logbook-preview) with its own database; routes overridden so nothing attaches.
   "env": {
