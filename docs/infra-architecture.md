@@ -138,8 +138,9 @@ The token's current grants (rebuilt and verified 2026-09-20):
   next rebuild.
 - **Zone `climbinglogbook.com`:** Workers Routes Write, DNS Write, Zone WAF
   Write, Cache Settings Write, Dynamic URL Redirects Write.
-- **Needed for #1280, not yet added:** Email Routing Addresses Write
-  (account) and Email Routing Rules Write (zone).
+- **For Email Routing (#1280):** Email Routing Addresses Write (account), and
+  Email Routing Rules Write and Zone Settings Write (zone). Turning on Email
+  Routing's DNS records needs Zone Settings Write.
 - No access to any other zone.
 
 ## Disaster recovery
