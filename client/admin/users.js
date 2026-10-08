@@ -72,6 +72,7 @@ export function startUsers() {
   let users = [];
   let pendingAction = null;
   let searchTimer = 0;
+  let logbookUserId = null;
   search.value = query;
 
   function urlFor({ id = selectedId } = {}) {
@@ -135,8 +136,11 @@ export function startUsers() {
     actions.hidden = user.isDemo;
     demoNote.hidden = !user.isDemo;
     toggleSuspend.textContent = user.suspended ? "Unsuspend" : "Suspend";
-    logbookList.replaceChildren();
-    logbookStatus.textContent = "";
+    if (logbookUserId !== user.id) {
+      logbookUserId = user.id;
+      logbookList.replaceChildren();
+      logbookStatus.textContent = "";
+    }
   }
 
   function render() {

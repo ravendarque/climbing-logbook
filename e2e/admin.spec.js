@@ -225,10 +225,17 @@ test("a private logbook can be viewed read-only, and the view is in the activity
   await expect(climb).toContainText("Just for me");
   await expect(climb.locator("button, input, a")).toHaveCount(0);
 
+  await page.locator("#toggle-suspend").click();
+  await expect(page.locator("#user-fields")).toContainText("Suspended");
+  await expect(climb).toContainText("Quiet project");
+  await page.locator("#toggle-suspend").click();
+
   await page.locator("#tab-activity").click();
-  await expect(page.locator("#activity-list li", { hasText: owner.username }).first()).toContainText(
-    `Viewed ${owner.username}'s logbook`,
-  );
+  await expect(page.locator("#activity-list li", { hasText: owner.username })).toHaveText([
+    new RegExp(`Unsuspended ${owner.username}`),
+    new RegExp(`Suspended ${owner.username}`),
+    new RegExp(`Viewed ${owner.username}'s logbook`),
+  ]);
 });
 
 test("the usage tab shows the headline figures, the splits, and places by country that open to their locations", async ({
