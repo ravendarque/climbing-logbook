@@ -26,3 +26,21 @@ variable "support_forward_email" {
   type        = string
   sensitive   = true
 }
+
+variable "betterstack_api_token" {
+  description = "Better Stack Uptime team token. Supplied by the BETTERSTACK_API_TOKEN Actions secret, never committed."
+  type        = string
+  sensitive   = true
+}
+
+variable "discord_alerts_webhook" {
+  description = "Discord #alerts webhook URL. Supplied by the DISCORD_ALERTS_WEBHOOK Actions secret, never committed."
+  type        = string
+  sensitive   = true
+}
+
+variable "discord_monitoring_webhook" {
+  description = "Discord #monitoring webhook URL. Supplied by the DISCORD_MONITORING_WEBHOOK Actions secret, never committed."
+  type        = string
+  sensitive   = true
+}

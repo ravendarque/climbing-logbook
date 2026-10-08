@@ -25,6 +25,9 @@ jobs:
       TF_VAR_cloudflare_account_id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       TF_VAR_admin_email: ${{ secrets.ADMIN_EMAIL }}
       TF_VAR_support_forward_email: ${{ secrets.TF_VAR_support_forward_email }}
+      TF_VAR_betterstack_api_token: ${{ secrets.BETTERSTACK_API_TOKEN }}
+      TF_VAR_discord_alerts_webhook: ${{ secrets.DISCORD_ALERTS_WEBHOOK }}
+      TF_VAR_discord_monitoring_webhook: ${{ secrets.DISCORD_MONITORING_WEBHOOK }}
     steps:
       - uses: actions/checkout@v7
 
