@@ -103,7 +103,11 @@ wireEditableRow({
   prefix: "delete-account",
   onSubmit: async formData => {
     await authPost("/delete-user", { password: formData.get("password") });
-    await removeDeviceData(USERNAME);
+    if (!(await removeDeviceData(USERNAME))) {
+      throw new Error(
+        "Your account is deleted, but some of its data couldn't be cleared from this device. To clear the rest, clear this site's data in your browser's settings.",
+      );
+    }
     location.href = resolveApexUrl(location.hostname, "/");
     return undefined;
   },
