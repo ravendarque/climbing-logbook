@@ -21,23 +21,7 @@ permissions:
 
 jobs:
   preview:
-    # #895 -- GitHub withholds Actions secrets from Dependabot-triggered
-    # runs (they're treated like fork PRs: `secrets.*` resolves to empty
-    # and GITHUB_TOKEN is read-only), so CLOUDFLARE_API_TOKEN arrives
-    # blank and every wrangler step below dies with "In a non-interactive
-    # environment, it's necessary to set a CLOUDFLARE_API_TOKEN" -- a
-    # permanently red check on every Dependabot PR, which trains you to
-    # ignore red checks on exactly the PRs (dependency bumps) where a
-    # real failure matters most. The alternative -- putting the token in
-    # the separate Dependabot secrets store -- was rejected: this job
-    # installs and builds the *newly bumped* dependency tree, so that
-    # means a live Cloudflare deploy credential in the environment while
-    # unreviewed third-party install scripts run.
-    #
-    # Keyed on github.actor, not the PR author, because the actor is
-    # precisely what decides whether secrets are withheld: a human push
-    # to a Dependabot branch runs with real secrets, and this condition
-    # lets that build its preview normally.
+    # Dependabot runs get no secrets, so they'd always fail (#895).
     if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     outputs:
@@ -48,41 +32,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node-pnpm
-      # #760 -- see deploy.yml's own comment on this same line: page
-      # shells are 11ty-generated, gitignored output now, not committed.
-      - run: pnpm run html:build
-      - run: pnpm run tailwind:build
-      # #391 -- these were missing entirely, so /map and /performance 404'd
-      # on their JS bundle on every preview deployment (public/-/
-      # map-app.js and the performance-pyramid-app.js/performance-hub-
-      # app.js pair are gitignored build output -- nothing else ever
-      # produces them).
-      #
-      # #774 -- CLOUDFLARE_ENV=preview (env.preview, wrangler.jsonc) at
-      # build time is what actually selects the preview database/vars
-      # now, not `wrangler versions upload --env preview` alone -- see
-      # deploy.yml's own comment for the full reasoning.
-      # scripts/require-cloudflare-env.mjs refuses to build at all
-      # without a recognized CLOUDFLARE_ENV, so a missing value here
-      # fails this step loudly rather than uploading a preview version
-      # silently bound to production's own database.
-      - run: pnpm run deploy:build
-        env:
-          CLOUDFLARE_ENV: preview
-      - name: Upload preview version
-        id: upload
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: |
-          set -euo pipefail
-          OUTPUT=$(pnpm exec wrangler versions upload --env preview --preview-alias "pr-$PR_NUMBER")
-          echo "$OUTPUT"
-          URL=$(echo "$OUTPUT" | grep -oE 'Version Preview Alias URL: https://\S+' | sed 's/^Version Preview Alias URL: //')
-          if [ -z "$URL" ]; then
-            echo "Couldn't find a preview alias URL in wrangler's output -- see the log above." >&2
-            exit 1
-          fi
-          echo "url=$URL" >> "$GITHUB_OUTPUT"
+      - id: upload
+        uses: ./.github/actions/upload-preview
+        with:
+          alias: pr-${{ github.event.pull_request.number }}
+          api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       - name: Comment preview URL on the PR
         env:
           PREVIEW_URL: ${{ steps.upload.outputs.url }}
@@ -90,28 +44,21 @@ jobs:
           set -euo pipefail
           BODY="Preview: $PREVIEW_URL
 
-          Bound to a separate preview D1 database, not production data. Data resets when the seed data or schema changes. Log in with the preview dev account (credentials: repo Settings → Secrets and variables → Actions → \`PREVIEW_DEV_EMAIL\`/\`PREVIEW_DEV_PASSWORD\`)."
+          Bound to a separate preview D1 database, not production data. Data is rebuilt from main when its seed data or schema changes. Log in with the preview dev account (credentials: repo Settings → Secrets and variables → Actions → \`PREVIEW_DEV_EMAIL\`/\`PREVIEW_DEV_PASSWORD\`)."
           gh pr comment "$PR_NUMBER" --edit-last --body "$BODY" \
             || gh pr comment "$PR_NUMBER" --body "$BODY"
 
-  # Every PR shares one preview database, so one seed runs at a time (#636, #1285).
-  seed:
-    needs: preview
+  # A PR only migrates the shared preview database; preview-db.yml rebuilds and seeds it from main (#1291).
+  migrate:
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     concurrency:
-      group: preview-seed
+      group: preview-db
       cancel-in-progress: false
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node-pnpm
       - name: Apply D1 migrations to the preview database
-        run: pnpm exec wrangler d1 migrations apply climbing-logbook-preview --remote --env preview
-      - name: Seed preview data
         env:
-          PREVIEW_URL: ${{ needs.preview.outputs.url }}
-          PREVIEW_DEV_EMAIL: ${{ secrets.PREVIEW_DEV_EMAIL }}
-          PREVIEW_DEV_PASSWORD: ${{ secrets.PREVIEW_DEV_PASSWORD }}
-          PREVIEW_BETA_INVITE_CODE: ${{ secrets.PREVIEW_BETA_INVITE_CODE }}
-        run: node scripts/seed-preview-data.mjs "$PREVIEW_URL"
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm exec wrangler d1 migrations apply climbing-logbook-preview --remote --env preview

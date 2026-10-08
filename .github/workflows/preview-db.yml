@@ -1,0 +1,43 @@
+name: Preview database
+
+# Rebuilds the shared preview D1 from main when its seed or schema changes (#1291). PR pushes never seed it.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'migrations/**'
+      - 'scripts/seed-preview-data.mjs'
+      - 'scripts/seed-demo-accounts.mjs'
+      - 'scripts/lib/dev-session.mjs'
+      - 'scripts/lib/drop-order.mjs'
+      - 'scripts/lib/seed-data.mjs'
+      - 'shared/demo-personas.js'
+      - 'shared/entry-schema.js'
+      - 'shared/grade-data.js'
+  workflow_dispatch:
+
+concurrency:
+  group: preview-db
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-node-pnpm
+      - id: upload
+        uses: ./.github/actions/upload-preview
+        with:
+          alias: main
+          api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - name: Rebuild and seed the preview database
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PREVIEW_DEV_EMAIL: ${{ secrets.PREVIEW_DEV_EMAIL }}
+          PREVIEW_DEV_PASSWORD: ${{ secrets.PREVIEW_DEV_PASSWORD }}
+          PREVIEW_BETA_INVITE_CODE: ${{ secrets.PREVIEW_BETA_INVITE_CODE }}
+        run: node scripts/seed-preview-data.mjs "${{ steps.upload.outputs.url }}"
