@@ -38,7 +38,7 @@ function errorPage(url, ref) {
   <p>This page couldn't load. Try again in a moment.</p>
   <p class="muted">If it keeps happening, report it and we'll use this reference to find out what happened: <code>${safeRef}</code></p>
   <div class="actions">
-    <a class="button" href="${escapeHtml(url.pathname + url.search)}">Try again</a>
+    <a class="button" href="${escapeHtml(url.origin + url.pathname + url.search)}">Try again</a>
     <a class="button" href="${escapeHtml(reportUrl(url, ref))}">Report an issue</a>
   </div>
 </main>
