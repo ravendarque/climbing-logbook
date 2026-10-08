@@ -27,7 +27,7 @@ runs:
         PREVIEW_ALIAS: ${{ inputs.alias }}
       run: |
         set -euo pipefail
-        OUTPUT=$(pnpm exec wrangler versions upload --env preview --preview-alias "$PREVIEW_ALIAS")
+        OUTPUT=$(pnpm exec wrangler versions upload --env preview --preview-alias "$PREVIEW_ALIAS" --tag "$PREVIEW_ALIAS-$(git rev-parse --short HEAD)")
         echo "$OUTPUT"
         URL=$(echo "$OUTPUT" | grep -oE 'Version Preview Alias URL: https://\S+' | sed 's/^Version Preview Alias URL: //')
         if [ -z "$URL" ]; then

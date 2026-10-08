@@ -68,6 +68,17 @@ describe("handleReportIssue", () => {
     });
   });
 
+  it("stores the error reference a report was sent from, and refuses one that isn't a reference (#1032)", async () => {
+    stubSiteverify(true);
+    const ok = await postReport({ message: "It broke.", turnstileToken: "t", errorRef: "8a1b2c3d4e5f-LHR" });
+    expect(ok.status).toBe(201);
+    const row = await env.LOGBOOK_DB.prepare(`SELECT error_ref FROM issue_reports`).first();
+    expect(row.error_ref).toBe("8a1b2c3d4e5f-LHR");
+
+    const bad = await postReport({ message: "It broke.", turnstileToken: "t", errorRef: "<script>" });
+    expect(bad.status).toBe(400);
+  });
+
   it("rejects an empty message", async () => {
     stubSiteverify(true);
     const res = await postReport({ message: "", turnstileToken: "any-token" });

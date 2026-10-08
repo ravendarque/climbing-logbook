@@ -38,6 +38,7 @@ function createSubmissionHandler({ table, rateLimitPrefix, tooManyMessage, empty
     turnstileToken: v.string(),
     reportedUsername: v.optional(v.pipe(v.string(), v.trim(), v.maxLength(64))),
     reportedEntryId: v.optional(v.pipe(v.string(), v.trim(), v.maxLength(64))),
+    errorRef: v.optional(v.pipe(v.string(), v.regex(/^[A-Za-z0-9-]{1,64}$/))),
   });
 
   return async function handleSubmission(request, env) {
@@ -72,10 +73,10 @@ function createSubmissionHandler({ table, rateLimitPrefix, tooManyMessage, empty
     if (acceptsReported) {
       const reported = await resolveReported(env, result.output);
       await env.LOGBOOK_DB.prepare(
-        `INSERT INTO ${table} (id, message, contact_email, user_id, source_page, section, reported_user_id, reported_entry_id, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+        `INSERT INTO ${table} (id, message, contact_email, user_id, source_page, section, reported_user_id, reported_entry_id, error_ref, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
       )
-        .bind(...values, reported.userId, reported.entryId)
+        .bind(...values, reported.userId, reported.entryId, result.output.errorRef ?? null)
         .run();
     } else {
       await env.LOGBOOK_DB.prepare(

@@ -35,6 +35,7 @@ function toSubmission(row) {
     contactEmail: row.contact_email,
     sourcePage: row.source_page,
     section: row.section,
+    errorRef: row.error_ref ?? null,
     username: row.username,
     createdAt: row.created_at,
     readAt: row.read_at,
@@ -113,6 +114,7 @@ function safeDecode(value) {
 
 async function handleAdminApi(request, env, pathname) {
   const method = request.method;
+  if (pathname === "/-/api/admin/test/throw") throw new Error("Test error from the admin host (#1032)");
   if (pathname === "/-/api/admin/counts") return method === "GET" ? unreadCounts(env) : null;
   if (pathname === "/-/api/admin/users") return method === "GET" ? listUsers(request, env) : null;
   if (pathname === "/-/api/admin/audit") return method === "GET" ? listAuditLog(env) : null;

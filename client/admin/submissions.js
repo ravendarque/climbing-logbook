@@ -94,6 +94,7 @@ export function startSubmissions(kind) {
       addField(detailFields, "Contact", "None given");
     }
     addField(detailFields, "Sent", formatDate(submission.createdAt, { withYear: true }));
+    if (submission.errorRef) addField(detailFields, "Error reference", submission.errorRef);
     if (submission.reportedUsername) addField(detailFields, "About", publicLogbookLink(submission.reportedUsername));
     renderReportedClimb(submission.reportedEntry);
 
