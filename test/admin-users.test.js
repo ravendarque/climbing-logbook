@@ -202,6 +202,44 @@ describe("banning", () => {
   });
 });
 
+describe("viewing a logbook (#1279)", () => {
+  it("shows a private logbook, hidden entries included, and logs every look", async () => {
+    const { cookie, userId, username } = await newUser();
+    await env.LOGBOOK_DB.prepare(`UPDATE settings SET logbook_public = 0 WHERE user_id = ?`).bind(userId).run();
+    const placeId = await seedPlace(cookie);
+    const post = await jsonRequest(
+      "POST",
+      "/-/api/entries",
+      { name: "Private climb", grade: "6B", placeId, type: "boulder", status: "send", notes: "secret beta" },
+      { Cookie: cookie },
+    );
+    const { id } = (await post.json()).entry;
+    await env.LOGBOOK_DB.prepare(`UPDATE entries SET hidden_at = datetime('now') WHERE id = ?`).bind(id).run();
+
+    const first = await admin(`/-/api/admin/users/${userId}/logbook`);
+    expect(first.status).toBe(200);
+    const body = await first.json();
+    expect(body.username).toBe(username);
+    expect(body.entries).toEqual([
+      expect.objectContaining({ id, name: "Private climb", notes: "secret beta", hidden: true, firstAttempt: false }),
+    ]);
+    await admin(`/-/api/admin/users/${userId}/logbook`);
+
+    expect((await auditActions()).filter(action => action === `view ${username}`)).toHaveLength(2);
+  });
+
+  it("changes nothing, and has no way to", async () => {
+    const { userId } = await newUser();
+    const res = await admin(`/-/api/admin/users/${userId}/logbook`, { method: "POST" });
+    expect(res.status).toBe(404);
+  });
+
+  it("404s an unknown user without logging anything", async () => {
+    expect((await admin("/-/api/admin/users/nobody/logbook")).status).toBe(404);
+    expect(await auditActions()).toEqual([]);
+  });
+});
+
 describe("guards", () => {
   it("leaves the demo accounts alone, and knows only its own actions", async () => {
     const user = await newUser();

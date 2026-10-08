@@ -7,6 +7,7 @@ const ACTIONS = {
   ban: "Banned",
   hide: "Hid an entry of",
   unhide: "Unhid an entry of",
+  view: ["Viewed", "'s logbook"],
 };
 
 export async function startActivity() {
@@ -19,7 +20,8 @@ export async function startActivity() {
       ...entries.map(entry => {
         const item = el("li", "flex flex-wrap items-baseline gap-x-3 gap-y-0.5 py-3 border-b border-border");
         const what = el("span", "text-sm");
-        what.append(`${ACTIONS[entry.action] ?? entry.action} `, el("strong", "break-all", entry.username));
+        const [before, after = ""] = [ACTIONS[entry.action] ?? entry.action].flat();
+        what.append(`${before} `, el("strong", "break-all", entry.username), after);
         if (entry.detail) what.append(`: ${entry.detail}`);
         item.append(
           what,

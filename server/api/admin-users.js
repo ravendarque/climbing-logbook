@@ -111,6 +111,25 @@ export async function actOnUser(request, env, id, action) {
   return json(toUser(await findUser(env, id)));
 }
 
+// Read-only, and every look is logged in the same batch as the read (#1279).
+export async function viewLogbook(env, id) {
+  const user = await findUser(env, id);
+  if (!user) return json({ error: "Not found" }, 404);
+  const [, { results }] = await env.LOGBOOK_DB.batch([
+    audit(env, "view", user),
+    env.LOGBOOK_DB.prepare(
+      `SELECT e.id, e.date, e.name, e.grade, e.discipline_id AS discipline, e.status_id AS status,
+              e.first_attempt AS firstAttempt, e.notes, e.video, e.hidden_at IS NOT NULL AS hidden,
+              l.name AS location, l.country, p.area
+       FROM entries e JOIN places p ON p.id = e.place_id JOIN locations l ON l.id = p.location_id
+       WHERE e.user_id = ? AND e.deleted_at IS NULL
+       ORDER BY e.date DESC, e.created_at DESC`,
+    ).bind(id),
+  ]);
+  const entries = results.map(row => ({ ...row, firstAttempt: !!row.firstAttempt, hidden: !!row.hidden }));
+  return json({ username: user.username, entries }, 200, { "Cache-Control": "no-store" });
+}
+
 // Hiding takes a climb off its owner's public logbook; the sync cursor moves so the owner's devices learn of it.
 export async function setEntryHidden(env, entryId, hidden) {
   const entry = await env.LOGBOOK_DB.prepare(
