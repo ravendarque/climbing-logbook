@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by the Rate Limiting binding (#1292, 2026-10-08): Better Auth's D1 limiter is off, and auth requests are limited in the Worker before Better Auth sees them.
 
 ## Context
 
