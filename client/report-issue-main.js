@@ -47,6 +47,16 @@ if (reportedUsername) {
   document.getElementById("report-issue-section").value = "public_logbook";
 }
 
+// Set by the error page, so the report links to the log line (#1032).
+const errorRef = /^[A-Za-z0-9-]{1,64}$/.test(params.get("ref") ?? "") ? params.get("ref") : undefined;
+if (errorRef && !reportedUsername) {
+  const about = document.getElementById("report-about");
+  const code = document.createElement("code");
+  code.textContent = errorRef;
+  about.append("This report will include the error reference ", code, ".");
+  about.hidden = false;
+}
+
 form.addEventListener("submit", async event => {
   event.preventDefault();
   errorEl.hidden = true;
@@ -78,6 +88,7 @@ form.addEventListener("submit", async event => {
         turnstileToken,
         reportedUsername,
         reportedEntryId,
+        errorRef,
       }),
     });
 

@@ -35,6 +35,7 @@ function toSubmission(row) {
     contactEmail: row.contact_email,
     sourcePage: row.source_page,
     section: row.section,
+    errorRef: row.error_ref ?? null,
     username: row.username,
     createdAt: row.created_at,
     readAt: row.read_at,

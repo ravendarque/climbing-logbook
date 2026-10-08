@@ -879,18 +879,18 @@ describe("entry_moves / entry_pain_moves", () => {
     const created = await (await post(validEntry())).json();
     const before = await env.LOGBOOK_DB.prepare("SELECT * FROM entries WHERE id = ?").bind(created.entry.id).first();
 
-    await expect(
-      withFailingMoveInserts(() => put({ ...created.entry, name: "Renamed", moves: [validMoveRow()] })),
-    ).rejects.toThrow("forced");
+    const res = await withFailingMoveInserts(() => put({ ...created.entry, name: "Renamed", moves: [validMoveRow()] }));
+    expect(res.status).toBe(500);
 
     const after = await env.LOGBOOK_DB.prepare("SELECT * FROM entries WHERE id = ?").bind(created.entry.id).first();
     expect(after).toEqual(before);
   });
 
   it("creates no entry when writing its moves fails", async () => {
-    await expect(
-      withFailingMoveInserts(() => post({ ...validEntry(), id: "half-written", moves: [validMoveRow()] })),
-    ).rejects.toThrow("forced");
+    const res = await withFailingMoveInserts(() =>
+      post({ ...validEntry(), id: "half-written", moves: [validMoveRow()] }),
+    );
+    expect(res.status).toBe(500);
 
     const row = await env.LOGBOOK_DB.prepare("SELECT id FROM entries WHERE id = ?").bind("half-written").first();
     expect(row).toBeNull();

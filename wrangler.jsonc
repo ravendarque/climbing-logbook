@@ -35,7 +35,9 @@
   // Named environments don't inherit vars, so each one repeats them. Rate limiting only on real
   // deployments: elsewhere there's no client IP (docs/app-architecture.md, Better Auth configuration).
   // ACCESS_AUD is written by the Infra workflow; until it is, the admin host refuses everything (ADR-0034).
+  "version_metadata": { "binding": "CF_VERSION_METADATA" },
   "vars": {
+    "APP_ENV": "development",
     "BETA_GATE_ENABLED": "true",
     "RATE_LIMITING_ENABLED": "true",
     "ACCESS_TEAM_DOMAIN": "ravendarque.cloudflareaccess.com",
@@ -55,7 +57,9 @@
     // "climbing-logbook-production" script. Infra syncs only the top-level D1 id: update the env copies by hand.
     "production": {
       "name": "climbing-logbook",
+      "version_metadata": { "binding": "CF_VERSION_METADATA" },
       "vars": {
+        "APP_ENV": "production",
         "BETA_GATE_ENABLED": "true",
         "RATE_LIMITING_ENABLED": "true",
         "ACCESS_TEAM_DOMAIN": "ravendarque.cloudflareaccess.com",
@@ -72,7 +76,9 @@
     "preview": {
       "workers_dev": true,
       "routes": [],
+      "version_metadata": { "binding": "CF_VERSION_METADATA" },
       "vars": {
+        "APP_ENV": "preview",
         "BETA_GATE_ENABLED": "true",
         "TURNSTILE_SECRET_KEY": "1x0000000000000000000000000000000AA",
         "RATE_LIMITING_ENABLED": "true",
@@ -91,7 +97,9 @@
     "e2e": {
       "workers_dev": true,
       "routes": [],
+      "version_metadata": { "binding": "CF_VERSION_METADATA" },
       "vars": {
+        "APP_ENV": "e2e",
         "BETA_GATE_ENABLED": "true",
         "TURNSTILE_SECRET_KEY": "1x0000000000000000000000000000000AA",
         "EMAIL_DELIVERY": "off",
@@ -106,7 +114,9 @@
       "routes": [
         { "pattern": "beta.climbinglogbook.com/*", "zone_name": "climbinglogbook.com" }
       ],
+      "version_metadata": { "binding": "CF_VERSION_METADATA" },
       "vars": {
+        "APP_ENV": "beta",
         "BETA_GATE_ENABLED": "true",
         "RATE_LIMITING_ENABLED": "true"
       },

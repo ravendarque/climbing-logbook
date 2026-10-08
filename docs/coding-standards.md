@@ -185,6 +185,28 @@ why Better Auth replaced Cloudflare Access as the mechanism itself.
   transient error response means that error gets served on the next
   genuinely-offline visit.
 
+### Logging
+
+- **Use the logger, not `console.*`.** `createLogger` (`server/lib/log.js`)
+  writes one JSON object per event, with the request's `ray`, route
+  template, environment and release version, so Workers Logs can filter on
+  each field. `server/index.js` builds one per request.
+- **Name events as stable, dotted names**, such as `email.failed` or
+  `request.unhandled`. Put the details in fields, not in the event name.
+- **Levels:** `error` for something that failed and needs looking at,
+  `warn` for a handled failure (any 5xx), `info` for a notable step that
+  worked, `debug` for detail that's only useful while investigating.
+- **Never log a body, an email address, a password, token or cookie, or
+  any entry field** (notes, injury, RPE). The logger only passes fields on
+  its allowlist and writes `"[redacted]"` for anything else. Add a field
+  to the allowlist only when it's safe under the telemetry policy (#1027),
+  with a test.
+- **Identify a person by their internal user id only,** never by username
+  or email.
+- **Let errors reach the boundary.** Don't catch an error just to tidy it
+  up in a handler. The boundary in `server/index.js` logs it once, and
+  gives the person a reference they can quote in a report.
+
 ### Comments and docs
 - **Code documents itself.** Clear names, small functions and obvious data
   flow come first. The default is no comment.

@@ -1,26 +1,28 @@
 import { Resend } from "resend";
 import { renderEmail } from "./email-template.js";
+import { createLogger } from "./log.js";
 
 const FROM_ADDRESS = "Climbing Logbook <myaccount@climbinglogbook.com>";
 
 // Never throws: new Resend() throws synchronously without a key, which would break the whole auth request.
-async function send(env, payload) {
+async function send(env, log, payload) {
   if (env.EMAIL_DELIVERY === "off") {
-    console.log(`[email] Delivery off, not sent: "${payload.subject}" to ${payload.to}`);
+    log.info("email.skipped", { reason: "delivery off" });
     return;
   }
   try {
     const resend = new Resend(env.RESEND_API_KEY);
     const result = await resend.emails.send(payload);
-    if (result.error) console.error("[email] Resend returned an error:", result.error);
+    if (result.error) log.error("email.failed", { code: result.error.name });
   } catch (err) {
-    console.error("[email] Failed to send:", err);
+    log.error("email.failed", { err });
   }
 }
 
-export function createEmailSender(env) {
+export function createEmailSender(env, log) {
+  log ??= createLogger({ env });
   function sendTemplated(to, subject, content) {
-    return send(env, { from: FROM_ADDRESS, to, subject, ...renderEmail({ title: subject, ...content }) });
+    return send(env, log, { from: FROM_ADDRESS, to, subject, ...renderEmail({ title: subject, ...content }) });
   }
 
   return {

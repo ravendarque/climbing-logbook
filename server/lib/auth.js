@@ -64,8 +64,8 @@ async function refuseDemoDeletion(env, userId) {
 }
 
 // Built per request, never cached: a shared instance carried one request's I/O into another (#1253).
-export function createAuth(env, hostname) {
-  const emailSender = createEmailSender(env);
+export function createAuth(env, hostname, log) {
+  const emailSender = createEmailSender(env, log);
   const accountStatus = createAccountStatusHooks(env);
   const auth = betterAuth({
     database: env.LOGBOOK_DB,
