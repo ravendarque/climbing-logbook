@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { env, exports } from "cloudflare:workers";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { BASE_URL, fetchJson } from "./support.js";
 
@@ -40,6 +40,19 @@ describe("the error boundary (#1032)", () => {
     expect(html).toContain(`${new URL(BASE_URL).protocol}//`);
     expect(html).toContain("/help/report-an-issue/?ref=ray-456-LHR");
     expect(html).toContain(`href="${BASE_URL}/-/test/throw"`);
+  });
+
+  it("keeps a throw route on the admin host, behind Access, so production logging can be checked", async () => {
+    errorLines();
+    env.APP_ENV = "production";
+    env.ADMIN_ACCESS_CHECK = "off";
+    try {
+      const res = await exports.default.fetch("https://admin.example.com/-/api/admin/test/throw");
+      expect(res.status).toBe(500);
+      expect((await res.json()).error).toBe("Something went wrong.");
+    } finally {
+      delete env.ADMIN_ACCESS_CHECK;
+    }
   });
 
   it("has no test route in production", async () => {
