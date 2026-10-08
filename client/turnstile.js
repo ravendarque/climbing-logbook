@@ -8,16 +8,31 @@ function turnstileSitekey(hostname) {
   return REAL_SITEKEY_HOSTNAMES.includes(hostname) ? REAL_SITEKEY : TEST_SITEKEY;
 }
 
-// api.js is async and may run before this module, when its onload callback doesn't exist yet.
+const NORMAL_WIDTH = 300;
+const RESPONSE_WAIT_MS = 10_000;
+
+// Hidden unless the check needs a click; api.js is async and may run before this module.
 export function renderTurnstile(selector) {
   let widgetId;
   const render = () => {
-    widgetId = window.turnstile.render(selector, { sitekey: turnstileSitekey(window.location.hostname) });
+    const container = document.querySelector(selector);
+    widgetId = window.turnstile.render(container, {
+      sitekey: turnstileSitekey(window.location.hostname),
+      appearance: "interaction-only",
+      size: container.clientWidth < NORMAL_WIDTH ? "compact" : "normal",
+    });
   };
   if (window.turnstile) render();
   else window.onTurnstileLoad = render;
+
+  const getResponse = () => window.turnstile?.getResponse(widgetId);
   return {
-    getResponse: () => window.turnstile?.getResponse(widgetId),
+    getResponse,
+    waitForResponse: async () => {
+      const deadline = Date.now() + RESPONSE_WAIT_MS;
+      while (!getResponse() && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 200));
+      return getResponse();
+    },
     reset: () => window.turnstile?.reset(widgetId),
   };
 }
