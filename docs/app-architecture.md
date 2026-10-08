@@ -333,7 +333,7 @@ Tables (see `migrations/` for columns and constraints):
 | `places`, `locations` | An area within a crag, and the crag with its country. Entries reference a place; a place references a location. A user's location names, and area names within a location, are unique ignoring case, and triggers stop a row from referencing another user's place or location. |
 | `settings` | One row per user: Athlete Mode, active discipline, public logbook, beta enrollment |
 | `disciplines`, `statuses` | Lookup tables ([ADR-0009](adr/0009-normalized-d1-schema-with-lookup-tables.md)) |
-| `user`, `session`, `account`, `verification`, `rateLimit` (unused since #1292; #1296 drops it) | Better Auth's own |
+| `user`, `session`, `account`, `verification` | Better Auth's own |
 | `beta_invites` | Invite codes for the closed beta ([ADR-0014](adr/0014-closed-beta-invite-gate-togglable-not-removable.md)) |
 | `issue_reports`, `feedback_submissions`, `rate_limits` | The report and feedback forms, and their rate limit |
 

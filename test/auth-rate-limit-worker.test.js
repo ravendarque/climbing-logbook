@@ -5,14 +5,19 @@ import { jsonRequest } from "./support.js";
 it("writes nothing to D1 for auth requests, even with rate limiting on (#1292)", async () => {
   env.RATE_LIMITING_ENABLED = "true";
   try {
-    await jsonRequest("GET", "/-/api/auth/get-session", undefined, { "cf-connecting-ip": "198.51.100.12" });
+    const session = await jsonRequest("GET", "/-/api/auth/get-session", undefined, {
+      "cf-connecting-ip": "198.51.100.12",
+    });
+    expect(session.status).toBe(200);
     await jsonRequest(
       "POST",
       "/-/api/auth/sign-in/email",
       { email: "nobody@example.com", password: "wrong-password" },
       { "cf-connecting-ip": "198.51.100.12" },
     );
-    const { n } = await env.LOGBOOK_DB.prepare(`SELECT count(*) AS n FROM "rateLimit"`).first();
+    const { n } = await env.LOGBOOK_DB.prepare(
+      `SELECT count(*) AS n FROM sqlite_master WHERE name = 'rateLimit'`,
+    ).first();
     expect(n).toBe(0);
   } finally {
     env.RATE_LIMITING_ENABLED = "false";
