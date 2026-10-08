@@ -1,5 +1,6 @@
 import { json, parseJsonBody } from "../lib/json.js";
 import { normaliseIdentity } from "../lib/account-status.js";
+import { releaseInvites } from "../lib/remove-account.js";
 
 const LIST_LIMIT = 500;
 
@@ -64,11 +65,7 @@ async function confirmsUsername(request, user) {
 }
 
 function removeAccount(env, user) {
-  return [
-    env.LOGBOOK_DB.prepare(`UPDATE beta_invites SET used_by = NULL WHERE used_by = ?`).bind(user.id),
-    env.LOGBOOK_DB.prepare(`UPDATE beta_invites SET created_by = NULL WHERE created_by = ?`).bind(user.id),
-    env.LOGBOOK_DB.prepare(`DELETE FROM "user" WHERE id = ?`).bind(user.id),
-  ];
+  return [...releaseInvites(env, user.id), env.LOGBOOK_DB.prepare(`DELETE FROM "user" WHERE id = ?`).bind(user.id)];
 }
 
 const ACTIONS = {

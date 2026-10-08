@@ -1,9 +1,10 @@
 import { betterAuth } from "better-auth";
-import { createAuthMiddleware } from "better-auth/api";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { username } from "better-auth/plugins";
 import { createBetaGateAfterHook } from "./beta-gate.js";
 import { createAccountStatusHooks } from "./account-status.js";
 import { createEmailSender } from "./email.js";
+import { releaseInvites } from "./remove-account.js";
 import { requireTermsAgreement, stampTermsAgreement } from "./terms.js";
 import { requireTurnstile } from "./turnstile.js";
 import { checkUsername, USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH } from "../../shared/username-policy.js";
@@ -47,6 +48,21 @@ export function isValidUsername(candidate) {
   return checkUsername(candidate).ok;
 }
 
+// Better Auth would otherwise accept a recent session instead, so a stolen session could delete an account.
+function requirePassword(body) {
+  if (typeof body?.password !== "string" || !body.password) {
+    throw new APIError("BAD_REQUEST", {
+      message: "Enter your password to delete your account.",
+      code: "PASSWORD_REQUIRED",
+    });
+  }
+}
+
+async function refuseDemoDeletion(env, userId) {
+  const settings = await env.LOGBOOK_DB.prepare(`SELECT is_demo FROM settings WHERE user_id = ?`).bind(userId).first();
+  if (settings?.is_demo) throw new APIError("FORBIDDEN", { message: "The demo accounts can't be deleted." });
+}
+
 // Built per request, never cached: a shared instance carried one request's I/O into another (#1253).
 export function createAuth(env, hostname) {
   const emailSender = createEmailSender(env);
@@ -78,6 +94,13 @@ export function createAuth(env, hostname) {
       autoSignInAfterVerification: true,
     },
     user: {
+      deleteUser: {
+        enabled: true,
+        beforeDelete: async user => {
+          await refuseDemoDeletion(env, user.id);
+          await env.LOGBOOK_DB.batch(releaseInvites(env, user.id));
+        },
+      },
       additionalFields: {
         termsVersion: { type: "string", required: false, input: false },
         termsAgreedAt: { type: "date", required: false, input: false },
@@ -97,6 +120,7 @@ export function createAuth(env, hostname) {
     ],
     hooks: {
       before: createAuthMiddleware(async ctx => {
+        if (ctx.path === "/delete-user") return requirePassword(ctx.body);
         if (ctx.path !== "/sign-up/email") return;
         requireTermsAgreement(ctx.body);
         await requireTurnstile(env, ctx.body);
