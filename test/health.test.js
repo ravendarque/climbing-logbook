@@ -62,6 +62,16 @@ describe("health checks (#1043)", () => {
     }
   });
 
+  it("shares one D1 read between checks that arrive while it's in flight", async () => {
+    let answer;
+    const db = d1That(() => new Promise(resolve => (answer = resolve)));
+    const checks = Array.from({ length: 20 }, () => handleReadiness({ LOGBOOK_DB: db }, log));
+    answer({ 1: 1 });
+    const statuses = (await Promise.all(checks)).map(res => res.status);
+    expect(statuses.every(status => status === 200)).toBe(true);
+    expect(db.prepare).toHaveBeenCalledTimes(1);
+  });
+
   it("writes no logs on success", async () => {
     const spies = ["log", "warn", "error"].map(m => vi.spyOn(console, m).mockImplementation(() => {}));
     await fetchJson("/-/api/health");
