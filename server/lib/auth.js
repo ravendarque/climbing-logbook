@@ -73,8 +73,8 @@ export function createAuth(env, hostname) {
     secret: env.BETTER_AUTH_SECRET,
     trustedOrigins: trustedOriginsFor(hostname),
     baseURL: { allowedHosts: ALLOWED_HOSTS },
-    // Explicit: Better Auth's default keys off NODE_ENV, which Workers never set.
-    rateLimit: { enabled: env.RATE_LIMITING_ENABLED === "true", storage: "database" },
+    // The Worker limits auth requests before they get here (server/lib/auth-rate-limit.js).
+    rateLimit: { enabled: false },
     advanced: {
       // The Worker sits directly behind Cloudflare's edge, which validates Host.
       trustedProxyHeaders: false,

@@ -333,7 +333,7 @@ Tables (see `migrations/` for columns and constraints):
 | `places`, `locations` | An area within a crag, and the crag with its country. Entries reference a place; a place references a location. A user's location names, and area names within a location, are unique ignoring case, and triggers stop a row from referencing another user's place or location. |
 | `settings` | One row per user: Athlete Mode, active discipline, public logbook, beta enrollment |
 | `disciplines`, `statuses` | Lookup tables ([ADR-0009](adr/0009-normalized-d1-schema-with-lookup-tables.md)) |
-| `user`, `session`, `account`, `verification`, `rateLimit` | Better Auth's own |
+| `user`, `session`, `account`, `verification`, `rateLimit` (unused since #1292; #1296 drops it) | Better Auth's own |
 | `beta_invites` | Invite codes for the closed beta ([ADR-0014](adr/0014-closed-beta-invite-gate-togglable-not-removable.md)) |
 | `issue_reports`, `feedback_submissions`, `rate_limits` | The report and feedback forms, and their rate limit |
 
@@ -500,8 +500,14 @@ it for the isolate's lifetime.
 - **Cookies** span `climbinglogbook.com` and its subdomains, because sign-in
   happens on the apex. Everywhere else is one origin; a `Domain` that doesn't
   match the host would be rejected by the browser.
-- **Rate limiting** is stored in D1: in-memory counters are per isolate, so
-  they never trip. It's switched on by `RATE_LIMITING_ENABLED`, which only
+- **Rate limiting** of auth POSTs happens in the Worker before Better Auth
+  (`server/lib/auth-rate-limit.js`), through the `AUTH_RATE_LIMITER` Rate
+  Limiting binding: 10 a minute per IP and path, counted per Cloudflare
+  location, with no D1 writes. Better Auth's own limiter is off, because it
+  wrote a D1 row on every auth request, session checks included (#1292).
+  Reads are never limited. The report and feedback forms keep their hourly
+  D1 counter (`server/lib/rate-limit.js`), since the binding only counts per
+  10 or 60 seconds. It's all switched on by `RATE_LIMITING_ENABLED`, which only
   real deployments set. Local dev and tests have no `cf-connecting-ip`, so
   every request would share one bucket and the suites would hit 429s.
 - **Client IP** comes from `cf-connecting-ip`; Cloudflare never sends

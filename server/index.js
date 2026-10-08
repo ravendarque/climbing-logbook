@@ -18,6 +18,7 @@ import { handleOwnedRoute } from "./api/owned-routes.js";
 import { matchOwnerRoute } from "../shared/owner-routes.js";
 import { handleFeedback, handleReportIssue } from "./api/submissions.js";
 import { createAuth } from "./lib/auth.js";
+import { limitAuthRequest } from "./lib/auth-rate-limit.js";
 import { handleBetaGatedSignUp } from "./lib/beta-gate.js";
 import { resolveUserId } from "./lib/session.js";
 import { json } from "./lib/json.js";
@@ -81,6 +82,10 @@ export default {
     const perHostAsset = perHostAssetPath(hostname, pathname);
     if (perHostAsset && (method === "GET" || method === "HEAD")) return handlePerHostAsset(request, env, perHostAsset);
 
+    if (pathname.startsWith("/-/api/auth/")) {
+      const limited = await limitAuthRequest(request, env);
+      if (limited) return limited;
+    }
     // The invite-code claim has to wrap Better Auth's handler, not run inside its hooks.
     if (pathname === "/-/api/auth/sign-up/email" && method === "POST") {
       return handleBetaGatedSignUp(request, env, createAuth(env, hostname));
