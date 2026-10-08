@@ -19,6 +19,7 @@ import { matchOwnerRoute } from "../shared/owner-routes.js";
 import { handleFeedback, handleReportIssue } from "./api/submissions.js";
 import { createAuth } from "./lib/auth.js";
 import { limitAuthRequest } from "./lib/auth-rate-limit.js";
+import { limitWrite } from "./lib/write-rate-limit.js";
 import { handleBetaGatedSignUp } from "./lib/beta-gate.js";
 import { resolveUserId } from "./lib/session.js";
 import { json } from "./lib/json.js";
@@ -119,6 +120,10 @@ export default {
     if (handler) {
       const userId = await resolveUserId(request, env);
       if (!userId) return json({ error: "Unauthorized" }, 401);
+      if (!isRead) {
+        const limited = await limitWrite(env, userId);
+        if (limited) return limited;
+      }
       return handler(request, env, userId);
     }
 

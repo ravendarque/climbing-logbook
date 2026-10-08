@@ -510,6 +510,14 @@ it for the isolate's lifetime.
   10 or 60 seconds. It's all switched on by `RATE_LIMITING_ENABLED`, which only
   real deployments set. Local dev and tests have no `cf-connecting-ip`, so
   every request would share one bucket and the suites would hit 429s.
+- **Account limits** (`shared/account-limits.js`, published in the terms of
+  use): 20,000 climbs, 5,000 places and 2,000 locations per account, 10
+  imports a day, and 120 saves a minute. Stored rows are counted in
+  `account_usage`, which SQLite triggers keep exact, so a check reads one row.
+  A create over a limit gets a 403 that the offline queue shows in its
+  "Couldn't save" banner, and an import that would cross one is refused whole.
+  Saves are limited per account by the `WRITE_RATE_LIMITER` binding; a 429
+  stays queued and retries.
 - **Client IP** comes from `cf-connecting-ip`; Cloudflare never sends
   `x-forwarded-for`, Better Auth's default. Proxy headers are not trusted
   for host derivation, because the Worker sits directly behind the edge.

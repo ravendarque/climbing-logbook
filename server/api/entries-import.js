@@ -2,6 +2,7 @@ import * as v from "valibot";
 import { json } from "../lib/json.js";
 import { entrySchema } from "../../shared/entry-schema.js";
 import { parseCsvText, parseJsonText } from "../../shared/csv-import.js";
+import { checkAccountLimits, checkImportsToday } from "../lib/account-limits.js";
 import { buildInsertStatement } from "../lib/d1-resource.js";
 import { buildRow as buildEntryRow } from "./entries.js";
 import { buildRow as buildLocationRow } from "./locations.js";
@@ -90,6 +91,8 @@ function parserFor(contentType) {
 }
 
 export async function handleImport(request, env, userId) {
+  const tooMany = await checkImportsToday(env, userId);
+  if (tooMany) return tooMany;
   const text = await request.text();
   const isJson = (request.headers.get("Content-Type") ?? "").includes("json");
   const parsed = parserFor(request.headers.get("Content-Type"))(text);
@@ -112,6 +115,13 @@ export async function handleImport(request, env, userId) {
       rowErrors.push({ row: i + (isJson ? 1 : 2), error: toCsvFieldNames(result.issues[0].message) });
   });
   if (rowErrors.length > 0) return json({ errors: rowErrors }, 400);
+
+  const overLimit = await checkAccountLimits(env, userId, {
+    entries: drafts.length,
+    places: newPlaces.length,
+    locations: newLocations.length,
+  });
+  if (overLimit) return overLimit;
 
   const statements = [
     ...newLocations.map(location =>
