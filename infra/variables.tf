@@ -20,3 +20,9 @@ variable "admin_email" {
   type        = string
   sensitive   = true
 }
+
+variable "support_forward_email" {
+  description = "Where support@ mail is forwarded. Supplied by the TF_VAR_support_forward_email Actions secret, never committed."
+  type        = string
+  sensitive   = true
+}
