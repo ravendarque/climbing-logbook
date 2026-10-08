@@ -1,3 +1,4 @@
+import { checkAccountLimits } from "./account-limits.js";
 import { json, parseJsonBody } from "./json.js";
 import { intParam } from "./params.js";
 
@@ -127,6 +128,9 @@ export function createD1ResourceHandlers({
       }
       return respondWithRow(env, userId, id, 200);
     }
+
+    const overLimit = await checkAccountLimits(env, userId, { [table]: 1 });
+    if (overLimit) return overLimit;
 
     // A concurrent create of the same id loses here; that's a replay, not an error.
     try {
