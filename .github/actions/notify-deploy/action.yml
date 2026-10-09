@@ -1,0 +1,34 @@
+name: Post a deploy notice to Discord
+description: Posts the outcome of one deploy step to Discord #deploys. Does nothing without a webhook, and never fails the job.
+inputs:
+  webhook:
+    description: Discord webhook URL
+    required: true
+  environment:
+    description: beta or production
+    required: true
+  version:
+    description: The tag or commit deployed
+    required: true
+  outcome:
+    description: The deploy step's outcome
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        WEBHOOK: ${{ inputs.webhook }}
+        ENVIRONMENT: ${{ inputs.environment }}
+        VERSION: ${{ inputs.version }}
+        OUTCOME: ${{ inputs.outcome }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      run: |
+        [ -z "$WEBHOOK" ] && exit 0
+        if [ "$OUTCOME" = "success" ]; then
+          TEXT="✅ **$VERSION** deployed to **$ENVIRONMENT**"
+        else
+          TEXT="❌ Deploying **$VERSION** to **$ENVIRONMENT** failed: <$RUN_URL>"
+        fi
+        jq -n --arg content "$TEXT" '{content: $content, allowed_mentions: {parse: []}}' \
+          | curl -sS -o /dev/null -w "Discord: %{http_code}\n" -H "Content-Type: application/json" -d @- "$WEBHOOK" || true
