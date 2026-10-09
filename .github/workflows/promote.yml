@@ -68,7 +68,16 @@ jobs:
       # rather than deploying silently-wrong bindings. `--env=""` is kept
       # on the deploy command too as real (confirmed) defense in depth.
       - name: Deploy to production
+        id: deploy_production
         run: pnpm run deploy:build && pnpm exec wrangler deploy --env="" --tag "${{ steps.resolve.outputs.tag }}"
         env:
           CLOUDFLARE_ENV: production
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - name: Tell Discord
+        if: always() && steps.deploy_production.outcome != 'skipped' && steps.deploy_production.outcome != ''
+        uses: ./.github/actions/notify-deploy
+        with:
+          webhook: ${{ secrets.DISCORD_DEPLOYS_WEBHOOK }}
+          environment: production
+          version: ${{ steps.resolve.outputs.tag }}
+          outcome: ${{ steps.deploy_production.outcome }}
