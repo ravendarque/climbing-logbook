@@ -1,14 +1,24 @@
-# Cloudflare alerts to Discord (#1052). The Worker errors alert uses discord_alerts but is made through the API: see docs/infra-architecture.md.
+# Cloudflare alerts to Discord (#1052). The Worker errors alert is made in the dashboard: see docs/infra-architecture.md.
 resource "cloudflare_notification_policy_webhooks" "discord_alerts" {
   account_id = var.cloudflare_account_id
   name       = "Discord #alerts"
   url        = var.discord_alerts_webhook
+
+  # Cloudflare stores Discord URLs split into URL and secret, so the plan would rewrite them on every run.
+  lifecycle {
+    ignore_changes = [url]
+  }
 }
 
 resource "cloudflare_notification_policy_webhooks" "discord_monitoring" {
   account_id = var.cloudflare_account_id
   name       = "Discord #monitoring"
   url        = var.discord_monitoring_webhook
+
+  # Cloudflare stores Discord URLs split into URL and secret, so the plan would rewrite them on every run.
+  lifecycle {
+    ignore_changes = [url]
+  }
 }
 
 resource "cloudflare_notification_policy" "ddos" {

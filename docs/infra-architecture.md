@@ -65,8 +65,9 @@ The zone is looked up by name (`var.app_zone_name`), not a hardcoded id.
     crawlers disallowed).
 - The **Worker errors** alert (`workers_observability_real_time_issue`) and its
   Workers Issues automation. The Cloudflare provider doesn't support that
-  alert type yet (checked up to 5.27.0), so both were made once through the
-  API, pointing at the Terraform-managed `Discord #alerts` destination.
+  alert type yet (checked up to 5.27.0), so the automation was made in the
+  dashboard (Workers → climbing-logbook → Observability → Issues), posting to
+  the Terraform-managed `Discord #alerts` destination.
 - The `ravendarque.com/logbook` → `my.climbinglogbook.com/ravendarque`
   redirect. It lives on the `ravendarque.com` zone, which this project's
   token can't read, so it was removed from state and left running.
