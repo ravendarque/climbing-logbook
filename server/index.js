@@ -51,7 +51,7 @@ const RESOURCE_ROUTES = {
 };
 const RESOURCE_PATHS = Object.keys(RESOURCE_ROUTES);
 
-async function handleRequest(request, env, log) {
+async function handleRequest(request, env, ctx, log) {
   const { hostname, pathname } = new URL(request.url);
   const method = request.method;
 
@@ -106,10 +106,10 @@ async function handleRequest(request, env, log) {
   }
 
   if (pathname === "/-/api/report-issue" && method === "POST") {
-    return handleReportIssue(request, env);
+    return handleReportIssue(request, env, ctx, log);
   }
   if (pathname === "/-/api/feedback" && method === "POST") {
-    return handleFeedback(request, env);
+    return handleFeedback(request, env, ctx, log);
   }
 
   const publicDataMatch = pathname.match(PUBLIC_DATA_PATH);
@@ -142,12 +142,12 @@ const THROW_PATHS = new Set(["/-/test/throw", "/-/api/test/throw"]);
 const THROWABLE_ENVS = new Set(["development", "e2e", "preview"]);
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const log = createLogger({ request, env, route: routeTemplate(url, RESOURCE_PATHS) });
     try {
       if (THROW_PATHS.has(url.pathname) && THROWABLE_ENVS.has(env.APP_ENV)) throw new Error("Test error (#1032)");
-      const response = await handleRequest(request, env, log);
+      const response = await handleRequest(request, env, ctx, log);
       if (response.status >= 500) log.warn("request.failed", { status: response.status });
       return response;
     } catch (err) {
