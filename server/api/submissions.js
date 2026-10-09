@@ -4,6 +4,7 @@ import { verifyTurnstile } from "../lib/turnstile.js";
 import { checkRateLimit } from "../lib/rate-limit.js";
 import { resolveUserId } from "../lib/session.js";
 import { SUBMISSION_SECTIONS } from "../../shared/submission-sections.js";
+import { notifySupport } from "../lib/support-notify.js";
 import { resolvePublicUser } from "./public-profile.js";
 
 const SECTIONS = Object.keys(SUBMISSION_SECTIONS);
@@ -41,7 +42,7 @@ function createSubmissionHandler({ table, rateLimitPrefix, tooManyMessage, empty
     errorRef: v.optional(v.pipe(v.string(), v.regex(/^[A-Za-z0-9-]{1,64}$/))),
   });
 
-  return async function handleSubmission(request, env) {
+  return async function handleSubmission(request, env, ctx, log) {
     const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
     const allowed = await checkRateLimit(env, `${rateLimitPrefix}:${ip}`, RATE_LIMIT_PER_HOUR);
     if (!allowed) return json({ error: tooManyMessage }, 429);
@@ -70,8 +71,8 @@ function createSubmissionHandler({ table, rateLimitPrefix, tooManyMessage, empty
       result.output.sourcePage || null,
       result.output.section || null,
     ];
-    if (acceptsReported) {
-      const reported = await resolveReported(env, result.output);
+    const reported = acceptsReported ? await resolveReported(env, result.output) : null;
+    if (reported) {
       await env.LOGBOOK_DB.prepare(
         `INSERT INTO ${table} (id, message, contact_email, user_id, source_page, section, reported_user_id, reported_entry_id, error_ref, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
@@ -87,6 +88,16 @@ function createSubmissionHandler({ table, rateLimitPrefix, tooManyMessage, empty
         .run();
     }
 
+    ctx?.waitUntil(
+      notifySupport(env, log, {
+        table,
+        id: values[0],
+        section: result.output.section,
+        aboutLogbook: !!reported?.userId,
+        aboutEntry: !!reported?.entryId,
+        errorRef: result.output.errorRef,
+      }),
+    );
     return json({ ok: true }, 201);
   };
 }
