@@ -18,13 +18,7 @@
 {%- endif %}
   <script defer src="/-/components/climbing-burger-menu.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
   <script defer src="/-/components/climbing-page-header.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
-  <script>
-    (function () {
-      var stored = localStorage.getItem("logbook_theme");
-      var theme = stored || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
-      document.documentElement.dataset.theme = theme;
-    })();
-  </script>
+  <script src="/-/theme.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
   {%- if isDevBuild %}
   <script type="module" src="/@vite/client"></script>
   {%- endif %}

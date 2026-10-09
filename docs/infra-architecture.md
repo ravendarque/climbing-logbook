@@ -46,6 +46,7 @@ Everything provisionable, in `infra/`:
 | Email Routing: the apex MX and SPF records, and a rule forwarding `support@` to the address in the `TF_VAR_support_forward_email` secret | `infra/email-routing.tf` |
 | Better Stack uptime monitors (home page, `my.` and `beta.` readiness, certificate and domain expiry), the status page at `status.`, its DNS record, and an incident webhook to Discord `#alerts` | `infra/uptime.tf` |
 | Cloudflare alert destinations for Discord `#alerts` and `#monitoring`, and the DDoS and certificate alerts to `#monitoring` | `infra/alerts.tf` |
+| Security headers on every proxied response: the Content-Security-Policy (report-only until it's clean), `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` and `Cross-Origin-Opener-Policy` | `infra/security-headers.tf` |
 
 The zone is looked up by name (`var.app_zone_name`), not a hardcoded id.
 
@@ -64,8 +65,9 @@ The zone is looked up by name (`var.app_zone_name`), not a hardcoded id.
     crawlers disallowed).
 - The **Worker errors** alert (`workers_observability_real_time_issue`) and its
   Workers Issues automation. The Cloudflare provider doesn't support that
-  alert type yet (checked up to 5.27.0), so both were made once through the
-  API, pointing at the Terraform-managed `Discord #alerts` destination.
+  alert type yet (checked up to 5.27.0), so the automation was made in the
+  dashboard (Workers → climbing-logbook → Observability → Issues), posting to
+  the Terraform-managed `Discord #alerts` destination.
 - The `ravendarque.com/logbook` → `my.climbinglogbook.com/ravendarque`
   redirect. It lives on the `ravendarque.com` zone, which this project's
   token can't read, so it was removed from state and left running.

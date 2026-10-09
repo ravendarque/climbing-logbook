@@ -12,13 +12,7 @@
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad&render=explicit" async defer></script>
   <link rel="preload" as="image" type="image/svg+xml" href="/-/brand-lockup.svg{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}">
   <script src="../-/components/climbing-header.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
-  <script>
-    (function () {
-      var stored = localStorage.getItem("logbook_theme");
-      var theme = stored || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
-      document.documentElement.dataset.theme = theme;
-    })();
-  </script>
+  <script src="/-/theme.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
 </head>
 <body class="bg-background text-foreground font-sans min-h-screen flex flex-col items-center justify-center gap-6 px-4">
   {% include "skip-link.njk" %}
