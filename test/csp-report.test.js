@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fetchJson } from "./support.js";
 
@@ -45,6 +46,36 @@ describe("CSP violation reports (#1042)", () => {
       "application/reports+json",
     );
     expect(lines()).toEqual([expect.objectContaining({ directive: "img-src", blocked: "https://tracker.example" })]);
+  });
+
+  it("logs at most three violations from one report", async () => {
+    const lines = violations();
+    const many = Array.from({ length: 8 }, () => ({
+      type: "csp-violation",
+      body: { effectiveDirective: "img-src", blockedURL: "https://x.example/a" },
+    }));
+    await post(many, "application/reports+json");
+    expect(lines()).toHaveLength(3);
+  });
+
+  it("turns away an IP that sends more than ten reports a minute", async () => {
+    violations();
+    env.RATE_LIMITING_ENABLED = "true";
+    try {
+      const statuses = [];
+      for (let i = 0; i < 11; i++) {
+        const res = await fetchJson("/-/csp-report", {
+          method: "POST",
+          headers: { "Content-Type": "application/csp-report", "cf-connecting-ip": "198.51.100.42" },
+          body: JSON.stringify({ "csp-report": { "effective-directive": "img-src", "blocked-uri": "data" } }),
+        });
+        statuses.push(res.status);
+      }
+      expect(statuses.slice(0, 10).every(status => status === 204)).toBe(true);
+      expect(statuses[10]).toBe(429);
+    } finally {
+      env.RATE_LIMITING_ENABLED = "false";
+    }
   });
 
   it("refuses bodies that aren't JSON or are too large", async () => {

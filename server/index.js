@@ -70,7 +70,7 @@ async function handleRequest(request, env, ctx, log) {
 
   const isRead = method === "GET" || method === "HEAD";
   const forMethod = response => (method === "HEAD" ? new Response(null, response) : response);
-  if (pathname === "/-/csp-report" && method === "POST") return handleCspReport(request, log);
+  if (pathname === "/-/csp-report" && method === "POST") return handleCspReport(request, env, log);
   if (pathname === "/-/api/health" && isRead) return forMethod(handleLiveness(env));
   if (pathname === "/-/api/health/ready" && isRead) return forMethod(await handleReadiness(env, log));
 
