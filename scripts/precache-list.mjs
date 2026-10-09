@@ -60,8 +60,10 @@ export function buildPrecacheList(outDir, bundle) {
     if (chunk) addChunkGraph(chunk);
   }
 
-  for (const shellPath of Object.values(SHELL_PATHS)) {
-    const html = readFileSync(join(outDir, shellPath), "utf8");
+  // The installed app opens on the launch page, so what it loads is needed offline too.
+  const pages = [...Object.values(SHELL_PATHS).map(shellPath => join(outDir, shellPath)), fileFor(outDir, LAUNCH_PATH)];
+  for (const page of pages) {
+    const html = readFileSync(page, "utf8");
     for (const [, url] of html.matchAll(HTML_REFS)) add(url);
   }
 
@@ -79,7 +81,6 @@ export function buildPrecacheList(outDir, bundle) {
     for (const name of readdirSync(join(outDir, FONTS_DIR))) add(`/${FONTS_DIR}/${name}`);
   }
 
-  // The installed app opens here, so an offline launch needs it.
   assets.add(LAUNCH_PATH);
 
   const missing = [...assets].filter(url => !existsSync(fileFor(outDir, url)));

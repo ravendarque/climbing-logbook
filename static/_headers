@@ -11,6 +11,10 @@
   Cache-Control: public, max-age=31556952, immutable
 /-/brand-lockup.svg
   Cache-Control: public, max-age=31556952, immutable
+/-/theme.js
+  Cache-Control: public, max-age=31556952, immutable
+/-/launch.js
+  Cache-Control: public, max-age=31556952, immutable
 /-/log-app.js
   Cache-Control: public, max-age=31556952, immutable
 /-/performance-hub-app.js

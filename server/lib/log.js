@@ -17,6 +17,8 @@ const ALLOWED_FIELDS = new Set([
   "code",
   "reason",
   "count",
+  "directive",
+  "blocked",
 ]);
 
 const SINKS = { debug: "log", info: "log", warn: "warn", error: "error" };

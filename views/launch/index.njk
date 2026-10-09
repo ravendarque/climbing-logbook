@@ -9,13 +9,7 @@ eleventyExcludeFromCollections: true
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Climbing Logbook</title>
   <meta name="theme-color" content="#ff2727">
-  <script>
-    (function () {
-      var user = null;
-      try { user = localStorage.getItem("logbook_signed_in_user"); } catch (e) { /* storage blocked */ }
-      location.replace(user ? "/" + encodeURIComponent(user) + "/log" : "/-/login/");
-    })();
-  </script>
+  <script src="/-/launch.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>
 </head>
 <body>
   <noscript><p><a href="/-/login/">Open Climbing Logbook</a></p></noscript>

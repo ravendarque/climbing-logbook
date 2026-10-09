@@ -54,6 +54,13 @@ beforeEach(() => {
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
 describe("buildPrecacheList (#948)", () => {
+  it("lists what the launch page loads, so the installed app can open offline (#1042)", () => {
+    write("-/launch/index.html", '<script src="/-/launch.js?v=dddddddddd"></script>');
+    write("-/launch.js");
+    const { assets } = buildPrecacheList(dir, BUNDLE);
+    expect(assets.map(asset => asset.url ?? asset)).toContain("/-/launch.js?v=dddddddddd");
+  });
+
   it("lists every owner page as a shell, with the SHA-256 of its file", () => {
     const { shells } = buildPrecacheList(dir, BUNDLE);
     expect(shells.map(shell => shell.page)).toEqual(Object.keys(SHELL_PATHS));
