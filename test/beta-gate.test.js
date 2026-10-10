@@ -58,6 +58,45 @@ describe("beta gate enabled (BETA_GATE_ENABLED=true, wrangler.jsonc default)", (
     expect(row).toEqual({ used_at: null, used_by: null, email: null });
   });
 
+  it("hands Better Auth the browser's own headers, not just the body (#1072)", async () => {
+    await seedInvite({ code: "headers" });
+    const request = new Request("https://x/-/api/auth/sign-up/email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "cf-connecting-ip": "203.0.113.7",
+        Origin: "https://climbinglogbook.com",
+        Cookie: "a=b",
+      },
+      body: JSON.stringify({ code: "headers", email: "nix@example.com" }),
+    });
+    let forwarded;
+    const auth = {
+      handler: async req => {
+        forwarded = { headers: Object.fromEntries(req.headers), body: await req.json() };
+        return new Response("{}");
+      },
+    };
+
+    await handleBetaGatedSignUp(request, env, auth);
+
+    expect(forwarded.headers).toMatchObject({
+      "cf-connecting-ip": "203.0.113.7",
+      origin: "https://climbinglogbook.com",
+      cookie: "a=b",
+    });
+    expect(forwarded.body).toEqual({ code: "headers", email: "nix@example.com" });
+  });
+
+  it("rejects a sign-up from another site (#1072)", async () => {
+    await seedInvite({ code: "cross-site" });
+
+    const res = await signUp({ code: "cross-site" }, { Origin: "https://evil.example" });
+
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe("INVALID_ORIGIN");
+  });
+
   it("releases the code when the sign-up handler throws", async () => {
     await seedInvite({ code: "thrown" });
     const request = new Request("https://x/-/api/auth/sign-up/email", {
