@@ -4,6 +4,7 @@ import { createAdminAuth } from "../../client/admin-auth.js";
 
 function makeStore() {
   let loggedIn = false;
+  let activeType = null;
   const entries = [];
   return {
     isLoggedIn: () => loggedIn,
@@ -11,7 +12,10 @@ function makeStore() {
       loggedIn = v;
     },
     getEntries: () => entries,
-    setActiveType: vi.fn(),
+    getActiveType: () => activeType,
+    setActiveType: vi.fn(type => {
+      activeType = type;
+    }),
   };
 }
 
@@ -311,5 +315,23 @@ describe("setInitialActiveType()/reconcileActiveType()", () => {
     const settingsPromise = adminAuth.fetchSettings();
     await adminAuth.reconcileActiveType(sessionPromise, settingsPromise);
     expect(store.setActiveType).toHaveBeenCalledWith("sport");
+  });
+
+  it("reconcileActiveType() keeps a discipline picked while settings were loading (#1318)", async () => {
+    let answer;
+    global.fetch = vi.fn().mockReturnValue(new Promise(resolve => (answer = resolve)));
+    const store = makeStore();
+    const adminAuth = createAdminAuth({
+      store,
+      apiFetch: fetch,
+      settingsUrl: "/x",
+      updateAdminBar: () => {},
+    });
+    adminAuth.setInitialActiveType();
+    const reconciled = adminAuth.reconcileActiveType(Promise.resolve(), adminAuth.fetchSettings());
+    store.setActiveType("sport");
+    answer({ ok: true, json: async () => ({ activeDiscipline: "boulder" }) });
+    await reconciled;
+    expect(store.getActiveType()).toBe("sport");
   });
 });
