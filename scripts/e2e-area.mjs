@@ -1,6 +1,6 @@
 // Runs the e2e specs for one or more areas: pnpm e2e:area log tour
-import { spawnSync } from "node:child_process";
 import { AREAS } from "../e2e/areas.js";
+import { runE2e } from "./run-e2e.mjs";
 
 const areas = process.argv.slice(2);
 const unknown = areas.filter(area => !AREAS[area]);
@@ -11,5 +11,4 @@ if (areas.length === 0 || unknown.length > 0) {
 }
 
 const specs = [...new Set(areas.flatMap(area => AREAS[area]))].map(name => `e2e/${name}.spec.js`);
-const { status } = spawnSync("pnpm", ["exec", "playwright", "test", ...specs], { stdio: "inherit" });
-process.exit(status ?? 1);
+process.exit(runE2e(specs));

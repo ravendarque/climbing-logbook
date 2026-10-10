@@ -603,7 +603,9 @@ The suite runs as two Playwright projects (`playwright.config.js`):
 
 - **isolated** runs in parallel (`E2E_WORKERS`, default 4) with no session
   by default, so each test signs in only as its own pool user.
-- **shared** runs one test at a time, after the isolated project. It holds
+- **shared** runs one test at a time, after the isolated project:
+  `scripts/run-e2e.mjs` runs the two as separate Playwright runs, each with
+  its own `test-results/<project>` and `playwright-report/<project>`. It holds
   the specs in `SHARED_SPECS`: those using the seeded dev user (its settings
   are visible to every test that uses it), those writing D1 through
   `wrangler` (the CLI fails on a database the Worker is writing to), and the
