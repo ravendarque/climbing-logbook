@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchJson } from "./support.js";
+import { fetchJson, startInFreshRateLimitWindow } from "./support.js";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -60,6 +60,7 @@ describe("CSP violation reports (#1042)", () => {
 
   it("turns away an IP that sends more than ten reports a minute", async () => {
     violations();
+    await startInFreshRateLimitWindow();
     env.RATE_LIMITING_ENABLED = "true";
     try {
       const statuses = [];
@@ -76,7 +77,7 @@ describe("CSP violation reports (#1042)", () => {
     } finally {
       env.RATE_LIMITING_ENABLED = "false";
     }
-  });
+  }, 60_000);
 
   it("refuses bodies that aren't JSON or are too large", async () => {
     violations();

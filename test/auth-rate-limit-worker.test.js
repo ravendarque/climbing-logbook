@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { expect, it } from "vitest";
-import { jsonRequest } from "./support.js";
+import { jsonRequest, startInFreshRateLimitWindow } from "./support.js";
 
 it("writes nothing to D1 for auth requests, even with rate limiting on (#1292)", async () => {
   env.RATE_LIMITING_ENABLED = "true";
@@ -25,6 +25,7 @@ it("writes nothing to D1 for auth requests, even with rate limiting on (#1292)",
 });
 
 it("turns away the eleventh sign-in attempt in a minute from one IP, through the real binding", async () => {
+  await startInFreshRateLimitWindow();
   env.RATE_LIMITING_ENABLED = "true";
   try {
     const statuses = [];
@@ -42,4 +43,4 @@ it("turns away the eleventh sign-in attempt in a minute from one IP, through the
   } finally {
     env.RATE_LIMITING_ENABLED = "false";
   }
-});
+}, 60_000);

@@ -2,7 +2,14 @@ import { env } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { ACCOUNT_LIMITS, IMPORTS_PER_DAY, WRITES_PER_MINUTE } from "../shared/account-limits.js";
 import { CSV_COLUMNS } from "../shared/csv-import.js";
-import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
+import {
+  createAuthedSession,
+  fetchJson,
+  jsonRequest,
+  resetAuthTables,
+  seedPlace,
+  startInFreshRateLimitWindow,
+} from "./support.js";
 
 beforeAll(() => {
   env.BETA_GATE_ENABLED = "false";
@@ -137,9 +144,7 @@ describe("the import limit", () => {
 describe("the save rate", () => {
   it(`lets an offline queue of ${WRITES_PER_MINUTE} saves through in a minute, then asks the next to wait`, async () => {
     env.RATE_LIMITING_ENABLED = "true";
-    // The local limiter counts in wall-clock minutes, so every save has to land in one (#1326).
-    const leftInWindowMs = 60_000 - (Date.now() % 60_000);
-    if (leftInWindowMs < 15_000) await new Promise(resolve => setTimeout(resolve, leftInWindowMs + 100));
+    await startInFreshRateLimitWindow();
     try {
       const statuses = [];
       for (let i = 0; i <= WRITES_PER_MINUTE; i++) {
