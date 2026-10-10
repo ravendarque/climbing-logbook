@@ -47,11 +47,8 @@ export async function handleBetaGatedSignUp(request, env, auth) {
     return json({ message: "Invalid or already-used invite code.", code: "INVALID_INVITE_CODE" }, 403);
   }
 
-  const forwardedRequest = new Request(request.url, {
-    method: request.method,
-    headers: { "Content-Type": "application/json" },
-    body: bodyText,
-  });
+  // The body was read above, so it's sent again; the headers carry the client's IP and Origin to Better Auth (#1072).
+  const forwardedRequest = new Request(request, { body: bodyText });
   try {
     return await auth.handler(forwardedRequest);
   } finally {

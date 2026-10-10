@@ -38,14 +38,19 @@ export async function seedInvite({ code = "test-code", email = null, used = fals
     .run();
 }
 
-export function signUp(body) {
-  return jsonRequest("POST", "/-/api/auth/sign-up/email", {
-    email: "nix@example.com",
-    password: "correct-horse-battery-staple",
-    name: "Nix",
-    username: "nix",
-    turnstileToken: "test-token",
-    agreedTermsVersion: TERMS_VERSION,
-    ...body,
-  });
+export function signUp(body, headers) {
+  return jsonRequest(
+    "POST",
+    "/-/api/auth/sign-up/email",
+    {
+      email: "nix@example.com",
+      password: "correct-horse-battery-staple",
+      name: "Nix",
+      username: "nix",
+      turnstileToken: "test-token",
+      agreedTermsVersion: TERMS_VERSION,
+      ...body,
+    },
+    headers,
+  );
 }
