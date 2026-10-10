@@ -1,17 +1,14 @@
 import { json } from "./json.js";
 
+// One answer for every bad code, so a guess can't tell an unknown code from one pinned to someone else (#1073).
+const INVALID_INVITE = {
+  message: "That invite code isn't valid for this email address, or it's already been used.",
+  code: "INVALID_INVITE_CODE",
+};
+
 // Wraps Better Auth's handler: a failing plugin before-hook skips hooks.after, so only
 // the real response can say whether to release the claimed code.
-export async function handleBetaGatedSignUp(request, env, auth) {
-  if (env.BETA_GATE_ENABLED !== "true") return auth.handler(request);
-
-  const bodyText = await request.text();
-  let body;
-  try {
-    body = JSON.parse(bodyText);
-  } catch {
-    body = {};
-  }
+export async function claimInviteAround(env, body, forward) {
   const code = body?.code;
   // Better Auth stores emails lowercased, so the pin is compared and stored the same way.
   const email = typeof body?.email === "string" ? body.email.toLowerCase() : null;
@@ -27,11 +24,8 @@ export async function handleBetaGatedSignUp(request, env, auth) {
     .bind(code)
     .first();
 
-  if (!invite || invite.used_at) {
-    return json({ message: "Invalid or already-used invite code.", code: "INVALID_INVITE_CODE" }, 403);
-  }
-  if (invite.email && invite.email.toLowerCase() !== email) {
-    return json({ message: "This invite code is not valid for this email address.", code: "INVALID_INVITE_CODE" }, 403);
+  if (!invite || invite.used_at || (invite.email && invite.email.toLowerCase() !== email)) {
+    return json(INVALID_INVITE, 403);
   }
 
   // Release clears only an email pin this claim wrote, never a pre-pinned one.
@@ -43,14 +37,10 @@ export async function handleBetaGatedSignUp(request, env, auth) {
   )
     .bind(email, code)
     .run();
-  if (claim.meta.changes === 0) {
-    return json({ message: "Invalid or already-used invite code.", code: "INVALID_INVITE_CODE" }, 403);
-  }
+  if (claim.meta.changes === 0) return json(INVALID_INVITE, 403);
 
-  // The body was read above, so it's sent again; the headers carry the client's IP and Origin to Better Auth (#1072).
-  const forwardedRequest = new Request(request, { body: bodyText });
   try {
-    return await auth.handler(forwardedRequest);
+    return await forward();
   } finally {
     // A registered email gets a 200 and a synthetic user but no new row, so only the create hook's used_by proves a claim.
     const claimed = await env.LOGBOOK_DB.prepare(`SELECT used_by FROM beta_invites WHERE code = ?`).bind(code).first();

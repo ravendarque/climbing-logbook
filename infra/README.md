@@ -44,10 +44,8 @@ The only thing *not* managed here, by design: the logbook's actual data
    do on your behalf — creating an account and choosing its password are
    both on the "always done by a human, in their own terminal/browser"
    list, no exceptions for how low-risk it looks:
-   1. Generate a beta invite code (same one-off `wrangler d1 execute`
-      pattern already used for the first real batch, #296):
-      `wrangler d1 execute climbing-logbook --remote --command
-      "INSERT INTO beta_invites (code) VALUES ('synthetic-monitor')"`.
+   1. Make a beta invite code with `node scripts/mint-invite.mjs`, and
+      run the `wrangler` command it prints to store it.
    2. Sign up for real at `climbinglogbook.com/register` with that code,
       a dedicated email address, and a generated password — not an
       address or password reused anywhere else.

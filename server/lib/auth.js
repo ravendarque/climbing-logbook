@@ -6,7 +6,6 @@ import { createAccountStatusHooks } from "./account-status.js";
 import { createEmailSender } from "./email.js";
 import { releaseInvites } from "./remove-account.js";
 import { requireTermsAgreement, stampTermsAgreement } from "./terms.js";
-import { requireTurnstile } from "./turnstile.js";
 import { checkUsername, USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH } from "../../shared/username-policy.js";
 
 // Why the list depends on the host: docs/app-architecture.md, Better Auth configuration.
@@ -122,8 +121,8 @@ export function createAuth(env, hostname, log) {
       before: createAuthMiddleware(async ctx => {
         if (ctx.path === "/delete-user") return requirePassword(ctx.body);
         if (ctx.path !== "/sign-up/email") return;
+        // Turnstile is checked before this, in server/lib/sign-up.js.
         requireTermsAgreement(ctx.body);
-        await requireTurnstile(env, ctx.body);
       }),
     },
     databaseHooks: {

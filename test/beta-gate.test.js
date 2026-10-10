@@ -1,8 +1,8 @@
 import { env } from "cloudflare:workers";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resetAuthTables } from "./support.js";
 import { seedInvite, signUp, stubBetaGateFetch } from "./beta-gate-helpers.js";
-import { handleBetaGatedSignUp } from "../server/lib/beta-gate.js";
+import { handleSignUp } from "../server/lib/sign-up.js";
 
 beforeEach(resetAuthTables);
 stubBetaGateFetch();
@@ -68,7 +68,7 @@ describe("beta gate enabled (BETA_GATE_ENABLED=true, wrangler.jsonc default)", (
         Origin: "https://climbinglogbook.com",
         Cookie: "a=b",
       },
-      body: JSON.stringify({ code: "headers", email: "nix@example.com" }),
+      body: JSON.stringify({ code: "headers", email: "nix@example.com", turnstileToken: "t" }),
     });
     let forwarded;
     const auth = {
@@ -78,14 +78,14 @@ describe("beta gate enabled (BETA_GATE_ENABLED=true, wrangler.jsonc default)", (
       },
     };
 
-    await handleBetaGatedSignUp(request, env, auth);
+    await handleSignUp(request, env, () => auth);
 
     expect(forwarded.headers).toMatchObject({
       "cf-connecting-ip": "203.0.113.7",
       origin: "https://climbinglogbook.com",
       cookie: "a=b",
     });
-    expect(forwarded.body).toEqual({ code: "headers", email: "nix@example.com" });
+    expect(forwarded.body).toEqual({ code: "headers", email: "nix@example.com", turnstileToken: "t" });
   });
 
   it("rejects a sign-up from another site (#1072)", async () => {
@@ -97,11 +97,48 @@ describe("beta gate enabled (BETA_GATE_ENABLED=true, wrangler.jsonc default)", (
     expect((await res.json()).code).toBe("INVALID_ORIGIN");
   });
 
+  it("gives the same answer for an unknown, a used and another email's code (#1073)", async () => {
+    await seedInvite({ code: "used-code", used: true });
+    await seedInvite({ code: "someone-elses", email: "someone@example.com" });
+
+    const bodies = [];
+    for (const code of ["no-such-code", "used-code", "someone-elses"]) {
+      const res = await signUp({ code });
+      expect(res.status, code).toBe(403);
+      bodies.push(await res.text());
+    }
+
+    expect(new Set(bodies).size).toBe(1);
+  });
+
+  it("never looks a code up without a valid Turnstile token (#1073)", async () => {
+    await seedInvite({ code: "real-code" });
+    const prepare = vi.spyOn(env.LOGBOOK_DB, "prepare");
+
+    const res = await signUp({ code: "real-code", turnstileToken: undefined });
+
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe("TURNSTILE_TOKEN_REQUIRED");
+    expect(prepare.mock.calls.filter(([sql]) => sql.includes("beta_invites"))).toEqual([]);
+    prepare.mockRestore();
+  });
+
+  it("checks Turnstile once for a sign-up that succeeds (#1073)", async () => {
+    await seedInvite({ code: "once" });
+
+    expect((await signUp({ code: "once" })).status).toBe(200);
+
+    const siteverifyCalls = fetch.mock.calls.filter(([input]) =>
+      String(typeof input === "string" ? input : input.url).startsWith("https://challenges.cloudflare.com/"),
+    );
+    expect(siteverifyCalls).toHaveLength(1);
+  });
+
   it("releases the code when the sign-up handler throws", async () => {
     await seedInvite({ code: "thrown" });
     const request = new Request("https://x/-/api/auth/sign-up/email", {
       method: "POST",
-      body: JSON.stringify({ code: "thrown", email: "nix@example.com" }),
+      body: JSON.stringify({ code: "thrown", email: "nix@example.com", turnstileToken: "t" }),
     });
     const auth = {
       handler: async () => {
@@ -109,7 +146,7 @@ describe("beta gate enabled (BETA_GATE_ENABLED=true, wrangler.jsonc default)", (
       },
     };
 
-    await expect(handleBetaGatedSignUp(request, env, auth)).rejects.toThrow("D1 went away");
+    await expect(handleSignUp(request, env, () => auth)).rejects.toThrow("D1 went away");
 
     const row = await env.LOGBOOK_DB.prepare(`SELECT used_at, email FROM beta_invites WHERE code = ?`)
       .bind("thrown")
