@@ -77,6 +77,33 @@ test("renders the shared chrome and a real entries table, and switches disciplin
   await expect(page.locator("#discipline-btn-label")).toHaveText("Boulder");
 });
 
+test("#1318 -- a discipline picked while settings load isn't overwritten when they arrive", async ({ page, owner }) => {
+  await gotoLog(page, owner, { ...SEED, settings: { activeDiscipline: "boulder" } });
+  let releaseSettings;
+  const settingsHeld = new Promise(resolve => (releaseSettings = resolve));
+  let settingsRequested;
+  const requested = new Promise(resolve => (settingsRequested = resolve));
+  await page.route("**/-/api/settings", async route => {
+    if (route.request().method() !== "GET") return route.fallback();
+    const stale = await route.fetch();
+    settingsRequested();
+    await settingsHeld;
+    return route.fulfill({ response: stale });
+  });
+  await page.reload();
+  await requested;
+
+  await page.locator("#discipline-btn").click();
+  await page.locator('.discipline-option[data-discipline="sport"]').click();
+  await expect(page.locator("#discipline-btn-label")).toHaveText("Sport");
+
+  const menuButton = page.locator("#header-menu-btn");
+  await expect(menuButton).toHaveAttribute("data-sync-state", "working");
+  releaseSettings();
+  await expect(menuButton).not.toHaveAttribute("data-sync-state");
+  await expect(page.locator("#discipline-btn-label")).toHaveText("Sport");
+});
+
 test("#939 follow-up -- location sections start collapsed on the very first paint, no expand-then-collapse flash", async ({
   page,
   owner,

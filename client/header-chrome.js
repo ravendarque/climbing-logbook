@@ -64,7 +64,7 @@ export function createHeaderChrome({ store, apiFetch, settingsUrl, username, sho
       return;
     }
 
-    store.setActiveType(opt.dataset.discipline);
+    store.chooseActiveType(opt.dataset.discipline);
     disciplineBtn.focus();
 
     // Best effort: offline or logged out, the switch stays local.
