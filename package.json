@@ -29,10 +29,10 @@
     "@11ty/eleventy": "3.1.6",
     "@11ty/eleventy-navigation": "^1.0.5",
     "@axe-core/playwright": "^4.13.0",
-    "@biomejs/biome": "^2.5.14",
-    "@cloudflare/vite-plugin": "^1.62.0",
-    "@cloudflare/vitest-pool-workers": "^0.22.0",
-    "@cloudflare/workers-types": "^5.20260928.1",
+    "@biomejs/biome": "^2.5.15",
+    "@cloudflare/vite-plugin": "^1.63.0",
+    "@cloudflare/vitest-pool-workers": "^0.23.0",
+    "@cloudflare/workers-types": "^5.20261007.1",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/cli": "^4.3.3",
     "@vitest/coverage-istanbul": "^4.1.11",
@@ -47,17 +47,17 @@
     "tailwindcss": "^4.3.3",
     "topojson-client": "^3.1.0",
     "typescript": "^7.0.2",
-    "vite": "^8.3.1",
+    "vite": "^8.3.3",
     "vitest": "^4.1.11",
     "world-atlas": "^2.0.2",
     "world-countries": "^5.1.0",
-    "wrangler": "^4.143.0"
+    "wrangler": "^4.148.0"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.8.0",
-    "better-auth": "^1.7.6",
+    "better-auth": "^1.7.7",
     "obscenity": "0.4.6",
-    "resend": "^6.30.0",
+    "resend": "^6.32.1",
     "valibot": "^1.5.0"
   }
 }
