@@ -32,6 +32,7 @@ export default defineConfig({
           include: ["test/**/*.test.js"],
           exclude: [
             "test/client/move-tagging.test.js",
+            "test/client/characters-left.test.js",
             "test/client/time-window.test.js",
             "test/client/climbing-tab-bar.test.js",
             "test/client/climbing-entries-table.test.js",
@@ -101,6 +102,7 @@ export default defineConfig({
           // Only files that need a real document.
           include: [
             "test/client/move-tagging.test.js",
+            "test/client/characters-left.test.js",
             "test/client/time-window.test.js",
             "test/client/climbing-tab-bar.test.js",
             "test/client/climbing-entries-table.test.js",
