@@ -21,7 +21,10 @@
       "/welcome", "/welcome/*",
       "/view", "/view/*",
       "/", "/admin", "/admin/*", "/-/admin-app.js",
-      "/-/manifest.json", "/-/apple-touch-icon.png"
+      "/-/manifest.json", "/-/apple-touch-icon.png",
+      "/help", "/help/*", "!/help/pagefind/*",
+      "/login", "/login/", "/register", "/register/", "/reset-password", "/reset-password/",
+      "/-/launch/*"
     ]
   },
   "ratelimits": [

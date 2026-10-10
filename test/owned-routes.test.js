@@ -2,6 +2,7 @@ import { env, exports } from "cloudflare:workers";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, resetAuthTables } from "./support.js";
 import { SHELL_HEADER, SHELL_PATHS } from "../shared/owner-routes.js";
+import { CSP_HEADER } from "../server/lib/csp.js";
 
 async function setBetaOptIn(userId, value) {
   await env.LOGBOOK_DB.prepare(
@@ -432,7 +433,13 @@ describe("HEAD requests (#1107)", () => {
     const head = await fetchOwnedRoute("headowner", "log", { cookie, method: "HEAD" });
 
     expect(head.status).toBe(get.status);
-    expect(Object.fromEntries(head.headers)).toEqual(Object.fromEntries(get.headers));
+    const withoutNonce = res => {
+      const headers = Object.fromEntries(res.headers);
+      expect(headers[CSP_HEADER.toLowerCase()]).toContain("'nonce-");
+      delete headers[CSP_HEADER.toLowerCase()];
+      return headers;
+    };
+    expect(withoutNonce(head)).toEqual(withoutNonce(get));
     expect(await head.text()).toBe("");
   });
 

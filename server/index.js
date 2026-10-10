@@ -15,7 +15,6 @@ import { handleGetMapCounts } from "./api/map.js";
 import { handleLiveness, handleReadiness } from "./api/health.js";
 import { handleCspReport } from "./api/csp-report.js";
 import { withContentSecurityPolicy } from "./lib/csp.js";
-import { DEMO_USERNAMES } from "../shared/demo-personas.js";
 import { handlePublicProfile } from "./api/public-profile.js";
 import { handlePublicResource } from "./api/public-data.js";
 import { handleOwnedRoute } from "./api/owned-routes.js";
@@ -53,6 +52,7 @@ const RESOURCE_ROUTES = {
   "/-/api/map/counts": { GET: handleGetMapCounts },
 };
 const RESOURCE_PATHS = Object.keys(RESOURCE_ROUTES);
+const STATIC_PAGE = /^\/($|(help|login|register|reset-password)(\/|$)|-\/launch\/)/;
 
 async function handleRequest(request, env, ctx, log) {
   const { hostname, pathname } = new URL(request.url);
@@ -75,14 +75,11 @@ async function handleRequest(request, env, ctx, log) {
   if (pathname === "/-/csp-report" && method === "POST") return handleCspReport(request, env, log);
   if (pathname === "/-/api/health" && isRead) return forMethod(handleLiveness(env));
   if (pathname === "/-/api/health/ready" && isRead) return forMethod(await handleReadiness(env, log));
+  // Static pages come through the Worker so it can send their CSP (#1042); "/" also lets the admin host claim it.
+  if (isRead && STATIC_PAGE.test(pathname)) return env.ASSETS.fetch(request);
 
   if (hostname.startsWith("my.") && isRead) {
     const ownerRoute = matchOwnerRoute(pathname);
-    if (ownerRoute && DEMO_USERNAMES.includes(ownerRoute.username.toLowerCase())) {
-      return forMethod(
-        withContentSecurityPolicy(await handleOwnedRoute(request, env, ownerRoute.username, ownerRoute.page)),
-      );
-    }
     if (ownerRoute) return forMethod(await handleOwnedRoute(request, env, ownerRoute.username, ownerRoute.page));
 
     const match = pathname.match(/^\/([^/]+)\/?$/);
@@ -140,9 +137,6 @@ async function handleRequest(request, env, ctx, log) {
     return handler(request, env, userId);
   }
 
-  // "/" comes through the Worker only so the admin host can claim it; everywhere else it's the home page.
-  if (pathname === "/" && isRead) return env.ASSETS.fetch(request);
-
   return new Response("Not found", { status: 404 });
 }
 
@@ -158,11 +152,11 @@ export default {
       if (THROW_PATHS.has(url.pathname) && THROWABLE_ENVS.has(env.APP_ENV)) throw new Error("Test error (#1032)");
       const response = await handleRequest(request, env, ctx, log);
       if (response.status >= 500) log.warn("request.failed", { status: response.status });
-      return response;
+      return withContentSecurityPolicy(response);
     } catch (err) {
       const ref = request.headers.get("cf-ray") ?? crypto.randomUUID();
       log.error("request.unhandled", { err, ref, status: 500 });
-      return errorResponse(url, ref);
+      return withContentSecurityPolicy(errorResponse(url, ref));
     }
   },
 };

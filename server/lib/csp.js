@@ -15,9 +15,13 @@ export function contentSecurityPolicy(nonce) {
   ].join("; ");
 }
 
-// Cloudflare only nonces its injected script when the origin sends the CSP, so the Worker has to (#1042).
+// Report-only until the soak is clean (#1042), then "Content-Security-Policy".
+export const CSP_HEADER = "Content-Security-Policy-Report-Only";
+
+// Cloudflare only nonces its injected bot-detection script when the origin sends the CSP, so the Worker does (#1042).
 export function withContentSecurityPolicy(response) {
+  if (!response.headers.get("Content-Type")?.includes("text/html")) return response;
   const withHeader = new Response(response.body, response);
-  withHeader.headers.set("Content-Security-Policy", contentSecurityPolicy(crypto.randomUUID()));
+  withHeader.headers.set(CSP_HEADER, contentSecurityPolicy(crypto.randomUUID()));
   return withHeader;
 }

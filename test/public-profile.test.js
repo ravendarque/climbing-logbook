@@ -1,6 +1,7 @@
 import { env, exports } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createAuthedSession, createPublicSession, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
+import { CSP_HEADER } from "../server/lib/csp.js";
 
 beforeAll(() => {
   env.BETA_GATE_ENABLED = "false";
@@ -90,7 +91,13 @@ describe("HEAD requests (#1107)", () => {
     const head = await fetchProfile("headprofile", "my.example.com", "HEAD");
 
     expect(head.status).toBe(200);
-    expect(Object.fromEntries(head.headers)).toEqual(Object.fromEntries(get.headers));
+    const withoutNonce = res => {
+      const headers = Object.fromEntries(res.headers);
+      expect(headers[CSP_HEADER.toLowerCase()]).toContain("'nonce-");
+      delete headers[CSP_HEADER.toLowerCase()];
+      return headers;
+    };
+    expect(withoutNonce(head)).toEqual(withoutNonce(get));
     expect(await head.text()).toBe("");
   });
 

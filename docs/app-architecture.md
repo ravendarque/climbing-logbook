@@ -523,6 +523,14 @@ it for the isolate's lifetime.
   "Couldn't save" banner, and an import that would cross one is refused whole.
   Saves are limited per account by the `WRITE_RATE_LIMITER` binding; a 429
   stays queued and retries.
+- **Content-Security-Policy** comes from the Worker, on every HTML response,
+  with a fresh nonce each time (`server/lib/csp.js`). Cloudflare puts that
+  nonce on the Bot Fight Mode script it injects, which it only does when the
+  origin sends the header, not when an edge rule adds it. So the static pages
+  (home, help, login, sign-up, password reset, launch) are `run_worker_first`
+  too, and served from assets by the Worker. Help search's `pagefind` files
+  aren't. Our own scripts are all files, so they never need the nonce. The
+  other security headers come from an edge rule (`infra/security-headers.tf`).
 - **Client IP** comes from `cf-connecting-ip`; Cloudflare never sends
   `x-forwarded-for`, Better Auth's default. Proxy headers are not trusted
   for host derivation, because the Worker sits directly behind the edge.
