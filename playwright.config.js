@@ -39,7 +39,7 @@ export default defineConfig({
       fullyParallel: true,
       use: { ...devices["Desktop Chrome"], storageState: NO_SESSION },
     },
-    // After the isolated specs, not alongside them: run under load, the timing and install specs fail.
+    // Run after the isolated specs by scripts/run-e2e.mjs: under their load, the timing and install specs fail.
     { name: "shared", testMatch: SHARED_SPECS, workers: 1, use: { ...devices["Desktop Chrome"] } },
   ],
   globalSetup: "./e2e/global-setup.js",
