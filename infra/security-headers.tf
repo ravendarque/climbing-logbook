@@ -26,19 +26,6 @@ resource "cloudflare_ruleset" "security_headers" {
 
   rules = [
     {
-      description = "Enforce the CSP on one page, to learn whether Cloudflare nonces its injected script (#1042)"
-      expression  = "http.request.uri.path eq \"/help/terms/\""
-      action      = "rewrite"
-      action_parameters = {
-        headers = {
-          "Content-Security-Policy" = {
-            operation  = "set"
-            expression = "concat(\"${local.csp_before_nonce}\", uuidv4(cf.random_seed), \"${local.csp_after_nonce}\")"
-          }
-        }
-      }
-    },
-    {
       description = "Security headers"
       expression  = "true"
       action      = "rewrite"
