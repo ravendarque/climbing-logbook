@@ -137,6 +137,9 @@ describe("the import limit", () => {
 describe("the save rate", () => {
   it(`lets an offline queue of ${WRITES_PER_MINUTE} saves through in a minute, then asks the next to wait`, async () => {
     env.RATE_LIMITING_ENABLED = "true";
+    // The local limiter counts in wall-clock minutes, so every save has to land in one (#1326).
+    const leftInWindowMs = 60_000 - (Date.now() % 60_000);
+    if (leftInWindowMs < 15_000) await new Promise(resolve => setTimeout(resolve, leftInWindowMs + 100));
     try {
       const statuses = [];
       for (let i = 0; i <= WRITES_PER_MINUTE; i++) {
@@ -150,5 +153,5 @@ describe("the save rate", () => {
     } finally {
       env.RATE_LIMITING_ENABLED = "false";
     }
-  });
+  }, 60_000);
 });
