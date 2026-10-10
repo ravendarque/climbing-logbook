@@ -1,3 +1,4 @@
+import { mockTurnstile } from "./mock-turnstile.js";
 import { expect, test } from "@playwright/test";
 import { DEV_USER } from "../scripts/lib/dev-session.mjs";
 import { ownedRouteUrl } from "./owned-route-url.js";
@@ -82,6 +83,20 @@ test("shows an inline error for the wrong password, without navigating away", as
   await expect(page.locator("#login-error")).toBeVisible();
   await expect(page).toHaveURL(/\/login\/?$/);
   await expect(page.locator("#login-error")).toBeFocused();
+});
+
+test("forgot password checks for a bot, then asks for the reset email (#1053)", async ({ page }) => {
+  await mockTurnstile(page);
+  await page.goto("/login/");
+  await page.locator("#email").fill("someone@example.com");
+
+  const [request] = await Promise.all([
+    page.waitForRequest(req => req.url().includes("/-/api/auth/request-password-reset")),
+    page.locator("#forgot-password-btn").click(),
+  ]);
+
+  expect(request.postDataJSON()).toMatchObject({ email: "someone@example.com", turnstileToken: "e2e-stub-token" });
+  await expect(page.locator("#login-info")).toBeVisible();
 });
 
 test("forgot password requires an email first", async ({ page }) => {

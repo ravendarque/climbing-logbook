@@ -99,7 +99,10 @@ describe("password reset", () => {
     await signUp();
     resendCalls.length = 0; // only care about the reset email from here
 
-    const reqRes = await jsonRequest("POST", "/-/api/auth/request-password-reset", { email: SIGNUP.email });
+    const reqRes = await jsonRequest("POST", "/-/api/auth/request-password-reset", {
+      email: SIGNUP.email,
+      turnstileToken: "t",
+    });
     expect(reqRes.status).toBe(200);
     expect(resendCalls).toHaveLength(1);
     expect(resendCalls[0].body.subject).toMatch(/reset/i);
@@ -127,7 +130,7 @@ describe("password reset", () => {
   it("rejects a reused reset token", async () => {
     await signUp();
     resendCalls.length = 0;
-    await jsonRequest("POST", "/-/api/auth/request-password-reset", { email: SIGNUP.email });
+    await jsonRequest("POST", "/-/api/auth/request-password-reset", { email: SIGNUP.email, turnstileToken: "t" });
     const token = extractToken(resendCalls[0].body.html, "reset-password/");
 
     expect(
