@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by [ADR-0036](0036-pr-previews-via-cloudflare-previews.md).
 
 ## Context
 
