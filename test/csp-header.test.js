@@ -30,17 +30,19 @@ describe("the Worker-sent CSP (#1042)", () => {
     expect(res.headers.get(CSP_HEADER)).toBeNull();
   });
 
-  it("sends the static pages through the Worker, apart from help search's files", () => {
+  it("sends the static pages through the Worker, but not their scripts or help search's files", () => {
     const paths = env.RUN_WORKER_FIRST_PATHS;
-    for (const path of [
-      "/help/*",
-      "/login/*",
-      "/register/*",
-      "/reset-password/*",
-      "/-/launch/*",
-      "!/help/pagefind/*",
-    ]) {
+    for (const path of ["/help/*", "/login/", "/register/", "/reset-password/", "/-/launch/*", "!/help/pagefind/*"]) {
       expect(paths).toContain(path);
+    }
+    expect(paths).not.toContain("/login/*");
+  });
+
+  it("serves static pages on the my. host too, rather than reading them as usernames", async () => {
+    for (const path of ["/help/", "/login/"]) {
+      const res = await exports.default.fetch(`https://my.example.com${path}`);
+      expect(res.status, path).toBe(200);
+      expect(nonceOf(res), path).toBeTruthy();
     }
   });
 });

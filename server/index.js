@@ -75,6 +75,8 @@ async function handleRequest(request, env, ctx, log) {
   if (pathname === "/-/csp-report" && method === "POST") return handleCspReport(request, env, log);
   if (pathname === "/-/api/health" && isRead) return forMethod(handleLiveness(env));
   if (pathname === "/-/api/health/ready" && isRead) return forMethod(await handleReadiness(env, log));
+  // Static pages come through the Worker so it can send their CSP (#1042); "/" also lets the admin host claim it.
+  if (isRead && STATIC_PAGE.test(pathname)) return env.ASSETS.fetch(request);
 
   if (hostname.startsWith("my.") && isRead) {
     const ownerRoute = matchOwnerRoute(pathname);
@@ -134,9 +136,6 @@ async function handleRequest(request, env, ctx, log) {
     }
     return handler(request, env, userId);
   }
-
-  // Static pages come through the Worker so it can send their CSP (#1042); "/" also lets the admin host claim it.
-  if (isRead && STATIC_PAGE.test(pathname)) return env.ASSETS.fetch(request);
 
   return new Response("Not found", { status: 404 });
 }
