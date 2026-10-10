@@ -23,7 +23,7 @@ import { handleFeedback, handleReportIssue } from "./api/submissions.js";
 import { createAuth } from "./lib/auth.js";
 import { limitAuthRequest } from "./lib/auth-rate-limit.js";
 import { limitWrite } from "./lib/write-rate-limit.js";
-import { handleBetaGatedSignUp } from "./lib/beta-gate.js";
+import { handleSignUp } from "./lib/sign-up.js";
 import { resolveUserId } from "./lib/session.js";
 import { json } from "./lib/json.js";
 import { errorResponse } from "./lib/error-response.js";
@@ -99,9 +99,9 @@ async function handleRequest(request, env, ctx, log) {
     const limited = await limitAuthRequest(request, env);
     if (limited) return limited;
   }
-  // The invite-code claim has to wrap Better Auth's handler, not run inside its hooks.
+  // Turnstile and the invite claim wrap Better Auth's handler, not run inside its hooks.
   if (pathname === "/-/api/auth/sign-up/email" && method === "POST") {
-    return handleBetaGatedSignUp(request, env, createAuth(env, hostname, log));
+    return handleSignUp(request, env, () => createAuth(env, hostname, log));
   }
   // It tells anyone whether an account exists, undoing the anti-enumeration 404s.
   if (pathname === "/-/api/auth/is-username-available") {

@@ -152,6 +152,15 @@ The token's current grants (rebuilt and verified 2026-09-20):
 - **For alerts (#1052):** Notifications Write (account).
 - No access to any other zone.
 
+## Beta invites
+
+While the beta gate is on (`BETA_GATE_ENABLED`,
+[ADR-0014](adr/0014-closed-beta-invite-gate-togglable-not-removable.md)),
+sign-up needs an unused code from `beta_invites`. Make codes with
+`node scripts/mint-invite.mjs [--email <address>]`: it prints a random
+128-bit code, the `wrangler` command that stores it, and the link to send.
+Don't type codes by hand; a guessable code gets round the gate.
+
 ## Disaster recovery
 
 1. Run "Bootstrap Terraform state bucket".
