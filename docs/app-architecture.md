@@ -474,6 +474,16 @@ Tables (see `migrations/` for columns and constraints):
   sets `used_by`): an already-registered email gets a 200 and no account,
   so the response alone can't say. Emails, including a code's pinned one,
   are compared lowercased.
+- **Every route that sends email is limited per address**: sign-up, password
+  reset, the verification resend and change of email, at 3 an hour and 10 a
+  day (`server/lib/email-limit.js`). A Durable Object per hashed address
+  keeps the counts, so they hold across edges without a D1 write. Requests
+  count whether or not the address has an account, so hitting the limit, a
+  429 that says so plainly, reveals nothing about who's registered. Sign-up,
+  reset and resend also need Turnstile, checked in the Worker before Better
+  Auth (`server/lib/sign-up.js`, `server/lib/email-routes.js`); change of
+  email needs a session instead. Beta and production are separate Workers,
+  so each keeps its own counts.
 - **Session check.** `checkSession()` (`client/admin-auth.js`) reads the
   last-known state from localStorage first and corrects it once
   `/-/api/auth/get-session` answers; a network failure keeps the last-known

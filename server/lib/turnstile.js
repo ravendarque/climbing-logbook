@@ -8,10 +8,10 @@ const DUMMY_SECRET_RESPONSES = {
 };
 
 // The reason a sign-up fails its bot check, or null when it passes. Fails closed, with its own code for an outage.
-export async function turnstileFailure(env, body) {
+export async function turnstileFailure(env, body, action = "sign up") {
   const token = body?.turnstileToken;
   if (typeof token !== "string" || !token) {
-    return { message: "Bot verification is required to sign up.", code: "TURNSTILE_TOKEN_REQUIRED" };
+    return { message: `Bot verification is required to ${action}.`, code: "TURNSTILE_TOKEN_REQUIRED" };
   }
   let data;
   try {

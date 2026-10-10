@@ -1,6 +1,7 @@
 import { needsChannelChoice, resolvePostLoginTarget } from "./resolve-app-origin.js";
 import { redirectIfLoggedIn } from "./session-redirect.js";
 import { SIGNED_IN_USER_KEY } from "./user-storage.js";
+import { renderTurnstile } from "./turnstile.js";
 
 redirectIfLoggedIn(document.getElementById("page-content"));
 
@@ -12,6 +13,14 @@ const infoEl = document.getElementById("login-info");
 const submitBtn = document.getElementById("login-submit-btn");
 const emailInput = document.getElementById("email");
 const forgotPasswordBtn = document.getElementById("forgot-password-btn");
+// Only a reset request is checked (#1053). Cloudflare's script loads once the page has, so it can't hold up sign-in.
+const turnstile = renderTurnstile("#turnstile-widget");
+window.addEventListener("load", () => {
+  const script = document.createElement("script");
+  script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad&render=explicit";
+  script.async = true;
+  document.head.append(script);
+});
 
 function showError(message) {
   errorEl.textContent = message;
@@ -84,10 +93,15 @@ forgotPasswordBtn.addEventListener("click", async () => {
 
   forgotPasswordBtn.disabled = true;
   try {
+    const turnstileToken = await turnstile.waitForResponse();
+    if (!turnstileToken) {
+      showError('Please complete the verification check, then click "Forgot password?" again.');
+      return;
+    }
     const res = await fetch("/-/api/auth/request-password-reset", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: emailInput.value, redirectTo: RESET_PASSWORD_URL }),
+      body: JSON.stringify({ email: emailInput.value, redirectTo: RESET_PASSWORD_URL, turnstileToken }),
     });
     const data = await res.json().catch(() => null);
 
@@ -102,5 +116,7 @@ forgotPasswordBtn.addEventListener("click", async () => {
     showError("Network error -- check your connection and try again.");
   } finally {
     forgotPasswordBtn.disabled = false;
+    // Tokens are single-use, so every request needs a fresh one.
+    turnstile.reset();
   }
 });

@@ -7,7 +7,7 @@ resource "cloudflare_turnstile_widget" "register" {
   account_id = var.cloudflare_account_id
   name       = "climbing-logbook-register"
   # Must match client/turnstile.js's REAL_SITEKEY_HOSTNAMES. Sorted: Cloudflare returns it sorted, so any other order plans as a change.
-  domains = sort([var.app_zone_name, "beta.${var.app_zone_name}"])
+  domains = sort([var.app_zone_name, "beta.${var.app_zone_name}", "my.${var.app_zone_name}"])
   mode    = "managed"
 
   # #1075 -- a replaced widget gets a new sitekey and secret. The sitekey

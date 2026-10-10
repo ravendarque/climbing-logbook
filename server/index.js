@@ -25,6 +25,9 @@ import { createAuth } from "./lib/auth.js";
 import { limitAuthRequest } from "./lib/auth-rate-limit.js";
 import { limitWrite } from "./lib/write-rate-limit.js";
 import { handleSignUp } from "./lib/sign-up.js";
+import { handleChangeEmail, handlePasswordResetRequest, handleVerificationResend } from "./lib/email-routes.js";
+
+export { RecipientEmailLimiter } from "./lib/email-limit.js";
 import { resolveUserId } from "./lib/session.js";
 import { json } from "./lib/json.js";
 import { errorResponse } from "./lib/error-response.js";
@@ -103,6 +106,15 @@ async function handleRequest(request, env, ctx, log) {
   // Turnstile and the invite claim wrap Better Auth's handler, not run inside its hooks.
   if (pathname === "/-/api/auth/sign-up/email" && method === "POST") {
     return handleSignUp(request, env, () => createAuth(env, hostname, log));
+  }
+  if (pathname === "/-/api/auth/request-password-reset" && method === "POST") {
+    return handlePasswordResetRequest(request, env, () => createAuth(env, hostname, log));
+  }
+  if (pathname === "/-/api/auth/send-verification-email" && method === "POST") {
+    return handleVerificationResend(request, env, () => createAuth(env, hostname, log));
+  }
+  if (pathname === "/-/api/auth/change-email" && method === "POST") {
+    return handleChangeEmail(request, env, () => createAuth(env, hostname, log));
   }
   // It tells anyone whether an account exists, undoing the anti-enumeration 404s.
   if (pathname === "/-/api/auth/is-username-available") {
