@@ -16,7 +16,7 @@ configured in `wrangler.jsonc`. It routes by hostname inside
 | production (`env.production`) | `climbinglogbook.com/*`, `my.climbinglogbook.com/*` | `climbing-logbook` | `deploy.yml` or `promote.yml` |
 | beta (`env.beta`) | `beta.climbinglogbook.com/*` | `climbing-logbook` (shared with production, [ADR-0020](adr/0020-beta-environment-shared-data-tag-promotion.md)) | `deploy.yml` on every release tag |
 | preview (`env.preview`) | none; a `*.workers.dev` preview URL per PR | `climbing-logbook-preview` | `preview.yml` | PR, unless it only touches `docs/`, `infra/`, `test/`, `e2e/` or root-level Markdown | Builds with `CLOUDFLARE_ENV=preview`, uploads a version under the alias `pr-<n>`, and comments the URL. A second job applies the PR's migrations to the shared preview database, one run at a time. It never seeds |
-| `preview-db.yml` | Push to `main` that changes `migrations/` or the seed scripts and their data; or run by hand | Uploads a version under the alias `main`, drops every table in the preview database (children first, which D1 counts as no writes), migrates and seeds it |
+| `preview-db.yml` | Push to `main` that changes `migrations/` or the seed scripts and their data; or run by hand | Deploys the `main` Preview, drops every table in the preview database (children first, which D1 counts as no writes), migrates and seeds it |
 | e2e (`env.e2e`) | none; local `vite preview` only | `climbing-logbook-preview`, local only | Playwright's webServer |
 
 - **The environment is chosen at build time.** `CLOUDFLARE_ENV` selects it
@@ -83,7 +83,7 @@ creates the bucket, and is safe to re-run.
 |---|---|---|
 | `test.yml` | PR, unless it only touches `docs/`, `infra/` or root-level Markdown | `pnpm test`, then a `CLOUDFLARE_ENV=preview` build, so every PR proves it builds |
 | `e2e.yml` | PR, with the same exceptions as `test.yml`, plus Markdown help pages | Playwright against the production-style build |
-| `preview.yml` | PR, unless it only touches `docs/`, `infra/`, `test/`, `e2e/` or root-level Markdown | Builds with `CLOUDFLARE_ENV=preview`, runs `wrangler versions upload --env preview --preview-alias pr-<n>`, and comments the URL. A second job, one run at a time across all PRs, applies migrations to the shared preview database and reseeds it only when the seed scripts, their data or `migrations/` have changed since the last seed |
+| `preview.yml` | PR, unless it only touches `docs/`, `infra/`, `test/`, `e2e/` or root-level Markdown | Builds with `CLOUDFLARE_ENV=preview`, runs `wrangler preview --name pr-<n>` ([ADR-0036](adr/0036-pr-previews-via-cloudflare-previews.md)), and comments the URL. Closing the PR deletes its Preview. A second job, one run at a time across all PRs, applies migrations to the shared preview database and reseeds it only when the seed scripts, their data or `migrations/` have changed since the last seed |
 | `require-release-label.yml` | PR | Requires one `release:` label, and rejects `release: none` outside the never-reaches-users paths (`docs/versioning.md`) |
 | `release.yml` | PR merged | Cuts the next `vX.Y.Z` tag from the label |
 | `deploy.yml` | `vX.Y.Z` tag, or manual | Logs the D1 restore point, applies migrations, then deploys beta; also production when the tag's diff touches `infra/` or `migrations/` |

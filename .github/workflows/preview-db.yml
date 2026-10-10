@@ -32,7 +32,7 @@ jobs:
       - id: upload
         uses: ./.github/actions/upload-preview
         with:
-          alias: main
+          name: main
           api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       - name: Rebuild and seed the preview database
         env:

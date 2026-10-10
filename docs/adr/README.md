@@ -50,7 +50,7 @@ GitHub, the same treatment every other doc in this repo already gets.
 | [0010](0010-public-url-structure-my-domain-username.md) | Public URL structure: my.&lt;domain&gt;/username | Accepted |
 | [0011](0011-three-layer-test-pyramid.md) | Three-layer test pyramid: real Workers runtime, extracted-logic unit tests, Playwright E2E | Superseded by 0030 |
 | [0012](0012-client-modularization-factories-no-framework.md) | Client-side modularization: esbuild + ES modules + factories, no framework | Accepted, bundler choice superseded by 0021 |
-| [0013](0013-pr-previews-via-wrangler-versions-upload.md) | PR preview deployments via wrangler versions upload | Accepted |
+| [0013](0013-pr-previews-via-wrangler-versions-upload.md) | PR preview deployments via wrangler versions upload | Superseded by 0036 |
 | [0014](0014-closed-beta-invite-gate-togglable-not-removable.md) | Closed-beta invite gate, togglable off rather than removed | Accepted, partially superseded by 0016 |
 | [0015](0015-web-analytics-eu-exclusion-not-consent-banner.md) | Cloudflare Web Analytics with EU exclusion, not a cookie consent banner | Accepted |
 | [0016](0016-beta-gate-request-level-wrapper-not-hook.md) | Beta invite claim/release runs as a request-level wrapper, not a Better Auth hook | Accepted |
@@ -73,3 +73,4 @@ GitHub, the same treatment every other doc in this repo already gets.
 | [0033](0033-parallel-e2e-with-seeded-users.md) | Run the e2e suite in parallel, with users seeded straight into D1 | Accepted |
 | [0034](0034-admin-host-behind-cloudflare-access.md) | Admin pages live on their own host, behind Cloudflare Access | Accepted |
 | [0035](0035-capacity-and-operational-targets.md) | Capacity and operational targets: design for 50,000 users | Accepted |
+| [0036](0036-pr-previews-via-cloudflare-previews.md) | PR previews via Cloudflare Previews | Accepted |
