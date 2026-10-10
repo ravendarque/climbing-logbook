@@ -7,6 +7,9 @@ import { buildInsertStatement } from "../lib/d1-resource.js";
 import { buildRow as buildEntryRow } from "./entries.js";
 import { buildRow as buildLocationRow } from "./locations.js";
 import { buildRow as buildPlaceRow } from "./places.js";
+import { canonicalCountry } from "../../shared/countries.js";
+import { lengthIssue } from "../../shared/field-limits.js";
+import { COUNTRY_MESSAGE } from "../lib/resource-schemas.js";
 
 // All or nothing: every row is validated before anything is written, then one batch writes it all.
 const MAX_IMPORT_ROWS = 500;
@@ -17,6 +20,12 @@ function toCsvFieldNames(message) {
   if (message.startsWith("type must be one of"))
     return message.replace("type must be one of", "discipline must be one of");
   return message;
+}
+
+// Locations and areas are made from the row here, not through their own handlers, so they're checked here.
+function placeIssue(row) {
+  if (row.country && !canonicalCountry(row.country)) return COUNTRY_MESSAGE;
+  return lengthIssue("locationName", row.location) ?? lengthIssue("placeArea", row.area);
 }
 
 // Dedups within the file too, or a 50-row file for one crag would mint 50 places.
@@ -104,15 +113,24 @@ export async function handleImport(request, env, userId) {
     );
   }
 
-  const { newLocations, newPlaces, placeIds } = await resolveLocationsAndPlaces(env, userId, parsed.rows);
-  const drafts = parsed.rows.map((row, i) => draftEntry(row, placeIds[i]));
+  // Row 1 of a CSV is the header, so data starts at 2; a JSON array starts at 1.
+  const rowNumber = i => i + (isJson ? 1 : 2);
+  const placeErrors = parsed.rows.flatMap((row, i) => {
+    const error = placeIssue(row);
+    return error ? [{ row: rowNumber(i), error }] : [];
+  });
+  if (placeErrors.length > 0) return json({ errors: placeErrors }, 400);
+  const rows = parsed.rows.map((/** @type {any} */ row) =>
+    row.country ? { ...row, country: canonicalCountry(row.country) } : row,
+  );
+
+  const { newLocations, newPlaces, placeIds } = await resolveLocationsAndPlaces(env, userId, rows);
+  const drafts = rows.map((row, i) => draftEntry(row, placeIds[i]));
 
   const rowErrors = [];
   drafts.forEach((draft, i) => {
     const result = v.safeParse(entrySchema, draft);
-    // Row 1 of a CSV is the header, so data starts at 2; a JSON array starts at 1.
-    if (!result.success)
-      rowErrors.push({ row: i + (isJson ? 1 : 2), error: toCsvFieldNames(result.issues[0].message) });
+    if (!result.success) rowErrors.push({ row: rowNumber(i), error: toCsvFieldNames(result.issues[0].message) });
   });
   if (rowErrors.length > 0) return json({ errors: rowErrors }, 400);
 

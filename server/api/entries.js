@@ -1,3 +1,4 @@
+import { ACCOUNT_LIMITS } from "../../shared/account-limits.js";
 import { json, parseJsonBody } from "../lib/json.js";
 import {
   createD1ResourceHandlers,
@@ -224,7 +225,8 @@ async function handleByLocation(locationId, url, env, userId, { shapeRow, includ
 
   const limit = intParam(url, "limit", { min: 1, max: MAX_PAGE_SIZE, fallback: PAGE_SIZE });
   if (limit.response) return limit.response;
-  const offset = intParam(url, "offset", { fallback: 0 });
+  // No account holds more climbs than this, so a larger offset only makes D1 scan rows it then skips.
+  const offset = intParam(url, "offset", { max: ACCOUNT_LIMITS.entries.max, fallback: 0 });
   if (offset.response) return offset.response;
   const { results } = await env.LOGBOOK_DB.prepare(`
       SELECT e.* FROM entries e JOIN places p ON e.place_id = p.id

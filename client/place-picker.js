@@ -1,7 +1,8 @@
 // The add-place modal lives here: it has one caller and one workflow. openModal/closeModal are
 // injected because they share one lastFocusedEl across the page.
 import { escapeHtml } from "./escape-html.js";
-import { COUNTRY_BY_NAME, COUNTRIES } from "./countries.js";
+import { COUNTRY_BY_NAME, COUNTRIES } from "../shared/countries.js";
+import { FIELD_LIMITS } from "../shared/field-limits.js";
 import { createSearchableListbox } from "./modal-utils.js";
 import { isUnauthorized } from "./api-fetch.js";
 import { STORAGE_FULL_MESSAGE } from "./storage-quota.js";
@@ -88,6 +89,8 @@ export function createPlacePicker({
   const addPlaceForm = document.getElementById("add-place-form");
   const addPlaceLocationInput = document.getElementById("add-place-location");
   const addPlaceAreaInput = document.getElementById("add-place-area");
+  addPlaceLocationInput.maxLength = FIELD_LIMITS.locationName;
+  addPlaceAreaInput.maxLength = FIELD_LIMITS.placeArea;
   const addPlaceCountryBtn = document.getElementById("add-place-country-btn");
   const addPlaceCountryFlag = document.getElementById("add-place-country-flag");
   const addPlaceCountryLabel = document.getElementById("add-place-country-label");

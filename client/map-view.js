@@ -15,7 +15,7 @@ import {
   mapClientDeltaToUserSpace as mapClientDeltaToUserSpacePure,
   mapClientPointToUserSpace as mapClientPointToUserSpacePure,
 } from "./map-geometry.js";
-import { COUNTRY_BY_NAME } from "./countries.js";
+import { COUNTRY_BY_NAME } from "../shared/countries.js";
 
 const MAP_VARIANTS = {
   greenwich: { label: "Greenwich" },

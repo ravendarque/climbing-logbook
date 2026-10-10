@@ -2,6 +2,7 @@
 import * as v from "valibot";
 import { BOULDER_GRADES, LEAD_GRADES, SCALES_BY_DISCIPLINE, gradeOrdinal } from "./grade-data.js";
 import { idSchema } from "./ids.js";
+import { countIssue, lengthIssue } from "./field-limits.js";
 
 export const VALID_TYPES = ["boulder", "sport"];
 export const VALID_STATUSES = ["send", "project", "archived", "checkout"];
@@ -191,6 +192,18 @@ export const entrySchema = v.pipe(
     }
     if (entry.notes && typeof entry.notes !== "string") {
       addIssue({ message: "notes must be a string", path: fieldPath(entry, "notes") });
+    }
+    for (const [field, key] of [
+      ["entryName", "name"],
+      ["notes", "notes"],
+      ["video", "video"],
+    ]) {
+      const issue = lengthIssue(field, entry[key]);
+      if (issue) addIssue({ message: issue, path: fieldPath(entry, key) });
+    }
+    for (const field of ["moves", "painMoves"]) {
+      const issue = countIssue(field, entry[field]);
+      if (issue) addIssue({ message: issue, path: fieldPath(entry, field) });
     }
     if (entry.attemptsToSend !== undefined && entry.attemptsToSend !== null) {
       if (!Number.isInteger(entry.attemptsToSend) || entry.attemptsToSend < 0) {

@@ -141,7 +141,7 @@ their source changes:
 
 | Output | Script |
 |---|---|
-| `client/countries.js`'s `COUNTRIES` | `scripts/generate-countries.mjs` (prints it; paste it in) |
+| `shared/countries.js`'s `COUNTRIES` | `scripts/generate-countries.mjs` (prints it; paste it in) |
 | `static/-/world-map-*.json` | `scripts/generate-world-map.mjs` |
 | `static/-/brand-lockup.svg` and its size block in `climbing-header.js` | `scripts/generate-brand-lockup.mjs` |
 | Logbook Beta's PNG icons | `scripts/generate-beta-icons.mjs` |
@@ -385,6 +385,14 @@ Tables (see `migrations/` for columns and constraints):
   and seeds use readable slugs. Integer query parameters go through
   `intParam()` (`server/lib/params.js`), which rejects negatives, since a
   negative `LIMIT` means no limit in SQLite.
+- **Every field users write has a limit**, in `shared/field-limits.js`:
+  names, notes, video links, moves, messages and contact emails. The
+  server's checks and the forms' `maxlength` both read it, so they can't
+  drift. A country must be one from `shared/countries.js`.
+- **Request bodies are capped before any route reads them**
+  (`server/lib/body-limit.js`): 256 KB, or 2 MB for an import. Over the
+  limit is a 413, judged on `Content-Length` and then on the bytes actually
+  received.
 - **Grades are stored as logged.** `entries.grade` keeps the climber's own
   label and `grade_scale` says which of the nine scales it's in.
   `shared/grade-data.js` converts through one canonical ordinal per

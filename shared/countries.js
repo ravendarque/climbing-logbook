@@ -251,3 +251,10 @@ export const COUNTRIES = [
 ];
 
 export const COUNTRY_BY_NAME = Object.fromEntries(COUNTRIES.map(c => [c.name, c]));
+
+const BY_LOWER_NAME = new Map(COUNTRIES.map(c => [c.name.toLowerCase(), c.name]));
+
+// The list's spelling of a country typed in any case, or undefined when it isn't one.
+export function canonicalCountry(name) {
+  return BY_LOWER_NAME.get(String(name).trim().toLowerCase());
+}
