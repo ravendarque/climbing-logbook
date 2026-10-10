@@ -3,6 +3,7 @@ import { json } from "../lib/json.js";
 import { entrySchema } from "../../shared/entry-schema.js";
 import { parseCsvText, parseJsonText } from "../../shared/csv-import.js";
 import { checkAccountLimits, checkImportsToday } from "../lib/account-limits.js";
+import { limitImport } from "../lib/rate-limits.js";
 import { buildInsertStatement } from "../lib/d1-resource.js";
 import { buildRow as buildEntryRow } from "./entries.js";
 import { buildRow as buildLocationRow } from "./locations.js";
@@ -100,6 +101,8 @@ function parserFor(contentType) {
 }
 
 export async function handleImport(request, env, userId) {
+  const limited = await limitImport(env, userId);
+  if (limited) return limited;
   const tooMany = await checkImportsToday(env, userId);
   if (tooMany) return tooMany;
   const text = await request.text();

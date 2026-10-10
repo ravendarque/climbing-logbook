@@ -74,3 +74,4 @@ GitHub, the same treatment every other doc in this repo already gets.
 | [0034](0034-admin-host-behind-cloudflare-access.md) | Admin pages live on their own host, behind Cloudflare Access | Accepted |
 | [0035](0035-capacity-and-operational-targets.md) | Capacity and operational targets: design for 50,000 users | Accepted |
 | [0036](0036-pr-previews-via-cloudflare-previews.md) | PR previews via Cloudflare Previews | Accepted |
+| [0037](0037-rate-limiting-through-the-workers-binding.md) | Rate limiting through the Workers Rate Limiting binding | Accepted |

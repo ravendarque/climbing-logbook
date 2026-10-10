@@ -23,7 +23,7 @@ import { matchOwnerRoute } from "../shared/owner-routes.js";
 import { handleFeedback, handleReportIssue } from "./api/submissions.js";
 import { createAuth } from "./lib/auth.js";
 import { limitAuthRequest } from "./lib/auth-rate-limit.js";
-import { limitWrite } from "./lib/write-rate-limit.js";
+import { limitWrite } from "./lib/rate-limits.js";
 import { handleSignUp } from "./lib/sign-up.js";
 import { handleChangeEmail, handlePasswordResetRequest, handleVerificationResend } from "./lib/email-routes.js";
 
@@ -100,7 +100,7 @@ async function handleRequest(request, env, ctx, log) {
   if (perHostAsset && (method === "GET" || method === "HEAD")) return handlePerHostAsset(request, env, perHostAsset);
 
   if (pathname.startsWith("/-/api/auth/")) {
-    const limited = await limitAuthRequest(request, env);
+    const limited = await limitAuthRequest(request, env, log);
     if (limited) return limited;
   }
   // Turnstile and the invite claim wrap Better Auth's handler, not run inside its hooks.
@@ -144,7 +144,7 @@ async function handleRequest(request, env, ctx, log) {
     const userId = await resolveUserId(request, env);
     if (!userId) return json({ error: "Unauthorized" }, 401);
     if (!isRead) {
-      const limited = await limitWrite(env, userId);
+      const limited = await limitWrite(env, userId, log);
       if (limited) return limited;
     }
     return handler(request, env, userId);

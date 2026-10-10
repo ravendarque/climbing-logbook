@@ -160,3 +160,19 @@ describe("the save rate", () => {
     }
   }, 60_000);
 });
+
+describe("the import rate (#1049)", () => {
+  it("lets two imports through in a minute, then asks the next to wait", async () => {
+    await startInFreshRateLimitWindow();
+    env.RATE_LIMITING_ENABLED = "true";
+    try {
+      expect((await importCsv(["First"])).status).toBe(201);
+      expect((await importCsv(["Second"])).status).toBe(201);
+      const third = await importCsv(["Third"]);
+      expect(third.status).toBe(429);
+      expect((await third.json()).error).toBe("That's a lot of imports in a row. Wait a minute, then try again.");
+    } finally {
+      env.RATE_LIMITING_ENABLED = "false";
+    }
+  }, 60_000);
+});

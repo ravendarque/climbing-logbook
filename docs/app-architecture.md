@@ -340,7 +340,7 @@ Tables (see `migrations/` for columns and constraints):
 | `disciplines`, `statuses` | Lookup tables ([ADR-0009](adr/0009-normalized-d1-schema-with-lookup-tables.md)) |
 | `user`, `session`, `account`, `verification` | Better Auth's own |
 | `beta_invites` | Invite codes for the closed beta ([ADR-0014](adr/0014-closed-beta-invite-gate-togglable-not-removable.md)) |
-| `issue_reports`, `feedback_submissions`, `rate_limits` | The report and feedback forms, and their rate limit |
+| `issue_reports`, `feedback_submissions` | The report and feedback forms |
 
 - **IDs are minted by the client** (`crypto.randomUUID()`), so a queued
   offline write keeps its identity until it syncs; a repeated `POST` of
@@ -523,16 +523,20 @@ it for the isolate's lifetime.
 - **Cookies** span `climbinglogbook.com` and its subdomains, because sign-in
   happens on the apex. Everywhere else is one origin; a `Domain` that doesn't
   match the host would be rejected by the browser.
-- **Rate limiting** of auth POSTs happens in the Worker before Better Auth
-  (`server/lib/auth-rate-limit.js`), through the `AUTH_RATE_LIMITER` Rate
-  Limiting binding: 10 a minute per IP and path, counted per Cloudflare
-  location, with no D1 writes. Better Auth's own limiter is off, because it
-  wrote a D1 row on every auth request, session checks included (#1292).
-  Reads are never limited. The report and feedback forms keep their hourly
-  D1 counter (`server/lib/rate-limit.js`), since the binding only counts per
-  10 or 60 seconds. It's all switched on by `RATE_LIMITING_ENABLED`, which only
-  real deployments set. Local dev and tests have no `cf-connecting-ip`, so
-  every request would share one bucket and the suites would hit 429s.
+- **Rate limiting** runs in the Worker through Rate Limiting bindings
+  (`server/lib/rate-limits.js`, [ADR-0037](adr/0037-rate-limiting-through-the-workers-binding.md)),
+  counted per Cloudflare location with no D1 writes: a brake, not an exact
+  quota. Auth POSTs: 10 a minute per connection and path, and sign-in also 5
+  a minute per target account (`server/lib/auth-rate-limit.js`). Imports: 2
+  a minute per account. Limits over hours (report and feedback, 5 an hour per
+  connection; emails, per address) use the Durable Object counter in
+  `server/lib/email-limit.js` instead, since the binding only counts per 10
+  or 60 seconds.
+  Better Auth's own limiter is off (#1292). A connection is its IPv4 address,
+  or its IPv6 /64. Reads are never limited. Every hit is a 429 with
+  `Retry-After`, logged as `rate_limit.hit`. It's all switched on by
+  `RATE_LIMITING_ENABLED`, which only real deployments set: local dev and
+  tests have no `cf-connecting-ip`, so every request would share one bucket.
 - **Account limits** (`shared/account-limits.js`, published in the terms of
   use): 20,000 climbs, 5,000 places and 2,000 locations per account, 10
   imports a day, and 120 saves a minute. Stored rows are counted in

@@ -14,7 +14,6 @@ afterAll(() => {
 beforeEach(async () => {
   await resetAuthTables();
   await env.LOGBOOK_DB.prepare(`DELETE FROM feedback_submissions`).run();
-  await env.LOGBOOK_DB.prepare(`DELETE FROM rate_limits`).run();
 });
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -132,43 +131,67 @@ describe("handleFeedback", () => {
     expect(res.status).toBe(201);
   });
 
-  it("enforces the per-IP rate limit, then allows a fresh IP through", async () => {
-    stubSiteverify(true);
-    for (let i = 0; i < 5; i++) {
-      const res = await postFeedback(
-        { message: `Feedback ${i}`, turnstileToken: "any-token" },
-        { "cf-connecting-ip": "1.2.3.4" },
-      );
-      expect(res.status).toBe(201);
+  // 5 an hour per connection, counted by a Durable Object (#1049).
+  async function withLimiting(run) {
+    env.RATE_LIMITING_ENABLED = "true";
+    try {
+      await run();
+    } finally {
+      env.RATE_LIMITING_ENABLED = "false";
     }
-    const limited = await postFeedback(
-      { message: "One too many", turnstileToken: "any-token" },
-      { "cf-connecting-ip": "1.2.3.4" },
-    );
-    expect(limited.status).toBe(429);
+  }
 
-    const otherIp = await postFeedback(
-      { message: "Different connection", turnstileToken: "any-token" },
-      { "cf-connecting-ip": "5.6.7.8" },
-    );
-    expect(otherIp.status).toBe(201);
+  it("allows five an hour from one connection, then a sixth gets a 429, and another connection is unaffected", async () => {
+    stubSiteverify(true);
+    await withLimiting(async () => {
+      const from = ip => ({ "cf-connecting-ip": ip });
+      for (let i = 0; i < 5; i++) {
+        expect(
+          (await postFeedback({ message: `Feedback ${i}`, turnstileToken: "t" }, from("203.0.113.10"))).status,
+        ).toBe(201);
+      }
+      const limited = await postFeedback({ message: "One too many", turnstileToken: "t" }, from("203.0.113.10"));
+      expect(limited.status).toBe(429);
+      expect(Number(limited.headers.get("Retry-After"))).toBeGreaterThan(3500);
+      expect((await postFeedback({ message: "Another", turnstileToken: "t" }, from("203.0.113.11"))).status).toBe(201);
+    });
   });
 
-  it("keeps the feedback rate limit separate from the report-issue rate limit", async () => {
+  it("counts an IPv6 connection by its /64, so rotating addresses within it doesn't help", async () => {
     stubSiteverify(true);
-    for (let i = 0; i < 5; i++) {
-      const res = await fetchJson("/-/api/report-issue", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "cf-connecting-ip": "9.9.9.9" },
-        body: JSON.stringify({ message: `Report ${i}`, turnstileToken: "any-token" }),
-      });
-      expect(res.status).toBe(201);
-    }
-    const stillAllowed = await postFeedback(
-      { message: "Separate limit", turnstileToken: "any-token" },
-      { "cf-connecting-ip": "9.9.9.9" },
-    );
-    expect(stillAllowed.status).toBe(201);
+    await withLimiting(async () => {
+      for (let i = 1; i <= 5; i++) {
+        const res = await postFeedback(
+          { message: `IPv6 ${i}`, turnstileToken: "t" },
+          { "cf-connecting-ip": `2001:db8:2::${i}` },
+        );
+        expect(res.status).toBe(201);
+      }
+      const limited = await postFeedback(
+        { message: "Rotated", turnstileToken: "t" },
+        { "cf-connecting-ip": "2001:db8:2:0:ffff::9" },
+      );
+      expect(limited.status).toBe(429);
+    });
+  });
+
+  it("keeps the feedback limit separate from the report-issue limit", async () => {
+    stubSiteverify(true);
+    await withLimiting(async () => {
+      for (let i = 0; i < 5; i++) {
+        const res = await fetchJson("/-/api/report-issue", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "cf-connecting-ip": "203.0.113.20" },
+          body: JSON.stringify({ message: `Report ${i}`, turnstileToken: "t" }),
+        });
+        expect(res.status).toBe(201);
+      }
+      const stillAllowed = await postFeedback(
+        { message: "Separate limit", turnstileToken: "t" },
+        { "cf-connecting-ip": "203.0.113.20" },
+      );
+      expect(stillAllowed.status).toBe(201);
+    });
   });
 
   it("rejects a malformed JSON body", async () => {

@@ -15,7 +15,6 @@ afterAll(() => {
 let cookie;
 beforeEach(async () => {
   await resetAuthTables();
-  await env.LOGBOOK_DB.prepare(`DELETE FROM rate_limits`).run();
   ({ cookie } = await createAuthedSession());
 });
 afterEach(() => vi.unstubAllGlobals());

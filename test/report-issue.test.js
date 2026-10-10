@@ -14,7 +14,6 @@ afterAll(() => {
 beforeEach(async () => {
   await resetAuthTables();
   await env.LOGBOOK_DB.prepare(`DELETE FROM issue_reports`).run();
-  await env.LOGBOOK_DB.prepare(`DELETE FROM rate_limits`).run();
 });
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -142,26 +141,48 @@ describe("handleReportIssue", () => {
     expect(res.status).toBe(201);
   });
 
-  it("enforces the per-IP rate limit, then allows a fresh IP through", async () => {
-    stubSiteverify(true);
-    for (let i = 0; i < 5; i++) {
-      const res = await postReport(
-        { message: `Report ${i}`, turnstileToken: "any-token" },
-        { "cf-connecting-ip": "1.2.3.4" },
-      );
-      expect(res.status).toBe(201);
+  // 5 an hour per connection, counted by a Durable Object (#1049).
+  async function withLimiting(run) {
+    env.RATE_LIMITING_ENABLED = "true";
+    try {
+      await run();
+    } finally {
+      env.RATE_LIMITING_ENABLED = "false";
     }
-    const limited = await postReport(
-      { message: "One too many", turnstileToken: "any-token" },
-      { "cf-connecting-ip": "1.2.3.4" },
-    );
-    expect(limited.status).toBe(429);
+  }
 
-    const otherIp = await postReport(
-      { message: "Different connection", turnstileToken: "any-token" },
-      { "cf-connecting-ip": "5.6.7.8" },
-    );
-    expect(otherIp.status).toBe(201);
+  it("allows five an hour from one connection, then a sixth gets a 429, and another connection is unaffected", async () => {
+    stubSiteverify(true);
+    await withLimiting(async () => {
+      const from = ip => ({ "cf-connecting-ip": ip });
+      for (let i = 0; i < 5; i++) {
+        expect((await postReport({ message: `Report ${i}`, turnstileToken: "t" }, from("203.0.113.10"))).status).toBe(
+          201,
+        );
+      }
+      const limited = await postReport({ message: "One too many", turnstileToken: "t" }, from("203.0.113.10"));
+      expect(limited.status).toBe(429);
+      expect(Number(limited.headers.get("Retry-After"))).toBeGreaterThan(3500);
+      expect((await postReport({ message: "Another", turnstileToken: "t" }, from("203.0.113.11"))).status).toBe(201);
+    });
+  });
+
+  it("counts an IPv6 connection by its /64, so rotating addresses within it doesn't help", async () => {
+    stubSiteverify(true);
+    await withLimiting(async () => {
+      for (let i = 1; i <= 5; i++) {
+        const res = await postReport(
+          { message: `IPv6 ${i}`, turnstileToken: "t" },
+          { "cf-connecting-ip": `2001:db8:1::${i}` },
+        );
+        expect(res.status).toBe(201);
+      }
+      const limited = await postReport(
+        { message: "Rotated", turnstileToken: "t" },
+        { "cf-connecting-ip": "2001:db8:1:0:ffff::9" },
+      );
+      expect(limited.status).toBe(429);
+    });
   });
 
   it("rejects a malformed JSON body", async () => {
