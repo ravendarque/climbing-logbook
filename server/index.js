@@ -14,6 +14,8 @@ import {
 import { handleGetMapCounts } from "./api/map.js";
 import { handleLiveness, handleReadiness } from "./api/health.js";
 import { handleCspReport } from "./api/csp-report.js";
+import { withContentSecurityPolicy } from "./lib/csp.js";
+import { DEMO_USERNAMES } from "../shared/demo-personas.js";
 import { handlePublicProfile } from "./api/public-profile.js";
 import { handlePublicResource } from "./api/public-data.js";
 import { handleOwnedRoute } from "./api/owned-routes.js";
@@ -76,6 +78,11 @@ async function handleRequest(request, env, ctx, log) {
 
   if (hostname.startsWith("my.") && isRead) {
     const ownerRoute = matchOwnerRoute(pathname);
+    if (ownerRoute && DEMO_USERNAMES.includes(ownerRoute.username.toLowerCase())) {
+      return forMethod(
+        withContentSecurityPolicy(await handleOwnedRoute(request, env, ownerRoute.username, ownerRoute.page)),
+      );
+    }
     if (ownerRoute) return forMethod(await handleOwnedRoute(request, env, ownerRoute.username, ownerRoute.page));
 
     const match = pathname.match(/^\/([^/]+)\/?$/);
