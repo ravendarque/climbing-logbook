@@ -1,6 +1,7 @@
 // This bundle replaces help-main.js on this page, so it wires the menu and theme too.
 import { createDisclosure } from "./modal-utils.js";
 import { FIELD_LIMITS } from "../shared/field-limits.js";
+import { showCharactersLeft } from "./characters-left.js";
 import { createThemeToggle } from "./theme-toggle.js";
 import { renderTurnstile } from "./turnstile.js";
 
@@ -24,6 +25,7 @@ const submitBtn = document.getElementById("report-issue-submit-btn");
 const successEl = document.getElementById("report-issue-success");
 const messageEl = document.getElementById("report-issue-message");
 messageEl.maxLength = FIELD_LIMITS.message;
+showCharactersLeft(messageEl, document.getElementById("report-issue-message-count"));
 document.getElementById("report-issue-email").maxLength = FIELD_LIMITS.contactEmail;
 
 function showError(message) {

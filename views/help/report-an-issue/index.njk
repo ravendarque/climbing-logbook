@@ -20,8 +20,9 @@ eleventyNavigation:
   {# The asterisk is aria-hidden; the required attribute is what's announced. #}
   <label class="block text-sm text-muted mb-1" for="report-issue-message">What happened? <span class="text-accent-ink" aria-hidden="true">*</span></label>
   <textarea
-    class="text-input w-full mb-4 min-h-[8rem]"
+    class="text-input w-full mb-1 min-h-[8rem]"
     id="report-issue-message" name="message" required></textarea>
+  <div class="text-xs text-muted text-right mb-4" id="report-issue-message-count"></div>
 
   <label class="block text-sm text-muted mb-1" for="report-issue-email">Your email <span class="text-muted">(we can't guarantee a response but we might reach out if needed)</span></label>
   <input

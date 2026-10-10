@@ -16,6 +16,7 @@ import { createMoveRowList } from "./move-tagging.js";
 import { validateEntryShape } from "../shared/entry-schema.js";
 import { FIELD_LIMITS } from "../shared/field-limits.js";
 import { withoutTrackingParams } from "../shared/video-links.js";
+import { showCharactersLeft } from "./characters-left.js";
 import { createListPicker, renderOptionList } from "./modal-utils.js";
 import { calendarDatePickerHtml, createCalendarDatePicker } from "./calendar-date-picker.js";
 import { isUnauthorized } from "./api-fetch.js";
@@ -49,6 +50,7 @@ export function createEntryForm({
   const videoInput = document.getElementById("entry-video");
   nameInput.maxLength = FIELD_LIMITS.entryName;
   notesInput.maxLength = FIELD_LIMITS.notes;
+  const updateNotesLeft = showCharactersLeft(notesInput, document.getElementById("entry-notes-count"));
   const gradePrev = document.getElementById("grade-prev");
   const gradeNext = document.getElementById("grade-next");
   const gradeNsFields = document.getElementById("grade-ns-fields");
@@ -453,6 +455,7 @@ export function createEntryForm({
     nameInput.value = entry?.name ?? "";
     placePicker.reset(entry?.placeId ?? "");
     notesInput.value = entry?.notes ?? "";
+    updateNotesLeft();
     videoInput.value = entry?.video ?? "";
     // Today only when adding; an existing entry without a date stays blank.
     dateInput.value = entry ? (entry.date ?? "") : new Date().toISOString().slice(0, 10);
