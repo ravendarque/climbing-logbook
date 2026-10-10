@@ -1,5 +1,6 @@
 import { ACCOUNT_LIMITS } from "../../shared/account-limits.js";
 import { json, parseJsonBody } from "../lib/json.js";
+import { withoutTrackingParams } from "../../shared/video-links.js";
 import {
   createD1ResourceHandlers,
   findOwnedRow,
@@ -38,7 +39,7 @@ export function buildRow(entry, id, userId) {
     first_attempt: entry.status === "send" && entry.firstAttempt ? 1 : 0,
     sport_style: entry.sportStyle ?? null,
     date: entry.date || null,
-    video: entry.video || null,
+    video: withoutTrackingParams(entry.video) || null,
     notes: entry.notes || null,
     attempts_to_send: entry.attemptsToSend ?? null,
     rpe: entry.rpe ?? null,

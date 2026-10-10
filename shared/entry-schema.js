@@ -3,6 +3,7 @@ import * as v from "valibot";
 import { BOULDER_GRADES, LEAD_GRADES, SCALES_BY_DISCIPLINE, gradeOrdinal } from "./grade-data.js";
 import { idSchema } from "./ids.js";
 import { countIssue, lengthIssue } from "./field-limits.js";
+import { withoutTrackingParams } from "./video-links.js";
 
 export const VALID_TYPES = ["boulder", "sport"];
 export const VALID_STATUSES = ["send", "project", "archived", "checkout"];
@@ -198,7 +199,8 @@ export const entrySchema = v.pipe(
       ["notes", "notes"],
       ["video", "video"],
     ]) {
-      const issue = lengthIssue(field, entry[key]);
+      // A link is stored cleaned, so it's the cleaned link that has to fit.
+      const issue = lengthIssue(field, key === "video" ? withoutTrackingParams(entry[key]) : entry[key]);
       if (issue) addIssue({ message: issue, path: fieldPath(entry, key) });
     }
     for (const field of ["moves", "painMoves"]) {
