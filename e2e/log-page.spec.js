@@ -97,12 +97,10 @@ test("#1318 -- a discipline picked while settings load isn't overwritten when th
   await page.locator('.discipline-option[data-discipline="sport"]').click();
   await expect(page.locator("#discipline-btn-label")).toHaveText("Sport");
 
-  const settingsLoaded = page.waitForResponse(
-    res => res.url().endsWith("/-/api/settings") && res.request().method() === "GET",
-  );
+  const menuButton = page.locator("#header-menu-btn");
+  await expect(menuButton).toHaveAttribute("data-sync-state", "working");
   releaseSettings();
-  await settingsLoaded;
-  await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 100)));
+  await expect(menuButton).not.toHaveAttribute("data-sync-state");
   await expect(page.locator("#discipline-btn-label")).toHaveText("Sport");
 });
 

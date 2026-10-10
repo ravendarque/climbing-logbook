@@ -160,10 +160,10 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
   }
 
   async function reconcileActiveType(sessionPromise, settingsPromise) {
-    const initialType = store.getActiveType();
     await Promise.all([sessionPromise, settingsPromise]);
     // A discipline picked while settings loaded is newer than the stored one (#1318).
-    if (persistedDiscipline && store.getActiveType() === initialType) store.setActiveType(persistedDiscipline);
+    if (store.isActiveTypeChosen()) persistedDiscipline = store.getActiveType();
+    else if (persistedDiscipline) store.setActiveType(persistedDiscipline);
   }
 
   async function signOut() {

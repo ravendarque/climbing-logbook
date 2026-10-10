@@ -5,6 +5,7 @@ import { createAdminAuth } from "../../client/admin-auth.js";
 function makeStore() {
   let loggedIn = false;
   let activeType = null;
+  let chosen = false;
   const entries = [];
   return {
     isLoggedIn: () => loggedIn,
@@ -16,6 +17,11 @@ function makeStore() {
     setActiveType: vi.fn(type => {
       activeType = type;
     }),
+    chooseActiveType: type => {
+      chosen = true;
+      activeType = type;
+    },
+    isActiveTypeChosen: () => chosen,
   };
 }
 
@@ -329,9 +335,11 @@ describe("setInitialActiveType()/reconcileActiveType()", () => {
     });
     adminAuth.setInitialActiveType();
     const reconciled = adminAuth.reconcileActiveType(Promise.resolve(), adminAuth.fetchSettings());
-    store.setActiveType("sport");
-    answer({ ok: true, json: async () => ({ activeDiscipline: "boulder" }) });
+    store.chooseActiveType("sport");
+    store.chooseActiveType("boulder");
+    answer({ ok: true, json: async () => ({ activeDiscipline: "sport" }) });
     await reconciled;
-    expect(store.getActiveType()).toBe("sport");
+    expect(store.getActiveType()).toBe("boulder");
+    expect(adminAuth.getPersistedDiscipline()).toBe("boulder");
   });
 });
