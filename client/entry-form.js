@@ -14,6 +14,7 @@ import { flashLabel, sendLabel, nameLabel, hydrateStatusIcons } from "./status.j
 import { createPlacePicker } from "./place-picker.js";
 import { createMoveRowList } from "./move-tagging.js";
 import { validateEntryShape } from "../shared/entry-schema.js";
+import { FIELD_LIMITS } from "../shared/field-limits.js";
 import { createListPicker, renderOptionList } from "./modal-utils.js";
 import { calendarDatePickerHtml, createCalendarDatePicker } from "./calendar-date-picker.js";
 import { isUnauthorized } from "./api-fetch.js";
@@ -45,6 +46,9 @@ export function createEntryForm({
   const nameInput = document.getElementById("entry-name");
   const notesInput = document.getElementById("entry-notes");
   const videoInput = document.getElementById("entry-video");
+  nameInput.maxLength = FIELD_LIMITS.entryName;
+  notesInput.maxLength = FIELD_LIMITS.notes;
+  videoInput.maxLength = FIELD_LIMITS.video;
   const gradePrev = document.getElementById("grade-prev");
   const gradeNext = document.getElementById("grade-next");
   const gradeNsFields = document.getElementById("grade-ns-fields");

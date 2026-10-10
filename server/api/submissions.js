@@ -6,10 +6,25 @@ import { resolveUserId } from "../lib/session.js";
 import { SUBMISSION_SECTIONS } from "../../shared/submission-sections.js";
 import { notifySupport } from "../lib/support-notify.js";
 import { resolvePublicUser } from "./public-profile.js";
+import { FIELD_LIMITS, tooLongMessage } from "../../shared/field-limits.js";
 
 const SECTIONS = Object.keys(SUBMISSION_SECTIONS);
 
 const RATE_LIMIT_PER_HOUR = 5;
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const OWN_HOST = /(^|\.)(climbinglogbook\.com|localhost|ravendarque\.workers\.dev)$/;
+
+// The referrer, kept only when it's one of our own pages: anything else says nothing about where the problem is.
+function ownPageOrNothing(url) {
+  if (!url || url.length > FIELD_LIMITS.sourcePage) return undefined;
+  try {
+    const parsed = new URL(url);
+    return /^https?:$/.test(parsed.protocol) && OWN_HOST.test(parsed.hostname) ? url : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 // Rate limit first: the cheapest rejection, before parsing or Turnstile.
 // A report can point at a public logbook, and at one climb in it. Anything that doesn't resolve is dropped, so a
@@ -32,9 +47,21 @@ async function resolveReported(env, reported) {
 
 function createSubmissionHandler({ table, rateLimitPrefix, tooManyMessage, emptyMessage, acceptsReported = false }) {
   const schema = v.object({
-    message: v.pipe(v.string(), v.trim(), v.minLength(1, emptyMessage)),
-    contactEmail: v.optional(v.pipe(v.string(), v.trim())),
-    sourcePage: v.optional(v.pipe(v.string(), v.trim())),
+    message: v.pipe(
+      v.string(),
+      v.trim(),
+      v.minLength(1, emptyMessage),
+      v.maxLength(FIELD_LIMITS.message, tooLongMessage("message")),
+    ),
+    contactEmail: v.optional(
+      v.pipe(
+        v.string(),
+        v.trim(),
+        v.maxLength(FIELD_LIMITS.contactEmail, tooLongMessage("contactEmail")),
+        v.check(email => email === "" || EMAIL.test(email), "Enter a valid email address, or leave it blank."),
+      ),
+    ),
+    sourcePage: v.optional(v.pipe(v.string(), v.trim(), v.transform(ownPageOrNothing))),
     section: v.optional(v.picklist(SECTIONS)),
     turnstileToken: v.string(),
     reportedUsername: v.optional(v.pipe(v.string(), v.trim(), v.maxLength(64))),

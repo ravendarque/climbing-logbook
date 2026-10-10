@@ -15,6 +15,7 @@ import { handleGetMapCounts } from "./api/map.js";
 import { handleLiveness, handleReadiness } from "./api/health.js";
 import { handleCspReport } from "./api/csp-report.js";
 import { withContentSecurityPolicy } from "./lib/csp.js";
+import { capRequestBody } from "./lib/body-limit.js";
 import { handlePublicProfile } from "./api/public-profile.js";
 import { handlePublicResource } from "./api/public-data.js";
 import { handleOwnedRoute } from "./api/owned-routes.js";
@@ -150,7 +151,9 @@ export default {
     const log = createLogger({ request, env, route: routeTemplate(url, RESOURCE_PATHS) });
     try {
       if (THROW_PATHS.has(url.pathname) && THROWABLE_ENVS.has(env.APP_ENV)) throw new Error("Test error (#1032)");
-      const response = await handleRequest(request, env, ctx, log);
+      const capped = await capRequestBody(request);
+      if (capped instanceof Response) return capped;
+      const response = await handleRequest(capped, env, ctx, log);
       if (response.status >= 500) log.warn("request.failed", { status: response.status });
       return withContentSecurityPolicy(response);
     } catch (err) {

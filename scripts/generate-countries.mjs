@@ -1,4 +1,4 @@
-// Prints the COUNTRIES array for client/countries.js; paste it in. Pins sit on geographic centres.
+// Prints the COUNTRIES array for shared/countries.js; paste it in. Pins sit on geographic centres.
 //   node scripts/generate-countries.mjs > /tmp/countries.js
 
 import countries from "world-countries";

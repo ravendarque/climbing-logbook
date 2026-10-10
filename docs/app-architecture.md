@@ -141,7 +141,7 @@ their source changes:
 
 | Output | Script |
 |---|---|
-| `client/countries.js`'s `COUNTRIES` | `scripts/generate-countries.mjs` (prints it; paste it in) |
+| `shared/countries.js`'s `COUNTRIES` | `scripts/generate-countries.mjs` (prints it; paste it in) |
 | `static/-/world-map-*.json` | `scripts/generate-world-map.mjs` |
 | `static/-/brand-lockup.svg` and its size block in `climbing-header.js` | `scripts/generate-brand-lockup.mjs` |
 | Logbook Beta's PNG icons | `scripts/generate-beta-icons.mjs` |

@@ -12,7 +12,7 @@ const row = (name, grade, location) => [
   "2026-07-30",
   location,
   "Sector 1",
-  "Testland",
+  "United Kingdom",
 ];
 const VALID_CSV = csv(row("Test Route", "6B", "Test Crag"));
 
@@ -57,7 +57,7 @@ test("uploads a valid JSON export and shows the success summary, with the right 
       date: "2026-07-30",
       location: "Test Crag",
       area: "Sector 1",
-      country: "Testland",
+      country: "United Kingdom",
       video: "",
       notes: "",
       sportStyle: "",

@@ -3,7 +3,7 @@ import { expect, test } from "./owner.js";
 
 const VALID_CSV = [
   CSV_COLUMNS,
-  ["Test Route", "6B", "boulder", "send", "true", "2026-07-30", "Test Crag", "Sector 1", "Testland"],
+  ["Test Route", "6B", "boulder", "send", "true", "2026-07-30", "Test Crag", "Sector 1", "United Kingdom"],
 ]
   .map(cells => `${CSV_COLUMNS.map((_, i) => cells[i] ?? "").join(",")}\n`)
   .join("");
