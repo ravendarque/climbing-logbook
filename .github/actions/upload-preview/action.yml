@@ -1,15 +1,15 @@
-name: Build and upload a preview version
-description: Builds against the preview environment and uploads a Worker version under a preview alias. CLOUDFLARE_ENV=preview at build time is what binds the preview database.
+name: Build and deploy a Preview
+description: Builds against the preview environment and creates or updates a Cloudflare Preview (#1338). CLOUDFLARE_ENV=preview at build time is what binds the preview database.
 inputs:
-  alias:
-    description: The preview alias, e.g. pr-123 or main
+  name:
+    description: The Preview's name, e.g. pr-123 or main
     required: true
   api-token:
     description: Cloudflare API token
     required: true
 outputs:
   url:
-    description: The alias URL
+    description: The Preview URL
     value: ${{ steps.upload.outputs.url }}
 runs:
   using: composite
@@ -24,14 +24,16 @@ runs:
       shell: bash
       env:
         CLOUDFLARE_API_TOKEN: ${{ inputs.api-token }}
-        PREVIEW_ALIAS: ${{ inputs.alias }}
+        PREVIEW_NAME: ${{ inputs.name }}
       run: |
         set -euo pipefail
-        OUTPUT=$(pnpm exec wrangler versions upload --env preview --preview-alias "$PREVIEW_ALIAS" --tag "$PREVIEW_ALIAS-$(git rev-parse --short HEAD)")
-        echo "$OUTPUT"
-        URL=$(echo "$OUTPUT" | grep -oE 'Version Preview Alias URL: https://\S+' | sed 's/^Version Preview Alias URL: //')
+        # Only the URL is printed: the JSON also names the token's owner.
+        OUTPUT=$(pnpm exec wrangler preview --name "$PREVIEW_NAME" --tag "$PREVIEW_NAME-$(git rev-parse --short HEAD)" --json)
+        URL=$(echo "$OUTPUT" | sed -n '/^{/,$p' | node -e 'let s = ""; process.stdin.on("data", d => (s += d)).on("end", () => console.log(JSON.parse(s).preview?.urls?.[0] ?? ""))')
         if [ -z "$URL" ]; then
-          echo "Couldn't find a preview alias URL in wrangler's output -- see the log above." >&2
+          echo "$OUTPUT" | sed '/^{/,$d' >&2
+          echo "wrangler preview didn't report a Preview URL -- see its log above." >&2
           exit 1
         fi
+        echo "Preview: $URL"
         echo "url=$URL" >> "$GITHUB_OUTPUT"

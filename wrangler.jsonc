@@ -98,7 +98,26 @@
       ],
       "d1_databases": [
         { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook-preview", "database_id": "845753a5-abfc-4d74-995b-94d802b4964e", "migrations_dir": "migrations" }
-      ]
+      ],
+      // Each PR's Preview (#1338) inherits none of the above, so it repeats what the app needs.
+      "previews": {
+        "version_metadata": { "binding": "CF_VERSION_METADATA" },
+        "vars": {
+          "APP_ENV": "preview",
+          "BETA_GATE_ENABLED": "true",
+          "TURNSTILE_SECRET_KEY": "1x0000000000000000000000000000000AA",
+          "RATE_LIMITING_ENABLED": "true",
+          "OWNER_PAGES_ON_ANY_HOST": "true"
+        },
+        "ratelimits": [
+          { "name": "AUTH_RATE_LIMITER", "namespace_id": "1292", "simple": { "limit": 10, "period": 60 } },
+          { "name": "WRITE_RATE_LIMITER", "namespace_id": "1045", "simple": { "limit": 120, "period": 60 } },
+          { "name": "CSP_REPORT_LIMITER", "namespace_id": "1042", "simple": { "limit": 10, "period": 60 } }
+        ],
+        "d1_databases": [
+          { "binding": "LOGBOOK_DB", "database_name": "climbing-logbook-preview", "database_id": "845753a5-abfc-4d74-995b-94d802b4964e", "migrations_dir": "migrations" }
+        ]
+      }
     },
     // Like preview, but never deployed, so no rate limiting (no real client IP).
     "e2e": {
