@@ -15,6 +15,7 @@ import { createPlacePicker } from "./place-picker.js";
 import { createMoveRowList } from "./move-tagging.js";
 import { validateEntryShape } from "../shared/entry-schema.js";
 import { FIELD_LIMITS } from "../shared/field-limits.js";
+import { withoutTrackingParams } from "../shared/video-links.js";
 import { showCharactersLeft } from "./characters-left.js";
 import { createListPicker, renderOptionList } from "./modal-utils.js";
 import { calendarDatePickerHtml, createCalendarDatePicker } from "./calendar-date-picker.js";
@@ -49,7 +50,6 @@ export function createEntryForm({
   const videoInput = document.getElementById("entry-video");
   nameInput.maxLength = FIELD_LIMITS.entryName;
   notesInput.maxLength = FIELD_LIMITS.notes;
-  videoInput.maxLength = FIELD_LIMITS.video;
   const updateNotesLeft = showCharactersLeft(notesInput, document.getElementById("entry-notes-count"));
   const gradePrev = document.getElementById("grade-prev");
   const gradeNext = document.getElementById("grade-next");
@@ -532,7 +532,7 @@ export function createEntryForm({
       sportStyle: store.getActiveType() === "sport" ? selectedSportStyle : null,
       date: dateInput.value.trim() || null,
       notes: notesInput.value.trim() || null,
-      video: videoInput.value.trim() || null,
+      video: withoutTrackingParams(videoInput.value.trim()) || null,
       rpe: selectedStatus === "send" ? Number(exertionSlider.value) : null,
       attemptsToSend: attemptsValue,
       moves: [...hardestMoves.getRows(), ...easiestMoves.getRows()],
