@@ -33,6 +33,7 @@ export function createStore({
   let loggedIn = false;
 
   let activeType = "boulder"; // real value set once entries load, see boot()
+  let activeTypeChosen = false;
   let activeView = "logbook"; // "logbook" | "pyramid" | "map" | "performance-hub" | "performance-injury" | "performance-strengths" | "performance-trends" | "performance-gap" | "performance-rpe"
 
   const subscribers = [];
@@ -197,6 +198,10 @@ export function createStore({
     activeType = type;
     notify();
   }
+  function chooseActiveType(type) {
+    activeTypeChosen = true;
+    setActiveType(type);
+  }
 
   function setLoggedIn(v) {
     loggedIn = v;
@@ -227,6 +232,8 @@ export function createStore({
 
     getActiveType: () => activeType,
     setActiveType,
+    chooseActiveType,
+    isActiveTypeChosen: () => activeTypeChosen,
     getActiveView: () => activeView,
     setActiveView,
 
