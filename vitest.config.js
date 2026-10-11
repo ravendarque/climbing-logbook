@@ -92,6 +92,8 @@ export default defineConfig({
                 TURNSTILE_SECRET_KEY: "test-secret-fetch-is-always-stubbed",
                 // No client IP here, so rate limiting would lump every test into one bucket.
                 RATE_LIMITING_ENABLED: "false",
+                // Local dev prints emails; the tests check the stubbed Resend call instead.
+                EMAIL_DELIVERY: "resend",
               },
             },
           }),

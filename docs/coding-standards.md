@@ -190,7 +190,10 @@ why Better Auth replaced Cloudflare Access as the mechanism itself.
 - **Use the logger, not `console.*`.** `createLogger` (`server/lib/log.js`)
   writes one JSON object per event, with the request's `ray`, route
   template, environment and release version, so Workers Logs can filter on
-  each field. `server/index.js` builds one per request.
+  each field. `server/index.js` builds one per request. The one exception
+  is local dev's email print (`EMAIL_DELIVERY: "log"`, #1357), which writes
+  the recipient and link to the developer's own terminal and refuses to
+  run anywhere `APP_ENV` isn't `development`.
 - **Name events as stable, dotted names**, such as `email.failed` or
   `request.unhandled`. Put the details in fields, not in the event name.
 - **Levels:** `error` for something that failed and needs looking at,

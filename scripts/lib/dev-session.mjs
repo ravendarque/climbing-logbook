@@ -122,8 +122,16 @@ export async function provisionUsers(baseUrl, usersWithCodes, options = {}) {
     options,
   );
 
+  // Signing up again would count against the address's email limit, so a restart within the hour would fail (#1357).
+  const existing = new Set(
+    d1Query(`SELECT email FROM "user" WHERE email IN (${users.map(u => sqlString(u.email)).join(", ")})`, options).map(
+      row => row.email,
+    ),
+  );
+
   // Better Auth's origin check needs an Origin header. Any Turnstile token passes the test secret.
   for (const [i, user] of users.entries()) {
+    if (existing.has(user.email)) continue;
     const signUpRes = await fetchWithRetry(`${baseUrl}/-/api/auth/sign-up/email`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Origin: baseUrl },

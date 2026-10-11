@@ -28,6 +28,10 @@ need the `my.` host: `http://my.localhost:5173/<username>/log`. Plain
 `wrangler dev` doesn't work here: it can't serve a `my.` host and rewrites
 the request origin, which breaks Better Auth.
 
+Emails aren't sent locally: verification, password reset and email-change
+links are printed in the `pnpm dev` terminal instead, so `.dev.vars` needs
+no Resend key.
+
 See `docs/app-architecture.md` for local auth setup — the `/-/api/`
 resource routes require a real Better Auth session, same as production.
 

@@ -51,6 +51,7 @@
   "version_metadata": { "binding": "CF_VERSION_METADATA" },
   "vars": {
     "APP_ENV": "development",
+    "EMAIL_DELIVERY": "log",
     "BETA_GATE_ENABLED": "true",
     "RATE_LIMITING_ENABLED": "true",
     "ACCESS_TEAM_DOMAIN": "ravendarque.cloudflareaccess.com",
