@@ -27,7 +27,9 @@ jobs:
   rebuild:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/setup-node-pnpm
       - id: upload
         uses: ./.github/actions/upload-preview
@@ -40,4 +42,5 @@ jobs:
           PREVIEW_DEV_EMAIL: ${{ secrets.PREVIEW_DEV_EMAIL }}
           PREVIEW_DEV_PASSWORD: ${{ secrets.PREVIEW_DEV_PASSWORD }}
           PREVIEW_BETA_INVITE_CODE: ${{ secrets.PREVIEW_BETA_INVITE_CODE }}
-        run: node scripts/seed-preview-data.mjs "${{ steps.upload.outputs.url }}"
+          PREVIEW_URL: ${{ steps.upload.outputs.url }}
+        run: node scripts/seed-preview-data.mjs "$PREVIEW_URL"

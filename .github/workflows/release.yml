@@ -32,7 +32,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   determine-bump:
@@ -42,13 +42,16 @@ jobs:
       bump: ${{ steps.resolve.outputs.bump }}
     steps:
       - id: resolve
+        env:
+          BUMP_INPUT: ${{ inputs.bump }}
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "bump=${{ inputs.bump }}" >> "$GITHUB_OUTPUT"
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "bump=$BUMP_INPUT" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          labels='${{ toJSON(github.event.pull_request.labels.*.name) }}'
+          labels="$LABELS"
           if echo "$labels" | grep -q "release: major"; then
             echo "bump=major" >> "$GITHUB_OUTPUT"
           elif echo "$labels" | grep -q "release: minor"; then
@@ -63,8 +66,10 @@ jobs:
     needs: determine-bump
     if: needs.determine-bump.outputs.bump != ''
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: main
           fetch-depth: 0
@@ -80,22 +85,27 @@ jobs:
 
       - name: Calculate new version from latest tag
         id: version
+        env:
+          BUMP: ${{ needs.determine-bump.outputs.bump }}
         run: |
           CURRENT=$(git tag -l 'v*' --sort=-v:refname | head -1 | sed 's/^v//')
-          NEW=$(pnpm exec semver -i ${{ needs.determine-bump.outputs.bump }} "$CURRENT")
+          NEW=$(pnpm exec semver -i "$BUMP" "$CURRENT")
           echo "new=$NEW" >> "$GITHUB_OUTPUT"
 
       - name: Create and push tag
+        env:
+          VERSION: v${{ steps.version.outputs.new }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "v${{ steps.version.outputs.new }}" -m "v${{ steps.version.outputs.new }}"
-          git push origin "v${{ steps.version.outputs.new }}"
+          git tag -a "$VERSION" -m "$VERSION"
+          git push origin "$VERSION"
 
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: v${{ steps.version.outputs.new }}
         run: |
-          gh release create "v${{ steps.version.outputs.new }}" \
-            --title "v${{ steps.version.outputs.new }}" \
+          gh release create "$VERSION" \
+            --title "$VERSION" \
             --generate-notes

@@ -36,12 +36,16 @@ name: Synthetic production check
 # same reasoning the no-auto-file decision above already established for
 # a single failure, just re-applied one confirmed-real-regression later.
 on:
-  workflow_run:
+  # Runs repo code from main and reads nothing from the triggering run.
+  workflow_run: # zizmor: ignore[dangerous-triggers]
     workflows: [Deploy]
     types: [completed]
   schedule:
     - cron: '*/30 * * * *'
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   check:
@@ -52,12 +56,14 @@ jobs:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       # No pnpm/dependency install -- the script is plain Node fetch with
       # zero npm dependencies, so the full setup-node-pnpm composite
       # action (which also runs `pnpm install`) would just be wasted
       # work here.
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
       - run: node scripts/synthetic-check.mjs
@@ -78,6 +84,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      # Reads its own previous run, and opens an issue when production fails.
+      actions: read
       issues: write
     steps:
       - name: Check whether the previous Deploy-triggered run also failed
@@ -94,7 +102,7 @@ jobs:
           # recent workflow_run-triggered run that HAS actually finished.
           #
           # --workflow takes this file's own filename, not
-          # ${{ github.workflow }} -- that resolves to the `name:` field
+          # the workflow's name -- that resolves to the `name:` field
           # above ("Synthetic production check"), which `gh run list`
           # does NOT match against (confirmed empirically: the name form
           # errors "could not find any workflows named ...", the filename

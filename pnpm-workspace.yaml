@@ -1,3 +1,6 @@
+# Three days, not pnpm 11's default one: long enough for a compromised release to be caught and pulled (#1040).
+minimumReleaseAge: 4320
+
 allowBuilds:
   '@parcel/watcher': true
   # better-auth (real runtime dependency, #20) lists both of these as

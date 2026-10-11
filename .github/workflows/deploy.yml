@@ -18,12 +18,16 @@ on:
     tags: ['v*']
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           # Full history + tags needed to diff this tag against the
           # previous one below -- the default shallow checkout only has
           # the single commit the tag points at.
@@ -92,7 +96,7 @@ jobs:
         id: classify
         if: github.event_name == 'push'
         run: |
-          CURRENT_TAG="${{ github.ref_name }}"
+          CURRENT_TAG="$GITHUB_REF_NAME"
           PREV_TAG=$(git tag -l 'v*' --sort=-v:refname | grep -A1 "^${CURRENT_TAG}$" | tail -1)
           if [ -z "$PREV_TAG" ] || [ "$PREV_TAG" = "$CURRENT_TAG" ]; then
             echo "No previous tag found -- treating as direct (deploys to both beta and production)."
