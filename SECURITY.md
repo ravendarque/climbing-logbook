@@ -11,7 +11,7 @@ vulnerability" button under this repo's
 This opens a private draft advisory visible only to the maintainer until a
 fix is ready.
 
-**Alternative: email** nix@ravendarque.com.
+**Alternative: email** support@climbinglogbook.com.
 
 Please include:
 - A description of the vulnerability and its impact
