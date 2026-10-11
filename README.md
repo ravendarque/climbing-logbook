@@ -55,3 +55,10 @@ Infra changes (`infra/**`) apply through their own workflow on merge; see
   bump, and how to cut a release
 - [`infra/README.md`](infra/README.md) — one-time setup steps for
   provisioning this project's infrastructure from scratch
+
+## Licence
+
+Noncommercial, with some excluded licensees: see [`LICENSE.md`](LICENSE.md),
+its schedule in [`LICENSE-SCHEDULE.md`](LICENSE-SCHEDULE.md), and the
+plain-language version at
+[climbinglogbook.com/help/licence/](https://climbinglogbook.com/help/licence/).

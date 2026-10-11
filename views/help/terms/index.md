@@ -35,6 +35,17 @@ Climbing should be for everyone, and Climbing Logbook is for everyone who climbs
 - ableism
 - fascism, or the glorification of violence against any group
 
+<h2 id="who-cant-use">Who can't use Climbing Logbook</h2>
+
+Climbing Logbook isn't available to:
+
+- governments, armed forces and state bodies of states the International Court of Justice has found in breach, or at plausible risk of breach, of the Genocide Convention or of international humanitarian or human rights law
+- anyone with an outstanding, public arrest warrant from the International Criminal Court, and any organisation that has someone like that on its staff, board or payroll, or as an adviser or patron
+- companies that materially support those states' conduct
+- anyone acting for any of them
+
+It's the same rule as in [the licence for our source code](/help/licence/), which lists who it currently covers.
+
 <h2 id="acceptable-use">Acceptable use</h2>
 
 Keep what you post about climbing. Names, notes and video links on a public logbook are seen by others, so don't use them for:

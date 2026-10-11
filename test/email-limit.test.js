@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { EMAIL_LIMITS } from "../server/lib/email-limit.js";
+import { TERMS_VERSION } from "../shared/terms.js";
 import { createAuthedSession, jsonRequest, resetAuthTables } from "./support.js";
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -98,7 +99,7 @@ describe("the per-address email limit (#1053)", () => {
           name: "New",
           username: `newuser${n}`,
           turnstileToken: "t",
-          agreedTermsVersion: "2026-10-07",
+          agreedTermsVersion: TERMS_VERSION,
         },
         anyIp(),
       );
