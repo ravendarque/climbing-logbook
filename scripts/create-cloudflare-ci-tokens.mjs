@@ -6,7 +6,14 @@ import { stdin, stdout } from "node:process";
 
 const API = "https://api.cloudflare.com/client/v4";
 const ZONE_NAME = "climbinglogbook.com";
-const EXISTING_INFRA_TOKEN = "[climbinglogbook.com] Infrastructure";
+const EXISTING_INFRA_TOKEN = "[climbinglogbook.com] Infrastructure (classic)";
+// Terraform manages no Workers and the infra workflow never runs wrangler, so the infra tokens don't get these.
+const NOT_FOR_TERRAFORM = new Set([
+  "Workers Editor",
+  "Workers Scripts Write",
+  "Workers KV Storage Write",
+  "Workers Routes Write",
+]);
 const EXPIRES_ON = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().replace(/\.\d+Z$/, "Z");
 
 function promptHidden(question) {
@@ -122,16 +129,16 @@ async function main() {
     "com.cloudflare.api.account": { [`com.cloudflare.api.account.${accountId}`]: "*" },
     "com.cloudflare.api.account.zone": { [`com.cloudflare.api.account.zone.${zone.id}`]: "*" },
   };
+  const infraPolicies = existing.policies
+    .map(p => ({ ...p, permission_groups: p.permission_groups.filter(g => !NOT_FOR_TERRAFORM.has(g.name)) }))
+    .filter(p => p.permission_groups.length > 0);
   const workerDeploy = ["Workers Scripts Write", "D1 Write", "Account Settings Read"];
-  const applyPolicies = [
-    ...existing.policies.map(p => ({
-      effect: p.effect,
-      resources: p.resources,
-      permission_groups: p.permission_groups.map(({ id }) => ({ id })),
-    })),
-    ...policiesFor(groups, ["Workers R2 Storage Write"], resourcesByScope),
-  ];
-  const { readPolicies, skipped } = readOnlyCopy(groups, existing.policies);
+  const applyPolicies = infraPolicies.map(p => ({
+    effect: p.effect,
+    resources: p.resources,
+    permission_groups: p.permission_groups.map(({ id }) => ({ id })),
+  }));
+  const { readPolicies, skipped } = readOnlyCopy(groups, infraPolicies);
 
   const tokens = [
     {
