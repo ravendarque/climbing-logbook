@@ -212,11 +212,27 @@ const MAX_CHUNK_SIZE = 1000;
 // A climb the admin has hidden stays in its owner's logbook but never reaches a public one.
 const VISIBLE = "deleted_at IS NULL AND hidden_at IS NULL";
 
+async function missedPurgedTombstones(env, userId, since) {
+  if (since === 0) return false;
+  const floor = await env.LOGBOOK_DB.prepare("SELECT cursor FROM entry_purge_floors WHERE user_id = ?")
+    .bind(userId)
+    .first();
+  return floor !== null && since < floor.cursor;
+}
+
 async function handleDelta(url, env, userId, { includeChildRows }) {
   const since = intParam(url, "since");
   if (since.response) return since.response;
   if (!userId) return json({ entries: [], cursor: since.value }, 200, { "Cache-Control": "no-store" });
-  const { rows, cursor } = await listChangedForUser(env, "entries", userId, rowToJsonWithDeleted, since.value);
+  const [missed, { rows, cursor }] = await Promise.all([
+    missedPurgedTombstones(env, userId, since.value),
+    listChangedForUser(env, "entries", userId, rowToJsonWithDeleted, since.value),
+  ]);
+  if (missed) {
+    return json({ error: "Too long since this device synced. Sync again in full." }, 410, {
+      "Cache-Control": "no-store",
+    });
+  }
   const decorated = includeChildRows ? await attachChildRows(rows, env) : rows;
   return json({ entries: decorated, cursor }, 200, { "Cache-Control": "no-store" });
 }

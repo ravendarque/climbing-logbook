@@ -47,8 +47,11 @@ function setProgress(loaded, total) {
     total > 0 ? `${loaded.toLocaleString()} / ${total.toLocaleString()} entries` : "Setting things up";
 }
 
+class SyncExpired extends Error {}
+
 async function fetchJson(url) {
   const res = await fetch(url);
+  if (res.status === 410) throw new SyncExpired();
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
@@ -56,6 +59,16 @@ async function fetchJson(url) {
 async function syncByDelta(store, table, url) {
   const { [table]: rows, cursor } = await fetchJson(`${url}?since=${getCursor(table)}`);
   if (await store.mergeConfirmed(table, rows)) setCursor(table, cursor);
+}
+
+async function syncEntries(store, warm) {
+  if (!warm) return syncEntriesCold(store);
+  try {
+    await syncByDelta(store, "entries", ENTRIES_URL);
+  } catch (err) {
+    if (!(err instanceof SyncExpired)) throw err;
+    await syncEntriesCold(store);
+  }
 }
 
 // Keeps the first chunk's cursor, so the next delta re-covers anything that changed mid-load.
@@ -88,8 +101,7 @@ async function runSync(store) {
   // Places and locations first: entries reference them.
   await Promise.all([syncByDelta(store, "places", PLACES_URL), syncByDelta(store, "locations", LOCATIONS_URL)]);
 
-  if (warm) await syncByDelta(store, "entries", ENTRIES_URL);
-  else await syncEntriesCold(store);
+  await syncEntries(store, warm);
 
   await Promise.race([settings, new Promise(resolve => setTimeout(resolve, SETTINGS_GRACE_MS))]);
   markSynced();

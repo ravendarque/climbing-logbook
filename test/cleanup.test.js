@@ -125,6 +125,75 @@ describe("the daily clean-up (#1051)", () => {
   });
 });
 
+describe("purging tombstones after 30 days (#1051)", () => {
+  beforeEach(async () => {
+    await db.batch([db.prepare(`DELETE FROM entries`), db.prepare(`DELETE FROM entry_purge_floors`)]);
+  });
+
+  const ids = async () =>
+    (await db.prepare(`SELECT id FROM entries ORDER BY sync_cursor`).all()).results.map(r => r.id);
+  const cursorOf = async id =>
+    (await db.prepare(`SELECT sync_cursor FROM entries WHERE id = ?`).bind(id).first()).sync_cursor;
+  const deleteClimb = id => fetchJson(`/-/api/entries?id=${id}`, { method: "DELETE", headers: { Cookie: cookie } });
+  const delta = since => fetchJson(`/-/api/entries?since=${since}`, { headers: { Cookie: cookie } });
+
+  it("hard-deletes tombstones over 30 days old, keeps newer ones and the newest row, and records the purge point", async () => {
+    const now = Date.now();
+    for (const id of ["old", "recent", "newest"]) await climbWithEverything(id);
+    for (const id of ["old", "recent", "newest"]) await deleteClimb(id);
+    await db
+      .prepare(`UPDATE entries SET deleted_at = ? WHERE id IN ('old', 'newest')`)
+      .bind(now - 31 * DAY_MS)
+      .run();
+    await db
+      .prepare(`UPDATE entries SET deleted_at = ? WHERE id = 'recent'`)
+      .bind(now - 29 * DAY_MS)
+      .run();
+    const oldCursor = await cursorOf("old");
+
+    await cleanUp(env, log, now);
+
+    expect(await ids()).toEqual(["recent", "newest"]);
+    const floor = await db.prepare(`SELECT cursor FROM entry_purge_floors WHERE user_id = ?`).bind(userId).first();
+    expect(floor.cursor).toBe(oldCursor);
+    expect(log.info).toHaveBeenCalledWith("cleanup.done", { reason: "tombstones", count: 1 });
+  });
+
+  it("tells a device that synced before the purge point to sync again in full, and serves the rest", async () => {
+    const now = Date.now();
+    for (const id of ["gone", "kept"]) await climbWithEverything(id);
+    const before = await cursorOf("gone");
+    await deleteClimb("gone");
+    await db
+      .prepare(`UPDATE entries SET deleted_at = ? WHERE id = 'gone'`)
+      .bind(now - 31 * DAY_MS)
+      .run();
+    await climbWithEverything("later");
+    const after = await cursorOf("later");
+
+    await cleanUp(env, log, now);
+
+    const stale = await delta(before);
+    expect(stale.status).toBe(410);
+    expect((await delta(0)).status).toBe(200);
+    const fresh = await delta(after);
+    expect(fresh.status).toBe(200);
+    expect((await fresh.json()).entries.map(e => e.id)).toEqual(["later"]);
+  });
+
+  it("keeps the purge point when a later run purges older tombstones", async () => {
+    await db.prepare(`INSERT INTO entry_purge_floors (user_id, cursor) VALUES (?, 1000)`).bind(userId).run();
+    for (const id of ["a", "b"]) await climbWithEverything(id);
+    await deleteClimb("a");
+    await db.prepare(`UPDATE entries SET deleted_at = 1 WHERE id = 'a'`).run();
+
+    await cleanUp(env, log);
+
+    const floor = await db.prepare(`SELECT cursor FROM entry_purge_floors WHERE user_id = ?`).bind(userId).first();
+    expect(floor.cursor).toBe(1000);
+  });
+});
+
 describe("the cron trigger (#1051)", () => {
   it("runs the clean-up when Cloudflare fires it", async () => {
     await climbWithEverything("cron-tombstone");

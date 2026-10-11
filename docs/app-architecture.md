@@ -376,7 +376,8 @@ Tables (see `migrations/` for columns and constraints):
   delete on another device mid-load can't shift a live row past the next
   page. The device keeps the first chunk's cursor, so its next delta
   re-covers anything that changed during the load.
-- **A daily cron** (`scheduled()` in `server/index.js`, `server/lib/cleanup.js`; production and preview, since beta shares production's database) deletes sessions expired over a week ago and expired verification links, and strips anything left on climbs deleted before deletes did it themselves. It works in batches of 500 per table and logs `cleanup.done` with each count.
+- **A daily cron** (`scheduled()` in `server/index.js`, `server/lib/cleanup.js`; production and preview, since beta shares production's database) deletes sessions expired over a week ago and expired verification links, and strips anything left on climbs deleted before deletes did it themselves. It hard-deletes tombstones over 30 days old, except each user's newest row, which keeps `nextCursorSql()` from handing out a cursor a device has already seen. It records the newest purged cursor per user in `entry_purge_floors`. It works in batches of 500 per table and logs `cleanup.done` with each count.
+- **A device offline past the purge** can't learn about the tombstones it missed, so an entries delta with `0 < since <` that user's purge floor gets a 410. `client/delta-pull.js` then clears the sync marker and reloads, so the page's boot gate sends the device through `/sync`'s cold path. `/sync` itself falls back to the cold path on a 410.
 - **Writes are allowlisted.** `buildRow()` in each API module builds the row
   from known fields only; the request body is never spread into storage.
   `shared/entry-schema.js` validates entries on both sides, and

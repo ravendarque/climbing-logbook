@@ -21,3 +21,7 @@ export function isSynced(storage = realStorage()) {
 export function markSynced(storage = realStorage()) {
   storage.setItem(SYNC_STATUS_KEY, JSON.stringify({ version: SYNC_VERSION, syncedAt: Date.now() }));
 }
+
+export function forgetSync(storage = realStorage()) {
+  storage.removeItem(SYNC_STATUS_KEY);
+}
