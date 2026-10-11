@@ -22,9 +22,16 @@ afterEach(() => {
 });
 
 describe("pullSettings (#1177)", () => {
+  it("passes on a terms update without caching it (#1354)", async () => {
+    const terms = { version: "2026-10-11", effective: "2026-10-11", required: true, changes: ["A change."] };
+    answer({ ...SERVER, terms });
+    expect((await pullSettings()).terms).toEqual(terms);
+    expect(readSettingsCache()).toEqual(SERVER);
+  });
+
   it("returns the server's settings and caches them for the next page to paint with", async () => {
     answer(SERVER);
-    expect(await pullSettings()).toEqual(SERVER);
+    expect(await pullSettings()).toEqual({ ...SERVER, terms: null });
     expect(readSettingsCache()).toEqual(SERVER);
   });
 
@@ -36,6 +43,7 @@ describe("pullSettings (#1177)", () => {
       betaOptIn: false,
       activeDiscipline: "boulder",
       onboardingCompleted: false,
+      terms: null,
     });
   });
 
@@ -85,7 +93,7 @@ describe("pullSettings (#1177)", () => {
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new DOMException("full", "QuotaExceededError");
     });
-    expect(await pullSettings()).toEqual(SERVER);
+    expect(await pullSettings()).toEqual({ ...SERVER, terms: null });
     vi.restoreAllMocks();
   });
 });

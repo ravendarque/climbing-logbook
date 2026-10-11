@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { hashPassword } from "better-auth/crypto";
 import { d1ExecuteBatch } from "../scripts/lib/dev-session.mjs";
+import { TERMS_VERSION } from "../shared/terms.js";
 
 const SESSION_DAYS = 7;
 const ID_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -45,7 +46,7 @@ export async function seedUsers(users, { secret, ...d1Options }) {
 
   const rows = users.map(user => ({ ...user, id: randomId(), token: randomId() }));
   const statements = rows.flatMap(({ id, token, name, email, username, password, onboarded = true }) => [
-    `INSERT INTO "user" (id, name, email, emailVerified, createdAt, updatedAt, username, displayUsername) VALUES (${[id, name, email, 1, at, at, username.toLowerCase(), username].map(sql).join(", ")})`,
+    `INSERT INTO "user" (id, name, email, emailVerified, createdAt, updatedAt, username, displayUsername, termsVersion, termsAgreedAt) VALUES (${[id, name, email, 1, at, at, username.toLowerCase(), username, TERMS_VERSION, at].map(sql).join(", ")})`,
     `INSERT INTO account (id, accountId, providerId, userId, password, createdAt, updatedAt) VALUES (${[randomId(), id, "credential", id, hashes.get(password), at, at].map(sql).join(", ")})`,
     `INSERT INTO session (id, expiresAt, token, createdAt, updatedAt, userId) VALUES (${[randomId(), expiresAt, token, at, at, id].map(sql).join(", ")})`,
     `INSERT INTO settings (user_id, onboarding_completed, logbook_public) VALUES (${sql(id)}, ${onboarded ? 1 : 0}, ${onboarded ? 1 : 0})`,

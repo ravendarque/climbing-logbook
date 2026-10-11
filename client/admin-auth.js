@@ -5,6 +5,7 @@ import { pullSettings, readSettingsCache, validDiscipline, writeSettingsCache } 
 import { isDemoUsername } from "./demo-mode.js";
 import { isWorkerCache } from "./sw/caches.js";
 import { isUnauthorized } from "./api-fetch.js";
+import { showTermsPrompt } from "./terms-prompt.js";
 
 async function clearWorkerCaches() {
   try {
@@ -53,6 +54,7 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
     logbookPublic = settings.logbookPublic;
     betaOptIn = settings.betaOptIn;
     onboardingCompleted = settings.onboardingCompleted;
+    showTermsPrompt(settings.terms);
   }
 
   // A failed PATCH is a normal, displayable outcome, so it returns { ok } rather than throwing.

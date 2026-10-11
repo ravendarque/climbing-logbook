@@ -1,6 +1,7 @@
 import { pullDelta as pullTableDelta, readPendingQueue } from "./delta-pull.js";
 import { isUnauthorized } from "./api-fetch.js";
 import { addFailedWrite, isPermanentFailure } from "./failed-writes.js";
+import { TERMS_AGREED_EVENT } from "./terms-prompt.js";
 import { isQuotaError, isSafariTab } from "./storage-quota.js";
 
 export function createOfflineSync({
@@ -157,6 +158,8 @@ export function createOfflineSync({
           store.setLoggedIn(false);
           break;
         }
+        // Waits for the terms to be agreed, not the backoff: retrying can't succeed until then.
+        if (res.status === 428) break;
         if (!res.ok && !isPermanentFailure(res.status)) {
           // Stopped, not skipped: a later item may depend on this one.
           serverFailing = true;
@@ -237,9 +240,11 @@ export function createOfflineSync({
   }
 
   syncNow.addEventListener("click", syncPending);
-  window.addEventListener("online", () => {
-    if (store.isLoggedIn()) syncPending();
-  });
+  for (const event of ["online", TERMS_AGREED_EVENT]) {
+    window.addEventListener(event, () => {
+      if (store.isLoggedIn()) syncPending();
+    });
+  }
 
   return { getQueue, setQueue, enqueue, syncPending, updateSyncLine, reconcileEntries };
 }

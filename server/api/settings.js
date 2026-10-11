@@ -1,5 +1,6 @@
 import { json, parseJsonBody } from "../lib/json.js";
 import { VALID_TYPES } from "../../shared/entry-schema.js";
+import { termsUpdate } from "../../shared/terms.js";
 
 const DEFAULT_SETTINGS = {
   athleteMode: false,
@@ -20,8 +21,16 @@ function rowToJson(row) {
 }
 
 export async function handleGetSettings(_request, env, userId) {
-  const row = await env.LOGBOOK_DB.prepare(`SELECT * FROM settings WHERE user_id = ?`).bind(userId).first();
-  return json(row ? rowToJson(row) : DEFAULT_SETTINGS, 200, { "Cache-Control": "no-store" });
+  const [settings, user] = await env.LOGBOOK_DB.batch([
+    env.LOGBOOK_DB.prepare(`SELECT * FROM settings WHERE user_id = ?`).bind(userId),
+    env.LOGBOOK_DB.prepare(`SELECT termsVersion FROM "user" WHERE id = ?`).bind(userId),
+  ]);
+  const row = settings.results[0];
+  return json(
+    { ...(row ? rowToJson(row) : DEFAULT_SETTINGS), terms: termsUpdate(user.results[0]?.termsVersion) },
+    200,
+    { "Cache-Control": "no-store" },
+  );
 }
 
 // PATCH merges: callers send only the field they change.

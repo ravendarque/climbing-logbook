@@ -4,9 +4,9 @@ import { isQuotaError } from "./storage-quota.js";
 
 const FAILED_KEY = userKey("logbook_failed_writes");
 
-// 401, 408 and 429 can succeed later; any other 4xx fails the same way on every retry.
+// 401, 408, 428 (terms not yet agreed) and 429 can succeed later; any other 4xx fails the same way on every retry.
 export function isPermanentFailure(status) {
-  return status >= 400 && status < 500 && ![401, 408, 429].includes(status);
+  return status >= 400 && status < 500 && ![401, 408, 428, 429].includes(status);
 }
 
 export function getFailedWrites(storage = localStorage) {

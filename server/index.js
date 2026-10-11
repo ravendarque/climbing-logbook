@@ -29,7 +29,8 @@ import { handleSignUp } from "./lib/sign-up.js";
 import { handleChangeEmail, handlePasswordResetRequest, handleVerificationResend } from "./lib/email-routes.js";
 
 export { RecipientEmailLimiter } from "./lib/email-limit.js";
-import { resolveUserId } from "./lib/session.js";
+import { resolveUser } from "./lib/session.js";
+import { handleAgreeTerms, refuseUntilTermsAgreed } from "./lib/terms.js";
 import { json } from "./lib/json.js";
 import { errorResponse } from "./lib/error-response.js";
 import { createLogger } from "./lib/log.js";
@@ -55,6 +56,7 @@ const RESOURCE_ROUTES = {
   "/-/api/performance/gap": { GET: handleGetGap },
   "/-/api/performance/rpe": { GET: handleGetEffort },
   "/-/api/map/counts": { GET: handleGetMapCounts },
+  "/-/api/terms": { POST: handleAgreeTerms },
 };
 const RESOURCE_PATHS = Object.keys(RESOURCE_ROUTES);
 const STATIC_PAGE = /^\/($|(help|login|register|reset-password)(\/|$)|-\/launch\/)/;
@@ -142,13 +144,15 @@ async function handleRequest(request, env, ctx, log) {
   const route = Object.hasOwn(RESOURCE_ROUTES, pathname) ? RESOURCE_ROUTES[pathname] : null;
   const handler = route && Object.hasOwn(route, method) ? route[method] : null;
   if (handler) {
-    const userId = await resolveUserId(request, env);
-    if (!userId) return json({ error: "Unauthorized" }, 401);
+    const user = await resolveUser(request, env);
+    if (!user) return json({ error: "Unauthorized" }, 401);
     if (!isRead) {
-      const limited = await limitWrite(env, userId, log);
+      const limited = await limitWrite(env, user.id, log);
       if (limited) return limited;
+      const refused = pathname === "/-/api/terms" ? null : refuseUntilTermsAgreed(user);
+      if (refused) return refused;
     }
-    return handler(request, env, userId);
+    return handler(request, env, user.id);
   }
 
   return new Response("Not found", { status: 404 });
