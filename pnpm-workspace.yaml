@@ -15,52 +15,11 @@ allowBuilds:
   sharp: true
   workerd: true
 
-# undici (transitive, via miniflare -- wrangler/@cloudflare/vitest-pool-workers
-# dev/test tooling only, never shipped to the deployed app) has three
-# known vulnerabilities below 7.29.0 (GHSA advisories re: cookie-attribute
-# injection, response desync via retry interceptor, cross-user info
-# disclosure via cache directives). Pinned here rather than waiting for
-# miniflare to bump its own dependency, since a full wrangler/miniflare
-# upgrade pulls in a large workerd binary rebuild.
-#
-# Deliberately constrained to the 7.x line, not just '>=7.29.0' -- an
-# unconstrained floor let pnpm resolve undici@8.x, a major version
-# miniflare never declared support for and doesn't get exercised by
-# anything but this override. Getting the security fix shouldn't also
-# mean silently forcing a major bump on a dependency this project
-# doesn't control the compatibility contract for.
-#
-# nanoid (transitive, via postcss -- itself pulled in by vite, a
-# dependency of vitest/@cloudflare/vitest-pool-workers and, via
-# better-auth, this app's real `dependencies`) has GHSA-2v37-7h3g-55p8
-# below 3.3.17: customAlphabet/customRandom loop indefinitely when called
-# with size 0, a DoS if that size is ever attacker-controlled (Dependabot
-# alert #18). postcss's own declared range (^3.3.16) already permits the
-# fix -- pnpm just never re-resolves a non-direct dependency to a newer
-# version within an already-satisfied range on its own, hence the
-# override rather than waiting on postcss/vite to bump their own lockfile
-# entries. Constrained to the 3.x line postcss actually declared, not the
-# unrelated 5.x/6.x lines nanoid has since released, same "don't silently
-# force a major bump this project doesn't control the compatibility
-# contract for" reasoning as the undici override below.
-#
-# sharp (transitive, via miniflare -- both the stable 4.x line, via
-# @cloudflare/vitest-pool-workers, and the alpha 5.x line, via
-# @cloudflare/vite-plugin/#442 -- dev/test tooling only, never shipped to
-# the deployed app) has GHSA-rgj7-g3m4-5g8c below 0.35.4: a heap-based
-# buffer overflow in the bundled libheif decoder, potential RCE on
-# glibc-based Linux when decoding untrusted AVIF/HEIF input (Dependabot
-# alert #21). Both miniflare release lines hard-pin the exact version
-# "0.35.2" in their own package.json (confirmed by reading
-# node_modules/.pnpm/miniflare@*/node_modules/miniflare/package.json) --
-# unlike nanoid above, there's no already-permitted range to just
-# re-resolve within, so this needs a real override, not merely a nudge.
-# Pinned to the exact patched version (0.35.4, currently also latest)
-# rather than a range, matching how miniflare itself pins it -- nothing
-# in this repo's own code exercises sharp directly, so there's no
-# compatibility contract of this project's own to preserve across a
-# range the way undici's/nanoid's overrides above do.
+# Transitive security fixes ahead of the packages that pull them in, each scoped to the major line it fixes.
 overrides:
-  undici: '>=7.29.0 <8.0.0'
-  nanoid: '^3.3.17'
-  sharp: '0.35.4'
+  undici@7: '>=7.29.0'
+  nanoid@3: '^3.3.17'
+  sharp@<0.35.5: '^0.35.5'
+  shell-quote@1: '^1.12.0'
+  source-map-js@1: '^1.2.2'
+  brace-expansion@1: '^1.1.21'
