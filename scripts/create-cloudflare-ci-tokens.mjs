@@ -8,7 +8,8 @@ import { stdin, stdout } from "node:process";
 
 const API = "https://api.cloudflare.com/client/v4";
 const ZONE_NAME = "climbinglogbook.com";
-const EXISTING_INFRA_TOKEN = "[climbinglogbook.com] Infrastructure (classic)";
+// The infra permissions are copied from the current apply token, or from the original token before the first run.
+const INFRA_SOURCE_TOKENS = ["[climbinglogbook.com] CI infra apply", "[climbinglogbook.com] Infrastructure (classic)"];
 // Terraform manages no Workers and the infra workflow never runs wrangler, so the infra tokens don't get these.
 const NOT_FOR_TERRAFORM = new Set([
   "Workers Editor",
@@ -136,16 +137,18 @@ async function main() {
   apiToken = await promptHidden("Cloudflare API token (needs Account API Tokens: Edit): ");
 
   const groups = await api(`/accounts/${accountId}/tokens/permission_groups`);
-  const accountTokens = await listAll(`/accounts/${accountId}/tokens`);
-  const existing = accountTokens.find(t => t.name === EXISTING_INFRA_TOKEN);
+  const accountTokens = await listAll(`/accounts/${accountId}/tokens?include_expired=true`);
+  const existing = INFRA_SOURCE_TOKENS.map(name => accountTokens.find(t => t.name === name)).find(Boolean);
   if (!existing)
-    throw new Error(`No account token named "${EXISTING_INFRA_TOKEN}" to copy the infra permissions from.`);
+    throw new Error(
+      `No token named ${INFRA_SOURCE_TOKENS.map(n => `"${n}"`).join(" or ")} to copy the infra permissions from.`,
+    );
   // The zone comes from the token being copied, so this token needs no zone permissions of its own.
   const zoneId = existing.policies
     .flatMap(p => Object.keys(p.resources))
     .map(resource => resource.match(/^com\.cloudflare\.api\.account\.zone\.([0-9a-f]+)$/)?.[1])
     .find(Boolean);
-  if (!zoneId) throw new Error(`"${EXISTING_INFRA_TOKEN}" isn't scoped to a zone, so there's no zone to copy.`);
+  if (!zoneId) throw new Error(`"${existing.name}" isn't scoped to a zone, so there's no zone to copy.`);
 
   const resourcesByScope = {
     "com.cloudflare.api.account": { [`com.cloudflare.api.account.${accountId}`]: "*" },

@@ -161,8 +161,9 @@ replaces. It needs a token with Account API Tokens: Edit.
 
 - **Preview:** Workers Scripts Write, D1 Write, Account Settings Read.
 - **Deploy:** the same, plus Workers Routes Write on the zone.
-- **Infra apply:** copied from "[climbinglogbook.com] Infrastructure
-  (classic)" without its Workers grants, which Terraform doesn't use.
+- **Infra apply:** copied from the current "CI infra apply" token (the
+  first run copied the original "(classic)" token, without its Workers
+  grants, which Terraform doesn't use).
   Account: Access: Apps Write, Access: Policies Write, Notifications Write, D1 Write,
   Turnstile Sites Write, Email Routing Addresses Write, Account WAF,
   Rulesets and Rule Lists Write, Workers R2 Storage Write, Zero Trust
