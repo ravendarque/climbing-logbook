@@ -176,7 +176,7 @@ Everything else reaches `server/index.js`:
 | `/:username/<page>` (owner pages) | `my.`, `beta.` | the owner's own session | `server/api/owned-routes.js` |
 | `/:username` (public profile) | `my.` | none; the user's `logbook_public` setting | `server/api/public-profile.js` |
 | `/-/api/entries`, `/places`, `/locations`, `/settings`, `/entries/import`, `/performance/*`, `/map/counts` | any | session, every method | `RESOURCE_ROUTES` in `server/index.js` |
-| `/-/api/public/:username/*` | any | none; `logbook_public`, or a demo account | `server/api/public-data.js` |
+| `/-/api/public/:username/*` | any | none; `logbook_public`, or a demo account, checked on every request. 60 a minute per connection. Responses are cached at the edge under the user's data version, so a change shows at once and nothing needs purging (`server/lib/public-cache.js`) | `server/api/public-data.js` |
 | `/-/api/auth/*` | any | Better Auth's own | `server/lib/auth.js` |
 | `/-/api/report-issue`, `/-/api/feedback` | any | none; Turnstile and a rate limit | `server/api/submissions.js` |
 | `/-/api/health`, `/-/api/health/ready` | any | none. Liveness touches nothing; readiness runs `SELECT 1` with a 2 s timeout, cached for 15 s per isolate, and answers 503 `{ ok: false, check: "d1" }` on failure | `server/api/health.js` |

@@ -134,7 +134,7 @@ async function handleRequest(request, env, ctx, log) {
   const publicDataMatch = pathname.match(PUBLIC_DATA_PATH);
   if (publicDataMatch && method === "GET") {
     const [, username, resource] = publicDataMatch;
-    return handlePublicResource(request, env, username, resource);
+    return handlePublicResource(request, env, username, resource, ctx, log);
   }
 
   // Own properties only, so a method named "constructor" can't reach Object.prototype.

@@ -18,6 +18,7 @@ Every rate limit counted over seconds is a Rate Limiting binding, through `serve
 | Sign-in | target account (hashed email) | 5 a minute |
 | Saves | account | 120 a minute |
 | Imports | account | 2 a minute (and 10 a day, #1045) |
+| Public logbook reads | connection | 60 a minute (#1059) |
 | CSP reports | connection | 10 a minute |
 
 - A connection is its IPv4 address, or its IPv6 /64, since one host is given a whole /64.
