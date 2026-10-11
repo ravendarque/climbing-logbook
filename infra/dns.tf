@@ -65,12 +65,12 @@ resource "cloudflare_dns_record" "app_beta_subdomain" {
 }
 
 # Only the CAs Cloudflare issues this zone's certificates from (#1069). Cloudflare also adds these itself when any CAA record exists.
+# No iodef: a published reporting address gets scraped (#1365).
 locals {
   cloudflare_cas = ["letsencrypt.org", "pki.goog", "ssl.com", "sectigo.com"]
   caa_records = merge(
     { for ca in local.cloudflare_cas : "issue-${ca}" => { tag = "issue", value = ca } },
     { for ca in local.cloudflare_cas : "issuewild-${ca}" => { tag = "issuewild", value = ca } },
-    { iodef = { tag = "iodef", value = "mailto:support@${var.app_zone_name}" } },
   )
 }
 

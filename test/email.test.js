@@ -205,6 +205,13 @@ describe("createEmailSender parts (#1106)", () => {
     expect(whole).toBe(opened);
   });
 
+  it("says in both parts that replies aren't read, and where to get help (#1365)", async () => {
+    await sender.sendVerificationEmail("owner@example.com", url);
+    const help = `Replies to this address aren't read. For help, email ${["support", "climbinglogbook.com"].join("@")}.`;
+    expect(resendCalls[0].body.text).toContain(help);
+    expect(resendCalls[0].body.html).toContain(help.replace("aren't", "aren&#39;t"));
+  });
+
   it("names the new address in both parts of the email change", async () => {
     await sender.sendChangeEmailConfirmation("owner@example.com", "new@example.com", url);
     expect(resendCalls[0].body.text).toContain("new@example.com");

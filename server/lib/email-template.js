@@ -12,6 +12,9 @@ const COLOURS = {
 const BODY_FONT = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif";
 const DISPLAY_FONT = "'Bebas Neue', Impact, 'Arial Narrow Bold', 'Helvetica Neue', Arial, sans-serif";
 const LOCKUP_PATH = "/-/email-lockup.png";
+// Joined at runtime so the public repo never holds the address as a scrapeable literal (#1365).
+const SUPPORT_ADDRESS = ["support", "climbinglogbook.com"].join("@");
+const SEND_ONLY = `Replies to this address aren't read. For help, email ${SUPPORT_ADDRESS}.`;
 
 function originOf(url) {
   try {
@@ -65,7 +68,7 @@ ${paragraphs.map(htmlParagraph).join("\n")}
 <p style="margin:0 0 24px;font-size:14px;line-height:1.5;word-break:break-all"><a href="${url}" style="color:${COLOURS.accent}">${url}</a></p>
 <p style="margin:0;padding-top:20px;border-top:1px solid ${COLOURS.border};font-size:14px;line-height:1.5;color:${COLOURS.muted}">${escapeHtml(note)}</p>
 </td></tr>
-<tr><td style="padding:20px 4px 0;font-family:${BODY_FONT};font-size:12px;line-height:1.5;color:${COLOURS.muted}">Climbing Logbook sent this email about your account.</td></tr>
+<tr><td style="padding:20px 4px 0;font-family:${BODY_FONT};font-size:12px;line-height:1.5;color:${COLOURS.muted}">Climbing Logbook sent this email about your account. ${escapeHtml(SEND_ONLY)}</td></tr>
 </table>
 </td></tr>
 </table>
@@ -77,7 +80,7 @@ ${paragraphs.map(htmlParagraph).join("\n")}
     ...paragraphs.map(textParagraph),
     `${action.label}: ${action.url}`,
     note,
-    "Climbing Logbook",
+    `Climbing Logbook. ${SEND_ONLY}`,
   ].join("\n\n");
 
   return { html, text };
