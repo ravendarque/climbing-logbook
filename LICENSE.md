@@ -16,7 +16,7 @@ The licensor grants you an additional copyright licence to distribute copies of 
 
 ## Notices
 
-You must ensure that anyone who gets a copy of any part of the software from you also gets a copy of these terms, and of the schedule in `LICENSE-SCHEDULE.md`, as well as copies of any plain-text lines beginning with `Required Notice:` that the licensor provided with the software.
+You must ensure that anyone who gets a copy of any part of the software from you also gets a copy of these terms and of the schedule in `LICENSE-SCHEDULE.md`, or their URLs (https://github.com/ravendarque/climbing-logbook/blob/main/LICENSE.md and https://github.com/ravendarque/climbing-logbook/blob/main/LICENSE-SCHEDULE.md), as well as copies of any plain-text lines beginning with `Required Notice:` that the licensor provided with the software.
 
 ## Changes and New Works Licence
 

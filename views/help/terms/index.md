@@ -44,7 +44,7 @@ Climbing Logbook isn't available to:
 - companies that materially support those states' conduct
 - anyone acting for any of them
 
-It's the same rule as in [the licence for our source code](/help/licence/), which lists who it currently covers.
+It's the same rule as in [the licence for our source code](/help/licence/), whose schedule lists who it currently covers.
 
 <h2 id="acceptable-use">Acceptable use</h2>
 
