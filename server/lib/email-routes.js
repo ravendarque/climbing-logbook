@@ -14,8 +14,7 @@ export async function handlePasswordResetRequest(request, env, createAuth) {
   return createAuth().handler(new Request(request, { body: text }));
 }
 
-// Nothing in the app asks for this yet (#1335 adds the button). Without the bot check, a script could use up any
-// address's allowance and block its password resets.
+// Without the bot check, a script could use up any address's allowance and block its password resets.
 export async function handleVerificationResend(request, env, createAuth) {
   const { text, body } = await readBody(request);
   const failure = await turnstileFailure(env, body, "send another verification email");

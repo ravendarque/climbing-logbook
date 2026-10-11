@@ -1,6 +1,7 @@
 import { mockTurnstile } from "./mock-turnstile.js";
 import { expect, test } from "@playwright/test";
-import { DEV_USER } from "../scripts/lib/dev-session.mjs";
+import { DEV_USER, d1Execute } from "../scripts/lib/dev-session.mjs";
+import { TERMS_VERSION } from "../shared/terms.js";
 import { ownedRouteUrl } from "./owned-route-url.js";
 
 test.use({ storageState: { cookies: [], origins: [] } });
@@ -97,6 +98,56 @@ test("forgot password checks for a bot, then asks for the reset email (#1053)", 
 
   expect(request.postDataJSON()).toMatchObject({ email: "someone@example.com", turnstileToken: "e2e-stub-token" });
   await expect(page.locator("#login-info")).toBeVisible();
+});
+
+test("an unverified account is offered the verification email again (#1335)", async ({ page, baseURL }) => {
+  const code = `e2e-unverified-${Date.now()}`;
+  const email = `e2e-unverified-${Date.now()}@example.com`;
+  d1Execute(`INSERT OR IGNORE INTO beta_invites (code) VALUES ('${code}')`, {
+    database: "climbing-logbook-preview",
+    env: "preview",
+  });
+  const signUp = await page.request.post("/-/api/auth/sign-up/email", {
+    headers: { Origin: baseURL },
+    data: {
+      email,
+      username: `e2eunverified${Date.now()}`,
+      name: "unverified",
+      password: "correct-horse-battery-staple",
+      code,
+      turnstileToken: "e2e-stub-token",
+      agreedTermsVersion: TERMS_VERSION,
+    },
+  });
+  expect(signUp.ok(), await signUp.text()).toBe(true);
+
+  await mockTurnstile(page);
+  await page.goto("/login/");
+  await page.locator("#email").fill(email);
+  await page.locator("#password").fill("correct-horse-battery-staple");
+  await page.locator("#login-submit-btn").click();
+
+  await expect(page.locator("#login-error")).toHaveText(/Verify your email address first/);
+  await expect(page.locator("#resend-verification-btn")).toBeVisible();
+
+  const [request] = await Promise.all([
+    page.waitForRequest(req => req.url().includes("/-/api/auth/send-verification-email")),
+    page.locator("#resend-verification-btn").click(),
+  ]);
+
+  expect(request.postDataJSON()).toMatchObject({ email, turnstileToken: "e2e-stub-token" });
+  await expect(page.locator("#login-info")).toHaveText(/sent a new link/);
+  await expect(page.locator("#resend-verification-btn")).toBeHidden();
+});
+
+test("a wrong password doesn't offer the verification email", async ({ page }) => {
+  await page.goto("/login/");
+  await page.locator("#email").fill(DEV_USER.email);
+  await page.locator("#password").fill("definitely-the-wrong-password");
+  await page.locator("#login-submit-btn").click();
+
+  await expect(page.locator("#login-error")).toBeVisible();
+  await expect(page.locator("#resend-verification-btn")).toBeHidden();
 });
 
 test("forgot password requires an email first", async ({ page }) => {
