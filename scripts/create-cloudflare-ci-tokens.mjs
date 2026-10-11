@@ -2,6 +2,7 @@
 //   node scripts/create-cloudflare-ci-tokens.mjs
 // Prompts for a Cloudflare API token that can create account tokens (Account API Tokens: Edit). Rerun to rotate.
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { stdin, stdout } from "node:process";
 
 const API = "https://api.cloudflare.com/client/v4";
@@ -115,7 +116,8 @@ const namesOf = (groups, policies) =>
   policies.flatMap(p => p.permission_groups.map(({ id }) => groups.find(g => g.id === id)?.name ?? id));
 
 async function main() {
-  const accountId = execFileSync("gh", ["variable", "get", "CLOUDFLARE_ACCOUNT_ID"], { encoding: "utf8" }).trim();
+  const accountId = readFileSync("wrangler.jsonc", "utf8").match(/"account_id"\s*:\s*"([0-9a-f]+)"/)?.[1];
+  if (!accountId) throw new Error("No account_id in wrangler.jsonc. Run this from the repo root.");
   apiToken = await promptHidden("Cloudflare API token (needs Account API Tokens: Edit): ");
 
   const [zone] = await api(`/zones?name=${ZONE_NAME}&account.id=${accountId}`);
