@@ -89,7 +89,9 @@ dashboard or elsewhere, and why:
 
 - **AI crawler settings `ai_training` (disallow), `ai_search` (disabled)
   and `ai_user` (block)** (Security → Bots). The provider (5.21) has no
-  attributes for them; the rest of the bot settings are in `bots.tf`.
+  attributes for them. The rest of the bot settings, Bot Fight Mode
+  included, are in `bots.tf`: change them there, since the next apply
+  undoes a dashboard change.
 - **DMARC Management** (Email → DMARC Management). No provider resource.
   The DMARC record itself, with its reports address, is in
   `email-routing.tf`.

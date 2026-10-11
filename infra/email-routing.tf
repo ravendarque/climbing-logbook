@@ -51,6 +51,10 @@ resource "cloudflare_dns_record" "resend_bounce_mx" {
   ttl      = 3600
   priority = 10
   content  = "feedback-smtp.eu-west-1.amazonses.com"
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 import {
@@ -64,6 +68,10 @@ resource "cloudflare_dns_record" "resend_spf" {
   type    = "TXT"
   ttl     = 3600
   content = "\"v=spf1 include:amazonses.com ~all\""
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 import {
@@ -77,4 +85,8 @@ resource "cloudflare_dns_record" "resend_dkim" {
   type    = "TXT"
   ttl     = 3600
   content = "\"v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC3a9eWtmBUjvv50VN6dgj7/O8b/fnCMNqGI+gPiKstst1XP6/y8NuzqPsbpGvJQkiYVRAfbjR988+pk81yBxGNtIHGdsNkhX+CP5mTmBwrHFjuA8o4ssRWLptUzmF9cFqppX5jYkft75OQUvoAaTmgt/JQ54MFfJnlU/RsDZPPcQIDAQAB\""
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
