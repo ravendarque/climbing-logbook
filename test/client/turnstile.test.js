@@ -59,6 +59,17 @@ describe("renderTurnstile", () => {
     expect(window.turnstile.reset).toHaveBeenCalledWith("widget-1");
   });
 
+  it("renders every widget that was waiting when api.js loads", () => {
+    containerOfWidth(312);
+    renderTurnstile("#turnstile-widget");
+    renderTurnstile("#turnstile-widget");
+
+    window.turnstile = fakeTurnstile();
+    window.onTurnstileLoad();
+
+    expect(window.turnstile.render).toHaveBeenCalledTimes(2);
+  });
+
   it("waits for a check still running in the background, and gives up after ten seconds", async () => {
     vi.useFakeTimers();
     containerOfWidth(312);

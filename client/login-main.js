@@ -130,6 +130,10 @@ forgotPasswordBtn.addEventListener("click", async () => {
   }
 });
 
+emailInput.addEventListener("input", () => {
+  resendEl.hidden = true;
+});
+
 resendBtn.addEventListener("click", async () => {
   errorEl.hidden = true;
   infoEl.hidden = true;
