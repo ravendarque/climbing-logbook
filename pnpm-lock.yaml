@@ -46,7 +46,7 @@ importers:
         version: 2.5.15
       '@cloudflare/vite-plugin':
         specifier: ^1.63.0
-        version: 1.63.0(@types/node@26.6.2)(vite@8.3.3(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))(wrangler@4.149.0(@cloudflare/workers-types@5.20261008.1)(@types/node@26.6.2))
+        version: 1.63.0(@types/node@26.6.2)(vite@8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))(wrangler@4.149.0(@cloudflare/workers-types@5.20261008.1)(@types/node@26.6.2))
       '@cloudflare/vitest-plugin':
         specifier: ^1.4.0
         version: 1.4.0(@cloudflare/workers-types@5.20261008.1)(@types/node@26.6.2)(vitest@5.0.3)
@@ -63,8 +63,8 @@ importers:
         specifier: ^5.0.3
         version: 5.0.3(vitest@5.0.3)
       concurrently:
-        specifier: ^10.0.5
-        version: 10.0.5
+        specifier: ^10.0.6
+        version: 10.0.6
       d3-geo:
         specifier: ^3.1.1
         version: 3.1.1
@@ -96,11 +96,11 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
       vite:
-        specifier: ^8.3.3
-        version: 8.3.3(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)
+        specifier: ^8.3.4
+        version: 8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)
       vitest:
         specifier: ^5.0.3
-        version: 5.0.3(@types/node@26.6.2)(@vitest/coverage-istanbul@5.0.3)(happy-dom@20.14.5)(vite@8.3.3(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))
+        version: 5.0.3(@types/node@26.6.2)(@vitest/coverage-istanbul@5.0.3)(happy-dom@20.14.5)(vite@8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))
       world-atlas:
         specifier: ^2.0.2
         version: 2.0.2
@@ -1538,8 +1538,8 @@ packages:
   concat-map@0.0.1:
     resolution: {integrity: sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==}
 
-  concurrently@10.0.5:
-    resolution: {integrity: sha512-JaP/CoftUrCcAFW/g//RbgEGwlelnEae6cfBLgH6ZdO6s8jPkn6p9SB9u6pdVxYXoiSnFqseOlHfrEfF82TVOg==}
+  concurrently@10.0.6:
+    resolution: {integrity: sha512-qgICXXFp2/3nAebRLmxcINKEXM1mLK3ij/y31P02VTs/KIkddIeC05n73DxOXsXMB9LFSqNU1/na3lDlOhcbIw==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -2493,8 +2493,8 @@ packages:
     resolution: {integrity: sha512-u4J1hr6Y+C/hit34GwL3eIcUf3wngT8TlYUjK7tk0jxydKLAq3sYvifjdTDA6U3KCKRcQCQDGf/srjxfZF3l7g==}
     engines: {node: '>=18.12.0'}
 
-  vite@8.3.3:
-    resolution: {integrity: sha512-cTAldKPImjg6c+gk48U19POPn3GCBzZwpdsN8ZMEEcbpes+6/wvfqUd0C2y3qYY4wsj8PwgFwrZ/1jBPVttMSg==}
+  vite@8.3.4:
+    resolution: {integrity: sha512-IftLE8phJhdNRIGNEV4JCCvfNScoZQVfcXaN8TQropWGJtOHcu+iAB9pHcuGvmEb/kddw0LBe/jS8ztdC6xdiQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
@@ -2962,12 +2962,12 @@ snapshots:
     optionalDependencies:
       workerd: 1.20261006.1
 
-  '@cloudflare/vite-plugin@1.63.0(@types/node@26.6.2)(vite@8.3.3(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))(wrangler@4.149.0(@cloudflare/workers-types@5.20261008.1)(@types/node@26.6.2))':
+  '@cloudflare/vite-plugin@1.63.0(@types/node@26.6.2)(vite@8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))(wrangler@4.149.0(@cloudflare/workers-types@5.20261008.1)(@types/node@26.6.2))':
     dependencies:
       '@cloudflare/unenv-preset': 2.16.2(unenv@2.0.0-rc.24)(workerd@1.20261006.1)
       miniflare: 5.20261006.0-alpha(@types/node@26.6.2)
       unenv: 2.0.0-rc.24
-      vite: 8.3.3(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)
+      vite: 8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)
       workerd: 1.20261006.1
       wrangler: 4.149.0(@cloudflare/workers-types@5.20261008.1)(@types/node@26.6.2)
       ws: 8.21.0
@@ -2981,7 +2981,7 @@ snapshots:
       cjs-module-lexer: 1.2.3
       esbuild: 0.28.2
       miniflare: 5.20261006.1-alpha(@types/node@26.6.2)
-      vitest: 5.0.3(@types/node@26.6.2)(@vitest/coverage-istanbul@5.0.3)(happy-dom@20.14.5)(vite@8.3.3(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))
+      vitest: 5.0.3(@types/node@26.6.2)(@vitest/coverage-istanbul@5.0.3)(happy-dom@20.14.5)(vite@8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))
       wrangler: 4.149.0(@cloudflare/workers-types@5.20261008.1)(@types/node@26.6.2)
       zod: 4.6.5
     transitivePeerDependencies:
@@ -3588,7 +3588,7 @@ snapshots:
       magicast: 0.5.5
       obug: 2.2.1
       tinyrainbow: 3.1.1
-      vitest: 5.0.3(@types/node@26.6.2)(@vitest/coverage-istanbul@5.0.3)(happy-dom@20.14.5)(vite@8.3.3(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))
+      vitest: 5.0.3(@types/node@26.6.2)(@vitest/coverage-istanbul@5.0.3)(happy-dom@20.14.5)(vite@8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))
 
   '@vitest/istanbul-lib-coverage@1.0.2': {}
 
@@ -3610,14 +3610,14 @@ snapshots:
       '@vitest/istanbul-lib-coverage': 1.0.2
       obug: 2.2.1
 
-  '@vitest/mocker@5.0.3(vite@8.3.3(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))':
+  '@vitest/mocker@5.0.3(vite@8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       '@vitest/spy': 5.0.3
       estree-walker: 3.0.3
       magic-string: 1.4.3
     optionalDependencies:
-      vite: 8.3.3(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)
+      vite: 8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)
 
   '@vitest/spy@5.0.3': {}
 
@@ -3691,7 +3691,7 @@ snapshots:
     optionalDependencies:
       '@prisma/client': 5.22.0
       pg: 8.22.0
-      vitest: 5.0.3(@types/node@26.6.2)(@vitest/coverage-istanbul@5.0.3)(happy-dom@20.14.5)(vite@8.3.3(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))
+      vitest: 5.0.3(@types/node@26.6.2)(@vitest/coverage-istanbul@5.0.3)(happy-dom@20.14.5)(vite@8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))
     transitivePeerDependencies:
       - '@opentelemetry/api'
 
@@ -3769,7 +3769,7 @@ snapshots:
 
   concat-map@0.0.1: {}
 
-  concurrently@10.0.5:
+  concurrently@10.0.6:
     dependencies:
       chalk: 5.6.2
       rxjs: 7.8.2
@@ -4651,7 +4651,7 @@ snapshots:
 
   verkit@0.5.0: {}
 
-  vite@8.3.3(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0):
+  vite@8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0):
     dependencies:
       lightningcss: 1.33.0
       picomatch: 4.0.7
@@ -4664,10 +4664,10 @@ snapshots:
       fsevents: 2.3.3
       jiti: 2.7.0
 
-  vitest@5.0.3(@types/node@26.6.2)(@vitest/coverage-istanbul@5.0.3)(happy-dom@20.14.5)(vite@8.3.3(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)):
+  vitest@5.0.3(@types/node@26.6.2)(@vitest/coverage-istanbul@5.0.3)(happy-dom@20.14.5)(vite@8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)):
     dependencies:
       '@types/chai': 5.2.3
-      '@vitest/mocker': 5.0.3(vite@8.3.3(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))
+      '@vitest/mocker': 5.0.3(vite@8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))
       chai: 6.2.2
       es-module-lexer: 2.3.2
       expect-type: 1.4.0
@@ -4678,7 +4678,7 @@ snapshots:
       tinybench: 6.2.1
       tinyexec: 1.3.1
       tinyglobby: 0.2.17
-      vite: 8.3.3(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)
+      vite: 8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)
       why-is-node-running: 3.2.1
     optionalDependencies:
       '@types/node': 26.6.2
