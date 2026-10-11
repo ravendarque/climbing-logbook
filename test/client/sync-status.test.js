@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isSynced, markSynced } from "../../client/sync-status.js";
+import { forgetSync, isSynced, markSynced } from "../../client/sync-status.js";
 
 // The Workers pool has no localStorage global.
 function fakeStorage() {
@@ -7,6 +7,7 @@ function fakeStorage() {
   return {
     getItem: k => (map.has(k) ? map.get(k) : null),
     setItem: (k, v) => map.set(k, String(v)),
+    removeItem: k => map.delete(k),
   };
 }
 
@@ -30,6 +31,13 @@ describe("isSynced/markSynced", () => {
   it("isSynced is false for a marker written under a different version", () => {
     const storage = fakeStorage();
     storage.setItem("logbook_sync_status", JSON.stringify({ version: 0, syncedAt: Date.now() }));
+    expect(isSynced(storage)).toBe(false);
+  });
+
+  it("forgetSync sends the device through a full sync again", () => {
+    const storage = fakeStorage();
+    markSynced(storage);
+    forgetSync(storage);
     expect(isSynced(storage)).toBe(false);
   });
 });

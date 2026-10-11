@@ -73,6 +73,34 @@ test("warm with drift: /sync takes the delta path and catches up on a change fro
   expect(cached.map(e => e.name)).toContain("Drifted In");
 });
 
+test("a device offline past the tombstone purge gets a 410 and syncs again in full (#1051)", async ({
+  page,
+  owner,
+}) => {
+  await owner.seed(SEED);
+  await gotoSyncedLog(page, owner);
+  await owner.seed({ locations: [], places: [], entries: [{ id: "after-purge", grade: "7A", name: "After Purge" }] });
+
+  let expired = false;
+  await page.route("**/-/api/entries?since=*", route => {
+    if (expired) return route.continue();
+    expired = true;
+    return route.fulfill({ status: 410, contentType: "application/json", body: "{}" });
+  });
+  const visited = [];
+  page.on("framenavigated", frame => {
+    if (frame === page.mainFrame()) visited.push(new URL(frame.url()).pathname);
+  });
+
+  await page.goto(owner.url("/log"));
+  await page.waitForURL(`**/${owner.username}/sync**`);
+  await page.waitForURL(`**/${owner.username}/log`);
+
+  expect(visited).toContain(`/${owner.username}/sync`);
+  const cached = await cachedEntries(page, owner.username);
+  expect(cached.map(e => e.name)).toContain("After Purge");
+});
+
 test("a freshly synced device already has its settings when /log renders, so the form shows Performance (#1177)", async ({
   page,
   owner,

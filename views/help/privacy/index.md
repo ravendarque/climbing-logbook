@@ -19,7 +19,7 @@ We use this to run the app for you, and for nothing else.
 
 ## How long we keep it
 
-- **A climb you delete** loses its name, notes, video link, date and moves straight away. We keep a marker that it was deleted, so your other devices remove it too.
+- **A climb you delete** loses its name, notes, video link, date and moves straight away. We keep a marker that it was deleted, so your other devices remove it too. We delete the marker after 30 days, once you've made another change since. A device that's been offline for longer downloads your logbook again in full.
 - **Each sign-in** records the IP address and browser it came from, so you can stay logged in. We delete that about a week after the sign-in expires.
 - **Email links**, for checking your email address or resetting your password, are deleted within a day of expiring.
 - **Your account and logbook** stay until you delete your account in My account, which removes them.
