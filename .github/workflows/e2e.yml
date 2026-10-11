@@ -4,6 +4,11 @@ name: E2E
 on:
   pull_request:
 
+permissions:
+  contents: read
+  # The paths filter lists a pull request's changed files.
+  pull-requests: read
+
 jobs:
   changes:
     runs-on: ubuntu-latest
@@ -27,7 +32,7 @@ jobs:
     if: needs.changes.outputs.relevant == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-node-pnpm
       - run: pnpm exec playwright install --with-deps chromium
       # Cloudflare's public always-passes Turnstile test secret, not a credential.
@@ -35,7 +40,7 @@ jobs:
       # A test-only value: e2e setup signs its seeded users' session cookies with it.
       - run: echo 'BETTER_AUTH_SECRET=e2e-only-secret-not-used-anywhere-else-0000' >> .dev.vars
       - run: pnpm run test:e2e
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: playwright-traces

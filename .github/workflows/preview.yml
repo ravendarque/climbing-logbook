@@ -32,7 +32,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-node-pnpm
       - id: upload
         uses: ./.github/actions/upload-preview
@@ -58,7 +58,7 @@ jobs:
       group: preview-db
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-node-pnpm
       - name: Apply D1 migrations to the preview database
         env:
@@ -70,7 +70,7 @@ jobs:
     if: github.actor != 'dependabot[bot]' && github.event.action == 'closed'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-node-pnpm
       - name: Delete the Preview
         run: pnpm exec wrangler preview delete --worker-name climbing-logbook-preview --name "pr-${{ github.event.pull_request.number }}" --skip-confirmation

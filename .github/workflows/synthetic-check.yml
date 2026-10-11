@@ -43,6 +43,12 @@ on:
     - cron: '*/30 * * * *'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  # Reads its own previous run, and opens an issue when production fails.
+  actions: read
+  issues: write
+
 jobs:
   check:
     # workflow_run fires on every completion of Deploy, including a
@@ -52,12 +58,12 @@ jobs:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # No pnpm/dependency install -- the script is plain Node fetch with
       # zero npm dependencies, so the full setup-node-pnpm composite
       # action (which also runs `pnpm install`) would just be wasted
       # work here.
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
       - run: node scripts/synthetic-check.mjs
