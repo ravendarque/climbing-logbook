@@ -5,13 +5,11 @@
 If you find a security vulnerability in this project, please report it
 privately rather than opening a public issue.
 
-**Preferred: GitHub private vulnerability reporting.** Use the "Report a
-vulnerability" button under this repo's
+Use GitHub's private vulnerability reporting: the "Report a vulnerability"
+button under this repo's
 [Security tab](https://github.com/ravendarque/climbing-logbook/security/advisories/new).
 This opens a private draft advisory visible only to the maintainer until a
 fix is ready.
-
-**Alternative: email** nix@ravendarque.com.
 
 Please include:
 - A description of the vulnerability and its impact
