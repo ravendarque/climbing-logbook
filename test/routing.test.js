@@ -15,6 +15,7 @@ const ROUTES = {
   "/-/api/performance/gap": ["GET"],
   "/-/api/performance/rpe": ["GET"],
   "/-/api/map/counts": ["GET"],
+  "/-/api/terms": ["POST"],
 };
 
 const RETIRED_PATHS = [

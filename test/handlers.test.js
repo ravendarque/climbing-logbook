@@ -302,6 +302,7 @@ describe("settings", () => {
       logbookPublic: false,
       betaOptIn: false,
       onboardingCompleted: false,
+      terms: null,
     });
   });
 
@@ -468,6 +469,7 @@ describe("settings", () => {
       logbookPublic: false,
       betaOptIn: false,
       onboardingCompleted: false,
+      terms: null,
     });
   });
 });

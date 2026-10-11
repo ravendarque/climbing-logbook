@@ -113,6 +113,14 @@ If you disagree with something we've done, or with how we handled a report, use 
 
 <h2 id="changes">Changes to these terms</h2>
 
-If we change these terms in a way that matters, we'll tell you in the app before the change takes effect, and ask you to agree again. The date below shows the latest version.
+If we change these terms in a way that matters, we'll tell you in the app at least 14 days before the change takes effect, and ask you to agree again. Until it takes effect, you can agree now or later. After that, you can still see, export or delete your logbook, but nothing new is saved until you agree.
 
 *Last updated: {{ termsUpdated }}*
+
+{% for version in termsHistory %}
+<h3>{{ version.updated }}{% if version.effective %}, taking effect on {{ version.effective }}{% endif %}</h3>
+
+{% for change in version.changes -%}
+- {{ change }}
+{% endfor %}
+{% endfor %}

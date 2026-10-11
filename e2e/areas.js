@@ -7,6 +7,7 @@ export const AREAS = {
     "account-import-page",
     "remove-device-data",
     "beta-channel",
+    "terms-prompt",
   ],
   log: [
     "log-page",

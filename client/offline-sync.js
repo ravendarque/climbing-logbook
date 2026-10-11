@@ -1,6 +1,7 @@
 import { pullDelta as pullTableDelta, readPendingQueue } from "./delta-pull.js";
 import { isUnauthorized } from "./api-fetch.js";
 import { addFailedWrite, isPermanentFailure } from "./failed-writes.js";
+import { TERMS_AGREED_EVENT } from "./terms-prompt.js";
 import { isQuotaError, isSafariTab } from "./storage-quota.js";
 
 export function createOfflineSync({
@@ -237,9 +238,11 @@ export function createOfflineSync({
   }
 
   syncNow.addEventListener("click", syncPending);
-  window.addEventListener("online", () => {
-    if (store.isLoggedIn()) syncPending();
-  });
+  for (const event of ["online", TERMS_AGREED_EVENT]) {
+    window.addEventListener(event, () => {
+      if (store.isLoggedIn()) syncPending();
+    });
+  }
 
   return { getQueue, setQueue, enqueue, syncPending, updateSyncLine, reconcileEntries };
 }

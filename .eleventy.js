@@ -3,21 +3,23 @@ import eleventyNavigationPlugin from "@11ty/eleventy-navigation";
 import { execFileSync } from "node:child_process";
 import { minifyStaticScripts } from "./scripts/minify-static.mjs";
 import { gradeScaleMatrixHtml, gradeScaleSourcesHtml } from "./client/grade-scale-matrix.js";
-import { TERMS_VERSION } from "./shared/terms.js";
+import { TERMS_HISTORY, TERMS_VERSION } from "./shared/terms.js";
 
 const ASSET_VERSION = String(Date.now());
 
 export default function (eleventyConfig) {
   eleventyConfig.addGlobalData("assetVersion", ASSET_VERSION);
   eleventyConfig.addGlobalData("copyrightYear", new Date().getFullYear());
+  const longDate = iso =>
+    new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  eleventyConfig.addGlobalData("termsUpdated", longDate(TERMS_VERSION));
   eleventyConfig.addGlobalData(
-    "termsUpdated",
-    new Date(TERMS_VERSION).toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      timeZone: "UTC",
-    }),
+    "termsHistory",
+    TERMS_HISTORY.map(({ version, effective, changes }) => ({
+      updated: longDate(version),
+      effective: effective === version ? null : longDate(effective),
+      changes,
+    })).reverse(),
   );
 
   eleventyConfig.addPassthroughCopy({ static: "." });

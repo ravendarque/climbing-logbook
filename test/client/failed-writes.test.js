@@ -20,7 +20,7 @@ describe("isPermanentFailure", () => {
   it.each([400, 403, 404, 409, 422])("treats %i as permanent", status => {
     expect(isPermanentFailure(status)).toBe(true);
   });
-  it.each([401, 408, 429, 500, 502, 503])("treats %i as worth retrying or handled elsewhere", status => {
+  it.each([401, 408, 428, 429, 500, 502, 503])("treats %i as worth retrying or handled elsewhere", status => {
     expect(isPermanentFailure(status)).toBe(false);
   });
 });

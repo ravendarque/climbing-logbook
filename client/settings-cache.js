@@ -47,7 +47,7 @@ export async function pullSettings({ onTimeout = () => {} } = {}) {
     try {
       writeSettingsCache(settings);
     } catch {}
-    return settings;
+    return { ...settings, terms: data.terms ?? null };
   } catch (err) {
     if (err.name === "TimeoutError") onTimeout();
     return null;
