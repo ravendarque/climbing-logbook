@@ -1,5 +1,6 @@
 import { getCursor, setCursor } from "./sync-cursors.js";
 import { BACKGROUND_FETCH_TIMEOUT_MS } from "./sync-status-icon.js";
+import { forgetSync } from "./sync-status.js";
 
 // Offline is skipped quietly; a real timeout is reported, since onLine can read true on a dead link.
 export async function pullDelta({ store, url, table, onTimeout }) {
@@ -7,6 +8,12 @@ export async function pullDelta({ store, url, table, onTimeout }) {
     const res = await fetch(`${url}?since=${getCursor(table)}`, {
       signal: AbortSignal.timeout(BACKGROUND_FETCH_TIMEOUT_MS),
     });
+    // Offline past the tombstone horizon: the page's boot gate sends it through /sync again.
+    if (res.status === 410) {
+      forgetSync();
+      location.reload();
+      return;
+    }
     if (!res.ok) return;
     const { [table]: rows, cursor } = await res.json();
     if (await store.mergeConfirmed(table, rows)) setCursor(table, cursor);
