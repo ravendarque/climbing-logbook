@@ -26,6 +26,8 @@ test("draws the lockup from the preloaded, content-hashed SVG, with the button o
   const svg = await page.evaluate(async url => (await fetch(url)).text(), preload);
   expect(svg).toContain('<symbol id="lockup"');
 
+  await expect(page.locator("#brand-lockup")).toBeVisible();
+  await expect(page.locator("#footnote-trigger")).toBeVisible();
   const lockup = await page.locator("#brand-lockup").boundingBox();
   const button = await page.locator("#footnote-trigger").boundingBox();
   expect(button.x).toBeGreaterThan(lockup.x + lockup.width * 0.8);
