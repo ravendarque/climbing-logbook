@@ -139,7 +139,7 @@ that carries the change. The repo doesn't let Actions open PRs, on purpose
 | `CLOUDFLARE_PREVIEW_TOKEN`, `CLOUDFLARE_INFRA_PLAN_TOKEN` | Actions secrets | Previews; Terraform plan on PRs (permissions below) |
 | `CLOUDFLARE_DEPLOY_TOKEN` | `production` environment secret | Deploy and promote |
 | `CLOUDFLARE_INFRA_APPLY_TOKEN` | `infra` environment secret | Terraform apply and the state bootstrap |
-| `RELEASE_APP_ID`, `RELEASE_APP_PRIVATE_KEY` | Actions secrets | The release GitHub App, which pushes the version tag that triggers a deploy (Contents: write, this repo only) |
+| `RELEASE_APP_CLIENT_ID` (variable), `RELEASE_APP_PRIVATE_KEY` (secret) | Actions variable and secret | The release GitHub App, which pushes the version tag that triggers a deploy (Contents: write, this repo only) |
 | `PROJECT_STATUS_PAT` | Actions secret | Classic token with only the `project` scope, for the board sync; a GitHub App can't reach a board owned by a personal account |
 | `TF_STATE_ACCESS_KEY_ID`, `TF_STATE_SECRET_ACCESS_KEY` | Actions secrets | R2 credentials for the state backend (created under R2 → Manage R2 API Tokens) |
 | `CLOUDFLARE_ACCOUNT_ID` | Actions variable | Not confidential |

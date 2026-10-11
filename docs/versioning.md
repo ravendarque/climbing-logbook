@@ -139,8 +139,9 @@ no push to `main`) and creates a GitHub Release with auto-generated notes —
 no manual step required. Because it never pushes to `main`, this never
 interacts with branch protection on `main` — tags aren't covered by it.
 That tag push is what triggers `deploy.yml`. It authenticates with a
-short-lived token from the release GitHub App (`RELEASE_APP_ID`,
-`RELEASE_APP_PRIVATE_KEY`; Contents: write on this repo only) rather than
+short-lived token from the release GitHub App (`RELEASE_APP_CLIENT_ID`
+variable, `RELEASE_APP_PRIVATE_KEY` secret; Contents: write on this repo
+only) rather than
 the default `GITHUB_TOKEN`, since GitHub doesn't let a
 `GITHUB_TOKEN`-authenticated push trigger other workflows (#197, #1069).
 
