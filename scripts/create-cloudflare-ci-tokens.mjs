@@ -137,7 +137,7 @@ async function main() {
   apiToken = await promptHidden("Cloudflare API token (needs Account API Tokens: Edit): ");
 
   const groups = await api(`/accounts/${accountId}/tokens/permission_groups`);
-  const accountTokens = await listAll(`/accounts/${accountId}/tokens`);
+  const accountTokens = await listAll(`/accounts/${accountId}/tokens?include_expired=true`);
   const existing = INFRA_SOURCE_TOKENS.map(name => accountTokens.find(t => t.name === name)).find(Boolean);
   if (!existing)
     throw new Error(
