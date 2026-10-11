@@ -63,6 +63,9 @@
     <div class="w-full max-w-[360px] bg-surface border border-border rounded-app p-6 text-center" id="register-success" hidden>
       <h1 class="font-display text-3xl mb-4 tracking-wide">Check your email</h1>
       <p class="text-muted">We've sent a verification link to <strong id="register-success-email"></strong>. Click it to activate your account and log in.</p>
+      <p class="text-sm text-muted mt-4">Not there? Check your spam folder, or <button type="button" class="text-accent-ink underline underline-offset-2 bg-transparent border-0 p-0 cursor-pointer disabled:opacity-[.45] disabled:cursor-not-allowed" id="resend-verification-btn">send it again</button>.</p>
+      <div id="resend-turnstile" class="mt-4 flex justify-center"></div>
+      <p class="text-sm mt-2" id="resend-status" tabindex="-1" hidden></p>
     </div>
   </main>
   <script type="module" src="/-/register-app.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>

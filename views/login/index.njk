@@ -37,7 +37,10 @@
         <div id="turnstile-widget"></div>
 
         <p class="mb-4 error-message" id="login-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>
-        <p class="text-sm text-muted mb-4" id="login-info" hidden></p>
+        <p class="text-sm mb-4" id="login-resend" hidden>
+          <button type="button" class="text-accent-ink underline underline-offset-2 bg-transparent border-0 p-0 cursor-pointer disabled:opacity-[.45] disabled:cursor-not-allowed" id="resend-verification-btn">Send the verification email again</button>
+        </p>
+        <p class="text-sm text-muted mb-4" id="login-info" role="status" aria-live="polite" hidden></p>
 
         <button type="submit" class="btn btn-primary w-full disabled:opacity-[.45] disabled:cursor-not-allowed" id="login-submit-btn">Log in</button>
 

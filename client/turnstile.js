@@ -11,6 +11,9 @@ function turnstileSitekey(hostname) {
 const NORMAL_WIDTH = 300;
 const RESPONSE_WAIT_MS = 10_000;
 
+// Every widget rendered before api.js loads, not just the last, renders when it does.
+const waitingForLoad = [];
+
 // Hidden unless the check needs a click; api.js is async and may run before this module.
 export function renderTurnstile(selector) {
   let widgetId;
@@ -23,7 +26,12 @@ export function renderTurnstile(selector) {
     });
   };
   if (window.turnstile) render();
-  else window.onTurnstileLoad = render;
+  else {
+    waitingForLoad.push(render);
+    window.onTurnstileLoad = () => {
+      for (const renderWaiting of waitingForLoad.splice(0)) renderWaiting();
+    };
+  }
 
   const getResponse = () => window.turnstile?.getResponse(widgetId);
   return {

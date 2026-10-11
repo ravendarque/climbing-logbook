@@ -1,6 +1,7 @@
 import { needsChannelChoice, resolvePostLoginTarget } from "./resolve-app-origin.js";
 import { redirectIfLoggedIn } from "./session-redirect.js";
 import { SIGNED_IN_USER_KEY } from "./user-storage.js";
+import { resendVerificationEmail } from "./resend-verification.js";
 import { renderTurnstile } from "./turnstile.js";
 
 redirectIfLoggedIn(document.getElementById("page-content"));
@@ -13,7 +14,9 @@ const infoEl = document.getElementById("login-info");
 const submitBtn = document.getElementById("login-submit-btn");
 const emailInput = document.getElementById("email");
 const forgotPasswordBtn = document.getElementById("forgot-password-btn");
-// Only a reset request is checked (#1053). Cloudflare's script loads once the page has, so it can't hold up sign-in.
+const resendEl = document.getElementById("login-resend");
+const resendBtn = document.getElementById("resend-verification-btn");
+// Only reset and resend requests are checked (#1053, #1335). Cloudflare's script loads after the page, so it can't hold up sign-in.
 const turnstile = renderTurnstile("#turnstile-widget");
 window.addEventListener("load", () => {
   const script = document.createElement("script");
@@ -32,6 +35,7 @@ form.addEventListener("submit", async event => {
   event.preventDefault();
   errorEl.hidden = true;
   infoEl.hidden = true;
+  resendEl.hidden = true;
   submitBtn.disabled = true;
 
   try {
@@ -73,6 +77,11 @@ form.addEventListener("submit", async event => {
       return;
     }
 
+    if (data?.code === "EMAIL_NOT_VERIFIED") {
+      showError("Verify your email address first, using the link we sent when you signed up.");
+      resendEl.hidden = false;
+      return;
+    }
     showError(data?.message || `Login failed (${res.status}).`);
   } catch {
     showError("Network error -- check your connection and try again.");
@@ -119,4 +128,23 @@ forgotPasswordBtn.addEventListener("click", async () => {
     // Tokens are single-use, so every request needs a fresh one.
     turnstile.reset();
   }
+});
+
+emailInput.addEventListener("input", () => {
+  resendEl.hidden = true;
+});
+
+resendBtn.addEventListener("click", async () => {
+  errorEl.hidden = true;
+  infoEl.hidden = true;
+  resendBtn.disabled = true;
+  const { ok, message } = await resendVerificationEmail(emailInput.value, turnstile);
+  resendBtn.disabled = false;
+  if (!ok) {
+    showError(message);
+    return;
+  }
+  resendEl.hidden = true;
+  infoEl.textContent = message;
+  infoEl.hidden = false;
 });

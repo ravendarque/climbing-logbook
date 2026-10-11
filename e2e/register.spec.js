@@ -34,6 +34,34 @@ test("registers with a valid invite code, shows the check-your-email state", asy
   await expect(page.locator("#register-success")).toBeVisible();
 });
 
+test("the check-your-email state can send the email again (#1335)", async ({ page }) => {
+  const code = `e2e-resend-${Date.now()}`;
+  const email = `e2e-resend-${Date.now()}@example.com`;
+  seedInviteCode(code);
+
+  await mockTurnstile(page);
+  await page.goto("/register/");
+  await waitForTurnstile(page);
+  await page.locator("#code").fill(code);
+  await page.locator("#email").fill(email);
+  await page.locator("#username").fill(`e2eresend${Date.now()}`);
+  await page.locator("#password").fill("correct-horse-battery-staple");
+  await page.locator("#agree-terms").check();
+  await page.locator("#register-submit-btn").click();
+  await expect(page.locator("#register-success")).toBeVisible();
+
+  const [request, response] = await Promise.all([
+    page.waitForRequest(req => req.url().includes("/-/api/auth/send-verification-email")),
+    page.waitForResponse(res => res.url().includes("/-/api/auth/send-verification-email")),
+    page.locator("#resend-verification-btn").click(),
+  ]);
+
+  expect(request.postDataJSON()).toMatchObject({ email, turnstileToken: "e2e-stub-token" });
+  expect(response.status()).toBe(200);
+  await expect(page.locator("#resend-status")).toHaveText(/sent a new link/);
+  await expect(page.locator("#resend-status")).toBeFocused();
+});
+
 test("won't sign up until the terms of use are agreed", async ({ page }) => {
   await mockTurnstile(page);
   await page.goto("/register/");

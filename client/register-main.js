@@ -1,4 +1,5 @@
 import { TERMS_VERSION } from "../shared/terms.js";
+import { resendVerificationEmail } from "./resend-verification.js";
 import { renderTurnstile } from "./turnstile.js";
 
 const form = document.getElementById("register-form");
@@ -61,6 +62,7 @@ form.addEventListener("submit", async event => {
       form.hidden = true;
       document.getElementById("register-success-email").textContent = email;
       successEl.hidden = false;
+      offerResend(email);
       return;
     }
 
@@ -83,3 +85,21 @@ form.addEventListener("submit", async event => {
     turnstile.reset();
   }
 });
+
+// The sign-up widget is hidden with the form, so the resend gets its own.
+function offerResend(email) {
+  const resendTurnstile = renderTurnstile("#resend-turnstile");
+  const resendBtn = document.getElementById("resend-verification-btn");
+  const statusEl = document.getElementById("resend-status");
+  resendBtn.addEventListener("click", async () => {
+    resendBtn.disabled = true;
+    statusEl.hidden = true;
+    const { ok, message } = await resendVerificationEmail(email, resendTurnstile);
+    statusEl.textContent = message;
+    statusEl.classList.toggle("error-message", !ok);
+    statusEl.classList.toggle("text-muted", ok);
+    statusEl.hidden = false;
+    statusEl.focus();
+    resendBtn.disabled = false;
+  });
+}
