@@ -1,6 +1,7 @@
 // Creates the four scoped Cloudflare tokens CI uses and stores each straight in GitHub, never printing a value (#1069).
 //   node scripts/create-cloudflare-ci-tokens.mjs
-// Prompts for a Cloudflare API token that can create account tokens (Account API Tokens: Edit). Rerun to rotate.
+// Prompts for a Cloudflare API token that can create account tokens (Account API Tokens: Edit).
+// Rerun to rotate: each older token with the same name is revoked once its replacement is stored.
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { stdin, stdout } from "node:process";
@@ -19,7 +20,10 @@ const EXPIRES_ON = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(
 
 function promptHidden(question) {
   return new Promise((resolve, reject) => {
-    if (!stdin.isTTY) reject(new Error("Run this in a terminal, so the token can be typed without echoing."));
+    if (!stdin.isTTY) {
+      reject(new Error("Run this in a terminal, so the token can be typed without echoing."));
+      return;
+    }
     stdout.write(question);
     stdin.setRawMode(true);
     stdin.resume();
@@ -32,7 +36,7 @@ function promptHidden(question) {
           stdin.pause();
           stdin.off("data", onData);
           stdout.write("\n");
-          resolve(value);
+          resolve(value.trim());
           return;
         }
         if (char === "\u0003") {
@@ -57,7 +61,7 @@ async function prompt(question) {
 }
 
 let apiToken;
-async function api(path, init = {}) {
+async function apiBody(path, init = {}) {
   const res = await fetch(`${API}${path}`, {
     ...init,
     headers: { Authorization: `Bearer ${apiToken}`, "Content-Type": "application/json" },
@@ -67,7 +71,18 @@ async function api(path, init = {}) {
     const errors = (body.errors ?? []).map(e => `${e.code}: ${e.message}`).join("; ");
     throw new Error(`${init.method ?? "GET"} ${path} failed (${res.status}): ${errors}`);
   }
-  return body.result;
+  return body;
+}
+
+const api = async (path, init) => (await apiBody(path, init)).result;
+
+async function listAll(path) {
+  const items = [];
+  for (let page = 1; ; page++) {
+    const body = await apiBody(`${path}${path.includes("?") ? "&" : "?"}page=${page}&per_page=50`);
+    items.push(...body.result);
+    if (!body.result_info || page >= body.result_info.total_pages) return items;
+  }
 }
 
 // The API and the dashboard name the same group "... Write" and "... Edit".
@@ -123,7 +138,8 @@ async function main() {
   const [zone] = await api(`/zones?name=${ZONE_NAME}&account.id=${accountId}`);
   if (!zone) throw new Error(`Zone ${ZONE_NAME} not found in this account.`);
   const groups = await api(`/accounts/${accountId}/tokens/permission_groups`);
-  const existing = (await api(`/accounts/${accountId}/tokens?per_page=50`)).find(t => t.name === EXISTING_INFRA_TOKEN);
+  const accountTokens = await listAll(`/accounts/${accountId}/tokens`);
+  const existing = accountTokens.find(t => t.name === EXISTING_INFRA_TOKEN);
   if (!existing)
     throw new Error(`No account token named "${EXISTING_INFRA_TOKEN}" to copy the infra permissions from.`);
 
@@ -174,6 +190,10 @@ async function main() {
     for (const name of namesOf(groups, token.policies)) console.log(`    ${name}`);
   }
   if (skipped.length > 0) console.log(`\nNo read-only version, so left off the plan token: ${skipped.join(", ")}`);
+  const replaced = accountTokens.filter(t => tokens.some(token => token.name === t.name));
+  if (replaced.length > 0) {
+    console.log(`\nRevokes ${replaced.length} older token(s) with these names, once each replacement is stored.`);
+  }
 
   if ((await prompt("\nCreate these four tokens and store them in GitHub? [y/N] ")).toLowerCase() !== "y") {
     console.log("Nothing created.");
@@ -191,6 +211,10 @@ async function main() {
       stdio: ["pipe", "ignore", "inherit"],
     });
     console.log(`Created ${token.name} and stored it as ${token.secret}.`);
+    for (const old of replaced.filter(t => t.name === token.name)) {
+      await api(`/accounts/${accountId}/tokens/${old.id}`, { method: "DELETE" });
+      console.log(`  Revoked the older ${token.name} (issued ${old.issued_on}).`);
+    }
   }
   console.log("\nDone. Tell Claude, which switches the workflows over; then revoke the old CLOUDFLARE_API_TOKEN.");
 }
