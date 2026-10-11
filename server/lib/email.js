@@ -32,7 +32,7 @@ export function createEmailSender(env, log) {
   log ??= createLogger({ env });
   function sendTemplated(to, subject, content) {
     const payload = { from: FROM_ADDRESS, to, subject, ...renderEmail({ title: subject, ...content }) };
-    return send(env, log, payload, content.action.url);
+    return send(env, log, payload, content.action?.url);
   }
 
   return {
