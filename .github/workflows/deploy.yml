@@ -27,6 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           # Full history + tags needed to diff this tag against the
           # previous one below -- the default shallow checkout only has
           # the single commit the tag points at.

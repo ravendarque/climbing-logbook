@@ -9,12 +9,14 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
   terraform:
     runs-on: ubuntu-latest
+    permissions:
+      # Pushes the generated-config branch.
+      contents: write
     defaults:
       run:
         working-directory: infra
