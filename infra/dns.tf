@@ -63,3 +63,26 @@ resource "cloudflare_dns_record" "app_beta_subdomain" {
     prevent_destroy = true
   }
 }
+
+# Only the CAs Cloudflare issues this zone's certificates from (#1069). Cloudflare also adds these itself when any CAA record exists.
+locals {
+  cloudflare_cas = ["letsencrypt.org", "pki.goog", "ssl.com", "sectigo.com"]
+  caa_records = merge(
+    { for ca in local.cloudflare_cas : "issue-${ca}" => { tag = "issue", value = ca } },
+    { for ca in local.cloudflare_cas : "issuewild-${ca}" => { tag = "issuewild", value = ca } },
+    { iodef = { tag = "iodef", value = "mailto:support@${var.app_zone_name}" } },
+  )
+}
+
+resource "cloudflare_dns_record" "app_caa" {
+  for_each = local.caa_records
+  zone_id  = data.cloudflare_zone.app.id
+  name     = var.app_zone_name
+  type     = "CAA"
+  ttl      = 3600
+  data = {
+    flags = 0
+    tag   = each.value.tag
+    value = each.value.value
+  }
+}
