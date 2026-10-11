@@ -1,10 +1,5 @@
 # Three days, not pnpm 11's default one: long enough for a compromised release to be caught and pulled (#1040).
 minimumReleaseAge: 4320
-# Raven accepted this Cloudflare release batch early for vitest 5 support (#1348); drop after 2026-10-11 18:30 UTC.
-minimumReleaseAgeExclude:
-  - '@cloudflare/vitest-plugin@1.4.0'
-  - 'miniflare@5.20261006.1-alpha'
-  - 'wrangler@4.149.0'
 
 allowBuilds:
   '@parcel/watcher': true
