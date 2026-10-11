@@ -96,7 +96,7 @@ jobs:
         id: classify
         if: github.event_name == 'push'
         run: |
-          CURRENT_TAG="${{ github.ref_name }}"
+          CURRENT_TAG="$GITHUB_REF_NAME"
           PREV_TAG=$(git tag -l 'v*' --sort=-v:refname | grep -A1 "^${CURRENT_TAG}$" | tail -1)
           if [ -z "$PREV_TAG" ] || [ "$PREV_TAG" = "$CURRENT_TAG" ]; then
             echo "No previous tag found -- treating as direct (deploys to both beta and production)."

@@ -36,7 +36,8 @@ name: Synthetic production check
 # same reasoning the no-auto-file decision above already established for
 # a single failure, just re-applied one confirmed-real-regression later.
 on:
-  workflow_run:
+  # Runs repo code from main and reads nothing from the triggering run.
+  workflow_run: # zizmor: ignore[dangerous-triggers]
     workflows: [Deploy]
     types: [completed]
   schedule:
@@ -101,7 +102,7 @@ jobs:
           # recent workflow_run-triggered run that HAS actually finished.
           #
           # --workflow takes this file's own filename, not
-          # ${{ github.workflow }} -- that resolves to the `name:` field
+          # the workflow's name -- that resolves to the `name:` field
           # above ("Synthetic production check"), which `gh run list`
           # does NOT match against (confirmed empirically: the name form
           # errors "could not find any workflows named ...", the filename

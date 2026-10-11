@@ -42,4 +42,5 @@ jobs:
           PREVIEW_DEV_EMAIL: ${{ secrets.PREVIEW_DEV_EMAIL }}
           PREVIEW_DEV_PASSWORD: ${{ secrets.PREVIEW_DEV_PASSWORD }}
           PREVIEW_BETA_INVITE_CODE: ${{ secrets.PREVIEW_BETA_INVITE_CODE }}
-        run: node scripts/seed-preview-data.mjs "${{ steps.upload.outputs.url }}"
+          PREVIEW_URL: ${{ steps.upload.outputs.url }}
+        run: node scripts/seed-preview-data.mjs "$PREVIEW_URL"

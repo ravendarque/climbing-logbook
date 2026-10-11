@@ -59,7 +59,7 @@ jobs:
                   }
                 }
               }
-            }' -f owner="${{ github.repository_owner }}" -f repo="${{ github.event.repository.name }}" -F num="$ISSUE_NUM" \
+            }' -f owner="$GITHUB_REPOSITORY_OWNER" -f repo="${GITHUB_REPOSITORY#*/}" -F num="$ISSUE_NUM" \
             --jq ".data.repository.issue.projectItems.nodes[] | select(.project.id == \"$PROJECT_ID\") | .id")
 
           if [ -z "$ITEM_ID" ]; then
@@ -109,7 +109,7 @@ jobs:
                   }
                 }
               }
-            }' -f owner="${{ github.repository_owner }}" -f repo="${{ github.event.repository.name }}" -F num="$ISSUE_NUM" \
+            }' -f owner="$GITHUB_REPOSITORY_OWNER" -f repo="${GITHUB_REPOSITORY#*/}" -F num="$ISSUE_NUM" \
             --jq ".data.repository.issue.projectItems.nodes[] | select(.project.id == \"$PROJECT_ID\") | .id")
 
           if [ -z "$ITEM_ID" ]; then

@@ -1,0 +1,5 @@
+rules:
+  dependabot-cooldown:
+    config:
+      # Matches pnpm's minimumReleaseAge (docs/infra-architecture.md, Supply chain).
+      days: 3
