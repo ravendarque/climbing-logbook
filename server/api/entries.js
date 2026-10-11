@@ -1,5 +1,6 @@
 import { ACCOUNT_LIMITS } from "../../shared/account-limits.js";
 import { json, parseJsonBody } from "../lib/json.js";
+import { STRIP_ENTRY_CONTENT } from "../lib/cleanup.js";
 import { withoutTrackingParams } from "../../shared/video-links.js";
 import {
   createD1ResourceHandlers,
@@ -337,11 +338,18 @@ export async function handleDelete(request, env, userId) {
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return json({ error: "Missing required field: id" }, 400);
 
-  await env.LOGBOOK_DB.prepare(
-    `UPDATE entries SET deleted_at = ?, sync_cursor = ${nextCursorSql("entries")}, updated_at = datetime('now') WHERE id = ? AND user_id = ?`,
-  )
-    .bind(Date.now(), userId, id, userId)
-    .run();
+  // There's no undo, so nothing the climb said is kept: the row stays only as a sync tombstone (#1051).
+  await env.LOGBOOK_DB.batch([
+    env.LOGBOOK_DB.prepare(
+      `UPDATE entries SET deleted_at = ?, ${STRIP_ENTRY_CONTENT}, sync_cursor = ${nextCursorSql("entries")}, updated_at = datetime('now') WHERE id = ? AND user_id = ?`,
+    ).bind(Date.now(), userId, id, userId),
+    env.LOGBOOK_DB.prepare(
+      `DELETE FROM entry_moves WHERE entry_id = ? AND entry_id IN (SELECT id FROM entries WHERE user_id = ?)`,
+    ).bind(id, userId),
+    env.LOGBOOK_DB.prepare(
+      `DELETE FROM entry_pain_moves WHERE entry_id = ? AND entry_id IN (SELECT id FROM entries WHERE user_id = ?)`,
+    ).bind(id, userId),
+  ]);
 
   return new Response(null, { status: 204 });
 }

@@ -70,6 +70,8 @@
     // So a typo'd CLOUDFLARE_ENV fails loudly. name is explicit, or Wrangler deploys a second
     // "climbing-logbook-production" script. Infra syncs only the top-level D1 id: update the env copies by hand.
     "production": {
+      // Daily clean-up of expired sessions, links and deleted climbs (#1051); beta shares production's database, so only one of them runs it.
+      "triggers": { "crons": ["17 3 * * *"] },
       "name": "climbing-logbook",
       "version_metadata": { "binding": "CF_VERSION_METADATA" },
       "vars": {
@@ -97,6 +99,8 @@
       ]
     },
     "preview": {
+      // The same daily clean-up as production, on the preview database (#1051).
+      "triggers": { "crons": ["17 3 * * *"] },
       "workers_dev": true,
       "routes": [],
       "version_metadata": { "binding": "CF_VERSION_METADATA" },

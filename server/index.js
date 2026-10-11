@@ -16,6 +16,7 @@ import { handleLiveness, handleReadiness } from "./api/health.js";
 import { handleCspReport } from "./api/csp-report.js";
 import { withContentSecurityPolicy } from "./lib/csp.js";
 import { capRequestBody } from "./lib/body-limit.js";
+import { cleanUp } from "./lib/cleanup.js";
 import { handlePublicProfile } from "./api/public-profile.js";
 import { handlePublicResource } from "./api/public-data.js";
 import { handleOwnedRoute } from "./api/owned-routes.js";
@@ -172,6 +173,16 @@ export default {
       const ref = request.headers.get("cf-ray") ?? crypto.randomUUID();
       log.error("request.unhandled", { err, ref, status: 500 });
       return withContentSecurityPolicy(errorResponse(url, ref));
+    }
+  },
+
+  async scheduled(_controller, env) {
+    const log = createLogger({ env, route: "scheduled" });
+    try {
+      await cleanUp(env, log);
+    } catch (err) {
+      log.error("cleanup.failed", { err });
+      throw err;
     }
   },
 };
