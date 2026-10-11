@@ -28,7 +28,7 @@ question behind it, not just "add some tests":
 **Three layers, each targeting a failure mode the others structurally
 can't catch:**
 
-1. **`vitest` + `@cloudflare/vitest-pool-workers`** (#203) — Cloudflare's
+1. **`vitest` + `@cloudflare/vitest-plugin`** (#203) — Cloudflare's
    own recommended setup, running tests against the real Workers runtime
    (Miniflare) with actual bindings (KV, D1), not hand-rolled mocks.
    `vitest.config.js` is wired to `wrangler.jsonc` via the pool's config

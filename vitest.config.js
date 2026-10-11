@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-pool-workers";
+import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-plugin";
 import { defineConfig } from "vitest/config";
 
 // Read in Node: the Workers pool can't read the filesystem, so migrations go in as a binding.

@@ -60,7 +60,7 @@ constraint above doesn't apply to it.
   the beta gate, and will recur for any similar future need.
 - `test/beta-gate.test.js`'s coverage is split across two files
   (`test/beta-gate.test.js`, `test/beta-gate-rejections.test.js`) along a
-  `@cloudflare/vitest-pool-workers` per-file isolate boundary — a
+  `@cloudflare/vitest-plugin` per-file isolate boundary — a
   test-harness-specific artifact found while building this change,
   unrelated to the application code. See that file's own header comment
   for the detail; not significant enough for its own ADR.
