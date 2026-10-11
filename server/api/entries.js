@@ -224,12 +224,15 @@ async function handleDelta(url, env, userId, { includeChildRows }) {
   const since = intParam(url, "since");
   if (since.response) return since.response;
   if (!userId) return json({ entries: [], cursor: since.value }, 200, { "Cache-Control": "no-store" });
-  if (await missedPurgedTombstones(env, userId, since.value)) {
+  const [missed, { rows, cursor }] = await Promise.all([
+    missedPurgedTombstones(env, userId, since.value),
+    listChangedForUser(env, "entries", userId, rowToJsonWithDeleted, since.value),
+  ]);
+  if (missed) {
     return json({ error: "Too long since this device synced. Sync again in full." }, 410, {
       "Cache-Control": "no-store",
     });
   }
-  const { rows, cursor } = await listChangedForUser(env, "entries", userId, rowToJsonWithDeleted, since.value);
   const decorated = includeChildRows ? await attachChildRows(rows, env) : rows;
   return json({ entries: decorated, cursor }, 200, { "Cache-Control": "no-store" });
 }

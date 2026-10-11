@@ -3,10 +3,10 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export const SESSION_GRACE_DAYS = 7;
 export const TOMBSTONE_DAYS = 30;
 
-// Bounded per run, so a backlog clears over several days without hitting D1's per-invocation limits.
-// RETURNING counts rows: meta.changes also counts the usage-count triggers' writes.
+// Bounded per run for D1's limits; RETURNING counts rows, as meta.changes includes the usage triggers' writes.
+const someOf = (table, where) => `SELECT rowid, * FROM ${table} WHERE ${where} ORDER BY rowid LIMIT ${BATCH}`;
 const deleteSomeOf = (table, where) =>
-  `DELETE FROM ${table} WHERE rowid IN (SELECT rowid FROM ${table} WHERE ${where} LIMIT ${BATCH}) RETURNING 1`;
+  `DELETE FROM ${table} WHERE rowid IN (SELECT rowid FROM (${someOf(table, where)})) RETURNING 1`;
 
 const DELETED_ENTRY = "entry_id IN (SELECT id FROM entries WHERE deleted_at IS NOT NULL)";
 
@@ -38,7 +38,7 @@ export async function cleanUp(env, log, now = Date.now()) {
       "purge-floors",
       env.LOGBOOK_DB.prepare(
         `INSERT INTO entry_purge_floors (user_id, cursor)
-           SELECT user_id, MAX(sync_cursor) FROM entries WHERE ${PURGEABLE_TOMBSTONE} GROUP BY user_id
+           SELECT user_id, MAX(sync_cursor) FROM (${someOf("entries", PURGEABLE_TOMBSTONE)}) WHERE true GROUP BY user_id
            ON CONFLICT (user_id) DO UPDATE SET cursor = MAX(cursor, excluded.cursor) RETURNING 1`,
       ).bind(tombstoneCutoff),
     ],
