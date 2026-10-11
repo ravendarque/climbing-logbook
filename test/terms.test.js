@@ -82,6 +82,10 @@ describe("agreeing to updated terms (#1354)", () => {
     expect((await jsonRequest("PATCH", "/-/api/settings", { athleteMode: true }, { Cookie: cookie })).status).toBe(200);
   });
 
+  it("refuses a request without a version", async () => {
+    expect((await jsonRequest("POST", "/-/api/terms", {}, { Cookie: cookie })).status).toBe(400);
+  });
+
   it("won't record agreement to a version that isn't the latest", async () => {
     await putOnOlderTerms();
     const res = await agree(TERMS_HISTORY[0].version);

@@ -33,7 +33,7 @@ function dialogHtml({ effective, required, changes }) {
     <p class="text-sm"><a class="text-accent-ink underline underline-offset-2" href="/help/terms/" target="_blank" rel="noopener">Read the Terms of use</a></p>
     <p class="text-sm error-message" id="terms-prompt-error" role="alert" hidden></p>
     <div class="flex flex-wrap justify-end gap-2">
-      ${required ? "" : `<button type="button" class="btn" id="terms-later-btn">Later</button>`}
+      <button type="button" class="btn" id="terms-later-btn">${required ? "Not now" : "Later"}</button>
       <button type="button" class="btn btn-primary disabled:opacity-[.45] disabled:cursor-not-allowed" id="terms-agree-btn">I agree</button>
     </div>
   </div>`;
@@ -56,7 +56,7 @@ async function agree(version) {
 
 let shown = null;
 
-// Asked on every page until agreed; an update still in its notice period can be put off until the next version.
+// An update still in its notice period can be put off until the next version.
 export function showTermsPrompt(update) {
   if (!update || shown) return;
   if (!update.required && putOffFor(update.version)) return;
@@ -72,27 +72,22 @@ export function showTermsPrompt(update) {
   const agreeBtn = dialog.querySelector("#terms-agree-btn");
   const errorEl = dialog.querySelector("#terms-prompt-error");
 
-  dialog.addEventListener("cancel", event => {
-    if (update.required) event.preventDefault();
-  });
   let settled = false;
   function dismiss() {
     settled = true;
     dialog.close();
     dialog.remove();
   }
-  function putOffAndDismiss() {
-    putOff(update.version);
+  // A required update is asked again on the next page; saves stay paused meanwhile.
+  function notNow() {
+    if (!update.required) putOff(update.version);
     dismiss();
   }
 
-  // Chrome lets Escape close a dialog despite preventDefault until the page has had a click or key press.
   dialog.addEventListener("close", () => {
-    if (settled) return;
-    if (update.required) dialog.showModal();
-    else putOffAndDismiss();
+    if (!settled) notNow();
   });
-  dialog.querySelector("#terms-later-btn")?.addEventListener("click", putOffAndDismiss);
+  dialog.querySelector("#terms-later-btn").addEventListener("click", notNow);
   agreeBtn.addEventListener("click", async () => {
     agreeBtn.disabled = true;
     errorEl.hidden = true;

@@ -24,7 +24,8 @@ export function refuseUntilTermsAgreed(user) {
 export async function handleAgreeTerms(request, env, userId) {
   const parsed = await parseJsonBody(request);
   if (!parsed.ok) return parsed.response;
-  if (parsed.body?.version !== TERMS_VERSION) {
+  if (typeof parsed.body?.version !== "string") return json({ error: "version must be a string" }, 400);
+  if (parsed.body.version !== TERMS_VERSION) {
     return json(
       { error: "The terms of use have changed again. Reload the page to see them.", code: "TERMS_CHANGED" },
       409,

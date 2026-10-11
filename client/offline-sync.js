@@ -158,6 +158,8 @@ export function createOfflineSync({
           store.setLoggedIn(false);
           break;
         }
+        // Waits for the terms to be agreed, not the backoff: retrying can't succeed until then.
+        if (res.status === 428) break;
         if (!res.ok && !isPermanentFailure(res.status)) {
           // Stopped, not skipped: a later item may depend on this one.
           serverFailing = true;
