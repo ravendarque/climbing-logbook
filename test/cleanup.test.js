@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { env, exports } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanUp } from "../server/lib/cleanup.js";
 import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
@@ -122,5 +122,16 @@ describe("the daily clean-up (#1051)", () => {
       notes: "Fell off the crux twice",
       moves: 1,
     });
+  });
+});
+
+describe("the cron trigger (#1051)", () => {
+  it("runs the clean-up when Cloudflare fires it", async () => {
+    await climbWithEverything("cron-tombstone");
+    await db.prepare(`UPDATE entries SET deleted_at = 1 WHERE id = 'cron-tombstone'`).run();
+
+    await exports.default.scheduled({ scheduledTime: Date.now(), cron: "17 3 * * *" });
+
+    expect(await content("cron-tombstone")).toMatchObject({ name: "", notes: null });
   });
 });
