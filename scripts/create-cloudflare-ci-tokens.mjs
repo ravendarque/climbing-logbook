@@ -220,7 +220,7 @@ async function main() {
       console.log(`  Revoked the older ${token.name} (issued ${old.issued_on}).`);
     }
   }
-  console.log("\nDone. Tell Claude, which switches the workflows over; then revoke the old CLOUDFLARE_API_TOKEN.");
+  console.log("\nDone. The next CI runs use the new tokens.");
 }
 
 main().catch(err => {

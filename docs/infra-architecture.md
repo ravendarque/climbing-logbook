@@ -136,7 +136,9 @@ that carries the change. The repo doesn't let Actions open PRs, on purpose
 
 | Name | Kind | Purpose |
 |---|---|---|
-| `CLOUDFLARE_API_TOKEN` | Actions secret | Terraform and Wrangler (permissions below) |
+| `CLOUDFLARE_PREVIEW_TOKEN`, `CLOUDFLARE_INFRA_PLAN_TOKEN` | Actions secrets | Previews; Terraform plan on PRs (permissions below) |
+| `CLOUDFLARE_DEPLOY_TOKEN` | `production` environment secret | Deploy and promote |
+| `CLOUDFLARE_INFRA_APPLY_TOKEN` | `infra` environment secret | Terraform apply and the state bootstrap |
 | `TF_STATE_ACCESS_KEY_ID`, `TF_STATE_SECRET_ACCESS_KEY` | Actions secrets | R2 credentials for the state backend (created under R2 → Manage R2 API Tokens) |
 | `CLOUDFLARE_ACCOUNT_ID` | Actions variable | Not confidential |
 | `SYNTHETIC_USER_EMAIL`, `SYNTHETIC_USER_PASSWORD` | Actions secrets | The synthetic check's account (`infra/README.md`) |
@@ -144,37 +146,35 @@ that carries the change. The repo doesn't let Actions open PRs, on purpose
 | `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD` | Worker variables (`wrangler.jsonc`) | What the Worker checks the admin host's Access token against. Infra writes `ACCESS_AUD` after apply; empty, the admin host refuses everything |
 | `BETTER_AUTH_SECRET` | Worker secret, per environment | Session signing |
 | `RESEND_API_KEY` | Worker secret, per environment | Verification and password-reset email (sent from `myaccount@climbinglogbook.com`) |
-| `EMAIL_DELIVERY` | Worker variable, `e2e` only (`wrangler.jsonc`) | `"off"` logs each email instead of sending it through Resend, since e2e registers and resets passwords for real users |
+| `EMAIL_DELIVERY` | Worker variable (`wrangler.jsonc`) | `"off"` in `e2e` skips every email, since e2e registers and resets passwords by the dozen; `"log"` in local dev prints each email's link to the terminal (only when `APP_ENV` is `development`) |
 | `TURNSTILE_SECRET_KEY` | Worker secret, per environment | Turnstile verification. Production and beta each need the real value (`terraform output -raw turnstile_secret`); preview and local dev use Cloudflare's public always-passes test secret |
 
 Worker secrets are set once by hand with `wrangler secret put <name>
 --env <env>`. Setting one environment never sets another. Local dev reads
 them from `.dev.vars` (gitignored).
 
-### `CLOUDFLARE_API_TOKEN` permissions
+### Cloudflare token permissions
+
+`node scripts/create-cloudflare-ci-tokens.mjs` creates all four as
+account-owned tokens, each expiring after a year, and revokes any it
+replaces. It needs a token with Account API Tokens: Edit.
+
+- **Preview:** Workers Scripts Write, D1 Write, Account Settings Read.
+- **Deploy:** the same, plus Workers Routes Write on the zone.
+- **Infra apply:** copied from "[climbinglogbook.com] Infrastructure
+  (classic)" without its Workers grants, which Terraform doesn't use.
+  Account: Access: Apps Write, Access: Policies Write, Notifications Write, D1 Write,
+  Turnstile Sites Write, Email Routing Addresses Write, Account WAF,
+  Rulesets and Rule Lists Write, Workers R2 Storage Write, Zero Trust
+  Write. Zone `climbinglogbook.com`: DNS, Zone WAF, Zone Settings, Cache
+  Settings, Dynamic URL Redirects and Email Routing Rules Write.
+- **Infra plan:** the read-only version of each apply permission.
 
 **Never add a per-Worker granular policy** (`Individual Workers Editor` and
-similar, scoped to one script) to this token. Writes that included one
-failed or silently left the token with no policies at all, and that took
-days to diagnose. Use the account-wide `Workers Editor` grant instead.
-Verify a token's real contents with `GET /accounts/{id}/tokens/{id}`, not
-the dashboard labels.
-
-The token's current grants (rebuilt and verified 2026-09-20):
-
-- **Account:** Workers Editor, Workers Scripts Write, Workers R2 Storage
-  Write, D1 Write, Turnstile Sites Write, Account WAF Write, Account
-  Rulesets Write, Account Rule Lists Write, Access: Policies Write, Access:
-  Apps Write and Zero Trust Write (the admin host, ADR-0034). Also Workers
-  KV Storage Write, which nothing in this repo uses any more: drop it at the
-  next rebuild.
-- **Zone `climbinglogbook.com`:** Workers Routes Write, DNS Write, Zone WAF
-  Write, Cache Settings Write, Dynamic URL Redirects Write.
-- **For Email Routing (#1280):** Email Routing Addresses Write (account), and
-  Email Routing Rules Write and Zone Settings Write (zone). Turning on Email
-  Routing's DNS records needs Zone Settings Write.
-- **For alerts (#1052):** Notifications Write (account).
-- No access to any other zone.
+similar) by editing a token in place. Writes that included one failed or
+silently left the token with no policies at all, which took days to
+diagnose. Verify a token's real contents with `GET /accounts/{id}/tokens/{id}`,
+not the dashboard labels.
 
 ## Beta invites
 
