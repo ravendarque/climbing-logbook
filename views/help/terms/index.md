@@ -10,7 +10,7 @@ eleventyNavigation:
 
 These are the rules for using Climbing Logbook. When you create an account, you agree to them.
 
-Climbing Logbook is an independent project run from the UK. If anything here isn't clear, email **support@climbinglogbook.com**.
+Climbing Logbook is an independent project run from the UK. If anything here isn't clear, [ask us](/help/report-an-issue/).
 
 <h2 id="your-account">Your account</h2>
 
@@ -101,7 +101,7 @@ To get it back, change whatever broke the rules and [ask us to look again](/help
 
 <h2 id="complaints">Complaints and appeals</h2>
 
-If you disagree with something we've done, or with how we handled a report, email **support@climbinglogbook.com** or use [Report an issue](/help/report-an-issue/). A person will review it, and we'll try to reply within 14 days.
+If you disagree with something we've done, or with how we handled a report, use [Report an issue](/help/report-an-issue/). A person will review it, and we'll try to reply within 14 days.
 
 <h2 id="our-side">Our side of it</h2>
 

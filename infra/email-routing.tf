@@ -1,4 +1,4 @@
-# support@ is the contact the terms of use give (#1280); mail to it is forwarded, never published.
+# support@ is the contact account emails give (#1280, #1365); mail to it is forwarded, and it's never published on the site.
 resource "cloudflare_email_routing_dns" "app" {
   zone_id = data.cloudflare_zone.app.id
 }
