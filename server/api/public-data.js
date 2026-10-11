@@ -1,4 +1,6 @@
 import { json } from "../lib/json.js";
+import { cachedPublic } from "../lib/public-cache.js";
+import { clientKey, rateLimited } from "../lib/rate-limits.js";
 import { resolvePublicUser } from "./public-profile.js";
 import { handlePublicGet } from "./entries.js";
 import { rowToJson as placeRowToJson } from "./places.js";
@@ -61,13 +63,22 @@ const DEMO_ONLY_HANDLERS = {
   "performance/rpe": handleGetEffort,
 };
 
-export async function handlePublicResource(request, env, username, resource) {
+export async function handlePublicResource(request, env, username, resource, ctx, log) {
+  const limited = await rateLimited(env, "PUBLIC_READ_LIMITER", clientKey(request), {
+    message: "That's a lot of requests. Wait a minute, then try again.",
+    surface: "public-read",
+    log,
+  });
+  if (limited) return limited;
+
   const target = await resolvePublicUser(env, username);
   if (!target) return json({ error: "Not found" }, 404, { "Cache-Control": "no-store" });
 
   if (resource in DEMO_ONLY_HANDLERS) {
     if (!target.isDemo) return json({ error: "Not found" }, 404, { "Cache-Control": "no-store" });
-    return DEMO_ONLY_HANDLERS[resource](request, env, target.id);
+    return cachedPublic(request, env, ctx, target.id, resource, () =>
+      DEMO_ONLY_HANDLERS[resource](request, env, target.id),
+    );
   }
 
   // Owner-only: a delta response carries soft-deleted rows in full.
@@ -77,5 +88,5 @@ export async function handlePublicResource(request, env, username, resource) {
     request = new Request(url, request);
   }
 
-  return HANDLERS[resource](request, env, target.id);
+  return cachedPublic(request, env, ctx, target.id, resource, () => HANDLERS[resource](request, env, target.id));
 }
