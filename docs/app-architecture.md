@@ -333,7 +333,7 @@ Tables (see `migrations/` for columns and constraints):
 
 | Table | Holds |
 |---|---|
-| `entries` | One climb: name, grade and `grade_scale`, discipline, status, flash, date, video, notes, attempts, RPE, sport style. Soft-deleted (`deleted_at`) and stamped with `sync_cursor` for delta sync. |
+| `entries` | One climb: name, grade and `grade_scale`, discipline, status, flash, date, video, notes, attempts, RPE, sport style. Soft-deleted (`deleted_at`) and stamped with `sync_cursor` for delta sync. A delete strips the name, notes, video, date and moves at once, leaving only the tombstone (#1051). |
 | `entry_moves`, `entry_pain_moves` | Per-move tags for the strengths and injury reports |
 | `places`, `locations` | An area within a crag, and the crag with its country. Entries reference a place; a place references a location. A user's location names, and area names within a location, are unique ignoring case, and triggers stop a row from referencing another user's place or location. |
 | `settings` | One row per user: Athlete Mode, active discipline, public logbook, beta enrollment |
@@ -376,6 +376,7 @@ Tables (see `migrations/` for columns and constraints):
   delete on another device mid-load can't shift a live row past the next
   page. The device keeps the first chunk's cursor, so its next delta
   re-covers anything that changed during the load.
+- **A daily cron** (`scheduled()` in `server/index.js`, `server/lib/cleanup.js`; production and preview, since beta shares production's database) deletes sessions expired over a week ago and expired verification links, and strips anything left on climbs deleted before deletes did it themselves. It works in batches of 500 per table and logs `cleanup.done` with each count.
 - **Writes are allowlisted.** `buildRow()` in each API module builds the row
   from known fields only; the request body is never spread into storage.
   `shared/entry-schema.js` validates entries on both sides, and

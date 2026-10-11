@@ -849,12 +849,12 @@ describe("entry_moves / entry_pain_moves", () => {
     expect(updated.entry.moves).toEqual([]);
   });
 
-  it("leaves an entry's moves in place after a soft delete (not cascaded)", async () => {
+  it("removes an entry's moves when it's deleted, keeping only the tombstone row (#1051)", async () => {
     const created = await (await post({ ...validEntry(), moves: [validMoveRow()] })).json();
     const id = created.entry.id;
     await del(id);
     const { results } = await env.LOGBOOK_DB.prepare("SELECT * FROM entry_moves WHERE entry_id = ?").bind(id).all();
-    expect(results).toHaveLength(1);
+    expect(results).toHaveLength(0);
   });
 
   it("rejects an invalid move row on create with a 400", async () => {

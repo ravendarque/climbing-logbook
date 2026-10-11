@@ -17,6 +17,13 @@ We don't sell your data and we don't share it for advertising. Here's what we ke
 
 We use this to run the app for you, and for nothing else.
 
+## How long we keep it
+
+- **A climb you delete** loses its name, notes, video link, date and moves straight away. We keep a marker that it was deleted, so your other devices remove it too.
+- **Each sign-in** records the IP address and browser it came from, so you can stay logged in. We delete that about a week after the sign-in expires.
+- **Email links**, for checking your email address or resetting your password, are deleted within a day of expiring.
+- **Your account and logbook** stay until you delete your account in My account, which removes them.
+
 ## Who can see your logbook
 
 You decide. Your logbook starts private. In My account, the **Public Logbook** setting controls whether anyone can view your logbook and map. Your Grade Pyramid and other Performance Insights are always private to you.
