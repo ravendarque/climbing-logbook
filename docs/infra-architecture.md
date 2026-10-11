@@ -92,6 +92,18 @@ creates the bucket, and is safe to re-run.
 | `synthetic-check.yml` | after deploys, on a schedule, or manual | Logs in as the monitoring account and probes production |
 | `bootstrap-state.yml` | manual | Creates the state bucket |
 | `project-status-sync.yml` | branch or PR events | Moves the linked issue on the project board |
+| `scorecard.yml` | weekly, merge, or a branch protection change | OpenSSF Scorecard; results go to the Security tab and the public Scorecard API |
+| `zizmor.yml` | PR or merge touching `.github/` | Static analysis of the workflows (template injection, over-broad permissions and so on); findings go to the Security tab |
+
+**Supply chain** (#1040). Every third-party action is pinned to a full
+commit SHA, with its tag as a trailing comment, and Dependabot keeps the
+pins current. Every workflow declares `permissions`, read-only unless a
+job needs more. New releases wait three days before they're used: pnpm's
+`minimumReleaseAge` (4320 minutes, in `pnpm-workspace.yaml`) fails an
+install that resolves anything younger, and Dependabot's `cooldown` stops
+it proposing such versions. Dependabot security updates ignore the
+cooldown; to take one sooner, add the package to
+`minimumReleaseAgeExclude` for that change.
 
 Releases are tag-gated, not merge-gated ([ADR-0008](adr/0008-tag-based-semantic-versioning.md),
 `docs/versioning.md`). `.github/actions/setup-node-pnpm/` is the shared
