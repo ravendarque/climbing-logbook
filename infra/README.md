@@ -13,15 +13,16 @@ The only thing *not* managed here, by design: the logbook's actual data
 1. **Create an R2 API token** (Cloudflare dashboard → R2 → Manage R2 API
    Tokens → Create API Token), permission "Object Read & Write", scoped to
    this account. This is a *credential*, not infrastructure — same
-   category as `CLOUDFLARE_API_TOKEN` itself — so it's created once by
+   category as the Cloudflare API tokens — so it's created once by
    hand rather than scripted. Save the resulting Access Key ID and Secret
    Access Key as repo secrets: `TF_STATE_ACCESS_KEY_ID`,
    `TF_STATE_SECRET_ACCESS_KEY`.
 
 2. **Set repo secrets/variables** (Settings → Secrets and variables →
    Actions):
-   - `CLOUDFLARE_API_TOKEN` (secret) — see `docs/infra-architecture.md`'s
-     token permissions table for the full scope needed
+   - The four Cloudflare tokens: run `node scripts/create-cloudflare-ci-tokens.mjs`,
+     which creates them and stores them as repo and environment secrets
+     (`docs/infra-architecture.md`, Cloudflare token permissions)
    - `TF_STATE_ACCESS_KEY_ID` / `TF_STATE_SECRET_ACCESS_KEY` (secrets) —
      from step 1
    - `CLOUDFLARE_ACCOUNT_ID` (variable, not secret — not confidential)

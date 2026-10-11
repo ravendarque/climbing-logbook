@@ -24,6 +24,8 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # The deploy token lives in this environment, which only main and v* tags can use (#1069).
+    environment: production
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -80,11 +82,11 @@ jobs:
       # --bookmark=<bookmark>` (docs/versioning.md, Database migrations).
       - name: Record D1 restore point before migrating
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_TOKEN }}
         run: pnpm exec wrangler d1 time-travel info climbing-logbook
       - name: Apply D1 migrations
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_TOKEN }}
         run: pnpm exec wrangler d1 migrations apply climbing-logbook --remote
       # Only meaningful for the tag-push trigger -- workflow_dispatch is a
       # deliberate manual override (a corrective release, or bootstrapping
@@ -132,7 +134,7 @@ jobs:
         run: pnpm run deploy:build && pnpm exec wrangler deploy --env=beta --tag "$(git describe --tags --exact-match HEAD 2>/dev/null || git rev-parse --short HEAD)"
         env:
           CLOUDFLARE_ENV: beta
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_TOKEN }}
       # CLOUDFLARE_ENV=production (env.production, wrangler.jsonc) is now
       # a real, explicit target -- not an implicit fallback from omitting
       # the variable. `--env=""` pins the deploy-time validation to the
@@ -144,7 +146,7 @@ jobs:
         run: pnpm run deploy:build && pnpm exec wrangler deploy --env="" --tag "$(git describe --tags --exact-match HEAD 2>/dev/null || git rev-parse --short HEAD)"
         env:
           CLOUDFLARE_ENV: production
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_TOKEN }}
       - name: Version for the deploy notices
         id: version
         if: always()

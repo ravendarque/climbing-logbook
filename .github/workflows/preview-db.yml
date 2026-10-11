@@ -35,10 +35,10 @@ jobs:
         uses: ./.github/actions/upload-preview
         with:
           name: main
-          api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          api-token: ${{ secrets.CLOUDFLARE_PREVIEW_TOKEN }}
       - name: Rebuild and seed the preview database
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PREVIEW_TOKEN }}
           PREVIEW_DEV_EMAIL: ${{ secrets.PREVIEW_DEV_EMAIL }}
           PREVIEW_DEV_PASSWORD: ${{ secrets.PREVIEW_DEV_PASSWORD }}
           PREVIEW_BETA_INVITE_CODE: ${{ secrets.PREVIEW_BETA_INVITE_CODE }}

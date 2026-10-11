@@ -135,17 +135,21 @@ async function main() {
   if (!accountId) throw new Error("No account_id in wrangler.jsonc. Run this from the repo root.");
   apiToken = await promptHidden("Cloudflare API token (needs Account API Tokens: Edit): ");
 
-  const [zone] = await api(`/zones?name=${ZONE_NAME}&account.id=${accountId}`);
-  if (!zone) throw new Error(`Zone ${ZONE_NAME} not found in this account.`);
   const groups = await api(`/accounts/${accountId}/tokens/permission_groups`);
   const accountTokens = await listAll(`/accounts/${accountId}/tokens`);
   const existing = accountTokens.find(t => t.name === EXISTING_INFRA_TOKEN);
   if (!existing)
     throw new Error(`No account token named "${EXISTING_INFRA_TOKEN}" to copy the infra permissions from.`);
+  // The zone comes from the token being copied, so this token needs no zone permissions of its own.
+  const zoneId = existing.policies
+    .flatMap(p => Object.keys(p.resources))
+    .map(resource => resource.match(/^com\.cloudflare\.api\.account\.zone\.([0-9a-f]+)$/)?.[1])
+    .find(Boolean);
+  if (!zoneId) throw new Error(`"${EXISTING_INFRA_TOKEN}" isn't scoped to a zone, so there's no zone to copy.`);
 
   const resourcesByScope = {
     "com.cloudflare.api.account": { [`com.cloudflare.api.account.${accountId}`]: "*" },
-    "com.cloudflare.api.account.zone": { [`com.cloudflare.api.account.zone.${zone.id}`]: "*" },
+    "com.cloudflare.api.account.zone": { [`com.cloudflare.api.account.zone.${zoneId}`]: "*" },
   };
   const infraPolicies = existing.policies
     .map(p => ({ ...p, permission_groups: p.permission_groups.filter(g => !NOT_FOR_TERRAFORM.has(g.name)) }))
@@ -183,7 +187,7 @@ async function main() {
     },
   ];
 
-  console.log(`\nAccount ${accountId}, zone ${ZONE_NAME}. Each token expires ${EXPIRES_ON}.\n`);
+  console.log(`\nAccount ${accountId}, zone ${ZONE_NAME} (${zoneId}). Each token expires ${EXPIRES_ON}.\n`);
   for (const token of tokens) {
     const where = token.environment ? `environment "${token.environment}"` : "repository";
     console.log(`${token.name} -> ${token.secret} (${where})`);
@@ -216,7 +220,7 @@ async function main() {
       console.log(`  Revoked the older ${token.name} (issued ${old.issued_on}).`);
     }
   }
-  console.log("\nDone. Tell Claude, which switches the workflows over; then revoke the old CLOUDFLARE_API_TOKEN.");
+  console.log("\nDone. The next CI runs use the new tokens.");
 }
 
 main().catch(err => {

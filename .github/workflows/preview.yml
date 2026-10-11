@@ -43,7 +43,7 @@ jobs:
         uses: ./.github/actions/upload-preview
         with:
           name: pr-${{ github.event.pull_request.number }}
-          api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          api-token: ${{ secrets.CLOUDFLARE_PREVIEW_TOKEN }}
       - name: Comment preview URL on the PR
         env:
           PREVIEW_URL: ${{ steps.upload.outputs.url }}
@@ -69,7 +69,7 @@ jobs:
       - uses: ./.github/actions/setup-node-pnpm
       - name: Apply D1 migrations to the preview database
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PREVIEW_TOKEN }}
         run: pnpm exec wrangler d1 migrations apply climbing-logbook-preview --remote --env preview
 
   # The free plan keeps 100 Previews per Worker; a merged or closed PR's goes straight away.
@@ -84,4 +84,4 @@ jobs:
       - name: Delete the Preview
         run: pnpm exec wrangler preview delete --worker-name climbing-logbook-preview --name "pr-${{ github.event.pull_request.number }}" --skip-confirmation
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PREVIEW_TOKEN }}
