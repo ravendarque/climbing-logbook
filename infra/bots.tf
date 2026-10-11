@@ -13,5 +13,4 @@ resource "cloudflare_bot_management" "app" {
   crawler_protection      = "enabled"
   content_bots_protection = "disabled"
   is_robots_txt_managed   = true
-  cf_robots_variant       = "off"
 }
