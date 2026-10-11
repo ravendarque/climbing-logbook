@@ -30,7 +30,11 @@
   "ratelimits": [
     { "name": "AUTH_RATE_LIMITER", "namespace_id": "1292", "simple": { "limit": 10, "period": 60 } },
     { "name": "WRITE_RATE_LIMITER", "namespace_id": "1045", "simple": { "limit": 120, "period": 60 } },
-    { "name": "CSP_REPORT_LIMITER", "namespace_id": "1042", "simple": { "limit": 10, "period": 60 } }
+    { "name": "CSP_REPORT_LIMITER", "namespace_id": "1042", "simple": { "limit": 10, "period": 60 } },
+
+    { "name": "IMPORT_LIMITER", "namespace_id": "10492", "simple": { "limit": 2, "period": 60 } },
+
+    { "name": "SIGN_IN_ACCOUNT_LIMITER", "namespace_id": "10493", "simple": { "limit": 5, "period": 60 } }
   ],
   "durable_objects": { "bindings": [{ "name": "EMAIL_LIMITER", "class_name": "RecipientEmailLimiter" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RecipientEmailLimiter"] }],
@@ -75,7 +79,11 @@
       "ratelimits": [
         { "name": "AUTH_RATE_LIMITER", "namespace_id": "1292", "simple": { "limit": 10, "period": 60 } },
         { "name": "WRITE_RATE_LIMITER", "namespace_id": "1045", "simple": { "limit": 120, "period": 60 } },
-        { "name": "CSP_REPORT_LIMITER", "namespace_id": "1042", "simple": { "limit": 10, "period": 60 } }
+        { "name": "CSP_REPORT_LIMITER", "namespace_id": "1042", "simple": { "limit": 10, "period": 60 } },
+
+        { "name": "IMPORT_LIMITER", "namespace_id": "10492", "simple": { "limit": 2, "period": 60 } },
+
+        { "name": "SIGN_IN_ACCOUNT_LIMITER", "namespace_id": "10493", "simple": { "limit": 5, "period": 60 } }
       ],
       "durable_objects": { "bindings": [{ "name": "EMAIL_LIMITER", "class_name": "RecipientEmailLimiter" }] },
       "d1_databases": [
@@ -97,7 +105,11 @@
       "ratelimits": [
         { "name": "AUTH_RATE_LIMITER", "namespace_id": "1292", "simple": { "limit": 10, "period": 60 } },
         { "name": "WRITE_RATE_LIMITER", "namespace_id": "1045", "simple": { "limit": 120, "period": 60 } },
-        { "name": "CSP_REPORT_LIMITER", "namespace_id": "1042", "simple": { "limit": 10, "period": 60 } }
+        { "name": "CSP_REPORT_LIMITER", "namespace_id": "1042", "simple": { "limit": 10, "period": 60 } },
+
+        { "name": "IMPORT_LIMITER", "namespace_id": "10492", "simple": { "limit": 2, "period": 60 } },
+
+        { "name": "SIGN_IN_ACCOUNT_LIMITER", "namespace_id": "10493", "simple": { "limit": 5, "period": 60 } }
       ],
       "durable_objects": { "bindings": [{ "name": "EMAIL_LIMITER", "class_name": "RecipientEmailLimiter" }] },
       "d1_databases": [
@@ -116,7 +128,11 @@
         "ratelimits": [
           { "name": "AUTH_RATE_LIMITER", "namespace_id": "1292", "simple": { "limit": 10, "period": 60 } },
           { "name": "WRITE_RATE_LIMITER", "namespace_id": "1045", "simple": { "limit": 120, "period": 60 } },
-          { "name": "CSP_REPORT_LIMITER", "namespace_id": "1042", "simple": { "limit": 10, "period": 60 } }
+          { "name": "CSP_REPORT_LIMITER", "namespace_id": "1042", "simple": { "limit": 10, "period": 60 } },
+
+          { "name": "IMPORT_LIMITER", "namespace_id": "10492", "simple": { "limit": 2, "period": 60 } },
+
+          { "name": "SIGN_IN_ACCOUNT_LIMITER", "namespace_id": "10493", "simple": { "limit": 5, "period": 60 } }
         ],
         "durable_objects": { "bindings": [{ "name": "EMAIL_LIMITER", "class_name": "RecipientEmailLimiter" }] },
         "d1_databases": [
@@ -155,7 +171,11 @@
       "ratelimits": [
         { "name": "AUTH_RATE_LIMITER", "namespace_id": "1292", "simple": { "limit": 10, "period": 60 } },
         { "name": "WRITE_RATE_LIMITER", "namespace_id": "1045", "simple": { "limit": 120, "period": 60 } },
-        { "name": "CSP_REPORT_LIMITER", "namespace_id": "1042", "simple": { "limit": 10, "period": 60 } }
+        { "name": "CSP_REPORT_LIMITER", "namespace_id": "1042", "simple": { "limit": 10, "period": 60 } },
+
+        { "name": "IMPORT_LIMITER", "namespace_id": "10492", "simple": { "limit": 2, "period": 60 } },
+
+        { "name": "SIGN_IN_ACCOUNT_LIMITER", "namespace_id": "10493", "simple": { "limit": 5, "period": 60 } }
       ],
       "durable_objects": { "bindings": [{ "name": "EMAIL_LIMITER", "class_name": "RecipientEmailLimiter" }] },
       "d1_databases": [

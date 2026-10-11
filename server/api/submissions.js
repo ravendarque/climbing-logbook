@@ -1,7 +1,10 @@
 import * as v from "valibot";
 import { json } from "../lib/json.js";
 import { verifyTurnstile } from "../lib/turnstile.js";
-import { checkRateLimit } from "../lib/rate-limit.js";
+import { clientKey } from "../lib/rate-limits.js";
+import { hourlyLimitResponse } from "../lib/email-limit.js";
+
+const FORM_LIMITS = { perHour: 5, perDay: 5 * 24 };
 import { resolveUserId } from "../lib/session.js";
 import { SUBMISSION_SECTIONS } from "../../shared/submission-sections.js";
 import { notifySupport } from "../lib/support-notify.js";
@@ -9,8 +12,6 @@ import { resolvePublicUser } from "./public-profile.js";
 import { FIELD_LIMITS, tooLongMessage } from "../../shared/field-limits.js";
 
 const SECTIONS = Object.keys(SUBMISSION_SECTIONS);
-
-const RATE_LIMIT_PER_HOUR = 5;
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const OWN_HOST = /(^|\.)(climbinglogbook\.com|localhost|ravendarque\.workers\.dev)$/;
@@ -26,7 +27,6 @@ function ownPageOrNothing(url) {
   }
 }
 
-// Rate limit first: the cheapest rejection, before parsing or Turnstile.
 // A report can point at a public logbook, and at one climb in it. Anything that doesn't resolve is dropped, so a
 // report can't be used to find out whether a private logbook or a climb exists.
 /**
@@ -70,9 +70,12 @@ function createSubmissionHandler({ table, rateLimitPrefix, tooManyMessage, empty
   });
 
   return async function handleSubmission(request, env, ctx, log) {
-    const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
-    const allowed = await checkRateLimit(env, `${rateLimitPrefix}:${ip}`, RATE_LIMIT_PER_HOUR);
-    if (!allowed) return json({ error: tooManyMessage }, 429);
+    const limited = await hourlyLimitResponse(env, `${rateLimitPrefix}:${clientKey(request)}`, FORM_LIMITS, {
+      message: tooManyMessage,
+      surface: rateLimitPrefix,
+      log,
+    });
+    if (limited) return limited;
 
     let body;
     try {

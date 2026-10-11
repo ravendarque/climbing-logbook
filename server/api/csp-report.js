@@ -1,3 +1,4 @@
+import { clientKey } from "../lib/rate-limits.js";
 const MAX_BODY_BYTES = 16 * 1024;
 const MAX_VIOLATIONS_LOGGED = 3;
 
@@ -40,8 +41,7 @@ function violationsIn(body) {
 // Only the directive and the blocked origin are kept: a full URL can carry a username or a token.
 export async function handleCspReport(request, env, log) {
   if (env.RATE_LIMITING_ENABLED === "true") {
-    const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
-    const { success } = await env.CSP_REPORT_LIMITER.limit({ key: ip });
+    const { success } = await env.CSP_REPORT_LIMITER.limit({ key: clientKey(request) });
     if (!success) return new Response(null, { status: 429 });
   }
   const text = await readCapped(request);

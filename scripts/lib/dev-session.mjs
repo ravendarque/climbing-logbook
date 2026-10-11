@@ -77,7 +77,6 @@ export function resetDatabase(options = {}) {
     "settings",
     "beta_invites",
     "verification",
-    "rate_limits",
     "issue_reports",
     "feedback_submissions",
     "admin_audit_log",

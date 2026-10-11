@@ -75,7 +75,7 @@ afterAll(() => {
 
 beforeEach(async () => {
   await resetAuthTables();
-  for (const table of ["account_suspensions", "banned_identities", "admin_audit_log", "issue_reports", "rate_limits"]) {
+  for (const table of ["account_suspensions", "banned_identities", "admin_audit_log", "issue_reports"]) {
     await env.LOGBOOK_DB.prepare(`DELETE FROM ${table}`).run();
   }
 });
