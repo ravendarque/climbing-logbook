@@ -168,7 +168,8 @@ replaces. It needs a token with Account API Tokens: Edit.
   Turnstile Sites Write, Email Routing Addresses Write, Account WAF,
   Rulesets and Rule Lists Write, Workers R2 Storage Write, Zero Trust
   Write. Zone `climbinglogbook.com`: DNS, Zone WAF, Zone Settings, Cache
-  Settings, Dynamic URL Redirects and Email Routing Rules Write.
+  Settings, Dynamic URL Redirects, Email Routing Rules and Bot Management
+  Write (the script adds this last one, which the original token lacked).
 - **Infra plan:** the read-only version of each apply permission.
 
 **Never add a per-Worker granular policy** (`Individual Workers Editor` and

@@ -82,6 +82,34 @@ The only thing *not* managed here, by design: the logbook's actual data
         four fields entered separately, not the raw line pasted in one
         box.
 
+## Not in Terraform
+
+Everything in the zone's DNS is in `infra/` (#1336). These stay in the
+dashboard or elsewhere, and why:
+
+- **AI crawler settings `ai_training` (disallow), `ai_search` (disabled)
+  and `ai_user` (block)** (Security → Bots). The provider (5.21) has no
+  attributes for them. The rest of the bot settings, Bot Fight Mode
+  included, are in `bots.tf`: change them there, since the next apply
+  undoes a dashboard change.
+- **DMARC Management** (Email → DMARC Management). No provider resource.
+  The DMARC record itself, with its reports address, is in
+  `email-routing.tf`.
+- **The Workers Issues alert.** The provider has no alert type for it yet
+  (`workers_observability_real_time_issue`).
+- **Credentials:** the four CI API tokens
+  (`scripts/create-cloudflare-ci-tokens.mjs`), the R2 token for the state
+  bucket, and Worker secrets. Credentials are created by hand or by that
+  script, never stored in state.
+- **Resend's domain verification** happens in Resend; only its DNS records
+  live here.
+
+If email is ever sent from Proton (Raven, 2026-10-10, low priority): it
+needs Proton's verification TXT, DKIM CNAMEs and an `include:` in the root
+SPF. The root SPF is created by `cloudflare_email_routing_dns`, so adding
+an include means taking that record over as a `cloudflare_dns_record`
+first.
+
 ## Local runs
 
 ```
