@@ -2,10 +2,10 @@ name: Infra
 
 on:
   pull_request:
-    paths: ["infra/**"]
+    paths: ["infra/**", ".github/workflows/infra.yml"]
   push:
     branches: [main]
-    paths: ["infra/**"]
+    paths: ["infra/**", ".github/workflows/infra.yml"]
   workflow_dispatch:
 
 permissions:
@@ -14,6 +14,8 @@ permissions:
 jobs:
   terraform:
     runs-on: ubuntu-latest
+    # A PR plans with a read-only token; only main, through the infra environment, holds the one that can apply (#1069).
+    environment: ${{ github.event_name == 'pull_request' && '' || 'infra' }}
     permissions:
       # Pushes the generated-config branch.
       contents: write
@@ -23,7 +25,7 @@ jobs:
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_API_TOKEN: ${{ github.event_name == 'pull_request' && secrets.CLOUDFLARE_INFRA_PLAN_TOKEN || secrets.CLOUDFLARE_INFRA_APPLY_TOKEN }}
       TF_VAR_cloudflare_account_id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       TF_VAR_admin_email: ${{ secrets.ADMIN_EMAIL }}
       TF_VAR_support_forward_email: ${{ secrets.TF_VAR_support_forward_email }}

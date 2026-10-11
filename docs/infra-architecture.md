@@ -89,12 +89,23 @@ creates the bucket, and is safe to re-run.
 | `release.yml` | PR merged | Cuts the next `vX.Y.Z` tag from the label |
 | `deploy.yml` | `vX.Y.Z` tag, or manual | Logs the D1 restore point, applies migrations, then deploys beta; also production when the tag's diff touches `infra/` or `migrations/` |
 | `promote.yml` | manual | Deploys a tag to production (migrations first) |
-| `infra.yml` | PR or merge touching `infra/**`, or manual | Plans to a file, refuses any delete or replacement, applies that exact plan on `main`, then syncs generated config |
+| `infra.yml` | PR or merge touching `infra/**` or the workflow itself, or manual | Plans to a file, refuses any delete or replacement, applies that exact plan on `main`, then syncs generated config |
 | `synthetic-check.yml` | after deploys, on a schedule, or manual | Logs in as the monitoring account and probes production |
 | `bootstrap-state.yml` | manual | Creates the state bucket |
 | `project-status-sync.yml` | branch or PR events | Moves the linked issue on the project board |
 | `scorecard.yml` | weekly, merge, or a branch protection change | OpenSSF Scorecard; results go to the Security tab and the public Scorecard API |
 | `zizmor.yml` | PR or merge touching `.github/` | Static analysis of the workflows (template injection, over-broad permissions and so on); findings go to the Security tab |
+
+**Cloudflare tokens** (#1069). Each workflow gets the narrowest token:
+`CLOUDFLARE_PREVIEW_TOKEN` (previews: Workers Scripts and D1),
+`CLOUDFLARE_DEPLOY_TOKEN` (deploy and promote: the same plus Workers
+Routes), `CLOUDFLARE_INFRA_PLAN_TOKEN` (Terraform plan on PRs, read-only)
+and `CLOUDFLARE_INFRA_APPLY_TOKEN` (Terraform apply and the state bootstrap).
+The deploy and apply tokens are secrets of the `production` and `infra`
+GitHub environments, which only `main` (and `v*` tags, for `production`)
+can use, so no PR job can deploy or change DNS. Each token expires after a
+year; `node scripts/create-cloudflare-ci-tokens.mjs` creates them again
+and revokes the ones it replaces.
 
 **Supply chain** (#1040). Every third-party action is pinned to a full
 commit SHA, with its tag as a trailing comment, and Dependabot keeps the

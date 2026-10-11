@@ -21,6 +21,7 @@ permissions:
 jobs:
   promote:
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -61,11 +62,11 @@ jobs:
       # --bookmark=<bookmark>` (docs/versioning.md, Database migrations).
       - name: Record D1 restore point before migrating
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_TOKEN }}
         run: pnpm exec wrangler d1 time-travel info climbing-logbook
       - name: Apply D1 migrations
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_TOKEN }}
         run: pnpm exec wrangler d1 migrations apply climbing-logbook --remote
       # #774 -- CLOUDFLARE_ENV=production (env.production, wrangler.jsonc)
       # at build time, not `wrangler deploy --env=""` alone -- see
@@ -80,7 +81,7 @@ jobs:
         env:
           TAG: ${{ steps.resolve.outputs.tag }}
           CLOUDFLARE_ENV: production
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_TOKEN }}
       - name: Tell Discord
         if: always() && steps.deploy_production.outcome != 'skipped' && steps.deploy_production.outcome != ''
         uses: ./.github/actions/notify-deploy
