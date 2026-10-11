@@ -116,6 +116,8 @@ export function createD1ResourceHandlers({
     if (existing) {
       // A create on a soft-deleted id resurrects the row rather than being dropped.
       if (excludeDeleted && existing.deleted_at !== null) {
+        const overLimit = await checkAccountLimits(env, userId, { [table]: 1 });
+        if (overLimit) return overLimit;
         const row = buildRow(record, id, userId);
         const columns = Object.keys(row).filter(c => c !== "id" && c !== "user_id");
         await env.LOGBOOK_DB.batch([
