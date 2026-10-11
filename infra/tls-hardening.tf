@@ -132,3 +132,15 @@ resource "cloudflare_ruleset" "app_www_redirect" {
     }
   ]
 }
+
+# Turned on in the dashboard before this file existed (#1336).
+import {
+  to = cloudflare_zone_setting.app_always_use_https
+  id = "${data.cloudflare_zone.app.id}/always_use_https"
+}
+
+resource "cloudflare_zone_setting" "app_always_use_https" {
+  zone_id    = data.cloudflare_zone.app.id
+  setting_id = "always_use_https"
+  value      = "on"
+}
