@@ -230,3 +230,31 @@ describe("createEmailSender with delivery off (#1170)", () => {
     expect(resendCalls).toEqual([]);
   });
 });
+
+describe("createEmailSender with delivery logged (#1357)", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("prints the link in local dev instead of calling Resend", async () => {
+    const print = vi.spyOn(console, "log").mockImplementation(() => {});
+    const sender = createEmailSender({ ...env, APP_ENV: "development", EMAIL_DELIVERY: "log" });
+
+    await sender.sendVerificationEmail("owner@example.com", "https://example.com/verify?token=abc");
+
+    expect(resendCalls).toEqual([]);
+    expect(print).toHaveBeenCalledWith(
+      "Email to owner@example.com: Verify your email\n  https://example.com/verify?token=abc",
+    );
+  });
+
+  it("drops the email, without printing its link, anywhere but local dev", async () => {
+    const print = vi.spyOn(console, "log").mockImplementation(() => {});
+    const log = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    const sender = createEmailSender({ ...env, APP_ENV: "production", EMAIL_DELIVERY: "log" }, log);
+
+    await sender.sendPasswordResetEmail("owner@example.com", "https://example.com/reset?token=abc");
+
+    expect(resendCalls).toEqual([]);
+    expect(print).not.toHaveBeenCalled();
+    expect(log.warn).toHaveBeenCalledWith("email.skipped", { reason: "log delivery outside development" });
+  });
+});

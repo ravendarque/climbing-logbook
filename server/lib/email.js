@@ -5,9 +5,18 @@ import { createLogger } from "./log.js";
 const FROM_ADDRESS = "Climbing Logbook <myaccount@climbinglogbook.com>";
 
 // Never throws: new Resend() throws synchronously without a key, which would break the whole auth request.
-async function send(env, log, payload) {
+async function send(env, log, payload, link) {
   if (env.EMAIL_DELIVERY === "off") {
     log.info("email.skipped", { reason: "delivery off" });
+    return;
+  }
+  // Local dev prints the link instead of sending; anywhere else that would put live tokens in logs (#1357).
+  if (env.EMAIL_DELIVERY === "log") {
+    if (env.APP_ENV !== "development") {
+      log.warn("email.skipped", { reason: "log delivery outside development" });
+      return;
+    }
+    console.log(`Email to ${payload.to}: ${payload.subject}\n  ${link}`);
     return;
   }
   try {
@@ -22,7 +31,8 @@ async function send(env, log, payload) {
 export function createEmailSender(env, log) {
   log ??= createLogger({ env });
   function sendTemplated(to, subject, content) {
-    return send(env, log, { from: FROM_ADDRESS, to, subject, ...renderEmail({ title: subject, ...content }) });
+    const payload = { from: FROM_ADDRESS, to, subject, ...renderEmail({ title: subject, ...content }) };
+    return send(env, log, payload, content.action.url);
   }
 
   return {
