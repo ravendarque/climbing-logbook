@@ -71,6 +71,50 @@ describe("stored-row counts (#1045)", () => {
     await env.LOGBOOK_DB.prepare(`DELETE FROM entries WHERE user_id = ?`).bind(userId).run();
     expect((await usage()).entries).toBe(0);
   });
+
+  describe("count live climbs only (#1345)", () => {
+    const deleteEntry = id => jsonRequest("DELETE", `/-/api/entries?id=${id}`, undefined, { Cookie: cookie });
+
+    it("frees a deleted climb's place at once", async () => {
+      const placeId = await seedPlace(cookie);
+      await postEntry(placeId, { id: "kept" });
+      await postEntry(placeId, { id: "deleted" });
+      expect((await deleteEntry("deleted")).status).toBe(204);
+      expect((await usage()).entries).toBe(1);
+
+      expect((await deleteEntry("deleted")).status).toBe(204);
+      expect((await usage()).entries).toBe(1);
+    });
+
+    it("takes the place back when a deleted climb is created again", async () => {
+      const placeId = await seedPlace(cookie);
+      await postEntry(placeId, { id: "resurrected" });
+      await deleteEntry("resurrected");
+      expect((await postEntry(placeId, { id: "resurrected" })).status).toBe(201);
+      expect((await usage()).entries).toBe(1);
+    });
+
+    it("doesn't change the count when a tombstone is purged", async () => {
+      const placeId = await seedPlace(cookie);
+      await postEntry(placeId, { id: "kept" });
+      await postEntry(placeId, { id: "purged" });
+      await deleteEntry("purged");
+      await env.LOGBOOK_DB.prepare(`DELETE FROM entries WHERE id = ?`).bind("purged").run();
+      expect((await usage()).entries).toBe(1);
+    });
+
+    it("lets a climb in after deleting one at the limit, and won't bring a deleted one back over it", async () => {
+      const placeId = await seedPlace(cookie);
+      await postEntry(placeId, { id: "deleted" });
+      await setUsage("entries", ACCOUNT_LIMITS.entries.max);
+      await deleteEntry("deleted");
+      expect((await postEntry(placeId)).status).toBe(201);
+
+      const resurrect = await postEntry(placeId, { id: "deleted" });
+      expect(resurrect.status).toBe(403);
+      expect((await resurrect.json()).error).toBe("Your logbook has reached its limit of 20,000 climbs.");
+    });
+  });
 });
 
 describe("the limits on stored rows", () => {

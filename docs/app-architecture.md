@@ -543,6 +543,7 @@ it for the isolate's lifetime.
   use): 20,000 climbs, 5,000 places and 2,000 locations per account, 10
   imports a day, and 120 saves a minute. Stored rows are counted in
   `account_usage`, which SQLite triggers keep exact, so a check reads one row.
+  Deleted climbs don't count: their sync tombstones are left out.
   A create over a limit gets a 403 that the offline queue shows in its
   "Couldn't save" banner, and an import that would cross one is refused whole.
   Saves are limited per account by the `WRITE_RATE_LIMITER` binding; a 429
