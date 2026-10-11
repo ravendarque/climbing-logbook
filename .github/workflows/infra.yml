@@ -15,7 +15,7 @@ jobs:
   terraform:
     runs-on: ubuntu-latest
     # A PR plans with a read-only token; only main, through the infra environment, holds the one that can apply (#1069).
-    environment: ${{ github.event_name == 'pull_request' && '' || 'infra' }}
+    environment: ${{ github.event_name != 'pull_request' && 'infra' || '' }}
     permissions:
       # Pushes the generated-config branch.
       contents: write
