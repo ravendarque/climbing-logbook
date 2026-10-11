@@ -89,6 +89,12 @@ you touch a narrative or stale comment, cut it in the same change.
 
 ## Development workflow
 
+- **Start each piece of work by checking dependencies**: `pnpm outdated`
+  and the open Dependabot alerts. Bring anything behind up to date in its
+  own PR; a transitive advisory with a fix goes in `pnpm-workspace.yaml`'s
+  `overrides`, and a major bump gets its own issue first. New releases are
+  only usable after three days (`minimumReleaseAge`).
+
 - **Propose before implementing** for open design questions — discuss the
   approach first, don't just build it. **Concrete bug fixes with clear
   direction proceed directly** without a proposal step.
