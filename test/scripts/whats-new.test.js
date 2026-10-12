@@ -38,6 +38,10 @@ describe("whatsNewFromPrBody (#917)", () => {
     expect(whatsNewFromPrBody("Closes #1")).toEqual([]);
     expect(whatsNewFromPrBody(undefined)).toEqual([]);
   });
+
+  it("matches the heading with a curly apostrophe", () => {
+    expect(whatsNewFromPrBody("## What’s new\n\nA change.\n")).toEqual(["A change."]);
+  });
 });
 
 describe("release tags", () => {
@@ -47,13 +51,17 @@ describe("release tags", () => {
     git("init", "-q");
     git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "first");
     const message = join(repo, "message");
-    writeFileSync(message, tagMessage("v1.1.0", ["One change.", "Another change."]));
-    git("-c", "user.name=t", "-c", "user.email=t@t", "tag", "-a", "v1.1.0", "-F", message);
+    writeFileSync(message, tagMessage("v1.1.0", ["#1 change.", "Another change."]));
+    git("-c", "user.name=t", "-c", "user.email=t@t", "tag", "-a", "v1.1.0", "--cleanup=whitespace", "-F", message);
     git("-c", "user.name=t", "-c", "user.email=t@t", "tag", "-a", "v1.0.0", "-m", "v1.0.0");
+    git("checkout", "-q", "-b", "later");
+    git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "later");
+    git("-c", "user.name=t", "-c", "user.email=t@t", "tag", "-a", "v1.2.0", "-m", "v1.2.0\n\nNot built yet.");
+    git("checkout", "-q", "v1.1.0");
 
     const releases = readTaggedReleases(repo);
-    expect(releases).toHaveLength(2);
-    expect(releases.find(r => r.version === "v1.1.0").changes).toEqual(["One change.", "Another change."]);
+    expect(releases.map(r => r.version).sort()).toEqual(["v1.0.0", "v1.1.0"]);
+    expect(releases.find(r => r.version === "v1.1.0").changes).toEqual(["#1 change.", "Another change."]);
     expect(releases.find(r => r.version === "v1.0.0").changes).toEqual([]);
   });
 

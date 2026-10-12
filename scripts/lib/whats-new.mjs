@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
-import history from "./whats-new-history.json" with { type: "json" };
+import historyFile from "./whats-new-history.json" with { type: "json" };
 
-const HEADING = /^##\s+What's new\s*$/im;
+const HEADING = /^##\s+What['’]s new\s*$/im;
 const MONTHS_SHOWN = 6;
 
 // The lines under the PR template's "What's new" heading, one per change; none when left empty.
@@ -20,7 +20,7 @@ export function tagMessage(version, changes) {
   return [version, "", ...changes].join("\n");
 }
 
-// Annotated tags carry their changes in the message body, after the version line.
+// Annotated tags carry their changes in the message body, after the version line; only tags in this build count.
 export function parseTags(output) {
   return output
     .split("\0\n")
@@ -42,7 +42,13 @@ export function readTaggedReleases(cwd = process.cwd()) {
   try {
     const output = execFileSync(
       "git",
-      ["for-each-ref", "refs/tags/v*", "--format=%(refname:short)%00%(creatordate:short)%00%(contents:body)%00"],
+      [
+        "for-each-ref",
+        "--merged",
+        "HEAD",
+        "refs/tags/v*",
+        "--format=%(refname:short)%00%(creatordate:short)%00%(contents:body)%00",
+      ],
       { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
     );
     return parseTags(output);
@@ -52,7 +58,7 @@ export function readTaggedReleases(cwd = process.cwd()) {
 }
 
 export function readHistory() {
-  return history;
+  return historyFile;
 }
 
 const monthOf = date => date.slice(0, 7);
