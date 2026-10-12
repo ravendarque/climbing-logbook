@@ -24,6 +24,6 @@ createReportPage({
   insights: ({ headline, headlineTone }) => [
     headline
       ? { tone: headlineTone, text: headline }
-      : { tone: "info", text: "Not enough data yet for a reliable read -- log a few more sends and check back." },
+      : { tone: "neutral", text: "Not enough data yet for a reliable read -- log a few more sends and check back." },
   ],
 });

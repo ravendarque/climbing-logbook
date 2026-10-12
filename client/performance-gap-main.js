@@ -31,6 +31,6 @@ createReportPage({
   },
   // Recomputed so the headline follows the chosen scale, like the chart.
   insights: ({ flashMaxByBucket, sendMaxByBucket }, { type, viewScaleId }) => [
-    { tone: "info", text: gapHeadline(flashMaxByBucket, sendMaxByBucket, type, viewScaleId) },
+    gapHeadline(flashMaxByBucket, sendMaxByBucket, type, viewScaleId),
   ],
 });

@@ -111,18 +111,19 @@ describe("effortHeadline", () => {
 
   it("returns the 'paying off' message when both grade and exertion rise from first to last data point", () => {
     const text = effortHeadline([pair("6B"), pair("7A")], [60, 80], [2, 2], 70, 5, "boulder");
-    expect(text).toMatchObject({ tone: "info" });
+    expect(text).toMatchObject({ tone: "positive" });
     expect(text.text).toContain("paying off");
   });
 
   it("returns the 'maxing out effort' message for high average exertion with no grade progress", () => {
     const text = effortHeadline([pair("6B"), pair("6B")], [85, 85], [2, 2], 85, 5, "boulder");
-    expect(text).toMatchObject({ tone: "warning" });
+    expect(text).toMatchObject({ tone: "negative" });
     expect(text.text).toContain("technique work");
   });
 
   it("returns the discipline-aware 'room to push harder' message as the default case", () => {
     const boulderText = effortHeadline([pair("6B"), pair("6B")], [40, 40], [2, 2], 40, 5, "boulder");
+    expect(boulderText).toMatchObject({ tone: "neutral" });
     expect(boulderText.text).toContain("send attempts");
     const sportText = effortHeadline([pair("6a", "french"), pair("6a", "french")], [40, 40], [2, 2], 40, 5, "sport");
     expect(sportText.text).toContain("redpoint attempts");

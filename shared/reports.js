@@ -60,7 +60,7 @@ export function buildGapReport(entries, { start, end }) {
       flashMaxByBucket,
       sendMaxByBucket,
       avgAttemptsByBucket,
-      headline: gapHeadline(flashMaxByBucket, sendMaxByBucket, type),
+      headline: gapHeadline(flashMaxByBucket, sendMaxByBucket, type).text,
     };
   });
 }

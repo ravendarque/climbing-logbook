@@ -40,15 +40,20 @@ function logRowHtml(entry) {
 }
 
 const CAVEAT = "A pattern-noticing tool, not medical advice.";
+const NO_PAIN = "You have logged no pain\nMaybe you have felt no pain?\nThis is a good thing";
+
+function injuryInsight(log, cluster) {
+  if (cluster) return { tone: "negative", text: describeCluster(cluster), detail: CAVEAT };
+  if (log.length === 0) return { tone: "positive", text: NO_PAIN };
+  return {
+    tone: "neutral",
+    text: "Not enough data yet to spot a pattern -- keep tagging pain moves as they come up.",
+    detail: CAVEAT,
+  };
+}
 
 function renderInjuryLog({ log, cluster }) {
-  const insight = cluster
-    ? { tone: "warning", text: describeCluster(cluster), detail: CAVEAT }
-    : {
-        tone: "info",
-        text: "Not enough data yet to spot a pattern -- keep tagging pain moves as they come up.",
-        detail: CAVEAT,
-      };
+  const insight = injuryInsight(log, cluster);
 
   const logHtml = log.length
     ? `<div class="flex flex-col gap-2" id="injury-log-list">${log.map(logRowHtml).join("")}</div>`

@@ -57,7 +57,7 @@ describe("Performance report builders (#1100)", () => {
       "boulder",
     );
     expect(gap.flashMaxByBucket).toEqual(series.flashMaxByBucket);
-    expect(gap.headline).toBe(gapHeadline(series.flashMaxByBucket, series.sendMaxByBucket, "boulder"));
+    expect(gap.headline).toBe(gapHeadline(series.flashMaxByBucket, series.sendMaxByBucket, "boulder").text);
   });
 
   it("falls back to each discipline's default scale for a scale that isn't a standard one", () => {

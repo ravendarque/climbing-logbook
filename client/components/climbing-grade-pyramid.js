@@ -85,20 +85,20 @@ function pyramidInsight(health) {
   if (health.kind === "promoted") {
     return health.stillBuilding
       ? {
-          tone: "info",
+          tone: "positive",
           text: `Still building your pyramid from the base up — but you've already got enough mileage to give ${health.grade} a go.`,
           detail:
             "Keep adding sends at your lower tiers too — a full 8-4-2-1 pyramid needs volume all the way down, not just at the top.",
         }
       : {
-          tone: "info",
+          tone: "positive",
           text: `You've logged enough at every tier below to be ready to push into ${health.grade}.`,
           detail: "Heuristic guidance, not diagnosis — only you know if the moves suit you.",
         };
   }
   if (health.kind === "gap") {
     return {
-      tone: "warning",
+      tone: "negative",
       text: `No sends logged at ${health.grade} in the last 12 months, right in the middle of your pyramid window.`,
       detail:
         "Heuristic guidance, not diagnosis — might be worth spending more mileage there before pushing your top grade again.",
@@ -106,14 +106,14 @@ function pyramidInsight(health) {
   }
   if (health.kind === "top-heavy") {
     return {
-      tone: "warning",
+      tone: "negative",
       text: `This pyramid is top-heavy — you've got fewer sends at ${health.grade} than at the harder tier above it.`,
       detail:
         "Heuristic guidance, not diagnosis — a broader base at the easier tiers usually means a more sustainable base to build from.",
     };
   }
   return {
-    tone: "info",
+    tone: "positive",
     text: "No gaps or inversions in this window — sends build up from your base to your max, the shape a healthy pyramid is expected to have.",
   };
 }

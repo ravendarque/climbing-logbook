@@ -81,7 +81,7 @@ function anchorOptionsHtml(anchors) {
 
 function renderStrengths({ headline, anchors }) {
   const insight = {
-    tone: "info",
+    tone: "neutral",
     text: headline ? headline.text : "Not enough data yet to spot a pattern -- keep tagging moves as you climb.",
   };
 

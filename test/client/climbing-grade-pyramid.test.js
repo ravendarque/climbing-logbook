@@ -40,7 +40,7 @@ describe("ClimbingGradePyramid health card", () => {
     const health = el.querySelector("#pyramid-insights").textContent;
     expect(health).toContain("top-heavy");
     expect(health).not.toContain("No gaps");
-    expect(el.querySelector("[data-insight-tone]").dataset.insightTone).toBe("warning");
+    expect(el.querySelector("[data-insight-tone]").dataset.insightTone).toBe("negative");
   });
 
   it("reports a literal gap (a zero-count tier) with its own message, taking priority over the top-heavy check", () => {
@@ -53,7 +53,7 @@ describe("ClimbingGradePyramid health card", () => {
     const health = el.querySelector("#pyramid-insights").textContent;
     expect(health).toContain("No sends logged at 7B");
     expect(health).not.toContain("top-heavy");
-    expect(el.querySelector("[data-insight-tone]").dataset.insightTone).toBe("warning");
+    expect(el.querySelector("[data-insight-tone]").dataset.insightTone).toBe("negative");
   });
 
   it("reports a healthy shape when every tier is non-zero and non-increasing toward the base", () => {
@@ -65,7 +65,7 @@ describe("ClimbingGradePyramid health card", () => {
     ]);
     const health = el.querySelector("#pyramid-insights").textContent;
     expect(health).toContain("No gaps or inversions");
-    expect(el.querySelector("[data-insight-tone]").dataset.insightTone).toBe("info");
+    expect(el.querySelector("[data-insight-tone]").dataset.insightTone).toBe("positive");
   });
 
   it("a tier tying the count of the tier above it is still healthy (only a strict decrease counts as top-heavy)", () => {
@@ -91,6 +91,7 @@ describe("ClimbingGradePyramid health card", () => {
     );
     const health = el.querySelector("#pyramid-insights").textContent;
     expect(health).toContain("ready to push into 8A");
+    expect(el.querySelector("[data-insight-tone]").dataset.insightTone).toBe("positive");
   });
 });
 
