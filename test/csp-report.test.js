@@ -13,7 +13,7 @@ const post = (body, type) =>
   fetchJson("/-/csp-report", { method: "POST", headers: { "Content-Type": type }, body: JSON.stringify(body) });
 
 describe("CSP violation reports (#1042)", () => {
-  it("logs the directive and the blocked origin from a legacy report, never the full URL", async () => {
+  it("logs the directive, the blocked origin and the page's route template from a legacy report, never the full URL", async () => {
     const lines = violations();
     const res = await post(
       {
@@ -31,6 +31,7 @@ describe("CSP violation reports (#1042)", () => {
         event: "csp.violation",
         directive: "script-src-elem",
         blocked: "https://evil.example",
+        page: "/:username/log",
       }),
     ]);
     expect(JSON.stringify(lines())).not.toMatch(/raven|steal/);
@@ -40,12 +41,25 @@ describe("CSP violation reports (#1042)", () => {
     const lines = violations();
     await post(
       [
-        { type: "csp-violation", body: { effectiveDirective: "img-src", blockedURL: "https://tracker.example/p.gif" } },
+        {
+          type: "csp-violation",
+          body: {
+            effectiveDirective: "script-src-elem",
+            blockedURL: "inline",
+            sourceFile: "chrome-extension://abcdefghijklmnop/content.js",
+          },
+        },
         { type: "deprecation", body: { id: "x" } },
       ],
       "application/reports+json",
     );
-    expect(lines()).toEqual([expect.objectContaining({ directive: "img-src", blocked: "https://tracker.example" })]);
+    expect(lines()).toEqual([
+      expect.objectContaining({
+        directive: "script-src-elem",
+        blocked: "inline",
+        source: "chrome-extension://abcdefghijklmnop",
+      }),
+    ]);
   });
 
   it("logs at most three violations from one report", async () => {

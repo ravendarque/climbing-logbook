@@ -27,13 +27,7 @@ function renderMessage(message) {
 <title>Climbing Logbook</title>
 <link rel="stylesheet" href="/-/tailwind.css">
 <script src="/-/components/climbing-header.js"></script>
-<script>
-  (function () {
-    var stored = localStorage.getItem("logbook_theme");
-    var theme = stored || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
-    document.documentElement.dataset.theme = theme;
-  })();
-</script>
+<script src="/-/theme.js"></script>
 </head>
 <body class="bg-background text-foreground font-sans min-h-screen flex items-center justify-center px-4">
 <main class="w-full max-w-[440px] text-center">
