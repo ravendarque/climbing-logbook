@@ -149,6 +149,17 @@ the default `GITHUB_TOKEN`, since GitHub doesn't let a
 as a manual override, for a corrective release or anything unusual that
 doesn't fit the normal PR-merge flow.
 
+## What's new
+
+Help → What's new lists the last six months of changes, from the release
+tags. The release workflow writes the merged PR's "What's new" lines into
+the annotated tag's message, under the version
+(`scripts/whats-new-tag-message.mjs`), and the help build reads them back
+from git (`scripts/lib/whats-new.mjs`). A release with no lines isn't
+listed. Each site is built from its own tag, so beta lists everything and
+production only what's been promoted. Releases from before #917 are in
+`scripts/lib/whats-new-history.json`.
+
 ## Database migrations: expand and contract
 
 Migrations run before the new code deploys, against the one D1 database

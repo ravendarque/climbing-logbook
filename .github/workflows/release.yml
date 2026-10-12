@@ -98,11 +98,13 @@ jobs:
       - name: Create and push tag
         env:
           VERSION: v${{ steps.version.outputs.new }}
+          PR_BODY: ${{ github.event.pull_request.body }}
           APP_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "$VERSION" -m "$VERSION"
+          node scripts/whats-new-tag-message.mjs > "$RUNNER_TEMP/tag-message"
+          git tag -a "$VERSION" --cleanup=whitespace -F "$RUNNER_TEMP/tag-message"
           git push "https://x-access-token:${APP_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$VERSION"
 
       - name: Create GitHub Release

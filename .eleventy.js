@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process";
 import { minifyStaticScripts } from "./scripts/minify-static.mjs";
 import { gradeScaleMatrixHtml, gradeScaleSourcesHtml } from "./client/grade-scale-matrix.js";
 import { TERMS_HISTORY, TERMS_VERSION } from "./shared/terms.js";
+import { whatsNew } from "./scripts/lib/whats-new.mjs";
 
 const ASSET_VERSION = String(Date.now());
 
@@ -21,6 +22,8 @@ export default function (eleventyConfig) {
       changes,
     })).reverse(),
   );
+
+  eleventyConfig.addGlobalData("whatsNew", () => whatsNew());
 
   eleventyConfig.addPassthroughCopy({ static: "." });
 

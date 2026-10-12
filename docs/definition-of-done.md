@@ -31,3 +31,7 @@ PR ready. Each item points at the rule it comes from rather than restating it.
    CSS, fixtures, scripts or tests.
 8. **Labelled.** The PR has the right release label
    ([versioning.md](versioning.md#what-semver-means-for-this-project)).
+9. **Announced.** A change climbers will notice has a plain sentence under
+   the PR's "What's new" heading; anything else leaves it empty
+   ([versioning.md](versioning.md#whats-new)). A body written with
+   `--body-file` skips the template, so it needs the heading itself.

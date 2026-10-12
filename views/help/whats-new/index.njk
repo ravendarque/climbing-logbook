@@ -1,0 +1,23 @@
+---
+layout: help-layout.njk
+title: What's new – Climbing Logbook
+eleventyNavigation:
+  key: What's new
+  order: 11.5
+---
+<h1>What's new</h1>
+
+<p>This page lists what's changed in the version you're using over the last six months, newest first.</p>
+
+<p>We release each new feature and fix to the <a href="/help/beta-channel/">beta channel</a> as soon as it's ready, so every change gets its own version. The main app gets them in batches, once they've settled in on the beta channel.</p>
+
+{% for month in whatsNew %}
+<h2>{{ month.month }}</h2>
+<ul>
+  {%- for release in month.releases %}{% for change in release.changes %}
+  <li>{{ change }} <span class="block text-sm text-muted tabular-nums">{{ release.day }} · {{ release.version }}</span></li>
+  {%- endfor %}{% endfor %}
+</ul>
+{% else %}
+<p>Nothing to show yet.</p>
+{% endfor %}

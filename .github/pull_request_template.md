@@ -1,5 +1,9 @@
 Closes #
 
+## What's new
+
+<!-- One plain sentence per change a climber would notice, listed on Help > What's new. Leave empty if they won't notice anything. -->
+
 ## Definition of done
 
 See [docs/definition-of-done.md](https://github.com/ravendarque/climbing-logbook/blob/main/docs/definition-of-done.md).
@@ -12,3 +16,4 @@ See [docs/definition-of-done.md](https://github.com/ravendarque/climbing-logbook
 - [ ] Documented: docs and ADRs updated; no narrative comments
 - [ ] Clean: nothing the change replaced is left behind
 - [ ] Labelled: correct release label
+- [ ] Announced: "What's new" filled in if climbers will notice the change, empty if not
