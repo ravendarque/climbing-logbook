@@ -13,7 +13,8 @@ test("shows the no-pain haiku, empty log, and Sources section with no pain-tagge
   await expect(page.locator("#view-explainer")).toContainText("Pain/injury tags");
   await expect(page.locator("#report-insights")).toContainText("You have logged no pain");
   await expect(page.locator("#report-insights [data-insight-tone]")).toHaveAttribute("data-insight-tone", "positive");
-  await expect(page.locator("#injury-log-empty")).toBeVisible();
+  await expect(page.locator("#injury-log-list")).toHaveCount(0);
+  await expect(page.locator("#injury-log-root")).not.toContainText("No pain flags logged yet");
   await expect(page.locator("body")).toContainText("Miro");
 });
 

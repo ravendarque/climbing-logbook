@@ -5,7 +5,7 @@ const REPORTS = [
   { path: "gap", chart: "#gap-root [data-combo-chart]", picker: true },
   { path: "rpe", chart: "#rpe-root [data-combo-chart]", picker: true },
   { path: "trends", chart: "#trends-root [data-combo-chart]", picker: true },
-  { path: "injury", chart: "#injury-log-empty", picker: false },
+  { path: "injury", chart: null, picker: false },
   { path: "strengths", chart: null, picker: false },
 ];
 

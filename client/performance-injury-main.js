@@ -57,7 +57,7 @@ function renderInjuryLog({ log, cluster }) {
 
   const logHtml = log.length
     ? `<div class="flex flex-col gap-2" id="injury-log-list">${log.map(logRowHtml).join("")}</div>`
-    : `<p class="text-sm text-muted" id="injury-log-empty">No pain flags logged yet. This is a good thing.</p>`;
+    : "";
 
   injuryRootEl.innerHTML = logHtml + insightsHtml([insight]);
 }
