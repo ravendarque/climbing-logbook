@@ -1,4 +1,5 @@
 import { clientKey } from "../lib/rate-limits.js";
+import { routeTemplate } from "../lib/route-template.js";
 const MAX_BODY_BYTES = 16 * 1024;
 const MAX_VIOLATIONS_LOGGED = 3;
 
@@ -22,6 +23,14 @@ async function readCapped(request) {
   return new TextDecoder().decode(await new Blob(chunks).arrayBuffer());
 }
 
+function pageOf(uri) {
+  try {
+    return routeTemplate(new URL(uri), []);
+  } catch {
+    return undefined;
+  }
+}
+
 function originOf(uri) {
   if (!uri) return undefined;
   try {
@@ -38,7 +47,7 @@ function violationsIn(body) {
   return [];
 }
 
-// Only the directive and the blocked origin are kept: a full URL can carry a username or a token.
+// Only the directive, the blocked origin and the page's route template are kept: a full URL can carry a username or a token.
 export async function handleCspReport(request, env, log) {
   if (env.RATE_LIMITING_ENABLED === "true") {
     const { success } = await env.CSP_REPORT_LIMITER.limit({ key: clientKey(request) });
@@ -56,6 +65,7 @@ export async function handleCspReport(request, env, log) {
     log.warn("csp.violation", {
       directive: violation["effective-directive"] ?? violation.effectiveDirective ?? violation["violated-directive"],
       blocked: originOf(violation["blocked-uri"] ?? violation.blockedURL),
+      page: pageOf(violation["document-uri"] ?? violation.documentURL),
     });
   }
   return new Response(null, { status: 204 });

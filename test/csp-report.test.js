@@ -13,7 +13,7 @@ const post = (body, type) =>
   fetchJson("/-/csp-report", { method: "POST", headers: { "Content-Type": type }, body: JSON.stringify(body) });
 
 describe("CSP violation reports (#1042)", () => {
-  it("logs the directive and the blocked origin from a legacy report, never the full URL", async () => {
+  it("logs the directive, the blocked origin and the page's route template from a legacy report, never the full URL", async () => {
     const lines = violations();
     const res = await post(
       {
@@ -31,6 +31,7 @@ describe("CSP violation reports (#1042)", () => {
         event: "csp.violation",
         directive: "script-src-elem",
         blocked: "https://evil.example",
+        page: "/:username/log",
       }),
     ]);
     expect(JSON.stringify(lines())).not.toMatch(/raven|steal/);
