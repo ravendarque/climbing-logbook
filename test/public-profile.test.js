@@ -43,7 +43,9 @@ describe("public profile routing", () => {
   it("has no inline script on its not-found page, so the CSP has nothing to block (#1042)", async () => {
     const html = await (await fetchProfile("nobody-by-this-name")).text();
     expect(html).toContain('<script src="/-/theme.js"></script>');
-    expect([...html.matchAll(/<script\b[^>]*>/g)].every(([tag]) => /\bsrc=/.test(tag))).toBe(true);
+    const scripts = [...html.matchAll(/<script\b[^>]*>/gi)].map(([tag]) => tag);
+    expect(scripts.length).toBeGreaterThan(0);
+    expect(scripts.every(tag => /\bsrc=/i.test(tag))).toBe(true);
   });
 });
 
