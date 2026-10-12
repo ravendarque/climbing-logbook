@@ -3,10 +3,7 @@ import { daysAgo, expect, test } from "./owner.js";
 
 const LEFT_CRIMP = { limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" };
 
-test("shows the not-enough-data message, empty log, and Sources section with no pain-tagged entries", async ({
-  page,
-  owner,
-}) => {
+test("shows the no-pain haiku, empty log, and Sources section with no pain-tagged entries", async ({ page, owner }) => {
   await owner.settings({ athleteMode: true });
   await page.goto(owner.url("/performance/injury"));
 
@@ -14,8 +11,10 @@ test("shows the not-enough-data message, empty log, and Sources section with no 
   await expect(page.locator("climbing-tab-bar a", { hasText: "Performance" })).toHaveAttribute("aria-current", "page");
   await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", `/${owner.username}/performance`);
   await expect(page.locator("#view-explainer")).toContainText("Pain/injury tags");
-  await expect(page.locator("#injury-headline")).toContainText("Not enough data yet");
-  await expect(page.locator("#injury-log-empty")).toBeVisible();
+  await expect(page.locator("#report-insights")).toContainText("You have logged no pain");
+  await expect(page.locator("#report-insights [data-insight-tone]")).toHaveAttribute("data-insight-tone", "positive");
+  await expect(page.locator("#injury-log-list")).toHaveCount(0);
+  await expect(page.locator("#injury-log-root")).not.toContainText("No pain flags logged yet");
   await expect(page.locator("body")).toContainText("Miro");
 });
 
@@ -26,7 +25,10 @@ test("renders the ranked headline and log rows when a cluster clears the confide
   });
   await page.goto(owner.url("/performance/injury"));
 
-  await expect(page.locator("#injury-headline")).toHaveText("Your pain flags cluster on left hand crimps, overhang.");
+  await expect(page.locator("#report-insights")).toContainText(
+    "Your pain flags cluster on left hand crimps, overhang.",
+  );
+  await expect(page.locator("#report-insights [data-insight-tone]")).toHaveAttribute("data-insight-tone", "negative");
   const rows = page.locator("#injury-log-list .row-card-title");
   await expect(rows).toHaveText(["Painful Route 3", "Painful Route 2", "Painful Route 1"]);
 });

@@ -31,10 +31,10 @@ test("renders both grade-labeled line series and the attempts bar", async ({ pag
 
   // 6B+ sits between them: two named steps, not one.
   await expect(page.locator("#gap-root")).toContainText("2 grade-steps ahead");
-  await expect(page.locator("#gap-root svg")).toBeVisible();
+  await expect(page.locator("#gap-root [data-combo-chart]")).toBeVisible();
   await expect(page.locator("#gap-root")).toContainText("6B");
   await expect(page.locator("#gap-root")).toContainText("6C");
-  await expect(page.locator("#gap-root svg")).toContainText("–");
+  await expect(page.locator("#gap-root [data-combo-chart]")).toContainText("–");
 });
 
 test("switching the report grade scale relabels both grade line series", async ({ page, owner }) => {

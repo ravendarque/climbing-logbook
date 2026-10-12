@@ -18,7 +18,7 @@ test("shows the not-enough-data message and Sources section with no tagged moves
   await expect(page.locator("climbing-tab-bar a", { hasText: "Performance" })).toHaveAttribute("aria-current", "page");
   await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", `/${owner.username}/performance`);
   await expect(page.locator("#view-explainer")).toContainText("Move difficulty tags");
-  await expect(page.locator("#strengths-headline")).toContainText("Not enough data yet");
+  await expect(page.locator("#report-insights")).toContainText("Not enough data yet");
   await expect(page.locator("#strengths-anchor-select")).toHaveCount(0);
   await expect(page.locator("body")).toContainText("MacLeod");
 });
@@ -31,7 +31,7 @@ test("#604 -- hides the drill-down picker when anchors exist but no cell clears 
   await owner.seed({ entries: [{ moves: [HARDEST_LEFT_CRIMP] }] });
   await page.goto(owner.url("/performance/strengths"));
 
-  await expect(page.locator("#strengths-headline")).toContainText("Not enough data yet");
+  await expect(page.locator("#report-insights")).toContainText("Not enough data yet");
   await expect(page.locator("#strengths-anchor-select")).toHaveCount(0);
 });
 
@@ -40,7 +40,7 @@ test("renders the headline and drill-down picker, and re-ranks on anchor change"
   await owner.seed({ entries: [1, 2, 3].map(() => ({ moves: [HARDEST_LEFT_CRIMP] })) });
   await page.goto(owner.url("/performance/strengths"));
 
-  await expect(page.locator("#strengths-headline")).toHaveText(
+  await expect(page.locator("#report-insights")).toHaveText(
     "Your left hand on overhanging crimps looks like a key weakness.",
   );
   await page.locator("#strengths-anchor-select").selectOption("holdType:crimp");

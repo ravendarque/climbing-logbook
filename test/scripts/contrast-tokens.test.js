@@ -37,6 +37,7 @@ const PAIRS_BOTH_THEMES = [
   ["color-accent-ink", "color-surface", TEXT, "red text on a card"],
   ["color-warning-ink", "color-warning-bg", TEXT, "warning text on its tint"],
   ["color-warning-border", "color-surface", NON_TEXT, "a warning's border on a card"],
+  ["insight-positive", "color-surface", NON_TEXT, "a positive insight's icon on a card"],
   ["grade-tier-beginner-ink", "grade-tier-beginner", TEXT, "a beginner grade badge"],
   ["grade-badge-ink", "grade-tier-intermediate", TEXT, "an intermediate grade badge"],
   ["grade-badge-ink", "grade-tier-advanced", TEXT, "an advanced grade badge"],

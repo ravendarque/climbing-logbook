@@ -111,33 +111,36 @@ describe("effortHeadline", () => {
 
   it("returns the 'paying off' message when both grade and exertion rise from first to last data point", () => {
     const text = effortHeadline([pair("6B"), pair("7A")], [60, 80], [2, 2], 70, 5, "boulder");
-    expect(text).toContain("paying off");
+    expect(text).toMatchObject({ tone: "positive" });
+    expect(text.text).toContain("paying off");
   });
 
   it("returns the 'maxing out effort' message for high average exertion with no grade progress", () => {
     const text = effortHeadline([pair("6B"), pair("6B")], [85, 85], [2, 2], 85, 5, "boulder");
-    expect(text).toContain("technique work");
+    expect(text).toMatchObject({ tone: "negative" });
+    expect(text.text).toContain("technique work");
   });
 
   it("returns the discipline-aware 'room to push harder' message as the default case", () => {
     const boulderText = effortHeadline([pair("6B"), pair("6B")], [40, 40], [2, 2], 40, 5, "boulder");
-    expect(boulderText).toContain("send attempts");
+    expect(boulderText).toMatchObject({ tone: "neutral" });
+    expect(boulderText.text).toContain("send attempts");
     const sportText = effortHeadline([pair("6a", "french"), pair("6a", "french")], [40, 40], [2, 2], 40, 5, "sport");
-    expect(sportText).toContain("redpoint attempts");
+    expect(sportText.text).toContain("redpoint attempts");
   });
 
   it("does not report a rising exertion trend for a sub-margin fluctuation", () => {
     const text = effortHeadline([pair("6B"), pair("7A")], [70, 73], [2, 2], 71, 5, "boulder");
-    expect(text).not.toContain("paying off");
+    expect(text.text).not.toContain("paying off");
   });
 
   it("falls through to the default case with only one bucket of real data (no possible trend)", () => {
     const text = effortHeadline([pair("6B")], [50], [3], 50, 5, "boulder");
-    expect(text).toContain("room to push harder");
+    expect(text.text).toContain("room to push harder");
   });
 
   it("correctly detects a rising grade trend across a mix of real scales", () => {
     const text = effortHeadline([pair("V3", "v-scale"), pair("7A")], [60, 80], [2, 2], 70, 5, "boulder");
-    expect(text).toContain("paying off");
+    expect(text.text).toContain("paying off");
   });
 });

@@ -115,52 +115,54 @@ describe("gapByBucket", () => {
 
 describe("gapHeadline", () => {
   it("reports no sends when the window is empty", () => {
-    expect(gapHeadline([null, null], [null, null], "boulder")).toBe("No sends logged in this window yet.");
+    expect(gapHeadline([null, null], [null, null], "boulder").text).toBe("No sends logged in this window yet.");
   });
 
   it("reports no flash/onsight sends yet when only sendMax data exists", () => {
-    const text = gapHeadline([null, null], [pair("6B"), pair("7A")], "boulder");
+    const text = gapHeadline([null, null], [pair("6B"), pair("7A")], "boulder").text;
     expect(text).toContain("No flash sends logged in this window yet");
     expect(text).toContain("7A");
   });
 
   it("uses onsight/redpoint terminology for a sport entry", () => {
-    const text = gapHeadline([null], [pair("6a", "french")], "sport");
+    const text = gapHeadline([null], [pair("6a", "french")], "sport").text;
     expect(text).toContain("onsight");
     expect(text).toContain("redpoint");
   });
 
   it("reports the gap in grade-steps when both series have data", () => {
-    const text = gapHeadline([pair("5")], [pair("7A")], "boulder");
-    expect(text).toMatch(/grade-steps? ahead/);
+    const headline = gapHeadline([pair("5")], [pair("7A")], "boulder");
+    expect(headline.tone).toBe("neutral");
+    expect(headline.text).toMatch(/grade-steps? ahead/);
   });
 
   it("reports a matched/beaten gap when flash max is at or above send max", () => {
-    const text = gapHeadline([pair("7A")], [pair("7A")], "boulder");
-    expect(text).toContain("matches or beats");
+    const headline = gapHeadline([pair("7A")], [pair("7A")], "boulder");
+    expect(headline.tone).toBe("positive");
+    expect(headline.text).toContain("matches or beats");
   });
 
   it("renders a V-scale-logged best send with its correct display label when viewing in V-scale", () => {
-    const text = gapHeadline([null], [pair("V3", "v-scale")], "boulder", "v-scale");
+    const text = gapHeadline([null], [pair("V3", "v-scale")], "boulder", "v-scale").text;
     expect(text).toContain("V3");
   });
 
   it("relabels its own grade mentions when the viewer's chosen scale changes, matching the chart's points", () => {
-    const inFont = gapHeadline([null], [pair("V3", "v-scale")], "boulder", "font");
-    const inVScale = gapHeadline([null], [pair("V3", "v-scale")], "boulder", "v-scale");
+    const inFont = gapHeadline([null], [pair("V3", "v-scale")], "boulder", "font").text;
+    const inVScale = gapHeadline([null], [pair("V3", "v-scale")], "boulder", "v-scale").text;
     expect(inFont).toContain("6A");
     expect(inVScale).toContain("V3");
   });
 
   it("defaults to Font/French (never a Non-standard scale) when no viewScaleId is given, matching the picker's own opening default", () => {
-    const boulderText = gapHeadline([null], [pair("7A")], "boulder");
+    const boulderText = gapHeadline([null], [pair("7A")], "boulder").text;
     expect(boulderText).toContain("7A");
-    const sportText = gapHeadline([null], [pair("6a", "french")], "sport");
+    const sportText = gapHeadline([null], [pair("6a", "french")], "sport").text;
     expect(sportText).toContain("6a");
   });
 
   it("falls back to the grade's own logged scale when the chosen view scale can't represent a below-floor best send", () => {
-    const text = gapHeadline([null], [pair("2+", "font-non-standard")], "boulder", "font");
+    const text = gapHeadline([null], [pair("2+", "font-non-standard")], "boulder", "font").text;
     expect(text).toContain("2+");
   });
 });

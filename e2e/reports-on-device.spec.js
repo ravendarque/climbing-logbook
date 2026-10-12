@@ -110,7 +110,7 @@ test.describe("Reports and map counts on the device (ADR-0031)", () => {
     });
 
     await page.goto(owner.url("/performance/gap"));
-    await expect(page.locator("#gap-root svg")).toBeVisible();
+    await expect(page.locator("#gap-root [data-combo-chart]")).toBeVisible();
     expect(visited).toContain(`/${owner.username}/sync`);
     expect(visited.at(-1)).toBe(`/${owner.username}/performance/gap`);
   });

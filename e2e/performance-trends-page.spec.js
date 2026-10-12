@@ -31,7 +31,7 @@ test("renders real bars and a grade-labeled line point", async ({ page, owner })
   await page.goto(owner.url("/performance/trends"));
 
   await expect(page.locator("#trends-root")).toContainText("10 sends logged in this window, busiest period had 5.");
-  await expect(page.locator("#trends-root svg")).toBeVisible();
+  await expect(page.locator("#trends-root [data-combo-chart]")).toBeVisible();
   await expect(page.locator("#trends-root")).toContainText("6B");
 });
 

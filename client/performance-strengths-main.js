@@ -4,6 +4,7 @@ import { humanize } from "../shared/tag-stats-helpers.js";
 import { createReportData } from "./report-data.js";
 import { buildStrengthsReport } from "../shared/reports.js";
 import { startPage } from "./boot-gate.js";
+import { insightsHtml } from "./insight-card.js";
 
 const {
   username: USERNAME,
@@ -79,9 +80,10 @@ function anchorOptionsHtml(anchors) {
 }
 
 function renderStrengths({ headline, anchors }) {
-  const headlineHtml = headline
-    ? `<p class="text-base font-semibold text-foreground mb-4" id="strengths-headline">${escapeHtml(headline.text)}</p>`
-    : `<p class="text-sm text-muted mb-4" id="strengths-headline">Not enough data yet to spot a pattern -- keep tagging moves as you climb.</p>`;
+  const insight = {
+    tone: "neutral",
+    text: headline ? headline.text : "Not enough data yet to spot a pattern -- keep tagging moves as you climb.",
+  };
 
   // On headline, not anchors: some tags can exist before any combination clears the gate.
   const pickerHtml = headline
@@ -96,7 +98,7 @@ function renderStrengths({ headline, anchors }) {
     : "";
 
   const previousAnchor = document.getElementById("strengths-anchor-select")?.value ?? "";
-  strengthsRootEl.innerHTML = headlineHtml + pickerHtml;
+  strengthsRootEl.innerHTML = pickerHtml + insightsHtml([insight]);
 
   const select = document.getElementById("strengths-anchor-select");
   if (!select) return;

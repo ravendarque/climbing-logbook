@@ -41,6 +41,7 @@
   --color-warning-ink:       var(--color-warning-ink);
 
   --color-tier-heuristic:    var(--tier-heuristic);
+  --color-insight-positive:  var(--insight-positive);
 
   --color-pyramid-good:      var(--pyramid-status-good);
   --color-pyramid-missing:   var(--pyramid-status-missing);
@@ -354,7 +355,8 @@
   --tier-heuristic: #dba43a;
 /* Named for the state, not the colour, so a retune needs no rename. */
   --sync-working: #ff6d00;
-  --pyramid-status-good:     #22c55e;
+  --insight-positive:        #2bbf87;
+  --pyramid-status-good:     #2bbf87;
   --pyramid-status-missing:  #ef4444;
   --pyramid-status-promoted: #eab308;
 /* Red-400 clears WCAG AA on dark backgrounds; light theme needs red-700. */
@@ -388,7 +390,8 @@
   --grade-badge-ink: #1c1917;
   --tier-heuristic: #a6740a;
   --sync-working: #ff6d00;
-  --pyramid-status-good:     #16a34a;
+  --insight-positive:        #047857;
+  --pyramid-status-good:     #047857;
   --pyramid-status-missing:  #b91c1c;
   --pyramid-status-promoted: #a16207;
   --color-error-text: #b91c1c;

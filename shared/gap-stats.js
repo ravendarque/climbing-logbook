@@ -76,18 +76,27 @@ export function gapHeadline(flashMaxByBucket, sendMaxByBucket, type, viewScaleId
   const ordinalOf = pair => bestGradeOrdinal(pair, type);
 
   const sendGrades = sendMaxByBucket.filter(g => g !== null);
-  if (sendGrades.length === 0) return "No sends logged in this window yet.";
+  if (sendGrades.length === 0) return { tone: "neutral", text: "No sends logged in this window yet." };
   const bestSend = sendGrades.reduce((best, g) => (ordinalOf(g) > ordinalOf(best) ? g : best));
 
   const flashGrades = flashMaxByBucket.filter(g => g !== null);
   if (flashGrades.length === 0) {
-    return `No ${flashTerm} sends logged in this window yet -- your best ${sendTerm} is ${label(bestSend)}.`;
+    return {
+      tone: "neutral",
+      text: `No ${flashTerm} sends logged in this window yet -- your best ${sendTerm} is ${label(bestSend)}.`,
+    };
   }
   const bestFlash = flashGrades.reduce((best, g) => (ordinalOf(g) > ordinalOf(best) ? g : best));
 
   const gap = stepIndex(ordinalOf(bestSend), positionOrder) - stepIndex(ordinalOf(bestFlash), positionOrder);
   if (gap <= 0) {
-    return `Your best ${flashTerm} (${label(bestFlash)}) matches or beats your best ${sendTerm} (${label(bestSend)}) this window.`;
+    return {
+      tone: "positive",
+      text: `Your best ${flashTerm} (${label(bestFlash)}) matches or beats your best ${sendTerm} (${label(bestSend)}) this window.`,
+    };
   }
-  return `Your best ${sendTerm} (${label(bestSend)}) is ${gap} grade-step${gap === 1 ? "" : "s"} ahead of your best ${flashTerm} (${label(bestFlash)}) this window.`;
+  return {
+    tone: "neutral",
+    text: `Your best ${sendTerm} (${label(bestSend)}) is ${gap} grade-step${gap === 1 ? "" : "s"} ahead of your best ${flashTerm} (${label(bestFlash)}) this window.`,
+  };
 }
