@@ -34,7 +34,9 @@ function pageOf(uri) {
 function originOf(uri) {
   if (!uri) return undefined;
   try {
-    return new URL(uri).origin;
+    const url = new URL(uri);
+    // Extension URLs have an opaque origin, so their scheme and id stand in for it.
+    return url.origin === "null" ? `${url.protocol}//${url.host}` : url.origin;
   } catch {
     return String(uri).slice(0, 32);
   }
@@ -47,7 +49,7 @@ function violationsIn(body) {
   return [];
 }
 
-// Only the directive, the blocked origin and the page's route template are kept: a full URL can carry a username or a token.
+// Only the directive, the blocked and source origins, and the page's route template are kept: a full URL can carry a username or a token.
 export async function handleCspReport(request, env, log) {
   if (env.RATE_LIMITING_ENABLED === "true") {
     const { success } = await env.CSP_REPORT_LIMITER.limit({ key: clientKey(request) });
@@ -66,6 +68,7 @@ export async function handleCspReport(request, env, log) {
       directive: violation["effective-directive"] ?? violation.effectiveDirective ?? violation["violated-directive"],
       blocked: originOf(violation["blocked-uri"] ?? violation.blockedURL),
       page: pageOf(violation["document-uri"] ?? violation.documentURL),
+      source: originOf(violation["source-file"] ?? violation.sourceFile),
     });
   }
   return new Response(null, { status: 204 });

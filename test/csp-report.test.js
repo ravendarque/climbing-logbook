@@ -41,12 +41,25 @@ describe("CSP violation reports (#1042)", () => {
     const lines = violations();
     await post(
       [
-        { type: "csp-violation", body: { effectiveDirective: "img-src", blockedURL: "https://tracker.example/p.gif" } },
+        {
+          type: "csp-violation",
+          body: {
+            effectiveDirective: "script-src-elem",
+            blockedURL: "inline",
+            sourceFile: "chrome-extension://abcdefghijklmnop/content.js",
+          },
+        },
         { type: "deprecation", body: { id: "x" } },
       ],
       "application/reports+json",
     );
-    expect(lines()).toEqual([expect.objectContaining({ directive: "img-src", blocked: "https://tracker.example" })]);
+    expect(lines()).toEqual([
+      expect.objectContaining({
+        directive: "script-src-elem",
+        blocked: "inline",
+        source: "chrome-extension://abcdefghijklmnop",
+      }),
+    ]);
   });
 
   it("logs at most three violations from one report", async () => {
