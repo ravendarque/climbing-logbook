@@ -46,13 +46,13 @@ importers:
         version: 2.5.15
       '@cloudflare/vite-plugin':
         specifier: ^1.63.1
-        version: 1.63.1(@types/node@26.6.2)(vite@8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))(wrangler@4.149.0(@cloudflare/workers-types@5.20261008.1)(@types/node@26.6.2))
+        version: 1.63.1(@types/node@26.6.2)(vite@8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))(wrangler@4.149.0(@cloudflare/workers-types@5.20261009.1)(@types/node@26.6.2))
       '@cloudflare/vitest-plugin':
         specifier: ^1.4.0
-        version: 1.4.0(@cloudflare/workers-types@5.20261008.1)(@types/node@26.6.2)(vitest@5.0.3)
+        version: 1.4.0(@cloudflare/workers-types@5.20261009.1)(@types/node@26.6.2)(vitest@5.0.3)
       '@cloudflare/workers-types':
-        specifier: ^5.20261008.1
-        version: 5.20261008.1
+        specifier: ^5.20261009.1
+        version: 5.20261009.1
       '@playwright/test':
         specifier: ^1.64.0
         version: 1.64.0
@@ -78,8 +78,8 @@ importers:
         specifier: 2.0.4
         version: 2.0.4
       happy-dom:
-        specifier: ^20.14.5
-        version: 20.14.5
+        specifier: ^20.14.6
+        version: 20.14.6
       pagefind:
         specifier: ^1.5.2
         version: 1.5.2
@@ -100,7 +100,7 @@ importers:
         version: 8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)
       vitest:
         specifier: ^5.0.3
-        version: 5.0.3(@types/node@26.6.2)(@vitest/coverage-istanbul@5.0.3)(happy-dom@20.14.5)(vite@8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))
+        version: 5.0.3(@types/node@26.6.2)(@vitest/coverage-istanbul@5.0.3)(happy-dom@20.14.6)(vite@8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))
       world-atlas:
         specifier: ^2.0.2
         version: 2.0.2
@@ -109,7 +109,7 @@ importers:
         version: 5.1.0
       wrangler:
         specifier: ^4.149.0
-        version: 4.149.0(@cloudflare/workers-types@5.20261008.1)(@types/node@26.6.2)
+        version: 4.149.0(@cloudflare/workers-types@5.20261009.1)(@types/node@26.6.2)
 
 packages:
 
@@ -422,8 +422,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@cloudflare/workers-types@5.20261008.1':
-    resolution: {integrity: sha512-Ya6zuPTAQPka+Mn5rMI5f8Zl5bihhm+ytqhHiMzMgpLDGrD24A1k/Z/JPSBIqhIC0bx0AclgYyoZoRs6UWVlmw==}
+  '@cloudflare/workers-types@5.20261009.1':
+    resolution: {integrity: sha512-Oa/7pS2upeCKG0lEvPSGHLK8B8sx3lPanEaXDlOj13H6HfZV5agBeHq5A1VtJj+/x9dXuMJpHTg7U7kTYt4xDA==}
 
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
@@ -1774,8 +1774,8 @@ packages:
     resolution: {integrity: sha512-5v6yZd4JK3eMI3FqqCouswVqwugaA9r4dNZB1wwcmrD02QkV5H0y7XBQW8QwQqEaZY1pM9aqORSORhJRdNK44Q==}
     engines: {node: '>=6.0'}
 
-  happy-dom@20.14.5:
-    resolution: {integrity: sha512-x/RzkpWO40bTjIoT30iQtt64FLLmH/iRcUCN2X//bLx7H3ifkdfPXyqsro/OYtqzIAhiLMMA7mmiOR9C3NOKjQ==}
+  happy-dom@20.14.6:
+    resolution: {integrity: sha512-5DDsf4QmEIlRL6NkCv/fxSjYHHkZceL/IaYQdJc2h3G7DRTEai++VTjbfL0LB9geW2VrA3+vrjF3Efx+OTtX0Q==}
     engines: {node: '>=20.0.0'}
 
   htmlparser2@7.2.0:
@@ -2958,27 +2958,27 @@ snapshots:
     optionalDependencies:
       workerd: 1.20261006.1
 
-  '@cloudflare/vite-plugin@1.63.1(@types/node@26.6.2)(vite@8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))(wrangler@4.149.0(@cloudflare/workers-types@5.20261008.1)(@types/node@26.6.2))':
+  '@cloudflare/vite-plugin@1.63.1(@types/node@26.6.2)(vite@8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))(wrangler@4.149.0(@cloudflare/workers-types@5.20261009.1)(@types/node@26.6.2))':
     dependencies:
       '@cloudflare/unenv-preset': 2.16.2(unenv@2.0.0-rc.24)(workerd@1.20261006.1)
       miniflare: 5.20261006.1-alpha(@types/node@26.6.2)
       unenv: 2.0.0-rc.24
       vite: 8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)
       workerd: 1.20261006.1
-      wrangler: 4.149.0(@cloudflare/workers-types@5.20261008.1)(@types/node@26.6.2)
+      wrangler: 4.149.0(@cloudflare/workers-types@5.20261009.1)(@types/node@26.6.2)
       ws: 8.21.0
     transitivePeerDependencies:
       - '@types/node'
       - bufferutil
       - utf-8-validate
 
-  '@cloudflare/vitest-plugin@1.4.0(@cloudflare/workers-types@5.20261008.1)(@types/node@26.6.2)(vitest@5.0.3)':
+  '@cloudflare/vitest-plugin@1.4.0(@cloudflare/workers-types@5.20261009.1)(@types/node@26.6.2)(vitest@5.0.3)':
     dependencies:
       cjs-module-lexer: 1.2.3
       esbuild: 0.28.2
       miniflare: 5.20261006.1-alpha(@types/node@26.6.2)
-      vitest: 5.0.3(@types/node@26.6.2)(@vitest/coverage-istanbul@5.0.3)(happy-dom@20.14.5)(vite@8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))
-      wrangler: 4.149.0(@cloudflare/workers-types@5.20261008.1)(@types/node@26.6.2)
+      vitest: 5.0.3(@types/node@26.6.2)(@vitest/coverage-istanbul@5.0.3)(happy-dom@20.14.6)(vite@8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))
+      wrangler: 4.149.0(@cloudflare/workers-types@5.20261009.1)(@types/node@26.6.2)
       zod: 4.6.5
     transitivePeerDependencies:
       - '@cloudflare/workers-types'
@@ -3001,7 +3001,7 @@ snapshots:
   '@cloudflare/workerd-windows-64@1.20261006.1':
     optional: true
 
-  '@cloudflare/workers-types@5.20261008.1': {}
+  '@cloudflare/workers-types@5.20261009.1': {}
 
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
@@ -3584,7 +3584,7 @@ snapshots:
       magicast: 0.5.5
       obug: 2.2.1
       tinyrainbow: 3.1.1
-      vitest: 5.0.3(@types/node@26.6.2)(@vitest/coverage-istanbul@5.0.3)(happy-dom@20.14.5)(vite@8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))
+      vitest: 5.0.3(@types/node@26.6.2)(@vitest/coverage-istanbul@5.0.3)(happy-dom@20.14.6)(vite@8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))
 
   '@vitest/istanbul-lib-coverage@1.0.2': {}
 
@@ -3687,7 +3687,7 @@ snapshots:
     optionalDependencies:
       '@prisma/client': 5.22.0
       pg: 8.22.0
-      vitest: 5.0.3(@types/node@26.6.2)(@vitest/coverage-istanbul@5.0.3)(happy-dom@20.14.5)(vite@8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))
+      vitest: 5.0.3(@types/node@26.6.2)(@vitest/coverage-istanbul@5.0.3)(happy-dom@20.14.6)(vite@8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))
     transitivePeerDependencies:
       - '@opentelemetry/api'
 
@@ -3978,7 +3978,7 @@ snapshots:
       section-matter: 1.0.0
       strip-bom-string: 1.0.0
 
-  happy-dom@20.14.5:
+  happy-dom@20.14.6:
     dependencies:
       '@types/node': 26.6.1
       '@types/whatwg-mimetype': 3.0.2
@@ -4647,7 +4647,7 @@ snapshots:
       fsevents: 2.3.3
       jiti: 2.7.0
 
-  vitest@5.0.3(@types/node@26.6.2)(@vitest/coverage-istanbul@5.0.3)(happy-dom@20.14.5)(vite@8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)):
+  vitest@5.0.3(@types/node@26.6.2)(@vitest/coverage-istanbul@5.0.3)(happy-dom@20.14.6)(vite@8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)):
     dependencies:
       '@types/chai': 5.2.3
       '@vitest/mocker': 5.0.3(vite@8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))
@@ -4666,7 +4666,7 @@ snapshots:
     optionalDependencies:
       '@types/node': 26.6.2
       '@vitest/coverage-istanbul': 5.0.3(vitest@5.0.3)
-      happy-dom: 20.14.5
+      happy-dom: 20.14.6
     transitivePeerDependencies:
       - msw
 
@@ -4686,7 +4686,7 @@ snapshots:
 
   world-countries@5.1.0: {}
 
-  wrangler@4.149.0(@cloudflare/workers-types@5.20261008.1)(@types/node@26.6.2):
+  wrangler@4.149.0(@cloudflare/workers-types@5.20261009.1)(@types/node@26.6.2):
     dependencies:
       '@cloudflare/kv-asset-handler': 0.5.0
       '@cloudflare/unenv-preset': 2.16.2(unenv@2.0.0-rc.24)(workerd@1.20261006.1)
@@ -4697,7 +4697,7 @@ snapshots:
       unenv: 2.0.0-rc.24
       workerd: 1.20261006.1
     optionalDependencies:
-      '@cloudflare/workers-types': 5.20261008.1
+      '@cloudflare/workers-types': 5.20261009.1
       fsevents: 2.3.3
     transitivePeerDependencies:
       - '@types/node'
