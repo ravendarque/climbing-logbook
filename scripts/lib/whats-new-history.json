@@ -1,0 +1,149 @@
+[
+  {
+    "version": "v2.116.0",
+    "date": "2026-10-11",
+    "changes": ["When the terms of use change, you're asked to agree to the new version. Anything you save meanwhile waits on your device until you do."]
+  },
+  {
+    "version": "v2.115.0",
+    "date": "2026-10-11",
+    "changes": ["Deleting climbs frees up room against your account's climb limit straight away."]
+  },
+  {
+    "version": "v2.114.0",
+    "date": "2026-10-11",
+    "changes": ["If your verification email doesn't arrive, you can send it again from the sign-up and log-in pages."]
+  },
+  {
+    "version": "v2.113.0",
+    "date": "2026-10-11",
+    "changes": ["A new Licence page explains, in plain language, what you can do with Climbing Logbook's source code."]
+  },
+  {
+    "version": "v2.107.0",
+    "date": "2026-10-10",
+    "changes": ["Notes, reports and feedback show how many characters you have left."]
+  },
+  {
+    "version": "v2.106.0",
+    "date": "2026-10-10",
+    "changes": ["Tracking parameters are removed from video links when you save a climb."]
+  },
+  {
+    "version": "v2.97.0",
+    "date": "2026-10-08",
+    "changes": ["You can delete your account from My account."]
+  },
+  {
+    "version": "v2.96.0",
+    "date": "2026-10-07",
+    "changes": ["Climbing Logbook has Terms of use, which you agree to when you sign up."]
+  },
+  {
+    "version": "v2.95.0",
+    "date": "2026-10-07",
+    "changes": ["New logbooks start private. You choose when to make yours public."]
+  },
+  {
+    "version": "v2.94.0",
+    "date": "2026-10-07",
+    "changes": ["You can report a public logbook or climb that breaks the rules."]
+  },
+  {
+    "version": "v2.89.0",
+    "date": "2026-10-06",
+    "changes": ["The Sync button is now a line under the tabs that shows how many changes are waiting to sync."]
+  },
+  {
+    "version": "v2.87.0",
+    "date": "2026-10-06",
+    "changes": ["New accounts get a short setup and a tour of the app when they first log in."]
+  },
+  {
+    "version": "v2.84.0",
+    "date": "2026-10-06",
+    "changes": ["The View page shows your boulder and sport climbs together, with the world map as one of its tabs."]
+  },
+  {
+    "version": "v2.80.0",
+    "date": "2026-10-04",
+    "changes": ["You can clear what Climbing Logbook keeps on a device, from My account."]
+  },
+  {
+    "version": "v2.79.0",
+    "date": "2026-10-01",
+    "changes": ["A new Troubleshooting help page, organised by what you're seeing."]
+  },
+  {
+    "version": "v2.76.0",
+    "date": "2026-10-01",
+    "changes": ["Your Performance reports are worked out on your device, so they open without a connection."]
+  },
+  {
+    "version": "v2.73.0",
+    "date": "2026-09-30",
+    "changes": ["Pick a climb's status from a carousel you can swipe through."]
+  },
+  {
+    "version": "v2.71.0",
+    "date": "2026-09-25",
+    "changes": ["The beta can be installed as its own app, marked Beta."]
+  },
+  {
+    "version": "v2.61.0",
+    "date": "2026-09-23",
+    "changes": ["Report an issue or tell us what you think, from forms in the Help section."]
+  },
+  {
+    "version": "v2.56.0",
+    "date": "2026-09-21",
+    "changes": ["A Help section, with search, covering everything from your first climb to troubleshooting."]
+  },
+  {
+    "version": "v2.52.0",
+    "date": "2026-09-17",
+    "changes": ["In Athlete Mode, the add and edit form is split into two pages you can swipe between."]
+  },
+  {
+    "version": "v2.47.0",
+    "date": "2026-09-13",
+    "changes": ["A Grade scales page shows how grades compare across scales."]
+  },
+  {
+    "version": "v2.44.0",
+    "date": "2026-09-12",
+    "changes": ["Log a climb in the grade scale you know, from nine boulder and route scales."]
+  },
+  {
+    "version": "v2.37.0",
+    "date": "2026-09-09",
+    "changes": ["You can import a logbook from Climbing Logbook's own JSON export."]
+  },
+  {
+    "version": "v2.36.0",
+    "date": "2026-09-08",
+    "changes": ["Lead is now called Sport, with lead or top-rope recorded on each climb, and a filter for each."]
+  },
+  {
+    "version": "v2.30.0",
+    "date": "2026-09-04",
+    "changes": ["Try the app with example logbooks, no account needed."]
+  },
+  {
+    "version": "v2.28.0",
+    "date": "2026-08-31",
+    "changes": [
+      "Performance insights: an injury log, strengths and weaknesses, volume and intensity over time, your onsight to redpoint gap, and effort over time."
+    ]
+  },
+  {
+    "version": "v2.5.0",
+    "date": "2026-08-20",
+    "changes": ["Export your logbook as CSV or JSON from My account."]
+  },
+  {
+    "version": "v2.4.0",
+    "date": "2026-08-20",
+    "changes": ["Import your climbs from a CSV file."]
+  }
+]

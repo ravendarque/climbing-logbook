@@ -1,0 +1,21 @@
+---
+layout: help-layout.njk
+title: What's new – Climbing Logbook
+eleventyNavigation:
+  key: What's new
+  order: 11.5
+---
+<h1>What's new</h1>
+
+<p>What's changed in Climbing Logbook over the last six months, newest first.</p>
+
+{% for month in whatsNew %}
+<h2>{{ month.month }}</h2>
+<ul>
+  {%- for release in month.releases %}{% for change in release.changes %}
+  <li>{{ change }} <span class="block text-sm text-muted tabular-nums">{{ release.day }} · {{ release.version }}</span></li>
+  {%- endfor %}{% endfor %}
+</ul>
+{% else %}
+<p>Nothing to show yet.</p>
+{% endfor %}
