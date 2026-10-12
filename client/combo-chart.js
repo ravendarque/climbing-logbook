@@ -123,13 +123,12 @@ function xAxisHtml(bucketLabels) {
     .join("");
 }
 
-export function renderComboChartHtml({ bucketLabels, bars, lines, headline }) {
+export function renderComboChartHtml({ bucketLabels, bars, lines }) {
   const bucketCount = bucketLabels.length;
   const maxValue = barMaxValue(bars);
   const y = barScale(maxValue);
   return `<div>
-    <p class="text-base font-semibold text-foreground mb-3">${escapeHtml(headline)}</p>
-    <svg viewBox="0 0 ${CHART_WIDTH} ${CHART_HEIGHT}" class="w-full h-auto">
+    <svg viewBox="0 0 ${CHART_WIDTH} ${CHART_HEIGHT}" class="w-full h-auto" data-combo-chart>
       <rect x="${MARGIN.left}" y="${MARGIN.top}" width="${PLOT_WIDTH}" height="${PLOT_HEIGHT}" class="fill-none stroke-border" stroke-width="1" />
       <line x1="${MARGIN.left}" y1="${MARGIN.top + PLOT_HEIGHT}" x2="${MARGIN.left + PLOT_WIDTH}" y2="${MARGIN.top + PLOT_HEIGHT}" class="stroke-border" stroke-width="1" />
       ${bars.length ? barYAxisHtml(maxValue, y) : ""}

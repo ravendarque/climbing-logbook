@@ -30,10 +30,10 @@ test("renders the exertion bars and grade-labeled line once the confidence gate 
   await page.goto(owner.url("/performance/rpe"));
 
   await expect(page.locator("#rpe-root")).toContainText("sounds like it's paying off");
-  await expect(page.locator("#rpe-root svg")).toBeVisible();
+  await expect(page.locator("#rpe-root [data-combo-chart]")).toBeVisible();
   await expect(page.locator("#rpe-root")).toContainText("6B");
   await expect(page.locator("#rpe-root")).toContainText("6C");
-  await expect(page.locator("#rpe-root svg")).toContainText("–");
+  await expect(page.locator("#rpe-root [data-combo-chart]")).toContainText("–");
 });
 
 test("switching the report grade scale relabels the chart's grade point", async ({ page, owner }) => {

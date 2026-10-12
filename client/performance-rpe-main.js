@@ -8,7 +8,7 @@ createReportPage({
   rootId: "rpe-root",
   path: "performance/rpe",
   build: buildEffortReport,
-  renderChart({ buckets, maxGradeByBucket, avgExertionByBucket, headline }, { type, viewScaleId }) {
+  renderChart({ buckets, maxGradeByBucket, avgExertionByBucket }, { type, viewScaleId }) {
     return renderComboChartHtml({
       bucketLabels: buckets,
       bars: [{ label: "Avg exertion %", values: avgExertionByBucket }],
@@ -19,7 +19,12 @@ createReportPage({
           positionOrder: reportPositionOrder(type),
         },
       ],
-      headline: headline ?? "Not enough data yet for a reliable read -- log a few more sends and check back.",
     });
   },
+  insights: ({ headline }) => [
+    headline ?? {
+      tone: "info",
+      text: "Not enough data yet for a reliable read -- log a few more sends and check back.",
+    },
+  ],
 });

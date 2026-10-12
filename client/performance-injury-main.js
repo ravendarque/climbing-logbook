@@ -5,6 +5,7 @@ import { formatDate } from "../shared/date-helpers.js";
 import { createReportData } from "./report-data.js";
 import { buildInjuryReport } from "../shared/reports.js";
 import { startPage } from "./boot-gate.js";
+import { insightsHtml } from "./insight-card.js";
 
 const {
   username: USERNAME,
@@ -38,18 +39,22 @@ function logRowHtml(entry) {
   </div>`;
 }
 
-const CAVEAT_HTML = `<p class="text-xs text-muted mb-3" id="injury-caveat">A pattern-noticing tool, not medical advice.</p>`;
+const CAVEAT = "A pattern-noticing tool, not medical advice.";
 
 function renderInjuryLog({ log, cluster }) {
-  const headlineHtml = cluster
-    ? `<p class="text-base font-semibold text-foreground mb-4" id="injury-headline">${escapeHtml(describeCluster(cluster))}</p>`
-    : `<p class="text-sm text-muted mb-4" id="injury-headline">Not enough data yet to spot a pattern -- keep tagging pain moves as they come up.</p>`;
+  const insight = cluster
+    ? { tone: "warning", text: describeCluster(cluster), detail: CAVEAT }
+    : {
+        tone: "info",
+        text: "Not enough data yet to spot a pattern -- keep tagging pain moves as they come up.",
+        detail: CAVEAT,
+      };
 
   const logHtml = log.length
     ? `<div class="flex flex-col gap-2" id="injury-log-list">${log.map(logRowHtml).join("")}</div>`
     : `<p class="text-sm text-muted" id="injury-log-empty">No pain flags logged yet. This is a good thing.</p>`;
 
-  injuryRootEl.innerHTML = CAVEAT_HTML + headlineHtml + logHtml;
+  injuryRootEl.innerHTML = logHtml + insightsHtml([insight]);
 }
 
 async function loadInjuryLog() {

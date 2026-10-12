@@ -2,22 +2,11 @@ import { describe, expect, it } from "vitest";
 import { renderComboChartHtml } from "../../client/combo-chart.js";
 
 describe("renderComboChartHtml", () => {
-  it("renders the headline sentence", () => {
-    const html = renderComboChartHtml({
-      bucketLabels: ["Jan 2026"],
-      bars: [{ label: "Sends", values: [3] }],
-      lines: [],
-      headline: "3 sends this month.",
-    });
-    expect(html).toContain("3 sends this month.");
-  });
-
   it("renders one bar <rect> per bar value", () => {
     const html = renderComboChartHtml({
       bucketLabels: ["Jan 2026", "Feb 2026"],
       bars: [{ label: "Sends", values: [3, 5] }],
       lines: [],
-      headline: "h",
     });
     const rectCount = (html.match(/<rect[^>]*class="fill-accent"/g) || []).length;
     expect(rectCount).toBe(2);
@@ -28,7 +17,6 @@ describe("renderComboChartHtml", () => {
       bucketLabels: ["Jan 2026", "Feb 2026"],
       bars: [{ label: "Sends", values: [2, 8] }],
       lines: [],
-      headline: "h",
     });
     const heights = [...html.matchAll(/<rect[^>]*height="([\d.]+)"[^>]*class="fill-accent"/g)].map(m => Number(m[1]));
     expect(heights).toHaveLength(2);
@@ -40,7 +28,6 @@ describe("renderComboChartHtml", () => {
       bucketLabels: ["Jan 2026"],
       bars: [{ label: "Sends", values: [1] }],
       lines: [],
-      headline: "h",
     });
     expect(html).toMatch(/<rect[^>]*class="fill-none stroke-border"/);
   });
@@ -50,7 +37,6 @@ describe("renderComboChartHtml", () => {
       bucketLabels: ["Jan 2026"],
       bars: [{ label: "Sends", values: [7] }],
       lines: [],
-      headline: "h",
     });
     expect(html).toContain(">7<");
   });
@@ -60,7 +46,6 @@ describe("renderComboChartHtml", () => {
       bucketLabels: ["Jan 2026", "Feb 2026", "Mar 2026"],
       bars: [{ label: "Sends", values: [1, 2, 3] }],
       lines: [],
-      headline: "h",
     });
     expect(html).toContain("Jan 2026");
     expect(html).toContain("Feb 2026");
@@ -78,7 +63,6 @@ describe("renderComboChartHtml", () => {
           positionOrder: ["5", "6A", "6B", "6C"],
         },
       ],
-      headline: "h",
     });
     expect(html).toContain(">V4<");
     expect(html).not.toContain(">6B<");
@@ -98,7 +82,6 @@ describe("renderComboChartHtml", () => {
           positionOrder: ["5", "6A", "6B", "6C"],
         },
       ],
-      headline: "h",
     });
     const circles = [...html.matchAll(/<circle[^>]*cy="([\d.]+)"/g)].map(m => Number(m[1]));
     expect(circles).toHaveLength(2);
@@ -127,7 +110,6 @@ describe("renderComboChartHtml", () => {
           positionOrder: ["6A", "6B", "6C"],
         },
       ],
-      headline: "h",
     });
     const pathCount = (html.match(/<path/g) || []).length;
     expect(pathCount).toBe(2);
@@ -145,7 +127,6 @@ describe("renderComboChartHtml", () => {
       lines: [
         { label: "Max grade", points: [null, { positionKey: "6A", displayLabel: "V3" }], positionOrder: ["5", "6A"] },
       ],
-      headline: "h",
     });
     const circleCount = (html.match(/<circle/g) || []).length;
     expect(circleCount).toBe(1);
@@ -157,7 +138,6 @@ describe("renderComboChartHtml", () => {
         bucketLabels: ["Jan 2026"],
         bars: [{ label: "Sends", values: [0] }],
         lines: [],
-        headline: "h",
       }),
     ).not.toThrow();
   });
@@ -167,7 +147,6 @@ describe("renderComboChartHtml", () => {
       bucketLabels: ["Jan 2026"],
       bars: [{ label: "Sends", values: [1] }],
       lines: [{ label: "Max grade", points: [{ positionKey: "6A", displayLabel: "V3" }], positionOrder: ["6A"] }],
-      headline: "h",
     });
     expect(html).toContain(">V3<");
   });
@@ -177,7 +156,6 @@ describe("renderComboChartHtml", () => {
       bucketLabels: ["Jan 2026"],
       bars: [{ label: "Sends", values: [10] }],
       lines: [],
-      headline: "h",
     });
     expect(html).toContain(">5<");
     expect(html).toContain(">10<");
@@ -188,7 +166,6 @@ describe("renderComboChartHtml", () => {
       bucketLabels: ["Jan 2026"],
       bars: [],
       lines: [{ label: "Max grade", points: [{ positionKey: "6A", displayLabel: "V3" }], positionOrder: ["6A"] }],
-      headline: "h",
     });
     const lineCount = (html.match(/<line/g) || []).length;
     expect(lineCount).toBe(1);
@@ -199,7 +176,6 @@ describe("renderComboChartHtml", () => {
       bucketLabels: ["Jan 2026"],
       bars: [{ label: "Avg attempts", values: [null] }],
       lines: [],
-      headline: "h",
     });
     const rectCount = (html.match(/<rect[^>]*class="fill-accent"/g) || []).length;
     expect(rectCount).toBe(0);
@@ -211,7 +187,6 @@ describe("renderComboChartHtml", () => {
       bucketLabels: ["Jan 2026"],
       bars: [{ label: "Avg attempts", values: [null] }],
       lines: [{ label: "Max grade", points: [{ positionKey: "6B", displayLabel: "V4" }], positionOrder: ["5", "6B"] }],
-      headline: "h",
     });
     expect(html).toContain(">–<");
     expect(html).toContain(">V4<");
@@ -224,7 +199,6 @@ describe("renderComboChartHtml", () => {
       bucketLabels: ["Jan 2026", "Feb 2026"],
       bars: [{ label: "Avg attempts", values: [null, 10] }],
       lines: [],
-      headline: "h",
     });
     expect(html).toContain(">5<");
     expect(html).toContain(">10<");
@@ -235,7 +209,6 @@ describe("renderComboChartHtml", () => {
       bucketLabels: ["Jan 2026", "Feb 2026"],
       bars: [{ label: "Avg attempts", values: [null, null] }],
       lines: [],
-      headline: "h",
     });
     const rectCount = (html.match(/<rect[^>]*class="fill-accent"/g) || []).length;
     expect(rectCount).toBe(0);
@@ -251,7 +224,6 @@ describe("renderComboChartHtml", () => {
         { label: "B", values: [5] },
       ],
       lines: [],
-      headline: "h",
     });
     const xs = [...html.matchAll(/<rect[^>]*x="([\d.]+)"[^>]*class="fill-accent"/g)].map(m => Number(m[1]));
     expect(xs).toHaveLength(2);

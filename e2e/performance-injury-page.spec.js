@@ -14,7 +14,7 @@ test("shows the not-enough-data message, empty log, and Sources section with no 
   await expect(page.locator("climbing-tab-bar a", { hasText: "Performance" })).toHaveAttribute("aria-current", "page");
   await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", `/${owner.username}/performance`);
   await expect(page.locator("#view-explainer")).toContainText("Pain/injury tags");
-  await expect(page.locator("#injury-headline")).toContainText("Not enough data yet");
+  await expect(page.locator("#report-insights")).toContainText("Not enough data yet");
   await expect(page.locator("#injury-log-empty")).toBeVisible();
   await expect(page.locator("body")).toContainText("Miro");
 });
@@ -26,7 +26,10 @@ test("renders the ranked headline and log rows when a cluster clears the confide
   });
   await page.goto(owner.url("/performance/injury"));
 
-  await expect(page.locator("#injury-headline")).toHaveText("Your pain flags cluster on left hand crimps, overhang.");
+  await expect(page.locator("#report-insights")).toContainText(
+    "Your pain flags cluster on left hand crimps, overhang.",
+  );
+  await expect(page.locator("#report-insights [data-insight-tone]")).toHaveAttribute("data-insight-tone", "warning");
   const rows = page.locator("#injury-log-list .row-card-title");
   await expect(rows).toHaveText(["Painful Route 3", "Painful Route 2", "Painful Route 1"]);
 });

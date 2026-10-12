@@ -25,16 +25,16 @@ staticShellNote: |-
 
   <div class="mb-5" id="view-explainer">
     <p class="text-base text-foreground leading-[1.7]">How your sends stack up by grade — a shape that shows whether your base can support the ceiling you're pushing toward.</p>
-    <p class="text-sm text-muted leading-[1.7] mt-2">Built from every send's <strong class="text-foreground font-semibold">grade</strong> — no attempts, exertion, or notes factored in, just how many climbs you closed out at each level.</p>
-  </div>
-
-  <div class="flex justify-end mb-4">
-    <div id="report-grade-scale-root"></div>
+    <p class="text-sm text-muted leading-[1.7] mt-2">Built from every send's <strong class="text-foreground font-semibold">grade</strong> — no attempts, exertion, or notes factored in, just how many climbs you closed out at each level. Sends from the <strong class="text-foreground font-semibold">last 12 months only</strong>, showing your <strong class="text-foreground font-semibold">8-4-2-1 window</strong> — four grade tiers anchored to your progress so far, including any with zero sends, projecting one tier higher once you've logged enough to be ready to push for it. Dashed outlines mark the ideal count for each tier. The ratio itself is a widely used coaching heuristic, not a proven ratio -- see Sources below.</p>
   </div>
 
   <div class="row-card text-center max-w-[420px] mx-auto" id="performance-offline" hidden>
     <p class="text-sm text-foreground">Performance insights need a connection.</p>
     <p class="text-sm text-muted mt-2">Reconnect and reload this page to see your Grade Pyramid.</p>
+  </div>
+
+  <div class="flex flex-wrap items-start justify-end gap-3 mb-4">
+    <div id="report-grade-scale-root"></div>
   </div>
 
   <climbing-grade-pyramid></climbing-grade-pyramid>

@@ -19,7 +19,7 @@ createReportPage({
           positionOrder: reportPositionOrder(type),
         },
       ],
-      headline: volumeHeadline(sendCounts),
     });
   },
+  insights: ({ sendCounts }) => [{ tone: "info", text: volumeHeadline(sendCounts) }],
 });

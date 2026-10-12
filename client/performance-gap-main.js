@@ -27,8 +27,10 @@ createReportPage({
           positionOrder,
         },
       ],
-      // Recomputed so the headline follows the chosen scale, like the chart.
-      headline: gapHeadline(flashMaxByBucket, sendMaxByBucket, type, viewScaleId),
     });
   },
+  // Recomputed so the headline follows the chosen scale, like the chart.
+  insights: ({ flashMaxByBucket, sendMaxByBucket }, { type, viewScaleId }) => [
+    { tone: "info", text: gapHeadline(flashMaxByBucket, sendMaxByBucket, type, viewScaleId) },
+  ],
 });

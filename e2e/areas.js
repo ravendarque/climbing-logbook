@@ -23,6 +23,7 @@ export const AREAS = {
   view: ["view-page", "profile-page", "demo-visit", "component-harnesses"],
   performance: [
     "performance-page",
+    "performance-layout",
     "performance-pyramid-page",
     "performance-gap-page",
     "performance-injury-page",
