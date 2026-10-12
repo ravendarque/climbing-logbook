@@ -6,14 +6,23 @@ const MONTHS_SHOWN = 6;
 
 // The lines under the PR template's "What's new" heading, one per change; none when left empty.
 export function whatsNewFromPrBody(body = "") {
-  const text = body.replace(/\r\n/g, "\n").replace(/<!--[\s\S]*?-->/g, "");
+  const text = body.replace(/\r\n/g, "\n");
   const start = text.search(HEADING);
   if (start === -1) return [];
   const section = text.slice(start).split("\n").slice(1);
   const end = section.findIndex(line => /^#{1,2}\s/.test(line));
-  return (end === -1 ? section : section.slice(0, end))
-    .map(line => line.replace(/^\s*[-*]\s+/, "").trim())
-    .filter(Boolean);
+  const changes = [];
+  let inComment = false;
+  for (const line of end === -1 ? section : section.slice(0, end)) {
+    const trimmed = line.trim();
+    if (inComment || trimmed.startsWith("<!--")) {
+      inComment = !trimmed.endsWith("-->");
+      continue;
+    }
+    const change = trimmed.replace(/^[-*]\s+/, "");
+    if (change) changes.push(change);
+  }
+  return changes;
 }
 
 export function tagMessage(version, changes) {

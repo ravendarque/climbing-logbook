@@ -39,6 +39,10 @@ describe("whatsNewFromPrBody (#917)", () => {
     expect(whatsNewFromPrBody(undefined)).toEqual([]);
   });
 
+  it("skips a comment that spans several lines", () => {
+    expect(whatsNewFromPrBody("## What's new\n<!-- one\ntwo -->\nA change.\n")).toEqual(["A change."]);
+  });
+
   it("matches the heading with a curly apostrophe", () => {
     expect(whatsNewFromPrBody("## What’s new\n\nA change.\n")).toEqual(["A change."]);
   });
