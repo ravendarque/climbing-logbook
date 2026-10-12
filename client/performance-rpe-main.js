@@ -21,10 +21,9 @@ createReportPage({
       ],
     });
   },
-  insights: ({ headline }) => [
-    headline ?? {
-      tone: "info",
-      text: "Not enough data yet for a reliable read -- log a few more sends and check back.",
-    },
+  insights: ({ headline, headlineTone }) => [
+    headline
+      ? { tone: headlineTone, text: headline }
+      : { tone: "info", text: "Not enough data yet for a reliable read -- log a few more sends and check back." },
   ],
 });

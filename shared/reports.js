@@ -73,18 +73,21 @@ export function buildEffortReport(entries, { start, end }) {
       buckets,
       type,
     );
+    const headline = effortHeadline(
+      maxGradeByBucket,
+      avgExertionByBucket,
+      rpeCountByBucket,
+      overallAvgExertion,
+      totalSends,
+      type,
+    );
+    // headline stays a string, so a page still on an older bundle reads the same response.
     return {
       buckets: buckets.map(weekBucketLabel),
       maxGradeByBucket,
       avgExertionByBucket,
-      headline: effortHeadline(
-        maxGradeByBucket,
-        avgExertionByBucket,
-        rpeCountByBucket,
-        overallAvgExertion,
-        totalSends,
-        type,
-      ),
+      headline: headline?.text ?? null,
+      headlineTone: headline?.tone ?? null,
     };
   });
 }

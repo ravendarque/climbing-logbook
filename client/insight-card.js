@@ -27,5 +27,5 @@ function insightCardHtml({ tone, text, detail }) {
 // Every report's insights sit under its chart, stacked one card each.
 export function insightsHtml(insights) {
   const cards = insights.filter(Boolean).map(insightCardHtml).join("");
-  return cards ? `<div class="flex flex-col gap-3 mt-5 mb-7" id="report-insights" role="status">${cards}</div>` : "";
+  return cards ? `<div class="flex flex-col gap-3 mt-5 mb-7" id="report-insights">${cards}</div>` : "";
 }
