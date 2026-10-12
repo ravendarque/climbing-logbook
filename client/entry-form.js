@@ -280,7 +280,8 @@ export function createEntryForm({
 
   function gradeOptionLabel(label, scaleId, type) {
     const boulder = type === "boulder";
-    const hint = boulder && scaleId !== "v-scale" ? `/${gradeDisplayLabelForScale(label, scaleId, type)}` : "";
+    const vLabel = boulder && scaleId !== "v-scale" ? gradeDisplayLabelForScale(label, scaleId, type) : null;
+    const hint = vLabel ? `/${vLabel}` : "";
     return `${label}${hint}`;
   }
   gradeValuePicker.setRender(() => {

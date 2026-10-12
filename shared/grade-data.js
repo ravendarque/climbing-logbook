@@ -229,6 +229,8 @@ export const V_SCALE = {
   },
   toLabel(ordinal) {
     const entries = Object.entries(V_SCALE_TO_FONT);
+    // Below VB's own Font grade there's no V-scale grade, as there's no Font one (#1382).
+    if (ordinal < FONT_STANDARD.toOrdinal(entries[0][1])) return null;
     for (const [vKey, fontLabel] of entries) {
       const upperLabel = V_SCALE_UPPER[vKey] ?? fontLabel;
       if (ordinal <= FONT_STANDARD.toOrdinal(upperLabel)) return vKey.toUpperCase();
