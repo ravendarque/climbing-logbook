@@ -1,9 +1,9 @@
 import { escapeHtml } from "../escape-html.js";
 import { insightsHtml } from "../insight-card.js";
 import { loadingSpinnerHtml } from "../loading-spinner.js";
-import { gradePyramidColorForScale } from "../../shared/grade-data.js";
+import { DEFAULT_SCALE_BY_TYPE, SCALES, gradePyramidColorForScale } from "../../shared/grade-data.js";
+import { haikuHtml } from "../haiku.js";
 import { PYRAMID_IDEAL_BY_POSITION, pyramidHealth } from "../../shared/pyramid-stats.js";
-import { disciplineLabel } from "../status.js";
 
 const PYRAMID_ICON_GOOD = `<circle cx="12" cy="12" r="9"></circle><path d="m8.5 12.5 2.5 2.5 5-5"></path>`;
 const PYRAMID_ICON_LOW = `<path d="M12 3 2 20h20L12 3Z"></path><path d="M12 9v5"></path><path d="M12 17h.01"></path>`;
@@ -31,7 +31,7 @@ function pyramidStatusIcon(actual, ideal, promoted) {
       cls: "promoted",
       color: PYRAMID_GOLD,
       svg: PYRAMID_ICON_PROMOTED,
-      label: "Ready to push -- you've logged enough at the tier below to attempt this grade",
+      label: "Ready to push. You've logged enough at the tier below to attempt this grade.",
     };
   if (actual === 0)
     return {
@@ -82,41 +82,63 @@ function pyramidBarRow(row, { ideal, scaleMax, type, promoted = false, viewScale
     </div>`;
 }
 
-function pyramidInsight(health) {
+// The tier with the smallest share of its 8-4-2-1 target, or null when every tier has met it.
+function furthestFromTarget(top4) {
+  const short = top4
+    .map((row, i) => ({ ...row, ideal: PYRAMID_IDEAL_BY_POSITION[i] }))
+    .filter(row => row.count < row.ideal);
+  return short.length ? short.reduce((low, row) => (row.count / row.ideal < low.count / low.ideal ? row : low)) : null;
+}
+
+function pyramidInsight(health, top4) {
   if (health.kind === "promoted") {
     return health.stillBuilding
       ? {
           tone: "positive",
-          text: `Still building your pyramid from the base up — but you've already got enough mileage to give ${health.grade} a go.`,
-          detail:
-            "Keep adding sends at your lower tiers too — a full 8-4-2-1 pyramid needs volume all the way down, not just at the top.",
+          title: "Building your pyramid",
+          text: `You've already got enough sends at the top to consider trying some ${health.grade}s, but keep building out the lower tiers too. A full 8-4-2-1 pyramid needs volume all the way down, not just at the top.`,
         }
       : {
           tone: "positive",
-          text: `You've logged enough at every tier below to be ready to push into ${health.grade}.`,
-          detail: "Heuristic guidance, not diagnosis — only you know if the moves suit you.",
+          title: "You've built a full pyramid!",
+          text: `Consider pushing up to ${health.grade} if you feel ready.`,
         };
   }
+  const index = top4.findIndex(row => row.grade === health.grade);
   if (health.kind === "gap") {
     return {
       tone: "negative",
-      text: `No sends logged at ${health.grade} in the last 12 months, right in the middle of your pyramid window.`,
-      detail:
-        "Heuristic guidance, not diagnosis — might be worth spending more mileage there before pushing your top grade again.",
+      title: "Your pyramid has a gap",
+      text: `You haven't logged any sends at ${health.grade} in the past 12 months, which means the tiers above don't have a strong base to build on. ${PYRAMID_IDEAL_BY_POSITION[index]} sends at ${health.grade} would complete the tier.`,
     };
   }
   if (health.kind === "top-heavy") {
+    const row = top4[index];
+    const above = top4[index - 1];
     return {
       tone: "negative",
-      text: `This pyramid is top-heavy — you've got fewer sends at ${health.grade} than at the harder tier above it.`,
-      detail:
-        "Heuristic guidance, not diagnosis — a broader base at the easier tiers usually means a more sustainable base to build from.",
+      title: "Your pyramid is top-heavy",
+      text: `In the past 12 months you've logged fewer sends at ${row.grade} (${row.count}) than at ${above.grade}, the harder tier above it (${above.count}). That leaves the tiers above without a strong base to build on. Bringing ${row.grade} up to ${above.count} sends would balance it.`,
     };
   }
+  const furthest = furthestFromTarget(top4);
   return {
     tone: "positive",
-    text: "No gaps or inversions in this window — sends build up from your base to your max, the shape a healthy pyramid is expected to have.",
+    title: "Building your pyramid",
+    text: `No gaps or inversions (higher tiers with more sends than lower tiers), so your sends build up from your base to your top grade, as an effective pyramid should.${
+      furthest
+        ? ` ${furthest.grade} is furthest from its target (${furthest.count} of ${furthest.ideal} sends), so extra sends there will do the most to fill it out.`
+        : ""
+    }`,
   };
+}
+
+// The scale's lowest grade, for the empty haiku's last line: "From Font 3 upwards" (#1389).
+function lowestGradePhrase(scaleId) {
+  const scale = SCALES[scaleId];
+  if (!scale?.labels?.length) return "the lowest grade";
+  const prefix = { "v-scale": "", yds: "", ewbank: "Ewbank" }[scaleId] ?? scale.name.split(" ")[0];
+  return `${prefix} ${scale.labels[0]}`.trim();
 }
 
 const EMPTY_PYRAMID = { top4: [], hasSends: false, promotedGrade: null };
@@ -179,7 +201,10 @@ export class ClimbingGradePyramid extends HTMLElement {
     const { top4, hasSends, promotedGrade } = this.#pyramidData[type] ?? EMPTY_PYRAMID;
 
     if (!hasSends) {
-      pyramidEl.innerHTML = `<p class="text-sm text-muted">No ${disciplineLabel(type)} sends logged in the last 12 months yet -- log a send to see your pyramid.</p>`;
+      const scaleId = viewScaleId ?? DEFAULT_SCALE_BY_TYPE[type];
+      pyramidEl.innerHTML = haikuHtml(
+        `You have logged no sends\nWithin this report's window\nFrom ${lowestGradePhrase(scaleId)} upwards`,
+      );
       insightsEl.innerHTML = "";
       return;
     }
@@ -197,7 +222,7 @@ export class ClimbingGradePyramid extends HTMLElement {
       )
       .join("");
 
-    insightsEl.innerHTML = insightsHtml([pyramidInsight(pyramidHealth(top4, promotedGrade))]);
+    insightsEl.innerHTML = insightsHtml([pyramidInsight(pyramidHealth(top4, promotedGrade), top4)]);
   }
 }
 

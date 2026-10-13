@@ -1,4 +1,4 @@
-import { bucketIndexForDate, gradeStep, reportGradeLabel } from "./volume-stats.js";
+import { NO_SENDS_HAIKU, bucketIndexForDate, gradeStep, reportGradeLabel } from "./volume-stats.js";
 import { gradeOrdinal, SCALES, DEFAULT_SCALE_BY_TYPE as DEFAULT_VIEW_SCALE_BY_TYPE } from "./grade-data.js";
 
 const PRIMARY_SCALE_BY_TYPE = { boulder: "font-non-standard", sport: "french" };
@@ -54,7 +54,6 @@ export function gapByBucket(entries, buckets, type) {
 // Server-computed, so it can't import client/status.js's labels.
 const FLASH_TERM = { boulder: "flash", sport: "onsight" };
 const SEND_TERM = { boulder: "send", sport: "redpoint" };
-const FLASHES = { boulder: "flashes", sport: "onsights" };
 
 export function gapHeadline(flashMaxByBucket, sendMaxByBucket, type, viewScaleId = DEFAULT_VIEW_SCALE_BY_TYPE[type]) {
   const flashTerm = FLASH_TERM[type];
@@ -70,7 +69,7 @@ export function gapHeadline(flashMaxByBucket, sendMaxByBucket, type, viewScaleId
   const best = pairs =>
     pairs.reduce((top, pair) => (bestGradeOrdinal(pair, type) > bestGradeOrdinal(top, type) ? pair : top));
 
-  if (!sendMaxByBucket.some(Boolean)) return { tone: "neutral", text: "No sends logged in this window yet." };
+  if (!sendMaxByBucket.some(Boolean)) return { tone: "neutral", text: NO_SENDS_HAIKU, haiku: true };
   const shownSends = shown(sendMaxByBucket);
   if (shownSends.length === 0) {
     return { tone: "neutral", text: belowRange };
@@ -80,7 +79,7 @@ export function gapHeadline(flashMaxByBucket, sendMaxByBucket, type, viewScaleId
   if (!flashMaxByBucket.some(Boolean)) {
     return {
       tone: "neutral",
-      text: `No ${flashTerm} sends logged in this window yet -- your best ${sendTerm} is ${label(bestSend)}.`,
+      text: `No ${flashTerm} sends logged in this window yet. Your best ${sendTerm} is ${label(bestSend)}.`,
     };
   }
   const shownFlashes = shown(flashMaxByBucket);
@@ -105,55 +104,68 @@ export function gapHeadline(flashMaxByBucket, sendMaxByBucket, type, viewScaleId
   };
 }
 
-const steps = n => `${n} grade-step${n === 1 ? "" : "s"}`;
+const steps = n => `${n} grade step${n === 1 ? "" : "s"}`;
 
-// Which way the gap moved between the window's halves, never how big it is (#1380).
+// Which way the gap moved between the window's halves, never how big it is (#1380); copy from #1389.
 export function gapTrend(flashMaxByBucket, sendMaxByBucket, type, viewScaleId = DEFAULT_VIEW_SCALE_BY_TYPE[type]) {
   const half = Math.floor(sendMaxByBucket.length / 2);
   if (half === 0) return null;
   const secondFrom = sendMaxByBucket.length - half;
+  const label = pair => reportGradeLabel(pair.grade, pair.gradeScale, type, viewScaleId);
   /** @param {Array<{grade: string, gradeScale: string} | null>} series @param {number} from @param {number} to */
-  const topStep = (series, from, to) => {
-    const shown = series
-      .slice(from, to)
-      .filter(pair => pair !== null && reportGradeLabel(pair.grade, pair.gradeScale, type, viewScaleId) !== null)
-      .map(pair => bestGradeOrdinal(pair, type))
-      .filter(ordinal => ordinal !== null);
-    return shown.length ? Math.max(...shown.map(ordinal => gradeStep(ordinal, type))) : null;
+  const top = (series, from, to) => {
+    /** @type {{ step: number, label: string } | null} */
+    let best = null;
+    for (const pair of series.slice(from, to)) {
+      if (pair === null || label(pair) === null) continue;
+      const ordinal = bestGradeOrdinal(pair, type);
+      if (ordinal === null) continue;
+      const step = gradeStep(ordinal, type);
+      if (best === null || step > best.step) best = { step, label: label(pair) };
+    }
+    return best;
   };
-  const flashBefore = topStep(flashMaxByBucket, 0, half);
-  const flashAfter = topStep(flashMaxByBucket, secondFrom, sendMaxByBucket.length);
-  const sendBefore = topStep(sendMaxByBucket, 0, half);
-  const sendAfter = topStep(sendMaxByBucket, secondFrom, sendMaxByBucket.length);
+  const flashBefore = top(flashMaxByBucket, 0, half);
+  const flashAfter = top(flashMaxByBucket, secondFrom, sendMaxByBucket.length);
+  const sendBefore = top(sendMaxByBucket, 0, half);
+  const sendAfter = top(sendMaxByBucket, secondFrom, sendMaxByBucket.length);
   if (flashBefore === null || flashAfter === null || sendBefore === null || sendAfter === null) return null;
 
-  const before = Math.max(0, sendBefore - flashBefore);
-  const after = Math.max(0, sendAfter - flashAfter);
-  const pairTerm = `${FLASH_TERM[type]}–${SEND_TERM[type]}`;
+  const before = Math.max(0, sendBefore.step - flashBefore.step);
+  const after = Math.max(0, sendAfter.step - flashAfter.step);
+  const flash = FLASH_TERM[type];
+  const send = SEND_TERM[type];
+  if (after < before && flashAfter.step > flashBefore.step) {
+    return {
+      tone: "positive",
+      title: `Your ${flash} grade is improving!`,
+      text: `The gap between your highest ${flash} grade (${flashAfter.label}) and highest ${send} grade (${sendAfter.label}) closed from ${steps(before)} in the first half of this window to ${after} in the second.`,
+    };
+  }
   if (after < before) {
-    return flashAfter > flashBefore
-      ? {
-          tone: "positive",
-          text: `Your ${pairTerm} gap is closing: from ${steps(before)} in the first half of this window to ${steps(after)} in the second, because your ${FLASHES[type]} are getting harder.`,
-        }
-      : {
-          tone: "neutral",
-          text: `Your ${pairTerm} gap went from ${steps(before)} in the first half of this window to ${steps(after)} in the second, because your best ${SEND_TERM[type]} in the second half is lower.`,
-        };
+    return {
+      tone: "neutral",
+      title: `Your ${send} grade has dropped`,
+      text: `The gap between your highest ${flash} grade (${flashAfter.label}) and highest ${send} grade (${sendAfter.label}) went from ${steps(before)} in the first half of this window to ${after} in the second, because your highest ${send} grade in the second half is lower.`,
+    };
+  }
+  if (after > before && sendAfter.step > sendBefore.step) {
+    return {
+      tone: "positive",
+      title: `Your ${send} grade is improving!`,
+      text: `Your highest ${send} grade (${sendAfter.label}) is higher in the second half of this window, so the gap to your highest ${flash} grade (${flashAfter.label}) has grown from ${steps(before)} to ${after}.`,
+    };
   }
   if (after > before) {
-    return sendAfter > sendBefore
-      ? {
-          tone: "positive",
-          text: `You're projecting harder: your best ${SEND_TERM[type]} is higher in the second half of this window, so your ${pairTerm} gap has grown from ${steps(before)} to ${steps(after)}.`,
-        }
-      : {
-          tone: "neutral",
-          text: `Your ${pairTerm} gap went from ${steps(before)} in the first half of this window to ${steps(after)} in the second, because your best ${FLASH_TERM[type]} in the second half is lower.`,
-        };
+    return {
+      tone: "neutral",
+      title: `Your ${flash} grade has dropped`,
+      text: `Your best ${flash} fell from ${flashBefore.label} to ${flashAfter.label} between the first and second halves of this window, which widened the gap to your best ${send} from ${steps(before)} to ${after}.`,
+    };
   }
   return {
     tone: "neutral",
-    text: `Your ${pairTerm} gap held at ${steps(before)} in both halves of this window.`,
+    title: "Your gap is unchanged",
+    text: `The gap between your best ${flash} and best ${send} held at ${steps(before)} in both halves of this window.`,
   };
 }

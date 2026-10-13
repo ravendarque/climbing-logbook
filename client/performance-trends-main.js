@@ -1,6 +1,12 @@
 import { createReportPage } from "./report-page.js";
 import { renderComboChartHtml } from "./combo-chart.js";
-import { reportGradePoint, reportPositionOrder, volumeHeadline } from "../shared/volume-stats.js";
+import {
+  NO_SENDS_HAIKU,
+  reportGradePoint,
+  reportPositionOrder,
+  volumeHeadline,
+  volumeTrendInsight,
+} from "../shared/volume-stats.js";
 import { buildVolumeReport } from "../shared/reports.js";
 
 createReportPage({
@@ -21,5 +27,10 @@ createReportPage({
       ],
     });
   },
-  insights: ({ sendCounts, trend }) => [trend, { tone: "neutral", text: volumeHeadline(sendCounts) }],
+  insights: ({ sendCounts, trend }, { type, viewScaleId }) => [
+    volumeTrendInsight(trend, type, viewScaleId),
+    sendCounts.some(Boolean)
+      ? { tone: "neutral", text: volumeHeadline(sendCounts) }
+      : { tone: "neutral", text: NO_SENDS_HAIKU, haiku: true },
+  ],
 });

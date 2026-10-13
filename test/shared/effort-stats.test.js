@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { effortByBucket, effortHeadline } from "../../shared/effort-stats.js";
+import { effortByBucket, effortInsight, effortRead } from "../../shared/effort-stats.js";
 
 function entry(overrides = {}) {
   const type = overrides.type ?? "boulder";
@@ -75,15 +75,15 @@ describe("effortByBucket", () => {
     expect(overallAvgExertion).toBeNull();
   });
 
-  it("counts totalSends across the whole window regardless of rpe presence", () => {
-    const entries = [entry({ rpe: null }), entry({ rpe: 50, date: "2026-01-20" })];
-    const { totalSends } = effortByBucket(entries, [JAN]);
-    expect(totalSends).toBe(2);
+  it("counts only rated sends towards the sample, not every send (#1389)", () => {
+    const entries = [entry({ rpe: 70 }), entry({ rpe: null })];
+    const { ratedSends } = effortByBucket(entries, [JAN]);
+    expect(ratedSends).toBe(1);
   });
 
   it("ignores an entry whose date falls outside every given bucket", () => {
-    const { totalSends } = effortByBucket([entry({ date: "2020-01-01" })], [JAN]);
-    expect(totalSends).toBe(0);
+    const { ratedSends } = effortByBucket([entry({ date: "2020-01-01" })], [JAN]);
+    expect(ratedSends).toBe(0);
   });
 
   it("places each entry in its own correct bucket across multiple buckets", () => {
@@ -103,44 +103,67 @@ describe("effortByBucket", () => {
   });
 });
 
-describe("effortHeadline", () => {
-  it("returns null below the minimum sample size", () => {
-    const text = effortHeadline([null], [0], [0], null, 4, "boulder");
-    expect(text).toBeNull();
+// The series effortRead takes, shaped as effortByBucket returns it.
+function series(grades, exertion, counts, overall, ratedSends = 5) {
+  return {
+    maxGradeByBucket: grades,
+    avgExertionByBucket: exertion,
+    rpeCountByBucket: counts,
+    overallAvgExertion: overall,
+    ratedSends,
+  };
+}
+const words = (s, type = "boulder", scale = "font") => effortInsight(effortRead(s, type), type, scale);
+
+describe("effortRead and effortInsight (#1389)", () => {
+  it("asks for ratings below five rated sends, however many sends there are", () => {
+    expect(effortRead(series([pair("6B")], [40], [4], 40, 4), "boulder")).toBeNull();
+    expect(words(series([pair("6B")], [40], [4], 40, 4))).toEqual({
+      tone: "neutral",
+      title: "Not enough data yet",
+      text: "Rate the Exertion on at least 5 sends in this window to see how your effort compares with your grade.",
+    });
   });
 
-  it("returns the 'paying off' message when both grade and exertion rise from first to last data point", () => {
-    const text = effortHeadline([pair("6B"), pair("7A")], [60, 80], [2, 2], 70, 5, "boulder");
-    expect(text).toMatchObject({ tone: "positive" });
-    expect(text.text).toContain("paying off");
+  it("calls rising effort and grade positive, with the numbers behind it", () => {
+    const insight = words(series([pair("6B"), pair("7A")], [60, 80], [2, 2], 70));
+    expect(insight.tone).toBe("positive");
+    expect(insight.title).toBe("Effort and grade are both rising");
+    expect(insight.text).toContain("Your average Exertion went from 60% to 80% and your top grade from 6B to 7A");
   });
 
-  it("returns the 'maxing out effort' message for high average exertion with no grade progress", () => {
-    const text = effortHeadline([pair("6B"), pair("6B")], [85, 85], [2, 2], 85, 5, "boulder");
-    expect(text).toMatchObject({ tone: "negative" });
-    expect(text.text).toContain("technique work");
+  it("names the grade in the scale the viewer picked", () => {
+    const insight = words(series([pair("6B"), pair("7A")], [60, 80], [2, 2], 70), "boulder", "v-scale");
+    expect(insight.text).toContain("your top grade from V4 to V6");
   });
 
-  it("returns the discipline-aware 'room to push harder' message as the default case", () => {
-    const boulderText = effortHeadline([pair("6B"), pair("6B")], [40, 40], [2, 2], 40, 5, "boulder");
-    expect(boulderText).toMatchObject({ tone: "neutral" });
-    expect(boulderText.text).toContain("send attempts");
-    const sportText = effortHeadline([pair("6a", "french"), pair("6a", "french")], [40, 40], [2, 2], 40, 5, "sport");
-    expect(sportText.text).toContain("redpoint attempts");
+  it("calls near-maximum effort with a flat grade negative, opening with the numbers", () => {
+    const insight = words(series([pair("6B"), pair("6B")], [85, 85], [2, 2], 85));
+    expect(insight.tone).toBe("negative");
+    expect(insight.title).toBe("You're maxing out effort without much grade movement");
+    expect(insight.text).toMatch(/^Your average Exertion is 85% while your top grade has stayed at 6B\. /);
   });
 
-  it("does not report a rising exertion trend for a sub-margin fluctuation", () => {
-    const text = effortHeadline([pair("6B"), pair("7A")], [70, 73], [2, 2], 71, 5, "boulder");
-    expect(text.text).not.toContain("paying off");
+  it("falls back to headroom, worded for the discipline", () => {
+    expect(words(series([pair("6B"), pair("6B")], [40, 40], [2, 2], 40)).title).toBe(
+      "There's room to push harder on your send attempts",
+    );
+    expect(
+      words(series([pair("6a", "french"), pair("6a", "french")], [40, 40], [2, 2], 40), "sport", "french").title,
+    ).toBe("There's room to push harder on your redpoint attempts");
   });
 
-  it("falls through to the default case with only one bucket of real data (no possible trend)", () => {
-    const text = effortHeadline([pair("6B")], [50], [3], 50, 5, "boulder");
-    expect(text.text).toContain("room to push harder");
+  it("doesn't call a sub-margin rise in effort a trend", () => {
+    expect(effortRead(series([pair("6B"), pair("7A")], [70, 73], [2, 2], 71), "boulder").kind).toBe("headroom");
   });
 
-  it("correctly detects a rising grade trend across a mix of real scales", () => {
-    const text = effortHeadline([pair("V3", "v-scale"), pair("7A")], [60, 80], [2, 2], 70, 5, "boulder");
-    expect(text.text).toContain("paying off");
+  it("needs two buckets of data before it reads a trend", () => {
+    expect(effortRead(series([pair("6B")], [50], [5], 50), "boulder").kind).toBe("headroom");
+  });
+
+  it("reads a rising grade across a mix of real scales", () => {
+    expect(effortRead(series([pair("V3", "v-scale"), pair("7A")], [60, 80], [2, 2], 70), "boulder").kind).toBe(
+      "paying-off",
+    );
   });
 });

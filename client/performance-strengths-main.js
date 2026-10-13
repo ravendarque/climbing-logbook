@@ -5,6 +5,7 @@ import { createReportData } from "./report-data.js";
 import { buildStrengthsReport } from "../shared/reports.js";
 import { startPage } from "./boot-gate.js";
 import { insightsHtml } from "./insight-card.js";
+import { MIN_TAG_COUNT } from "../shared/tag-stats-helpers.js";
 import { loadingSpinnerHtml } from "./loading-spinner.js";
 
 const {
@@ -57,7 +58,7 @@ async function onAnchorChange(select) {
       : `<p class="text-sm text-muted">No combinations for this anchor clear the confidence gate yet.</p>`;
   } catch {
     if (requestId !== latestAnchorRequestId) return;
-    rankedListEl.innerHTML = `<p class="text-sm text-muted">Couldn't load this drill-down -- try again.</p>`;
+    rankedListEl.innerHTML = `<p class="text-sm text-muted">Couldn't load this list. Try again.</p>`;
   }
 }
 
@@ -82,10 +83,13 @@ function anchorOptionsHtml(anchors) {
 }
 
 function renderStrengths({ headline, anchors }) {
-  const insight = {
-    tone: "neutral",
-    text: headline ? headline.text : "Not enough data yet to spot a pattern -- keep tagging moves as you climb.",
-  };
+  const insight = headline
+    ? { tone: "neutral", title: "Weakness identified", text: headline.text }
+    : {
+        tone: "neutral",
+        title: "Not enough data yet",
+        text: `A strength or weakness pattern shows here once you've tagged the same move characteristics as hardest or easiest on ${MIN_TAG_COUNT} or more sends.`,
+      };
 
   // On headline, not anchors: some tags can exist before any combination clears the gate.
   const pickerHtml = headline

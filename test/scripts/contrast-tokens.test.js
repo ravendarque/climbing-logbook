@@ -38,6 +38,8 @@ const PAIRS_BOTH_THEMES = [
   ["color-warning-ink", "color-warning-bg", TEXT, "warning text on its tint"],
   ["color-warning-border", "color-surface", NON_TEXT, "a warning's border on a card"],
   ["insight-positive", "color-surface", NON_TEXT, "a positive insight's icon on a card"],
+  ["haiku-ink", "color-surface", TEXT, "a haiku on a card"],
+  ["haiku-ink", "color-bg", TEXT, "a haiku on the page"],
   ["grade-tier-beginner-ink", "grade-tier-beginner", TEXT, "a beginner grade badge"],
   ["grade-badge-ink", "grade-tier-intermediate", TEXT, "an intermediate grade badge"],
   ["grade-badge-ink", "grade-tier-advanced", TEXT, "an advanced grade badge"],
@@ -55,6 +57,24 @@ function token(theme, name) {
   expect(value, `--${name} in the ${theme} theme`).toMatch(/^#/);
   return value;
 }
+
+// An insight card's tint, as color-mix(in srgb, <tone> 8%, surface) renders it.
+function tint(tone, surface) {
+  const channels = hex => [1, 3, 5].map(i => Number.parseInt(hex.slice(i, i + 2), 16));
+  const mixed = channels(tone).map((c, i) => Math.round(c * 0.08 + channels(surface)[i] * 0.92));
+  return `#${mixed.map(c => c.toString(16).padStart(2, "0")).join("")}`;
+}
+
+describe("a haiku on a tinted insight card (#1389)", () => {
+  for (const theme of ["dark", "light"]) {
+    for (const tone of ["insight-positive", "tier-heuristic"]) {
+      it(`${theme}: on the ${tone} tint, reaches ${TEXT}:1`, () => {
+        const background = tint(token(theme, tone), token(theme, "color-surface"));
+        expect(contrast(token(theme, "haiku-ink"), background)).toBeGreaterThanOrEqual(TEXT);
+      });
+    }
+  }
+});
 
 describe("token colour contrast (WCAG 2.2 AA)", () => {
   for (const theme of ["dark", "light"]) {

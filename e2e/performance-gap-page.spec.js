@@ -20,7 +20,7 @@ test("shows the zero-sends headline, time-window control, and Sources section wi
   await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", `/${owner.username}/performance`);
   await expect(page.locator("#view-explainer")).toContainText("Attempts count and Flash selection");
   await expect(page.locator('[data-window="12w"]')).toBeVisible();
-  await expect(page.locator("#gap-root")).toContainText("No sends logged in this window yet.");
+  await expect(page.locator("#gap-root")).toContainText("You have logged no sends");
   await expect(page.locator("body")).toContainText("Climbstat");
 });
 

@@ -23,8 +23,15 @@ describe("insightsHtml (#1375)", () => {
     expect(html).toContain('data-insight-tone="neutral"');
   });
 
-  it("keeps a haiku's line breaks", () => {
-    expect(insightsHtml([{ tone: "positive", text: "One\nTwo & three" }])).toContain("One<br>Two &amp; three");
+  it("sets a haiku as the poem alone, line by line", () => {
+    const html = insightsHtml([{ tone: "positive", text: "One\nTwo & three", haiku: true, title: "Ignored" }]);
+    expect(html).toContain('<p class="haiku">One<br>Two &amp; three</p>');
+    expect(html).not.toContain("Ignored");
+  });
+
+  it("puts a card's title above its message (#1389)", () => {
+    const html = insightsHtml([{ tone: "neutral", title: "Not enough data yet", text: "Log more." }]);
+    expect(html).toMatch(/data-insight-title>Not enough data yet<\/p>[\s\S]*Log more\./);
   });
 
   it("renders nothing when there are no insights", () => {

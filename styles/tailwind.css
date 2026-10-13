@@ -356,6 +356,7 @@
 /* Named for the state, not the colour, so a retune needs no rename. */
   --sync-working: #ff6d00;
   --insight-positive:        #2bbf87;
+  --haiku-ink:               #eab308;
   --pyramid-status-good:     #2bbf87;
   --pyramid-status-missing:  #ef4444;
   --pyramid-status-promoted: #eab308;
@@ -391,6 +392,7 @@
   --tier-heuristic: #a6740a;
   --sync-working: #ff6d00;
   --insight-positive:        #047857;
+  --haiku-ink:               #8a5300;
   --pyramid-status-good:     #047857;
   --pyramid-status-missing:  #b91c1c;
   --pyramid-status-promoted: #a16207;
@@ -580,4 +582,24 @@ climbing-status-picker:has(input:focus-visible) .status-picker-frame {
   50% {
     opacity: 0.35;
   }
+}
+
+/* Haiku read as poems: italic, gold, under a large quote mark (#1379). */
+.haiku {
+  position: relative;
+  padding-left: 1.9rem;
+  font-style: italic;
+  line-height: 1.7;
+  color: var(--haiku-ink);
+}
+.haiku::before {
+  content: "\201C";
+  position: absolute;
+  left: 0;
+  top: -0.35rem;
+  font-family: var(--font-display);
+  font-style: normal;
+  font-size: 2.8rem;
+  line-height: 1;
+  color: var(--color-accent);
 }

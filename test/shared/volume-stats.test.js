@@ -9,6 +9,7 @@ import {
   volumeByBucket,
   volumeHeadline,
   volumeTrend,
+  volumeTrendInsight,
   weekBucketLabel,
   weekBuckets,
 } from "../../shared/volume-stats.js";
@@ -288,39 +289,50 @@ describe("volumeTrend (#1380)", () => {
     expect(volumeTrend([...first(5), ...second(5)], WINDOW, "boulder")).toBeNull();
   });
 
-  it("notes more sends at the same top grade, without judging it", () => {
-    expect(volumeTrend([...first(5), ...second(8)], WINDOW, "boulder")).toEqual({
+  const words = (entries, scale = "font") =>
+    volumeTrendInsight(volumeTrend(entries, WINDOW, "boulder"), "boulder", scale);
+
+  it("notes more sends at the same top grade, without judging it (#1389)", () => {
+    expect(words([...first(5), ...second(8)])).toEqual({
       tone: "neutral",
-      text: "You're sending 60% more per week than in the first half of this window.",
+      title: "Your volume has increased",
+      text: "You're sending 60% more per week than in the first half of this window, at the same top grade (6A).",
     });
   });
 
-  it("calls more sends and a higher top grade positive", () => {
-    const trend = volumeTrend([...first(5), ...second(7), send("2026-10-10", "6B")], WINDOW, "boulder");
-    expect(trend.tone).toBe("positive");
-    expect(trend.text).toContain("climbing more and harder");
-  });
-
-  it("calls a higher top grade positive even without more sends", () => {
-    expect(volumeTrend([...first(5), ...second(4), send("2026-10-10", "6B")], WINDOW, "boulder")).toEqual({
+  it("calls more sends and a higher top grade positive, naming both grades", () => {
+    expect(words([...first(5), ...second(7), send("2026-10-10", "6B")])).toEqual({
       tone: "positive",
-      text: "Your top grade is higher than in the first half of this window.",
+      title: "You're climbing more and harder!",
+      text: "You've logged 60% more sends per week than in the first half of this window, and your top grade went from 6A to 6B.",
     });
   });
 
-  it("frames fewer sends as rest, not a problem", () => {
-    const trend = volumeTrend([...first(8), ...second(5)], WINDOW, "boulder");
-    expect(trend).toEqual({
+  it("calls a higher top grade positive even without more sends, in the viewer's scale", () => {
+    expect(words([...first(5), ...second(4), send("2026-10-10", "6B")], "v-scale")).toEqual({
+      tone: "positive",
+      title: "You're climbing harder!",
+      text: "Your top grade went from V3 to V4 between the first and second halves of this window.",
+    });
+  });
+
+  it("notes fewer sends neutrally, pointing at rest and recovery", () => {
+    expect(words([...first(8), ...second(5)])).toEqual({
       tone: "neutral",
-      text: "You're sending 38% less per week than in the first half of this window. Maybe look at your rest and sleep in case you're burning out.",
+      title: "Your volume has decreased",
+      text: "You're sending 38% less per week than in the first half of this window. If this isn't expected, consider looking at your rest, sleep, and recovery in case you're burning out.",
     });
   });
 
   it("warns only when a big jump in sends comes with pain flagged in the same weeks", () => {
     const pain = { type: "sport", status: "attempt", date: "2026-10-09", painMoves: [{ limb: "hand" }] };
-    expect(volumeTrend([...first(5), ...second(8), pain], WINDOW, "boulder").tone).toBe("negative");
-    expect(volumeTrend([...first(5), ...second(8)], WINDOW, "boulder").tone).toBe("neutral");
-    expect(volumeTrend([...first(5), ...second(7), pain], WINDOW, "boulder").tone).toBe("neutral");
+    expect(words([...first(5), ...second(8), pain])).toEqual({
+      tone: "negative",
+      title: "Consider reducing your volume or load",
+      text: "You're sending 60% more per week than in the first half of this window, and you've flagged pain in the same weeks. Worth easing off and watching the load.",
+    });
+    expect(words([...first(5), ...second(8)]).tone).toBe("neutral");
+    expect(words([...first(5), ...second(7), pain]).tone).toBe("neutral");
   });
 
   it("doesn't call the top grade up when a half has no grade it can read", () => {

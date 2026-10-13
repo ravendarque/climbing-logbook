@@ -226,7 +226,9 @@ describe("handleGetStrengthsWeaknesses", () => {
     }
     const res = await getStrengths();
     const { headline } = await res.json();
-    expect(headline.text).toBe("Your left hand on overhanging crimps looks like a key weakness.");
+    expect(headline.text).toBe(
+      "Your left hand on overhanging crimps was the hardest move on 5 of the 5 sends you tagged it on, which makes it your clearest weakness.",
+    );
     expect(headline.cell).toMatchObject({ limb: "hand", side: "left", holdType: "crimp", score: 1 });
   });
 
@@ -415,7 +417,7 @@ describe("handleGetGap", () => {
     const { boulder } = await (await getGap(WINDOW)).json();
     expect(boulder.buckets).toEqual(["-3w", "-2w", "-1w"]);
     expect(boulder.sendMaxByBucket).toEqual([null, null, null]);
-    expect(boulder.headline).toBe("No sends logged in this window yet.");
+    expect(boulder.headline).toBe("You have logged no sends\nWithin this report's window\nLog some, see insights");
   });
 
   it("reflects real sends within the window, split by discipline and firstAttempt", async () => {

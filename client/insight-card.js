@@ -1,4 +1,5 @@
 import { escapeHtml } from "./escape-html.js";
+import { haikuHtml } from "./haiku.js";
 
 // Emerald for good news, amber for a problem worth acting on, neutral for everything else (#1375).
 const TONES = {
@@ -16,13 +17,18 @@ const TONES = {
   },
 };
 
-function insightCardHtml({ tone, text, detail }) {
+// A haiku card is the poem alone; every other card has a title over its message (#1389).
+function insightCardHtml({ tone, title, text, detail, haiku }) {
   const key = Object.hasOwn(TONES, tone) ? tone : "neutral";
   const { card, icon } = TONES[key];
+  if (haiku) {
+    return `<div class="px-4 py-[14px] rounded-app border ${card}" data-insight-tone="${key}">${haikuHtml(text)}</div>`;
+  }
   return `<div class="flex gap-3 px-4 py-[14px] rounded-app border ${card}" data-insight-tone="${key}">
     <svg class="w-[1.2rem] h-[1.2rem] stroke-current fill-none mt-[2px] shrink-0" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icon}</svg>
     <div>
-      <p class="text-sm leading-[1.5] text-foreground">${escapeHtml(text).replaceAll("\n", "<br>")}</p>
+      ${title ? `<p class="text-sm leading-[1.5] font-semibold text-foreground" data-insight-title>${escapeHtml(title)}</p>` : ""}
+      ${text ? `<p class="text-sm leading-[1.5] text-foreground${title ? " mt-1" : ""}">${escapeHtml(text)}</p>` : ""}
       ${detail ? `<p class="text-sm leading-[1.5] text-muted mt-[6px]">${escapeHtml(detail)}</p>` : ""}
     </div>
   </div>`;

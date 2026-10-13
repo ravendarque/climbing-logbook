@@ -1,5 +1,6 @@
 // Behaviour and attributes: docs/app-architecture.md, Client modules.
 import { loadingSpinnerHtml } from "../loading-spinner.js";
+import { haikuHtml } from "../haiku.js";
 import { filteredEntries, groupByPlace } from "../entries.js";
 import { combinedFlashLabel, combinedSendLabel, flashLabel, hydrateStatusIcons, sendLabel } from "../status.js";
 import { createDisclosure, createModalHelpers } from "../modal-utils.js";
@@ -552,7 +553,7 @@ export class ClimbingEntriesTable extends HTMLElement {
       }
       container.innerHTML = this.loadFailed
         ? `<div class="bg-surface border border-border rounded-app px-5 py-4 text-muted text-center leading-[1.6]">Couldn't load the logbook. Check your connection, then reload the page.</div>`
-        : `<div class="bg-surface border border-border rounded-app px-5 py-4 text-muted text-center leading-[1.6]">Nothing to show here.<br>Enjoy this quiet space, or<br>add climbs/change filters.</div>`;
+        : `<div class="bg-surface border border-border rounded-app px-5 py-4">${haikuHtml("Nothing to show here.\nEnjoy this quiet space, or\nadd climbs/change filters.")}</div>`;
       return;
     }
 

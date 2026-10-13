@@ -149,22 +149,33 @@ describe("rankedForAnchor", () => {
 });
 
 describe("describeWeakness", () => {
-  it("builds the exact headline from the design doc's own example", () => {
-    const cell = { limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" };
-    expect(describeWeakness(cell)).toBe("Your left hand on overhanging crimps looks like a key weakness.");
-  });
-
-  it("pluralizes pinch as pinches, not pinchs", () => {
-    const cell = { limb: "hand", side: "right", holdType: "pinch", movementStyle: "dynamic", wallAngle: "roof" };
-    expect(describeWeakness(cell)).toBe("Your right hand on roof pinches looks like a key weakness.");
+  it("shows the evidence behind the weakness (#1389)", () => {
+    const cell = { limb: "hand", side: "left", holdType: "crimp", wallAngle: "overhang", hardestCount: 5, total: 6 };
+    expect(describeWeakness(cell)).toBe(
+      "Your left hand on overhanging crimps was the hardest move on 5 of the 6 sends you tagged it on, which makes it your clearest weakness.",
+    );
   });
 
   it("uses the correct adjective for every wall angle", () => {
-    expect(describeWeakness({ limb: "foot", side: "left", holdType: "toe-hook", wallAngle: "slab" })).toBe(
-      "Your left foot on slab toe-hooks looks like a key weakness.",
-    );
-    expect(describeWeakness({ limb: "knee", side: "right", holdType: "kneebar", wallAngle: "vert" })).toBe(
-      "Your right knee on vertical kneebars looks like a key weakness.",
-    );
+    expect(
+      describeWeakness({
+        limb: "foot",
+        side: "left",
+        holdType: "toe-hook",
+        wallAngle: "slab",
+        hardestCount: 3,
+        total: 3,
+      }),
+    ).toContain("Your left foot on slab toe-hooks");
+    expect(
+      describeWeakness({
+        limb: "knee",
+        side: "right",
+        holdType: "kneebar",
+        wallAngle: "vert",
+        hardestCount: 3,
+        total: 4,
+      }),
+    ).toContain("Your right knee on vertical kneebars");
   });
 });

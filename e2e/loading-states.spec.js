@@ -30,7 +30,7 @@ test("a report waiting on the server shows a spinner, never the no-data message 
   await expect
     .poll(() => page.locator("climbing-grade-pyramid [data-loading]").evaluate(el => getComputedStyle(el).opacity))
     .toBe("1");
-  await expect(page.locator("#pyramid")).not.toContainText("No Boulder sends logged");
+  await expect(page.locator("#pyramid")).not.toContainText("You have logged no sends");
   release();
   await expect(page.locator("#pyramid")).toContainText("6B");
   await expect(page.locator("climbing-grade-pyramid [data-loading]")).toHaveCount(0);
@@ -63,7 +63,7 @@ test("an account with no climbs gets the no-data message once that's confirmed, 
   await serverOnlyAthlete(page, owner, []);
 
   await page.goto(owner.url("/performance/pyramid"));
-  await expect(page.locator("#pyramid")).toContainText("No Boulder sends logged");
+  await expect(page.locator("#pyramid")).toContainText("You have logged no sends");
   await expect(page.locator("climbing-grade-pyramid [data-loading]")).toHaveCount(0);
 });
 

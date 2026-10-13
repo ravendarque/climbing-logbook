@@ -25,8 +25,9 @@ test("renders the ranked headline and log rows when a cluster clears the confide
   });
   await page.goto(owner.url("/performance/injury"));
 
+  await expect(page.locator("#report-insights [data-insight-title]")).toHaveText("Pattern identified");
   await expect(page.locator("#report-insights")).toContainText(
-    "Your pain flags cluster on left hand crimps, overhang.",
+    "3 of your 3 pain flags are on your left hand on overhanging crimps.",
   );
   await expect(page.locator("#report-insights [data-insight-tone]")).toHaveAttribute("data-insight-tone", "negative");
   const rows = page.locator("#injury-log-list .row-card-title");
