@@ -74,14 +74,18 @@ entriesTable.addEventListener("location-expand", async e => {
 
 async function boot() {
   const base = `/-/api/public/${encodeURIComponent(USERNAME)}`;
-  const [{ locations, places, counts }, mapCounts] = await Promise.all([
+  // Null on failure, so a dropped connection doesn't read as an empty logbook (#1387).
+  const json = res => (res.ok ? res.json() : null);
+  const [entryCounts, mapCounts] = await Promise.all([
     fetch(`${base}/entries/counts`)
-      .then(res => (res.ok ? res.json() : { locations: [], places: [], counts: {} }))
-      .catch(() => ({ locations: [], places: [], counts: {} })),
+      .then(json)
+      .catch(() => null),
     fetch(`${base}/map/counts`)
-      .then(res => (res.ok ? res.json() : {}))
-      .catch(() => ({})),
+      .then(json)
+      .catch(() => null),
   ]);
+  const { locations, places, counts } = entryCounts ?? { locations: [], places: [], counts: {} };
+  entriesTable.loadFailed = entryCounts === null;
 
   entriesTable.places = places;
   entriesTable.locations = locations;
@@ -89,7 +93,8 @@ async function boot() {
 
   entriesTable.loading = false;
 
-  mapView.setCounts(mapCounts);
+  if (mapCounts === null) mapView.setCountsFailed();
+  else mapView.setCounts(mapCounts);
 
   render();
 }

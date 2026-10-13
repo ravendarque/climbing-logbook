@@ -1,5 +1,6 @@
 import { escapeHtml } from "../escape-html.js";
 import { insightsHtml } from "../insight-card.js";
+import { loadingSpinnerHtml } from "../loading-spinner.js";
 import { gradePyramidColorForScale } from "../../shared/grade-data.js";
 import { PYRAMID_IDEAL_BY_POSITION, pyramidHealth } from "../../shared/pyramid-stats.js";
 import { disciplineLabel } from "../status.js";
@@ -121,7 +122,8 @@ function pyramidInsight(health) {
 const EMPTY_PYRAMID = { top4: [], hasSends: false, promotedGrade: null };
 
 export class ClimbingGradePyramid extends HTMLElement {
-  #pyramidData = { boulder: EMPTY_PYRAMID, sport: EMPTY_PYRAMID };
+  // Null until the page hands over a report: unknown, not empty (#1387).
+  #pyramidData = null;
   #wired = false;
   #viewScaleId = null;
 
@@ -133,7 +135,7 @@ export class ClimbingGradePyramid extends HTMLElement {
     return this.#pyramidData;
   }
   set pyramidData(v) {
-    this.#pyramidData = v ?? { boulder: EMPTY_PYRAMID, sport: EMPTY_PYRAMID };
+    this.#pyramidData = v ?? null;
     this.#render();
   }
 
@@ -167,9 +169,14 @@ export class ClimbingGradePyramid extends HTMLElement {
   #render() {
     const type = this.activeDiscipline;
     const viewScaleId = this.#viewScaleId;
-    const { top4, hasSends, promotedGrade } = this.#pyramidData[type] ?? EMPTY_PYRAMID;
     const pyramidEl = this.querySelector("#pyramid");
     const insightsEl = this.querySelector("#pyramid-insights");
+    if (this.#pyramidData === null) {
+      pyramidEl.innerHTML = loadingSpinnerHtml("Loading your Grade Pyramid");
+      insightsEl.innerHTML = "";
+      return;
+    }
+    const { top4, hasSends, promotedGrade } = this.#pyramidData[type] ?? EMPTY_PYRAMID;
 
     if (!hasSends) {
       pyramidEl.innerHTML = `<p class="text-sm text-muted">No ${disciplineLabel(type)} sends logged in the last 12 months yet -- log a send to see your pyramid.</p>`;

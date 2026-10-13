@@ -11,16 +11,16 @@ test("climbing-grade-pyramid: renders an inline Sources section", async ({ page 
 test("map-view.js: zoom/pan controls appear once the map has loaded", async ({ page }) => {
   await page.goto("/e2e-fixtures/map-harness.html");
 
-  await expect(page.locator("#map-container svg")).toBeVisible();
+  await expect(page.locator("#map-svg")).toBeVisible();
   await expect(page.locator("#map-zoom-controls")).toBeVisible();
   await expect(page.locator("#map-pan-controls")).toBeVisible();
 });
 
 test("map-view.js: zoom in/out buttons change the visible viewBox", async ({ page }) => {
   await page.goto("/e2e-fixtures/map-harness.html");
-  await expect(page.locator("#map-container svg")).toBeVisible();
+  await expect(page.locator("#map-svg")).toBeVisible();
 
-  const svg = page.locator("#map-container svg");
+  const svg = page.locator("#map-svg");
   const widthOf = async () => Number((await svg.getAttribute("viewBox")).split(" ")[2]);
 
   const initialWidth = await widthOf();
@@ -34,9 +34,9 @@ test("map-view.js: zoom in/out buttons change the visible viewBox", async ({ pag
 
 test("map-view.js: pan buttons shift the visible viewBox", async ({ page }) => {
   await page.goto("/e2e-fixtures/map-harness.html");
-  await expect(page.locator("#map-container svg")).toBeVisible();
+  await expect(page.locator("#map-svg")).toBeVisible();
 
-  const svg = page.locator("#map-container svg");
+  const svg = page.locator("#map-svg");
   const originOf = async () => {
     const [x, y] = (await svg.getAttribute("viewBox")).split(" ").map(Number);
     return { x, y };
@@ -53,7 +53,7 @@ test("map-view.js: clicking a pin opens the popover with that country's stats, c
   page,
 }) => {
   await page.goto("/e2e-fixtures/map-harness.html");
-  await expect(page.locator("#map-container svg")).toBeVisible();
+  await expect(page.locator("#map-svg")).toBeVisible();
 
   const pin = page.locator('[data-pin-country="France"]');
   await pin.click();
@@ -68,9 +68,9 @@ test("map-view.js: clicking a pin opens the popover with that country's stats, c
 
 test("map-view.js: switching the map projection variant re-renders without error", async ({ page }) => {
   await page.goto("/e2e-fixtures/map-harness.html");
-  await expect(page.locator("#map-container svg")).toBeVisible();
+  await expect(page.locator("#map-svg")).toBeVisible();
 
   await page.locator("#map-variant-select").selectOption("americas");
-  await expect(page.locator("#map-container svg")).toBeVisible();
+  await expect(page.locator("#map-svg")).toBeVisible();
   await expect(page.locator("#map-variant-select")).toHaveValue("americas");
 });

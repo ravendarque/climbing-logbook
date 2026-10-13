@@ -46,7 +46,7 @@ async function loadMapCounts() {
       await reportData.report("map/counts", entries => mapCounts(entries, store.getPlaces(), store.getLocations())),
     );
   } catch {
-    mapView.setCounts({});
+    mapView.setCountsFailed();
   }
 }
 
@@ -88,6 +88,7 @@ async function loadFromServer() {
     loadResource(url("/-/api/locations", "locations"), "locations"),
   ]);
   if (entries.status === "fulfilled") store.setEntries(entries.value);
+  else entriesTable.loadFailed = true;
   if (places.status === "fulfilled") store.setPlaces(places.value);
   if (locations.status === "fulfilled") store.setLocations(locations.value);
 }

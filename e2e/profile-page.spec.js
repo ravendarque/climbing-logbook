@@ -59,7 +59,7 @@ test("Map tab (#333) switches to a real read-only map and back, without a page n
 
   await expect(page.locator("#panel-logbook")).toBeHidden();
   await expect(page.locator('#view-tabs [data-view="map"]')).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator("#map-container svg")).toBeVisible();
+  await expect(page.locator("#map-svg")).toBeVisible();
   await expect(page.locator("#map-load-retry")).toHaveCount(0);
   await expect(page.locator("#subtitle")).not.toHaveText("");
 
@@ -156,7 +156,7 @@ test("filter panel status icons render real SVG content (#63 -- this page never 
 test("map pin popover (#460) shows both disciplines' own status breakdown together", async ({ page, owner }) => {
   await visitProfile(page, owner, MIXED_SEED);
   await page.locator('#view-tabs [data-view="map"]').click();
-  await expect(page.locator("#map-container svg")).toBeVisible();
+  await expect(page.locator("#map-svg")).toBeVisible();
 
   await page.locator('[data-pin-country="United Kingdom"]').click();
   const popover = page.locator("#map-pin-popover");

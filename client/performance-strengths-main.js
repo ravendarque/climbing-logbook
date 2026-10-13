@@ -5,6 +5,7 @@ import { createReportData } from "./report-data.js";
 import { buildStrengthsReport } from "../shared/reports.js";
 import { startPage } from "./boot-gate.js";
 import { insightsHtml } from "./insight-card.js";
+import { loadingSpinnerHtml } from "./loading-spinner.js";
 
 const {
   username: USERNAME,
@@ -47,6 +48,7 @@ async function onAnchorChange(select) {
     rankedListEl.innerHTML = "";
     return;
   }
+  rankedListEl.innerHTML = loadingSpinnerHtml("Loading the ranking", { compact: true });
   try {
     const { ranked } = await reportData.report("performance/strengths", buildStrengthsReport, { dimension, value });
     if (requestId !== latestAnchorRequestId) return; // a newer selection has already superseded this response

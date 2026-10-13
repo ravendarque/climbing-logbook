@@ -18,7 +18,7 @@ test.describe("a visitor with nothing stored", () => {
     await expect(page.locator(".place-header[data-location-id]").first()).toBeVisible();
 
     await page.goto("http://my.localhost:8787/intermediatedemo/view/map");
-    await expect(page.locator("#map-container svg")).toBeVisible();
+    await expect(page.locator("#map-svg")).toBeVisible();
     await expect(tour(page)).toHaveCount(0);
     await page.waitForLoadState("networkidle");
     expect(await page.evaluate(() => Object.keys(localStorage))).toEqual([]);

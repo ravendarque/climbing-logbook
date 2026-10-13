@@ -21,6 +21,14 @@ afterEach(() => {
 });
 
 describe("ClimbingGradePyramid health card", () => {
+  it("shows a loading spinner, not the no-sends state, until it has a report (#1387)", () => {
+    const fresh = document.createElement("climbing-grade-pyramid");
+    document.body.append(fresh);
+    expect(fresh.querySelector("#pyramid [data-loading]")).not.toBeNull();
+    expect(fresh.querySelector("#pyramid").textContent).not.toContain("No Boulder sends logged");
+    fresh.remove();
+  });
+
   it("shows the no-sends state when hasSends is false", () => {
     el.pyramidData = {
       boulder: { top4: [], hasSends: false, promotedGrade: null },

@@ -99,8 +99,9 @@ export function createOfflineSync({
 
   // Entries only: boot() already refreshes places and locations.
   async function reconcileEntries() {
-    await syncStatusIcon.track(pullDelta(entriesUrl, "entries"));
+    const loaded = await syncStatusIcon.track(pullDelta(entriesUrl, "entries"));
     store.applyPendingQueue(getQueue());
+    return loaded;
   }
 
   // A disabled button stops a second click, but not repeated online events.

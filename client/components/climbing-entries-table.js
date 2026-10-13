@@ -1,4 +1,5 @@
 // Behaviour and attributes: docs/app-architecture.md, Client modules.
+import { loadingSpinnerHtml } from "../loading-spinner.js";
 import { filteredEntries, groupByPlace } from "../entries.js";
 import { combinedFlashLabel, combinedSendLabel, flashLabel, hydrateStatusIcons, sendLabel } from "../status.js";
 import { createDisclosure, createModalHelpers } from "../modal-utils.js";
@@ -33,7 +34,7 @@ export class ClimbingEntriesTable extends HTMLElement {
   #wired = false;
 
   static get observedAttributes() {
-    return ["editable", "active-discipline", "all-disciplines", "lazy", "loading"];
+    return ["editable", "active-discipline", "all-disciplines", "lazy", "loading", "load-failed"];
   }
 
   get entries() {
@@ -94,6 +95,13 @@ export class ClimbingEntriesTable extends HTMLElement {
   }
   set lazy(v) {
     this.toggleAttribute("lazy", !!v);
+  }
+
+  get loadFailed() {
+    return this.hasAttribute("load-failed");
+  }
+  set loadFailed(v) {
+    this.toggleAttribute("load-failed", !!v);
   }
 
   get loading() {
@@ -538,9 +546,12 @@ export class ClimbingEntriesTable extends HTMLElement {
     const sections = this.#visibleSections();
 
     if (sections.length === 0) {
-      // Not-yet-loaded and confirmed-empty share one neutral box, with different text.
-      container.innerHTML = this.loading
-        ? `<div class="bg-surface border border-border rounded-app px-5 py-4 text-muted text-center leading-[1.6]">Loading…</div>`
+      if (this.loading) {
+        container.innerHTML = loadingSpinnerHtml("Loading your logbook");
+        return;
+      }
+      container.innerHTML = this.loadFailed
+        ? `<div class="bg-surface border border-border rounded-app px-5 py-4 text-muted text-center leading-[1.6]">Couldn't load the logbook. Check your connection, then reload the page.</div>`
         : `<div class="bg-surface border border-border rounded-app px-5 py-4 text-muted text-center leading-[1.6]">Nothing to show here.<br>Enjoy this quiet space, or<br>add climbs/change filters.</div>`;
       return;
     }
