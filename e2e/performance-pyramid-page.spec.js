@@ -11,8 +11,8 @@ test("renders the shared chrome and a real grade pyramid, and switches disciplin
   await expect(page.locator("#back-to-performance-link")).toHaveAttribute("href", `/${owner.username}/performance`);
   await expect(page.locator("#view-explainer")).toContainText("every send's grade");
 
-  await expect(page.locator("#pyramid")).toBeVisible();
-  await expect(page.locator("#pyramid")).not.toBeEmpty();
+  // The empty state shows before an unsynced device's /sync round trip, so wait for the seeded send.
+  await expect(page.locator("#pyramid")).toContainText("6A");
   await expect(page.locator("#performance-offline")).toBeHidden();
 
   await page.locator("#discipline-btn").click();
