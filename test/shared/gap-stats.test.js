@@ -161,8 +161,15 @@ describe("gapHeadline", () => {
     expect(sportText).toContain("6a");
   });
 
-  it("falls back to the grade's own logged scale when the chosen view scale can't represent a below-floor best send", () => {
-    const text = gapHeadline([null], [pair("2+", "font-non-standard")], "boulder", "font").text;
-    expect(text).toContain("2+");
+  it("says the sends can't be shown, rather than comparing grades the chart leaves out (#1382)", () => {
+    const belowFont = [pair("2+", "font-non-standard")];
+    const text = "This report only shows sends from Font 3/VB upwards.";
+    expect(gapHeadline(belowFont, belowFont, "boulder", "font")).toEqual({ tone: "neutral", text });
+    expect(gapHeadline(belowFont, belowFont, "boulder", "v-scale").text).toBe(text);
+  });
+
+  it("names the best send when only the flashes are below the chosen scale", () => {
+    const headline = gapHeadline([pair("2+", "font-non-standard")], [pair("6A")], "boulder", "font");
+    expect(headline.text).toBe("Your best send is 6A. This report only shows sends from Font 3/VB upwards.");
   });
 });

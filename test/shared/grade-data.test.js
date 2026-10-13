@@ -250,6 +250,12 @@ describe("FRENCH_STANDARD", () => {
 });
 
 describe("V_SCALE", () => {
+  it("starts at Font 3, like Font: a grade below it has no V-scale label, not VB (#1382)", () => {
+    expect(V_SCALE.toLabel(FONT_STANDARD.toOrdinal("3"))).toBe("VB");
+    expect(V_SCALE.toLabel(FONT_NON_STANDARD.toOrdinal("2+"))).toBeNull();
+    expect(FONT_STANDARD.toLabel(FONT_NON_STANDARD.toOrdinal("2+"))).toBeNull();
+  });
+
   it("matches every anchor from the corrected hakaru.io table", () => {
     const oneToOne = [
       ["VB", "3"],

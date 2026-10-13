@@ -1,5 +1,5 @@
 import { bucketIndexForDate, reportGradeLabel, reportPositionOrder } from "./volume-stats.js";
-import { gradeOrdinal, DEFAULT_SCALE_BY_TYPE as DEFAULT_VIEW_SCALE_BY_TYPE } from "./grade-data.js";
+import { gradeOrdinal, SCALES, DEFAULT_SCALE_BY_TYPE as DEFAULT_VIEW_SCALE_BY_TYPE } from "./grade-data.js";
 
 const PRIMARY_SCALE_BY_TYPE = { boulder: "font-non-standard", sport: "french" };
 
@@ -69,26 +69,42 @@ export function gapHeadline(flashMaxByBucket, sendMaxByBucket, type, viewScaleId
   const flashTerm = FLASH_TERM[type];
   const sendTerm = SEND_TERM[type];
   const positionOrder = reportPositionOrder(type);
-  // Prose can't drop a grade like a chart can, so it falls back to the logged scale.
-  const label = pair =>
-    reportGradeLabel(pair.grade, pair.gradeScale, type, viewScaleId) ??
-    reportGradeLabel(pair.grade, pair.gradeScale, type, pair.gradeScale);
-  const ordinalOf = pair => bestGradeOrdinal(pair, type);
+  const scaleName = SCALES[viewScaleId]?.name ?? "this scale";
+  const belowRange =
+    type === "boulder"
+      ? "This report only shows sends from Font 3/VB upwards."
+      : `This report only shows sends ${scaleName} can show.`;
+  // A grade the chosen scale can't show is left out, as it is on the chart (#1382).
+  const label = pair => reportGradeLabel(pair.grade, pair.gradeScale, type, viewScaleId);
+  const shown = pairs => pairs.filter(pair => pair !== null && label(pair) !== null);
+  const best = pairs =>
+    pairs.reduce((top, pair) => (bestGradeOrdinal(pair, type) > bestGradeOrdinal(top, type) ? pair : top));
 
-  const sendGrades = sendMaxByBucket.filter(g => g !== null);
-  if (sendGrades.length === 0) return { tone: "neutral", text: "No sends logged in this window yet." };
-  const bestSend = sendGrades.reduce((best, g) => (ordinalOf(g) > ordinalOf(best) ? g : best));
+  if (!sendMaxByBucket.some(Boolean)) return { tone: "neutral", text: "No sends logged in this window yet." };
+  const shownSends = shown(sendMaxByBucket);
+  if (shownSends.length === 0) {
+    return { tone: "neutral", text: belowRange };
+  }
+  const bestSend = best(shownSends);
 
-  const flashGrades = flashMaxByBucket.filter(g => g !== null);
-  if (flashGrades.length === 0) {
+  if (!flashMaxByBucket.some(Boolean)) {
     return {
       tone: "neutral",
       text: `No ${flashTerm} sends logged in this window yet -- your best ${sendTerm} is ${label(bestSend)}.`,
     };
   }
-  const bestFlash = flashGrades.reduce((best, g) => (ordinalOf(g) > ordinalOf(best) ? g : best));
+  const shownFlashes = shown(flashMaxByBucket);
+  if (shownFlashes.length === 0) {
+    return {
+      tone: "neutral",
+      text: `Your best ${sendTerm} is ${label(bestSend)}. ${belowRange}`,
+    };
+  }
+  const bestFlash = best(shownFlashes);
 
-  const gap = stepIndex(ordinalOf(bestSend), positionOrder) - stepIndex(ordinalOf(bestFlash), positionOrder);
+  const gap =
+    stepIndex(bestGradeOrdinal(bestSend, type), positionOrder) -
+    stepIndex(bestGradeOrdinal(bestFlash, type), positionOrder);
   if (gap <= 0) {
     return {
       tone: "positive",
