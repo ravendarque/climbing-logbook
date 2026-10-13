@@ -37,7 +37,7 @@ Pain and injury tracking is off until you turn it on, because pain and injury de
 
 - **What counts as health information:** the pain and injury tags on your climbs, and your Injury insights report. Your Exertion ratings count too when that report uses them. Notes can hold health information if you write about an injury in them. If you've turned on pain and injury tracking, use its tags for that instead.
 - **Who can turn it on:** you need to be 16 or over, or have your parent or guardian's agreement.
-- **Where it goes:** it's stored with the rest of your logbook, on Cloudflare. It's never shown on your public profile and is only used for your own reports. The site administrator can see it for support and moderation, and for nothing else.
+- **Where it goes:** it's stored with the rest of your logbook. It's never shown on your public profile and is only used for your own reports. The site administrator can see it for support and moderation, and for nothing else.
 - **Turning it on and off:** go to My account, then *Pain and injury tracking*. Turning it off deletes the pain and injury details from your climbs. The climbs themselves stay.
 - **How long we keep it:** until you turn it off or delete your account. After that, it's removed from our backups within 30 days.
 
