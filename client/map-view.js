@@ -36,9 +36,18 @@ const PIN_BASE_FONT = 9;
 export function createMapView({ store, allDisciplines = false }) {
   // Null until the counts arrive: the pins are unknown, not absent (#1387).
   let mapCounts = null;
+  let countsFailed = false;
 
   function setCounts(counts) {
     mapCounts = counts ?? {};
+    countsFailed = false;
+    render();
+  }
+
+  // Unknown, not empty: a failed load mustn't look like a map with no climbs.
+  function setCountsFailed() {
+    mapCounts = null;
+    countsFailed = true;
     render();
   }
 
@@ -509,7 +518,7 @@ export function createMapView({ store, allDisciplines = false }) {
 
     container.innerHTML = `
       <div class="relative bg-surface border border-border rounded-app overflow-hidden mb-5">
-        ${mapCounts === null ? `<div class="absolute inset-0 flex items-center justify-center pointer-events-none">${loadingSpinnerHtml("Loading your climbs on the map")}</div>` : ""}
+        ${mapCounts === null ? `<div class="absolute inset-0 flex items-center justify-center pointer-events-none">${countsFailed ? `<p class="text-sm text-muted bg-surface border border-border rounded-app px-3 py-2">Couldn't load the climbs on the map. Check your connection, then reload the page.</p>` : loadingSpinnerHtml("Loading your climbs on the map")}</div>` : ""}
         <svg id="map-svg" viewBox="0 0 ${MAP_WIDTH} ${mapData.height}" role="group" aria-label="${mapAriaLabel}" class="w-full h-auto block touch-none cursor-grab">
           <path d="${mapData.graticulePath}" class="stroke-border fill-none" stroke-width="0.5"></path>
           <path d="${mapData.worldLandPath}" class="fill-border stroke-none"></path>
@@ -543,5 +552,5 @@ export function createMapView({ store, allDisciplines = false }) {
     applyMapView();
   }
 
-  return { render, closePinPopover, setCounts };
+  return { render, closePinPopover, setCounts, setCountsFailed };
 }

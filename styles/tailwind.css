@@ -551,10 +551,9 @@ climbing-status-picker:has(input:focus-visible) .status-picker-frame {
   outline-offset: 2px;
 }
 
-/* Waits before appearing, so a fast load never flashes a spinner (#1387). */
+/* Hidden for its first 300ms, so a fast load never flashes it; visible anywhere animations don't run (#1387). */
 .loading-spinner {
-  opacity: 0;
-  animation: loading-appear 0s linear 300ms forwards;
+  animation: loading-appear 300ms step-end both;
 }
 .loading-spinner svg {
   animation: loading-spin 0.9s linear infinite;
@@ -565,6 +564,9 @@ climbing-status-picker:has(input:focus-visible) .status-picker-frame {
   }
 }
 @keyframes loading-appear {
+  from {
+    opacity: 0;
+  }
   to {
     opacity: 1;
   }

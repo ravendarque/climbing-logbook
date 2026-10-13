@@ -164,7 +164,7 @@ async function boot() {
   render();
   showFailedWrites();
   if (hasLocalCopy) return;
-  await entriesReconciled.catch(() => {});
+  entriesTable.loadFailed = (await entriesReconciled.catch(() => false)) === false;
   entriesTable.loading = false;
   render();
 }

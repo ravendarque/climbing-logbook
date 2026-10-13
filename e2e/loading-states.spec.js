@@ -27,6 +27,9 @@ test("a report waiting on the server shows a spinner, never the no-data message 
   let release = await holdRequests(page, "**/-/api/performance/pyramid**");
   await page.goto(owner.url("/performance/pyramid"));
   await expect(page.locator("climbing-grade-pyramid [data-loading]")).toBeVisible();
+  await expect
+    .poll(() => page.locator("climbing-grade-pyramid [data-loading]").evaluate(el => getComputedStyle(el).opacity))
+    .toBe("1");
   await expect(page.locator("#pyramid")).not.toContainText("No Boulder sends logged");
   release();
   await expect(page.locator("#pyramid")).toContainText("6B");
@@ -73,5 +76,19 @@ test("the map shows a spinner over itself until its counts arrive, then the pins
   await expect(page.locator("#map-container [data-loading]")).toBeVisible();
   release();
   await expect(page.locator("#map-svg [data-pin-country]")).toHaveCount(1);
+  await expect(page.locator("#map-container [data-loading]")).toHaveCount(0);
+});
+
+test("a failed first load says it couldn't load, not that there's nothing there", async ({ page, owner }) => {
+  await serverOnlyAthlete(page, owner, [{ name: "Out of reach" }]);
+  await page.route("**/-/api/entries**", route => route.abort("internetdisconnected"));
+  await page.route("**/-/api/map/counts**", route => route.abort("internetdisconnected"));
+
+  await page.goto(owner.url("/log"));
+  await expect(page.locator("#sections")).toContainText("Couldn't load the logbook");
+  await expect(page.locator("#sections")).not.toContainText("Nothing to show here");
+
+  await page.goto(owner.url("/view/map"));
+  await expect(page.locator("#map-container")).toContainText("Couldn't load the climbs on the map");
   await expect(page.locator("#map-container [data-loading]")).toHaveCount(0);
 });
