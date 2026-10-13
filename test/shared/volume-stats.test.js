@@ -312,7 +312,7 @@ describe("volumeTrend (#1380)", () => {
     const trend = volumeTrend([...first(8), ...second(5)], WINDOW, "boulder");
     expect(trend).toEqual({
       tone: "neutral",
-      text: "You're sending 38% less per week than in the first half of this window. Rest is part of training too.",
+      text: "You're sending 38% less per week than in the first half of this window. Maybe look at your rest and sleep in case you're burning out.",
     });
   });
 

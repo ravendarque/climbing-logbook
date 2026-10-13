@@ -169,7 +169,7 @@ export function volumeTrend(entries, buckets, type) {
   if (change <= -VOLUME_CHANGE) {
     return {
       tone: "neutral",
-      text: `You're sending ${pct}% less per week than in the first half of this window. Rest is part of training too.`,
+      text: `You're sending ${pct}% less per week than in the first half of this window. Maybe look at your rest and sleep in case you're burning out.`,
     };
   }
   return null;
