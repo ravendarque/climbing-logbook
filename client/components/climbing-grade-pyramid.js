@@ -31,7 +31,7 @@ function pyramidStatusIcon(actual, ideal, promoted) {
       cls: "promoted",
       color: PYRAMID_GOLD,
       svg: PYRAMID_ICON_PROMOTED,
-      label: "Ready to push -- you've logged enough at the tier below to attempt this grade",
+      label: "Ready to push. You've logged enough at the tier below to attempt this grade.",
     };
   if (actual === 0)
     return {
