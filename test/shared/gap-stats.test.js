@@ -163,17 +163,13 @@ describe("gapHeadline", () => {
 
   it("says the sends can't be shown, rather than comparing grades the chart leaves out (#1382)", () => {
     const belowFont = [pair("2+", "font-non-standard")];
-    expect(gapHeadline(belowFont, belowFont, "boulder", "font")).toEqual({
-      tone: "neutral",
-      text: "None of this window's sends can be shown in Font.",
-    });
-    expect(gapHeadline(belowFont, belowFont, "boulder", "v-scale").text).toBe(
-      "None of this window's sends can be shown in V-scale (Hueco).",
-    );
+    const text = "This report only shows sends from Font 3/VB upwards.";
+    expect(gapHeadline(belowFont, belowFont, "boulder", "font")).toEqual({ tone: "neutral", text });
+    expect(gapHeadline(belowFont, belowFont, "boulder", "v-scale").text).toBe(text);
   });
 
   it("names the best send when only the flashes are below the chosen scale", () => {
     const headline = gapHeadline([pair("2+", "font-non-standard")], [pair("6A")], "boulder", "font");
-    expect(headline.text).toBe("Your best send is 6A; none of this window's flash sends can be shown in Font.");
+    expect(headline.text).toBe("Your best send is 6A. This report only shows sends from Font 3/VB upwards.");
   });
 });

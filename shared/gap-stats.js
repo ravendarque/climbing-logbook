@@ -70,6 +70,10 @@ export function gapHeadline(flashMaxByBucket, sendMaxByBucket, type, viewScaleId
   const sendTerm = SEND_TERM[type];
   const positionOrder = reportPositionOrder(type);
   const scaleName = SCALES[viewScaleId]?.name ?? "this scale";
+  const belowRange =
+    type === "boulder"
+      ? "This report only shows sends from Font 3/VB upwards."
+      : `This report only shows sends ${scaleName} can show.`;
   // A grade the chosen scale can't show is left out, as it is on the chart (#1382).
   const label = pair => reportGradeLabel(pair.grade, pair.gradeScale, type, viewScaleId);
   const shown = pairs => pairs.filter(pair => pair !== null && label(pair) !== null);
@@ -79,7 +83,7 @@ export function gapHeadline(flashMaxByBucket, sendMaxByBucket, type, viewScaleId
   if (!sendMaxByBucket.some(Boolean)) return { tone: "neutral", text: "No sends logged in this window yet." };
   const shownSends = shown(sendMaxByBucket);
   if (shownSends.length === 0) {
-    return { tone: "neutral", text: `None of this window's sends can be shown in ${scaleName}.` };
+    return { tone: "neutral", text: belowRange };
   }
   const bestSend = best(shownSends);
 
@@ -93,7 +97,7 @@ export function gapHeadline(flashMaxByBucket, sendMaxByBucket, type, viewScaleId
   if (shownFlashes.length === 0) {
     return {
       tone: "neutral",
-      text: `Your best ${sendTerm} is ${label(bestSend)}; none of this window's ${flashTerm} sends can be shown in ${scaleName}.`,
+      text: `Your best ${sendTerm} is ${label(bestSend)}. ${belowRange}`,
     };
   }
   const bestFlash = best(shownFlashes);
