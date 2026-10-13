@@ -18,12 +18,12 @@ export function readSettingsCache(storage = localStorage) {
 }
 
 export function writeSettingsCache(
-  { athleteMode, logbookPublic, betaOptIn, activeDiscipline, onboardingCompleted },
+  { athleteMode, logbookPublic, betaOptIn, activeDiscipline, onboardingCompleted, painInjuryConsent },
   storage = localStorage,
 ) {
   storage.setItem(
     SETTINGS_CACHE_KEY,
-    JSON.stringify({ athleteMode, logbookPublic, betaOptIn, activeDiscipline, onboardingCompleted }),
+    JSON.stringify({ athleteMode, logbookPublic, betaOptIn, activeDiscipline, onboardingCompleted, painInjuryConsent }),
   );
 }
 
@@ -41,13 +41,18 @@ export async function pullSettings({ onTimeout = () => {} } = {}) {
       logbookPublic: !!data.logbookPublic,
       betaOptIn: data.betaOptIn === true,
       onboardingCompleted: data.onboardingCompleted === true,
+      painInjuryConsent: data.healthConsent?.painInjury === true,
       activeDiscipline:
         validDiscipline(data.activeDiscipline) ?? validDiscipline(readSettingsCache()?.activeDiscipline),
     };
     try {
       writeSettingsCache(settings);
     } catch {}
-    return { ...settings, terms: data.terms ?? null };
+    return {
+      ...settings,
+      terms: data.terms ?? null,
+      painInjuryConsentUpdate: data.healthConsent?.painInjuryUpdate ?? null,
+    };
   } catch (err) {
     if (err.name === "TimeoutError") onTimeout();
     return null;

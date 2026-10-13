@@ -6,6 +6,7 @@ import { isDemoUsername } from "./demo-mode.js";
 import { isWorkerCache } from "./sw/caches.js";
 import { isUnauthorized } from "./api-fetch.js";
 import { showTermsPrompt } from "./terms-prompt.js";
+import { PAIN_INJURY } from "../shared/health-consent.js";
 
 async function clearWorkerCaches() {
   try {
@@ -21,6 +22,7 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
   const AUTH_SESSION_URL = "/-/api/auth/get-session";
   const AUTH_SIGN_OUT_URL = "/-/api/auth/sign-out";
   const LOGIN_HINT_KEY = "logbook_logged_in_hint";
+  const PAIN_INJURY_CONSENT_URL = "/-/api/consent/pain-injury";
 
   const loginToggleBtn = document.getElementById("login-toggle-btn");
 
@@ -30,6 +32,8 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
   let logbookPublic = !!cachedSettings?.logbookPublic;
   let betaOptIn = cachedSettings?.betaOptIn === true;
   let onboardingCompleted = cachedSettings?.onboardingCompleted;
+  let painInjuryConsent = cachedSettings?.painInjuryConsent === true;
+  let painInjuryConsentUpdate = null;
   let username = null;
   let email = null;
 
@@ -43,6 +47,7 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
       betaOptIn,
       activeDiscipline: persistedDiscipline,
       onboardingCompleted,
+      painInjuryConsent,
     });
   }
 
@@ -54,6 +59,8 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
     logbookPublic = settings.logbookPublic;
     betaOptIn = settings.betaOptIn;
     onboardingCompleted = settings.onboardingCompleted;
+    painInjuryConsent = settings.painInjuryConsent;
+    painInjuryConsentUpdate = settings.painInjuryConsentUpdate;
     showTermsPrompt(settings.terms);
   }
 
@@ -112,6 +119,34 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
       }
     }
     return result;
+  }
+
+  // Its own endpoint, not a settings PATCH: a grant records the wording seen, and withdrawing deletes data.
+  async function setPainInjuryConsent(next) {
+    const res = await apiFetch(
+      PAIN_INJURY_CONSENT_URL,
+      next
+        ? {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ version: PAIN_INJURY.version }),
+          }
+        : { method: "DELETE" },
+    );
+    if (isUnauthorized(res)) {
+      store.setLoggedIn(false);
+      return { ok: false };
+    }
+    if (!res.ok) return { ok: false, status: res.status };
+    painInjuryConsent = next;
+    painInjuryConsentUpdate = null;
+    try {
+      persistSettingsCache();
+    } catch {
+      /* storage full or blocked */
+    }
+    updateAdminBar();
+    return { ok: true, data: res.status === 204 ? null : await res.json() };
   }
 
   async function checkSession() {
@@ -198,6 +233,9 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
     setLogbookPublic,
     getBetaOptIn: () => betaOptIn,
     setBetaOptIn,
+    hasPainInjuryConsent: () => painInjuryConsent,
+    getPainInjuryConsentUpdate: () => painInjuryConsentUpdate,
+    setPainInjuryConsent,
     completeOnboarding,
     isOnboardingCompleted: () => onboardingCompleted === true,
     getUsername: () => username,

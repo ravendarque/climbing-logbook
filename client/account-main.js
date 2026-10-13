@@ -22,6 +22,7 @@ document.getElementById("edit-account-link").href = `/${encodeURIComponent(USERN
 document.getElementById("import-link").href = `/${encodeURIComponent(USERNAME)}/account/import`;
 document.getElementById("tour-link").href = tourStartUrl(`/${encodeURIComponent(USERNAME)}/account`);
 document.getElementById("beta-row").href = `/${encodeURIComponent(USERNAME)}/account/beta`;
+document.getElementById("health-row").href = `/${encodeURIComponent(USERNAME)}/account/health`;
 document.getElementById("back-to-logbook-link").href = `/${encodeURIComponent(USERNAME)}/log`;
 
 const athleteModeRow = document.getElementById("athlete-mode-row");
@@ -30,6 +31,8 @@ const publicLogbookRow = document.getElementById("public-logbook-row");
 const publicLogbookToggle = document.getElementById("public-logbook-toggle");
 const betaRow = document.getElementById("beta-row");
 const betaStatus = document.getElementById("beta-status");
+const healthRow = document.getElementById("health-row");
+const healthStatus = document.getElementById("health-status");
 const removeDataRow = document.getElementById("remove-data-row");
 
 function syncSettingsToggles() {
@@ -37,9 +40,15 @@ function syncSettingsToggles() {
   athleteModeRow.hidden = !loggedIn;
   publicLogbookRow.hidden = !loggedIn;
   betaRow.hidden = !loggedIn;
+  healthRow.hidden = !loggedIn || !(adminAuth.isAthleteMode() || adminAuth.hasPainInjuryConsent());
   removeDataRow.hidden = !loggedIn;
   athleteModeToggle.setAttribute("aria-checked", String(adminAuth.isAthleteMode()));
   publicLogbookToggle.setAttribute("aria-checked", String(adminAuth.isLogbookPublic()));
+  healthStatus.textContent = !adminAuth.hasPainInjuryConsent()
+    ? "Off"
+    : adminAuth.getPainInjuryConsentUpdate()?.required
+      ? "On. Read and agree to the updated wording."
+      : "On";
   betaStatus.textContent = adminAuth.getBetaOptIn()
     ? "You're enrolled in the beta."
     : "You're not enrolled in the beta.";

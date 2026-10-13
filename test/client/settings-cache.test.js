@@ -7,7 +7,11 @@ const SERVER = {
   betaOptIn: true,
   activeDiscipline: "sport",
   onboardingCompleted: true,
+  healthConsent: { painInjury: true, painInjuryUpdate: null },
 };
+const { healthConsent: _, ...SERVER_FLAGS } = SERVER;
+const CACHED = { ...SERVER_FLAGS, painInjuryConsent: true };
+const PULLED = { ...CACHED, terms: null, painInjuryConsentUpdate: null };
 
 function answer(body, ok = true) {
   vi.stubGlobal(
@@ -26,13 +30,13 @@ describe("pullSettings (#1177)", () => {
     const terms = { version: "2026-10-11", effective: "2026-10-11", required: true, changes: ["A change."] };
     answer({ ...SERVER, terms });
     expect((await pullSettings()).terms).toEqual(terms);
-    expect(readSettingsCache()).toEqual(SERVER);
+    expect(readSettingsCache()).toEqual(CACHED);
   });
 
   it("returns the server's settings and caches them for the next page to paint with", async () => {
     answer(SERVER);
-    expect(await pullSettings()).toEqual({ ...SERVER, terms: null });
-    expect(readSettingsCache()).toEqual(SERVER);
+    expect(await pullSettings()).toEqual(PULLED);
+    expect(readSettingsCache()).toEqual(CACHED);
   });
 
   it("normalises what the server sends: flags to booleans, and betaOptIn only when exactly true", async () => {
@@ -43,7 +47,9 @@ describe("pullSettings (#1177)", () => {
       betaOptIn: false,
       activeDiscipline: "boulder",
       onboardingCompleted: false,
+      painInjuryConsent: false,
       terms: null,
+      painInjuryConsentUpdate: null,
     });
   });
 
@@ -93,7 +99,7 @@ describe("pullSettings (#1177)", () => {
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new DOMException("full", "QuotaExceededError");
     });
-    expect(await pullSettings()).toEqual({ ...SERVER, terms: null });
+    expect(await pullSettings()).toEqual(PULLED);
     vi.restoreAllMocks();
   });
 });

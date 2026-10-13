@@ -104,6 +104,7 @@ describe("settings cache", () => {
       betaOptIn: false,
       activeDiscipline: "boulder",
       onboardingCompleted: true,
+      painInjuryConsent: false,
     });
   });
 
@@ -127,6 +128,7 @@ describe("settings cache", () => {
       logbookPublic: false,
       betaOptIn: false,
       activeDiscipline: "sport",
+      painInjuryConsent: false,
     });
   });
 
