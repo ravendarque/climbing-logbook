@@ -216,6 +216,24 @@ describe("pain and injury consent (#1120)", () => {
     expect(delta.entries[0].painMoves).toEqual([]);
   });
 
+  it("keeps pain details stored before consent out of entry reads, and an edit leaves them alone", async () => {
+    await grantPainInjuryConsent(cookie);
+    const { entry: created } = await (await postEntry(entry({ painMoves: [PAIN] }))).json();
+    await env.LOGBOOK_DB.prepare(`UPDATE consents SET withdrawn_at = datetime('now') WHERE user_id = ?`)
+      .bind(userId)
+      .run();
+
+    const { entries } = await (await fetchJson("/-/api/entries", { headers: as(cookie) })).json();
+    expect(entries[0].painMoves).toEqual([]);
+
+    const edit = await jsonRequest("PUT", "/-/api/entries", { ...created, name: "Renamed", painMoves: [] }, as(cookie));
+    expect(edit.status).toBe(200);
+    const stored = await env.LOGBOOK_DB.prepare(`SELECT COUNT(*) AS n FROM entry_pain_moves WHERE entry_id = ?`)
+      .bind(created.id)
+      .first();
+    expect(stored.n).toBe(1);
+  });
+
   it("lets a user withdraw while updated terms are waiting to be agreed", async () => {
     await grantPainInjuryConsent(cookie);
     await env.LOGBOOK_DB.prepare(`UPDATE "user" SET termsVersion = '2000-01-01' WHERE id = ?`).bind(userId).run();

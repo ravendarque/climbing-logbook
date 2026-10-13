@@ -18,14 +18,7 @@ function listEntries(env, userId) {
 }
 
 async function listEntriesWithChildRows(env, userId) {
-  return attachChildRows(await listEntries(env, userId), env);
-}
-
-// Pain flags are health data, read only with the user's consent (#1120).
-async function listEntriesWithPainIfConsented(env, userId) {
-  const entries = await listEntriesWithChildRows(env, userId);
-  if (await hasConsent(env, userId)) return entries;
-  return entries.map(entry => ({ ...entry, painMoves: [] }));
+  return attachChildRows(await listEntries(env, userId), env, userId);
 }
 
 export async function handleGetPyramid(request, env, userId) {
@@ -81,6 +74,6 @@ function windowedReport(build, loadEntries = listEntries) {
 }
 
 // Volume reads pain flags, for its "watch the load" insight (#1380).
-export const handleGetVolume = windowedReport(buildVolumeReport, listEntriesWithPainIfConsented);
+export const handleGetVolume = windowedReport(buildVolumeReport, listEntriesWithChildRows);
 export const handleGetGap = windowedReport(buildGapReport);
 export const handleGetEffort = windowedReport(buildEffortReport);

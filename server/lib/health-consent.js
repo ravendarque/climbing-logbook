@@ -2,7 +2,11 @@ import { PAIN_INJURY } from "../../shared/health-consent.js";
 import { nextCursorSql } from "./d1-resource.js";
 import { json, parseJsonBody } from "./json.js";
 
-const CURRENT = "superseded_at IS NULL AND withdrawn_at IS NULL";
+export const CURRENT = "superseded_at IS NULL AND withdrawn_at IS NULL";
+
+// Binds the entry id, then the purpose.
+export const ENTRY_OWNER_CONSENTED = `EXISTS (SELECT 1 FROM consents JOIN entries ON entries.user_id = consents.user_id
+  WHERE entries.id = ? AND consents.purpose = ? AND ${CURRENT})`;
 
 export const CONSENT_REQUIRED = {
   error: "Pain and injury tracking is turned off. Turn it on in My account to save pain details.",

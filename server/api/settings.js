@@ -2,6 +2,7 @@ import { json, parseJsonBody } from "../lib/json.js";
 import { VALID_TYPES } from "../../shared/entry-schema.js";
 import { termsUpdate } from "../../shared/terms.js";
 import { PAIN_INJURY } from "../../shared/health-consent.js";
+import { CURRENT } from "../lib/health-consent.js";
 
 const DEFAULT_SETTINGS = {
   athleteMode: false,
@@ -25,9 +26,10 @@ export async function handleGetSettings(_request, env, userId) {
   const [settings, user, painInjury] = await env.LOGBOOK_DB.batch([
     env.LOGBOOK_DB.prepare(`SELECT * FROM settings WHERE user_id = ?`).bind(userId),
     env.LOGBOOK_DB.prepare(`SELECT termsVersion FROM "user" WHERE id = ?`).bind(userId),
-    env.LOGBOOK_DB.prepare(
-      `SELECT 1 FROM consents WHERE user_id = ? AND purpose = ? AND superseded_at IS NULL AND withdrawn_at IS NULL`,
-    ).bind(userId, PAIN_INJURY.purpose),
+    env.LOGBOOK_DB.prepare(`SELECT 1 FROM consents WHERE user_id = ? AND purpose = ? AND ${CURRENT}`).bind(
+      userId,
+      PAIN_INJURY.purpose,
+    ),
   ]);
   const row = settings.results[0];
   return json(
