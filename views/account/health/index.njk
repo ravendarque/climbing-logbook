@@ -14,18 +14,16 @@ headerClass: mb-6
   </a>
 
   <div class="max-w-[560px]">
-    <h1 class="card-section-heading">Pain and injury tracking</h1>
-    <p class="text-sm text-accent-ink pl-4 mb-3" id="health-status" tabindex="-1" hidden></p>
+    <h1 class="section-heading focus:outline-none" id="health-title" tabindex="-1">Pain and injury tracking</h1>
 
     <div class="row-card border-accent mb-3" id="health-update" hidden>
-      <h3 class="row-card-title mb-2">We've changed how we describe this</h3>
+      <h2 class="row-card-title mb-2">We've changed how we describe this</h2>
       <p class="text-sm mb-2">Read it again and agree to keep pain and injury tracking on. Until you do, it stays on as it is.</p>
-      <ul class="list-disc pl-5 text-sm flex flex-col gap-1" id="health-update-changes"></ul>
+      <ul class="bullet-list" id="health-update-changes"></ul>
     </div>
 
-    <div class="row-card" id="health-about">
-      <h3 class="row-card-title mb-2">What this means</h3>
-      <ul class="list-disc pl-5 text-sm flex flex-col gap-1 mb-3" id="health-points"></ul>
+    <div id="health-about">
+      <ul class="bullet-list mb-3" id="health-points"></ul>
       <p class="text-sm"><a class="text-accent-ink underline" id="health-help-link" href="/help/privacy/#health-data">Read more about health information</a></p>
     </div>
 
@@ -38,18 +36,11 @@ headerClass: mb-6
     </div>
 
     <div class="mt-4" id="health-withdraw" hidden>
-      <button type="button" class="btn" id="health-turn-off-btn">Turn off and delete</button>
-    </div>
-
-    <div class="row-card border-accent mt-4" id="health-confirm" role="group" aria-labelledby="health-confirm-title" hidden>
-      <h3 class="row-card-title mb-2" id="health-confirm-title" tabindex="-1">Turn off pain and injury tracking?</h3>
-      <p class="text-sm mb-2" id="health-confirm-count"></p>
-      <p class="text-sm mb-2" id="health-confirm-queue" hidden></p>
-      <p class="text-sm mb-3" id="health-confirm-backups">It's deleted from your logbook straight away, and from our backups within 30 days. You can't undo this.</p>
-      <div class="flex flex-wrap gap-3">
-        <button type="button" class="btn btn-primary" id="health-confirm-btn">Turn off and delete</button>
-        <button type="button" class="btn" id="health-cancel-btn">Cancel</button>
+      <div class="row-card border-accent mb-3">
+        <p class="text-sm font-semibold mb-2" id="health-count" hidden></p>
+        <p class="text-sm">Turning this off deletes the pain and injury details from your climbs. They're deleted from your logbook straight away, and from our backups within 30 days. The climbs themselves stay. You can't undo this.</p>
       </div>
+      <button type="button" class="btn" id="health-turn-off-btn">Turn off and delete</button>
     </div>
 
     <p class="text-sm text-muted mt-3" id="health-offline-note" hidden>Turning this on or off needs a connection.</p>
