@@ -59,7 +59,7 @@ describe("pain and injury consent (#1120)", () => {
       currentVersion: PAIN_INJURY.version,
     });
     const settings = await (await fetchJson("/-/api/settings", { headers: as(cookie) })).json();
-    expect(settings.healthConsent).toEqual({ painInjury: false });
+    expect(settings.healthConsent).toEqual({ painInjury: false, painInjuryUpdate: null });
   });
 
   it("records a grant with the wording version the user saw", async () => {
@@ -69,7 +69,7 @@ describe("pain and injury consent (#1120)", () => {
       version: PAIN_INJURY.version,
     });
     const settings = await (await fetchJson("/-/api/settings", { headers: as(cookie) })).json();
-    expect(settings.healthConsent).toEqual({ painInjury: true });
+    expect(settings.healthConsent).toEqual({ painInjury: true, painInjuryUpdate: null });
   });
 
   it("refuses a grant for wording that isn't current, and one with no version", async () => {
@@ -82,6 +82,19 @@ describe("pain and injury consent (#1120)", () => {
     await grantPainInjuryConsent(cookie);
     await grantPainInjuryConsent(cookie);
     expect((await consentRows()).results).toHaveLength(1);
+  });
+
+  it("tells settings when the agreed wording needs agreeing to again", async () => {
+    await env.LOGBOOK_DB.prepare(
+      `INSERT INTO consents (id, user_id, purpose, wording_version, granted_at) VALUES ('old', ?, ?, '2000-01-01', '2000-01-01T00:00:00Z')`,
+    )
+      .bind(userId, PAIN_INJURY.purpose)
+      .run();
+    const settings = await (await fetchJson("/-/api/settings", { headers: as(cookie) })).json();
+    expect(settings.healthConsent).toMatchObject({
+      painInjury: true,
+      painInjuryUpdate: { version: PAIN_INJURY.version, required: true },
+    });
   });
 
   it("supersedes a grant of older wording rather than overwriting it", async () => {

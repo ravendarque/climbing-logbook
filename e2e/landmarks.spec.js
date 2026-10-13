@@ -30,6 +30,7 @@ const OWNER_PAGES = [
   "/account/edit",
   "/account/import",
   "/account/beta",
+  "/account/health",
 ];
 
 for (const path of OWNER_PAGES) {

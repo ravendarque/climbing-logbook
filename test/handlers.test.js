@@ -303,7 +303,7 @@ describe("settings", () => {
       betaOptIn: false,
       onboardingCompleted: false,
       terms: null,
-      healthConsent: { painInjury: false },
+      healthConsent: { painInjury: false, painInjuryUpdate: null },
     });
   });
 
@@ -471,7 +471,7 @@ describe("settings", () => {
       betaOptIn: false,
       onboardingCompleted: false,
       terms: null,
-      healthConsent: { painInjury: false },
+      healthConsent: { painInjury: false, painInjuryUpdate: null },
     });
   });
 });
