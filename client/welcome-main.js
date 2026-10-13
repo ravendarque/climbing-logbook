@@ -1,15 +1,14 @@
 import { createAccountShell } from "./account-shell.js";
 import { startPage } from "./boot-gate.js";
-import { resolveMyXUrl } from "./resolve-cross-hostname-url.js";
+import { resolveApexUrl, resolveMyXUrl } from "./resolve-cross-hostname-url.js";
 import "./components/climbing-import.js";
 import { tourStartUrl } from "./tour/tour-url.js";
-
-const STEP_COUNT = 4;
+import { PAIN_INJURY_WORDING } from "../shared/health-consent.js";
 
 const { username: USERNAME, adminAuth, updateAdminBar } = createAccountShell();
 const USER_PATH = `/${encodeURIComponent(USERNAME)}`;
 
-const steps = [...document.querySelectorAll("[data-step]")];
+const sections = [...document.querySelectorAll("[data-step]")];
 const progressLabel = document.getElementById("welcome-progress-label");
 const progressSegments = [...document.getElementById("welcome-progress").children];
 const backBtn = document.getElementById("welcome-back");
@@ -19,44 +18,87 @@ const publicRadio = document.getElementById("welcome-public");
 const privateRadio = document.getElementById("welcome-private");
 const athleteOnRadio = document.getElementById("welcome-athlete-on");
 const athleteOffRadio = document.getElementById("welcome-athlete-off");
+const importSection = document.querySelector('[aria-labelledby="welcome-import-title"]');
+const healthOnRadio = document.getElementById("welcome-health-on");
+const healthOffRadio = document.getElementById("welcome-health-off");
+const healthChoice = document.getElementById("welcome-health-choice");
+const healthAlreadyOn = document.getElementById("welcome-health-already-on");
+const healthStatementRow = document.getElementById("welcome-health-statement-row");
+const healthAgree = document.getElementById("welcome-health-agree");
+const healthSection = healthChoice.closest("[data-step]");
 
 const profileUrl = new URL(resolveMyXUrl(location.hostname, USER_PATH), location.origin);
 document.getElementById("welcome-profile-url").textContent = profileUrl.host + profileUrl.pathname;
+document.getElementById("welcome-health-help-link").href = resolveApexUrl(
+  location.hostname,
+  "/help/privacy/#health-data",
+);
+document.getElementById("welcome-health-points").replaceChildren(
+  ...PAIN_INJURY_WORDING.points.map(point => {
+    const li = document.createElement("li");
+    li.textContent = point;
+    return li;
+  }),
+);
+document.getElementById("welcome-health-statement").textContent = PAIN_INJURY_WORDING.statement;
 
-let step = 1;
+let current = sections[0];
 let importedCount = 0;
+let saving = false;
+
+const visibleSections = () =>
+  sections.filter(section => !("needsAthleteMode" in section.dataset) || athleteOnRadio.checked);
 
 function showError(message) {
   errorEl.textContent = message;
   errorEl.hidden = !message;
 }
 
+function canContinue() {
+  if (saving) return false;
+  if (current !== healthSection || adminAuth.hasPainInjuryConsent()) return true;
+  if (healthOffRadio.checked) return true;
+  return healthOnRadio.checked && healthAgree.checked;
+}
+
 function render() {
-  for (const section of steps) section.hidden = Number(section.dataset.step) !== step;
-  progressLabel.textContent = `Step ${step} of ${STEP_COUNT}`;
+  const visible = visibleSections();
+  const index = visible.indexOf(current);
+  const last = index === visible.length - 1;
+  for (const section of sections) section.hidden = section !== current;
+  progressLabel.textContent = `Step ${index + 1} of ${visible.length}`;
   progressSegments.forEach((segment, i) => {
-    segment.classList.toggle("bg-accent", i < step);
-    segment.classList.toggle("bg-border", i >= step);
+    segment.hidden = i >= visible.length;
+    segment.classList.toggle("bg-accent", i <= index);
+    segment.classList.toggle("bg-border", i > index);
   });
-  backBtn.hidden = step === 1;
+  backBtn.hidden = index === 0;
 
-  const skipping = step === 3 && importedCount === 0;
-  nextBtn.textContent = step === STEP_COUNT ? "Go to my logbook" : skipping ? "Skip for now" : "Continue";
+  const consented = adminAuth.hasPainInjuryConsent();
+  healthChoice.hidden = consented;
+  healthAlreadyOn.hidden = !consented;
+  healthStatementRow.hidden = consented || !healthOnRadio.checked;
+
+  const skipping = current === importSection && importedCount === 0;
+  nextBtn.textContent = last ? "Go to my logbook" : skipping ? "Skip for now" : "Continue";
   nextBtn.classList.toggle("btn-primary", !skipping);
+  nextBtn.disabled = !canContinue();
 
-  if (step === STEP_COUNT) {
+  if (last) {
     document.getElementById("welcome-summary-visibility").textContent = publicRadio.checked ? "Public" : "Private";
     document.getElementById("welcome-summary-athlete").textContent = athleteOnRadio.checked ? "On" : "Off";
+    document.getElementById("welcome-summary-health-row").hidden = !athleteOnRadio.checked && !consented;
+    document.getElementById("welcome-summary-health").textContent = consented ? "On" : "Off";
     document.getElementById("welcome-summary-import").textContent =
       importedCount === 0 ? "Skipped" : `${importedCount} ${importedCount === 1 ? "entry" : "entries"}`;
   }
 }
 
-function goTo(next) {
-  step = next;
+function goTo(section) {
+  current = section;
   showError("");
   render();
-  steps[step - 1].querySelector("h1").focus();
+  current.querySelector("h1").focus();
 }
 
 async function saveChoice(setter, value, label, revert) {
@@ -83,22 +125,44 @@ for (const radio of [publicRadio, privateRadio]) {
 for (const radio of [athleteOnRadio, athleteOffRadio]) {
   radio.addEventListener("change", () => {
     const wasOn = !athleteOnRadio.checked;
+    render();
     saveChoice(adminAuth.setAthleteMode, athleteOnRadio.checked, "Athlete Mode", () => {
       (wasOn ? athleteOnRadio : athleteOffRadio).checked = true;
+      render();
     });
   });
 }
+
+for (const input of [healthOnRadio, healthOffRadio, healthAgree]) input.addEventListener("change", render);
 
 document.querySelector("climbing-import").addEventListener("import-complete", e => {
   importedCount += e.detail.imported;
   render();
 });
 
-backBtn.addEventListener("click", () => goTo(step - 1));
+const step = offset => visibleSections()[visibleSections().indexOf(current) + offset];
+
+backBtn.addEventListener("click", () => goTo(step(-1)));
+
+async function grantConsent() {
+  saving = true;
+  render();
+  let ok = false;
+  try {
+    ok = (await adminAuth.setPainInjuryConsent(true)).ok;
+  } catch {}
+  saving = false;
+  if (!ok) showError("Couldn't turn on pain and injury tracking. Check your connection and try again.");
+  render();
+  return ok;
+}
 
 nextBtn.addEventListener("click", async () => {
-  if (step < STEP_COUNT) {
-    goTo(step + 1);
+  const next = step(1);
+  if (next) {
+    const granting = current === healthSection && healthOnRadio.checked && !adminAuth.hasPainInjuryConsent();
+    if (granting && !(await grantConsent())) return;
+    goTo(next);
     return;
   }
   nextBtn.disabled = true;
