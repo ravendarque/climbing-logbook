@@ -101,16 +101,21 @@ function goTo(section) {
   current.querySelector("h1").focus();
 }
 
+// Continue waits for the save, so a reverted Athlete Mode can't hide the step the user has moved on to.
 async function saveChoice(setter, value, label, revert) {
   showError("");
+  saving = true;
+  render();
   let ok = false;
   try {
     ok = (await setter(value)).ok;
   } catch {}
+  saving = false;
   if (!ok) {
     revert();
     showError(`Couldn't save ${label}. Check your connection and try again.`);
   }
+  render();
 }
 
 for (const radio of [publicRadio, privateRadio]) {
@@ -125,10 +130,8 @@ for (const radio of [publicRadio, privateRadio]) {
 for (const radio of [athleteOnRadio, athleteOffRadio]) {
   radio.addEventListener("change", () => {
     const wasOn = !athleteOnRadio.checked;
-    render();
     saveChoice(adminAuth.setAthleteMode, athleteOnRadio.checked, "Athlete Mode", () => {
       (wasOn ? athleteOnRadio : athleteOffRadio).checked = true;
-      render();
     });
   });
 }
@@ -140,7 +143,10 @@ document.querySelector("climbing-import").addEventListener("import-complete", e 
   render();
 });
 
-const step = offset => visibleSections()[visibleSections().indexOf(current) + offset];
+const step = offset => {
+  const visible = visibleSections();
+  return visible[visible.indexOf(current) + offset];
+};
 
 backBtn.addEventListener("click", () => goTo(step(-1)));
 

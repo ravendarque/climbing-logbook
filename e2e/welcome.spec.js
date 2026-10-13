@@ -172,3 +172,35 @@ test("with Athlete Mode off, the pain and injury step is skipped", async ({ page
   await page.locator("#welcome-next").tap();
   await expect(page.locator("#welcome-summary-health-row")).toBeHidden();
 });
+
+test("Continue waits for the Athlete Mode save, and a failed save keeps the steps in order", async ({
+  page,
+  newOwner: owner,
+}) => {
+  await page.goto(owner.url("/welcome"));
+  await page.locator("#welcome-next").tap();
+  await expect(page.getByRole("heading", { name: "Athlete Mode" })).toBeVisible();
+
+  let failSave;
+  const saveFailed = new Promise(resolve => {
+    failSave = resolve;
+  });
+  await page.route("**/-/api/settings", async route => {
+    if (route.request().method() !== "PATCH") return route.fallback();
+    await saveFailed;
+    return route.fulfill({ status: 500, body: "{}" });
+  });
+
+  await page.getByText("On", { exact: true }).tap();
+  await expect(page.locator("#welcome-next")).toBeDisabled();
+  failSave();
+
+  await expect(page.locator("#welcome-athlete-off")).toBeChecked();
+  await expect(page.locator("#welcome-error")).toHaveText(
+    "Couldn't save Athlete Mode. Check your connection and try again.",
+  );
+  await expect(page.locator("#welcome-next")).toBeEnabled();
+  await page.locator("#welcome-next").tap();
+  await expect(page.getByRole("heading", { name: "Import your climbs" })).toBeVisible();
+  await expect(page.locator("#welcome-progress-label")).toHaveText("Step 3 of 4");
+});
