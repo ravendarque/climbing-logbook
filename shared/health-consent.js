@@ -9,7 +9,7 @@ export const PAIN_INJURY_HISTORY = [
       "Pain and injury details are health information, which data protection law treats as sensitive. That's why this is off until you agree to it.",
       "Your health information is stored with the rest of your logbook. It's never shown on your public profile.",
       "The site administrator can see it, only for support and moderation.",
-      "You can turn it off here at any time. Turning it off deletes your pain and injury details.",
+      "You can turn it off at any time in My account. Turning it off deletes your pain and injury details.",
     ],
     statement:
       "I'm 16 or over, or my parent or guardian agrees to this. I agree to Climbing Logbook storing and processing my pain and injury information as described above.",

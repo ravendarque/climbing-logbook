@@ -1,4 +1,5 @@
 import { CSV_COLUMNS } from "../shared/csv-import.js";
+import { PAIN_INJURY_WORDING } from "../shared/health-consent.js";
 import { expect, test } from "./owner.js";
 
 const VALID_CSV = [
@@ -13,7 +14,7 @@ const settingsPatch = page =>
 
 test.use({ viewport: { width: 312, height: 680 }, isMobile: true, hasTouch: true });
 
-test("a new user's first visit syncs, then walks the four steps, then takes the tour, and ends on their logbook", async ({
+test("a new user's first visit syncs, then walks the steps, then takes the tour, and ends on their logbook", async ({
   page,
   newOwner: owner,
 }) => {
@@ -30,6 +31,12 @@ test("a new user's first visit syncs, then walks the four steps, then takes the 
   await expect(page.getByRole("heading", { name: "Athlete Mode" })).toBeFocused();
   await expect(page.locator("#welcome-athlete-off")).toBeChecked();
   await Promise.all([settingsPatch(page), page.getByText("On", { exact: true }).tap()]);
+  await expect(page.locator("#welcome-progress-label")).toHaveText("Step 2 of 5");
+  await page.locator("#welcome-next").tap();
+
+  await expect(page.getByRole("heading", { name: "Pain and injury tracking" })).toBeFocused();
+  await expect(page.locator("#welcome-next")).toBeDisabled();
+  await page.getByText("Not now", { exact: true }).tap();
   await page.locator("#welcome-next").tap();
 
   await expect(page.getByRole("heading", { name: "Import your climbs" })).toBeVisible();
@@ -39,12 +46,18 @@ test("a new user's first visit syncs, then walks the four steps, then takes the 
   await expect(page.getByRole("heading", { name: "You're all set" })).toBeVisible();
   await expect(page.locator("#welcome-summary-visibility")).toHaveText("Public");
   await expect(page.locator("#welcome-summary-athlete")).toHaveText("On");
+  await expect(page.locator("#welcome-summary-health")).toHaveText("Off");
   await expect(page.locator("#welcome-summary-import")).toHaveText("Skipped");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(312);
 
   await Promise.all([settingsPatch(page), page.locator("#welcome-next").tap()]);
   const settings = await (await owner.api("GET", "settings")).json();
-  expect(settings).toMatchObject({ logbookPublic: true, athleteMode: true, onboardingCompleted: true });
+  expect(settings).toMatchObject({
+    logbookPublic: true,
+    athleteMode: true,
+    onboardingCompleted: true,
+    healthConsent: { painInjury: false },
+  });
 
   await page.waitForURL("**/intermediatedemo/log?tour=1&**");
   const tour = page.locator('[role="dialog"][aria-labelledby="tour-title"]');
@@ -113,4 +126,81 @@ test("a failed save puts the choice back and says so", async ({ page, newOwner: 
     "Couldn't save who can see your logbook. Check your connection and try again.",
   );
   await expect(page.locator("#welcome-private")).toBeChecked();
+});
+
+test("with Athlete Mode on, turning on pain and injury tracking needs the statement ticked, and records it", async ({
+  page,
+  newOwner: owner,
+}) => {
+  await owner.settings({ athleteMode: true });
+  await page.goto(owner.url("/welcome"));
+  await page.locator("#welcome-next").tap();
+  await page.locator("#welcome-next").tap();
+
+  await expect(page.getByRole("heading", { name: "Pain and injury tracking" })).toBeVisible();
+  await expect(page.locator("#welcome-progress-label")).toHaveText("Step 3 of 5");
+  await expect(page.locator("#welcome-health-on")).not.toBeChecked();
+  await expect(page.locator("#welcome-health-off")).not.toBeChecked();
+  await expect(page.locator("#welcome-health-points li")).toHaveText(PAIN_INJURY_WORDING.points);
+
+  await page.getByText("Turn it on", { exact: true }).tap();
+  await expect(page.locator("#welcome-next")).toBeDisabled();
+  await page.getByLabel(PAIN_INJURY_WORDING.statement).check();
+  const [grant] = await Promise.all([
+    page.waitForRequest(req => req.url().endsWith("/-/api/consent/pain-injury") && req.method() === "POST"),
+    page.locator("#welcome-next").tap(),
+  ]);
+  expect(grant.postDataJSON()).toEqual({ version: expect.any(String) });
+  await expect(page.getByRole("heading", { name: "Import your climbs" })).toBeVisible();
+
+  await page.locator("#welcome-back").tap();
+  await expect(page.locator("#welcome-health-already-on")).toBeVisible();
+  await expect(page.locator("#welcome-health-choice")).toBeHidden();
+  await page.locator("#welcome-next").tap();
+  await page.locator("#welcome-next").tap();
+  await expect(page.locator("#welcome-summary-health")).toHaveText("On");
+  expect((await (await owner.api("GET", "consent/pain-injury")).json()).granted).toBe(true);
+});
+
+test("with Athlete Mode off, the pain and injury step is skipped", async ({ page, newOwner: owner }) => {
+  await page.goto(owner.url("/welcome"));
+  await page.locator("#welcome-next").tap();
+  await expect(page.locator("#welcome-athlete-off")).toBeChecked();
+  await page.locator("#welcome-next").tap();
+  await expect(page.getByRole("heading", { name: "Import your climbs" })).toBeVisible();
+  await expect(page.locator("#welcome-progress-label")).toHaveText("Step 3 of 4");
+  await page.locator("#welcome-next").tap();
+  await expect(page.locator("#welcome-summary-health-row")).toBeHidden();
+});
+
+test("Continue waits for the Athlete Mode save, and a failed save keeps the steps in order", async ({
+  page,
+  newOwner: owner,
+}) => {
+  await page.goto(owner.url("/welcome"));
+  await page.locator("#welcome-next").tap();
+  await expect(page.getByRole("heading", { name: "Athlete Mode" })).toBeVisible();
+
+  let failSave;
+  const saveFailed = new Promise(resolve => {
+    failSave = resolve;
+  });
+  await page.route("**/-/api/settings", async route => {
+    if (route.request().method() !== "PATCH") return route.fallback();
+    await saveFailed;
+    return route.fulfill({ status: 500, body: "{}" });
+  });
+
+  await page.getByText("On", { exact: true }).tap();
+  await expect(page.locator("#welcome-next")).toBeDisabled();
+  failSave();
+
+  await expect(page.locator("#welcome-athlete-off")).toBeChecked();
+  await expect(page.locator("#welcome-error")).toHaveText(
+    "Couldn't save Athlete Mode. Check your connection and try again.",
+  );
+  await expect(page.locator("#welcome-next")).toBeEnabled();
+  await page.locator("#welcome-next").tap();
+  await expect(page.getByRole("heading", { name: "Import your climbs" })).toBeVisible();
+  await expect(page.locator("#welcome-progress-label")).toHaveText("Step 3 of 4");
 });
