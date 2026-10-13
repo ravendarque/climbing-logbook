@@ -101,6 +101,80 @@ export function reportPositionOrder(type) {
   return scale.labels.map(label => scale.toOrdinal(label));
 }
 
+// Counts real named steps, not ordinal distance: ordinals aren't evenly spaced (docs/grade-model.md).
+export function gradeStep(ordinal, type) {
+  const positionOrder = reportPositionOrder(type);
+  const idx = positionOrder.indexOf(ordinal);
+  if (idx !== -1) return idx;
+  for (let i = positionOrder.length - 1; i >= 0; i--) {
+    if (positionOrder[i] < ordinal) return i;
+  }
+  return 0;
+}
+
+const MIN_SENDS_PER_HALF = 5;
+const VOLUME_CHANGE = 0.25;
+const VOLUME_SPIKE = 0.5;
+
+// The first and second halves of the window's buckets; an odd middle bucket belongs to neither.
+export function windowHalves(buckets) {
+  const half = Math.floor(buckets.length / 2);
+  if (half === 0) return null;
+  return [
+    { start: buckets[0].start, end: buckets[half - 1].end },
+    { start: buckets[buckets.length - half].start, end: buckets[buckets.length - 1].end },
+  ];
+}
+
+const daysIn = ({ start, end }) => (parseISODate(end).getTime() - parseISODate(start).getTime()) / DAY_MS + 1;
+const within = (date, { start, end }) => Boolean(date) && date >= start && date <= end;
+
+// Per day, not per half: a custom window's oldest bucket can be shorter than the rest (#1380).
+export function volumeTrend(entries, buckets, type) {
+  const halves = windowHalves(buckets);
+  if (!halves) return null;
+  const sends = entries.filter(e => e.type === type && e.status === "send");
+  const [first, second] = halves.map(h => sends.filter(e => within(e.date, h)));
+  if (first.length < MIN_SENDS_PER_HALF || second.length < MIN_SENDS_PER_HALF) return null;
+
+  const change = second.length / daysIn(halves[1]) / (first.length / daysIn(halves[0])) - 1;
+  const pct = Math.round(Math.abs(change) * 100);
+  const topStep = list => {
+    const steps = list
+      .map(e => bestGradeOrdinal(e, type))
+      .filter(o => o !== null)
+      .map(o => gradeStep(o, type));
+    return steps.length ? Math.max(...steps) : null;
+  };
+  const [topBefore, topAfter] = [topStep(first), topStep(second)];
+  const gradeUp = topBefore !== null && topAfter !== null && topAfter > topBefore;
+  const painLater = entries.some(e => (e.painMoves ?? []).length > 0 && within(e.date, halves[1]));
+
+  if (change >= VOLUME_SPIKE && painLater) {
+    return {
+      tone: "negative",
+      text: `You're sending ${pct}% more per week than in the first half of this window, and you've flagged pain in the same weeks. Worth easing off and watching the load.`,
+    };
+  }
+  if (change >= VOLUME_CHANGE && gradeUp) {
+    return {
+      tone: "positive",
+      text: `You're climbing more and harder: ${pct}% more sends per week than in the first half of this window, and a higher top grade.`,
+    };
+  }
+  if (gradeUp) return { tone: "positive", text: "Your top grade is higher than in the first half of this window." };
+  if (change >= VOLUME_CHANGE) {
+    return { tone: "neutral", text: `You're sending ${pct}% more per week than in the first half of this window.` };
+  }
+  if (change <= -VOLUME_CHANGE) {
+    return {
+      tone: "neutral",
+      text: `You're sending ${pct}% less per week than in the first half of this window. Maybe look at your rest and sleep in case you're burning out.`,
+    };
+  }
+  return null;
+}
+
 export function volumeHeadline(sendCounts) {
   const total = sendCounts.reduce((a, b) => a + b, 0);
   if (total === 0) return "No sends logged in this window yet.";

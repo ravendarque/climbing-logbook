@@ -2,7 +2,7 @@ import { createReportPage } from "./report-page.js";
 import { renderComboChartHtml } from "./combo-chart.js";
 import { flashLabel, sendLabel } from "./status.js";
 import { reportGradePoint, reportPositionOrder } from "../shared/volume-stats.js";
-import { gapHeadline } from "../shared/gap-stats.js";
+import { gapHeadline, gapTrend } from "../shared/gap-stats.js";
 import { buildGapReport } from "../shared/reports.js";
 
 createReportPage({
@@ -31,6 +31,7 @@ createReportPage({
   },
   // Recomputed so the headline follows the chosen scale, like the chart.
   insights: ({ flashMaxByBucket, sendMaxByBucket }, { type, viewScaleId }) => [
+    gapTrend(flashMaxByBucket, sendMaxByBucket, type, viewScaleId),
     gapHeadline(flashMaxByBucket, sendMaxByBucket, type, viewScaleId),
   ],
 });

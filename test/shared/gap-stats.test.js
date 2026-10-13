@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gapByBucket, gapHeadline } from "../../shared/gap-stats.js";
+import { gapByBucket, gapHeadline, gapTrend } from "../../shared/gap-stats.js";
 
 function entry(overrides = {}) {
   const type = overrides.type ?? "boulder";
@@ -171,5 +171,50 @@ describe("gapHeadline", () => {
   it("names the best send when only the flashes are below the chosen scale", () => {
     const headline = gapHeadline([pair("2+", "font-non-standard")], [pair("6A")], "boulder", "font");
     expect(headline.text).toBe("Your best send is 6A. This report only shows sends from Font 3/VB upwards.");
+  });
+});
+
+describe("gapTrend (#1380)", () => {
+  const font = grade => ({ grade, gradeScale: "font" });
+
+  it("calls a gap closing because flashes rose positive", () => {
+    const trend = gapTrend([font("6A"), null, font("6C"), null], [font("7A"), null, font("7A"), null], "boulder");
+    expect(trend).toEqual({
+      tone: "positive",
+      text: "Your flash–send gap is closing: from 6 grade-steps in the first half of this window to 2 grade-steps in the second, because your flashes are getting harder.",
+    });
+  });
+
+  it("calls a gap widening because sends rose positive: projecting harder", () => {
+    const trend = gapTrend([font("6A"), null, font("6A"), null], [font("6B"), null, font("7A"), null], "boulder");
+    expect(trend.tone).toBe("positive");
+    expect(trend.text).toContain("projecting harder");
+  });
+
+  it("keeps a gap closing because sends fell neutral", () => {
+    const trend = gapTrend([font("6A"), null, font("6A"), null], [font("7A"), null, font("6B"), null], "boulder");
+    expect(trend.tone).toBe("neutral");
+    expect(trend.text).toContain("best send in the second half is lower");
+  });
+
+  it("keeps a gap widening because flashes fell neutral", () => {
+    const trend = gapTrend([font("6B"), null, font("6A"), null], [font("7A"), null, font("7A"), null], "boulder");
+    expect(trend.tone).toBe("neutral");
+    expect(trend.text).toContain("best flash in the second half is lower");
+  });
+
+  it("notes an unchanged gap, with onsight–redpoint wording for sport", () => {
+    const french = grade => ({ grade, gradeScale: "french" });
+    expect(gapTrend([french("6a"), french("6b")], [french("6c"), french("7a")], "sport")).toEqual({
+      tone: "neutral",
+      text: "Your onsight–redpoint gap held at 4 grade-steps in both halves of this window.",
+    });
+  });
+
+  it("says nothing without a flash and a send the scale can show in both halves", () => {
+    expect(gapTrend([font("6A"), null, null, null], [font("7A"), null, font("7A"), null], "boulder")).toBeNull();
+    expect(
+      gapTrend([pair("2+"), null, font("6A"), null], [pair("2+"), null, font("7A"), null], "boulder", "font"),
+    ).toBeNull();
   });
 });

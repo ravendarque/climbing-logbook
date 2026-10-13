@@ -1,4 +1,4 @@
-import { bucketIndexForDate, reportGradeLabel, reportPositionOrder } from "./volume-stats.js";
+import { bucketIndexForDate, gradeStep, reportGradeLabel } from "./volume-stats.js";
 import { gradeOrdinal, SCALES, DEFAULT_SCALE_BY_TYPE as DEFAULT_VIEW_SCALE_BY_TYPE } from "./grade-data.js";
 
 const PRIMARY_SCALE_BY_TYPE = { boulder: "font-non-standard", sport: "french" };
@@ -54,21 +54,11 @@ export function gapByBucket(entries, buckets, type) {
 // Server-computed, so it can't import client/status.js's labels.
 const FLASH_TERM = { boulder: "flash", sport: "onsight" };
 const SEND_TERM = { boulder: "send", sport: "redpoint" };
-
-// Counts real named steps, not ordinal distance: ordinals aren't evenly spaced (docs/grade-model.md).
-function stepIndex(ordinal, positionOrder) {
-  const idx = positionOrder.indexOf(ordinal);
-  if (idx !== -1) return idx;
-  for (let i = positionOrder.length - 1; i >= 0; i--) {
-    if (positionOrder[i] < ordinal) return i;
-  }
-  return 0;
-}
+const FLASHES = { boulder: "flashes", sport: "onsights" };
 
 export function gapHeadline(flashMaxByBucket, sendMaxByBucket, type, viewScaleId = DEFAULT_VIEW_SCALE_BY_TYPE[type]) {
   const flashTerm = FLASH_TERM[type];
   const sendTerm = SEND_TERM[type];
-  const positionOrder = reportPositionOrder(type);
   const scaleName = SCALES[viewScaleId]?.name ?? "this scale";
   const belowRange =
     type === "boulder"
@@ -102,9 +92,7 @@ export function gapHeadline(flashMaxByBucket, sendMaxByBucket, type, viewScaleId
   }
   const bestFlash = best(shownFlashes);
 
-  const gap =
-    stepIndex(bestGradeOrdinal(bestSend, type), positionOrder) -
-    stepIndex(bestGradeOrdinal(bestFlash, type), positionOrder);
+  const gap = gradeStep(bestGradeOrdinal(bestSend, type), type) - gradeStep(bestGradeOrdinal(bestFlash, type), type);
   if (gap <= 0) {
     return {
       tone: "positive",
@@ -114,5 +102,58 @@ export function gapHeadline(flashMaxByBucket, sendMaxByBucket, type, viewScaleId
   return {
     tone: "neutral",
     text: `Your best ${sendTerm} (${label(bestSend)}) is ${gap} grade-step${gap === 1 ? "" : "s"} ahead of your best ${flashTerm} (${label(bestFlash)}) this window.`,
+  };
+}
+
+const steps = n => `${n} grade-step${n === 1 ? "" : "s"}`;
+
+// Which way the gap moved between the window's halves, never how big it is (#1380).
+export function gapTrend(flashMaxByBucket, sendMaxByBucket, type, viewScaleId = DEFAULT_VIEW_SCALE_BY_TYPE[type]) {
+  const half = Math.floor(sendMaxByBucket.length / 2);
+  if (half === 0) return null;
+  const secondFrom = sendMaxByBucket.length - half;
+  /** @param {Array<{grade: string, gradeScale: string} | null>} series @param {number} from @param {number} to */
+  const topStep = (series, from, to) => {
+    const shown = series
+      .slice(from, to)
+      .filter(pair => pair !== null && reportGradeLabel(pair.grade, pair.gradeScale, type, viewScaleId) !== null)
+      .map(pair => bestGradeOrdinal(pair, type))
+      .filter(ordinal => ordinal !== null);
+    return shown.length ? Math.max(...shown.map(ordinal => gradeStep(ordinal, type))) : null;
+  };
+  const flashBefore = topStep(flashMaxByBucket, 0, half);
+  const flashAfter = topStep(flashMaxByBucket, secondFrom, sendMaxByBucket.length);
+  const sendBefore = topStep(sendMaxByBucket, 0, half);
+  const sendAfter = topStep(sendMaxByBucket, secondFrom, sendMaxByBucket.length);
+  if (flashBefore === null || flashAfter === null || sendBefore === null || sendAfter === null) return null;
+
+  const before = Math.max(0, sendBefore - flashBefore);
+  const after = Math.max(0, sendAfter - flashAfter);
+  const pairTerm = `${FLASH_TERM[type]}–${SEND_TERM[type]}`;
+  if (after < before) {
+    return flashAfter > flashBefore
+      ? {
+          tone: "positive",
+          text: `Your ${pairTerm} gap is closing: from ${steps(before)} in the first half of this window to ${steps(after)} in the second, because your ${FLASHES[type]} are getting harder.`,
+        }
+      : {
+          tone: "neutral",
+          text: `Your ${pairTerm} gap went from ${steps(before)} in the first half of this window to ${steps(after)} in the second, because your best ${SEND_TERM[type]} in the second half is lower.`,
+        };
+  }
+  if (after > before) {
+    return sendAfter > sendBefore
+      ? {
+          tone: "positive",
+          text: `You're projecting harder: your best ${SEND_TERM[type]} is higher in the second half of this window, so your ${pairTerm} gap has grown from ${steps(before)} to ${steps(after)}.`,
+        }
+      : {
+          tone: "neutral",
+          text: `Your ${pairTerm} gap went from ${steps(before)} in the first half of this window to ${steps(after)} in the second, because your best ${FLASH_TERM[type]} in the second half is lower.`,
+        };
+  }
+  return {
+    tone: "neutral",
+    text: `Your ${pairTerm} gap held at ${steps(before)} in both halves of this window.`,
   };
 }

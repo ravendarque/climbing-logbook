@@ -8,6 +8,7 @@ import {
   reportPositionOrder,
   volumeByBucket,
   volumeHeadline,
+  volumeTrend,
   weekBucketLabel,
   weekBuckets,
 } from "../../shared/volume-stats.js";
@@ -261,5 +262,76 @@ describe("volumeHeadline", () => {
 
   it("uses singular 'send' for a total of exactly 1", () => {
     expect(volumeHeadline([1, 0, 0])).toBe("1 send logged in this window, busiest period had 1.");
+  });
+});
+
+describe("volumeTrend (#1380)", () => {
+  const WINDOW = weekBuckets("2026-07-21", "2026-10-12");
+  const send = (date, grade = "6A", extra = {}) => ({
+    type: "boulder",
+    status: "send",
+    date,
+    grade,
+    gradeScale: "font",
+    ...extra,
+  });
+  const first = (n, grade) =>
+    Array.from({ length: n }, (_, i) => send(`2026-07-${String(22 + i).padStart(2, "0")}`, grade));
+  const second = (n, grade) =>
+    Array.from({ length: n }, (_, i) => send(`2026-10-${String(1 + i).padStart(2, "0")}`, grade));
+
+  it("says nothing below five sends in either half", () => {
+    expect(volumeTrend([...first(4), ...second(9)], WINDOW, "boulder")).toBeNull();
+  });
+
+  it("says nothing when volume and top grade hold steady", () => {
+    expect(volumeTrend([...first(5), ...second(5)], WINDOW, "boulder")).toBeNull();
+  });
+
+  it("notes more sends at the same top grade, without judging it", () => {
+    expect(volumeTrend([...first(5), ...second(8)], WINDOW, "boulder")).toEqual({
+      tone: "neutral",
+      text: "You're sending 60% more per week than in the first half of this window.",
+    });
+  });
+
+  it("calls more sends and a higher top grade positive", () => {
+    const trend = volumeTrend([...first(5), ...second(7), send("2026-10-10", "6B")], WINDOW, "boulder");
+    expect(trend.tone).toBe("positive");
+    expect(trend.text).toContain("climbing more and harder");
+  });
+
+  it("calls a higher top grade positive even without more sends", () => {
+    expect(volumeTrend([...first(5), ...second(4), send("2026-10-10", "6B")], WINDOW, "boulder")).toEqual({
+      tone: "positive",
+      text: "Your top grade is higher than in the first half of this window.",
+    });
+  });
+
+  it("frames fewer sends as rest, not a problem", () => {
+    const trend = volumeTrend([...first(8), ...second(5)], WINDOW, "boulder");
+    expect(trend).toEqual({
+      tone: "neutral",
+      text: "You're sending 38% less per week than in the first half of this window. Maybe look at your rest and sleep in case you're burning out.",
+    });
+  });
+
+  it("warns only when a big jump in sends comes with pain flagged in the same weeks", () => {
+    const pain = { type: "sport", status: "attempt", date: "2026-10-09", painMoves: [{ limb: "hand" }] };
+    expect(volumeTrend([...first(5), ...second(8), pain], WINDOW, "boulder").tone).toBe("negative");
+    expect(volumeTrend([...first(5), ...second(8)], WINDOW, "boulder").tone).toBe("neutral");
+    expect(volumeTrend([...first(5), ...second(7), pain], WINDOW, "boulder").tone).toBe("neutral");
+  });
+
+  it("doesn't call the top grade up when a half has no grade it can read", () => {
+    const ungraded = Array.from({ length: 5 }, (_, i) => send(`2026-07-${22 + i}`, "not-a-grade"));
+    expect(volumeTrend([...ungraded, ...second(5)], WINDOW, "boulder")).toBeNull();
+  });
+
+  it("compares sends per day, so a short oldest bucket doesn't fake a rise", () => {
+    const shortOldest = weekBuckets("2026-07-27", "2026-10-12");
+    expect(shortOldest[0].start).toBe(shortOldest[0].end);
+    const firstHalf = Array.from({ length: 5 }, (_, i) => send(`2026-08-0${1 + i}`));
+    expect(volumeTrend([...firstHalf, ...second(7)], shortOldest, "boulder")).toBeNull();
   });
 });

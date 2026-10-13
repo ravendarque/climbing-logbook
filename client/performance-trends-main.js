@@ -21,5 +21,5 @@ createReportPage({
       ],
     });
   },
-  insights: ({ sendCounts }) => [{ tone: "neutral", text: volumeHeadline(sendCounts) }],
+  insights: ({ sendCounts, trend }) => [trend, { tone: "neutral", text: volumeHeadline(sendCounts) }],
 });
