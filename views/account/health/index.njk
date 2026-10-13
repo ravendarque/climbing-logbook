@@ -15,7 +15,7 @@ headerClass: mb-6
 
   <div class="max-w-[560px]">
     <h1 class="card-section-heading">Pain and injury tracking</h1>
-    <p class="text-sm text-accent-ink pl-4 mb-3" id="health-status" role="status" hidden></p>
+    <p class="text-sm text-accent-ink pl-4 mb-3" id="health-status" tabindex="-1" hidden></p>
 
     <div class="row-card border-accent mb-3" id="health-update" hidden>
       <h3 class="row-card-title mb-2">We've changed how we describe this</h3>
@@ -44,6 +44,7 @@ headerClass: mb-6
     <div class="row-card border-accent mt-4" id="health-confirm" role="group" aria-labelledby="health-confirm-title" hidden>
       <h3 class="row-card-title mb-2" id="health-confirm-title" tabindex="-1">Turn off pain and injury tracking?</h3>
       <p class="text-sm mb-2" id="health-confirm-count"></p>
+      <p class="text-sm mb-2" id="health-confirm-queue" hidden></p>
       <p class="text-sm mb-3" id="health-confirm-backups">It's deleted from your logbook straight away, and from our backups within 30 days. You can't undo this.</p>
       <div class="flex flex-wrap gap-3">
         <button type="button" class="btn btn-primary" id="health-confirm-btn">Turn off and delete</button>

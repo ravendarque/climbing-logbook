@@ -56,8 +56,13 @@ test("on: Turn off warns with the count, Cancel keeps it, and confirming deletes
 });
 
 test("My account shows the card with its state and links to the page", async ({ page, owner }) => {
-  await owner.grantPainInjuryConsent();
+  await owner.settings({ athleteMode: true });
   await page.goto(owner.url("/account"));
+  await expect(page.locator("#health-status")).toHaveText("Off");
+
+  await owner.grantPainInjuryConsent();
+  await owner.settings({ athleteMode: false });
+  await page.reload();
 
   const row = page.locator("#health-row");
   await expect(row).toContainText("Pain and injury tracking");
@@ -83,4 +88,28 @@ test("offline: the buttons are disabled with a note, and come back with the conn
   await context.setOffline(false);
   await expect(turnOn).toBeEnabled();
   await expect(page.locator("#health-offline-note")).toBeHidden();
+});
+
+test("My account hides the card when Athlete Mode is off and tracking was never turned on", async ({ page, owner }) => {
+  await page.goto(owner.url("/account"));
+  await expect(page.locator("#beta-row")).toBeVisible();
+  await expect(page.locator("#health-row")).toBeHidden();
+});
+
+test("turning off warns about changes still waiting to sync on this device", async ({ page, owner }) => {
+  await owner.grantPainInjuryConsent();
+  await page.addInitScript(username => {
+    localStorage.setItem("logbook_signed_in_user", username);
+    localStorage.setItem(
+      `logbook_pending_queue:${username}`,
+      JSON.stringify([{ kind: "entry", op: "add", record: { id: "a" } }]),
+    );
+  }, owner.username);
+  await page.goto(owner.url("/account/health"));
+  await expect(page.locator("#health-status")).toHaveText("Pain and injury tracking is on.");
+
+  await page.getByRole("button", { name: "Turn off and delete" }).click();
+  await expect(page.locator("#health-confirm-queue")).toHaveText(
+    "You have 1 change waiting to sync on this device. Sync them first, or any pain details in them will be saved again.",
+  );
 });

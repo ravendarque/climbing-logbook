@@ -1,6 +1,7 @@
 import { createAccountShell } from "./account-shell.js";
 import { resolveApexUrl } from "./resolve-cross-hostname-url.js";
 import { startPage } from "./boot-gate.js";
+import { unsyncedChangeCount } from "./device-data.js";
 import { PAIN_INJURY_WORDING } from "../shared/health-consent.js";
 
 const CONSENT_URL = "/-/api/consent/pain-injury";
@@ -22,6 +23,7 @@ const confirmEl = document.getElementById("health-confirm");
 const confirmTitle = document.getElementById("health-confirm-title");
 const confirmCountEl = document.getElementById("health-confirm-count");
 const confirmBackupsEl = document.getElementById("health-confirm-backups");
+const confirmQueueEl = document.getElementById("health-confirm-queue");
 const confirmBtn = document.getElementById("health-confirm-btn");
 const cancelBtn = document.getElementById("health-cancel-btn");
 const offlineNoteEl = document.getElementById("health-offline-note");
@@ -112,17 +114,33 @@ turnOnBtn.addEventListener("click", async () => {
   statusEl.focus();
 });
 
+async function countEntriesWithPain() {
+  const res = await fetch(CONSENT_URL, { headers: { Accept: "application/json" } });
+  if (res.status === 401) return { error: "Your session has ended. Log in again, then try again." };
+  if (!res.ok) return { error: `Couldn't check what would be deleted (error ${res.status}). Try again.` };
+  return { count: (await res.json()).entriesWithPain };
+}
+
 turnOffBtn.addEventListener("click", async () => {
   errorEl.hidden = true;
-  let count;
+  saving = true;
+  render();
+  let result;
   try {
-    const res = await fetch(CONSENT_URL, { headers: { Accept: "application/json" } });
-    if (!res.ok) throw new Error(String(res.status));
-    count = (await res.json()).entriesWithPain;
+    result = await countEntriesWithPain();
   } catch {
-    showError("Couldn't check what would be deleted. Check your connection and try again.");
+    result = { error: "Couldn't check what would be deleted. Check your connection and try again." };
+  }
+  saving = false;
+  if (result.error) {
+    render();
+    showError(result.error);
     return;
   }
+  const { count } = result;
+  const pending = unsyncedChangeCount();
+  confirmQueueEl.textContent = `You have ${pending} ${pending === 1 ? "change" : "changes"} waiting to sync on this device. Sync them first, or any pain details in them will be saved again.`;
+  confirmQueueEl.hidden = pending === 0;
   confirmCountEl.textContent =
     count === 0
       ? "You have no pain or injury details logged, so there's nothing to delete."
@@ -152,7 +170,6 @@ confirmBtn.addEventListener("click", async () => {
   statusEl.focus();
 });
 
-statusEl.tabIndex = -1;
 addEventListener("online", render);
 addEventListener("offline", render);
 

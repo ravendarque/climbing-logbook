@@ -40,14 +40,14 @@ function syncSettingsToggles() {
   athleteModeRow.hidden = !loggedIn;
   publicLogbookRow.hidden = !loggedIn;
   betaRow.hidden = !loggedIn;
-  healthRow.hidden = !loggedIn;
+  healthRow.hidden = !loggedIn || !(adminAuth.isAthleteMode() || adminAuth.hasPainInjuryConsent());
   removeDataRow.hidden = !loggedIn;
   athleteModeToggle.setAttribute("aria-checked", String(adminAuth.isAthleteMode()));
   publicLogbookToggle.setAttribute("aria-checked", String(adminAuth.isLogbookPublic()));
   healthStatus.textContent = !adminAuth.hasPainInjuryConsent()
     ? "Off"
     : adminAuth.getPainInjuryConsentUpdate()?.required
-      ? "On. Agree to the updated wording to keep it on."
+      ? "On. Read and agree to the updated wording."
       : "On";
   betaStatus.textContent = adminAuth.getBetaOptIn()
     ? "You're enrolled in the beta."
