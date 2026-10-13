@@ -2,19 +2,7 @@ import { PAIN_INJURY } from "../../shared/health-consent.js";
 import { nextCursorSql } from "./d1-resource.js";
 import { json, parseJsonBody } from "./json.js";
 
-const CURRENT = "superseded_at IS NULL AND withdrawn_at IS NULL";
-
-export const CONSENT_REQUIRED = {
-  error: "Pain and injury tracking is turned off. Turn it on in My account to save pain details.",
-  code: "HEALTH_CONSENT_REQUIRED",
-};
-
-export async function hasConsent(env, userId, purpose = PAIN_INJURY.purpose) {
-  const row = await env.LOGBOOK_DB.prepare(`SELECT 1 FROM consents WHERE user_id = ? AND purpose = ? AND ${CURRENT}`)
-    .bind(userId, purpose)
-    .first();
-  return row !== null;
-}
+export const CURRENT = "superseded_at IS NULL AND withdrawn_at IS NULL";
 
 const ENTRIES_WITH_PAIN = `SELECT DISTINCT p.entry_id FROM entry_pain_moves p JOIN entries e ON e.id = p.entry_id
   WHERE e.user_id = ? AND e.deleted_at IS NULL`;

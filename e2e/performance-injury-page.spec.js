@@ -20,7 +20,6 @@ test("shows the no-pain haiku, empty log, and Sources section with no pain-tagge
 
 test("renders the ranked headline and log rows when a cluster clears the confidence gate", async ({ page, owner }) => {
   await owner.settings({ athleteMode: true });
-  await owner.grantPainInjuryConsent();
   await owner.seed({
     entries: [3, 2, 1].map(n => ({ date: daysAgo(n), name: `Painful Route ${4 - n}`, painMoves: [LEFT_CRIMP] })),
   });

@@ -105,57 +105,6 @@ describe("pain and injury consent (#1120)", () => {
     });
   });
 
-  it("refuses pain details on create and edit without consent, with a code the client can act on", async () => {
-    const refused = await postEntry(entry({ painMoves: [PAIN] }));
-    expect(refused.status).toBe(400);
-    expect(await refused.json()).toMatchObject({
-      code: "HEALTH_CONSENT_REQUIRED",
-    });
-
-    const created = await (await postEntry(entry({ painMoves: [] }))).json();
-    const edit = await jsonRequest("PUT", "/-/api/entries", { ...created.entry, painMoves: [PAIN] }, as(cookie));
-    expect(edit.status).toBe(400);
-  });
-
-  it("accepts pain details once consent is given", async () => {
-    await grantPainInjuryConsent(cookie);
-    const created = await postEntry(entry({ painMoves: [PAIN] }));
-    expect(created.status).toBe(201);
-    expect((await created.json()).entry.painMoves).toHaveLength(1);
-  });
-
-  it("gives an empty injury report without consent, and the real one with it", async () => {
-    await grantPainInjuryConsent(cookie);
-    await postEntry(entry({ painMoves: [PAIN] }));
-    const withConsent = await (await fetchJson("/-/api/performance/injury", { headers: as(cookie) })).json();
-    expect(withConsent.consent).toBe(true);
-    expect(withConsent.log).toHaveLength(1);
-
-    await env.LOGBOOK_DB.prepare(`UPDATE consents SET withdrawn_at = datetime('now') WHERE user_id = ?`)
-      .bind(userId)
-      .run();
-    const without = await (await fetchJson("/-/api/performance/injury", { headers: as(cookie) })).json();
-    expect(without.consent).toBe(false);
-    expect(without.log).toEqual([]);
-  });
-
-  it("never reads pain flags into the volume trend without consent", async () => {
-    await grantPainInjuryConsent(cookie);
-    const days = n => new Date(Date.UTC(2026, 0, n)).toISOString().slice(0, 10);
-    for (let i = 0; i < 5; i++) await postEntry(entry({ date: days(2 + i) }));
-    for (let i = 0; i < 10; i++) await postEntry(entry({ date: days(60 + (i % 20)), painMoves: [PAIN] }));
-    const volume = () =>
-      fetchJson("/-/api/performance/volume?start=2026-01-01&end=2026-03-25", {
-        headers: as(cookie),
-      }).then(r => r.json());
-    expect((await volume()).boulder.trend?.kind).toBe("load");
-
-    await env.LOGBOOK_DB.prepare(`UPDATE consents SET withdrawn_at = datetime('now') WHERE user_id = ?`)
-      .bind(userId)
-      .run();
-    expect((await volume()).boulder.trend?.kind).toBe("more");
-  });
-
   it("deletes every pain detail on withdrawal, counts the entries, and keeps the entries", async () => {
     await grantPainInjuryConsent(cookie);
     await postEntry(entry({ painMoves: [PAIN, { ...PAIN, side: "right" }] }));

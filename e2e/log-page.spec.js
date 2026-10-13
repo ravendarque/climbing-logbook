@@ -540,7 +540,6 @@ test("adding a move and saving submits it in the entry payload", async ({ page, 
 });
 
 test("editing an entry pre-populates its existing moves into the right list", async ({ page, owner }) => {
-  await owner.grantPainInjuryConsent();
   await gotoLog(page, owner, {
     ...SEED,
     settings: { athleteMode: true, activeDiscipline: "boulder" },

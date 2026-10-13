@@ -13,4 +13,4 @@ CREATE UNIQUE INDEX consents_one_current ON consents (user_id, purpose)
 
 -- Demo personas are fictional, so they're consented wherever they already exist (#1114).
 INSERT INTO consents (id, user_id, purpose, wording_version, granted_at)
-  SELECT 'demo-consent-' || user_id, user_id, 'pain_injury', '2026-10-13', datetime('now') FROM settings WHERE is_demo = 1;
+  SELECT 'demo-consent-' || user_id, user_id, 'pain_injury', '2026-10-13', strftime('%Y-%m-%dT%H:%M:%fZ', 'now') FROM settings WHERE is_demo = 1;

@@ -53,7 +53,7 @@ export function findRow(env, table, id, userId) {
  * @property {string} table
  * @property {string} resourceKey
  * @property {string} rowKey
- * @property {(record: any, env: any, userId: string) => Promise<string | { error: string, code: string } | null>} validateFields
+ * @property {(record: any, env: any, userId: string) => Promise<string | null>} validateFields
  * @property {(record: any, id: string, userId: string) => Record<string, unknown>} buildRow
  * @property {(row: any) => object} rowToJson
  * @property {boolean} [excludeDeleted]
@@ -102,7 +102,7 @@ export function createD1ResourceHandlers({
     const record = parsed.body;
 
     const err = await validateFields(record, env, userId);
-    if (err) return json(typeof err === "string" ? { error: err } : err, 400);
+    if (err) return json({ error: err }, 400);
 
     // Content match first: two offline devices adding the same crag must converge.
     if (findDuplicate) {

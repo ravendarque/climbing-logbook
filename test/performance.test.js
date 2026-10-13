@@ -1,13 +1,6 @@
 import { env } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import {
-  createAuthedSession,
-  fetchJson,
-  grantPainInjuryConsent,
-  jsonRequest,
-  resetAuthTables,
-  seedPlace,
-} from "./support.js";
+import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
 import { MIN_TAG_COUNT } from "../shared/injury-stats.js";
 
 const PYRAMID_URL = "/-/api/performance/pyramid";
@@ -132,8 +125,6 @@ describe("handleGetPyramid", () => {
 });
 
 describe("handleGetInjuryLog", () => {
-  beforeEach(() => grantPainInjuryConsent(cookie));
-
   it("returns an empty log and null cluster for a user with no pain-tagged entries", async () => {
     await postEntry();
     const res = await getInjuryLog();
@@ -197,9 +188,8 @@ describe("handleGetInjuryLog", () => {
     });
 
     const userB = await createAuthedSession();
-    await grantPainInjuryConsent(userB.cookie);
     const res = await getInjuryLog(userB.cookie);
-    expect(await res.json()).toEqual({ log: [], cluster: null, consent: true });
+    expect(await res.json()).toEqual({ log: [], cluster: null });
   });
 });
 

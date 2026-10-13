@@ -1,13 +1,6 @@
 import { env, exports } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import {
-  createPublicSession,
-  fetchJson,
-  grantPainInjuryConsent,
-  jsonRequest,
-  resetAuthTables,
-  seedPlace,
-} from "./support.js";
+import { createPublicSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
 
 beforeAll(() => {
   env.BETA_GATE_ENABLED = "false";
@@ -269,7 +262,6 @@ describe("public data API", () => {
   it("never returns rpe/attemptsToSend/moves/painMoves, even when the owner's entry has them (Task 7)", async () => {
     const { cookie } = await createPublicSession({ username: "sensitivedatauser" });
     const placeId = await seedPlace(cookie);
-    await grantPainInjuryConsent(cookie);
     await jsonRequest(
       "POST",
       "/-/api/entries",

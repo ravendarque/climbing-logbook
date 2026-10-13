@@ -1,7 +1,6 @@
 import { mkdirSync, readFileSync, rmdirSync, rmSync, writeFileSync } from "node:fs";
 import { expect, test as base } from "@playwright/test";
 import { OWNED_ORIGIN, ownedRouteUrl } from "./owned-route-url.js";
-import { PAIN_INJURY } from "../shared/health-consent.js";
 
 export const OWNER_POOL_PATH = "e2e/.auth/owners.json";
 const OWNER_NEXT_PATH = "e2e/.auth/owners-next";
@@ -84,9 +83,6 @@ function createOwner(username, request) {
     api,
     async settings(fields) {
       await api("PATCH", "settings", fields);
-    },
-    async grantPainInjuryConsent() {
-      await api("POST", "consent/pain-injury", { version: PAIN_INJURY.version });
     },
     async seed({
       entries = [],
