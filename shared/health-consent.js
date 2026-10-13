@@ -7,7 +7,7 @@ export const PAIN_INJURY_HISTORY = [
     points: [
       "When it's on, you can tag pain and injuries on your climbs, and your Injury insights report shows patterns in them. That report can also use your Exertion ratings to look for links between effort and pain.",
       "Pain and injury details are health information, which data protection law treats as sensitive. That's why this is off until you agree to it.",
-      "Your health information is stored with the rest of your logbook, on Cloudflare. It's never shown on your public profile.",
+      "Your health information is stored with the rest of your logbook. It's never shown on your public profile.",
       "The site administrator can see it, only for support and moderation.",
       "You can turn it off at any time in My account. Turning it off deletes your pain and injury details.",
     ],

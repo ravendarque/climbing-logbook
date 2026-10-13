@@ -241,6 +241,21 @@
   font-size: var(--text-3xl);
 }
 
+@utility list-spacing {
+  padding-left: 1.25rem;
+  line-height: 1.55;
+
+  & li + li {
+    margin-top: .5rem;
+  }
+}
+
+@utility bullet-list {
+  @apply list-spacing;
+  list-style: disc;
+  font-size: var(--text-sm);
+}
+
 @utility card-section-heading {
   @apply section-heading;
   padding-left: 1rem;
@@ -281,13 +296,8 @@
   }
 
   & ul, & ol {
+    @apply list-spacing;
     margin: 0 0 1rem;
-    padding-left: 1.25rem;
-    line-height: 1.7;
-  }
-
-  & li + li {
-    margin-top: .4rem;
   }
 
   & p {
