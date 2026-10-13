@@ -139,36 +139,37 @@ export function volumeTrend(entries, buckets, type) {
 
   const change = second.length / daysIn(halves[1]) / (first.length / daysIn(halves[0])) - 1;
   const pct = Math.round(Math.abs(change) * 100);
-  const topStep = list =>
-    Math.max(
-      ...list
-        .map(e => bestGradeOrdinal(e, type))
-        .filter(o => o !== null)
-        .map(o => gradeStep(o, type)),
-    );
-  const gradeUp = topStep(second) > topStep(first);
+  const topStep = list => {
+    const steps = list
+      .map(e => bestGradeOrdinal(e, type))
+      .filter(o => o !== null)
+      .map(o => gradeStep(o, type));
+    return steps.length ? Math.max(...steps) : null;
+  };
+  const [topBefore, topAfter] = [topStep(first), topStep(second)];
+  const gradeUp = topBefore !== null && topAfter !== null && topAfter > topBefore;
   const painLater = entries.some(e => (e.painMoves ?? []).length > 0 && within(e.date, halves[1]));
 
   if (change >= VOLUME_SPIKE && painLater) {
     return {
       tone: "negative",
-      text: `Your sends are up ${pct}% on the first half of this window, and you've flagged pain in the same weeks. Worth easing off and watching the load.`,
+      text: `You're sending ${pct}% more per week than in the first half of this window, and you've flagged pain in the same weeks. Worth easing off and watching the load.`,
     };
   }
   if (change >= VOLUME_CHANGE && gradeUp) {
     return {
       tone: "positive",
-      text: `You're climbing more and harder: sends are up ${pct}% on the first half of this window, and so is your top grade.`,
+      text: `You're climbing more and harder: ${pct}% more sends per week than in the first half of this window, and a higher top grade.`,
     };
   }
-  if (gradeUp) return { tone: "positive", text: "Your top grade is up on the first half of this window." };
+  if (gradeUp) return { tone: "positive", text: "Your top grade is higher than in the first half of this window." };
   if (change >= VOLUME_CHANGE) {
-    return { tone: "neutral", text: `Your sends are up ${pct}% on the first half of this window.` };
+    return { tone: "neutral", text: `You're sending ${pct}% more per week than in the first half of this window.` };
   }
   if (change <= -VOLUME_CHANGE) {
     return {
       tone: "neutral",
-      text: `Your sends are down ${pct}% on the first half of this window. Rest is part of training too.`,
+      text: `You're sending ${pct}% less per week than in the first half of this window. Rest is part of training too.`,
     };
   }
   return null;

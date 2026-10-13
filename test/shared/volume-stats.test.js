@@ -291,7 +291,7 @@ describe("volumeTrend (#1380)", () => {
   it("notes more sends at the same top grade, without judging it", () => {
     expect(volumeTrend([...first(5), ...second(8)], WINDOW, "boulder")).toEqual({
       tone: "neutral",
-      text: "Your sends are up 60% on the first half of this window.",
+      text: "You're sending 60% more per week than in the first half of this window.",
     });
   });
 
@@ -304,7 +304,7 @@ describe("volumeTrend (#1380)", () => {
   it("calls a higher top grade positive even without more sends", () => {
     expect(volumeTrend([...first(5), ...second(4), send("2026-10-10", "6B")], WINDOW, "boulder")).toEqual({
       tone: "positive",
-      text: "Your top grade is up on the first half of this window.",
+      text: "Your top grade is higher than in the first half of this window.",
     });
   });
 
@@ -312,7 +312,7 @@ describe("volumeTrend (#1380)", () => {
     const trend = volumeTrend([...first(8), ...second(5)], WINDOW, "boulder");
     expect(trend).toEqual({
       tone: "neutral",
-      text: "Your sends are down 38% on the first half of this window. Rest is part of training too.",
+      text: "You're sending 38% less per week than in the first half of this window. Rest is part of training too.",
     });
   });
 
@@ -321,6 +321,11 @@ describe("volumeTrend (#1380)", () => {
     expect(volumeTrend([...first(5), ...second(8), pain], WINDOW, "boulder").tone).toBe("negative");
     expect(volumeTrend([...first(5), ...second(8)], WINDOW, "boulder").tone).toBe("neutral");
     expect(volumeTrend([...first(5), ...second(7), pain], WINDOW, "boulder").tone).toBe("neutral");
+  });
+
+  it("doesn't call the top grade up when a half has no grade it can read", () => {
+    const ungraded = Array.from({ length: 5 }, (_, i) => send(`2026-07-${22 + i}`, "not-a-grade"));
+    expect(volumeTrend([...ungraded, ...second(5)], WINDOW, "boulder")).toBeNull();
   });
 
   it("compares sends per day, so a short oldest bucket doesn't fake a rise", () => {

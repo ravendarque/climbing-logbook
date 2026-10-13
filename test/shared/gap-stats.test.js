@@ -181,7 +181,7 @@ describe("gapTrend (#1380)", () => {
     const trend = gapTrend([font("6A"), null, font("6C"), null], [font("7A"), null, font("7A"), null], "boulder");
     expect(trend).toEqual({
       tone: "positive",
-      text: "Your flash–send gap is closing: down from 6 grade-steps to 2 grade-steps across this window, because your flashes are getting harder.",
+      text: "Your flash–send gap is closing: from 6 grade-steps in the first half of this window to 2 grade-steps in the second, because your flashes are getting harder.",
     });
   });
 
@@ -207,7 +207,7 @@ describe("gapTrend (#1380)", () => {
     const french = grade => ({ grade, gradeScale: "french" });
     expect(gapTrend([french("6a"), french("6b")], [french("6c"), french("7a")], "sport")).toEqual({
       tone: "neutral",
-      text: "Your onsight–redpoint gap held at 4 grade-steps across this window.",
+      text: "Your onsight–redpoint gap held at 4 grade-steps in both halves of this window.",
     });
   });
 

@@ -134,23 +134,26 @@ export function gapTrend(flashMaxByBucket, sendMaxByBucket, type, viewScaleId = 
     return flashAfter > flashBefore
       ? {
           tone: "positive",
-          text: `Your ${pairTerm} gap is closing: down from ${steps(before)} to ${steps(after)} across this window, because your ${FLASHES[type]} are getting harder.`,
+          text: `Your ${pairTerm} gap is closing: from ${steps(before)} in the first half of this window to ${steps(after)} in the second, because your ${FLASHES[type]} are getting harder.`,
         }
       : {
           tone: "neutral",
-          text: `Your ${pairTerm} gap is down from ${steps(before)} to ${steps(after)}, because your best ${SEND_TERM[type]} in the second half is lower.`,
+          text: `Your ${pairTerm} gap went from ${steps(before)} in the first half of this window to ${steps(after)} in the second, because your best ${SEND_TERM[type]} in the second half is lower.`,
         };
   }
   if (after > before) {
     return sendAfter > sendBefore
       ? {
           tone: "positive",
-          text: `You're projecting harder: your best ${SEND_TERM[type]} is up, so your ${pairTerm} gap has grown from ${steps(before)} to ${steps(after)}.`,
+          text: `You're projecting harder: your best ${SEND_TERM[type]} is higher in the second half of this window, so your ${pairTerm} gap has grown from ${steps(before)} to ${steps(after)}.`,
         }
       : {
           tone: "neutral",
-          text: `Your ${pairTerm} gap is up from ${steps(before)} to ${steps(after)}, because your best ${FLASH_TERM[type]} in the second half is lower.`,
+          text: `Your ${pairTerm} gap went from ${steps(before)} in the first half of this window to ${steps(after)} in the second, because your best ${FLASH_TERM[type]} in the second half is lower.`,
         };
   }
-  return { tone: "neutral", text: `Your ${pairTerm} gap held at ${steps(before)} across this window.` };
+  return {
+    tone: "neutral",
+    text: `Your ${pairTerm} gap held at ${steps(before)} in both halves of this window.`,
+  };
 }
