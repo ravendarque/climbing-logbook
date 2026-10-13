@@ -12,6 +12,7 @@ export const CLIENT_ENTRIES = {
   "account-edit": "client/account-edit-main.js",
   "account-import": "client/account-import-main.js",
   "account-beta": "client/account-beta-main.js",
+  "account-health": "client/account-health-main.js",
   welcome: "client/welcome-main.js",
   view: "client/view-main.js",
   sync: "client/sync-main.js",

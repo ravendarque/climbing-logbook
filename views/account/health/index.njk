@@ -1,0 +1,59 @@
+---
+layout: app-layout.njk
+title: Pain and injury tracking – Climbing Logbook
+bundle: account-health
+staticShellNote: |-
+  Static shell, like the other account pages: client/account-health-main.js
+         reads the username from location.pathname.
+headerClass: mb-6
+---
+<div class="max-w-[960px] mx-auto">
+  <a class="back-link mt-4 mb-5" id="back-to-account-link" href="#">
+    <svg class="w-[.9rem] h-[.9rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
+    My Account
+  </a>
+
+  <div class="max-w-[560px]">
+    <h1 class="card-section-heading">Pain and injury tracking</h1>
+    <p class="text-sm text-accent-ink pl-4 mb-3" id="health-status" tabindex="-1" hidden></p>
+
+    <div class="row-card border-accent mb-3" id="health-update" hidden>
+      <h3 class="row-card-title mb-2">We've changed how we describe this</h3>
+      <p class="text-sm mb-2">Read it again and agree to keep pain and injury tracking on. Until you do, it stays on as it is.</p>
+      <ul class="list-disc pl-5 text-sm flex flex-col gap-1" id="health-update-changes"></ul>
+    </div>
+
+    <div class="row-card" id="health-about">
+      <h3 class="row-card-title mb-2">What this means</h3>
+      <ul class="list-disc pl-5 text-sm flex flex-col gap-1 mb-3" id="health-points"></ul>
+      <p class="text-sm"><a class="text-accent-ink underline" id="health-help-link" href="/help/privacy/#health-data">Read more about health information</a></p>
+    </div>
+
+    <div class="mt-4" id="health-grant" hidden>
+      <label class="flex items-start gap-2 text-sm mb-4 cursor-pointer" for="health-agree">
+        <input class="mt-0.5 size-4 shrink-0 accent-accent-strong" type="checkbox" id="health-agree">
+        <span id="health-statement"></span>
+      </label>
+      <button type="button" class="btn btn-primary disabled:opacity-[.45] disabled:cursor-not-allowed" id="health-turn-on-btn" disabled></button>
+    </div>
+
+    <div class="mt-4" id="health-withdraw" hidden>
+      <button type="button" class="btn" id="health-turn-off-btn">Turn off and delete</button>
+    </div>
+
+    <div class="row-card border-accent mt-4" id="health-confirm" role="group" aria-labelledby="health-confirm-title" hidden>
+      <h3 class="row-card-title mb-2" id="health-confirm-title" tabindex="-1">Turn off pain and injury tracking?</h3>
+      <p class="text-sm mb-2" id="health-confirm-count"></p>
+      <p class="text-sm mb-2" id="health-confirm-queue" hidden></p>
+      <p class="text-sm mb-3" id="health-confirm-backups">It's deleted from your logbook straight away, and from our backups within 30 days. You can't undo this.</p>
+      <div class="flex flex-wrap gap-3">
+        <button type="button" class="btn btn-primary" id="health-confirm-btn">Turn off and delete</button>
+        <button type="button" class="btn" id="health-cancel-btn">Cancel</button>
+      </div>
+    </div>
+
+    <p class="text-sm text-muted mt-3" id="health-offline-note" hidden>Turning this on or off needs a connection.</p>
+    <p class="text-sm text-error mt-3" id="health-error" role="alert" tabindex="-1" hidden></p>
+  </div>
+
+</div>
