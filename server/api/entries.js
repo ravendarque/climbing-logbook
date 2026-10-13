@@ -11,6 +11,7 @@ import {
 } from "../lib/d1-resource.js";
 import { validateEntryShape } from "../../shared/entry-schema.js";
 import { intParam } from "../lib/params.js";
+import { CONSENT_REQUIRED, hasConsent } from "../lib/health-consent.js";
 
 // Must match migrations/0016_add_grade_scale.sql's backfill WHERE clause.
 const LEGACY_SPORT_NON_STANDARD_GRADES = new Set(["1", "1+", "2", "2+", "3", "3+"]);
@@ -24,6 +25,7 @@ async function validateFields(entry, env, userId) {
   if (shapeErr) return shapeErr;
   const owned = await findOwnedRow(env, "places", entry.placeId, userId);
   if (!owned) return "placeId does not reference one of your places";
+  if (entry.painMoves?.length && !(await hasConsent(env, userId))) return CONSENT_REQUIRED;
   return null;
 }
 
@@ -331,7 +333,7 @@ export async function handlePut(request, env, userId) {
 
   if (!entry.id) return json({ error: "Missing required field: id" }, 400);
   const err = await validateFields(entry, env, userId);
-  if (err) return json({ error: err }, 400);
+  if (err) return json(typeof err === "string" ? { error: err } : err, 400);
 
   // excludeDeleted, or an edit would resurrect a deleted entry.
   const existing = await findOwnedRow(env, "entries", entry.id, userId, { excludeDeleted: true });

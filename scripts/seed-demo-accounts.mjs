@@ -4,6 +4,7 @@
 import { applyMigrations, d1ExecuteBatch } from "./lib/dev-session.mjs";
 import { BOULDER_GRADES, LEAD_GRADES } from "../shared/grade-data.js";
 import { DEMO_PERSONAS } from "../shared/demo-personas.js";
+import { PAIN_INJURY } from "../shared/health-consent.js";
 
 const args = process.argv.slice(2);
 const remote = args.includes("--remote");
@@ -109,6 +110,10 @@ function buildPersonaSql(persona) {
 
   statements.push(
     `INSERT OR REPLACE INTO settings (user_id, athlete_mode, active_discipline, logbook_public, is_demo, created_at, updated_at) VALUES (${sqlStr(userId)}, 1, 'boulder', 1, 1, ${now}, ${now});`,
+  );
+  // Synthetic data about fictional people, so their demo injury pages work (#1120).
+  statements.push(
+    `INSERT OR IGNORE INTO consents (id, user_id, purpose, wording_version, granted_at) VALUES (${sqlStr(`demo-${username}-consent`)}, ${sqlStr(userId)}, ${sqlStr(PAIN_INJURY.purpose)}, ${sqlStr(PAIN_INJURY.version)}, ${now});`,
   );
 
   const locationIds = LOCATIONS.map((loc, i) => {

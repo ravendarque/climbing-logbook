@@ -1,7 +1,14 @@
 import { env, exports } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanUp } from "../server/lib/cleanup.js";
-import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
+import {
+  createAuthedSession,
+  fetchJson,
+  grantPainInjuryConsent,
+  jsonRequest,
+  resetAuthTables,
+  seedPlace,
+} from "./support.js";
 
 beforeAll(() => {
   env.BETA_GATE_ENABLED = "false";
@@ -25,6 +32,7 @@ beforeEach(async () => {
 
 async function climbWithEverything(id) {
   const placeId = await seedPlace(cookie);
+  await grantPainInjuryConsent(cookie);
   await jsonRequest(
     "POST",
     "/-/api/entries",

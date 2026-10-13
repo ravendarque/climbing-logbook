@@ -1,6 +1,13 @@
 import { env } from "cloudflare:workers";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
+import {
+  createAuthedSession,
+  fetchJson,
+  grantPainInjuryConsent,
+  jsonRequest,
+  resetAuthTables,
+  seedPlace,
+} from "./support.js";
 import { buildRow, handlePublicGet, publicRowToJson } from "../server/api/entries.js";
 import { buildInsertStatement } from "../server/lib/d1-resource.js";
 
@@ -805,6 +812,7 @@ describe("entry_moves / entry_pain_moves", () => {
   });
 
   it("writes and reads back painMoves on create", async () => {
+    await grantPainInjuryConsent(cookie);
     const created = await (await post({ ...validEntry(), painMoves: [validPainRow()] })).json();
     expect(created.entry.painMoves).toHaveLength(1);
     expect(created.entry.painMoves[0]).toMatchObject({
@@ -996,6 +1004,7 @@ describe("publicRowToJson / handlePublicGet (Task 7 -- public profile exclusions
   });
 
   it("handlePublicGet's response has no rpe/attemptsToSend/moves/painMoves keys on any entry", async () => {
+    await grantPainInjuryConsent(cookie);
     await post({ ...validEntry(), rpe: 80, attemptsToSend: 5, moves: [validMoveRow()], painMoves: [validPainRow()] });
     const request = new Request("https://example.com/-/api/entries");
     const res = await handlePublicGet(request, env, userId);

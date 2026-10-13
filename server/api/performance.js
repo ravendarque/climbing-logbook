@@ -1,6 +1,7 @@
 import { json } from "../lib/json.js";
 import { listForUser } from "../lib/d1-resource.js";
 import { attachChildRows, rowToJson } from "./entries.js";
+import { hasConsent } from "../lib/health-consent.js";
 import {
   buildEffortReport,
   buildGapReport,
@@ -20,6 +21,13 @@ async function listEntriesWithChildRows(env, userId) {
   return attachChildRows(await listEntries(env, userId), env);
 }
 
+// Pain flags are health data, read only with the user's consent (#1120).
+async function listEntriesWithPainIfConsented(env, userId) {
+  const entries = await listEntriesWithChildRows(env, userId);
+  if (await hasConsent(env, userId)) return entries;
+  return entries.map(entry => ({ ...entry, painMoves: [] }));
+}
+
 export async function handleGetPyramid(request, env, userId) {
   const url = new URL(request.url);
   const scales = { boulderScale: url.searchParams.get("boulderScale"), sportScale: url.searchParams.get("sportScale") };
@@ -27,7 +35,8 @@ export async function handleGetPyramid(request, env, userId) {
 }
 
 export async function handleGetInjuryLog(_request, env, userId) {
-  return json(buildInjuryReport(await listEntriesWithChildRows(env, userId)), 200, NO_STORE);
+  if (!(await hasConsent(env, userId))) return json({ ...buildInjuryReport([]), consent: false }, 200, NO_STORE);
+  return json({ ...buildInjuryReport(await listEntriesWithChildRows(env, userId)), consent: true }, 200, NO_STORE);
 }
 
 export async function handleGetStrengthsWeaknesses(request, env, userId) {
@@ -72,6 +81,6 @@ function windowedReport(build, loadEntries = listEntries) {
 }
 
 // Volume reads pain flags, for its "watch the load" insight (#1380).
-export const handleGetVolume = windowedReport(buildVolumeReport, listEntriesWithChildRows);
+export const handleGetVolume = windowedReport(buildVolumeReport, listEntriesWithPainIfConsented);
 export const handleGetGap = windowedReport(buildGapReport);
 export const handleGetEffort = windowedReport(buildEffortReport);
