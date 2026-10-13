@@ -103,3 +103,24 @@ test("redirects to /log when Athlete Mode is off", async ({ page, owner }) => {
 
   await page.waitForURL(`**/${owner.username}/log`);
 });
+
+test("judges the window: more sends and a higher top grade stack a positive card above the summary (#1380)", async ({
+  page,
+  owner,
+}) => {
+  await owner.settings({ athleteMode: true });
+  await owner.seed({
+    entries: [
+      ...[1, 2, 3, 4, 5].map(() => ({ date: daysAgo(70), grade: "6A" })),
+      ...[1, 2, 3, 4, 5, 6, 7].map(() => ({ date: daysAgo(5), grade: "6A" })),
+      { date: daysAgo(3), grade: "6B" },
+    ],
+  });
+  await page.goto(owner.url("/performance/trends"));
+
+  const cards = page.locator("#report-insights [data-insight-tone]");
+  await expect(cards).toHaveCount(2);
+  await expect(cards.first()).toHaveAttribute("data-insight-tone", "positive");
+  await expect(cards.first()).toContainText("climbing more and harder");
+  await expect(cards.last()).toContainText("13 sends logged in this window");
+});

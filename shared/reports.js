@@ -2,7 +2,7 @@ import { pyramidSplitRows, ROW_SCALE_BY_TYPE } from "./pyramid-stats.js";
 import { resolveScaleId, STANDARD_SCALES_BY_DISCIPLINE } from "./grade-data.js";
 import { painLogEntries, topPainCluster } from "./injury-stats.js";
 import { availableAnchors, describeWeakness, rankedForAnchor, topWeakness } from "./strengths-stats.js";
-import { volumeByBucket, weekBuckets, weekBucketLabel } from "./volume-stats.js";
+import { volumeByBucket, volumeTrend, weekBuckets, weekBucketLabel } from "./volume-stats.js";
 import { gapByBucket, gapHeadline } from "./gap-stats.js";
 import { effortByBucket, effortHeadline } from "./effort-stats.js";
 
@@ -43,7 +43,12 @@ export function buildVolumeReport(entries, { start, end }) {
       buckets,
       type,
     );
-    return { buckets: buckets.map(weekBucketLabel), sendCounts, maxGradeByBucket };
+    return {
+      buckets: buckets.map(weekBucketLabel),
+      sendCounts,
+      maxGradeByBucket,
+      trend: volumeTrend(entries, buckets, type),
+    };
   });
 }
 

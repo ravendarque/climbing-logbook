@@ -60,17 +60,18 @@ function validateDateRange(start, end) {
   return null;
 }
 
-function windowedReport(build) {
+function windowedReport(build, loadEntries = listEntries) {
   return async (request, env, userId) => {
     const url = new URL(request.url);
     const start = url.searchParams.get("start");
     const end = url.searchParams.get("end");
     const dateError = validateDateRange(start, end);
     if (dateError) return json({ error: dateError }, 400);
-    return json(build(await listEntries(env, userId), { start, end }), 200, NO_STORE);
+    return json(build(await loadEntries(env, userId), { start, end }), 200, NO_STORE);
   };
 }
 
-export const handleGetVolume = windowedReport(buildVolumeReport);
+// Volume reads pain flags, for its "watch the load" insight (#1380).
+export const handleGetVolume = windowedReport(buildVolumeReport, listEntriesWithChildRows);
 export const handleGetGap = windowedReport(buildGapReport);
 export const handleGetEffort = windowedReport(buildEffortReport);
