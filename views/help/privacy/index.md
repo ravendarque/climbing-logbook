@@ -33,9 +33,9 @@ We only look at a logbook to investigate a report, misuse, or a problem you've a
 
 <h2 id="health-data">Health information</h2>
 
-Pain and injury tracking is off until you turn it on, because pain and injury details are health information. Data protection law treats health information as sensitive, so we ask you first, and the rest of Climbing Logbook works the same either way.
+Pain and injury tracking is off until you turn it on, because pain and injury details are health information. Data protection law treats health information as sensitive, so we ask you first. The rest of Climbing Logbook works the same either way.
 
-- **What counts as health information:** the pain and injury tags on your climbs, and your Injury insights report. Your Exertion ratings count too when that report uses them. Notes can hold health information if you write about an injury in them, so use the pain and injury tags for that instead.
+- **What counts as health information:** the pain and injury tags on your climbs, and your Injury insights report. Your Exertion ratings count too when that report uses them. Notes can hold health information if you write about an injury in them. If you've turned on pain and injury tracking, use its tags for that instead.
 - **Who can turn it on:** you need to be 16 or over, or have your parent or guardian's agreement.
 - **Where it goes:** it's stored with the rest of your logbook, on Cloudflare. It's never shown on your public profile and is only used for your own reports. The site administrator can see it for support and moderation, and for nothing else.
 - **Turning it on and off:** go to My account, then *Pain and injury tracking*. Turning it off deletes the pain and injury details from your climbs. The climbs themselves stay.
