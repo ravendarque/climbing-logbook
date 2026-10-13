@@ -1,10 +1,10 @@
 import { pyramidSplitRows, ROW_SCALE_BY_TYPE } from "./pyramid-stats.js";
-import { resolveScaleId, STANDARD_SCALES_BY_DISCIPLINE } from "./grade-data.js";
+import { DEFAULT_SCALE_BY_TYPE, resolveScaleId, STANDARD_SCALES_BY_DISCIPLINE } from "./grade-data.js";
 import { painLogEntries, topPainCluster } from "./injury-stats.js";
 import { availableAnchors, describeWeakness, rankedForAnchor, topWeakness } from "./strengths-stats.js";
 import { volumeByBucket, volumeTrend, weekBuckets, weekBucketLabel } from "./volume-stats.js";
 import { gapByBucket, gapHeadline } from "./gap-stats.js";
-import { effortByBucket, effortHeadline } from "./effort-stats.js";
+import { effortByBucket, effortInsight, effortRead } from "./effort-stats.js";
 
 const DISCIPLINES = ["boulder", "sport"];
 
@@ -73,26 +73,21 @@ export function buildGapReport(entries, { start, end }) {
 export function buildEffortReport(entries, { start, end }) {
   const buckets = weekBuckets(start, end);
   return byDiscipline(type => {
-    const { maxGradeByBucket, avgExertionByBucket, rpeCountByBucket, overallAvgExertion, totalSends } = effortByBucket(
+    const series = effortByBucket(
       entries.filter(e => e.type === type),
       buckets,
       type,
     );
-    const headline = effortHeadline(
-      maxGradeByBucket,
-      avgExertionByBucket,
-      rpeCountByBucket,
-      overallAvgExertion,
-      totalSends,
-      type,
-    );
+    const effort = effortRead(series, type);
     // headline stays a string, so a page still on an older bundle reads the same response.
+    const compat = effort && effortInsight(effort, type, DEFAULT_SCALE_BY_TYPE[type]);
     return {
       buckets: buckets.map(weekBucketLabel),
-      maxGradeByBucket,
-      avgExertionByBucket,
-      headline: headline?.text ?? null,
-      headlineTone: headline?.tone ?? null,
+      maxGradeByBucket: series.maxGradeByBucket,
+      avgExertionByBucket: series.avgExertionByBucket,
+      effort,
+      headline: compat?.text ?? null,
+      headlineTone: compat?.tone ?? null,
     };
   });
 }

@@ -2,6 +2,7 @@ import { createReportPage } from "./report-page.js";
 import { renderComboChartHtml } from "./combo-chart.js";
 import { reportGradePoint, reportPositionOrder } from "../shared/volume-stats.js";
 import { buildEffortReport } from "../shared/reports.js";
+import { effortInsight } from "../shared/effort-stats.js";
 
 createReportPage({
   view: "performance-rpe",
@@ -21,9 +22,5 @@ createReportPage({
       ],
     });
   },
-  insights: ({ headline, headlineTone }) => [
-    headline
-      ? { tone: headlineTone, text: headline }
-      : { tone: "neutral", text: "Not enough data yet for a reliable read -- log a few more sends and check back." },
-  ],
+  insights: ({ effort }, { type, viewScaleId }) => [effortInsight(effort, type, viewScaleId)],
 });

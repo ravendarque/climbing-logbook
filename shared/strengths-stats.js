@@ -1,4 +1,4 @@
-import { MIN_TAG_COUNT, humanize, pluralizeHoldType } from "./tag-stats-helpers.js";
+import { MIN_TAG_COUNT, describeMove, humanize } from "./tag-stats-helpers.js";
 
 export { MIN_TAG_COUNT };
 
@@ -84,8 +84,6 @@ export function rankedForAnchor(entries, dimension, value, minCount = MIN_TAG_CO
     .sort((a, b) => b.score - a.score);
 }
 
-const WALL_ANGLE_ADJECTIVE = { slab: "slab", vert: "vertical", overhang: "overhanging", roof: "roof" };
-
 export function describeWeakness(cell) {
-  return `Your ${cell.side} ${cell.limb} on ${WALL_ANGLE_ADJECTIVE[cell.wallAngle]} ${pluralizeHoldType(cell.holdType)} looks like a key weakness.`;
+  return `Your ${describeMove(cell)} was the hardest move on ${cell.hardestCount} of the ${cell.total} sends you tagged it on, which makes it your clearest weakness.`;
 }

@@ -1,5 +1,5 @@
 import { dateRank } from "./date-helpers.js";
-import { MIN_TAG_COUNT, pluralizeHoldType } from "./tag-stats-helpers.js";
+import { MIN_TAG_COUNT, describeMove } from "./tag-stats-helpers.js";
 
 export { MIN_TAG_COUNT };
 
@@ -36,6 +36,6 @@ export function painLogEntries(entries) {
   return entries.filter(e => (e.painMoves ?? []).length > 0).sort((a, b) => dateRank(b.date) - dateRank(a.date));
 }
 
-export function describeCluster(cluster) {
-  return `Your pain flags cluster on ${cluster.side} ${cluster.limb} ${pluralizeHoldType(cluster.holdType)}, ${cluster.wallAngle}.`;
+export function describeCluster(cluster, totalFlags) {
+  return `${cluster.count} of your ${totalFlags} pain flags are on your ${describeMove(cluster)}.`;
 }

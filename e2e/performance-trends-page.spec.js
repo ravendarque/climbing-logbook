@@ -21,7 +21,7 @@ test("shows the zero-sends headline, time-window control, and Sources section wi
   await expect(page.locator("#view-explainer")).toContainText("every logged send's grade");
   await expect(page.locator("#view-explainer")).toContainText("send-log proxy");
   await expect(page.locator('[data-window="12w"]')).toBeVisible();
-  await expect(page.locator("#trends-root")).toContainText("No sends logged in this window yet.");
+  await expect(page.locator("#trends-root")).toContainText("You have logged no sends");
   await expect(page.locator("body")).toContainText("Bechtel");
 });
 

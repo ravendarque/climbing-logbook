@@ -20,7 +20,7 @@ test("shows the confidence-gate message, time-window control, and Sources sectio
   await expect(page.locator("#view-explainer")).toContainText("Exertion slider");
   await expect(page.locator("#view-explainer")).toContainText("less reliable");
   await expect(page.locator('[data-window="12w"]')).toBeVisible();
-  await expect(page.locator("#rpe-root")).toContainText("Not enough data yet for a reliable read");
+  await expect(page.locator("#rpe-root")).toContainText("Rate the Exertion on at least 5 sends");
   await expect(page.locator("body")).toContainText("Gajdošík");
 });
 
@@ -29,7 +29,10 @@ test("renders the exertion bars and grade-labeled line once the confidence gate 
   await owner.seed({ entries: RISING_EFFORT });
   await page.goto(owner.url("/performance/rpe"));
 
-  await expect(page.locator("#rpe-root")).toContainText("sounds like it's paying off");
+  await expect(page.locator("#rpe-root [data-insight-title]")).toHaveText("Effort and grade are both rising");
+  await expect(page.locator("#rpe-root")).toContainText(
+    "Your average Exertion went from 70% to 80% and your top grade from 6B to 6C",
+  );
   await expect(page.locator("#rpe-root [data-combo-chart]")).toBeVisible();
   await expect(page.locator("#rpe-root")).toContainText("6B");
   await expect(page.locator("#rpe-root")).toContainText("6C");

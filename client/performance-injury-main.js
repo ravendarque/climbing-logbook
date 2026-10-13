@@ -1,5 +1,6 @@
 import { createAppShell } from "./app-shell.js";
 import { describeCluster } from "../shared/injury-stats.js";
+import { MIN_TAG_COUNT } from "../shared/tag-stats-helpers.js";
 import { escapeHtml } from "./escape-html.js";
 import { formatDate } from "../shared/date-helpers.js";
 import { createReportData } from "./report-data.js";
@@ -39,16 +40,18 @@ function logRowHtml(entry) {
   </div>`;
 }
 
-const CAVEAT = "A pattern-noticing tool, not medical advice.";
 const NO_PAIN = "You have logged no pain\nMaybe you have felt no pain?\nThis is a good thing";
 
 function injuryInsight(log, cluster) {
-  if (cluster) return { tone: "negative", text: describeCluster(cluster), detail: CAVEAT };
-  if (log.length === 0) return { tone: "positive", text: NO_PAIN };
+  if (cluster) {
+    const totalFlags = log.reduce((sum, entry) => sum + entry.painMoves.length, 0);
+    return { tone: "negative", title: "Pattern identified", text: describeCluster(cluster, totalFlags) };
+  }
+  if (log.length === 0) return { tone: "positive", text: NO_PAIN, haiku: true };
   return {
     tone: "neutral",
-    text: "Not enough data yet to spot a pattern -- keep tagging pain moves as they come up.",
-    detail: CAVEAT,
+    title: "Not enough data yet",
+    text: `A pattern shows here once ${MIN_TAG_COUNT} of your pain flags share the same characteristics.`,
   };
 }
 

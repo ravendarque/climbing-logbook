@@ -117,36 +117,24 @@ describe("painLogEntries", () => {
 });
 
 describe("describeCluster", () => {
-  it("builds the exact headline shape from the design doc's own example", () => {
+  it("says how many of all the pain flags the cluster accounts for (#1389)", () => {
     const cluster = {
       limb: "hand",
       side: "left",
       holdType: "crimp",
       movementStyle: "static",
       wallAngle: "overhang",
-      count: 5,
+      count: 4,
     };
-    expect(describeCluster(cluster)).toBe("Your pain flags cluster on left hand crimps, overhang.");
+    expect(describeCluster(cluster, 6)).toBe("4 of your 6 pain flags are on your left hand on overhanging crimps.");
   });
 
-  it("pluralizes pinch as pinches, not pinchs", () => {
-    const cluster = {
-      limb: "hand",
-      side: "right",
-      holdType: "pinch",
-      movementStyle: "dynamic",
-      wallAngle: "roof",
-      count: 5,
-    };
-    expect(describeCluster(cluster)).toBe("Your pain flags cluster on right hand pinches, roof.");
-  });
-
-  it("pluralizes every other hold type with a plain trailing s", () => {
-    expect(describeCluster({ limb: "foot", side: "left", holdType: "toe-hook", wallAngle: "slab" })).toBe(
-      "Your pain flags cluster on left foot toe-hooks, slab.",
+  it("pluralizes pinch as pinches, and keeps hold types as named", () => {
+    expect(describeCluster({ limb: "hand", side: "right", holdType: "pinch", wallAngle: "roof", count: 3 }, 3)).toBe(
+      "3 of your 3 pain flags are on your right hand on roof pinches.",
     );
-    expect(describeCluster({ limb: "knee", side: "right", holdType: "kneebar", wallAngle: "vert" })).toBe(
-      "Your pain flags cluster on right knee kneebars, vert.",
+    expect(describeCluster({ limb: "foot", side: "left", holdType: "toe-hook", wallAngle: "slab", count: 3 }, 5)).toBe(
+      "3 of your 5 pain flags are on your left foot on slab toe-hooks.",
     );
   });
 });

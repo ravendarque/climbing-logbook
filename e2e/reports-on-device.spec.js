@@ -41,7 +41,7 @@ test.describe("Reports and map counts on the device (ADR-0031)", () => {
     const requests = trackReportRequests(page);
 
     await page.goto(owner.url("/performance/trends"));
-    await expect(page.locator("#trends-root")).toContainText("No sends logged in this window yet.");
+    await expect(page.locator("#trends-root")).toContainText("You have logged no sends");
     await page.locator('[data-window="52w"]').click();
     await expect(page.locator("#trends-root")).toContainText("1 send logged in this window");
     expect(requests).toEqual([]);

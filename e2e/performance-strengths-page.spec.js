@@ -40,8 +40,9 @@ test("renders the headline and drill-down picker, and re-ranks on anchor change"
   await owner.seed({ entries: [1, 2, 3].map(() => ({ moves: [HARDEST_LEFT_CRIMP] })) });
   await page.goto(owner.url("/performance/strengths"));
 
-  await expect(page.locator("#report-insights")).toHaveText(
-    "Your left hand on overhanging crimps looks like a key weakness.",
+  await expect(page.locator("#report-insights [data-insight-title]")).toHaveText("Weakness identified");
+  await expect(page.locator("#report-insights")).toContainText(
+    "Your left hand on overhanging crimps was the hardest move on 3 of the 3 sends you tagged it on",
   );
   await page.locator("#strengths-anchor-select").selectOption("holdType:crimp");
   await expect(page.locator("#strengths-ranked-list .row-card-title")).toContainText("Left hand");

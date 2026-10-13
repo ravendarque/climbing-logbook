@@ -139,41 +139,74 @@ export function volumeTrend(entries, buckets, type) {
 
   const change = second.length / daysIn(halves[1]) / (first.length / daysIn(halves[0])) - 1;
   const pct = Math.round(Math.abs(change) * 100);
-  const topStep = list => {
-    const steps = list
-      .map(e => bestGradeOrdinal(e, type))
-      .filter(o => o !== null)
-      .map(o => gradeStep(o, type));
-    return steps.length ? Math.max(...steps) : null;
+  // The hardest send in a half, kept as logged so the page can name it in the viewer's scale.
+  const top = list => {
+    /** @type {{ step: number, grade: string, gradeScale: string | null } | null} */
+    let best = null;
+    for (const e of list) {
+      const ordinal = bestGradeOrdinal(e, type);
+      if (ordinal === null) continue;
+      const step = gradeStep(ordinal, type);
+      if (best === null || step > best.step) best = { step, grade: e.grade, gradeScale: e.gradeScale ?? null };
+    }
+    return best;
   };
-  const [topBefore, topAfter] = [topStep(first), topStep(second)];
-  const gradeUp = topBefore !== null && topAfter !== null && topAfter > topBefore;
+  const [topBefore, topAfter] = [top(first), top(second)];
+  const gradeUp = topBefore !== null && topAfter !== null && topAfter.step > topBefore.step;
+  const sameGrade = topBefore !== null && topAfter !== null && topAfter.step === topBefore.step;
   const painLater = entries.some(e => (e.painMoves ?? []).length > 0 && within(e.date, halves[1]));
 
-  if (change >= VOLUME_SPIKE && painLater) {
+  /** @type {string | null} */
+  let kind = null;
+  if (change >= VOLUME_SPIKE && painLater) kind = "load";
+  else if (change >= VOLUME_CHANGE && gradeUp) kind = "more-and-harder";
+  else if (gradeUp) kind = "harder";
+  else if (change >= VOLUME_CHANGE) kind = "more";
+  else if (change <= -VOLUME_CHANGE) kind = "less";
+  return kind && { kind, pct, sameGrade, topBefore, topAfter };
+}
+
+// Copy from #1389; grades are named in the scale the viewer picked.
+export function volumeTrendInsight(trend, type, viewScaleId) {
+  if (!trend) return null;
+  const grade = pair => reportGradeLabel(pair.grade, pair.gradeScale, type, viewScaleId) ?? pair.grade;
+  const { kind, pct, sameGrade, topBefore, topAfter } = trend;
+  if (kind === "load") {
     return {
       tone: "negative",
+      title: "Consider reducing your volume or load",
       text: `You're sending ${pct}% more per week than in the first half of this window, and you've flagged pain in the same weeks. Worth easing off and watching the load.`,
     };
   }
-  if (change >= VOLUME_CHANGE && gradeUp) {
+  if (kind === "more-and-harder") {
     return {
       tone: "positive",
-      text: `You're climbing more and harder: ${pct}% more sends per week than in the first half of this window, and a higher top grade.`,
+      title: "You're climbing more and harder!",
+      text: `You've logged ${pct}% more sends per week than in the first half of this window, and your top grade went from ${grade(topBefore)} to ${grade(topAfter)}.`,
     };
   }
-  if (gradeUp) return { tone: "positive", text: "Your top grade is higher than in the first half of this window." };
-  if (change >= VOLUME_CHANGE) {
-    return { tone: "neutral", text: `You're sending ${pct}% more per week than in the first half of this window.` };
+  if (kind === "harder") {
+    return {
+      tone: "positive",
+      title: "You're climbing harder!",
+      text: `Your top grade went from ${grade(topBefore)} to ${grade(topAfter)} between the first and second halves of this window.`,
+    };
   }
-  if (change <= -VOLUME_CHANGE) {
+  if (kind === "more") {
     return {
       tone: "neutral",
-      text: `You're sending ${pct}% less per week than in the first half of this window. Maybe look at your rest and sleep in case you're burning out.`,
+      title: "Your volume has increased",
+      text: `You're sending ${pct}% more per week than in the first half of this window${sameGrade ? `, at the same top grade (${grade(topAfter)})` : ""}.`,
     };
   }
-  return null;
+  return {
+    tone: "neutral",
+    title: "Your volume has decreased",
+    text: `You're sending ${pct}% less per week than in the first half of this window. If this isn't expected, consider looking at your rest, sleep, and recovery in case you're burning out.`,
+  };
 }
+
+export const NO_SENDS_HAIKU = "You have logged no sends\nWithin this report's window\nLog some, see insights";
 
 export function volumeHeadline(sendCounts) {
   const total = sendCounts.reduce((a, b) => a + b, 0);
