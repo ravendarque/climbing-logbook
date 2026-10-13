@@ -1,3 +1,4 @@
+import { loadingSpinnerHtml } from "../loading-spinner.js";
 import { escapeHtml } from "../escape-html.js";
 import { formatDate } from "../../shared/date-helpers.js";
 import { placeOf, sortEntries } from "../entries.js";
@@ -147,7 +148,7 @@ export function renderShellSectionHtml({ key, locationId, shellCount }, { locati
         <span class="inline-flex items-center justify-center min-w-[1.4rem] h-[1.4rem] px-1 rounded-full bg-[color-mix(in_srgb,var(--color-text)_12%,transparent)] text-muted text-xs font-semibold shrink-0" aria-label="${shellCount} ${shellCount === 1 ? "entry" : "entries"}">${shellCount}</span>
         <span class="text-muted text-sm transition-transform duration-200 shrink-0 ${isCollapsed ? "-rotate-90" : ""}">▾</span>
       </div>
-      ${isCollapsed ? "" : `<div class="px-[.9rem] py-6 text-center text-muted text-sm" aria-live="polite">${isLoading ? "Loading…" : ""}</div>`}
+      ${isCollapsed ? "" : `<div class="px-[.9rem] py-4">${isLoading ? loadingSpinnerHtml("Loading this location's climbs", { compact: true }) : ""}</div>`}
     </div>`;
 }
 

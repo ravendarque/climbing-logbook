@@ -5,6 +5,7 @@ import { minifyStaticScripts } from "./scripts/minify-static.mjs";
 import { gradeScaleMatrixHtml, gradeScaleSourcesHtml } from "./client/grade-scale-matrix.js";
 import { TERMS_HISTORY, TERMS_VERSION } from "./shared/terms.js";
 import { whatsNew } from "./scripts/lib/whats-new.mjs";
+import { loadingSpinnerHtml } from "./client/loading-spinner.js";
 
 const ASSET_VERSION = String(Date.now());
 
@@ -30,6 +31,7 @@ export default function (eleventyConfig) {
   eleventyConfig.addPlugin(eleventyNavigationPlugin);
 
   eleventyConfig.addShortcode("gradeScaleMatrix", gradeScaleMatrixHtml);
+  eleventyConfig.addShortcode("loadingSpinner", label => loadingSpinnerHtml(label));
   eleventyConfig.addShortcode("gradeScaleSources", gradeScaleSourcesHtml);
 
   // Pagefind indexes /help after a real build; skipped under --watch, where it would run on every save.

@@ -1,3 +1,4 @@
+import { loadingSpinnerHtml } from "./loading-spinner.js";
 import { escapeHtml } from "./escape-html.js";
 import { combinedFlashLabel, combinedSendLabel, disciplineLabel, flashLabel, sendLabel } from "./status.js";
 import { STATUS_ICONS } from "./status-icons.js";
@@ -33,7 +34,8 @@ const PIN_BASE_FONT = 9;
 
 // allDisciplines combines counts, except the pin popover, which splits by discipline.
 export function createMapView({ store, allDisciplines = false }) {
-  let mapCounts = {};
+  // Null until the counts arrive: the pins are unknown, not absent (#1387).
+  let mapCounts = null;
 
   function setCounts(counts) {
     mapCounts = counts ?? {};
@@ -46,7 +48,7 @@ export function createMapView({ store, allDisciplines = false }) {
 
   function presentDisciplines() {
     const present = new Set();
-    for (const byDiscipline of Object.values(mapCounts)) {
+    for (const byDiscipline of Object.values(mapCounts ?? {})) {
       for (const [discipline, c] of Object.entries(byDiscipline)) {
         if (c.total > 0) present.add(discipline);
       }
@@ -163,7 +165,7 @@ export function createMapView({ store, allDisciplines = false }) {
   let mapDrag = null; // { pointerId, lastClientX, lastClientY } while a drag is in progress
 
   function getMapSvg() {
-    return document.querySelector("#map-container svg");
+    return document.getElementById("map-svg");
   }
 
   function clampMapView(view) {
@@ -274,7 +276,7 @@ export function createMapView({ store, allDisciplines = false }) {
   mapVariantSelect.addEventListener("change", () => setActiveMapVariant(mapVariantSelect.value));
 
   function countryStatusBreakdown(countryName, type) {
-    const c = mapCounts[countryName]?.[type];
+    const c = mapCounts?.[countryName]?.[type];
     return { flashes: c?.flash ?? 0, sends: c?.send ?? 0, projects: c?.project ?? 0 };
   }
 
@@ -387,7 +389,7 @@ export function createMapView({ store, allDisciplines = false }) {
     let flashes = 0,
       sends = 0,
       projects = 0;
-    for (const [country, byDiscipline] of Object.entries(mapCounts)) {
+    for (const [country, byDiscipline] of Object.entries(mapCounts ?? {})) {
       for (const type of inPlay) {
         const c = byDiscipline[type];
         if (!c) continue;
@@ -429,7 +431,7 @@ export function createMapView({ store, allDisciplines = false }) {
     const inPlay = disciplinesInPlay();
 
     const countsByCountry = new Map();
-    for (const [country, byDiscipline] of Object.entries(mapCounts)) {
+    for (const [country, byDiscipline] of Object.entries(mapCounts ?? {})) {
       if (!country) continue;
       let total = 0;
       for (const type of inPlay) total += byDiscipline[type]?.total ?? 0;
@@ -506,8 +508,9 @@ export function createMapView({ store, allDisciplines = false }) {
       : `World map of logged ${disciplineLabel(store.getActiveType()).toLowerCase()} entries by country`;
 
     container.innerHTML = `
-      <div class="bg-surface border border-border rounded-app overflow-hidden mb-5">
-        <svg viewBox="0 0 ${MAP_WIDTH} ${mapData.height}" role="group" aria-label="${mapAriaLabel}" class="w-full h-auto block touch-none cursor-grab">
+      <div class="relative bg-surface border border-border rounded-app overflow-hidden mb-5">
+        ${mapCounts === null ? `<div class="absolute inset-0 flex items-center justify-center pointer-events-none">${loadingSpinnerHtml("Loading your climbs on the map")}</div>` : ""}
+        <svg id="map-svg" viewBox="0 0 ${MAP_WIDTH} ${mapData.height}" role="group" aria-label="${mapAriaLabel}" class="w-full h-auto block touch-none cursor-grab">
           <path d="${mapData.graticulePath}" class="stroke-border fill-none" stroke-width="0.5"></path>
           <path d="${mapData.worldLandPath}" class="fill-border stroke-none"></path>
           <path d="${mapData.countryBordersPath}" class="stroke-[color-mix(in_srgb,var(--color-accent)_20%,var(--color-muted)_80%)] fill-none" stroke-width="0.35" stroke-linejoin="round"></path>

@@ -90,7 +90,7 @@ test("the Map tab swaps to the combined map in place, and Back returns to the lo
 
   await page.locator("climbing-tab-bar a", { hasText: "Map" }).click();
   await expect(page).toHaveURL(new RegExp(`/${owner.username}/view/map$`));
-  await expect(page.locator("#map-container svg")).toBeVisible();
+  await expect(page.locator("#map-svg")).toBeVisible();
   await expect(page.locator("#panel-logbook")).toBeHidden();
   await expect(page.locator("climbing-tab-bar a", { hasText: "Map" })).toHaveAttribute("aria-current", "page");
   await expect(page.locator("#subtitle")).toContainText("1 Country");
@@ -107,7 +107,7 @@ test("/view/map opens straight onto the map", async ({ page, owner }) => {
   await owner.seed(SEED);
   await gotoSyncedLog(page, owner);
   await page.goto(owner.url("/view/map"));
-  await expect(page.locator("#map-container svg")).toBeVisible();
+  await expect(page.locator("#map-svg")).toBeVisible();
   await expect(page.locator("#panel-logbook")).toBeHidden();
   await expect(page.locator("#discipline-btn-label")).toHaveText("Combined");
 });

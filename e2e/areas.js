@@ -24,6 +24,7 @@ export const AREAS = {
   performance: [
     "performance-page",
     "performance-layout",
+    "loading-states",
     "performance-pyramid-page",
     "performance-gap-page",
     "performance-injury-page",

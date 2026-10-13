@@ -1,4 +1,5 @@
 // Behaviour and attributes: docs/app-architecture.md, Client modules.
+import { loadingSpinnerHtml } from "../loading-spinner.js";
 import { filteredEntries, groupByPlace } from "../entries.js";
 import { combinedFlashLabel, combinedSendLabel, flashLabel, hydrateStatusIcons, sendLabel } from "../status.js";
 import { createDisclosure, createModalHelpers } from "../modal-utils.js";
@@ -538,9 +539,8 @@ export class ClimbingEntriesTable extends HTMLElement {
     const sections = this.#visibleSections();
 
     if (sections.length === 0) {
-      // Not-yet-loaded and confirmed-empty share one neutral box, with different text.
       container.innerHTML = this.loading
-        ? `<div class="bg-surface border border-border rounded-app px-5 py-4 text-muted text-center leading-[1.6]">Loading…</div>`
+        ? loadingSpinnerHtml("Loading your logbook")
         : `<div class="bg-surface border border-border rounded-app px-5 py-4 text-muted text-center leading-[1.6]">Nothing to show here.<br>Enjoy this quiet space, or<br>add climbs/change filters.</div>`;
       return;
     }
