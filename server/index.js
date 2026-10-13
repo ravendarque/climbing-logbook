@@ -31,6 +31,11 @@ import { handleChangeEmail, handlePasswordResetRequest, handleVerificationResend
 export { RecipientEmailLimiter } from "./lib/email-limit.js";
 import { resolveUser } from "./lib/session.js";
 import { handleAgreeTerms, refuseUntilTermsAgreed } from "./lib/terms.js";
+import {
+  handleGetPainInjuryConsent,
+  handleGrantPainInjuryConsent,
+  handleWithdrawPainInjuryConsent,
+} from "./lib/health-consent.js";
 import { json } from "./lib/json.js";
 import { errorResponse } from "./lib/error-response.js";
 import { createLogger } from "./lib/log.js";
@@ -57,6 +62,11 @@ const RESOURCE_ROUTES = {
   "/-/api/performance/rpe": { GET: handleGetEffort },
   "/-/api/map/counts": { GET: handleGetMapCounts },
   "/-/api/terms": { POST: handleAgreeTerms },
+  "/-/api/consent/pain-injury": {
+    GET: handleGetPainInjuryConsent,
+    POST: handleGrantPainInjuryConsent,
+    DELETE: handleWithdrawPainInjuryConsent,
+  },
 };
 const RESOURCE_PATHS = Object.keys(RESOURCE_ROUTES);
 const STATIC_PAGE = /^\/($|(help|login|register|reset-password)(\/|$)|-\/launch\/)/;
@@ -149,10 +159,12 @@ async function handleRequest(request, env, ctx, log) {
     if (!isRead) {
       const limited = await limitWrite(env, user.id, log);
       if (limited) return limited;
-      const refused = pathname === "/-/api/terms" ? null : refuseUntilTermsAgreed(user);
+      // Withdrawing consent must stay as easy as giving it, so pending terms never block it.
+      const exempt = pathname === "/-/api/terms" || (pathname === "/-/api/consent/pain-injury" && method === "DELETE");
+      const refused = exempt ? null : refuseUntilTermsAgreed(user);
       if (refused) return refused;
     }
-    return handler(request, env, user.id);
+    return handler(request, env, user.id, log);
   }
 
   return new Response("Not found", { status: 404 });

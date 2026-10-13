@@ -2,6 +2,7 @@ import { env, exports } from "cloudflare:workers";
 import { vi } from "vitest";
 import { checkUsername } from "../shared/username-policy.js";
 import { TERMS_VERSION } from "../shared/terms.js";
+import { PAIN_INJURY } from "../shared/health-consent.js";
 
 export const BASE_URL = "https://example.com";
 
@@ -122,4 +123,14 @@ export async function createPublicSession(options) {
 export async function startInFreshRateLimitWindow(neededMs = 15_000) {
   const leftMs = 60_000 - (Date.now() % 60_000);
   if (leftMs < neededMs) await new Promise(resolve => setTimeout(resolve, leftMs + 100));
+}
+
+export async function grantPainInjuryConsent(cookie) {
+  const res = await jsonRequest(
+    "POST",
+    "/-/api/consent/pain-injury",
+    { version: PAIN_INJURY.version },
+    { Cookie: cookie },
+  );
+  if (res.status !== 204) throw new Error(`grantPainInjuryConsent failed (${res.status}): ${await res.text()}`);
 }
