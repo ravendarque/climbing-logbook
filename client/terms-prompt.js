@@ -29,7 +29,7 @@ function dialogHtml({ effective, required, changes }) {
     <h2 class="font-display text-2xl tracking-wide" id="terms-prompt-title">We're updating our terms of use</h2>
     <p class="text-sm text-muted">${when}</p>
     <p class="text-sm">What's changed:</p>
-    <ul class="list-disc pl-5 text-sm flex flex-col gap-1">${changes.map(change => `<li>${escapeHtml(change)}</li>`).join("")}</ul>
+    <ul class="bullet-list">${changes.map(change => `<li>${escapeHtml(change)}</li>`).join("")}</ul>
     <p class="text-sm"><a class="text-accent-ink underline underline-offset-2" href="/help/terms/" target="_blank" rel="noopener">Read the Terms of use</a></p>
     <p class="text-sm error-message" id="terms-prompt-error" role="alert" hidden></p>
     <div class="flex flex-wrap justify-end gap-2">

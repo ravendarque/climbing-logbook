@@ -59,7 +59,7 @@ describe("pain and injury consent (#1120)", () => {
       currentVersion: PAIN_INJURY.version,
     });
     const settings = await (await fetchJson("/-/api/settings", { headers: as(cookie) })).json();
-    expect(settings.healthConsent).toEqual({ painInjury: false });
+    expect(settings.healthConsent).toEqual({ painInjury: false, painInjuryUpdate: null });
   });
 
   it("records a grant with the wording version the user saw", async () => {
@@ -69,7 +69,7 @@ describe("pain and injury consent (#1120)", () => {
       version: PAIN_INJURY.version,
     });
     const settings = await (await fetchJson("/-/api/settings", { headers: as(cookie) })).json();
-    expect(settings.healthConsent).toEqual({ painInjury: true });
+    expect(settings.healthConsent).toEqual({ painInjury: true, painInjuryUpdate: null });
   });
 
   it("refuses a grant for wording that isn't current, and one with no version", async () => {
@@ -82,6 +82,19 @@ describe("pain and injury consent (#1120)", () => {
     await grantPainInjuryConsent(cookie);
     await grantPainInjuryConsent(cookie);
     expect((await consentRows()).results).toHaveLength(1);
+  });
+
+  it("tells settings when the agreed wording needs agreeing to again", async () => {
+    await env.LOGBOOK_DB.prepare(
+      `INSERT INTO consents (id, user_id, purpose, wording_version, granted_at) VALUES ('old', ?, ?, '2000-01-01', '2000-01-01T00:00:00Z')`,
+    )
+      .bind(userId, PAIN_INJURY.purpose)
+      .run();
+    const settings = await (await fetchJson("/-/api/settings", { headers: as(cookie) })).json();
+    expect(settings.healthConsent).toMatchObject({
+      painInjury: true,
+      painInjuryUpdate: { version: PAIN_INJURY.version, required: true },
+    });
   });
 
   it("supersedes a grant of older wording rather than overwriting it", async () => {
@@ -156,6 +169,40 @@ describe("pain and injury consent (#1120)", () => {
     expect((await volume()).boulder.trend?.kind).toBe("more");
   });
 
+  it("keeps pain details stored before consent out of entry reads, and an edit leaves them alone", async () => {
+    await grantPainInjuryConsent(cookie);
+    const { entry: created } = await (await postEntry(entry({ painMoves: [PAIN] }))).json();
+    await env.LOGBOOK_DB.prepare(`UPDATE consents SET withdrawn_at = datetime('now') WHERE user_id = ?`)
+      .bind(userId)
+      .run();
+
+    const { entries } = await (await fetchJson("/-/api/entries", { headers: as(cookie) })).json();
+    expect(entries[0].painMoves).toEqual([]);
+
+    const edit = await jsonRequest("PUT", "/-/api/entries", { ...created, name: "Renamed", painMoves: [] }, as(cookie));
+    expect(edit.status).toBe(200);
+    const stored = await env.LOGBOOK_DB.prepare(`SELECT COUNT(*) AS n FROM entry_pain_moves WHERE entry_id = ?`)
+      .bind(created.id)
+      .first();
+    expect(stored.n).toBe(1);
+  });
+
+  it("treats a grant of wording that has since needed agreeing to again as no consent, and keeps the details", async () => {
+    await grantPainInjuryConsent(cookie);
+    const { entry: created } = await (await postEntry(entry({ painMoves: [PAIN] }))).json();
+    await env.LOGBOOK_DB.prepare(`UPDATE consents SET wording_version = '2000-01-01' WHERE user_id = ?`)
+      .bind(userId)
+      .run();
+
+    const refused = await postEntry(entry({ painMoves: [PAIN] }));
+    expect(refused.status).toBe(400);
+    expect(await refused.json()).toMatchObject({ code: "HEALTH_CONSENT_REQUIRED" });
+    const stored = await env.LOGBOOK_DB.prepare(`SELECT COUNT(*) AS n FROM entry_pain_moves WHERE entry_id = ?`)
+      .bind(created.id)
+      .first();
+    expect(stored.n).toBe(1);
+  });
+
   it("deletes every pain detail on withdrawal, counts the entries, and keeps the entries", async () => {
     await grantPainInjuryConsent(cookie);
     await postEntry(entry({ painMoves: [PAIN, { ...PAIN, side: "right" }] }));
@@ -214,24 +261,6 @@ describe("pain and injury consent (#1120)", () => {
     ).json();
     expect(delta.entries.map(e => e.id)).toEqual([created.id]);
     expect(delta.entries[0].painMoves).toEqual([]);
-  });
-
-  it("keeps pain details stored before consent out of entry reads, and an edit leaves them alone", async () => {
-    await grantPainInjuryConsent(cookie);
-    const { entry: created } = await (await postEntry(entry({ painMoves: [PAIN] }))).json();
-    await env.LOGBOOK_DB.prepare(`UPDATE consents SET withdrawn_at = datetime('now') WHERE user_id = ?`)
-      .bind(userId)
-      .run();
-
-    const { entries } = await (await fetchJson("/-/api/entries", { headers: as(cookie) })).json();
-    expect(entries[0].painMoves).toEqual([]);
-
-    const edit = await jsonRequest("PUT", "/-/api/entries", { ...created, name: "Renamed", painMoves: [] }, as(cookie));
-    expect(edit.status).toBe(200);
-    const stored = await env.LOGBOOK_DB.prepare(`SELECT COUNT(*) AS n FROM entry_pain_moves WHERE entry_id = ?`)
-      .bind(created.id)
-      .first();
-    expect(stored.n).toBe(1);
   });
 
   it("lets a user withdraw while updated terms are waiting to be agreed", async () => {

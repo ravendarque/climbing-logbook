@@ -11,8 +11,12 @@ import {
 } from "../lib/d1-resource.js";
 import { validateEntryShape } from "../../shared/entry-schema.js";
 import { intParam } from "../lib/params.js";
-import { CONSENT_REQUIRED, ENTRY_OWNER_CONSENTED, hasConsent } from "../lib/health-consent.js";
-import { PAIN_INJURY } from "../../shared/health-consent.js";
+import {
+  CONSENT_REQUIRED,
+  ENTRY_OWNER_CONSENTED,
+  ENTRY_OWNER_CONSENTED_BINDS,
+  hasConsent,
+} from "../lib/health-consent.js";
 
 // Must match migrations/0016_add_grade_scale.sql's backfill WHERE clause.
 const LEGACY_SPORT_NON_STANDARD_GRADES = new Set(["1", "1+", "2", "2+", "3", "3+"]);
@@ -153,7 +157,7 @@ function replaceChildRowStatements(env, table, entryId, records, buildRow, guard
 
 // Checked inside the write too, so a withdrawal mid-request can't leave pain details behind (#1120).
 function moveStatements(env, entryId, record) {
-  const consented = { sql: ENTRY_OWNER_CONSENTED, binds: [entryId, PAIN_INJURY.purpose] };
+  const consented = { sql: ENTRY_OWNER_CONSENTED, binds: ENTRY_OWNER_CONSENTED_BINDS(entryId) };
   return [
     ...replaceChildRowStatements(env, "entry_moves", entryId, record.moves ?? [], buildMoveRow),
     ...replaceChildRowStatements(env, "entry_pain_moves", entryId, record.painMoves ?? [], buildPainMoveRow, consented),

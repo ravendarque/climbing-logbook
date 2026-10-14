@@ -3,6 +3,7 @@ export const AREAS = {
   account: [
     "account-page",
     "account-beta-page",
+    "account-health-page",
     "account-edit-page",
     "account-import-page",
     "remove-device-data",

@@ -7,11 +7,12 @@ headerClass: mb-6
 <div class="max-w-[560px] mx-auto flex flex-col gap-5">
   <div class="flex flex-col gap-3">
     <p class="text-xs text-muted tabular-nums" id="welcome-progress-label">Step 1 of 4</p>
-    <div class="grid grid-cols-4 gap-1.5" id="welcome-progress" aria-hidden="true">
-      <span class="h-1 rounded-sm bg-border"></span>
-      <span class="h-1 rounded-sm bg-border"></span>
-      <span class="h-1 rounded-sm bg-border"></span>
-      <span class="h-1 rounded-sm bg-border"></span>
+    <div class="flex gap-1.5" id="welcome-progress" aria-hidden="true">
+      <span class="flex-1 h-1 rounded-sm bg-border"></span>
+      <span class="flex-1 h-1 rounded-sm bg-border"></span>
+      <span class="flex-1 h-1 rounded-sm bg-border"></span>
+      <span class="flex-1 h-1 rounded-sm bg-border"></span>
+      <span class="flex-1 h-1 rounded-sm bg-border"></span>
     </div>
   </div>
 
@@ -69,19 +70,52 @@ headerClass: mb-6
     <p class="text-sm text-muted">You can change this any time in My account.</p>
   </section>
 
-  <section class="flex flex-col gap-4" data-step="3" aria-labelledby="welcome-import-title" hidden>
+  <section class="flex flex-col gap-4" data-step="3" data-needs-athlete-mode aria-labelledby="welcome-health-title" hidden>
+    <h1 class="section-heading mb-0 focus:outline-none" id="welcome-health-title" tabindex="-1">Pain and injury tracking</h1>
+    <p class="text-muted">Tag pain and injuries on your climbs to see patterns in your Injury insights. It's health information, so it stays off unless you turn it on.</p>
+    <ul class="bullet-list" id="welcome-health-points"></ul>
+    <p class="text-sm"><a class="text-accent-ink underline" id="welcome-health-help-link" href="/help/privacy/#health-data">Read more about health information</a></p>
+    <p class="text-sm font-semibold" id="welcome-health-already-on" hidden>Pain and injury tracking is on. You can turn it off any time in My account.</p>
+    <fieldset class="flex flex-col gap-2.5 min-w-0 border-0" id="welcome-health-choice">
+      <legend class="sr-only">Pain and injury tracking</legend>
+      <label class="group flex gap-3 items-start p-3.5 rounded-app bg-surface border-2 border-border cursor-pointer has-checked:border-accent-ink has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-2">
+        <input class="sr-only" type="radio" name="welcome-health" value="on" id="welcome-health-on">
+        <span class="flex flex-col gap-1 flex-1 min-w-0">
+          <span class="font-semibold">Turn it on</span>
+          <span class="text-sm text-muted">Tag pain and injuries, and see your Injury insights</span>
+        </span>
+        <svg class="hidden group-has-checked:block w-5 h-5 shrink-0 stroke-accent-ink fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+      </label>
+      <label class="group flex gap-3 items-start p-3.5 rounded-app bg-surface border-2 border-border cursor-pointer has-checked:border-accent-ink has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-2">
+        <input class="sr-only" type="radio" name="welcome-health" value="off" id="welcome-health-off">
+        <span class="flex flex-col gap-1 flex-1 min-w-0">
+          <span class="font-semibold">Not now</span>
+          <span class="text-sm text-muted">Leave it off</span>
+        </span>
+        <svg class="hidden group-has-checked:block w-5 h-5 shrink-0 stroke-accent-ink fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+      </label>
+    </fieldset>
+    <label class="flex items-start gap-2 text-sm cursor-pointer" for="welcome-health-agree" id="welcome-health-statement-row" hidden>
+      <input class="mt-0.5 size-4 shrink-0 accent-accent-strong" type="checkbox" id="welcome-health-agree">
+      <span id="welcome-health-statement"></span>
+    </label>
+    <p class="text-sm text-muted">You can change this any time in My account.</p>
+  </section>
+
+  <section class="flex flex-col gap-4" data-step="4" aria-labelledby="welcome-import-title" hidden>
     <h1 class="section-heading mb-0 focus:outline-none" id="welcome-import-title" tabindex="-1">Import your climbs</h1>
     <p class="text-muted">Import entries using a CSV template, or from a Climbing Logbook JSON export. Skip this step to start fresh.</p>
     {% include "import-panel.njk" %}
     <p class="text-sm text-muted">You can import more any time from My account.</p>
   </section>
 
-  <section class="flex flex-col gap-4" data-step="4" aria-labelledby="welcome-done-title" hidden>
+  <section class="flex flex-col gap-4" data-step="5" aria-labelledby="welcome-done-title" hidden>
     <h1 class="section-heading mb-0 focus:outline-none" id="welcome-done-title" tabindex="-1">You're all set</h1>
     <p class="text-muted">Your logbook is ready and it's synced to your device so you can use it offline.</p>
     <dl class="bg-surface border border-border rounded-app flex flex-col">
       <div class="flex justify-between items-center gap-3 px-4 py-3 border-b border-border text-sm"><dt>Logbook</dt><dd class="font-semibold" id="welcome-summary-visibility"></dd></div>
       <div class="flex justify-between items-center gap-3 px-4 py-3 border-b border-border text-sm"><dt>Athlete Mode</dt><dd class="font-semibold" id="welcome-summary-athlete"></dd></div>
+      <div class="flex justify-between items-center gap-3 px-4 py-3 border-b border-border text-sm" id="welcome-summary-health-row"><dt>Pain and injury tracking</dt><dd class="font-semibold" id="welcome-summary-health"></dd></div>
       <div class="flex justify-between items-center gap-3 px-4 py-3 text-sm"><dt>Import</dt><dd class="font-semibold" id="welcome-summary-import"></dd></div>
     </dl>
     <p class="text-sm text-muted">All of these live in My account if you change your mind.</p>
@@ -91,6 +125,6 @@ headerClass: mb-6
 
   <div class="flex gap-2.5">
     <button type="button" class="btn h-12 px-[1.1rem] text-base" id="welcome-back" hidden>Back</button>
-    <button type="button" class="btn btn-primary h-12 flex-1 text-base" id="welcome-next">Continue</button>
+    <button type="button" class="btn btn-primary h-12 flex-1 text-base disabled:opacity-[.45] disabled:cursor-not-allowed" id="welcome-next">Continue</button>
   </div>
 </div>
