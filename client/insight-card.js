@@ -18,7 +18,7 @@ const TONES = {
 };
 
 // A haiku card is the poem alone; every other card has a title over its message (#1389).
-function insightCardHtml({ tone, title, text, detail, haiku }) {
+function insightCardHtml({ tone, title, text, detail, link, haiku }) {
   const key = Object.hasOwn(TONES, tone) ? tone : "neutral";
   const { card, icon } = TONES[key];
   if (haiku) {
@@ -30,6 +30,7 @@ function insightCardHtml({ tone, title, text, detail, haiku }) {
       ${title ? `<p class="text-sm leading-[1.5] font-semibold text-foreground" data-insight-title>${escapeHtml(title)}</p>` : ""}
       ${text ? `<p class="text-sm leading-[1.5] text-foreground${title ? " mt-1" : ""}">${escapeHtml(text)}</p>` : ""}
       ${detail ? `<p class="text-sm leading-[1.5] text-muted mt-[6px]">${escapeHtml(detail)}</p>` : ""}
+      ${link ? `<p class="text-sm leading-[1.5] mt-[6px]"><a class="text-accent-ink underline" href="${escapeHtml(link.href)}">${escapeHtml(link.label)}</a></p>` : ""}
     </div>
   </div>`;
 }

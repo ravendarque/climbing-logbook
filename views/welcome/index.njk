@@ -71,13 +71,14 @@ headerClass: mb-6
   </section>
 
   <section class="flex flex-col gap-4" data-step="3" data-needs-athlete-mode aria-labelledby="welcome-health-title" hidden>
-    <h1 class="section-heading mb-0 focus:outline-none" id="welcome-health-title" tabindex="-1">Pain and injury tracking</h1>
-    <p class="text-muted">Tag pain and injuries on your climbs to see patterns in your Injury insights. It's health information, so it stays off unless you turn it on.</p>
+    <h1 class="section-heading mb-0 focus:outline-none" id="welcome-health-title" tabindex="-1">Health data</h1>
+    <p class="text-muted">Tag pain and injuries on your climbs to see patterns in your Injury insights. It's health information, so it stays off unless you agree to the Health Data Agreement.</p>
+    <h2 class="row-card-title">Health Data Agreement</h2>
     <ul class="bullet-list" id="welcome-health-points"></ul>
     <p class="text-sm"><a class="text-accent-ink underline" id="welcome-health-help-link" href="/help/privacy/#health-data">Read more about health information</a></p>
-    <p class="text-sm font-semibold" id="welcome-health-already-on" hidden>Pain and injury tracking is on. You can turn it off any time in My account.</p>
+    <p class="text-sm font-semibold" id="welcome-health-already-on" hidden>Health data is on. You can turn it off any time in My account.</p>
     <fieldset class="flex flex-col gap-2.5 min-w-0 border-0" id="welcome-health-choice">
-      <legend class="sr-only">Pain and injury tracking</legend>
+      <legend class="sr-only">Health data</legend>
       <label class="group flex gap-3 items-start p-3.5 rounded-app bg-surface border-2 border-border cursor-pointer has-checked:border-accent-ink has-focus-visible:outline-2 has-focus-visible:outline-foreground has-focus-visible:outline-offset-2">
         <input class="sr-only" type="radio" name="welcome-health" value="on" id="welcome-health-on">
         <span class="flex flex-col gap-1 flex-1 min-w-0">
@@ -115,7 +116,7 @@ headerClass: mb-6
     <dl class="bg-surface border border-border rounded-app flex flex-col">
       <div class="flex justify-between items-center gap-3 px-4 py-3 border-b border-border text-sm"><dt>Logbook</dt><dd class="font-semibold" id="welcome-summary-visibility"></dd></div>
       <div class="flex justify-between items-center gap-3 px-4 py-3 border-b border-border text-sm"><dt>Athlete Mode</dt><dd class="font-semibold" id="welcome-summary-athlete"></dd></div>
-      <div class="flex justify-between items-center gap-3 px-4 py-3 border-b border-border text-sm" id="welcome-summary-health-row"><dt>Pain and injury tracking</dt><dd class="font-semibold" id="welcome-summary-health"></dd></div>
+      <div class="flex justify-between items-center gap-3 px-4 py-3 border-b border-border text-sm" id="welcome-summary-health-row"><dt>Health data</dt><dd class="font-semibold" id="welcome-summary-health"></dd></div>
       <div class="flex justify-between items-center gap-3 px-4 py-3 text-sm"><dt>Import</dt><dd class="font-semibold" id="welcome-summary-import"></dd></div>
     </dl>
     <p class="text-sm text-muted">All of these live in My account if you change your mind.</p>

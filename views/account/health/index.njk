@@ -1,6 +1,6 @@
 ---
 layout: app-layout.njk
-title: Pain and injury tracking – Climbing Logbook
+title: Health data – Climbing Logbook
 bundle: account-health
 staticShellNote: |-
   Static shell, like the other account pages: client/account-health-main.js
@@ -14,15 +14,16 @@ headerClass: mb-6
   </a>
 
   <div class="max-w-[560px]">
-    <h1 class="section-heading focus:outline-none" id="health-title" tabindex="-1">Pain and injury tracking</h1>
+    <h1 class="section-heading focus:outline-none" id="health-title" tabindex="-1">Health data</h1>
 
     <div class="row-card border-accent mb-3" id="health-update" hidden>
-      <h2 class="row-card-title mb-2">We've changed how we describe this</h2>
-      <p class="text-sm mb-2">Pain and injury tracking is paused until you agree to the updated wording. Your existing details are kept.</p>
+      <h2 class="row-card-title mb-2">The Health Data Agreement has been updated</h2>
+      <p class="text-sm mb-2">Health data is paused until you agree to it. Your existing details are kept.</p>
       <ul class="bullet-list" id="health-update-changes"></ul>
     </div>
 
     <div id="health-about">
+      <h2 class="row-card-title mb-2">Health Data Agreement</h2>
       <ul class="bullet-list mb-3" id="health-points"></ul>
       <p class="text-sm"><a class="text-accent-ink underline" id="health-help-link" href="/help/privacy/#health-data">Read more about health information</a></p>
     </div>
@@ -38,7 +39,7 @@ headerClass: mb-6
     <div class="mt-4" id="health-withdraw" hidden>
       <div class="row-card border-accent mb-3">
         <p class="text-sm font-semibold mb-2" id="health-count" hidden></p>
-        <p class="text-sm">Turning this off deletes the pain and injury details from your climbs. They're deleted from your logbook straight away, and from our backups within 30 days. The climbs themselves stay. You can't undo this.</p>
+        <p class="text-sm">Turning this off deletes all your health information. It's deleted from your logbook straight away, and from our backups within 30 days. Your climbs and other performance insights data are unaffected. You can't undo this.</p>
       </div>
       <button type="button" class="btn" id="health-turn-off-btn">Turn off and delete</button>
     </div>

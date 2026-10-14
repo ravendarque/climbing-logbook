@@ -119,8 +119,8 @@ export function createEntryForm({
   });
 
   const PAIN_OFF_TEXT = {
-    off: "Pain and injury tracking is off. It's health information, so it needs your agreement first.",
-    paused: "Pain and injury tracking is paused until you agree to the updated wording.",
+    off: "Pain and injury tracking needs you to agree to the Health Data Agreement first.",
+    paused: "Pain and injury tracking is paused until you agree to the updated Health Data Agreement.",
   };
   function renderPainConsent() {
     const state = painInjuryConsentState();
