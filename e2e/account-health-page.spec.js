@@ -1,4 +1,6 @@
-import { PAIN_INJURY_WORDING, pointText } from "../shared/health-consent.js";
+import { PAIN_INJURY_WORDING } from "../shared/health-consent.js";
+
+const pointText = ({ label, text }) => `${label}: ${text}`;
 import { expect, test } from "./owner.js";
 
 const PAIN = { limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" };

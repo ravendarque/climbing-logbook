@@ -57,8 +57,6 @@ export const PAIN_INJURY_OLDEST_VALID_VERSION = (
 ).version;
 export const PAIN_INJURY_WORDING = { points: CURRENT.points, statement: CURRENT.statement };
 
-export const pointText = point => (typeof point === "string" ? point : `${point.label}: ${point.text}`);
-
 // Null unless the user agreed to older wording; then what's changed, and whether they need to agree again.
 export function painInjuryConsentUpdate(agreedVersion) {
   if (!agreedVersion) return null;

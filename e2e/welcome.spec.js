@@ -1,5 +1,7 @@
 import { CSV_COLUMNS } from "../shared/csv-import.js";
-import { PAIN_INJURY_WORDING, pointText } from "../shared/health-consent.js";
+import { PAIN_INJURY_WORDING } from "../shared/health-consent.js";
+
+const pointText = ({ label, text }) => `${label}: ${text}`;
 import { expect, test } from "./owner.js";
 
 const VALID_CSV = [
