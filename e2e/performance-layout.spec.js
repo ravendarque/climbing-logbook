@@ -14,6 +14,7 @@ test("every Performance insights report has one layout: descriptions, pickers, c
   owner,
 }) => {
   await owner.settings({ athleteMode: true });
+  await owner.grantPainInjuryConsent();
   await owner.seed({ entries: [1, 2, 3, 4, 5].map(n => ({ date: daysAgo(n * 3), grade: "6B", rpe: 60 })) });
 
   for (const report of REPORTS) {

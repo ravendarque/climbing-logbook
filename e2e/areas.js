@@ -12,6 +12,7 @@ export const AREAS = {
   ],
   log: [
     "log-page",
+    "health-consent-client",
     "log-page-boot-perf",
     "entries-table-collapse",
     "entries-table-headers",

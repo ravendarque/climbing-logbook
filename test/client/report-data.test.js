@@ -36,6 +36,24 @@ describe("createReportData (#1100)", () => {
     });
   });
 
+  it("leaves out pain details the device still holds when pain and injury tracking isn't on (#1122)", async () => {
+    const store = fakeStore({ cached: [{ id: "a", painMoves: [{ limb: "hand" }] }] });
+    let allowed = false;
+    const reports = createReportData({
+      username: "nix",
+      isDemo: false,
+      store,
+      syncStatusIcon,
+      onRefresh: () => {},
+      painAllowed: () => allowed,
+    });
+    await reports.open();
+    const painOf = entries => ({ pain: entries.map(e => e.painMoves) });
+    expect(await reports.report("performance/volume", painOf)).toEqual({ pain: [[]] });
+    allowed = true;
+    expect(await reports.report("performance/volume", painOf)).toEqual({ pain: [[{ limb: "hand" }]] });
+  });
+
   it("asks the server when the device has no usable copy, without empty parameters", async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({ from: "server" })));
     vi.stubGlobal("fetch", fetchMock);

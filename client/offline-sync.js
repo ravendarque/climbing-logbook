@@ -16,6 +16,7 @@ export function createOfflineSync({
   locationsUrl,
   queueKey,
   onFailedWrites = () => {},
+  onPainDropped = () => {},
 }) {
   const syncLine = document.getElementById("sync-line");
   const syncLineText = document.getElementById("sync-line-text");
@@ -129,6 +130,20 @@ export function createOfflineSync({
     }
   }
 
+  // Tracking was turned off since this was queued: the climb still saves, without its pain details.
+  async function withoutRefusedPain(item, res) {
+    if (res.status !== 400 || item.kind !== "entry" || !item.record.painMoves?.length) return res;
+    const body = await res
+      .clone()
+      .json()
+      .catch(() => null);
+    if (body?.code !== "HEALTH_CONSENT_REQUIRED") return res;
+    item.record = { ...item.record, painMoves: [] };
+    setQueue(getQueue().map(queued => (queued.qid === item.qid ? item : queued)));
+    onPainDropped();
+    return syncOne(item);
+  }
+
   function isStillQueued(qid) {
     return getQueue().some(item => item.qid === qid);
   }
@@ -153,7 +168,7 @@ export function createOfflineSync({
       if (!isStillQueued(item.qid)) continue;
       let data;
       try {
-        const res = await syncOne(item);
+        const res = await withoutRefusedPain(item, await syncOne(item));
         if (isUnauthorized(res)) {
           // The rest stay queued, in order.
           store.setLoggedIn(false);

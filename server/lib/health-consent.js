@@ -7,7 +7,8 @@ export const CURRENT = "superseded_at IS NULL AND withdrawn_at IS NULL";
 const IN_FORCE = "consents.superseded_at IS NULL AND consents.withdrawn_at IS NULL AND consents.wording_version >= ?";
 
 export const CONSENT_REQUIRED = {
-  error: "Pain and injury tracking is turned off. Turn it on in My account to save pain details.",
+  error:
+    "Pain and injury details can't be saved until pain and injury tracking is on. You can turn it on in My account.",
   code: "HEALTH_CONSENT_REQUIRED",
 };
 

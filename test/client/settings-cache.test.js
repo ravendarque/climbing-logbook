@@ -10,7 +10,7 @@ const SERVER = {
   healthConsent: { painInjury: true, painInjuryUpdate: null },
 };
 const { healthConsent: _, ...SERVER_FLAGS } = SERVER;
-const CACHED = { ...SERVER_FLAGS, painInjuryConsent: true };
+const CACHED = { ...SERVER_FLAGS, painInjuryConsent: true, painInjuryPaused: false };
 const PULLED = { ...CACHED, terms: null, painInjuryConsentUpdate: null };
 
 function answer(body, ok = true) {
@@ -33,6 +33,13 @@ describe("pullSettings (#1177)", () => {
     expect(readSettingsCache()).toEqual(CACHED);
   });
 
+  it("caches pain and injury tracking as paused while updated wording waits to be agreed (#1392)", async () => {
+    const update = { version: "2026-12-01", required: true, changes: [] };
+    answer({ ...SERVER, healthConsent: { painInjury: true, painInjuryUpdate: update } });
+    expect(await pullSettings()).toMatchObject({ painInjuryConsent: true, painInjuryPaused: true });
+    expect(readSettingsCache()).toMatchObject({ painInjuryConsent: true, painInjuryPaused: true });
+  });
+
   it("returns the server's settings and caches them for the next page to paint with", async () => {
     answer(SERVER);
     expect(await pullSettings()).toEqual(PULLED);
@@ -48,6 +55,7 @@ describe("pullSettings (#1177)", () => {
       activeDiscipline: "boulder",
       onboardingCompleted: false,
       painInjuryConsent: false,
+      painInjuryPaused: false,
       terms: null,
       painInjuryConsentUpdate: null,
     });

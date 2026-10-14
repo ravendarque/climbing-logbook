@@ -9,7 +9,16 @@ const LOCATIONS_URL = "/-/api/locations";
 const QUEUE_KEY = userKey("logbook_pending_queue");
 
 // Reports come from the device's own copy; a demo, or a device that can't keep one, asks the server (ADR-0031).
-export function createReportData({ username, isDemo, store, syncStatusIcon, onRefresh, withPlaces = false }) {
+// The device can still hold pain details from before tracking was turned off, so local reports leave them out.
+export function createReportData({
+  username,
+  isDemo,
+  store,
+  syncStatusIcon,
+  onRefresh,
+  withPlaces = false,
+  painAllowed = () => true,
+}) {
   let local = false;
 
   function applyQueue() {
@@ -47,7 +56,10 @@ export function createReportData({ username, isDemo, store, syncStatusIcon, onRe
   async function report(path, build, params = {}) {
     if (local)
       return build(
-        store.getEntries().filter(e => !e._pendingDelete),
+        store
+          .getEntries()
+          .filter(e => !e._pendingDelete)
+          .map(e => (painAllowed() ? e : { ...e, painMoves: [] })),
         params,
       );
     const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value != null));

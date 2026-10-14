@@ -5,6 +5,7 @@ const LEFT_CRIMP = { limb: "hand", side: "left", holdType: "crimp", movementStyl
 
 test("shows the no-pain haiku, empty log, and Sources section with no pain-tagged entries", async ({ page, owner }) => {
   await owner.settings({ athleteMode: true });
+  await owner.grantPainInjuryConsent();
   await page.goto(owner.url("/performance/injury"));
 
   await expect(page.locator("climbing-header [data-brand-name]")).toHaveText("Climbing Logbook");
@@ -40,6 +41,7 @@ test("shows the offline message instead of the log when the device keeps no data
   owner,
 }) => {
   await owner.settings({ athleteMode: true });
+  await owner.grantPainInjuryConsent();
   await blockIndexedDb(page);
   await page.route("**/-/api/performance/injury", route => route.fulfill({ status: 500 }));
   await page.goto(owner.url("/performance/injury"));

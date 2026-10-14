@@ -50,6 +50,9 @@ const offlineSync = createOfflineSync({
   locationsUrl: LOCATIONS_URL,
   queueKey: QUEUE_KEY,
   onFailedWrites: showFailedWrites,
+  onPainDropped: () => {
+    document.getElementById("pain-dropped").hidden = false;
+  },
 });
 
 const entriesTable = document.querySelector("climbing-entries-table");
@@ -88,7 +91,10 @@ const entryForm = createEntryForm({
   placesWriteUrl: PLACES_WRITE_URL,
   readOnly: IS_DEMO,
   isAthleteMode: () => IS_DEMO || adminAuth.isAthleteMode(),
+  painInjuryConsentState: () => (IS_DEMO ? "on" : adminAuth.painInjuryConsentState()),
+  refreshPainConsent: () => adminAuth.fetchSettings(),
 });
+document.getElementById("pain-moves-consent-link").href = `/${encodeURIComponent(USERNAME)}/account/health`;
 
 const failedWritesBanner = createFailedWritesBanner({
   el: document.getElementById("failed-writes"),
