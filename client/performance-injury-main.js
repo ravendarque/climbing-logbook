@@ -66,15 +66,25 @@ function renderInjuryLog({ log, cluster }) {
   injuryRootEl.innerHTML = logHtml + insightsHtml([insight]);
 }
 
-const CONSENT_TEXT = {
-  off: "Pain and injury tracking is off. It's health information, so it needs your agreement first.",
-  paused: "Pain and injury tracking is paused until you agree to the updated wording.",
+const CONSENT_INSIGHT = {
+  off: {
+    title: "Pain and injury tracking is off",
+    text: "It's health information, so it needs your agreement first.",
+    label: "Turn it on in My account",
+  },
+  paused: {
+    title: "Pain and injury tracking is paused",
+    text: "Agree to the updated wording to see this report.",
+    label: "Read it in My account",
+  },
 };
 
 function renderConsentNeeded(state) {
   offlineEl.hidden = true;
   injuryRootEl.hidden = false;
-  injuryRootEl.innerHTML = `<p class="text-sm" id="injury-consent-needed">${escapeHtml(CONSENT_TEXT[state])} <a class="text-accent-ink underline" href="/${encodeURIComponent(USERNAME)}/account/health">Pain and injury tracking in My account</a></p>`;
+  const { title, text, label } = CONSENT_INSIGHT[state];
+  const href = `/${encodeURIComponent(USERNAME)}/account/health`;
+  injuryRootEl.innerHTML = insightsHtml([{ tone: "neutral", title, text, link: { href, label } }]);
 }
 
 async function loadInjuryLog() {

@@ -63,8 +63,14 @@ test("tracking off: the injury page explains instead of showing a report, and th
 }) => {
   await owner.settings({ athleteMode: true });
   await page.goto(owner.url("/performance/injury"));
-  await expect(page.locator("#injury-consent-needed")).toContainText("Pain and injury tracking is off.");
-  await expect(page.locator("#report-insights")).toHaveCount(0);
+  const card = page.locator("#report-insights [data-insight-tone]");
+  await expect(card).toHaveCount(1);
+  await expect(card).toHaveAttribute("data-insight-tone", "neutral");
+  await expect(card.locator("[data-insight-title]")).toHaveText("Pain and injury tracking is off");
+  await expect(card.getByRole("link", { name: "Turn it on in My account" })).toHaveAttribute(
+    "href",
+    `/${owner.username}/account/health`,
+  );
 
   await page.goto(owner.url("/performance"));
   await expect(page.locator("#insight-injury")).toContainText("Pain and injury tracking is off.");

@@ -34,6 +34,14 @@ describe("insightsHtml (#1375)", () => {
     expect(html).toMatch(/data-insight-title>Not enough data yet<\/p>[\s\S]*Log more\./);
   });
 
+  it("adds a link under the message when one is given, escaped (#1405)", () => {
+    const html = insightsHtml([
+      { tone: "neutral", title: "Off", text: "Why.", link: { href: '/a"b/account', label: "Turn <it> on" } },
+    ]);
+    expect(html).toContain('<a class="text-accent-ink underline" href="/a&quot;b/account">Turn &lt;it&gt; on</a>');
+    expect(insightsHtml([{ tone: "neutral", title: "Off", text: "Why." }])).not.toContain("<a ");
+  });
+
   it("renders nothing when there are no insights", () => {
     expect(insightsHtml([])).toBe("");
     expect(insightsHtml([null])).toBe("");
