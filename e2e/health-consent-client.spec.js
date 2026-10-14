@@ -100,3 +100,45 @@ test("a queued climb whose pain details are refused is saved without them, with 
   const saved = entries.find(e => e.id === record.id);
   expect(saved.painMoves).toEqual([]);
 });
+
+test("a save refused because the cached state was out of date hides the pain section, and saving again works", async ({
+  page,
+  owner,
+}) => {
+  await owner.settings({ athleteMode: true });
+  await owner.seed(SEED);
+  let stale = true;
+  await page.route("**/-/api/settings", async route => {
+    if (route.request().method() !== "GET" || !stale) return route.fallback();
+    const res = await route.fetch();
+    const body = await res.json();
+    body.healthConsent = { painInjury: true, painInjuryUpdate: null };
+    return route.fulfill({ response: res, json: body });
+  });
+  await gotoSyncedLog(page, owner);
+
+  await page.locator("#add-btn").click();
+  await page.locator("#entry-name").fill("Stale cache climb");
+  await page.locator("#place-btn").click();
+  await page.locator(`#place-listbox li[data-key="${owner.ownId("p1")}"]`).click();
+  await page.locator("#entry-nav-forward").click();
+  await expect(page.locator("#pain-moves-on")).toBeVisible();
+  await page.locator("#pain-moves-add").click();
+  await page.locator('#pain-moves-list [data-field="limbSide"]').selectOption("foot-right");
+  stale = false;
+
+  const [refused] = await Promise.all([
+    page.waitForResponse(res => res.url().includes("/-/api/entries") && res.request().method() === "POST"),
+    page.locator("#entry-submit-btn-2").click(),
+  ]);
+  expect(refused.status()).toBe(400);
+  await expect(page.locator("#pain-moves-off")).toBeVisible();
+  await expect(page.locator("#entry-msg")).toContainText("can't be saved until pain and injury tracking is on");
+
+  const [saved] = await Promise.all([
+    page.waitForResponse(res => res.url().includes("/-/api/entries") && res.request().method() === "POST"),
+    page.locator("#entry-submit-btn-2").click(),
+  ]);
+  expect(saved.status()).toBe(201);
+  expect(saved.request().postDataJSON().painMoves).toEqual([]);
+});

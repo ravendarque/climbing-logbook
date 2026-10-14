@@ -140,8 +140,9 @@ export function createOfflineSync({
     if (body?.code !== "HEALTH_CONSENT_REQUIRED") return res;
     item.record = { ...item.record, painMoves: [] };
     setQueue(getQueue().map(queued => (queued.qid === item.qid ? item : queued)));
-    onPainDropped();
-    return syncOne(item);
+    const retried = await syncOne(item);
+    if (retried.ok) onPainDropped();
+    return retried;
   }
 
   function isStillQueued(qid) {
