@@ -4,6 +4,7 @@ import { resolveApexUrl, resolveMyXUrl } from "./resolve-cross-hostname-url.js";
 import "./components/climbing-import.js";
 import { tourStartUrl } from "./tour/tour-url.js";
 import { PAIN_INJURY_WORDING } from "../shared/health-consent.js";
+import { renderAgreementPoints } from "./health-agreement.js";
 
 const { username: USERNAME, adminAuth, updateAdminBar } = createAccountShell();
 const USER_PATH = `/${encodeURIComponent(USERNAME)}`;
@@ -33,13 +34,7 @@ document.getElementById("welcome-health-help-link").href = resolveApexUrl(
   location.hostname,
   "/help/privacy/#health-data",
 );
-document.getElementById("welcome-health-points").replaceChildren(
-  ...PAIN_INJURY_WORDING.points.map(point => {
-    const li = document.createElement("li");
-    li.textContent = point;
-    return li;
-  }),
-);
+renderAgreementPoints(document.getElementById("welcome-health-points"), PAIN_INJURY_WORDING.points);
 document.getElementById("welcome-health-statement").textContent = PAIN_INJURY_WORDING.statement;
 
 let current = sections[0];
@@ -158,7 +153,7 @@ async function grantConsent() {
     ok = (await adminAuth.setPainInjuryConsent(true)).ok;
   } catch {}
   saving = false;
-  if (!ok) showError("Couldn't turn on pain and injury tracking. Check your connection and try again.");
+  if (!ok) showError("Couldn't turn on health data. Check your connection and try again.");
   render();
   return ok;
 }

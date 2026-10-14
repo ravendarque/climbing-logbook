@@ -59,8 +59,8 @@ const {
 const tilesEl = document.getElementById("insight-tiles");
 
 const INJURY_CONSENT_DESCRIPTION = {
-  off: "Pain and injury tracking is off. Turn it on in My account to use this.",
-  paused: "Pain and injury tracking is paused until you agree to the updated wording in My account.",
+  off: "Agree to the Health Data Agreement in My account to use this.",
+  paused: "Paused until you agree to the updated Health Data Agreement in My account.",
 };
 
 function description(insight) {

@@ -14,7 +14,7 @@ We don't sell your data and we don't share it for advertising. Here's what we ke
 
 - **Your account.** Your username, your email address and your password. We can't read your password, because it's hashed (scrambled in a way that can't be reversed).
 - **Your logbook.** The climbs, places and settings you add.
-- **Health information**, only if you turn on pain and injury tracking. See [Health information](#health-data).
+- **Health information**, only if you agree to the Health Data Agreement. See [Health information](#health-data).
 
 We use this to run the app for you, and for nothing else.
 
@@ -33,12 +33,13 @@ We only look at a logbook to investigate a report, misuse, or a problem you've a
 
 <h2 id="health-data">Health information</h2>
 
-Pain and injury tracking is off until you turn it on, because pain and injury details are health information. Data protection law treats health information as sensitive, so we ask you first. The rest of Climbing Logbook works the same either way.
+Health data is off until you agree to the Health Data Agreement in My account. Data protection law treats health information as sensitive, so we ask you first. The rest of Climbing Logbook works the same either way.
 
-- **What counts as health information:** the pain and injury tags on your climbs, and your Injury insights report. Your Exertion ratings count too when that report uses them. Notes can hold health information if you write about an injury in them. If you've turned on pain and injury tracking, use its tags for that instead.
+- **What counts as health information:** pain and injuries, which phase of your menstrual cycle you're in (by phase only, never dates), and your energy and mood, when you choose to log them. Notes can hold health information if you write about an injury in them. If you've agreed to the Health Data Agreement, use the pain and injury tags for that instead.
+- **What it's for:** finding patterns in your climbing performance, shown only in your own Performance insights.
 - **Who can turn it on:** you need to be 16 or over, or have your parent or guardian's agreement.
-- **Where it goes:** it's stored with the rest of your logbook. It's never shown on your public profile and is only used for your own reports. The site administrator can see it for support and moderation, and for nothing else.
-- **Turning it on and off:** go to My account, then *Pain and injury tracking*. Turning it off deletes the pain and injury details from your climbs. The climbs themselves stay.
+- **Where it goes:** it's stored with the rest of your logbook. It's never shown on your public profile and is only used for your own reports. A site administrator can see it for support and moderation, and for nothing else.
+- **Turning it on and off:** go to My account, then *Health data*. Turning it off deletes all your health information. Your climbs and other performance insights data are unaffected.
 - **How long we keep it:** until you turn it off or delete your account. After that, it's removed from our backups within 30 days.
 
 Your other devices remove their copy the next time they sync.

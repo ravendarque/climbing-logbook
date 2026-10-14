@@ -14,6 +14,38 @@ export const PAIN_INJURY_HISTORY = [
     statement:
       "I'm 16 or over, or my parent or guardian agrees to this. I agree to Climbing Logbook storing and processing my pain and injury information as described above.",
   },
+  {
+    version: "2026-10-14",
+    needsConsentAgain: true,
+    changes: [
+      "It's now the Health Data Agreement, and covers your menstrual cycle phase and your energy and mood as well as pain and injuries.",
+    ],
+    points: [
+      {
+        label: "What it covers",
+        text: "health information you choose to log: pain and injuries, which phase of your menstrual cycle you're in (by phase only, never dates), and your energy and mood.",
+      },
+      {
+        label: "What it's for",
+        text: "finding patterns in your climbing performance, shown only in your own Performance insights.",
+      },
+      { label: "You choose what's logged", text: "nothing is recorded unless you log it yourself." },
+      {
+        label: "Why we ask first",
+        text: "data protection law treats health information as sensitive, so none of this is available until you agree.",
+      },
+      {
+        label: "Who can see it",
+        text: "it's stored with the rest of your logbook and never shown on your public profile. A site administrator can see it, only for support and moderation.",
+      },
+      {
+        label: "Withdrawing",
+        text: "you can withdraw at any time in My account. Withdrawing deletes all your health information from your logbook straight away, and from our backups within 30 days. Your climbs and other performance insights data are unaffected.",
+      },
+    ],
+    statement:
+      "I'm 16 or over, or my parent or guardian agrees to this. I agree to Climbing Logbook storing and using my health information as described above.",
+  },
 ];
 
 const CURRENT = PAIN_INJURY_HISTORY[PAIN_INJURY_HISTORY.length - 1];
@@ -24,6 +56,8 @@ export const PAIN_INJURY_OLDEST_VALID_VERSION = (
   PAIN_INJURY_HISTORY.findLast(({ needsConsentAgain }) => needsConsentAgain) ?? PAIN_INJURY_HISTORY[0]
 ).version;
 export const PAIN_INJURY_WORDING = { points: CURRENT.points, statement: CURRENT.statement };
+
+export const pointText = point => (typeof point === "string" ? point : `${point.label}: ${point.text}`);
 
 // Null unless the user agreed to older wording; then what's changed, and whether they need to agree again.
 export function painInjuryConsentUpdate(agreedVersion) {

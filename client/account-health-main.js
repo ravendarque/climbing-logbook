@@ -2,6 +2,7 @@ import { createAccountShell } from "./account-shell.js";
 import { resolveApexUrl } from "./resolve-cross-hostname-url.js";
 import { startPage } from "./boot-gate.js";
 import { PAIN_INJURY_WORDING } from "../shared/health-consent.js";
+import { renderAgreementPoints } from "./health-agreement.js";
 
 const { username: USERNAME, adminAuth, updateAdminBar } = createAccountShell();
 
@@ -20,13 +21,7 @@ const turnOffBtn = document.getElementById("health-turn-off-btn");
 const offlineNoteEl = document.getElementById("health-offline-note");
 const errorEl = document.getElementById("health-error");
 
-document.getElementById("health-points").replaceChildren(
-  ...PAIN_INJURY_WORDING.points.map(point => {
-    const li = document.createElement("li");
-    li.textContent = point;
-    return li;
-  }),
-);
+renderAgreementPoints(document.getElementById("health-points"), PAIN_INJURY_WORDING.points);
 document.getElementById("health-statement").textContent = PAIN_INJURY_WORDING.statement;
 
 let saving = false;

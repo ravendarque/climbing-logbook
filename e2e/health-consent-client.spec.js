@@ -21,7 +21,7 @@ test("tracking off: the form shows why there are no pain controls, and links to 
   await openAddForm(page);
 
   await expect(page.locator("#pain-moves-on")).toBeHidden();
-  await expect(page.locator("#pain-moves-off")).toContainText("Pain and injury tracking is off.");
+  await expect(page.locator("#pain-moves-off")).toContainText("needs you to agree to the Health Data Agreement first.");
   await expect(page.locator("#pain-moves-consent-link")).toHaveAttribute("href", `/${owner.username}/account/health`);
 });
 
@@ -54,7 +54,9 @@ test("tracking paused: the form says so instead of showing the pain controls", a
   await openAddForm(page);
 
   await expect(page.locator("#pain-moves-on")).toBeHidden();
-  await expect(page.locator("#pain-moves-off")).toContainText("paused until you agree to the updated wording");
+  await expect(page.locator("#pain-moves-off")).toContainText(
+    "paused until you agree to the updated Health Data Agreement",
+  );
 });
 
 test("tracking off: the injury page explains instead of showing a report, and the hub card says so", async ({
@@ -66,14 +68,14 @@ test("tracking off: the injury page explains instead of showing a report, and th
   const card = page.locator("#report-insights [data-insight-tone]");
   await expect(card).toHaveCount(1);
   await expect(card).toHaveAttribute("data-insight-tone", "neutral");
-  await expect(card.locator("[data-insight-title]")).toHaveText("Pain and injury tracking is off");
+  await expect(card.locator("[data-insight-title]")).toHaveText("Health data is off");
   await expect(card.getByRole("link", { name: "Turn it on in My account" })).toHaveAttribute(
     "href",
     `/${owner.username}/account/health`,
   );
 
   await page.goto(owner.url("/performance"));
-  await expect(page.locator("#insight-injury")).toContainText("Pain and injury tracking is off.");
+  await expect(page.locator("#insight-injury")).toContainText("Agree to the Health Data Agreement in My account");
 });
 
 test("a queued climb whose pain details are refused is saved without them, with a notice", async ({ page, owner }) => {
@@ -139,7 +141,9 @@ test("a save refused because the cached state was out of date hides the pain sec
   ]);
   expect(refused.status()).toBe(400);
   await expect(page.locator("#pain-moves-off")).toBeVisible();
-  await expect(page.locator("#entry-msg")).toContainText("can't be saved until pain and injury tracking is on");
+  await expect(page.locator("#entry-msg")).toContainText(
+    "can't be saved until you've agreed to the Health Data Agreement",
+  );
 
   const [saved] = await Promise.all([
     page.waitForResponse(res => res.url().includes("/-/api/entries") && res.request().method() === "POST"),

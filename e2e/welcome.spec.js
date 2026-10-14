@@ -1,5 +1,5 @@
 import { CSV_COLUMNS } from "../shared/csv-import.js";
-import { PAIN_INJURY_WORDING } from "../shared/health-consent.js";
+import { PAIN_INJURY_WORDING, pointText } from "../shared/health-consent.js";
 import { expect, test } from "./owner.js";
 
 const VALID_CSV = [
@@ -34,7 +34,7 @@ test("a new user's first visit syncs, then walks the steps, then takes the tour,
   await expect(page.locator("#welcome-progress-label")).toHaveText("Step 2 of 5");
   await page.locator("#welcome-next").tap();
 
-  await expect(page.getByRole("heading", { name: "Pain and injury tracking" })).toBeFocused();
+  await expect(page.getByRole("heading", { name: "Health data", level: 1 })).toBeFocused();
   await expect(page.locator("#welcome-next")).toBeDisabled();
   await page.getByText("Not now", { exact: true }).tap();
   await page.locator("#welcome-next").tap();
@@ -137,11 +137,11 @@ test("with Athlete Mode on, turning on pain and injury tracking needs the statem
   await page.locator("#welcome-next").tap();
   await page.locator("#welcome-next").tap();
 
-  await expect(page.getByRole("heading", { name: "Pain and injury tracking" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Health data", level: 1 })).toBeVisible();
   await expect(page.locator("#welcome-progress-label")).toHaveText("Step 3 of 5");
   await expect(page.locator("#welcome-health-on")).not.toBeChecked();
   await expect(page.locator("#welcome-health-off")).not.toBeChecked();
-  await expect(page.locator("#welcome-health-points li")).toHaveText(PAIN_INJURY_WORDING.points);
+  await expect(page.locator("#welcome-health-points li")).toHaveText(PAIN_INJURY_WORDING.points.map(pointText));
 
   await page.getByText("Turn it on", { exact: true }).tap();
   await expect(page.locator("#welcome-next")).toBeDisabled();

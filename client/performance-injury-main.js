@@ -68,13 +68,13 @@ function renderInjuryLog({ log, cluster }) {
 
 const CONSENT_INSIGHT = {
   off: {
-    title: "Pain and injury tracking is off",
-    text: "It's health information, so it needs your agreement first.",
+    title: "Health data is off",
+    text: "Agree to the Health Data Agreement to log pain and injuries and see this report.",
     label: "Turn it on in My account",
   },
   paused: {
-    title: "Pain and injury tracking is paused",
-    text: "Agree to the updated wording to see this report.",
+    title: "Health data is paused",
+    text: "Agree to the updated Health Data Agreement to see this report.",
     label: "Read it in My account",
   },
 };

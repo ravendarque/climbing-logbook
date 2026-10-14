@@ -1,4 +1,4 @@
-import { PAIN_INJURY_WORDING } from "../shared/health-consent.js";
+import { PAIN_INJURY_WORDING, pointText } from "../shared/health-consent.js";
 import { expect, test } from "./owner.js";
 
 const PAIN = { limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" };
@@ -6,8 +6,8 @@ const PAIN = { limb: "hand", side: "left", holdType: "crimp", movementStyle: "st
 test("off: explains it, and Turn on waits for the box and records the current wording", async ({ page, owner }) => {
   await page.goto(owner.url("/account/health"));
 
-  await expect(page.getByRole("heading", { name: "Pain and injury tracking", level: 1 })).toBeVisible();
-  await expect(page.locator("#health-points li")).toHaveText(PAIN_INJURY_WORDING.points);
+  await expect(page.getByRole("heading", { name: "Health data", level: 1 })).toBeVisible();
+  await expect(page.locator("#health-points li")).toHaveText(PAIN_INJURY_WORDING.points.map(pointText));
   await expect(page.locator("#health-statement")).toHaveText(PAIN_INJURY_WORDING.statement);
   await expect(page.locator("#health-withdraw")).toBeHidden();
 
@@ -30,9 +30,7 @@ test("on: the warning says what turning off deletes, and one button deletes it",
   await owner.seed({ entries: [{ painMoves: [PAIN] }, { painMoves: [PAIN, { ...PAIN, side: "right" }] }, {}] });
   await page.goto(owner.url("/account/health"));
 
-  await expect(page.locator("#health-withdraw")).toContainText(
-    "Turning this off deletes the pain and injury details from your climbs.",
-  );
+  await expect(page.locator("#health-withdraw")).toContainText("Turning this off deletes all your health information.");
   await expect(page.locator("#health-withdraw")).toContainText("from our backups within 30 days");
   await expect(page.locator("#health-count")).toHaveText("You have pain and injury details on 2 entries.");
   await expect(page.locator("#health-withdraw button")).toHaveCount(1);
@@ -56,7 +54,7 @@ test("My account shows the card with its state and links to the page", async ({ 
   await page.reload();
 
   const row = page.locator("#health-row");
-  await expect(row).toContainText("Pain and injury tracking");
+  await expect(row).toContainText("Health data");
   await expect(page.locator("#health-status")).toHaveText("On");
   await expect(row).toHaveAttribute("href", `/${owner.username}/account/health`);
 });
