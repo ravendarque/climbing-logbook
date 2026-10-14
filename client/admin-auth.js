@@ -33,6 +33,7 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
   let betaOptIn = cachedSettings?.betaOptIn === true;
   let onboardingCompleted = cachedSettings?.onboardingCompleted;
   let painInjuryConsent = cachedSettings?.painInjuryConsent === true;
+  let painInjuryPaused = cachedSettings?.painInjuryPaused === true;
   let painInjuryConsentUpdate = null;
   let username = null;
   let email = null;
@@ -48,6 +49,7 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
       activeDiscipline: persistedDiscipline,
       onboardingCompleted,
       painInjuryConsent,
+      painInjuryPaused,
     });
   }
 
@@ -61,6 +63,7 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
     onboardingCompleted = settings.onboardingCompleted;
     painInjuryConsent = settings.painInjuryConsent;
     painInjuryConsentUpdate = settings.painInjuryConsentUpdate;
+    painInjuryPaused = settings.painInjuryPaused;
     showTermsPrompt(settings.terms);
   }
 
@@ -140,6 +143,7 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
     if (!res.ok) return { ok: false, status: res.status };
     painInjuryConsent = next;
     painInjuryConsentUpdate = null;
+    painInjuryPaused = false;
     try {
       persistSettingsCache();
     } catch {
@@ -234,6 +238,8 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
     getBetaOptIn: () => betaOptIn,
     setBetaOptIn,
     hasPainInjuryConsent: () => painInjuryConsent,
+    // "paused": agreed, but to wording that has since needed agreeing to again (#1392).
+    painInjuryConsentState: () => (!painInjuryConsent ? "off" : painInjuryPaused ? "paused" : "on"),
     getPainInjuryConsentUpdate: () => painInjuryConsentUpdate,
     setPainInjuryConsent,
     completeOnboarding,

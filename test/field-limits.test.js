@@ -3,7 +3,14 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { BODY_LIMITS, FIELD_LIMITS } from "../shared/field-limits.js";
 import { ACCOUNT_LIMITS } from "../shared/account-limits.js";
 import { CSV_COLUMNS } from "../shared/csv-import.js";
-import { createAuthedSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
+import {
+  createAuthedSession,
+  fetchJson,
+  grantPainInjuryConsent,
+  jsonRequest,
+  resetAuthTables,
+  seedPlace,
+} from "./support.js";
 
 beforeAll(() => {
   env.BETA_GATE_ENABLED = "false";
@@ -83,6 +90,7 @@ describe("climb fields (#1044)", () => {
     it(`takes ${field} with 20 rows and refuses 21`, async () => {
       const rows = n => Array.from({ length: n }, () => ({ ...MOVE, difficulty: "hardest" }));
       const rowsFor = n => (field === "moves" ? rows(n) : rows(n).map(({ difficulty, ...row }) => row));
+      await grantPainInjuryConsent(cookie);
       expect((await postEntry({ [field]: rowsFor(20) })).status).toBe(201);
       const over = await postEntry({ [field]: rowsFor(21) });
       expect(over.status).toBe(400);

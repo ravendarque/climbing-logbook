@@ -39,6 +39,8 @@ export function createEntryForm({
   placesWriteUrl,
   // A getter: settings may still be loading when this is built.
   isAthleteMode,
+  painInjuryConsentState = () => "on",
+  refreshPainConsent = async () => {},
   // Demo mode: every field works, Save never does.
   readOnly = false,
 }) {
@@ -51,6 +53,7 @@ export function createEntryForm({
   nameInput.maxLength = FIELD_LIMITS.entryName;
   notesInput.maxLength = FIELD_LIMITS.notes;
   const updateNotesLeft = showCharactersLeft(notesInput, document.getElementById("entry-notes-count"));
+  notesInput.setAttribute("aria-describedby", "entry-notes-pain-hint entry-notes-count");
   const gradePrev = document.getElementById("grade-prev");
   const gradeNext = document.getElementById("grade-next");
   const gradeNsFields = document.getElementById("grade-ns-fields");
@@ -114,6 +117,17 @@ export function createEntryForm({
     hasDifficulty: false,
     listLabel: "pain/injury move",
   });
+
+  const PAIN_OFF_TEXT = {
+    off: "Pain and injury tracking is off. It's health information, so it needs your agreement first.",
+    paused: "Pain and injury tracking is paused until you agree to the updated wording.",
+  };
+  function renderPainConsent() {
+    const state = painInjuryConsentState();
+    document.getElementById("pain-moves-on").hidden = state !== "on";
+    document.getElementById("pain-moves-off").hidden = state === "on";
+    document.getElementById("pain-moves-off-text").textContent = PAIN_OFF_TEXT[state] ?? "";
+  }
 
   let editingId = null; // null = add mode
   let onSavedOnce = null;
@@ -479,6 +493,7 @@ export function createEntryForm({
     hardestMoves.setRows((entry?.moves ?? []).filter(m => m.difficulty === "hardest"));
     easiestMoves.setRows((entry?.moves ?? []).filter(m => m.difficulty === "easiest"));
     painMoves.setRows(entry?.painMoves ?? []);
+    renderPainConsent();
 
     openModal(entryOverlay);
     nameInput.focus();
@@ -537,7 +552,7 @@ export function createEntryForm({
       rpe: selectedStatus === "send" ? Number(exertionSlider.value) : null,
       attemptsToSend: attemptsValue,
       moves: [...hardestMoves.getRows(), ...easiestMoves.getRows()],
-      painMoves: painMoves.getRows(),
+      painMoves: painInjuryConsentState() === "on" ? painMoves.getRows() : [],
     };
 
     // Checked before the network or queue: a shape error won't fix itself on retry.
@@ -571,6 +586,11 @@ export function createEntryForm({
       // An HTML error page isn't JSON; that's still a server error, not being offline.
       const data = await res.json().catch(() => null);
       if (!res.ok) {
+        // A stale cache showed the pain section; refreshed, it hides, and saving again works.
+        if (data?.code === "HEALTH_CONSENT_REQUIRED") {
+          await refreshPainConsent();
+          renderPainConsent();
+        }
         showEntryError(data?.error ?? `Error ${res.status}`);
         entrySubmitBtns.forEach(btn => {
           btn.disabled = false;

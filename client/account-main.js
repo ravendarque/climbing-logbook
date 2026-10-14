@@ -47,7 +47,7 @@ function syncSettingsToggles() {
   healthStatus.textContent = !adminAuth.hasPainInjuryConsent()
     ? "Off"
     : adminAuth.getPainInjuryConsentUpdate()?.required
-      ? "On. Read and agree to the updated wording."
+      ? "Paused until you agree to the updated wording."
       : "On";
   betaStatus.textContent = adminAuth.getBetaOptIn()
     ? "You're enrolled in the beta."

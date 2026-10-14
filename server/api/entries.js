@@ -11,6 +11,12 @@ import {
 } from "../lib/d1-resource.js";
 import { validateEntryShape } from "../../shared/entry-schema.js";
 import { intParam } from "../lib/params.js";
+import {
+  CONSENT_REQUIRED,
+  ENTRY_OWNER_CONSENTED,
+  ENTRY_OWNER_CONSENTED_BINDS,
+  hasConsent,
+} from "../lib/health-consent.js";
 
 // Must match migrations/0016_add_grade_scale.sql's backfill WHERE clause.
 const LEGACY_SPORT_NON_STANDARD_GRADES = new Set(["1", "1+", "2", "2+", "3", "3+"]);
@@ -24,6 +30,7 @@ async function validateFields(entry, env, userId) {
   if (shapeErr) return shapeErr;
   const owned = await findOwnedRow(env, "places", entry.placeId, userId);
   if (!owned) return "placeId does not reference one of your places";
+  if (entry.painMoves?.length && !(await hasConsent(env, userId))) return CONSENT_REQUIRED;
   return null;
 }
 
@@ -134,23 +141,26 @@ function painMoveRowToJson(row) {
   };
 }
 
-function replaceChildRowStatements(env, table, entryId, records, buildRow) {
+/** @param {{ sql: string, binds: unknown[] }} [guard] */
+function replaceChildRowStatements(env, table, entryId, records, buildRow, guard = { sql: "1", binds: [] }) {
   return [
-    env.LOGBOOK_DB.prepare(`DELETE FROM ${table} WHERE entry_id = ?`).bind(entryId),
+    env.LOGBOOK_DB.prepare(`DELETE FROM ${table} WHERE entry_id = ? AND ${guard.sql}`).bind(entryId, ...guard.binds),
     ...records.map(record => {
       const row = buildRow(record, crypto.randomUUID(), entryId);
       const columns = Object.keys(row);
       return env.LOGBOOK_DB.prepare(
-        `INSERT INTO ${table} (${columns.join(", ")}) VALUES (${columns.map(() => "?").join(", ")})`,
-      ).bind(...columns.map(c => row[c]));
+        `INSERT INTO ${table} (${columns.join(", ")}) SELECT ${columns.map(() => "?").join(", ")} WHERE ${guard.sql}`,
+      ).bind(...columns.map(c => row[c]), ...guard.binds);
     }),
   ];
 }
 
+// Checked inside the write too, so a withdrawal mid-request can't leave pain details behind (#1120).
 function moveStatements(env, entryId, record) {
+  const consented = { sql: ENTRY_OWNER_CONSENTED, binds: ENTRY_OWNER_CONSENTED_BINDS(entryId) };
   return [
     ...replaceChildRowStatements(env, "entry_moves", entryId, record.moves ?? [], buildMoveRow),
-    ...replaceChildRowStatements(env, "entry_pain_moves", entryId, record.painMoves ?? [], buildPainMoveRow),
+    ...replaceChildRowStatements(env, "entry_pain_moves", entryId, record.painMoves ?? [], buildPainMoveRow, consented),
   ];
 }
 
@@ -175,12 +185,13 @@ async function fetchChildRowsChunked(env, table, ids) {
   return results;
 }
 
-export async function attachChildRows(rows, env) {
+// Pain details are health data, so they're only read back with the owner's consent (#1120).
+export async function attachChildRows(rows, env, userId) {
   if (rows.length === 0) return rows;
   const ids = rows.map(r => r.id);
   const [movesRows, painRows] = await Promise.all([
     fetchChildRowsChunked(env, "entry_moves", ids),
-    fetchChildRowsChunked(env, "entry_pain_moves", ids),
+    hasConsent(env, userId).then(consented => (consented ? fetchChildRowsChunked(env, "entry_pain_moves", ids) : [])),
   ]);
   const movesByEntry = Object.groupBy(movesRows, row => row.entry_id);
   const painByEntry = Object.groupBy(painRows, row => row.entry_id);
@@ -200,7 +211,7 @@ const entryResource = createD1ResourceHandlers({
   rowToJson,
   excludeDeleted: true,
   childStatements: moveStatements,
-  decorateRows: (env, _userId, rows) => attachChildRows(rows, env),
+  decorateRows: (env, userId, rows) => attachChildRows(rows, env, userId),
 });
 
 export const { handlePost } = entryResource;
@@ -233,7 +244,7 @@ async function handleDelta(url, env, userId, { includeChildRows }) {
       "Cache-Control": "no-store",
     });
   }
-  const decorated = includeChildRows ? await attachChildRows(rows, env) : rows;
+  const decorated = includeChildRows ? await attachChildRows(rows, env, userId) : rows;
   return json({ entries: decorated, cursor }, 200, { "Cache-Control": "no-store" });
 }
 
@@ -255,7 +266,7 @@ async function handleByLocation(locationId, url, env, userId, { shapeRow, includ
     .all();
 
   const shaped = results.map(shapeRow);
-  const decorated = includeChildRows ? await attachChildRows(shaped, env) : shaped;
+  const decorated = includeChildRows ? await attachChildRows(shaped, env, userId) : shaped;
   return json({ entries: decorated }, 200, { "Cache-Control": "no-store" });
 }
 
@@ -284,14 +295,14 @@ async function handleChunked(url, env, userId, { shapeRow, includeChildRows, pub
   const last = results.at(-1);
   const next = results.length === limit ? { createdAt: last.created_at, id: last.id } : null;
   const shaped = results.map(shapeRow);
-  const decorated = includeChildRows ? await attachChildRows(shaped, env) : shaped;
+  const decorated = includeChildRows ? await attachChildRows(shaped, env, userId) : shaped;
   return json({ entries: decorated, total, cursor, next }, 200, { "Cache-Control": "no-store" });
 }
 
 async function handleAll(env, userId, { shapeRow, includeChildRows, publicOnly }) {
   const live = await listForUser(env, "entries", userId, row => row, { excludeDeleted: true });
   const rows = (publicOnly ? live.filter(row => !row.hidden_at) : live).map(shapeRow);
-  const decorated = includeChildRows ? await attachChildRows(rows, env) : rows;
+  const decorated = includeChildRows ? await attachChildRows(rows, env, userId) : rows;
   return json({ entries: decorated }, 200, { "Cache-Control": "no-store" });
 }
 
@@ -331,7 +342,7 @@ export async function handlePut(request, env, userId) {
 
   if (!entry.id) return json({ error: "Missing required field: id" }, 400);
   const err = await validateFields(entry, env, userId);
-  if (err) return json({ error: err }, 400);
+  if (err) return json(typeof err === "string" ? { error: err } : err, 400);
 
   // excludeDeleted, or an edit would resurrect a deleted entry.
   const existing = await findOwnedRow(env, "entries", entry.id, userId, { excludeDeleted: true });

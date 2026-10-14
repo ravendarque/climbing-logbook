@@ -44,9 +44,29 @@ const INSIGHTS = [
   },
 ];
 
-const { username: USERNAME, store, headerChrome, updateAdminBar, authenticateAthlete } = createAppShell({ render });
+const {
+  username: USERNAME,
+  isDemo,
+  store,
+  headerChrome,
+  updateAdminBar,
+  authenticateAthlete,
+  adminAuth,
+} = createAppShell({
+  render,
+});
 
 const tilesEl = document.getElementById("insight-tiles");
+
+const INJURY_CONSENT_DESCRIPTION = {
+  off: "Pain and injury tracking is off. Turn it on in My account to use this.",
+  paused: "Pain and injury tracking is paused until you agree to the updated wording in My account.",
+};
+
+function description(insight) {
+  if (insight.route !== "injury" || isDemo) return insight.description;
+  return INJURY_CONSENT_DESCRIPTION[adminAuth.painInjuryConsentState()] ?? insight.description;
+}
 
 function renderTiles() {
   const type = store.getActiveType();
@@ -54,7 +74,7 @@ function renderTiles() {
     rowCardHtml({
       id: insight.id,
       title: typeof insight.title === "function" ? insight.title(type) : insight.title,
-      description: insight.description,
+      description: description(insight),
       controlHtml: `<a class="btn shrink-0" href="/${encodeURIComponent(USERNAME)}/performance/${insight.route}">View</a>`,
     }),
   ).join("");

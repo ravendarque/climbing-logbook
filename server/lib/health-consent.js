@@ -1,8 +1,28 @@
-import { PAIN_INJURY } from "../../shared/health-consent.js";
+import { PAIN_INJURY, PAIN_INJURY_OLDEST_VALID_VERSION } from "../../shared/health-consent.js";
 import { nextCursorSql } from "./d1-resource.js";
 import { json, parseJsonBody } from "./json.js";
 
 export const CURRENT = "superseded_at IS NULL AND withdrawn_at IS NULL";
+
+const IN_FORCE = "consents.superseded_at IS NULL AND consents.withdrawn_at IS NULL AND consents.wording_version >= ?";
+
+export const CONSENT_REQUIRED = {
+  error:
+    "Pain and injury details can't be saved until pain and injury tracking is on. You can turn it on in My account.",
+  code: "HEALTH_CONSENT_REQUIRED",
+};
+
+export async function hasConsent(env, userId, purpose = PAIN_INJURY.purpose) {
+  const row = await env.LOGBOOK_DB.prepare(`SELECT 1 FROM consents WHERE user_id = ? AND purpose = ? AND ${IN_FORCE}`)
+    .bind(userId, purpose, PAIN_INJURY_OLDEST_VALID_VERSION)
+    .first();
+  return row !== null;
+}
+
+// The same check inside a write batch; binds the entry id, the purpose, then the oldest valid version.
+export const ENTRY_OWNER_CONSENTED = `EXISTS (SELECT 1 FROM consents JOIN entries ON entries.user_id = consents.user_id
+  WHERE entries.id = ? AND consents.purpose = ? AND ${IN_FORCE})`;
+export const ENTRY_OWNER_CONSENTED_BINDS = entryId => [entryId, PAIN_INJURY.purpose, PAIN_INJURY_OLDEST_VALID_VERSION];
 
 const ENTRIES_WITH_PAIN = `SELECT DISTINCT p.entry_id FROM entry_pain_moves p JOIN entries e ON e.id = p.entry_id
   WHERE e.user_id = ? AND e.deleted_at IS NULL`;

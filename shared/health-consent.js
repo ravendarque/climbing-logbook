@@ -19,6 +19,10 @@ export const PAIN_INJURY_HISTORY = [
 const CURRENT = PAIN_INJURY_HISTORY[PAIN_INJURY_HISTORY.length - 1];
 
 export const PAIN_INJURY = { purpose: "pain_injury", version: CURRENT.version };
+// A grant of wording older than this no longer counts: it was for wording that has since needed agreeing to again.
+export const PAIN_INJURY_OLDEST_VALID_VERSION = (
+  PAIN_INJURY_HISTORY.findLast(({ needsConsentAgain }) => needsConsentAgain) ?? PAIN_INJURY_HISTORY[0]
+).version;
 export const PAIN_INJURY_WORDING = { points: CURRENT.points, statement: CURRENT.statement };
 
 // Null unless the user agreed to older wording; then what's changed, and whether they need to agree again.

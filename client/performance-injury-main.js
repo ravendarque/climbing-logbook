@@ -16,6 +16,7 @@ const {
   headerChrome,
   updateAdminBar,
   authenticateAthlete,
+  adminAuth,
 } = createAppShell({ render });
 const reportData = createReportData({ username: USERNAME, isDemo, store, syncStatusIcon, onRefresh: loadInjuryLog });
 
@@ -65,7 +66,23 @@ function renderInjuryLog({ log, cluster }) {
   injuryRootEl.innerHTML = logHtml + insightsHtml([insight]);
 }
 
+const CONSENT_TEXT = {
+  off: "Pain and injury tracking is off. It's health information, so it needs your agreement first.",
+  paused: "Pain and injury tracking is paused until you agree to the updated wording.",
+};
+
+function renderConsentNeeded(state) {
+  offlineEl.hidden = true;
+  injuryRootEl.hidden = false;
+  injuryRootEl.innerHTML = `<p class="text-sm" id="injury-consent-needed">${escapeHtml(CONSENT_TEXT[state])} <a class="text-accent-ink underline" href="/${encodeURIComponent(USERNAME)}/account/health">Pain and injury tracking in My account</a></p>`;
+}
+
 async function loadInjuryLog() {
+  const state = isDemo ? "on" : adminAuth.painInjuryConsentState();
+  if (state !== "on") {
+    renderConsentNeeded(state);
+    return;
+  }
   try {
     const data = await reportData.report("performance/injury", buildInjuryReport);
     offlineEl.hidden = true;

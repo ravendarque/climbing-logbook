@@ -1,6 +1,7 @@
 import { json } from "../lib/json.js";
 import { listForUser } from "../lib/d1-resource.js";
 import { attachChildRows, rowToJson } from "./entries.js";
+import { hasConsent } from "../lib/health-consent.js";
 import {
   buildEffortReport,
   buildGapReport,
@@ -17,7 +18,7 @@ function listEntries(env, userId) {
 }
 
 async function listEntriesWithChildRows(env, userId) {
-  return attachChildRows(await listEntries(env, userId), env);
+  return attachChildRows(await listEntries(env, userId), env, userId);
 }
 
 export async function handleGetPyramid(request, env, userId) {
@@ -27,7 +28,8 @@ export async function handleGetPyramid(request, env, userId) {
 }
 
 export async function handleGetInjuryLog(_request, env, userId) {
-  return json(buildInjuryReport(await listEntriesWithChildRows(env, userId)), 200, NO_STORE);
+  if (!(await hasConsent(env, userId))) return json({ ...buildInjuryReport([]), consent: false }, 200, NO_STORE);
+  return json({ ...buildInjuryReport(await listEntriesWithChildRows(env, userId)), consent: true }, 200, NO_STORE);
 }
 
 export async function handleGetStrengthsWeaknesses(request, env, userId) {

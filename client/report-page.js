@@ -27,6 +27,7 @@ export function createReportPage({ view, rootId, path, build, renderChart, insig
     store,
     syncStatusIcon,
     onRefresh: () => timeWindow && loadReport(timeWindow.getRange()),
+    painAllowed: () => isDemo || shell.adminAuth.painInjuryConsentState() === "on",
   });
 
   const gradeScalePicker = createReportGradeScalePicker({
