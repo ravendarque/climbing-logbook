@@ -99,6 +99,13 @@ async function snapshotA() {
       `SELECT m.* FROM entry_moves m JOIN entries e ON e.id = m.entry_id WHERE e.user_id = ? ORDER BY m.id`,
       a.userId,
     ),
+    usage: await rows(`SELECT * FROM account_usage WHERE user_id = ?`, a.userId),
+    purgeFloors: await rows(`SELECT * FROM entry_purge_floors WHERE user_id = ?`, a.userId),
+    invites: await rows(
+      `SELECT * FROM beta_invites WHERE used_by = ? OR created_by = ? ORDER BY code`,
+      a.userId,
+      a.userId,
+    ),
     pain: await rows(
       `SELECT p.* FROM entry_pain_moves p JOIN entries e ON e.id = p.entry_id WHERE e.user_id = ? ORDER BY p.id`,
       a.userId,
@@ -233,6 +240,7 @@ describe("authorization matrix: public data (#1070)", () => {
       expect(res.status, `${resource}${query}`).toBe(200);
       const text = await res.text();
       expect(text, `${resource}${query}`).not.toContain("painMoves");
+      expect(text, `${resource}${query}`).not.toContain('"limb"');
       expect(text, `${resource}${query}`).not.toContain(ids.deletedEntryId);
     }
   });
@@ -266,9 +274,38 @@ describe("authorization matrix: owner pages (#1070)", () => {
   );
 });
 
-// Counts and aggregates carry no marker, so every read must also be unchanged once A's data is gone. Runs last.
+// Counts and aggregates carry no marker, so every read must also be unchanged once another user's data is gone.
 describe("authorization matrix: reads don't depend on another user's data (#1070)", () => {
-  it("every GET route gives user B the same answer after user A's data is deleted", async () => {
+  it("every GET route gives user B the same answer after another user's data is deleted", async () => {
+    const victim = await createAuthedSession({ username: "matrixvictim", hostname: "climbinglogbook.com" });
+    const asVictim = (method, path, body) => jsonRequest(method, path, body, { Cookie: victim.cookie });
+    await asVictim("POST", "/-/api/consent/pain-injury", { version: PAIN_INJURY.version });
+    const { location } = await (
+      await asVictim("POST", "/-/api/locations", { name: "Victim Crag", country: "Italy" })
+    ).json();
+    const { place } = await (
+      await asVictim("POST", "/-/api/places", { locationId: location.id, area: "Victim" })
+    ).json();
+    for (const [grade, firstAttempt] of [
+      ["7A", false],
+      ["7C", true],
+    ]) {
+      const created = await asVictim("POST", "/-/api/entries", {
+        placeId: place.id,
+        type: "boulder",
+        status: "send",
+        firstAttempt,
+        grade,
+        name: "Victim climb",
+        date: "2026-06-01",
+        rpe: 90,
+        attemptsToSend: firstAttempt ? 1 : 6,
+        moves: [{ ...PAIN, difficulty: "hardest" }],
+        painMoves: [PAIN],
+      });
+      expect(created.status, "the other user's climb is really created").toBe(201);
+    }
+
     const reads = ROUTES.filter(route => route.startsWith("GET "));
     const answers = async () =>
       Object.fromEntries(
@@ -279,7 +316,7 @@ describe("authorization matrix: reads don't depend on another user's data (#1070
           ]),
         ),
       );
-    const withA = await answers();
+    const withVictim = await answers();
     await env.LOGBOOK_DB.batch(
       [
         `DELETE FROM entry_pain_moves WHERE entry_id IN (SELECT id FROM entries WHERE user_id = ?)`,
@@ -288,9 +325,8 @@ describe("authorization matrix: reads don't depend on another user's data (#1070
         `DELETE FROM places WHERE user_id = ?`,
         `DELETE FROM locations WHERE user_id = ?`,
         `DELETE FROM consents WHERE user_id = ?`,
-        `DELETE FROM settings WHERE user_id = ?`,
-      ].map(sql => env.LOGBOOK_DB.prepare(sql).bind(a.userId)),
+      ].map(sql => env.LOGBOOK_DB.prepare(sql).bind(victim.userId)),
     );
-    expect(await answers()).toEqual(withA);
+    expect(await answers()).toEqual(withVictim);
   });
 });
