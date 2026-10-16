@@ -63,6 +63,9 @@ const DEMO_ONLY_HANDLERS = {
   "performance/rpe": handleGetEffort,
 };
 
+export const PUBLIC_RESOURCES = Object.keys(HANDLERS);
+export const DEMO_ONLY_RESOURCES = Object.keys(DEMO_ONLY_HANDLERS);
+
 export async function handlePublicResource(request, env, username, resource, ctx, log) {
   const limited = await rateLimited(env, "PUBLIC_READ_LIMITER", clientKey(request), {
     message: "That's a lot of requests. Wait a minute, then try again.",

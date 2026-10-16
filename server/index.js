@@ -1,17 +1,3 @@
-import { handleGet, handlePost, handlePut, handleDelete } from "./api/entries.js";
-import { handleImport } from "./api/entries-import.js";
-import { handleGet as handleGetPlaces, handlePost as handlePostPlaces } from "./api/places.js";
-import { handleGet as handleGetLocations, handlePost as handlePostLocations } from "./api/locations.js";
-import { handleGetSettings, handlePatchSettings } from "./api/settings.js";
-import {
-  handleGetEffort,
-  handleGetGap,
-  handleGetInjuryLog,
-  handleGetPyramid,
-  handleGetStrengthsWeaknesses,
-  handleGetVolume,
-} from "./api/performance.js";
-import { handleGetMapCounts } from "./api/map.js";
 import { handleLiveness, handleReadiness } from "./api/health.js";
 import { handleCspReport } from "./api/csp-report.js";
 import { withContentSecurityPolicy } from "./lib/csp.js";
@@ -30,12 +16,8 @@ import { handleChangeEmail, handlePasswordResetRequest, handleVerificationResend
 
 export { RecipientEmailLimiter } from "./lib/email-limit.js";
 import { resolveUser } from "./lib/session.js";
-import { handleAgreeTerms, refuseUntilTermsAgreed } from "./lib/terms.js";
-import {
-  handleGetPainInjuryConsent,
-  handleGrantPainInjuryConsent,
-  handleWithdrawPainInjuryConsent,
-} from "./lib/health-consent.js";
+import { refuseUntilTermsAgreed } from "./lib/terms.js";
+import { RESOURCE_ROUTES } from "./routes.js";
 import { json } from "./lib/json.js";
 import { errorResponse } from "./lib/error-response.js";
 import { createLogger } from "./lib/log.js";
@@ -43,31 +25,6 @@ import { PUBLIC_DATA_PATH, routeTemplate } from "./lib/route-template.js";
 import { handlePerHostAsset, perHostAssetPath } from "./api/app-identity.js";
 import { handleAdminHost, isAdminHost } from "./api/admin.js";
 
-const RESOURCE_ROUTES = {
-  "/-/api/entries": {
-    GET: handleGet,
-    POST: handlePost,
-    PUT: handlePut,
-    DELETE: handleDelete,
-  },
-  "/-/api/entries/import": { POST: handleImport },
-  "/-/api/places": { GET: handleGetPlaces, POST: handlePostPlaces },
-  "/-/api/locations": { GET: handleGetLocations, POST: handlePostLocations },
-  "/-/api/settings": { GET: handleGetSettings, PATCH: handlePatchSettings },
-  "/-/api/performance/pyramid": { GET: handleGetPyramid },
-  "/-/api/performance/injury": { GET: handleGetInjuryLog },
-  "/-/api/performance/strengths": { GET: handleGetStrengthsWeaknesses },
-  "/-/api/performance/volume": { GET: handleGetVolume },
-  "/-/api/performance/gap": { GET: handleGetGap },
-  "/-/api/performance/rpe": { GET: handleGetEffort },
-  "/-/api/map/counts": { GET: handleGetMapCounts },
-  "/-/api/terms": { POST: handleAgreeTerms },
-  "/-/api/consent/pain-injury": {
-    GET: handleGetPainInjuryConsent,
-    POST: handleGrantPainInjuryConsent,
-    DELETE: handleWithdrawPainInjuryConsent,
-  },
-};
 const RESOURCE_PATHS = Object.keys(RESOURCE_ROUTES);
 const STATIC_PAGE = /^\/($|(help|login|register|reset-password)(\/|$)|-\/launch\/)/;
 
