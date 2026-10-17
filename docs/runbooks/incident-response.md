@@ -35,6 +35,7 @@ Better Stack status page: `status.climbinglogbook.com`.
 | Lever | What it does | How |
 |---|---|---|
 | Roll back | Redeploys an earlier tag to production | `promote.yml`, `workflow_dispatch` with the tag (`playbooks/bad-deploy.md`) |
+| Read-only mode | Stops every API write; reads keep working and the app queues changes | `READ_ONLY` Worker secret (`playbooks/security-breach.md`) |
 | Close sign-ups | Requires an invite code to sign up | `BETA_GATE_ENABLED` is already `"true"` in every environment (ADR-0014) |
 | Restore the database | Rewinds every user's data to a moment | D1 Time Travel (`playbooks/database.md`) |
 | Rotate a secret | Replaces a leaked credential | `playbooks/secret-leaked.md` |

@@ -4,7 +4,7 @@ import { escapeHtml } from "./escape-html.js";
 import { COUNTRY_BY_NAME, COUNTRIES } from "../shared/countries.js";
 import { FIELD_LIMITS } from "../shared/field-limits.js";
 import { createSearchableListbox } from "./modal-utils.js";
-import { isUnauthorized } from "./api-fetch.js";
+import { isUnauthorized, isUnavailable } from "./api-fetch.js";
 import { STORAGE_FULL_MESSAGE } from "./storage-quota.js";
 
 export function createPlacePicker({
@@ -202,6 +202,7 @@ export function createPlacePicker({
           body: JSON.stringify(location),
         });
         if (isUnauthorized(res)) throw new Error("not-authenticated");
+        if (isUnavailable(res)) throw new Error("unavailable");
         const data = await res.json().catch(() => null);
         if (!res.ok) {
           // A real rejection, not connectivity: queueing would fail the same way.
@@ -232,6 +233,7 @@ export function createPlacePicker({
           body: JSON.stringify(place),
         });
         if (isUnauthorized(res)) throw new Error("not-authenticated");
+        if (isUnavailable(res)) throw new Error("unavailable");
         const data = await res.json().catch(() => null);
         if (!res.ok) {
           showAddPlaceError(data?.error ?? `Error ${res.status}`);

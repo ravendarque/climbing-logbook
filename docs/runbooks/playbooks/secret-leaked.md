@@ -13,4 +13,4 @@ Assume a secret is compromised the moment it appears anywhere it shouldn't: a co
 | `PROJECT_STATUS_PAT` | Regenerate in GitHub, update the Actions secret | Board sync fails until updated |
 | `RELEASE_APP_PRIVATE_KEY` | Generate a new key on the GitHub App, delete the old one, update the secret | Releases fail until updated |
 
-Afterwards, check the Cloudflare audit log (Manage Account → Audit Log) for anything the leaked credential did. Security-specific steps, including breach notification, are in #1063.
+Afterwards, check the Cloudflare audit log (Manage Account → Audit Log) for anything the leaked credential did. If anyone's data may have been accessed, it's a breach: follow `security-breach.md`.
