@@ -43,6 +43,8 @@
   Cache-Control: public, max-age=31556952, immutable
 /-/account-health-app.js
   Cache-Control: public, max-age=31556952, immutable
+/-/account-places-app.js
+  Cache-Control: public, max-age=31556952, immutable
 /-/welcome-app.js
   Cache-Control: public, max-age=31556952, immutable
 /-/admin-app.js

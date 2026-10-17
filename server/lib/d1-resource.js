@@ -4,7 +4,7 @@ import { intParam } from "./params.js";
 
 // Create, replay, dedup and delta semantics: docs/app-architecture.md, Data model.
 
-// excludeDeleted and includeDeletedAt are opt-in: only entries has a deleted_at column.
+// excludeDeleted and includeDeletedAt are opt-in: only entries, places and locations have a deleted_at column.
 export async function listForUser(env, table, userId, rowToJson, { excludeDeleted = false } = {}) {
   if (!userId) return [];
   const where = excludeDeleted ? "WHERE user_id = ? AND deleted_at IS NULL" : "WHERE user_id = ?";

@@ -128,3 +128,68 @@ describe("applyPendingQueue", () => {
     expect(result.entries.find(e => e.id === "e1")).toMatchObject({ _pending: true, _pendingDelete: true });
   });
 });
+
+describe("applyPendingQueue: editing and deleting places (#159, #160)", () => {
+  const locations = [
+    { id: "l1", name: "Fontainbleau", country: "France" },
+    { id: "l2", name: "Magic Wood", country: "Switzerland" },
+  ];
+  const places = [
+    { id: "p1", locationId: "l1", area: "Bas Cuvier" },
+    { id: "p2", locationId: "l1", area: "Apremont" },
+    { id: "p3", locationId: "l2", area: "Bachbett" },
+  ];
+  const entries = [
+    { id: "e1", placeId: "p1" },
+    { id: "e2", placeId: "p2" },
+    { id: "e3", placeId: "p3" },
+  ];
+
+  it("shows a renamed location and area at once, marked pending", () => {
+    const result = applyPendingQueue(
+      [
+        { kind: "location", op: "edit", record: { id: "l1", name: "Fontainebleau", country: "France" } },
+        { kind: "place", op: "edit", record: { id: "p2", area: "Apremont Bizons" } },
+      ],
+      entries,
+      places,
+      locations,
+    );
+    expect(result.locations[0]).toEqual({ id: "l1", name: "Fontainebleau", country: "France", _pending: true });
+    expect(result.places[1]).toEqual({ id: "p2", locationId: "l1", area: "Apremont Bizons", _pending: true });
+  });
+
+  it("removes a deleted area and moves its climbs to the target", () => {
+    const result = applyPendingQueue(
+      [{ kind: "place", op: "delete", record: { id: "p2", moveTo: "p1" } }],
+      entries,
+      places,
+      locations,
+    );
+    expect(result.places.map(p => p.id)).toEqual(["p1", "p3"]);
+    expect(result.entries.find(e => e.id === "e2")).toEqual({ id: "e2", placeId: "p1", _pending: true });
+    expect(result.entries.find(e => e.id === "e1")).toEqual({ id: "e1", placeId: "p1" });
+  });
+
+  it("removes a deleted location with its areas, and moves all their climbs", () => {
+    const result = applyPendingQueue(
+      [{ kind: "location", op: "delete", record: { id: "l1", moveTo: "p3" } }],
+      entries,
+      places,
+      locations,
+    );
+    expect(result.locations.map(l => l.id)).toEqual(["l2"]);
+    expect(result.places.map(p => p.id)).toEqual(["p3"]);
+    expect(result.entries.map(e => e.placeId)).toEqual(["p3", "p3", "p3"]);
+  });
+
+  it("deletes an empty area without touching any climb", () => {
+    const result = applyPendingQueue(
+      [{ kind: "place", op: "delete", record: { id: "p9" } }],
+      entries,
+      places,
+      locations,
+    );
+    expect(result.entries).toBe(entries);
+  });
+});

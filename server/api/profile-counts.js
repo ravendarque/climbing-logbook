@@ -8,8 +8,8 @@ export async function handleGetProfileCounts(_request, env, userId) {
   if (!userId) return json({ locations: [], places: [], counts: {} }, 200, { "Cache-Control": "no-store" });
 
   const [locations, places, countRows] = await Promise.all([
-    listForUser(env, "locations", userId, locationsRowToJson),
-    listForUser(env, "places", userId, placesRowToJson),
+    listForUser(env, "locations", userId, locationsRowToJson, { excludeDeleted: true }),
+    listForUser(env, "places", userId, placesRowToJson, { excludeDeleted: true }),
     env.LOGBOOK_DB.prepare(`
       SELECT p.location_id AS location_id, COUNT(*) AS count
       FROM entries e JOIN places p ON e.place_id = p.id

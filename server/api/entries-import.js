@@ -32,12 +32,12 @@ function placeIssue(row) {
 // Dedups within the file too, or a 50-row file for one crag would mint 50 places.
 async function resolveLocationsAndPlaces(env, userId, rows) {
   const { results: existingLocations } = await env.LOGBOOK_DB.prepare(
-    `SELECT id, name, country FROM locations WHERE user_id = ?`,
+    `SELECT id, name, country FROM locations WHERE user_id = ? AND deleted_at IS NULL`,
   )
     .bind(userId)
     .all();
   const { results: existingPlaces } = await env.LOGBOOK_DB.prepare(
-    `SELECT id, location_id, area FROM places WHERE user_id = ?`,
+    `SELECT id, location_id, area FROM places WHERE user_id = ? AND deleted_at IS NULL`,
   )
     .bind(userId)
     .all();

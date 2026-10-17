@@ -25,7 +25,7 @@ export async function usageFigures(env) {
          (SELECT count(*) FROM (${LIVE_ENTRIES})) AS climbs,
          (SELECT count(*) FROM (${LIVE_ENTRIES}) WHERE created_at >= ${SINCE_SQL}) AS recentClimbs,
          (SELECT count(DISTINCT user_id) FROM (${LIVE_ENTRIES}) WHERE created_at >= ${SINCE_SQL}) AS activeUsers,
-         (SELECT count(*) FROM places WHERE user_id IN (${REAL_USERS})) AS places,
+         (SELECT count(*) FROM places WHERE user_id IN (${REAL_USERS}) AND deleted_at IS NULL) AS places,
          (SELECT count(DISTINCT country) FROM locations WHERE user_id IN (${REAL_USERS}) AND country != '') AS countryCount,
          (SELECT count(*) FROM settings WHERE athlete_mode = 1 AND user_id IN (${REAL_USERS})) AS athleteMode,
          (SELECT count(*) FROM (${REAL_USERS}) r LEFT JOIN settings s ON s.user_id = r.id
@@ -38,9 +38,9 @@ export async function usageFigures(env) {
     db.prepare(
       `SELECT l.country, l.name AS location, count(DISTINCT p.id) AS places, count(e.id) AS climbs
        FROM locations l
-       JOIN places p ON p.location_id = l.id
+       JOIN places p ON p.location_id = l.id AND p.deleted_at IS NULL
        LEFT JOIN entries e ON e.place_id = p.id AND e.deleted_at IS NULL
-       WHERE l.user_id IN (${REAL_USERS})
+       WHERE l.user_id IN (${REAL_USERS}) AND l.deleted_at IS NULL
        GROUP BY l.country, l.name`,
     ),
   ]);

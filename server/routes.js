@@ -1,7 +1,17 @@
 import { handleGet, handlePost, handlePut, handleDelete } from "./api/entries.js";
 import { handleImport } from "./api/entries-import.js";
-import { handleGet as handleGetPlaces, handlePost as handlePostPlaces } from "./api/places.js";
-import { handleGet as handleGetLocations, handlePost as handlePostLocations } from "./api/locations.js";
+import {
+  handleDelete as handleDeletePlace,
+  handleGet as handleGetPlaces,
+  handlePost as handlePostPlaces,
+  handlePut as handlePutPlace,
+} from "./api/places.js";
+import {
+  handleDelete as handleDeleteLocation,
+  handleGet as handleGetLocations,
+  handlePost as handlePostLocations,
+  handlePut as handlePutLocation,
+} from "./api/locations.js";
 import { handleGetSettings, handlePatchSettings } from "./api/settings.js";
 import {
   handleGetEffort,
@@ -28,8 +38,13 @@ export const RESOURCE_ROUTES = {
     DELETE: handleDelete,
   },
   "/-/api/entries/import": { POST: handleImport },
-  "/-/api/places": { GET: handleGetPlaces, POST: handlePostPlaces },
-  "/-/api/locations": { GET: handleGetLocations, POST: handlePostLocations },
+  "/-/api/places": { GET: handleGetPlaces, POST: handlePostPlaces, PUT: handlePutPlace, DELETE: handleDeletePlace },
+  "/-/api/locations": {
+    GET: handleGetLocations,
+    POST: handlePostLocations,
+    PUT: handlePutLocation,
+    DELETE: handleDeleteLocation,
+  },
   "/-/api/settings": { GET: handleGetSettings, PATCH: handlePatchSettings },
   "/-/api/performance/pyramid": { GET: handleGetPyramid },
   "/-/api/performance/injury": { GET: handleGetInjuryLog },

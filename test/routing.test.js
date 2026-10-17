@@ -5,8 +5,8 @@ import { createAuthedSession, fetchJson, resetAuthTables } from "./support.js";
 const ROUTES = {
   "/-/api/entries": ["GET", "POST", "PUT", "DELETE"],
   "/-/api/entries/import": ["POST"],
-  "/-/api/places": ["GET", "POST"],
-  "/-/api/locations": ["GET", "POST"],
+  "/-/api/places": ["GET", "POST", "PUT", "DELETE"],
+  "/-/api/locations": ["GET", "POST", "PUT", "DELETE"],
   "/-/api/settings": ["GET", "PATCH"],
   "/-/api/performance/pyramid": ["GET"],
   "/-/api/performance/injury": ["GET"],

@@ -62,16 +62,15 @@ export function createOfflineSync({
   }
 
   function syncOne(item) {
-    if (item.kind === "location") {
-      return apiFetch(locationsWriteUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(item.record),
-      });
-    }
-    if (item.kind === "place") {
-      return apiFetch(placesWriteUrl, {
-        method: "POST",
+    if (item.kind === "location" || item.kind === "place") {
+      const url = item.kind === "location" ? locationsWriteUrl : placesWriteUrl;
+      if (item.op === "delete") {
+        const query = new URLSearchParams({ id: item.record.id });
+        if (item.record.moveTo) query.set("moveTo", item.record.moveTo);
+        return apiFetch(`${url}?${query}`, { method: "DELETE" });
+      }
+      return apiFetch(url, {
+        method: item.op === "edit" ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(item.record),
       });
@@ -198,15 +197,15 @@ export function createOfflineSync({
 
       let remap = null;
       if (item.kind === "location") {
-        confirmed.locations.push(data.location);
+        confirmed.locations.push(item.op === "delete" ? { id: item.record.id, deleted: true } : data.location);
         // A location item's own id is what later place items reference.
-        if (data.dedupedTo && data.dedupedTo !== item.record.id) {
+        if (data?.dedupedTo && data.dedupedTo !== item.record.id) {
           remap = ["locationId", item.record.id, data.dedupedTo];
         }
       } else if (item.kind === "place") {
-        confirmed.places.push(data.place);
+        confirmed.places.push(item.op === "delete" ? { id: item.record.id, deleted: true } : data.place);
         // A place item's own id is what later entry items reference.
-        if (data.dedupedTo && data.dedupedTo !== item.record.id) {
+        if (data?.dedupedTo && data.dedupedTo !== item.record.id) {
           remap = ["placeId", item.record.id, data.dedupedTo];
         }
       } else {

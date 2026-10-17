@@ -28,7 +28,7 @@ function defaultGradeScale(entry) {
 async function validateFields(entry, env, userId) {
   const shapeErr = validateEntryShape(entry);
   if (shapeErr) return shapeErr;
-  const owned = await findOwnedRow(env, "places", entry.placeId, userId);
+  const owned = await findOwnedRow(env, "places", entry.placeId, userId, { excludeDeleted: true });
   if (!owned) return "placeId does not reference one of your places";
   if (entry.painMoves?.length && !(await hasConsent(env, userId))) return CONSENT_REQUIRED;
   return null;
