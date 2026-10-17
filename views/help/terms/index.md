@@ -22,7 +22,7 @@ Climbing Logbook is an independent project run from the UK. If anything here isn
 
 What you log is yours. You give us permission to store it and to show it to you, and, if your logbook is public, to show it to anyone who visits it. That's all we use it for. We never sell it or use it for advertising (see [Privacy](/help/privacy/)).
 
-Your logbook starts private. If you make it public, in setup or later in My account, anyone can see it, including people who don't have an account. You can make it private again at any time.
+You choose who can see your logbook during setup, and can change it later in My account. If you make it public, anyone can see it, including people who don't have an account.
 
 <h2 id="what-we-stand-for">What we stand for</h2>
 
