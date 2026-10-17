@@ -33,7 +33,7 @@
     "@biomejs/biome": "^2.5.15",
     "@cloudflare/vite-plugin": "^1.63.1",
     "@cloudflare/vitest-plugin": "^1.4.0",
-    "@cloudflare/workers-types": "^5.20261010.1",
+    "@cloudflare/workers-types": "^5.20261014.1",
     "@playwright/test": "^1.64.0",
     "@tailwindcss/cli": "^4.3.3",
     "@vitest/coverage-istanbul": "^5.0.3",
@@ -52,13 +52,13 @@
     "vitest": "^5.0.3",
     "world-atlas": "^2.0.2",
     "world-countries": "^5.1.0",
-    "wrangler": "^4.149.0"
+    "wrangler": "^4.151.0"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.8.0",
     "better-auth": "^1.7.7",
     "obscenity": "0.4.6",
-    "resend": "^6.32.1",
+    "resend": "^6.33.0",
     "valibot": "^1.5.0"
   }
 }
