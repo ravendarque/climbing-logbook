@@ -12,7 +12,7 @@ We don't sell your data and we don't share it for advertising. Here's what we ke
 
 ## Who we are
 
-Climbing Logbook is an independent project run from the UK. We decide how your data is used, which makes us its controller under data protection law. For anything about your data, [contact us](/help/report-an-issue/).
+Climbing Logbook is an independent project run from the UK. Under data protection law, we're the controller of your data, which means we're responsible for looking after it. For anything about your data, [contact us](/help/report-an-issue/).
 
 ## What we keep
 
@@ -24,16 +24,15 @@ We use this to run the app for you, and for nothing else.
 
 ## Why we use it
 
-- **To run your account and logbook.** You asked us to, so this is part of our agreement with you. It covers your account, your climbs, places and settings, and the emails we send about your account.
-- **Health information,** only because you agreed to the [Health Data Agreement](#health-data). You can withdraw at any time.
+- **To run your account and logbook.** This is the service you signed up for, so it's covered by our agreement with you, the [Terms of use](/help/terms/). It covers your account, your climbs, places and settings, and the emails we send about your account.
+- **Health information,** only if you agree to the [Health Data Agreement](#health-data). If you don't, we don't collect any. You can withdraw at any time.
 - **To keep Climbing Logbook secure and working.** Request logs, rate limits and bot checks protect everyone's logbook. They never hold your password, your notes or your health information.
 - **To see which pages get used,** through visit statistics that don't use cookies.
 - **To answer your feedback and reports,** and to act on reports about content.
 
 ## How long we keep it
 
-- **A climb you delete** loses its name, notes, video link, date and moves straight away. We keep a marker that it was deleted, so your other devices remove it too. We delete the marker after 30 days, once you've made another change since. A device that's been offline for longer downloads your logbook again in full.
-- **Each sign-in** records the IP address and browser it came from, so you can stay logged in. We delete that about a week after the sign-in expires.
+- **Each sign-in** stores the IP address and browser it came from, alongside the session that keeps you logged in. We delete them about a week after the sign-in expires.
 - **Email links**, for checking your email address or resetting your password, are deleted within a day of expiring.
 - **Your account and logbook** stay until you delete your account in My account, which removes them.
 
@@ -101,13 +100,13 @@ They only use your data to provide their service to us. Our email provider is in
 
 You can:
 
-- **see and download your logbook**: My account, then *Export entries*;
-- **correct it**: edit any climb, or your details in My account;
+- **see and download your logbook**: My account, then *Export entries* (see [Import and export](/help/import-and-export/));
+- **correct it**: [edit any climb](/help/editing-an-entry/), or your details in My account;
 - **delete it**: My account, then *Edit account details*, then *Delete account*. That deletes your account and everything in it;
 - **withdraw your health data agreement**: My account, then *Health data*;
 - **ask for anything else**, like a copy of everything we hold about you, or to restrict or object to how we use it: [contact us](/help/report-an-issue/).
 
-We reply within a month.
+We reply as soon as we can, and within 28 days at most.
 
 ## Automated decisions
 
