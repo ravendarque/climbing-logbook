@@ -1,7 +1,7 @@
 # Infrastructure
 
 Terraform-managed: the D1 database, DNS, the Turnstile widget, and
-zone-level TLS/DNS settings, Cache Rules, and WAF custom rules. Everything here is declarative,
+zone-level TLS/DNS settings, Cache Rules, and WAF custom and managed rules. Everything here is declarative,
 repeatable, and idempotent — re-running `terraform apply` with no
 changes is always a no-op.
 
