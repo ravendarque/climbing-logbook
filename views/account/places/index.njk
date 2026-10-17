@@ -1,0 +1,69 @@
+---
+layout: app-layout.njk
+title: Places – Climbing Logbook
+bundle: account-places
+staticShellNote: |-
+  Static shell, like the other account pages: client/account-places-main.js
+         reads the username from location.pathname.
+headerClass: mb-6
+---
+<div class="max-w-[960px] mx-auto">
+  <a class="back-link mt-4 mb-5" id="back-to-account-link" href="#">
+    <svg class="w-[.9rem] h-[.9rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
+    My Account
+  </a>
+
+  <div class="max-w-[560px]">
+    <h1 class="section-heading">Places</h1>
+    <p class="text-sm text-muted mb-4">Every location you've logged, with its areas. Rename one, fix its country, or delete it and move its climbs somewhere else.</p>
+
+    <div class="flex items-center gap-2 min-h-6 mb-3 text-sm text-muted" id="sync-line" hidden>
+      <span id="sync-line-text"></span>
+      <button type="button" class="ml-auto p-0 bg-transparent border-0 font-semibold text-accent-ink underline underline-offset-2 cursor-pointer" id="sync-now">Sync now</button>
+      <svg class="ml-auto w-4 h-4 stroke-accent fill-none shrink-0 animate-spin" id="sync-line-spinner" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Syncing" hidden><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></svg>
+    </div>
+    <p class="hidden" id="install-nudge"></p>
+    <ul class="flex flex-col gap-2 mb-4 p-3 border border-accent rounded-app bg-surface text-sm text-foreground" id="failed-writes" role="status" aria-live="polite" hidden></ul>
+
+    <div class="flex flex-col gap-2" id="places-list"></div>
+    <p class="text-sm text-muted" id="places-empty" hidden>You haven't added any places yet. Add one when you log a climb.</p>
+  </div>
+</div>
+
+<div class="fixed inset-0 z-[110] bg-[color-mix(in_srgb,black_60%,transparent)] flex items-start justify-center px-4 py-6 overflow-y-auto overscroll-contain" id="place-edit-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="place-edit-title" tabindex="-1">
+  <div class="bg-background border border-border rounded-app p-5 w-full max-w-[420px] flex flex-col gap-4">
+    <div class="flex items-center justify-between">
+      <h2 class="text-lg font-bold text-accent-ink" id="place-edit-title">Edit place</h2>
+      <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-lg leading-none p-[.2rem] hover:text-foreground" id="place-edit-close" aria-label="Close">✕</button>
+    </div>
+
+    <form class="flex flex-col gap-4" id="place-edit-form" autocomplete="off" novalidate>
+      <div>
+        <label class="block text-xs font-semibold uppercase tracking-[.07em] text-muted mb-2" for="place-edit-name">Location</label>
+        <input type="text" class="text-input w-full" id="place-edit-name" maxlength="50" required>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold uppercase tracking-[.07em] text-muted mb-2" for="place-edit-country">Country</label>
+        <select class="text-input w-full" id="place-edit-country"></select>
+      </div>
+      <div>
+        <div class="text-xs font-semibold uppercase tracking-[.07em] text-muted mb-2">Areas</div>
+        <div class="flex flex-col gap-2" id="place-edit-areas"></div>
+      </div>
+      <p class="text-sm text-error" id="place-edit-error" role="alert" tabindex="-1" hidden></p>
+      <div class="flex flex-wrap gap-3">
+        <button type="submit" class="btn btn-primary" id="place-edit-save">Save</button>
+        <button type="button" class="btn" id="place-edit-cancel">Cancel</button>
+      </div>
+    </form>
+
+    <div class="flex flex-col gap-3 border-t border-border pt-4" id="place-delete">
+      <p class="text-sm" id="place-delete-text"></p>
+      <div id="place-delete-target-row" hidden>
+        <label class="block text-xs font-semibold uppercase tracking-[.07em] text-muted mb-2" for="place-delete-target">Move them to</label>
+        <select class="text-input w-full" id="place-delete-target"></select>
+      </div>
+      <div><button type="button" class="btn btn-primary disabled:opacity-[.45] disabled:cursor-not-allowed" id="place-delete-btn"></button></div>
+    </div>
+  </div>
+</div>

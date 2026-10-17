@@ -32,9 +32,9 @@ export function removeFailedWrite(qid, storage = localStorage) {
 }
 
 function describe(item) {
+  if (item.op === "delete") return `the deletion of “${item.record.name ?? "an entry"}”`;
   if (item.kind === "location") return `the crag “${item.record.name}”`;
   if (item.kind === "place") return `the area “${item.record.area}”`;
-  if (item.op === "delete") return `the deletion of “${item.record.name ?? "an entry"}”`;
   return `“${item.record.name}”`;
 }
 

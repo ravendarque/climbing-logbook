@@ -150,6 +150,19 @@ const FIXTURES = {
     asB("POST", "/-/api/places", { id: ids.placeId, locationId: ids.bLocationId, area: "Taken" }),
     asB("POST", "/-/api/places", { locationId: ids.locationId, area: "Under A's crag" }),
   ],
+  "PUT /-/api/places": () => [asB("PUT", "/-/api/places", { id: ids.placeId, area: "Renamed by B" })],
+  "DELETE /-/api/places": () => [
+    asB("DELETE", `/-/api/places?id=${ids.placeId}`),
+    asB("DELETE", `/-/api/places?id=${ids.placeId}&moveTo=${ids.bPlaceId}`),
+    asB("DELETE", `/-/api/places?id=${ids.bPlaceId}&moveTo=${ids.placeId}`),
+  ],
+  "PUT /-/api/locations": () => [
+    asB("PUT", "/-/api/locations", { id: ids.locationId, name: "Renamed by B", country: "Spain" }),
+  ],
+  "DELETE /-/api/locations": () => [
+    asB("DELETE", `/-/api/locations?id=${ids.locationId}`),
+    asB("DELETE", `/-/api/locations?id=${ids.locationId}&moveTo=${ids.bPlaceId}`),
+  ],
   "GET /-/api/locations": () => [asB("GET", "/-/api/locations"), asB("GET", "/-/api/locations?since=0")],
   "POST /-/api/locations": () => [
     asB("POST", "/-/api/locations", { id: ids.locationId, name: "Taken", country: "Spain" }),
