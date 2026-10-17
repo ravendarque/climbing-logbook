@@ -37,7 +37,7 @@ We use this to run the app for you, and for nothing else.
 
 ## Who can see your logbook
 
-You decide. Your logbook starts private. In My account, the **Public Logbook** setting controls whether anyone can view your logbook and map. Your Grade Pyramid, Injury insights and other Performance Insights are always private to you.
+You choose when you set up your account, and you can change it at any time. In My account, the **Public Logbook** setting controls whether anyone can view your logbook and map. Your Grade Pyramid, Injury insights and other Performance Insights are always private to you.
 
 We only look at a logbook to investigate a report, misuse, or a problem you've asked us to help with, and every look is logged.
 
