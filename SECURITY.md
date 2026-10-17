@@ -22,6 +22,18 @@ This is a personal, single-maintainer project — response times are
 best-effort, not SLA-backed. Confirmed vulnerabilities get fixed and
 disclosed via a GitHub Security Advisory once a patch is available.
 
+## Good-faith research
+
+If you look for vulnerabilities in good faith and follow this policy, we won't take action against you, and we'll work with you to understand and fix what you find. Please:
+
+- only use accounts you own, or that you've made for testing;
+- never access, change or keep another person's data. If you come across some, stop and tell us;
+- don't run denial-of-service or high-volume tests against `climbinglogbook.com` or its subdomains;
+- don't use social engineering, phishing or physical attacks;
+- give us a reasonable chance to fix a problem before you talk about it publicly.
+
+We try to acknowledge a report within 7 days and keep you updated as we work on it.
+
 ## Scope
 
 Covers the application code in this repository (`client/`, `server/`) and its

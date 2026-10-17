@@ -19,7 +19,7 @@ import { withoutTrackingParams } from "../shared/video-links.js";
 import { showCharactersLeft } from "./characters-left.js";
 import { createListPicker, renderOptionList } from "./modal-utils.js";
 import { calendarDatePickerHtml, createCalendarDatePicker } from "./calendar-date-picker.js";
-import { isUnauthorized } from "./api-fetch.js";
+import { isUnauthorized, isUnavailable } from "./api-fetch.js";
 import { STORAGE_FULL_MESSAGE } from "./storage-quota.js";
 import "./components/climbing-status-picker.js";
 
@@ -583,6 +583,7 @@ export function createEntryForm({
         body: JSON.stringify(entry),
       });
       if (isUnauthorized(res)) throw new Error("not-authenticated");
+      if (isUnavailable(res)) throw new Error("unavailable");
       // An HTML error page isn't JSON; that's still a server error, not being offline.
       const data = await res.json().catch(() => null);
       if (!res.ok) {
@@ -633,6 +634,7 @@ export function createEntryForm({
     try {
       const res = await apiFetch(`${entriesWriteUrl}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
       if (isUnauthorized(res)) throw new Error("not-authenticated");
+      if (isUnavailable(res)) throw new Error("unavailable");
       if (!res.ok) {
         showEntryError((await res.json().catch(() => null))?.error ?? `Error ${res.status}`);
         entryDeleteBtn.disabled = false;

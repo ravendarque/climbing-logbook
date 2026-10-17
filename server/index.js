@@ -69,6 +69,12 @@ async function handleRequest(request, env, ctx, log) {
   const perHostAsset = perHostAssetPath(hostname, pathname);
   if (perHostAsset && (method === "GET" || method === "HEAD")) return handlePerHostAsset(request, env, perHostAsset);
 
+  // The incident kill switch (#1063): writes wait, reads carry on, and the app's offline queue keeps unsynced changes.
+  // Signing out stays open: refusing it would leave a session live on a device someone thinks they've left.
+  if (env.READ_ONLY === "true" && !isRead && pathname.startsWith("/-/api/") && pathname !== "/-/api/auth/sign-out") {
+    return readOnlyResponse();
+  }
+
   if (pathname.startsWith("/-/api/auth/")) {
     const limited = await limitAuthRequest(request, env, log);
     if (limited) return limited;
@@ -125,6 +131,17 @@ async function handleRequest(request, env, ctx, log) {
   }
 
   return new Response("Not found", { status: 404 });
+}
+
+function readOnlyResponse() {
+  return json(
+    {
+      error: "Climbing Logbook can't save changes for a few minutes while we fix something. Try again shortly.",
+      code: "READ_ONLY",
+    },
+    503,
+    { "Retry-After": "300", "Cache-Control": "no-store" },
+  );
 }
 
 // Test-only routes that throw, so the boundary can be checked on a preview (#1032).

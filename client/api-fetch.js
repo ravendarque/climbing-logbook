@@ -11,3 +11,8 @@ export function apiFetch(url, options = {}) {
 export function isUnauthorized(res) {
   return res.status === 401;
 }
+
+// A 503 means try again later, as in read-only mode (#1063): the write queues like it would offline.
+export function isUnavailable(res) {
+  return res.status === 503;
+}

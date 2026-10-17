@@ -1,0 +1,7 @@
+Contact: https://github.com/ravendarque/climbing-logbook/security/advisories/new
+Expires: 2027-10-17T00:00:00.000Z
+Policy: https://github.com/ravendarque/climbing-logbook/blob/main/SECURITY.md
+Preferred-Languages: en
+Canonical: https://climbinglogbook.com/.well-known/security.txt
+Canonical: https://my.climbinglogbook.com/.well-known/security.txt
+Canonical: https://beta.climbinglogbook.com/.well-known/security.txt

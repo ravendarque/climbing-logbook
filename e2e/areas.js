@@ -37,7 +37,7 @@ export const AREAS = {
     "reports-on-device",
     "component-harnesses",
   ],
-  sync: ["sync-page", "queue-replay", "offline-launch", "entries-cache", "per-user-data", "asset-caching"],
+  sync: ["sync-page", "read-only", "queue-replay", "offline-launch", "entries-cache", "per-user-data", "asset-caching"],
   tour: ["tour", "welcome", "demo-visit"],
   admin: ["admin"],
   reports: ["report-and-hide", "report-issue-page", "feedback-page"],
