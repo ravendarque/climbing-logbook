@@ -32,9 +32,8 @@ We use this to run the app for you, and for nothing else.
 
 ## How long we keep it
 
-- **Each sign-in** stores the IP address and browser it came from, alongside the session that keeps you logged in. We delete them about a week after the sign-in expires.
 - **Email links**, for checking your email address or resetting your password, are deleted within a day of expiring.
-- **Your account and logbook** stay until you delete your account in My account, which removes them.
+- **Your account and logbook** stay until you delete your account in My account, which removes them. Our backups drop them within 30 days.
 
 ## Who can see your logbook
 
@@ -94,7 +93,7 @@ We only share what's needed to run the app, and only for that:
 - **our email provider**, which sends the emails about your account;
 - **our bot-check provider**, which checks sign-ups are from a person.
 
-They only use your data to provide their service to us. Our email provider is in the US, so your email address and username go there when we email you. That transfer is covered by [safeguard to confirm].
+They only use your data to provide their service to us. Our email provider is in the US, so your email address and username go there when we email you. That transfer is covered by the UK–US data bridge, and by the UK's standard contract terms for international transfers.
 
 ## Your rights
 
