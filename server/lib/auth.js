@@ -136,7 +136,14 @@ export function createAuth(env, hostname, log) {
         },
         update: { before: accountStatus.beforeUserUpdate },
       },
-      session: { create: { before: accountStatus.beforeSessionCreate } },
+      session: {
+        create: {
+          before: async session => {
+            await accountStatus.beforeSessionCreate(session);
+            return { data: { ...session, ipAddress: null, userAgent: null } };
+          },
+        },
+      },
     },
   });
   return auth;

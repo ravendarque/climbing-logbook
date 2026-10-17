@@ -178,6 +178,21 @@ describe("sign-up", () => {
 });
 
 describe("session lifecycle", () => {
+  it("doesn't keep the IP address or browser a sign-in came from", async () => {
+    await signUp();
+    await env.LOGBOOK_DB.prepare(`UPDATE "user" SET emailVerified = 1 WHERE email = ?`).bind(VALID_SIGNUP.email).run();
+    const res = await jsonRequest(
+      "POST",
+      "/-/api/auth/sign-in/email",
+      { email: VALID_SIGNUP.email, password: VALID_SIGNUP.password },
+      { "cf-connecting-ip": "203.0.113.7", "User-Agent": "Mozilla/5.0 Test" },
+    );
+    expect(res.status).toBe(200);
+    const sessions = await env.LOGBOOK_DB.prepare(`SELECT "ipAddress", "userAgent" FROM "session"`).all();
+    expect(sessions.results.length).toBeGreaterThan(0);
+    for (const session of sessions.results) expect(session).toEqual({ ipAddress: null, userAgent: null });
+  });
+
   it("has no session before signing up", async () => {
     const res = await getSession();
     expect(res.status).toBe(200);
