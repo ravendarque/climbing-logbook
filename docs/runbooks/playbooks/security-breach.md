@@ -41,4 +41,6 @@ Stops every write to the app's API without taking the site down: people can stil
 - **On:** `echo true | npx wrangler secret put READ_ONLY --env production` (and `--env beta`, which shares the database).
 - **Off:** `npx wrangler secret delete READ_ONLY --env production` (and `--env beta`).
 
+Signing out still works, so nobody is left signed in on a device they think they've left. Everything else that writes waits, including sign-up, feedback and account deletion: keep read-only periods short, and answer any deletion request made meanwhile once it's off.
+
 A secret change takes effect without a deploy. Check with a write from the app: it's queued, and the sync line shows it waiting.

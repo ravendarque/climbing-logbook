@@ -25,6 +25,16 @@ describe("read-only mode (#1063)", () => {
     }
   });
 
+  it("still lets people sign out", async () => {
+    env.READ_ONLY = "true";
+    const res = await fetchApp("/-/api/auth/sign-out", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+    expect(res.status).not.toBe(503);
+  });
+
   it("leaves reads alone", async () => {
     env.READ_ONLY = "true";
     expect((await fetchApp("/-/api/health")).status).toBe(200);

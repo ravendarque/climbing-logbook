@@ -34,6 +34,32 @@ test("in read-only mode a climb saved online is queued, then syncs once writes a
   expect(entries.map(entry => entry.name)).toContain("Saved while read-only");
 });
 
+test("in read-only mode a climb deleted online is queued, then deleted once writes are back (#1063)", async ({
+  page,
+  owner,
+}) => {
+  await owner.seed({ entries: [{ id: "gone", name: "Delete me" }] });
+  await gotoSyncedLog(page, owner);
+
+  await page.route("**/-/api/entries?id=*", route =>
+    route.request().method() === "DELETE" ? route.fulfill(READ_ONLY) : route.fallback(),
+  );
+  await page.locator("#collapse-all-btn").click();
+  await page
+    .locator("tr", { has: page.getByText("Delete me", { exact: true }) })
+    .locator(".edit-btn")
+    .click();
+  page.once("dialog", dialog => dialog.accept());
+  await page.locator("#entry-delete-btn").click();
+  await expect(page.locator("#sync-line-text")).toHaveText("1 change waiting to sync");
+
+  await page.unroute("**/-/api/entries?id=*");
+  await page.locator("#sync-now").click();
+  await expect(page.locator("#sync-line")).toBeHidden();
+  const { entries } = await (await owner.api("GET", "entries")).json();
+  expect(entries.map(entry => entry.name)).not.toContain("Delete me");
+});
+
 test("security.txt is served on the apex and my. hosts (#1063)", async ({ request }) => {
   for (const origin of ["http://localhost:8787", OWNED_ORIGIN]) {
     const res = await request.get(`${origin}/.well-known/security.txt`);
