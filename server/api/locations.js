@@ -109,9 +109,9 @@ export async function handleDelete(request, env, userId) {
         ]
       : []),
     env.LOGBOOK_DB.prepare(
-      `UPDATE places SET deleted_at = ?, sync_cursor = ${nextCursorSql("places")}, updated_at = datetime('now')
+      `UPDATE places SET deleted_at = ?, moved_to = ?, sync_cursor = ${nextCursorSql("places")}, updated_at = datetime('now')
        WHERE location_id = ? AND user_id = ? AND deleted_at IS NULL`,
-    ).bind(now, userId, location.id, userId),
+    ).bind(now, target?.id ?? null, userId, location.id, userId),
     softDeleteStatement(env, "locations", userId, [location.id]),
   ]);
   return json({ moved: climbs });

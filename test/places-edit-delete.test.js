@@ -128,6 +128,16 @@ describe("deleting an area (#160)", () => {
     });
     expect(res.status).toBe(400);
   });
+
+  it("sends a late climb at a deleted area to where that area's climbs went", async () => {
+    const font = await location("Fontainebleau");
+    const wrong = await place(font.id, "Wrong");
+    const right = await place(font.id, "Right");
+    await climb(wrong.id);
+    await as("DELETE", `/-/api/places?id=${wrong.id}&moveTo=${right.id}`);
+    const late = await climb(wrong.id, "Late");
+    expect(late.placeId).toBe(right.id);
+  });
 });
 
 describe("deleting a location (#160)", () => {
@@ -145,6 +155,15 @@ describe("deleting a location (#160)", () => {
     const { locations } = await (await as("GET", "/-/api/locations")).json();
     expect(locations.map(l => l.id)).toEqual([right.id]);
     expect(await usage()).toMatchObject({ locations: 1, places: 1 });
+  });
+
+  it("sends a late climb at one of its areas to where its climbs went", async () => {
+    const gone = await location("Gone");
+    const area = await place(gone.id, "Area");
+    const target = await place((await location("Kept")).id, "Area");
+    await climb(area.id);
+    await as("DELETE", `/-/api/locations?id=${gone.id}&moveTo=${target.id}`);
+    expect((await climb(area.id, "Late")).placeId).toBe(target.id);
   });
 
   it("won't move climbs into one of its own areas", async () => {

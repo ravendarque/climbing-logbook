@@ -4,6 +4,7 @@ import { createReportData } from "./report-data.js";
 import { createSyncStatusIcon } from "./sync-status-icon.js";
 import { createOfflineSync } from "./offline-sync.js";
 import { createModalHelpers } from "./modal-utils.js";
+import { createFailedWritesBanner, getFailedWrites, removeFailedWrite } from "./failed-writes.js";
 import { apiFetch } from "./api-fetch.js";
 import { userKey } from "./user-storage.js";
 import { readPendingQueue } from "./delta-pull.js";
@@ -33,7 +34,20 @@ const offlineSync = createOfflineSync({
   placesUrl: "/-/api/places",
   locationsUrl: "/-/api/locations",
   queueKey: QUEUE_KEY,
+  onFailedWrites: showFailedWrites,
 });
+const failedWritesBanner = createFailedWritesBanner({
+  el: document.getElementById("failed-writes"),
+  onEdit: () => {},
+  onDiscard: item => {
+    removeFailedWrite(item.qid);
+    showFailedWrites();
+  },
+});
+
+function showFailedWrites() {
+  failedWritesBanner.render(getFailedWrites());
+}
 const { openModal, closeModal } = createModalHelpers(["place-edit-overlay"]);
 
 document.getElementById("back-to-account-link").href = `/${encodeURIComponent(USERNAME)}/account`;
@@ -199,9 +213,9 @@ form.addEventListener("submit", event => {
 });
 
 deleteBtn.addEventListener("click", () => {
-  const { kind, id, placeIds } = deleting;
+  const { kind, id, name, placeIds } = deleting;
   const moveTo = climbsAt(placeIds) > 0 ? deleteTarget.value : undefined;
-  const record = moveTo ? { id, moveTo } : { id };
+  const record = moveTo ? { id, name, moveTo } : { id, name };
   if (!queueAndSync([{ kind, op: "delete", record }])) return;
   if (kind === "location") {
     closeModal(overlay);
@@ -239,6 +253,7 @@ async function boot() {
     await store.setEntries(entries).catch(() => {});
   }
   render();
+  showFailedWrites();
   offlineSync.updateSyncLine();
   await reportData.refresh();
 }

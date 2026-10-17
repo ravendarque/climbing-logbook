@@ -27,6 +27,24 @@ export function moveEntriesStatement(env, userId, fromPlaceIds, toPlaceId) {
   ).bind(toPlaceId, userId, userId, ...fromPlaceIds);
 }
 
+export async function followMovedPlace(env, placeId, userId) {
+  let id = placeId;
+  for (let hop = 0; hop < 5 && typeof id === "string"; hop++) {
+    const row = await env.LOGBOOK_DB.prepare(`SELECT deleted_at, moved_to FROM places WHERE id = ? AND user_id = ?`)
+      .bind(id, userId)
+      .first();
+    if (!row || row.deleted_at === null || !row.moved_to) return id;
+    id = row.moved_to;
+  }
+  return id;
+}
+
+export function recordMoveStatement(env, userId, fromPlaceIds, toPlaceId) {
+  return env.LOGBOOK_DB.prepare(
+    `UPDATE places SET moved_to = ? WHERE user_id = ? AND id IN (${fromPlaceIds.map(() => "?").join(", ")})`,
+  ).bind(toPlaceId, userId, ...fromPlaceIds);
+}
+
 export function softDeleteStatement(env, table, userId, ids) {
   return env.LOGBOOK_DB.prepare(
     `UPDATE ${table} SET deleted_at = ?, sync_cursor = ${nextCursorSql(table)}, updated_at = datetime('now')

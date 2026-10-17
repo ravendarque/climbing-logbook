@@ -21,6 +21,7 @@ const OWNED_PAGES = {
   log: [],
   view: ["map"],
   performance: ["pyramid", "injury", "strengths", "trends", "gap", "rpe"],
+  account: ["places"],
 };
 function safeReturnTo() {
   const raw = new URL(location.href).searchParams.get("returnTo");

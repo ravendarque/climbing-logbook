@@ -6,6 +6,7 @@ import {
   countLiveEntriesAt,
   findLivePlace,
   moveEntriesStatement,
+  recordMoveStatement,
   resolveMoveTarget,
   softDeleteStatement,
 } from "../lib/place-moves.js";
@@ -98,7 +99,12 @@ export async function handleDelete(request, env, userId) {
   );
   if (error) return json({ error, code }, 400);
   await env.LOGBOOK_DB.batch([
-    ...(target ? [moveEntriesStatement(env, userId, [place.id], target.id)] : []),
+    ...(target
+      ? [
+          moveEntriesStatement(env, userId, [place.id], target.id),
+          recordMoveStatement(env, userId, [place.id], target.id),
+        ]
+      : []),
     softDeleteStatement(env, "places", userId, [place.id]),
   ]);
   return json({ moved: climbs });

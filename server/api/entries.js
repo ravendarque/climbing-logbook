@@ -17,6 +17,7 @@ import {
   ENTRY_OWNER_CONSENTED_BINDS,
   hasConsent,
 } from "../lib/health-consent.js";
+import { followMovedPlace } from "../lib/place-moves.js";
 
 // Must match migrations/0016_add_grade_scale.sql's backfill WHERE clause.
 const LEGACY_SPORT_NON_STANDARD_GRADES = new Set(["1", "1+", "2", "2+", "3", "3+"]);
@@ -28,6 +29,7 @@ function defaultGradeScale(entry) {
 async function validateFields(entry, env, userId) {
   const shapeErr = validateEntryShape(entry);
   if (shapeErr) return shapeErr;
+  entry.placeId = await followMovedPlace(env, entry.placeId, userId);
   const owned = await findOwnedRow(env, "places", entry.placeId, userId, { excludeDeleted: true });
   if (!owned) return "placeId does not reference one of your places";
   if (entry.painMoves?.length && !(await hasConsent(env, userId))) return CONSENT_REQUIRED;

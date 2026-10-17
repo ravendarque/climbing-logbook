@@ -1,3 +1,4 @@
+import { blockIndexedDb } from "./entries-cache.js";
 import { expect, gotoSyncedLog, test } from "./owner.js";
 
 const SEED = {
@@ -123,4 +124,44 @@ test("offline, a rename shows at once and syncs by itself once the connection is
   await expect(page.locator("#sync-line")).toBeHidden();
   const { locations } = await serverState(owner);
   expect(locations.find(l => l.id === owner.ownId("l2")).name).toBe("Magic Wood (Averstal)");
+});
+
+test("works from the server's copy on a device that keeps no data, and saves changes (#159)", async ({
+  page,
+  owner,
+}) => {
+  await owner.seed(SEED);
+  await blockIndexedDb(page);
+  await page.goto(owner.url("/account/places"));
+  await expect(page).toHaveURL(owner.url("/account/places"));
+  const font = page.locator(`[data-location-id="${owner.ownId("l1")}"]`);
+  await expect(font).toContainText("France · 2 areas · 3 climbs");
+
+  await page.locator(`[data-edit="${owner.ownId("l1")}"]`).click();
+  await page.locator("#place-edit-name").fill("Fontainebleau");
+  await page.locator("#place-edit-save").click();
+
+  await expect(font).toContainText("Fontainebleau");
+  await expect(page.locator("#sync-line")).toBeHidden();
+  const { locations } = await serverState(owner);
+  expect(locations.find(l => l.id === owner.ownId("l1")).name).toBe("Fontainebleau");
+});
+
+test("a change the server refuses shows as a failed write that can be discarded (#160)", async ({ page, owner }) => {
+  await openPlaces(page, owner);
+  await page.route("**/-/api/places?*", route =>
+    route.request().method() === "DELETE"
+      ? route.fulfill({ status: 400, contentType: "application/json", body: '{"error":"Not allowed"}' })
+      : route.fallback(),
+  );
+  await page.locator(`[data-edit="${owner.ownId("l1")}"]`).click();
+  await page.locator(`[data-delete-area="${owner.ownId("p2")}"]`).click();
+  await page.locator("#place-delete-target").selectOption(owner.ownId("p1"));
+  await page.locator("#place-delete-btn").click();
+  await page.locator("#place-edit-cancel").click();
+
+  const banner = page.locator("#failed-writes");
+  await expect(banner).toContainText("Couldn't save the deletion of “Apremont”");
+  await banner.getByRole("button", { name: "Discard" }).click();
+  await expect(banner).toBeHidden();
 });

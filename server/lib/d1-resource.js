@@ -120,12 +120,16 @@ export function createD1ResourceHandlers({
         if (overLimit) return overLimit;
         const row = buildRow(record, id, userId);
         const columns = Object.keys(row).filter(c => c !== "id" && c !== "user_id");
-        await env.LOGBOOK_DB.batch([
-          env.LOGBOOK_DB.prepare(
-            `UPDATE ${table} SET ${columns.map(c => `${c} = ?`).join(", ")}, deleted_at = NULL, sync_cursor = ${nextCursorSql(table)} WHERE id = ? AND user_id = ?`,
-          ).bind(...columns.map(c => row[c]), userId, id, userId),
-          ...childStatements(env, id, record),
-        ]);
+        try {
+          await env.LOGBOOK_DB.batch([
+            env.LOGBOOK_DB.prepare(
+              `UPDATE ${table} SET ${columns.map(c => `${c} = ?`).join(", ")}, deleted_at = NULL, sync_cursor = ${nextCursorSql(table)} WHERE id = ? AND user_id = ?`,
+            ).bind(...columns.map(c => row[c]), userId, id, userId),
+            ...childStatements(env, id, record),
+          ]);
+        } catch (e) {
+          return respondToClash(e, env, userId, id, record);
+        }
         return respondWithRow(env, userId, id, 201);
       }
       return respondWithRow(env, userId, id, 200);
@@ -141,13 +145,18 @@ export function createD1ResourceHandlers({
         ...childStatements(env, id, record),
       ]);
     } catch (e) {
-      if (!e.message?.includes("UNIQUE constraint failed")) throw e;
-      const duplicate = findDuplicate ? await findDuplicate(env, userId, record) : null;
-      if (duplicate) return respondWithRow(env, userId, duplicate.id, 200, { dedupedTo: duplicate.id });
-      if (!(await findOwnedRow(env, table, id, userId))) return json({ error: "That id is already in use" }, 409);
-      return respondWithRow(env, userId, id, 200);
+      return respondToClash(e, env, userId, id, record);
     }
     return respondWithRow(env, userId, id, 201);
+  }
+
+  async function respondToClash(e, env, userId, id, record) {
+    if (!e.message?.includes("UNIQUE constraint failed")) throw e;
+    const duplicate = findDuplicate ? await findDuplicate(env, userId, record) : null;
+    if (duplicate) return respondWithRow(env, userId, duplicate.id, 200, { dedupedTo: duplicate.id });
+    if (!(await findOwnedRow(env, table, id, userId, { excludeDeleted })))
+      return json({ error: "That id is already in use" }, 409);
+    return respondWithRow(env, userId, id, 200);
   }
 
   return { handleGet, handlePost, respondWithRow };

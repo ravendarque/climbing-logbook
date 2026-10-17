@@ -2,6 +2,7 @@
 -- destructive-migration: the name and area indexes and the usage triggers are replaced in the same migration
 ALTER TABLE locations ADD COLUMN deleted_at INTEGER;
 ALTER TABLE places ADD COLUMN deleted_at INTEGER;
+ALTER TABLE places ADD COLUMN moved_to TEXT;
 
 DROP INDEX idx_locations_user_name;
 DROP INDEX idx_places_user_location_area;
