@@ -62,8 +62,14 @@
     { "pattern": "my.climbinglogbook.com/*", "zone_name": "climbinglogbook.com" },
     { "pattern": "admin.climbinglogbook.com/*", "zone_name": "climbinglogbook.com" }
   ],
+  // Workers Free: 200k log events a day for the whole account, kept 3 days (#1037). Each request writes about two,
+  // so production keeps everything until traffic nears 100k requests a day; previews log a sample, not production's share.
+  // Tracing stays off until a tracing tool is chosen (#1028).
   "observability": {
     "enabled": true,
+    "head_sampling_rate": 1,
+    "logs": { "enabled": true, "invocation_logs": true },
+    "traces": { "enabled": false },
     "issues": { "enabled": true }
   },
   // A separate Worker (climbing-logbook-preview) with its own database; routes overridden so nothing attaches.
@@ -100,6 +106,12 @@
       ]
     },
     "preview": {
+      "observability": {
+        "enabled": true,
+        "head_sampling_rate": 0.1,
+        "logs": { "enabled": true, "invocation_logs": false },
+        "traces": { "enabled": false }
+      },
       // The same daily clean-up as production, on the preview database (#1051).
       "triggers": { "crons": ["17 3 * * *"] },
       "workers_dev": true,
@@ -159,6 +171,12 @@
     },
     // Like preview, but never deployed, so no rate limiting (no real client IP).
     "e2e": {
+      "observability": {
+        "enabled": true,
+        "head_sampling_rate": 0.1,
+        "logs": { "enabled": true, "invocation_logs": false },
+        "traces": { "enabled": false }
+      },
       "workers_dev": true,
       "routes": [],
       "version_metadata": { "binding": "CF_VERSION_METADATA" },
