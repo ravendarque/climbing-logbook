@@ -39,7 +39,6 @@ The record UK GDPR Art. 30 requires. The small-organisation exemption doesn't ap
 ## Gaps to settle
 
 - **No retention limit on feedback, issue reports or the moderation audit log.** The audit log also keeps a deleted account's username and email. Each needs a period, and the cleanup cron needs to enforce it.
-- **The DPIA** for health information is in [dpia.md](dpia.md), awaiting the controller's sign-off.
 
 ## Security measures
 

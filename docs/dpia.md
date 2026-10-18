@@ -2,7 +2,7 @@
 
 The DPIA UK GDPR Art. 35 requires before processing special category data that's likely to be high risk. It covers the health information people can log under the Health Data Agreement, and builds on the record of processing in [data-protection.md](data-protection.md). Not legal advice. Part of #1064.
 
-**Status:** draft for the controller's sign-off (see the end).
+**Status:** approved by the controller, 18 October 2026.
 **Review:** whenever a new kind of health information is added (#1409 cycle phase, #1410 energy and mood), the agreement's wording changes, or a control below changes. Both of those issues need this DPIA updated before they ship.
 
 ## Why a DPIA
@@ -65,7 +65,7 @@ No risk is left high, so prior consultation with the ICO (Art. 36) isn't needed.
 
 | | |
 |---|---|
-| Measures approved by | *Controller, date* |
-| Residual risks approved by | *Controller, date* |
+| Measures approved by | The controller, 18 October 2026 |
+| Residual risks approved by | The controller, 18 October 2026 |
 | DPO advice | Not applicable: no DPO is required (no large-scale core processing of special category data) |
 | Professional review | Not planned: the controller decided against one (2026-10-18) |
