@@ -101,7 +101,7 @@ You can:
 
 - **see and download your logbook**: My account, then *Export entries* (see [Import and export](/help/import-and-export/));
 - **correct it**: [edit any climb](/help/editing-an-entry/), or your details in My account;
-- **delete it**: My account, then *Edit account details*, then *Delete account*. That deletes your account and everything in it;
+- **delete it**: My account, then *Delete account*. That deletes your account and everything in it;
 - **withdraw your health data agreement**: My account, then *Health data*;
 - **ask for anything else**, like a copy of everything we hold about you, or to restrict or object to how we use it: [contact us](/help/report-an-issue/).
 
