@@ -14,7 +14,7 @@ It's optional, and it's entirely up to you whether to use it.
 
 ## Setting it up
 
-You'll need an authenticator app. Most phones have one built into their password manager, or you can use one such as Google Authenticator or Microsoft Authenticator.
+You'll need an authenticator app. We really like [Proton Authenticator](https://proton.me/authenticator) and [Ente Auth](https://ente.com/auth/), but you can use any authenticator app.
 
 1. Go to My account, then *Two-step sign-in*, and choose *Set up two-step sign-in*.
 2. Enter your password.
