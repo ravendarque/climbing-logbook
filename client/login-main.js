@@ -319,7 +319,13 @@ async function passkeyLogIn(autofill) {
     await finishLogin(user);
   } catch (err) {
     // Autofill is only an offer; it fails quietly, and only a pressed button reports a problem.
-    if (autofill || isCancelled(err)) return;
+    if (autofill) return;
+    if (isCancelled(err)) {
+      infoEl.textContent =
+        "No passkey was used. If you haven't added one for Climbing Logbook yet, log in with your password, then add one in My account.";
+      infoEl.hidden = false;
+      return;
+    }
     showError(err.message);
   }
 }
@@ -330,6 +336,7 @@ if (!RECOVERY_TOKEN && passkeysSupported()) {
     passkeyAutofill?.abort();
     passkeyAutofill = null;
     errorEl.hidden = true;
+    infoEl.hidden = true;
     passkeyBtn.disabled = true;
     await passkeyLogIn(false);
     passkeyBtn.disabled = false;

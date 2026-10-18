@@ -127,3 +127,22 @@ test("if the server says the session isn't fresh, the page asks to log in again 
   await expect(page.locator("#passkeys-reauth")).toBeVisible();
   await expect(page.locator("#passkeys-error")).toBeHidden();
 });
+
+test("cancelling the passkey prompt explains what to do, rather than saying nothing (#1439)", async ({
+  page,
+  context,
+}) => {
+  await withoutAutofill(page);
+  await page.addInitScript(() => {
+    navigator.credentials.get = async () => {
+      throw new DOMException("The operation either timed out or was not allowed.", "NotAllowedError");
+    };
+  });
+  await context.clearCookies();
+  await page.goto(`${OWNED_ORIGIN}/-/login/`);
+  await page.locator("#passkey-login-btn").click();
+  await expect(page.locator("#login-info")).toHaveText(
+    "No passkey was used. If you haven't added one for Climbing Logbook yet, log in with your password, then add one in My account.",
+  );
+  await expect(page.locator("#login-error")).toBeHidden();
+});
