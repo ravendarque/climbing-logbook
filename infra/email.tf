@@ -1,27 +1,15 @@
-# support@ is the contact account emails give (#1280, #1365); mail to it is forwarded, and it's never published on the site.
-resource "cloudflare_email_routing_dns" "app" {
-  zone_id = data.cloudflare_zone.app.id
+# support@ is the contact account emails give (#1280, #1365), a Proton Mail mailbox (#1444); it's never published on the site.
+import {
+  to = cloudflare_dns_record.proton_verification
+  id = "${data.cloudflare_zone.app.id}/f777e54d1be62620b46ec8d26f914b66"
 }
 
-resource "cloudflare_email_routing_address" "support_destination" {
-  account_id = var.cloudflare_account_id
-  email      = var.support_forward_email
-}
-
-resource "cloudflare_email_routing_rule" "support" {
+resource "cloudflare_dns_record" "proton_verification" {
   zone_id = data.cloudflare_zone.app.id
-  name    = "Forward support@"
-  enabled = true
-  matchers = [{
-    type  = "literal"
-    field = "to"
-    value = "support@${var.app_zone_name}"
-  }]
-  actions = [{
-    type  = "forward"
-    value = [cloudflare_email_routing_address.support_destination.email]
-  }]
-  depends_on = [cloudflare_email_routing_dns.app]
+  name    = var.app_zone_name
+  type    = "TXT"
+  ttl     = 1
+  content = "\"protonmail-verification=fe96490b1f1ddc48374942ffa3fef4aecdcdddcf\""
 }
 
 # Made in the dashboard when Resend was set up; reject once only Resend sends as the domain (#1053).
