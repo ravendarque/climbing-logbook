@@ -205,12 +205,22 @@ test("a user is found, suspended, unsuspended and deleted, and each step is in t
   ]);
 });
 
-test("a private logbook can be viewed read-only, and the view is in the activity log (#1279)", async ({
+test("a private logbook can be viewed read-only, health data included, and the view is in the activity log (#1279, #1433)", async ({
   page,
   owner,
 }) => {
   await owner.settings({ logbookPublic: false });
-  await owner.seed({ entries: [{ name: "Quiet project", status: "project", notes: "Just for me" }] });
+  await owner.grantPainInjuryConsent();
+  await owner.seed({
+    entries: [
+      {
+        name: "Quiet project",
+        status: "project",
+        notes: "Just for me",
+        painMoves: [{ limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" }],
+      },
+    ],
+  });
 
   await page.goto(`${ADMIN}/users`);
   await page.locator("#user-search").fill(owner.username);
@@ -223,6 +233,7 @@ test("a private logbook can be viewed read-only, and the view is in the activity
   await expect(climb).toContainText("Quiet project");
   await expect(climb).toContainText("Project");
   await expect(climb).toContainText("Just for me");
+  await expect(climb).toContainText("Pain or injury: left hand crimp static overhang");
   await expect(climb.locator("button, input, a")).toHaveCount(0);
 
   await page.locator("#toggle-suspend").click();

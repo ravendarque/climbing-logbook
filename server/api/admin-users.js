@@ -1,6 +1,7 @@
 import { json, parseJsonBody } from "../lib/json.js";
 import { normaliseIdentity } from "../lib/account-status.js";
 import { releaseInvites } from "../lib/remove-account.js";
+import { attachChildRows } from "./entries.js";
 
 const LIST_LIMIT = 500;
 
@@ -118,15 +119,21 @@ export async function viewLogbook(env, id) {
   const [, { results }] = await env.LOGBOOK_DB.batch([
     audit(env, "view", user),
     env.LOGBOOK_DB.prepare(
-      `SELECT e.id, e.date, e.name, e.grade, e.discipline_id AS discipline, e.status_id AS status,
-              e.first_attempt AS firstAttempt, e.notes, e.video, e.hidden_at IS NOT NULL AS hidden,
+      `SELECT e.id, e.date, e.name, e.grade, e.grade_scale AS gradeScale, e.discipline_id AS discipline,
+              e.status_id AS status, e.first_attempt AS firstAttempt, e.sport_style AS sportStyle,
+              e.attempts_to_send AS attemptsToSend, e.rpe, e.notes, e.video, e.hidden_at IS NOT NULL AS hidden,
               l.name AS location, l.country, p.area
        FROM entries e JOIN places p ON p.id = e.place_id JOIN locations l ON l.id = p.location_id
        WHERE e.user_id = ? AND e.deleted_at IS NULL
        ORDER BY e.date DESC, e.created_at DESC`,
     ).bind(id),
   ]);
-  const entries = results.map(row => ({ ...row, firstAttempt: !!row.firstAttempt, hidden: !!row.hidden }));
+  const entries = await attachChildRows(
+    results.map(row => ({ ...row, firstAttempt: !!row.firstAttempt, hidden: !!row.hidden })),
+    env,
+    id,
+    { evenWithoutConsent: true },
+  );
   return json({ username: user.username, entries }, 200, { "Cache-Control": "no-store" });
 }
 
