@@ -491,8 +491,12 @@ Tables (see `migrations/` for columns and constraints):
   last-known state from localStorage first and corrects it once
   `/-/api/auth/get-session` answers; a network failure keeps the last-known
   state, but a real "no session" logs the page out.
-- **Rate limiting** is Better Auth's own, stored in D1 and keyed on
-  `cf-connecting-ip` ([ADR-0027](adr/0027-database-backed-rate-limiting-on-sign-in.md)).
+- **Rate limiting** happens in the Worker before Better Auth, through the
+  Workers rate-limit bindings (`server/lib/auth-rate-limit.js`,
+  [ADR-0037](adr/0037-rate-limiting-through-the-workers-binding.md)): every
+  auth POST per connection and path, and sign-in per target account too, so
+  guesses spread across many IPs still slow down (#1049). Better Auth's own
+  limiter is off.
 - **Already logged in:** the apex home and login page send a signed-in
   visitor straight to their log (`client/session-redirect.js`).
 - **Suspended and banned accounts** are enforced in Better Auth's database
