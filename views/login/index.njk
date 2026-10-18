@@ -71,17 +71,17 @@
         </div>
 
         <div class="mt-4 pt-4 border-t border-border text-sm" id="lost-device" hidden>
-          <p class="mb-2">We can email you a link that switches two-step sign-in off <strong>7 days</strong> after you use it.</p>
-          <p class="text-muted mb-4">The wait protects you: if someone else has your password, they can't switch it off quickly, and you'll get an email so you can stop them. We can't switch it off for you, because we can't tell you apart from someone pretending to be you. <a class="text-accent-ink underline underline-offset-2" href="/help/two-step-sign-in/">Why there's a wait</a></p>
+          <p class="mb-2">We can email you a link that switches 2FA off <strong>7 days</strong> after you use it.</p>
+          <p class="text-muted mb-4">The wait protects you: if someone else has your password, they can't switch it off quickly, and you'll get an email so you can stop them. We can't switch it off for you, because we can't tell you apart from someone pretending to be you. <a class="text-accent-ink underline underline-offset-2" href="/help/two-factor-authentication/">Why there's a wait</a></p>
           <button type="button" class="btn w-full disabled:opacity-[.45] disabled:cursor-not-allowed" id="recovery-btn">Email me the link</button>
         </div>
       </form>
 
       <section class="w-full max-w-[360px] bg-surface border border-border rounded-app p-6" id="recovery-panel" hidden>
-        <h2 class="text-lg font-bold mb-2">Switch off two-step sign-in</h2>
+        <h2 class="text-lg font-bold mb-2">Switch off 2FA</h2>
         <p class="text-sm text-muted mb-4" id="recovery-status" role="status" aria-live="polite">Checking the link…</p>
         <div id="recovery-unstarted" hidden>
-          <p class="text-sm mb-2">Two-step sign-in will switch off <strong>7 days</strong> after you start the wait. Until then you'll still need a code to log in.</p>
+          <p class="text-sm mb-2">2FA will switch off <strong>7 days</strong> after you start the wait. Until then you'll still need a code to log in.</p>
           <p class="text-sm text-muted mb-4">The wait stops someone who has your password from switching it off quickly. We'll email you, and you can cancel it any time before then.</p>
           <button type="button" class="btn btn-primary w-full mb-2" id="recovery-start-btn">Start the 7-day wait</button>
         </div>

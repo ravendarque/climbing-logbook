@@ -70,43 +70,43 @@ export function createEmailSender(env, log) {
       });
     },
     sendTwoStepRecoveryLink(to, url) {
-      return sendTemplated(to, "Switch off two-step sign-in?", {
+      return sendTemplated(to, "Switch off 2FA?", {
         paragraphs: [
           "Someone entered your password on Climbing Logbook, then said they've lost the device that makes your sign-in codes and their backup codes.",
-          "If that was you, use the link below. Two-step sign-in switches off 7 days after you do. The wait is there so that someone who has your password can't switch it off quickly: you'll have a week to stop them.",
+          "If that was you, use the link below. 2FA switches off 7 days after you do. The wait is there so that someone who has your password can't switch it off quickly: you'll have a week to stop them.",
         ],
         action: { label: "Start the 7-day wait", url },
         note: "If this wasn't you, don't use the link, and change your password: someone knows it. The link stops working after 24 hours.",
       });
     },
     sendTwoStepRecoveryStarted(to, effectiveAt, url) {
-      return sendTemplated(to, "Two-step sign-in will switch off in 7 days", {
+      return sendTemplated(to, "2FA will switch off in 7 days", {
         paragraphs: [
-          "Two-step sign-in on your Climbing Logbook account will switch off on:",
+          "2FA on your Climbing Logbook account will switch off on:",
           { strong: longDate(effectiveAt) },
-          "After that you'll log in with just your password, and you can set two-step sign-in up again in My account.",
+          "After that you'll log in with just your password, and you can set 2FA up again in My account.",
         ],
         action: { label: "This wasn't me: cancel it", url },
         note: "If you didn't ask for this, cancel it and change your password: someone knows it.",
       });
     },
     sendTwoStepRecoveryCancelled(to, helpUrl) {
-      return sendTemplated(to, "Two-step sign-in stays on", {
+      return sendTemplated(to, "2FA stays on", {
         paragraphs: [
-          "The request to switch off two-step sign-in on your Climbing Logbook account has been cancelled. Nothing has changed: you still need a code to log in.",
+          "The request to switch off 2FA on your Climbing Logbook account has been cancelled. Nothing has changed: you still need a code to log in.",
         ],
-        action: { label: "How two-step sign-in works", url: helpUrl },
+        action: { label: "How 2FA works", url: helpUrl },
         note: "If you didn't cancel it, someone else has access to your email or your account. Change your password.",
       });
     },
     sendTwoStepSwitchedOff(to, helpUrl) {
-      return sendTemplated(to, "Two-step sign-in is off", {
+      return sendTemplated(to, "2FA is off", {
         paragraphs: [
-          "The 7-day wait has ended, and two-step sign-in is now off on your Climbing Logbook account. You'll log in with just your password.",
-          "To turn it back on, go to My account, then Two-step sign-in.",
+          "The 7-day wait has ended, and 2FA is now off on your Climbing Logbook account. You'll log in with just your password.",
+          "To turn it back on, go to My account, then Two-Factor Authentication (2FA).",
         ],
-        action: { label: "How two-step sign-in works", url: helpUrl },
-        note: "If you didn't ask for this, change your password straight away, then turn two-step sign-in back on.",
+        action: { label: "How 2FA works", url: helpUrl },
+        note: "If you didn't ask for this, change your password straight away, then turn 2FA back on.",
       });
     },
   };

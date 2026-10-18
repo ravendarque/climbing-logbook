@@ -266,13 +266,13 @@ describe("createEmailSender with delivery logged (#1357)", () => {
   });
 });
 
-describe("two-step sign-in recovery emails (#1436)", () => {
+describe("2FA recovery emails (#1436)", () => {
   const sender = () => createEmailSender(env);
   const sent = () => resendCalls.at(-1).body;
 
   it("explains the wait in the recovery link email", async () => {
     await sender().sendTwoStepRecoveryLink("nix@example.com", "https://climbinglogbook.com/login/?two-step-recovery=t");
-    expect(sent().subject).toBe("Switch off two-step sign-in?");
+    expect(sent().subject).toBe("Switch off 2FA?");
     expect(sent().text).toContain("7 days after you do");
     expect(sent().html).toContain("two-step-recovery=t");
   });
@@ -290,11 +290,14 @@ describe("two-step sign-in recovery emails (#1436)", () => {
   it("links to Help when it's cancelled or done", async () => {
     await sender().sendTwoStepRecoveryCancelled(
       "nix@example.com",
-      "https://climbinglogbook.com/help/two-step-sign-in/",
+      "https://climbinglogbook.com/help/two-factor-authentication/",
     );
-    expect(sent().subject).toBe("Two-step sign-in stays on");
-    await sender().sendTwoStepSwitchedOff("nix@example.com", "https://climbinglogbook.com/help/two-step-sign-in/");
-    expect(sent().subject).toBe("Two-step sign-in is off");
-    expect(sent().html).toContain("/help/two-step-sign-in/");
+    expect(sent().subject).toBe("2FA stays on");
+    await sender().sendTwoStepSwitchedOff(
+      "nix@example.com",
+      "https://climbinglogbook.com/help/two-factor-authentication/",
+    );
+    expect(sent().subject).toBe("2FA is off");
+    expect(sent().html).toContain("/help/two-factor-authentication/");
   });
 });

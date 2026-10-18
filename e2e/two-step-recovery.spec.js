@@ -16,16 +16,14 @@ test("a recovery link starts the 7-day wait, and can cancel it (#1436)", async (
 
   await page.goto(`/login/?two-step-recovery=${token}`);
   await expect(page.locator("#login-form")).toBeHidden();
-  await expect(page.locator("#recovery-status")).toHaveText(
-    "Someone asked to switch off two-step sign-in on your account.",
-  );
+  await expect(page.locator("#recovery-status")).toHaveText("Someone asked to switch off 2FA on your account.");
   await page.locator("#recovery-start-btn").click();
-  await expect(page.locator("#recovery-status")).toContainText("Two-step sign-in switches off on");
+  await expect(page.locator("#recovery-status")).toContainText("2FA switches off on");
 
   await page.goto(owner.url("/account/two-step"));
   await expect(page.locator("#recovery-pending")).toBeVisible();
 
   await page.goto(`/login/?two-step-recovery=${token}`);
   await page.locator("#recovery-cancel-btn").click();
-  await expect(page.locator("#recovery-status")).toHaveText("This was cancelled. Two-step sign-in stays on.");
+  await expect(page.locator("#recovery-status")).toHaveText("This was cancelled. 2FA stays on.");
 });

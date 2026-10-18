@@ -27,11 +27,7 @@ async function logInWithPassword(page, context, owner) {
   await expect(page.locator("#code-form")).toBeVisible();
 }
 
-test("sets up two-step sign-in from My account, then logging in asks for a code (#1436)", async ({
-  page,
-  context,
-  owner,
-}) => {
+test("sets up 2FA from My account, then logging in asks for a code (#1436)", async ({ page, context, owner }) => {
   await page.goto(owner.url("/account"));
   await expect(page.locator("#two-step-link")).toHaveAttribute("href", `/${owner.username}/account/two-step`);
   const { secret } = await turnOnInPage(page, owner);
@@ -68,7 +64,7 @@ test("explains the 7-day wait before emailing a recovery link (#1436)", async ({
   await expect(page.locator("#code-info")).toHaveText("We've emailed you a link. It works for 24 hours.");
 });
 
-test("turns two-step sign-in off with the password (#1436)", async ({ page, context, owner }) => {
+test("turns 2FA off with the password (#1436)", async ({ page, context, owner }) => {
   await turnOnInPage(page, owner);
   await page.locator("#turn-off-btn").click();
   await page.locator("#two-step-password").fill(owner.password);

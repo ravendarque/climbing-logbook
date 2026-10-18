@@ -84,7 +84,7 @@ const twoFactorRow = () => env.LOGBOOK_DB.prepare(`SELECT * FROM "twoFactor" WHE
 const enabledFlag = async () =>
   (await env.LOGBOOK_DB.prepare(`SELECT "twoFactorEnabled" AS on_ FROM "user" WHERE id = ?`).bind(userId).first()).on_;
 
-describe("turning two-step sign-in on (#1436)", () => {
+describe("turning 2FA on (#1436)", () => {
   it("turns on once a code from the app is confirmed, and stores the secret and backup codes encrypted", async () => {
     const { backupCodes } = await turnOn();
     expect(await enabledFlag()).toBe(1);
@@ -101,7 +101,7 @@ describe("turning two-step sign-in on (#1436)", () => {
   });
 });
 
-describe("logging in with two-step sign-in on (#1436)", () => {
+describe("logging in with 2FA on (#1436)", () => {
   it("asks for a code after the password, and a code from the app logs in", async () => {
     const { secret } = await turnOn();
     const { body, pending } = await signInWithPassword();
@@ -159,19 +159,19 @@ describe("recovering without the device (#1436)", () => {
     expect(emails).toHaveLength(0);
   });
 
-  it("emails a link; using it starts a 7-day wait, after which two-step sign-in is off", async () => {
+  it("emails a link; using it starts a 7-day wait, after which 2FA is off", async () => {
     await turnOn();
     const { pending } = await signInWithPassword();
     const asked = await authPost("/-/api/auth/two-factor/recovery/request", { Cookie: pending });
     expect(asked.status).toBe(200);
-    expect(emails.at(-1)).toMatchObject({ to: email, subject: "Switch off two-step sign-in?" });
+    expect(emails.at(-1)).toMatchObject({ to: email, subject: "Switch off 2FA?" });
     const token = tokenFrom(emails.at(-1).html);
 
     expect(await (await recovery("status", token)).json()).toMatchObject({ state: "unstarted" });
     const started = await (await recovery("start", token)).json();
     expect(started.state).toBe("waiting");
     expect(started.effectiveAt - Date.now()).toBeGreaterThan(7 * DAY_MS - 60_000);
-    expect(emails.at(-1).subject).toBe("Two-step sign-in will switch off in 7 days");
+    expect(emails.at(-1).subject).toBe("2FA will switch off in 7 days");
 
     const sender = { sendTwoStepSwitchedOff: vi.fn() };
     expect(await completeDueRecoveries(env, sender, Date.now() + 6 * DAY_MS)).toBe(0);
@@ -181,7 +181,7 @@ describe("recovering without the device (#1436)", () => {
     expect(await twoFactorRow()).toBeNull();
     expect(sender.sendTwoStepSwitchedOff).toHaveBeenCalledWith(
       email,
-      expect.stringContaining("/help/two-step-sign-in/"),
+      expect.stringContaining("/help/two-factor-authentication/"),
     );
 
     const { body } = await signInWithPassword();
@@ -196,7 +196,7 @@ describe("recovering without the device (#1436)", () => {
     const { effectiveAt } = await (await recovery("start", token)).json();
 
     expect(await (await recovery("cancel", token)).json()).toEqual({ state: "cancelled" });
-    expect(emails.at(-1).subject).toBe("Two-step sign-in stays on");
+    expect(emails.at(-1).subject).toBe("2FA stays on");
     expect(await completeDueRecoveries(env, { sendTwoStepSwitchedOff: vi.fn() }, effectiveAt)).toBe(0);
     expect(await enabledFlag()).toBe(1);
     expect(await (await recovery("start", token)).json()).toMatchObject({ state: "cancelled" });
@@ -215,7 +215,7 @@ describe("recovering without the device (#1436)", () => {
     expect(await after.json()).toEqual({ effectiveAt: null });
   });
 
-  it("is cancelled when two-step sign-in is turned off, so a later setup isn't switched off", async () => {
+  it("is cancelled when 2FA is turned off, so a later setup isn't switched off", async () => {
     await turnOn();
     const { pending } = await signInWithPassword();
     await authPost("/-/api/auth/two-factor/recovery/request", { Cookie: pending });
@@ -304,7 +304,7 @@ describe("rotating the auth secret (#1440)", () => {
     return jsonRequest("POST", "/-/api/auth/two-factor/verify-totp", { code: await totp(secret) }, { Cookie: pending });
   }
 
-  it("keeps two-step sign-in working through a rotation, and the old secret can go once data is re-encrypted", async () => {
+  it("keeps 2FA working through a rotation, and the old secret can go once data is re-encrypted", async () => {
     const { secret } = await turnOn();
     env.BETTER_AUTH_SECRETS = `2:${NEW_SECRET}`;
     expect((await logInWithCode(secret)).status).toBe(200);

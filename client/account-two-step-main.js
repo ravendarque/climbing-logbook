@@ -22,9 +22,9 @@ const infoEl = $("two-step-info");
 const pending = $("recovery-pending");
 
 const PASSWORD_PROMPTS = {
-  enable: "Enter your password to set up two-step sign-in.",
+  enable: "Enter your password to set up 2FA.",
   codes: "Enter your password to get new backup codes. Your old ones will stop working.",
-  disable: "Enter your password to turn off two-step sign-in.",
+  disable: "Enter your password to turn off 2FA.",
 };
 
 let enabled = false;
@@ -100,7 +100,7 @@ passwordForm.addEventListener("submit", async event => {
       await authRequest("/two-factor/disable", { password });
       enabled = false;
       show(null);
-      showInfo("Two-step sign-in is off. You'll log in with just your password.");
+      showInfo("2FA is off. You'll log in with just your password.");
     }
   } catch (err) {
     showError(err.code === "INVALID_PASSWORD" ? "That password isn't right." : err.message);
@@ -151,7 +151,7 @@ $("recovery-cancel-btn").addEventListener("click", async () => {
   try {
     await authRequest("/two-factor/recovery/cancel-mine", {});
     pending.hidden = true;
-    showInfo("Cancelled. Two-step sign-in stays on.");
+    showInfo("Cancelled. 2FA stays on.");
   } catch (err) {
     showError(err.message);
   }
@@ -173,7 +173,7 @@ async function boot() {
         month: "long",
       });
       $("recovery-pending-text").textContent =
-        `Someone used the "lost your device" link, so two-step sign-in switches off on ${date}. If that wasn't you, cancel it and change your password.`;
+        `Someone used the "lost your device" link, so 2FA switches off on ${date}. If that wasn't you, cancel it and change your password.`;
       pending.hidden = false;
     }
     loading.hidden = true;

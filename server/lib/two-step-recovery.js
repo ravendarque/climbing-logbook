@@ -53,7 +53,7 @@ export function apexOrigin(requestUrl) {
 }
 
 const recoveryUrl = (origin, token) => `${origin}/login/?two-step-recovery=${encodeURIComponent(token)}`;
-const helpUrl = origin => `${origin}/help/two-step-sign-in/`;
+const helpUrl = origin => `${origin}/help/two-factor-authentication/`;
 
 export function twoStepRecovery({ env, emailSender }) {
   const now = () => Date.now();
@@ -180,7 +180,7 @@ async function cancelAll(env, userId, now) {
   return meta.changes > 0;
 }
 
-// Daily, from the cleanup cron: a wait that has run its 7 days without being cancelled switches two-step sign-in off.
+// Daily, from the cleanup cron: a wait that has run its 7 days without being cancelled switches 2FA off.
 export async function completeDueRecoveries(env, emailSender, now = Date.now()) {
   const { results } = await env.LOGBOOK_DB.prepare(
     `SELECT r.id, r.user_id, r.origin, u.email FROM two_step_recoveries r JOIN "user" u ON u.id = r.user_id

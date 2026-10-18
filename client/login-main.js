@@ -190,7 +190,7 @@ useBackupBtn.addEventListener("click", () => {
   codeInput.removeAttribute("pattern");
   if (!usingBackupCode) codeInput.pattern = "[0-9]*";
   codeHint.textContent = usingBackupCode
-    ? "Enter one of the backup codes you saved when you set up two-step sign-in. Each one works once."
+    ? "Enter one of the backup codes you saved when you set up 2FA. Each one works once."
     : "Open your authenticator app and enter the 6-digit code for Climbing Logbook.";
   useBackupBtn.textContent = usingBackupCode ? "Use your authenticator app instead" : "Use a backup code instead";
   codeInput.focus();
@@ -266,8 +266,8 @@ const recoveryError = document.getElementById("recovery-error");
 const RECOVERY_MESSAGES = {
   expired: "This link has expired. Log in with your password and ask for a new one.",
   invalid: "This link isn't valid. Check you used the whole link from the email.",
-  cancelled: "This was cancelled. Two-step sign-in stays on.",
-  done: "Two-step sign-in is already off. You can log in with just your password.",
+  cancelled: "This was cancelled. 2FA stays on.",
+  done: "2FA is already off. You can log in with just your password.",
 };
 
 const fullDate = ms =>
@@ -276,10 +276,9 @@ const fullDate = ms =>
 function showRecovery({ state, effectiveAt }) {
   recoveryUnstarted.hidden = state !== "unstarted";
   recoveryCancelBtn.hidden = !["unstarted", "waiting"].includes(state);
-  if (state === "unstarted")
-    recoveryStatus.textContent = "Someone asked to switch off two-step sign-in on your account.";
+  if (state === "unstarted") recoveryStatus.textContent = "Someone asked to switch off 2FA on your account.";
   else if (state === "waiting")
-    recoveryStatus.textContent = `Two-step sign-in switches off on ${fullDate(effectiveAt)}. We've emailed you a link to cancel it.`;
+    recoveryStatus.textContent = `2FA switches off on ${fullDate(effectiveAt)}. We've emailed you a link to cancel it.`;
   else recoveryStatus.textContent = RECOVERY_MESSAGES[state] ?? RECOVERY_MESSAGES.invalid;
 }
 
