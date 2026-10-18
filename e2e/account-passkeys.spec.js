@@ -102,7 +102,7 @@ test("a session over a day old is asked to log in again before adding a passkey 
   await page.route("**/-/api/auth/get-session", async route => {
     const res = await route.fetch();
     const body = await res.json();
-    body.session.createdAt = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+    if (body?.session) body.session.createdAt = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
     await route.fulfill({ response: res, json: body });
   });
   await page.goto(owner.url("/account/passkeys"));
@@ -112,6 +112,7 @@ test("a session over a day old is asked to log in again before adding a passkey 
   await page.waitForURL(
     url => url.pathname === "/-/login/" && url.searchParams.get("returnTo") === `/${owner.username}/account/passkeys`,
   );
+  await page.unrouteAll({ behavior: "ignoreErrors" });
 });
 
 test("if the server says the session isn't fresh, the page asks to log in again (#1439)", async ({ page, owner }) => {
