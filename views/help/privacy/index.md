@@ -45,7 +45,7 @@ We only look at a logbook to investigate a report, misuse, or a problem you've a
 
 Health data is off until you agree to the Health Data Agreement in My account. Data protection law treats health information as sensitive, so we ask you first. The rest of Climbing Logbook works the same either way.
 
-- **What counts as health information:** pain and injuries, which phase of your menstrual cycle you're in (by phase only, never dates), and your energy and mood, when you choose to log them. Notes can hold health information if you write about an injury in them. If you've agreed to the Health Data Agreement, use the pain and injury tags for that instead.
+- **What counts as health information:** pain and injuries, which phase of your menstrual cycle you're in (by phase only, never dates), and your energy and mood, when you choose to log them.
 - **What it's for:** finding patterns in your climbing performance, shown only in your own Performance insights.
 - **Who can turn it on:** you need to be 16 or over, or have your parent or guardian's agreement.
 - **Where it goes:** it's stored with the rest of your logbook. It's never shown on your public profile and is only used for your own reports. A site administrator can see it for support and moderation, and for nothing else.
