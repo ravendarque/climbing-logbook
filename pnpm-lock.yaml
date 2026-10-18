@@ -12,6 +12,9 @@ overrides:
   source-map-js@1: ^1.2.2
   brace-expansion@1: ^1.1.21
 
+patchedDependencies:
+  '@cloudflare/vitest-plugin@1.4.3': 8f62d84ea2b4190aa9fadcb7aaacd10bd49d6d3a9bd7ed0b5fecc2e31672900c
+
 importers:
 
   .:
@@ -55,7 +58,7 @@ importers:
         version: 1.64.0(@types/node@26.6.2)(vite@8.3.4(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))(wrangler@4.151.0(@cloudflare/workers-types@5.20261015.1)(@types/node@26.6.2))
       '@cloudflare/vitest-plugin':
         specifier: ^1.4.3
-        version: 1.4.3(@cloudflare/workers-types@5.20261015.1)(@types/node@26.6.2)(vitest@5.0.5)
+        version: 1.4.3(patch_hash=8f62d84ea2b4190aa9fadcb7aaacd10bd49d6d3a9bd7ed0b5fecc2e31672900c)(@cloudflare/workers-types@5.20261015.1)(@types/node@26.6.2)(vitest@5.0.5)
       '@cloudflare/workers-types':
         specifier: ^5.20261015.1
         version: 5.20261015.1
@@ -3082,7 +3085,7 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@cloudflare/vitest-plugin@1.4.3(@cloudflare/workers-types@5.20261015.1)(@types/node@26.6.2)(vitest@5.0.5)':
+  '@cloudflare/vitest-plugin@1.4.3(patch_hash=8f62d84ea2b4190aa9fadcb7aaacd10bd49d6d3a9bd7ed0b5fecc2e31672900c)(@cloudflare/workers-types@5.20261015.1)(@types/node@26.6.2)(vitest@5.0.5)':
     dependencies:
       cjs-module-lexer: 1.2.3
       esbuild: 0.28.2
