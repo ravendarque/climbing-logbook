@@ -136,7 +136,9 @@ test("with Athlete Mode on, turning on pain and injury tracking needs the statem
 }) => {
   await owner.settings({ athleteMode: true });
   await page.goto(owner.url("/welcome"));
+  await expect(page.locator("#welcome-progress-label")).toHaveText("Step 1 of 5");
   await page.locator("#welcome-next").tap();
+  await expect(page.locator("#welcome-progress-label")).toHaveText("Step 2 of 5");
   await page.locator("#welcome-next").tap();
 
   await expect(page.getByRole("heading", { name: "Health data", level: 1 })).toBeVisible();
@@ -166,6 +168,7 @@ test("with Athlete Mode on, turning on pain and injury tracking needs the statem
 
 test("with Athlete Mode off, the pain and injury step is skipped", async ({ page, newOwner: owner }) => {
   await page.goto(owner.url("/welcome"));
+  await expect(page.locator("#welcome-progress-label")).toHaveText("Step 1 of 4");
   await page.locator("#welcome-next").tap();
   await expect(page.locator("#welcome-athlete-off")).toBeChecked();
   await page.locator("#welcome-next").tap();
