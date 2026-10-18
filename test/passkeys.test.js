@@ -97,20 +97,24 @@ describe("managing passkeys (#1439)", () => {
     expect(emails.at(-1).html).toContain("/account/passkeys");
   });
 
-  it("can't touch another user's passkey", async () => {
+  it("can't rename or remove another user's passkey", async () => {
     await addRow();
     const other = await createAuthedSession();
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => new Response("{}", { status: 200 })),
     );
-    const res = await jsonRequest(
+    const headers = { Cookie: other.cookie, Origin: BASE_URL };
+    const renamed = await jsonRequest(
       "POST",
-      "/-/api/auth/passkey/delete-passkey",
-      { id: "pk1" },
-      { Cookie: other.cookie, Origin: BASE_URL },
+      "/-/api/auth/passkey/update-passkey",
+      { id: "pk1", name: "Mine" },
+      headers,
     );
-    expect(res.status).not.toBe(200);
-    expect(await env.LOGBOOK_DB.prepare(`SELECT COUNT(*) AS n FROM "passkey"`).first("n")).toBe(1);
+    const removed = await jsonRequest("POST", "/-/api/auth/passkey/delete-passkey", { id: "pk1" }, headers);
+    expect(renamed.status).not.toBe(200);
+    expect(removed.status).not.toBe(200);
+    const row = await env.LOGBOOK_DB.prepare(`SELECT name FROM "passkey" WHERE id = 'pk1'`).first();
+    expect(row.name).toBe("My phone");
   });
 });

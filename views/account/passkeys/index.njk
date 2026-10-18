@@ -21,6 +21,11 @@ headerClass: mb-6
     <ul class="flex flex-col gap-2 list-none p-0" id="passkeys-list" hidden></ul>
     <p class="text-sm text-muted" id="passkeys-empty" hidden>You haven't added a passkey yet.</p>
 
+    <div class="row-card flex flex-col gap-3" id="passkeys-reauth" hidden>
+      <p class="text-sm">To add a passkey, log in again first. It's been more than a day since you last did, and a fresh login makes sure it's really you adding it.</p>
+      <div><button type="button" class="btn btn-primary" id="passkeys-reauth-btn">Log in again</button></div>
+    </div>
+
     <form class="row-card flex flex-col gap-3" id="add-passkey-form" hidden novalidate>
       <label class="text-sm" for="passkey-name">Name it, so you can tell your passkeys apart</label>
       <input class="text-input w-full" type="text" id="passkey-name" maxlength="50" placeholder="My phone" required>

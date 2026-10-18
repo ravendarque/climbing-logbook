@@ -334,6 +334,7 @@ if (!RECOVERY_TOKEN && passkeysSupported()) {
     await passkeyLogIn(false);
     passkeyBtn.disabled = false;
   });
+  // On load, not on focus: browsers only attach passkey suggestions to a field once the request is already waiting.
   passkeyAutofillAvailable().then(available => {
     if (!available) return;
     passkeyAutofill = new AbortController();

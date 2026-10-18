@@ -40,7 +40,7 @@ function passkeyItem(passkey) {
   const item = document.createElement("li");
   item.className = "row-card flex flex-wrap items-center gap-3";
   const text = document.createElement("div");
-  text.className = "flex-1 min-w-0";
+  text.className = "flex-1 min-w-[12rem]";
   const title = document.createElement("span");
   title.className = "row-card-title break-words";
   title.textContent = passkey.name || "Passkey";
@@ -131,24 +131,37 @@ form.addEventListener("submit", async event => {
     showInfo(`Added ${name}. Next time, choose "Log in with a passkey".`);
     await render();
   } catch (err) {
-    if (!isCancelled(err)) showError(err.message);
+    if (err.code === "SESSION_NOT_FRESH") {
+      form.hidden = true;
+      $("passkeys-reauth").hidden = false;
+    } else if (!isCancelled(err)) showError(err.message);
   } finally {
     $("add-passkey-btn").disabled = false;
   }
 });
 
+// Better Auth's default fresh window for adding a passkey; a little margin so the form isn't shown just as it closes.
+const FRESH_MS = 24 * 60 * 60 * 1000 - 5 * 60 * 1000;
+
+function showAddOrReauth(session) {
+  const fresh = Date.now() - new Date(session?.session?.createdAt ?? 0).getTime() < FRESH_MS;
+  form.hidden = !fresh;
+  $("passkeys-reauth").hidden = fresh;
+}
+
+$("passkeys-reauth-btn").addEventListener("click", async () => {
+  await fetch("/-/api/auth/sign-out", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+  location.href = `/-/login/?returnTo=${encodeURIComponent(location.pathname)}`;
+});
+
 async function boot() {
   await Promise.all([adminAuth.checkSession(), adminAuth.fetchSettings()]);
   updateAdminBar();
-  if (!passkeysSupported()) {
-    $("passkeys-loading").hidden = true;
-    $("passkeys-unsupported").hidden = false;
-    return;
-  }
   try {
-    await render();
+    const [session] = await Promise.all([fetch("/-/api/auth/get-session").then(res => res.json()), render()]);
     $("passkeys-loading").hidden = true;
-    form.hidden = false;
+    if (passkeysSupported()) showAddOrReauth(session);
+    else $("passkeys-unsupported").hidden = false;
   } catch {
     $("passkeys-loading").textContent = "Couldn't load your passkeys. Check your connection and try again.";
   }

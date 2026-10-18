@@ -97,3 +97,32 @@ test("offers the passkey as autofill on the email field (#1439)", async ({ page,
   await expect(page.locator("#email")).toHaveAttribute("autocomplete", "email webauthn");
   await page.waitForURL(`**/${owner.username}/log`);
 });
+
+test("a session over a day old is asked to log in again before adding a passkey (#1439)", async ({ page, owner }) => {
+  await page.route("**/-/api/auth/get-session", async route => {
+    const res = await route.fetch();
+    const body = await res.json();
+    body.session.createdAt = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+    await route.fulfill({ response: res, json: body });
+  });
+  await page.goto(owner.url("/account/passkeys"));
+  await expect(page.locator("#passkeys-reauth")).toBeVisible();
+  await expect(page.locator("#add-passkey-form")).toBeHidden();
+  await page.locator("#passkeys-reauth-btn").click();
+  await page.waitForURL(
+    url => url.pathname === "/-/login/" && url.searchParams.get("returnTo") === `/${owner.username}/account/passkeys`,
+  );
+});
+
+test("if the server says the session isn't fresh, the page asks to log in again (#1439)", async ({ page, owner }) => {
+  await withoutAutofill(page);
+  await virtualAuthenticator(page);
+  await page.route("**/-/api/auth/passkey/generate-register-options*", route =>
+    route.fulfill({ status: 403, json: { code: "SESSION_NOT_FRESH", message: "Session is not fresh" } }),
+  );
+  await page.goto(owner.url("/account/passkeys"));
+  await page.locator("#passkey-name").fill("Phone");
+  await page.locator("#add-passkey-btn").click();
+  await expect(page.locator("#passkeys-reauth")).toBeVisible();
+  await expect(page.locator("#passkeys-error")).toBeHidden();
+});
