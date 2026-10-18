@@ -37,6 +37,92 @@ const longDate = ms =>
     timeZone: "UTC",
   });
 
+const CHANGE_PASSWORD = "If this wasn't you, change your password straight away: someone has access to your account.";
+
+// One email per account change that changes data (#1456). `url` is where the change can be seen or undone.
+const ACCOUNT_NOTICES = {
+  passkeyAdded: ({ url }) => ({
+    subject: "A passkey was added to your account",
+    paragraphs: [
+      "Someone added a passkey to your Climbing Logbook account. A passkey lets you log in with your fingerprint, face or device PIN instead of your password and a code.",
+    ],
+    action: { label: "See your passkeys", url },
+    note: "If this wasn't you, remove the passkey and change your password straight away: someone has access to your account.",
+  }),
+  passkeyRemoved: ({ url }) => ({
+    subject: "A passkey was removed from your account",
+    paragraphs: ["Someone removed a passkey from your Climbing Logbook account. It can't be used to log in any more."],
+    action: { label: "See your passkeys", url },
+    note: CHANGE_PASSWORD,
+  }),
+  usernameChanged: ({ url, username }) => ({
+    subject: "Your username was changed",
+    paragraphs: ["The username on your Climbing Logbook account is now:", { strong: username }],
+    action: { label: "See your account", url },
+    note: CHANGE_PASSWORD,
+  }),
+  passwordChanged: ({ url }) => ({
+    subject: "Your password was changed",
+    paragraphs: ["The password for your Climbing Logbook account was just changed."],
+    action: { label: "See your account", url },
+    note: "If this wasn't you, reset your password from the login page straight away: someone has access to your account.",
+  }),
+  emailChanged: ({ url, newEmail }) => ({
+    subject: "Your email address was changed",
+    paragraphs: [
+      "The email address for your Climbing Logbook account was changed to:",
+      { strong: newEmail },
+      "We'll send account emails there from now on, so this is the last one to this address.",
+    ],
+    action: { label: "See your account", url },
+    note: "If this wasn't you, tell us through Report an issue on the site straight away: someone has access to your account.",
+  }),
+  twoFactorOn: ({ url }) => ({
+    subject: "Two-Factor Authentication (2FA) is on",
+    paragraphs: [
+      "2FA is now on for your Climbing Logbook account. You'll need a code from your authenticator app when you log in on a new device.",
+    ],
+    action: { label: "See your 2FA settings", url },
+    note: CHANGE_PASSWORD,
+  }),
+  twoFactorOff: ({ url }) => ({
+    subject: "Two-Factor Authentication (2FA) is off",
+    paragraphs: ["2FA is now off for your Climbing Logbook account. You'll log in with just your password."],
+    action: { label: "See your 2FA settings", url },
+    note: "If this wasn't you, change your password straight away, then turn 2FA back on.",
+  }),
+  backupCodesRenewed: ({ url }) => ({
+    subject: "You have new 2FA backup codes",
+    paragraphs: ["New backup codes were made for your Climbing Logbook account. The old ones don't work any more."],
+    action: { label: "See your 2FA settings", url },
+    note: CHANGE_PASSWORD,
+  }),
+  accountDeleted: ({ url }) => ({
+    subject: "Your account was deleted",
+    paragraphs: [
+      "Your Climbing Logbook account and everything in it has been deleted, on every device. This is the last email we'll send you.",
+    ],
+    action: { label: "Go to Climbing Logbook", url },
+    note: "If this wasn't you, tell us through Report an issue on the site. We can't restore a deleted account.",
+  }),
+  healthDataOn: ({ url }) => ({
+    subject: "Health data is on",
+    paragraphs: [
+      "You agreed to the Health Data Agreement, so you can now log health information on your Climbing Logbook account.",
+    ],
+    action: { label: "See your health data settings", url },
+    note: CHANGE_PASSWORD,
+  }),
+  healthDataOff: ({ url }) => ({
+    subject: "Health data is off",
+    paragraphs: [
+      "Health data is now off on your Climbing Logbook account, and all your health information has been deleted.",
+    ],
+    action: { label: "See your health data settings", url },
+    note: CHANGE_PASSWORD,
+  }),
+};
+
 export function createEmailSender(env, log) {
   log ??= createLogger({ env });
   function sendTemplated(to, subject, content) {
@@ -69,23 +155,9 @@ export function createEmailSender(env, log) {
         note: "If you didn't ask for this, you can ignore this email. Your email address won't change.",
       });
     },
-    sendPasskeyAdded(to, url) {
-      return sendTemplated(to, "A passkey was added to your account", {
-        paragraphs: [
-          "Someone added a passkey to your Climbing Logbook account. A passkey lets you log in with your fingerprint, face or device PIN instead of your password and a code.",
-        ],
-        action: { label: "See your passkeys", url },
-        note: "If this wasn't you, remove the passkey and change your password straight away: someone has access to your account.",
-      });
-    },
-    sendPasskeyRemoved(to, url) {
-      return sendTemplated(to, "A passkey was removed from your account", {
-        paragraphs: [
-          "Someone removed a passkey from your Climbing Logbook account. It can't be used to log in any more.",
-        ],
-        action: { label: "See your passkeys", url },
-        note: "If this wasn't you, change your password straight away: someone has access to your account.",
-      });
+    sendAccountNotice(to, kind, details) {
+      const { subject, ...content } = ACCOUNT_NOTICES[kind](details);
+      return sendTemplated(to, subject, content);
     },
     sendTwoStepRecoveryLink(to, url) {
       return sendTemplated(to, "Switch off 2FA?", {

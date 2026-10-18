@@ -1,7 +1,8 @@
 import { env } from "cloudflare:workers";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { BASE_URL, createAuthedSession, fetchJson, jsonRequest, resetAuthTables } from "./support.js";
-import { ownedPageUrl, passkeyRpId, requireUserVerified } from "../server/lib/auth.js";
+import { passkeyRpId, requireUserVerified } from "../server/lib/auth.js";
+import { ownedPageUrl } from "../server/lib/hosts.js";
 
 beforeAll(() => {
   env.BETA_GATE_ENABLED = "false";

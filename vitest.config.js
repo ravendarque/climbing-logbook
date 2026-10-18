@@ -85,6 +85,11 @@ export default defineConfig({
               configPath: "./wrangler.jsonc",
             },
             miniflare: {
+              // Unit tests never reach a real service: a test that wants a reply stubs fetch, and anything else lands here.
+              outboundService: request =>
+                new URL(request.url).hostname === "api.resend.com"
+                  ? Response.json({ id: "test-outbound" })
+                  : new Response(`Unit tests can't reach ${new URL(request.url).hostname}`, { status: 599 }),
               bindings: {
                 TEST_D1_MIGRATIONS: migrations,
                 RUN_WORKER_FIRST_PATHS: RUN_WORKER_FIRST_PATHS,
