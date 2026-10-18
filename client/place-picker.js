@@ -42,7 +42,6 @@ export function createPlacePicker({
     const p = store.getPlaces().find(x => x.id === placeId);
     placeCommittedValue = p ? placeId : "";
     if (!p) {
-      placeBtn.setAttribute("aria-label", "Place: none selected");
       placeBtnFlag.innerHTML = PLACE_PLACEHOLDER_ICON;
       placeBtnLabel.textContent = "Select a place…";
       placeBtnLabel.classList.add("text-muted");
@@ -51,7 +50,6 @@ export function createPlacePicker({
     const loc = store.locationOf(p);
     const c = COUNTRY_BY_NAME[loc.country];
     const label = p.area ? `${loc.name}, ${p.area}` : loc.name;
-    placeBtn.setAttribute("aria-label", `Place: ${label}`);
     placeBtnFlag.innerHTML = c ? escapeHtml(c.flag) : PLACE_PLACEHOLDER_ICON;
     placeBtnLabel.textContent = label;
     placeBtnLabel.classList.remove("text-muted");
