@@ -93,7 +93,7 @@ We only share what's needed to run the app, and only for that:
 - **our email provider**, which sends the emails about your account;
 - **our bot-check provider**, which checks sign-ups are from a person.
 
-They only use your data to provide their service to us. Our email provider is in the US, so your email address and username go there when we email you. That transfer is covered by the UK–US data bridge, and by the UK's standard contract terms for international transfers.
+They only use your data to provide their service to us. Some of them process data outside the UK, including in the US. Those transfers are covered by the UK–US data bridge, and by the UK's standard contract terms for international transfers.
 
 ## Your rights
 
