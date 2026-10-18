@@ -90,7 +90,7 @@ We may look at anonymised, combined figures across all users, like how many clim
 We only share what's needed to run the app, and only for that:
 
 - **our hosting and database provider**, which runs the app and stores your logbook;
-- **our email provider**, which sends the emails about your account;
+- **our email providers**, which send the emails about your account and receive messages sent to our support address;
 - **our bot-check provider**, which checks sign-ups are from a person.
 
 They only use your data to provide their service to us. Some of them process data outside the UK, including in the US. Those transfers are covered by the UK–US data bridge, and by the UK's standard contract terms for international transfers.

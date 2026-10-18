@@ -44,7 +44,7 @@ Everything provisionable, in `infra/`:
 | WAF custom rule blocking non-JSON `POST`s to `/-/api/` | `infra/waf.tf` |
 | Cache rules: bypass `/-/api/`, cache static assets | `infra/cache-rules.tf` |
 | CAA records: only Cloudflare's CAs may issue certificates for the zone (no reporting address: a published one gets scraped). A subdomain whose certificate comes from another CA needs that CA added to `cloudflare_cas`, unless it's a CNAME to the provider, whose own CAA records then apply (as with the Better Stack status page) | `infra/dns.tf` |
-| Email Routing: the apex MX and SPF records, and a rule forwarding `support@` to the address in the `TF_VAR_support_forward_email` secret; the DMARC record (`p=reject`, reports to Cloudflare) | `infra/email.tf` |
+| Email: `support@` is a Proton Mail mailbox (#1444), so the apex MX, SPF and DKIM records are Proton's, with its verification TXT; Resend's sending records on `send.` and its DKIM; the DMARC record (`p=reject`, reports to Cloudflare) | `infra/email.tf` |
 | Better Stack uptime monitors (home page, `my.` and `beta.` readiness, certificate and domain expiry), the status page at `status.`, its DNS record, and an incident webhook to Discord `#alerts` | `infra/uptime.tf` |
 | Cloudflare alert destinations for Discord `#alerts` and `#monitoring`, and the DDoS and certificate alerts to `#monitoring` | `infra/alerts.tf` |
 | Security headers on every proxied response: `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy` and `Reporting-Endpoints`. The CSP comes from the Worker instead (`server/lib/csp.js`): Cloudflare only adds its nonce to the bot-detection script it injects when the origin sends the CSP | `infra/security-headers.tf` |
@@ -146,7 +146,7 @@ that carries the change. The repo doesn't let Actions open PRs, on purpose
 | `SYNTHETIC_USER_EMAIL`, `SYNTHETIC_USER_PASSWORD` | Actions secrets | The synthetic check's account (`infra/README.md`) |
 | `ADMIN_EMAIL` | Actions secret | The one email the admin host's Access policy lets in (`infra/access.tf`) |
 | `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD` | Worker variables (`wrangler.jsonc`) | What the Worker checks the admin host's Access token against. Infra writes `ACCESS_AUD` after apply; empty, the admin host refuses everything |
-| `BETTER_AUTH_SECRET`, `BETTER_AUTH_SECRETS` | Worker secrets, per environment | Session signing, and encrypting two-step sign-in setup keys and backup codes (#1436). `BETTER_AUTH_SECRETS` holds versioned secrets (`<version>:<secret>`, newest first) for rotation; `BETTER_AUTH_SECRET` reads values made before it. Rotate with `docs/runbooks/playbooks/secret-leaked.md`, never by replacing one outright (#1440) |
+| `BETTER_AUTH_SECRET` | Worker secret, per environment | Session signing |
 | `RESEND_API_KEY` | Worker secret, per environment | Verification and password-reset email (sent from `myaccount@climbinglogbook.com`) |
 | `EMAIL_DELIVERY` | Worker variable (`wrangler.jsonc`) | `"off"` in `e2e` skips every email, since e2e registers and resets passwords by the dozen; `"log"` in local dev prints each email's link to the terminal (only when `APP_ENV` is `development`) |
 | `TURNSTILE_SECRET_KEY` | Worker secret, per environment | Turnstile verification. Production and beta each need the real value (`terraform output -raw turnstile_secret`); preview and local dev use Cloudflare's public always-passes test secret |

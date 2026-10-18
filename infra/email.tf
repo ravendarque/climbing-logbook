@@ -12,6 +12,43 @@ resource "cloudflare_dns_record" "proton_verification" {
   content = "\"protonmail-verification=fe96490b1f1ddc48374942ffa3fef4aecdcdddcf\""
 }
 
+# Email Routing was disabled in the dashboard (#1444): forget its zone settings rather than call disable again.
+removed {
+  from = cloudflare_email_routing_dns.app
+  lifecycle {
+    destroy = false
+  }
+}
+
+# Only after Email Routing is off (#1444 phase 1): disabling it deletes the root MX and SPF, even edited ones.
+resource "cloudflare_dns_record" "proton_mx" {
+  for_each = { "mail.protonmail.ch" = 10, "mailsec.protonmail.ch" = 20 }
+  zone_id  = data.cloudflare_zone.app.id
+  name     = var.app_zone_name
+  type     = "MX"
+  ttl      = 1
+  priority = each.value
+  content  = each.key
+}
+
+resource "cloudflare_dns_record" "root_spf" {
+  zone_id = data.cloudflare_zone.app.id
+  name    = var.app_zone_name
+  type    = "TXT"
+  ttl     = 1
+  content = "\"v=spf1 include:_spf.protonmail.ch ~all\""
+}
+
+resource "cloudflare_dns_record" "proton_dkim" {
+  for_each = toset(["protonmail", "protonmail2", "protonmail3"])
+  zone_id  = data.cloudflare_zone.app.id
+  name     = "${each.key}._domainkey.${var.app_zone_name}"
+  type     = "CNAME"
+  ttl      = 1
+  proxied  = false
+  content  = "${each.key}.domainkey.drsvvi26oveh5kvolngnll7dtopfd2anzc73r2le4vdjz6rb4tw6q.domains.proton.ch"
+}
+
 # Made in the dashboard when Resend was set up; reject once only Resend sends as the domain (#1053).
 import {
   to = cloudflare_dns_record.dmarc

@@ -104,11 +104,10 @@ dashboard or elsewhere, and why:
 - **Resend's domain verification** happens in Resend; only its DNS records
   live here.
 
-If email is ever sent from Proton (Raven, 2026-10-10, low priority): it
-needs Proton's verification TXT, DKIM CNAMEs and an `include:` in the root
-SPF. The root SPF is created by `cloudflare_email_routing_dns`, so adding
-an include means taking that record over as a `cloudflare_dns_record`
-first.
+`support@` is a Proton Mail custom-domain mailbox (#1444). Its records
+(verification TXT, MX, root SPF, DKIM CNAMEs) are in `email.tf`. Adding
+another service that sends as the root domain means adding its `include:`
+to `cloudflare_dns_record.root_spf`, keeping to one SPF record.
 
 ## Local runs
 

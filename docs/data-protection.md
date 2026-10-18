@@ -12,6 +12,7 @@ The record UK GDPR Art. 30 requires. The small-organisation exemption doesn't ap
 |---|---|---|---|
 | Cloudflare | Hosting (Workers), the database (D1), backups (D1 Time Travel), logs, visit statistics, bot checks (Turnstile), firewall | Global | UK Extension to the EU-US Data Privacy Framework (the UK-US data bridge); if that certification lapses, the EU SCCs with the UK Addendum ([Cloudflare DPA](https://www.cloudflare.com/cloudflare-customer-dpa/) v6.4, §6.2(b), §6.4), part of the self-serve subscription agreement |
 | Resend | Sending account emails | US | UK Extension to the EU-US Data Privacy Framework (the UK-US data bridge), and the EU SCCs with the UK Addendum ([Resend DPA](https://resend.com/legal/dpa) §6.4, §11.1), accepted with Resend's terms |
+| Proton | The `support@` mailbox: mail people send to support (#1444) | Switzerland | UK adequacy regulations for Switzerland |
 | GitHub | Source code and issue tracking only; no user data | US | Not applicable |
 | Discord | Alert and support-notification channel; carries no personal data or submitted text (`server/lib/support-notify.js`) | US | Not applicable |
 
