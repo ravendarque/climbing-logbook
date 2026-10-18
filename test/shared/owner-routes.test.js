@@ -5,7 +5,15 @@ const PRE_958_REGEX =
   /^\/([^/]+)\/(log|map|performance(?:\/(?:pyramid|injury|strengths|trends|gap|rpe))?|sync|account(?:\/edit|\/import)?)\/?$/;
 
 const PAGES = Object.keys(SHELL_PATHS);
-const ADDED_SINCE_958 = ["account/beta", "account/health", "account/places", "welcome", "view", "view/map"];
+const ADDED_SINCE_958 = [
+  "account/beta",
+  "account/health",
+  "account/places",
+  "account/2fa",
+  "welcome",
+  "view",
+  "view/map",
+];
 const REMOVED_SINCE_958 = ["map"];
 
 describe("matchOwnerRoute (#958)", () => {

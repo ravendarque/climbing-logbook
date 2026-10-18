@@ -12,6 +12,7 @@ The record UK GDPR Art. 30 requires. The small-organisation exemption doesn't ap
 |---|---|---|---|
 | Cloudflare | Hosting (Workers), the database (D1), backups (D1 Time Travel), logs, visit statistics, bot checks (Turnstile), firewall | Global | UK Extension to the EU-US Data Privacy Framework (the UK-US data bridge); if that certification lapses, the EU SCCs with the UK Addendum ([Cloudflare DPA](https://www.cloudflare.com/cloudflare-customer-dpa/) v6.4, §6.2(b), §6.4), part of the self-serve subscription agreement |
 | Resend | Sending account emails | US | UK Extension to the EU-US Data Privacy Framework (the UK-US data bridge), and the EU SCCs with the UK Addendum ([Resend DPA](https://resend.com/legal/dpa) §6.4, §11.1), accepted with Resend's terms |
+| Proton | The `support@` mailbox: mail people send to support (#1444) | Switzerland | UK adequacy regulations for Switzerland |
 | GitHub | Source code and issue tracking only; no user data | US | Not applicable |
 | Discord | Alert and support-notification channel; carries no personal data or submitted text (`server/lib/support-notify.js`) | US | Not applicable |
 
@@ -19,7 +20,7 @@ The record UK GDPR Art. 30 requires. The small-organisation exemption doesn't ap
 
 | Activity | Purpose | Lawful basis | Personal data | Retention | Where it's enforced |
 |---|---|---|---|---|---|
-| Accounts and sign-in | Let people use their own logbook | Contract | Username, email, password hash, sessions (no IP address or browser, #1423), verification and reset links | Account: until the user deletes it. Sessions: deleted 7 days after expiry. Links: deleted once expired | `server/lib/auth.js`, `server/lib/cleanup.js` (`SESSION_GRACE_DAYS`), `server/lib/remove-account.js` |
+| Accounts and sign-in | Let people use their own logbook | Contract | Username, email, password hash, sessions (no IP address or browser, #1423), verification and reset links; with two-step sign-in, the encrypted TOTP secret and backup codes, and recovery requests (#1436) | Account: until the user deletes it. Sessions: deleted 7 days after expiry. Links: deleted once expired. Two-step secret and codes: until turned off or the account is deleted. Recovery requests: 30 days after they finish | `server/lib/auth.js`, `server/lib/cleanup.js` (`SESSION_GRACE_DAYS`), `server/lib/remove-account.js` |
 | The logbook | Record climbs and show the user's own insights | Contract | Climbs (name, grade, date, notes, video link, attempts, Exertion, moves), places, locations, settings | Until the user deletes it or the account. A deleted climb is stripped at once and its marker removed after 30 days | `server/api/entries.js`, `server/lib/cleanup.js` (`TOMBSTONE_DAYS`, `STRIP_ENTRY_CONTENT`) |
 | Health information | Find patterns in the user's climbing performance | Explicit consent (Art. 9(2)(a)), the Health Data Agreement | Pain and injury details; later cycle phase and energy and mood (#1409, #1410) | Until consent is withdrawn (deleted at once) or the account is deleted | `server/lib/health-consent.js`, `shared/health-consent.js`, `consents` table |
 | Consent record | Show who agreed to what, and when | Legal obligation (Art. 7(1)) | User id, purpose, wording version, dates granted, superseded and withdrawn | With the account | `consents` table |

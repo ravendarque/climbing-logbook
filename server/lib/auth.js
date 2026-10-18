@@ -1,11 +1,13 @@
 import { betterAuth } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
-import { username } from "better-auth/plugins";
+import { twoFactor, username } from "better-auth/plugins";
 import { createBetaGateAfterHook } from "./beta-gate.js";
 import { createAccountStatusHooks } from "./account-status.js";
 import { createEmailSender } from "./email.js";
 import { releaseInvites } from "./remove-account.js";
 import { requireTermsAgreement, stampTermsAgreement } from "./terms.js";
+import { twoStepRecovery } from "./two-step-recovery.js";
+import { authSecretOptions } from "./auth-secrets.js";
 import { checkUsername, USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH } from "../../shared/username-policy.js";
 
 // Why the list depends on the host: docs/app-architecture.md, Better Auth configuration.
@@ -63,13 +65,15 @@ async function refuseDemoDeletion(env, userId) {
 }
 
 // Built per request, never cached: a shared instance carried one request's I/O into another (#1253).
+export const TRUST_DEVICE_DAYS = 28;
+
 export function createAuth(env, hostname, log) {
   const emailSender = createEmailSender(env, log);
   const accountStatus = createAccountStatusHooks(env);
   const auth = betterAuth({
     database: env.LOGBOOK_DB,
     basePath: "/-/api/auth",
-    secret: env.BETTER_AUTH_SECRET,
+    ...authSecretOptions(env),
     trustedOrigins: trustedOriginsFor(hostname),
     baseURL: { allowedHosts: ALLOWED_HOSTS },
     // The Worker limits auth requests before they get here (server/lib/auth-rate-limit.js).
@@ -116,6 +120,12 @@ export function createAuth(env, hostname, log) {
         minUsernameLength: USERNAME_MIN_LENGTH,
         maxUsernameLength: USERNAME_MAX_LENGTH,
       }),
+      twoFactor({
+        issuer: "Climbing Logbook",
+        trustDeviceMaxAge: TRUST_DEVICE_DAYS * 24 * 60 * 60,
+        backupCodeOptions: { storeBackupCodes: "encrypted" },
+      }),
+      twoStepRecovery({ env, emailSender }),
     ],
     hooks: {
       before: createAuthMiddleware(async ctx => {

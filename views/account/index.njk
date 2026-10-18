@@ -19,29 +19,51 @@ headerClass: mb-6
     <div>
       <h1 class="card-section-heading">My account</h1>
       <div class="flex flex-col gap-2 max-w-[420px]" id="account-options">
-        <a class="row-card flex items-center justify-between row-card-title hover:border-accent" id="edit-account-link" href="#">
-          Edit account details
-          <svg class="w-4 h-4 stroke-muted fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+        <a class="row-card flex items-center gap-3 hover:border-accent" id="edit-account-link" href="#">
+          <div class="flex-1 min-w-0">
+            <span class="row-card-title">Edit account details</span>
+            <p class="text-sm text-muted mt-2">Change your username, email address or password.</p>
+          </div>
+          <svg class="w-4 h-4 stroke-muted fill-none shrink-0" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
         </a>
-        <a class="row-card flex items-center justify-between row-card-title hover:border-accent" id="places-link" href="#">
-          Manage places
-          <svg class="w-4 h-4 stroke-muted fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+        <a class="row-card flex items-center gap-3 hover:border-accent" id="two-step-link" href="#">
+          <div class="flex-1 min-w-0">
+            <span class="row-card-title">Two-Factor Authentication (2FA)</span>
+            <p class="text-sm text-muted mt-2">Enter a code from an authenticator app when you log in as an extra layer of security for your account</p>
+          </div>
+          <svg class="w-4 h-4 stroke-muted fill-none shrink-0" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
         </a>
-        <a class="row-card flex items-center justify-between row-card-title hover:border-accent" id="import-link" href="#">
-          Import entries
-          <svg class="w-4 h-4 stroke-muted fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+        <a class="row-card flex items-center gap-3 hover:border-accent" id="places-link" href="#">
+          <div class="flex-1 min-w-0">
+            <span class="row-card-title">Manage places</span>
+            <p class="text-sm text-muted mt-2">Rename your locations and areas, or delete them and move their climbs.</p>
+          </div>
+          <svg class="w-4 h-4 stroke-muted fill-none shrink-0" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
         </a>
-        <div class="row-card flex items-center justify-between row-card-title">
-          Export entries
-          <div class="flex gap-2">
+        <a class="row-card flex items-center gap-3 hover:border-accent" id="import-link" href="#">
+          <div class="flex-1 min-w-0">
+            <span class="row-card-title">Import entries</span>
+            <p class="text-sm text-muted mt-2">Add climbs in bulk from a spreadsheet (CSV), or our export format (JSON)</p>
+          </div>
+          <svg class="w-4 h-4 stroke-muted fill-none shrink-0" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+        </a>
+        <div class="row-card flex flex-col gap-3 min-[480px]:flex-row min-[480px]:items-center">
+          <div class="flex-1 min-w-0">
+            <span class="row-card-title">Export entries</span>
+            <p class="text-sm text-muted mt-2">Download your whole logbook as a spreadsheet (CSV) or a data file (JSON).</p>
+          </div>
+          <div class="flex gap-2 shrink-0">
             <button type="button" class="btn" id="export-csv-btn">CSV</button>
             <button type="button" class="btn" id="export-json-btn">JSON</button>
           </div>
         </div>
         <p class="text-sm text-accent-ink" id="export-error" hidden></p>
-        <a class="row-card flex items-center justify-between row-card-title hover:border-accent" id="tour-link" href="#">
-          Take the tour
-          <svg class="w-4 h-4 stroke-muted fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+        <a class="row-card flex items-center gap-3 hover:border-accent" id="tour-link" href="#">
+          <div class="flex-1 min-w-0">
+            <span class="row-card-title">Take the tour</span>
+            <p class="text-sm text-muted mt-2">A quick look at how Climbing Logbook works.</p>
+          </div>
+          <svg class="w-4 h-4 stroke-muted fill-none shrink-0" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
         </a>
         <div class="row-card" id="remove-data-row" hidden>
           <span class="row-card-title">Clear my data from this device</span>
@@ -52,6 +74,26 @@ headerClass: mb-6
           </div>
           <button type="button" class="btn btn-primary mt-3" id="remove-data-btn" aria-describedby="remove-data-description">Clear device data</button>
           <p class="text-sm text-accent-ink mt-3" id="remove-data-error" role="alert" hidden></p>
+        </div>
+      </div>
+      <h2 class="danger-zone-heading">Danger zone</h2>
+      <div class="flex flex-col gap-2 max-w-[420px]" id="danger-zone">
+        <div class="row-card border-accent" id="delete-account-row">
+          <span class="row-card-title">Delete account</span>
+          <div class="flex items-center gap-2 mt-2" id="delete-account-view">
+            <p class="flex-1 min-w-0 text-sm text-muted" id="delete-account-description">Deletes your account and everything in it, on every device. It can't be undone.</p>
+            <button type="button" class="btn btn-danger shrink-0" id="delete-account-edit-btn" aria-describedby="delete-account-description">Delete</button>
+          </div>
+          <form class="mt-2" id="delete-account-form" hidden>
+            <p class="text-sm text-foreground mb-3">This deletes your account, your logbook and your settings for good. If you want to keep your climbs, export them from My account first.</p>
+            <label class="text-xs text-muted font-semibold uppercase tracking-wide" for="delete-account-password">Password</label>
+            <input class="w-full mt-1 mb-2 bg-background border border-field-border rounded-app px-3 py-2 text-foreground text-base leading-normal" id="delete-account-password" name="password" type="password" autocomplete="current-password" required>
+            <p class="text-sm text-accent-ink mb-2" id="delete-account-error" role="alert" hidden></p>
+            <div class="flex gap-2">
+              <button type="submit" class="btn btn-danger" id="delete-account-save-btn">Delete my account</button>
+              <button type="button" class="btn" id="delete-account-cancel-btn">Cancel</button>
+            </div>
+          </form>
         </div>
       </div>
     </div>

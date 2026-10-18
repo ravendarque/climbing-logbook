@@ -21,12 +21,6 @@ variable "admin_email" {
   sensitive   = true
 }
 
-variable "support_forward_email" {
-  description = "Where support@ mail is forwarded. Supplied by the TF_VAR_support_forward_email Actions secret, never committed."
-  type        = string
-  sensitive   = true
-}
-
 variable "betterstack_api_token" {
   description = "Better Stack Uptime team token. Supplied by the BETTERSTACK_API_TOKEN Actions secret, never committed."
   type        = string

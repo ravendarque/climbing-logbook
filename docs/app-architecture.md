@@ -491,8 +491,25 @@ Tables (see `migrations/` for columns and constraints):
   last-known state from localStorage first and corrects it once
   `/-/api/auth/get-session` answers; a network failure keeps the last-known
   state, but a real "no session" logs the page out.
-- **Rate limiting** is Better Auth's own, stored in D1 and keyed on
-  `cf-connecting-ip` ([ADR-0027](adr/0027-database-backed-rate-limiting-on-sign-in.md)).
+- **Rate limiting** happens in the Worker before Better Auth, through the
+  Workers rate-limit bindings (`server/lib/auth-rate-limit.js`,
+  [ADR-0037](adr/0037-rate-limiting-through-the-workers-binding.md)): every
+  auth POST per connection and path, and sign-in per target account too, so
+  guesses spread across many IPs still slow down (#1049). Better Auth's own
+  limiter is off.
+- **Two-step sign-in** (#1436) is Better Auth's `twoFactor` plugin with
+  authenticator-app codes only, optional per account. Sign-in answers
+  `twoFactorRedirect` and the login page asks for a code or a backup code;
+  "don't ask again" trusts the device for 28 days (`TRUST_DEVICE_DAYS`).
+  The setup key and backup codes are encrypted with `BETTER_AUTH_SECRET`
+  (backup codes because `storeBackupCodes: "encrypted"`; the default is
+  plain). The secret rotates in versions (`BETTER_AUTH_SECRETS`,
+  `server/lib/auth-secrets.js`): the daily cron re-encrypts two-step data
+  under the newest version before an old one is retired (#1440). Recovery without the device is self-service and slow by design
+  (`server/lib/two-step-recovery.js`): after the password, a link to the
+  account's email starts a 7-day wait, cancellable from the email or My
+  account, and the daily cron switches it off when the wait ends. There's
+  no admin reset. The link opens `/login/?two-step-recovery=<token>`.
 - **Already logged in:** the apex home and login page send a signed-in
   visitor straight to their log (`client/session-redirect.js`).
 - **Suspended and banned accounts** are enforced in Better Auth's database

@@ -188,12 +188,14 @@ async function fetchChildRowsChunked(env, table, ids) {
 }
 
 // Pain details are health data, so they're only read back with the owner's consent (#1120).
-export async function attachChildRows(rows, env, userId) {
+export async function attachChildRows(rows, env, userId, { evenWithoutConsent = false } = {}) {
   if (rows.length === 0) return rows;
   const ids = rows.map(r => r.id);
   const [movesRows, painRows] = await Promise.all([
     fetchChildRowsChunked(env, "entry_moves", ids),
-    hasConsent(env, userId).then(consented => (consented ? fetchChildRowsChunked(env, "entry_pain_moves", ids) : [])),
+    (evenWithoutConsent ? Promise.resolve(true) : hasConsent(env, userId)).then(show =>
+      show ? fetchChildRowsChunked(env, "entry_pain_moves", ids) : [],
+    ),
   ]);
   const movesByEntry = Object.groupBy(movesRows, row => row.entry_id);
   const painByEntry = Object.groupBy(painRows, row => row.entry_id);

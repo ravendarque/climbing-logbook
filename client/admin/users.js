@@ -17,6 +17,10 @@ const CONFIRMATIONS = {
 
 const STATUSES = { send: "Send", project: "Project", archived: "Archived", checkout: "Check out" };
 const DISCIPLINES = { boulder: "Boulder", sport: "Sport" };
+const SPORT_STYLES = { lead: "Lead", top_rope: "Top rope" };
+
+const describeTag = tag =>
+  [tag.side, tag.limb, tag.holdType, tag.movementStyle, tag.wallAngle, tag.difficulty].filter(Boolean).join(" ");
 
 function logbookItem(entry) {
   const item = el("li", "flex flex-col gap-1 py-3 border-b border-border");
@@ -33,6 +37,16 @@ function logbookItem(entry) {
       [entry.date, DISCIPLINES[entry.discipline] ?? entry.discipline, status, place].filter(Boolean).join(" · "),
     ),
   );
+  const details = [
+    SPORT_STYLES[entry.sportStyle] ?? entry.sportStyle,
+    entry.attemptsToSend != null && `${entry.attemptsToSend} ${entry.attemptsToSend === 1 ? "attempt" : "attempts"}`,
+    entry.rpe != null && `Exertion ${entry.rpe}%`,
+    entry.gradeScale,
+  ].filter(Boolean);
+  if (details.length) item.append(el("span", "text-xs text-muted", details.join(" · ")));
+  if (entry.moves?.length) item.append(el("span", "text-xs", `Moves: ${entry.moves.map(describeTag).join("; ")}`));
+  if (entry.painMoves?.length)
+    item.append(el("span", "text-xs", `Pain or injury: ${entry.painMoves.map(describeTag).join("; ")}`));
   if (entry.notes) item.append(el("p", "text-sm whitespace-pre-wrap break-words", entry.notes));
   // Shown, not linked, as in a report.
   if (entry.video) item.append(el("span", "text-xs text-muted break-all", entry.video));

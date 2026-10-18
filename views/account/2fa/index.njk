@@ -1,0 +1,76 @@
+---
+layout: app-layout.njk
+title: Two-Factor Authentication (2FA) – Climbing Logbook
+bundle: account-two-step
+headerClass: mb-6
+---
+<div class="max-w-[960px] mx-auto">
+  <a class="back-link mt-4 mb-5" id="back-to-account-link" href="#">
+    <svg class="w-[.9rem] h-[.9rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
+    My Account
+  </a>
+
+  <h1 class="section-heading">Two-Factor Authentication (2FA)</h1>
+
+  <div class="max-w-[520px] flex flex-col gap-4">
+    <p class="text-sm text-muted">After your password, you enter a code from an authenticator app on your phone. Someone who learns your password still can't get in without your phone. It's up to you whether to use it. <a class="text-accent-ink underline underline-offset-2" href="/help/two-factor-authentication/">How it works</a></p>
+
+    <p class="text-sm text-muted" id="two-step-loading">Loading…</p>
+
+    <div class="row-card border-accent" id="recovery-pending" hidden>
+      <p class="font-semibold mb-1">2FA is switching off</p>
+      <p class="text-sm mb-3" id="recovery-pending-text"></p>
+      <button type="button" class="btn btn-primary" id="recovery-cancel-btn">This wasn't me: cancel it</button>
+    </div>
+
+    <section class="flex flex-col gap-3" id="two-step-off" hidden>
+      <p><strong>2FA is off.</strong></p>
+      <p class="text-sm text-muted">You'll need an authenticator app. We really like <a class="text-accent-ink underline underline-offset-2" href="https://proton.me/authenticator">Proton Authenticator</a> and <a class="text-accent-ink underline underline-offset-2" href="https://ente.com/auth/">Ente Auth</a>, but you can use any authenticator app.</p>
+      <div><button type="button" class="btn btn-primary" id="setup-start-btn">Set up 2FA</button></div>
+    </section>
+
+    <section class="flex flex-col gap-3" id="two-step-on" hidden>
+      <p><strong>2FA is on.</strong> You'll be asked for a code when you log in on a new device.</p>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" class="btn" id="new-codes-btn">Get new backup codes</button>
+        <button type="button" class="btn" id="turn-off-btn">Turn off</button>
+      </div>
+    </section>
+
+    <form class="row-card flex flex-col gap-3" id="password-form" hidden novalidate>
+      <label class="text-sm" for="two-step-password" id="password-prompt">Enter your password to continue.</label>
+      <input class="text-input w-full" type="password" id="two-step-password" autocomplete="current-password" required>
+      <div class="flex flex-wrap gap-2">
+        <button type="submit" class="btn btn-primary" id="password-submit-btn">Continue</button>
+        <button type="button" class="btn" id="password-cancel-btn">Cancel</button>
+      </div>
+    </form>
+
+    <form class="row-card flex flex-col gap-3" id="scan-form" hidden novalidate>
+      <p class="font-semibold">1. Add Climbing Logbook to your authenticator app</p>
+      <p class="text-sm text-muted">Scan this code with the app. If you can't scan it, choose to enter a setup key instead and type the key below.</p>
+      <div class="bg-white p-3 rounded-app self-start w-48 h-48" id="qr-code" role="img" aria-label="QR code for your authenticator app"></div>
+      <p class="text-sm">Setup key: <code class="break-all tabular-nums" id="setup-key"></code></p>
+      <p class="font-semibold">2. Enter the 6-digit code it shows</p>
+      <input class="text-input w-40 tabular-nums" type="text" id="setup-code" autocomplete="one-time-code" inputmode="numeric" maxlength="6" pattern="[0-9]*" aria-label="Code from your authenticator app" required>
+      <div class="flex flex-wrap gap-2">
+        <button type="submit" class="btn btn-primary" id="setup-verify-btn">Turn on</button>
+        <button type="button" class="btn" id="setup-cancel-btn">Cancel</button>
+      </div>
+    </form>
+
+    <section class="row-card flex flex-col gap-3" id="backup-codes" hidden>
+      <p class="font-semibold">Save your backup codes</p>
+      <p class="text-sm">If you lose your phone, each of these codes lets you log in once. They're as sensitive as a password, so don't keep them as plain text or in a notes app. Keep them in a secure password manager, such as <a class="text-accent-ink underline underline-offset-2" href="https://proton.me/pass">Proton Pass</a> or <a class="text-accent-ink underline underline-offset-2" href="https://ente.com/locker/">Ente Locker</a>.</p>
+      <p class="text-sm text-muted">Without your phone or these codes, the only way back in is to wait 7 days while we switch 2FA off. We can't do it for you any sooner, because we can't tell you apart from someone pretending to be you.</p>
+      <ul class="grid grid-cols-2 gap-x-4 gap-y-1 list-none p-0 font-mono tabular-nums text-sm" id="backup-codes-list"></ul>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" class="btn" id="copy-codes-btn">Copy codes</button>
+        <button type="button" class="btn btn-primary" id="codes-done-btn">I've saved them</button>
+      </div>
+    </section>
+
+    <p class="error-message" id="two-step-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>
+    <p class="text-sm text-muted" id="two-step-info" role="status" aria-live="polite" hidden></p>
+  </div>
+</div>
