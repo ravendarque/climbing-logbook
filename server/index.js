@@ -3,6 +3,8 @@ import { handleCspReport } from "./api/csp-report.js";
 import { withContentSecurityPolicy } from "./lib/csp.js";
 import { capRequestBody } from "./lib/body-limit.js";
 import { cleanUp } from "./lib/cleanup.js";
+import { createEmailSender } from "./lib/email.js";
+import { completeDueRecoveries } from "./lib/two-step-recovery.js";
 import { handlePublicProfile } from "./api/public-profile.js";
 import { handlePublicResource } from "./api/public-data.js";
 import { handleOwnedRoute } from "./api/owned-routes.js";
@@ -170,6 +172,9 @@ export default {
     const log = createLogger({ env, route: "scheduled" });
     try {
       await cleanUp(env, log);
+      log.info("two-step.recoveries.completed", {
+        count: await completeDueRecoveries(env, createEmailSender(env, log)),
+      });
     } catch (err) {
       log.error("cleanup.failed", { err });
       throw err;

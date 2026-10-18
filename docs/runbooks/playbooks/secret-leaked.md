@@ -6,7 +6,7 @@ Assume a secret is compromised the moment it appears anywhere it shouldn't: a co
 
 | Secret | Rotate | Side effect |
 |---|---|---|
-| `BETTER_AUTH_SECRET` | Generate a new random value; `npx wrangler secret put BETTER_AUTH_SECRET --env production` (and `--env beta`) | Everyone is signed out |
+| `BETTER_AUTH_SECRET` | Generate a new random value; `npx wrangler secret put BETTER_AUTH_SECRET --env production` (and `--env beta`) | Everyone is signed out. **It also encrypts two-step sign-in setup keys and backup codes (#1436): replaced outright, everyone using two-step sign-in can't log in.** Rotate with Better Auth's versioned secrets instead, keeping the old version for reading (not wired yet, #1440) |
 | `RESEND_API_KEY` | Create a new key in Resend, revoke the old one, `wrangler secret put` per environment | None if done in that order |
 | `TURNSTILE_SECRET_KEY` | Rotate the widget secret in the Cloudflare dashboard (Turnstile), then `wrangler secret put` per environment | Sign-ups fail between the two steps |
 | Cloudflare API tokens (`CLOUDFLARE_*_TOKEN`) | Roll the token in the dashboard (My Profile → API Tokens), update the GitHub secret | Deploys fail until the secret is updated |

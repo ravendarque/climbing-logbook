@@ -1,10 +1,11 @@
 export const AREAS = {
-  auth: ["login", "logout", "register", "reset-password", "zero-friction-redirect", "launch"],
+  auth: ["login", "logout", "register", "reset-password", "zero-friction-redirect", "launch", "two-step-recovery"],
   account: [
     "account-page",
     "account-beta-page",
     "account-health-page",
     "account-places-page",
+    "account-two-step",
     "account-edit-page",
     "account-import-page",
     "remove-device-data",

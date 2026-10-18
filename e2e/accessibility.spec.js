@@ -29,6 +29,7 @@ const OWNER_PAGES = [
   "/account/beta",
   "/account/health",
   "/account/places",
+  "/account/two-step",
 ];
 
 const PUBLIC_PAGES = [
