@@ -146,7 +146,7 @@ that carries the change. The repo doesn't let Actions open PRs, on purpose
 | `SYNTHETIC_USER_EMAIL`, `SYNTHETIC_USER_PASSWORD` | Actions secrets | The synthetic check's account (`infra/README.md`) |
 | `ADMIN_EMAIL` | Actions secret | The one email the admin host's Access policy lets in (`infra/access.tf`) |
 | `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD` | Worker variables (`wrangler.jsonc`) | What the Worker checks the admin host's Access token against. Infra writes `ACCESS_AUD` after apply; empty, the admin host refuses everything |
-| `BETTER_AUTH_SECRET` | Worker secret, per environment | Session signing |
+| `BETTER_AUTH_SECRET`, `BETTER_AUTH_SECRETS` | Worker secrets, per environment | Session signing, and encrypting two-step sign-in setup keys and backup codes (#1436). `BETTER_AUTH_SECRETS` holds versioned secrets (`<version>:<secret>`, newest first) for rotation; `BETTER_AUTH_SECRET` reads values made before it. Rotate with `docs/runbooks/playbooks/secret-leaked.md`, never by replacing one outright (#1440) |
 | `RESEND_API_KEY` | Worker secret, per environment | Verification and password-reset email (sent from `myaccount@climbinglogbook.com`) |
 | `EMAIL_DELIVERY` | Worker variable (`wrangler.jsonc`) | `"off"` in `e2e` skips every email, since e2e registers and resets passwords by the dozen; `"log"` in local dev prints each email's link to the terminal (only when `APP_ENV` is `development`) |
 | `TURNSTILE_SECRET_KEY` | Worker secret, per environment | Turnstile verification. Production and beta each need the real value (`terraform output -raw turnstile_secret`); preview and local dev use Cloudflare's public always-passes test secret |

@@ -89,7 +89,7 @@ S spoofing, T tampering, R repudiation, I information disclosure, D denial of se
 
 | # | | Threat | Controls in place | Gap or issue |
 |---|---|---|---|---|
-| 1 | S | Credential stuffing against sign-in | Per-connection and per-account sign-in limits (`server/lib/auth-rate-limit.js`, #1049); hashed passwords | No breached-password check, no Turnstile on sign-in, no second factor: #1055, #1436 |
+| 1 | S | Credential stuffing against sign-in | Per-connection and per-account sign-in limits (`server/lib/auth-rate-limit.js`, #1049); hashed passwords; optional two-step sign-in with authenticator codes, lockout after failed codes (#1436) | No breached-password check, no Turnstile on sign-in: #1055. Passkeys: #1439 |
 | 2 | S | Session theft (XSS, a stolen device) | `HttpOnly` cookies; escaped rendering (`escapeHtml`, `textContent`); CSP | CSP is still report-only until the soak ends: #1042. No "sign out everywhere": #1055 |
 | 3 | S | Account takeover by password reset or email change | Reset and change-of-email links by email; limits per address; Turnstile on reset | No alert email on password change: #1055 |
 | 4 | S | Forged admin access | Access in front of the admin host; the Worker checks the Access token's audience and refuses all when `ACCESS_AUD` is empty | — |
@@ -103,13 +103,14 @@ S spoofing, T tampering, R repudiation, I information disclosure, D denial of se
 | 12 | I | Personal data in logs, alerts or error pages | Allowlist logger; error responses carry a reference, not details; support alerts carry no personal data | — |
 | 13 | I | The on-device copy on a shared or lost device | Per-user keys; *Clear device data* | Accepted in the DPIA (risk 3) |
 | 14 | I | A database copy leaking (backup, CI, processor) | Processor DPA; no production data in CI or previews (separate preview database, seeded with fakes) | Off-platform backups must be encrypted: #1068 |
-| 15 | I | Secrets leaking | Worker secrets set by hand, never in the repo; `.dev.vars` gitignored; leaked-secret playbook | Rotation rehearsal: #1067 |
+| 15 | I | Secrets leaking | Worker secrets set by hand, never in the repo; `.dev.vars` gitignored; leaked-secret playbook; the auth secret rotates in versions, with two-step data re-encrypted before the old one goes (#1440) | Rotation rehearsal: #1067 |
 | 16 | D | Request floods | Edge DDoS protection; WAF; Worker rate limits on auth and writes | Load test: #1065 |
 | 17 | D | Quota exhaustion (D1 rows, email sends) | Account limits (#1045); per-address email limits; invite gate on sign-up | Sign-up abuse controls when the gate comes off: #1057 |
 | 18 | D | A bad deploy or migration | Tests, previews, backward-compatible migrations, read-only mode (#1063), rollback playbook | Game days: #1067 |
 | 19 | E | A user reaching admin functions | Admin routes only on the admin host, behind Access; nothing in the app links to it | — |
 | 20 | E | Beta enrolment or invite bypass | Enrolment checked per request (ADR-0016, ADR-0029); invite codes claimed before sign-up | — |
 | 21 | E | A compromised maintainer account | Cloudflare tokens scoped and expiring; Access limited to one email | Account hardening (2FA everywhere, branch rules, CAA): #1069 |
+| 22 | S | Switching off someone's two-step sign-in through recovery | Recovery needs the correct password first, then the link from the account's email; switching off waits 7 days, with an email when the wait starts and a cancel link; no admin reset, so no one can be talked into it (`server/lib/two-step-recovery.js`) | — |
 
 ## Known gaps, in one place
 

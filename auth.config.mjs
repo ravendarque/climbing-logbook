@@ -4,7 +4,7 @@
 //   pnpm exec better-auth generate --config auth.config.mjs --output migrations/<next>_<name>.sql -y
 //   pnpm remove @better-auth/cli better-sqlite3
 import { betterAuth } from "better-auth";
-import { username } from "better-auth/plugins";
+import { twoFactor, username } from "better-auth/plugins";
 import Database from "better-sqlite3";
 
 export const auth = betterAuth({
@@ -14,5 +14,5 @@ export const auth = betterAuth({
   emailAndPassword: { enabled: true },
   // Mirrors server/lib/auth.js.
   rateLimit: { enabled: true, storage: "database" },
-  plugins: [username()],
+  plugins: [username(), twoFactor()],
 });

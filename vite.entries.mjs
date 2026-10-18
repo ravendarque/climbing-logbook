@@ -14,6 +14,7 @@ export const CLIENT_ENTRIES = {
   "account-beta": "client/account-beta-main.js",
   "account-health": "client/account-health-main.js",
   "account-places": "client/account-places-main.js",
+  "account-two-step": "client/account-two-step-main.js",
   welcome: "client/welcome-main.js",
   view: "client/view-main.js",
   sync: "client/sync-main.js",
