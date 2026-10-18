@@ -503,7 +503,9 @@ Tables (see `migrations/` for columns and constraints):
   "don't ask again" trusts the device for 28 days (`TRUST_DEVICE_DAYS`).
   The setup key and backup codes are encrypted with `BETTER_AUTH_SECRET`
   (backup codes because `storeBackupCodes: "encrypted"`; the default is
-  plain). Recovery without the device is self-service and slow by design
+  plain). The secret rotates in versions (`BETTER_AUTH_SECRETS`,
+  `server/lib/auth-secrets.js`): the daily cron re-encrypts two-step data
+  under the newest version before an old one is retired (#1440). Recovery without the device is self-service and slow by design
   (`server/lib/two-step-recovery.js`): after the password, a link to the
   account's email starts a 7-day wait, cancellable from the email or My
   account, and the daily cron switches it off when the wait ends. There's

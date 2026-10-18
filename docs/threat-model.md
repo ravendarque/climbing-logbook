@@ -103,7 +103,7 @@ S spoofing, T tampering, R repudiation, I information disclosure, D denial of se
 | 12 | I | Personal data in logs, alerts or error pages | Allowlist logger; error responses carry a reference, not details; support alerts carry no personal data | — |
 | 13 | I | The on-device copy on a shared or lost device | Per-user keys; *Clear device data* | Accepted in the DPIA (risk 3) |
 | 14 | I | A database copy leaking (backup, CI, processor) | Processor DPA; no production data in CI or previews (separate preview database, seeded with fakes) | Off-platform backups must be encrypted: #1068 |
-| 15 | I | Secrets leaking | Worker secrets set by hand, never in the repo; `.dev.vars` gitignored; leaked-secret playbook | Rotation rehearsal: #1067 |
+| 15 | I | Secrets leaking | Worker secrets set by hand, never in the repo; `.dev.vars` gitignored; leaked-secret playbook; the auth secret rotates in versions, with two-step data re-encrypted before the old one goes (#1440) | Rotation rehearsal: #1067 |
 | 16 | D | Request floods | Edge DDoS protection; WAF; Worker rate limits on auth and writes | Load test: #1065 |
 | 17 | D | Quota exhaustion (D1 rows, email sends) | Account limits (#1045); per-address email limits; invite gate on sign-up | Sign-up abuse controls when the gate comes off: #1057 |
 | 18 | D | A bad deploy or migration | Tests, previews, backward-compatible migrations, read-only mode (#1063), rollback playbook | Game days: #1067 |

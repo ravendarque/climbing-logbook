@@ -7,6 +7,7 @@ import { createEmailSender } from "./email.js";
 import { releaseInvites } from "./remove-account.js";
 import { requireTermsAgreement, stampTermsAgreement } from "./terms.js";
 import { twoStepRecovery } from "./two-step-recovery.js";
+import { authSecretOptions } from "./auth-secrets.js";
 import { checkUsername, USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH } from "../../shared/username-policy.js";
 
 // Why the list depends on the host: docs/app-architecture.md, Better Auth configuration.
@@ -72,7 +73,7 @@ export function createAuth(env, hostname, log) {
   const auth = betterAuth({
     database: env.LOGBOOK_DB,
     basePath: "/-/api/auth",
-    secret: env.BETTER_AUTH_SECRET,
+    ...authSecretOptions(env),
     trustedOrigins: trustedOriginsFor(hostname),
     baseURL: { allowedHosts: ALLOWED_HOSTS },
     // The Worker limits auth requests before they get here (server/lib/auth-rate-limit.js).

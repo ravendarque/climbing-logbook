@@ -5,6 +5,7 @@ import { secretFromUri, totp } from "./totp.js";
 import { cleanUp } from "../server/lib/cleanup.js";
 import { apexOrigin, completeDueRecoveries } from "../server/lib/two-step-recovery.js";
 import { createLogger } from "../server/lib/log.js";
+import { parseAuthSecrets, reencryptTwoStepData } from "../server/lib/auth-secrets.js";
 
 const PASSWORD = "correct-horse-battery-staple";
 const ORIGIN = { Origin: BASE_URL };
@@ -278,5 +279,64 @@ describe("recovering without the device (#1436)", () => {
     await authPost("/-/api/auth/two-factor/recovery/request", { Cookie: pending });
     await cleanUp(env, createLogger({ env }), Date.now() + 31 * DAY_MS);
     expect((await env.LOGBOOK_DB.prepare(`SELECT COUNT(*) AS n FROM two_step_recoveries`).first()).n).toBe(0);
+  });
+});
+
+describe("rotating the auth secret (#1440)", () => {
+  const NEW_SECRET = "a-new-auth-secret-for-rotation-tests-0123456789";
+  let legacy;
+  beforeEach(() => {
+    legacy = env.BETTER_AUTH_SECRET;
+  });
+  afterEach(() => {
+    env.BETTER_AUTH_SECRET = legacy;
+    delete env.BETTER_AUTH_SECRETS;
+  });
+
+  async function logInWithCode(secret) {
+    const { body, pending } = await signInWithPassword();
+    expect(body).toMatchObject({ twoFactorRedirect: true });
+    return jsonRequest("POST", "/-/api/auth/two-factor/verify-totp", { code: await totp(secret) }, { Cookie: pending });
+  }
+
+  it("keeps two-step sign-in working through a rotation, and the old secret can go once data is re-encrypted", async () => {
+    const { secret } = await turnOn();
+    env.BETTER_AUTH_SECRETS = `2:${NEW_SECRET}`;
+    expect((await logInWithCode(secret)).status).toBe(200);
+
+    expect(await reencryptTwoStepData(env)).toEqual({ count: 1, failed: 0 });
+    const row = await twoFactorRow();
+    expect(row.secret.startsWith("$ba$2$")).toBe(true);
+    expect(row.backupCodes.startsWith("$ba$2$")).toBe(true);
+    expect(await reencryptTwoStepData(env)).toEqual({ count: 0, failed: 0 });
+
+    env.BETTER_AUTH_SECRET = "a-different-value-standing-in-for-the-retired-secret";
+    expect((await logInWithCode(secret)).status).toBe(200);
+  });
+
+  it("locks two-step users out if the old secret goes before re-encryption, which is why the playbook waits", async () => {
+    const { secret } = await turnOn();
+    env.BETTER_AUTH_SECRETS = `2:${NEW_SECRET}`;
+    env.BETTER_AUTH_SECRET = "a-different-value-standing-in-for-the-retired-secret";
+    expect((await logInWithCode(secret)).status).not.toBe(200);
+  });
+
+  it("skips a row it can't read rather than stopping, and says so", async () => {
+    await turnOn();
+    env.BETTER_AUTH_SECRETS = `2:${NEW_SECRET}`;
+    env.BETTER_AUTH_SECRET = "a-different-value-standing-in-for-the-retired-secret";
+    expect(await reencryptTwoStepData(env)).toEqual({ count: 0, failed: 1 });
+  });
+
+  it("does nothing without versioned secrets", async () => {
+    await turnOn();
+    expect(await reencryptTwoStepData(env)).toEqual({ count: 0, failed: 0 });
+  });
+
+  it("refuses a malformed secrets list", () => {
+    expect(parseAuthSecrets(`2:${NEW_SECRET},1:${legacy}`).map(s => s.version)).toEqual([2, 1]);
+    expect(() => parseAuthSecrets("no-version")).toThrow();
+    expect(() => parseAuthSecrets("x:secret")).toThrow();
+    expect(() => parseAuthSecrets("3:")).toThrow();
   });
 });

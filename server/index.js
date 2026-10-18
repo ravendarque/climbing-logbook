@@ -5,6 +5,7 @@ import { capRequestBody } from "./lib/body-limit.js";
 import { cleanUp } from "./lib/cleanup.js";
 import { createEmailSender } from "./lib/email.js";
 import { completeDueRecoveries } from "./lib/two-step-recovery.js";
+import { reencryptTwoStepData } from "./lib/auth-secrets.js";
 import { handlePublicProfile } from "./api/public-profile.js";
 import { handlePublicResource } from "./api/public-data.js";
 import { handleOwnedRoute } from "./api/owned-routes.js";
@@ -174,6 +175,11 @@ export default {
       await cleanUp(env, log);
       log.info("two-step.recoveries.completed", {
         count: await completeDueRecoveries(env, createEmailSender(env, log)),
+      });
+      const reencrypted = await reencryptTwoStepData(env);
+      log[reencrypted.failed ? "warn" : "info"]("two-step.reencrypted", {
+        count: reencrypted.count,
+        blocked: reencrypted.failed,
       });
     } catch (err) {
       log.error("cleanup.failed", { err });
