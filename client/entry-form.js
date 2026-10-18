@@ -53,7 +53,7 @@ export function createEntryForm({
   nameInput.maxLength = FIELD_LIMITS.entryName;
   notesInput.maxLength = FIELD_LIMITS.notes;
   const updateNotesLeft = showCharactersLeft(notesInput, document.getElementById("entry-notes-count"));
-  notesInput.setAttribute("aria-describedby", "entry-notes-pain-hint entry-notes-count");
+  notesInput.setAttribute("aria-describedby", "entry-notes-count");
   const gradePrev = document.getElementById("grade-prev");
   const gradeNext = document.getElementById("grade-next");
   const gradeNsFields = document.getElementById("grade-ns-fields");
