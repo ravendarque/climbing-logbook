@@ -6,6 +6,7 @@ import { startPage } from "./boot-gate.js";
 import { removeDeviceData, unsyncedChangeCount } from "./device-data.js";
 import { LOGIN_PATH } from "./login-url.js";
 import { tourStartUrl } from "./tour/tour-url.js";
+import { resolveApexUrl } from "./resolve-cross-hostname-url.js";
 
 const DATA_URL = "/-/api/entries";
 const PLACES_URL = "/-/api/places";
@@ -21,6 +22,7 @@ const {
 document.getElementById("edit-account-link").href = `/${encodeURIComponent(USERNAME)}/account/edit`;
 document.getElementById("import-link").href = `/${encodeURIComponent(USERNAME)}/account/import`;
 document.getElementById("places-link").href = `/${encodeURIComponent(USERNAME)}/account/places`;
+document.getElementById("two-step-link").href = `/${encodeURIComponent(USERNAME)}/account/2fa`;
 document.getElementById("tour-link").href = tourStartUrl(`/${encodeURIComponent(USERNAME)}/account`);
 document.getElementById("beta-row").href = `/${encodeURIComponent(USERNAME)}/account/beta`;
 document.getElementById("health-row").href = `/${encodeURIComponent(USERNAME)}/account/health`;
@@ -154,6 +156,51 @@ async function exportEntries(format) {
 
 document.getElementById("export-csv-btn").addEventListener("click", () => exportEntries("csv"));
 document.getElementById("export-json-btn").addEventListener("click", () => exportEntries("json"));
+
+const deleteView = document.getElementById("delete-account-view");
+const deleteForm = document.getElementById("delete-account-form");
+const deleteError = document.getElementById("delete-account-error");
+const deleteSaveBtn = document.getElementById("delete-account-save-btn");
+
+function closeDeleteForm() {
+  deleteForm.hidden = true;
+  deleteView.hidden = false;
+  deleteForm.reset();
+}
+
+document.getElementById("delete-account-edit-btn").addEventListener("click", () => {
+  deleteError.hidden = true;
+  deleteView.hidden = true;
+  deleteForm.hidden = false;
+  document.getElementById("delete-account-password").focus();
+});
+document.getElementById("delete-account-cancel-btn").addEventListener("click", closeDeleteForm);
+
+deleteForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  deleteError.hidden = true;
+  deleteSaveBtn.disabled = true;
+  try {
+    const res = await fetch("/-/api/auth/delete-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: new FormData(deleteForm).get("password") }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(data?.message || `Request failed (${res.status}).`);
+    if (!(await removeDeviceData(USERNAME))) {
+      throw new Error(
+        "Your account is deleted, but some of its data couldn't be cleared from this device. To clear the rest, clear this site's data in your browser's settings.",
+      );
+    }
+    location.href = resolveApexUrl(location.hostname, "/");
+  } catch (err) {
+    deleteError.textContent = err.message;
+    deleteError.hidden = false;
+  } finally {
+    deleteSaveBtn.disabled = false;
+  }
+});
 
 async function boot() {
   await Promise.all([adminAuth.checkSession(), adminAuth.fetchSettings()]);

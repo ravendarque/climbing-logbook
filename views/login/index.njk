@@ -19,8 +19,8 @@
     {# display:none, not [hidden], so it doesn't depend on the stylesheet having loaded. #}
     <div class="flex flex-col items-center gap-6" id="page-content" style="display:none">
       <climbing-header variant="brand"></climbing-header>
+      <h1 class="sr-only">Log in</h1>
       <form class="w-full max-w-[360px] bg-surface border border-border rounded-app p-6" id="login-form" novalidate>
-        <h1 class="sr-only">Log in</h1>
         <label class="block text-sm text-muted mb-1" for="email">Email</label>
         <input
           class="text-input w-full mb-4"
@@ -48,6 +48,46 @@
           Don't have an account? <a class="text-accent-ink underline underline-offset-2" href="/register/">Sign up</a>
         </p>
       </form>
+
+      <form class="w-full max-w-[360px] bg-surface border border-border rounded-app p-6" id="code-form" novalidate hidden>
+        <h2 class="text-lg font-bold mb-2" id="code-heading">Enter your code</h2>
+        <p class="text-sm text-muted mb-4" id="code-hint">Open your authenticator app and enter the 6-digit code for Climbing Logbook.</p>
+        <label class="block text-sm text-muted mb-1" for="code" id="code-label">Code</label>
+        <input class="text-input w-full mb-4 tabular-nums" type="text" id="code" name="code" required autocomplete="one-time-code" inputmode="numeric" maxlength="6" pattern="[0-9]*">
+
+        <label class="flex items-start gap-2 text-sm mb-4">
+          <input type="checkbox" id="trust-device" class="mt-1">
+          <span>Don't ask for a code on this device for 28 days</span>
+        </label>
+
+        <p class="mb-4 error-message" id="code-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>
+        <p class="text-sm text-muted mb-4" id="code-info" role="status" aria-live="polite" hidden></p>
+
+        <button type="submit" class="btn btn-primary w-full disabled:opacity-[.45] disabled:cursor-not-allowed" id="code-submit-btn">Log in</button>
+
+        <div class="flex flex-col gap-2 mt-4 text-sm">
+          <button type="button" class="text-left text-accent-ink bg-transparent border-0 p-0 cursor-pointer" id="use-backup-code-btn">Use a backup code instead</button>
+          <button type="button" class="text-left text-accent-ink bg-transparent border-0 p-0 cursor-pointer" id="lost-device-btn">Lost your device and your backup codes?</button>
+        </div>
+
+        <div class="mt-4 pt-4 border-t border-border text-sm" id="lost-device" hidden>
+          <p class="mb-2">We can email you a link that switches 2FA off <strong>7 days</strong> after you use it.</p>
+          <p class="text-muted mb-4">The wait protects you: if someone else has your password, they can't switch it off quickly, and you'll get an email so you can stop them. We can't switch it off for you, because we can't tell you apart from someone pretending to be you. <a class="text-accent-ink underline underline-offset-2" href="/help/two-factor-authentication/">Why there's a wait</a></p>
+          <button type="button" class="btn w-full disabled:opacity-[.45] disabled:cursor-not-allowed" id="recovery-btn">Email me the link</button>
+        </div>
+      </form>
+
+      <section class="w-full max-w-[360px] bg-surface border border-border rounded-app p-6" id="recovery-panel" hidden>
+        <h2 class="text-lg font-bold mb-2">Switch off 2FA</h2>
+        <p class="text-sm text-muted mb-4" id="recovery-status" role="status" aria-live="polite">Checking the link…</p>
+        <div id="recovery-unstarted" hidden>
+          <p class="text-sm mb-2">2FA will switch off <strong>7 days</strong> after you start the wait. Until then you'll still need a code to log in.</p>
+          <p class="text-sm text-muted mb-4">The wait stops someone who has your password from switching it off quickly. We'll email you, and you can cancel it any time before then.</p>
+          <button type="button" class="btn btn-primary w-full mb-2" id="recovery-start-btn">Start the 7-day wait</button>
+        </div>
+        <button type="button" class="btn w-full" id="recovery-cancel-btn" hidden>This wasn't me: cancel it</button>
+        <p class="mt-4 error-message" id="recovery-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>
+      </section>
     </div>
   </main>
   <script type="module" src="/-/login-app.js{% if not isDevBuild %}?v={{ assetVersion }}{% endif %}"></script>

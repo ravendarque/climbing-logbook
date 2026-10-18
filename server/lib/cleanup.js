@@ -43,6 +43,15 @@ export async function cleanUp(env, log, now = Date.now()) {
       ).bind(tombstoneCutoff),
     ],
     ["tombstones", env.LOGBOOK_DB.prepare(deleteSomeOf("entries", PURGEABLE_TOMBSTONE)).bind(tombstoneCutoff)],
+    [
+      "two-step-recoveries",
+      env.LOGBOOK_DB.prepare(
+        deleteSomeOf(
+          "two_step_recoveries",
+          "requested_at < ? AND (started_at IS NULL OR cancelled_at IS NOT NULL OR completed_at IS NOT NULL)",
+        ),
+      ).bind(tombstoneCutoff),
+    ],
   ];
   const results = await env.LOGBOOK_DB.batch(steps.map(([, statement]) => statement));
   for (const [i, [reason]] of steps.entries()) log.info("cleanup.done", { reason, count: results[i].results.length });

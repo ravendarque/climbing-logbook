@@ -19,6 +19,7 @@ const SHARED_SPECS = [
   "queue-replay",
   "register",
   "terms-prompt",
+  "two-step-recovery",
   "zero-friction-redirect",
 ].map(name => `**/${name}.spec.js`);
 
