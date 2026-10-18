@@ -68,11 +68,14 @@ headerClass: mb-6
           <button type="button" class="btn btn-primary mt-3" id="remove-data-btn" aria-describedby="remove-data-description">Clear device data</button>
           <p class="text-sm text-accent-ink mt-3" id="remove-data-error" role="alert" hidden></p>
         </div>
+      </div>
+      <h2 class="subsection-heading">Danger zone</h2>
+      <div class="flex flex-col gap-2 max-w-[420px]" id="danger-zone">
         <div class="row-card border-accent" id="delete-account-row">
           <span class="row-card-title">Delete account</span>
           <div class="flex items-center gap-2 mt-2" id="delete-account-view">
             <p class="flex-1 min-w-0 text-sm text-muted" id="delete-account-description">Deletes your account and everything in it, on every device. It can't be undone.</p>
-            <button type="button" class="btn shrink-0" id="delete-account-edit-btn" aria-describedby="delete-account-description">Delete</button>
+            <button type="button" class="btn btn-danger shrink-0" id="delete-account-edit-btn" aria-describedby="delete-account-description">Delete</button>
           </div>
           <form class="mt-2" id="delete-account-form" hidden>
             <p class="text-sm text-foreground mb-3">This deletes your account, your logbook and your settings for good. If you want to keep your climbs, export them from My account first.</p>
@@ -80,7 +83,7 @@ headerClass: mb-6
             <input class="w-full mt-1 mb-2 bg-background border border-field-border rounded-app px-3 py-2 text-foreground text-base leading-normal" id="delete-account-password" name="password" type="password" autocomplete="current-password" required>
             <p class="text-sm text-accent-ink mb-2" id="delete-account-error" role="alert" hidden></p>
             <div class="flex gap-2">
-              <button type="submit" class="btn btn-primary" id="delete-account-save-btn">Delete my account</button>
+              <button type="submit" class="btn btn-danger" id="delete-account-save-btn">Delete my account</button>
               <button type="button" class="btn" id="delete-account-cancel-btn">Cancel</button>
             </div>
           </form>
