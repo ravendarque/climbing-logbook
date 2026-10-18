@@ -301,3 +301,15 @@ describe("2FA recovery emails (#1436)", () => {
     expect(sent().html).toContain("/help/two-factor-authentication/");
   });
 });
+
+describe("passkey emails (#1439)", () => {
+  it("tells the owner when a passkey is added, with a link to their passkeys", async () => {
+    await createEmailSender(env).sendPasskeyAdded(
+      "nix@example.com",
+      "https://my.climbinglogbook.com/nix/account/passkeys",
+    );
+    const { subject, html } = resendCalls.at(-1).body;
+    expect(subject).toBe("A passkey was added to your account");
+    expect(html).toContain("https://my.climbinglogbook.com/nix/account/passkeys");
+  });
+});

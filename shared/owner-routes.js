@@ -16,6 +16,7 @@ export const SHELL_PATHS = {
   "account/health": "/account/health/index.html",
   "account/places": "/account/places/index.html",
   "account/2fa": "/account/2fa/index.html",
+  "account/passkeys": "/account/passkeys/index.html",
   welcome: "/welcome/index.html",
   view: "/view/index.html",
   "view/map": "/view/index.html",

@@ -510,6 +510,15 @@ Tables (see `migrations/` for columns and constraints):
   account's email starts a 7-day wait, cancellable from the email or My
   account, and the daily cron switches it off when the wait ends. There's
   no admin reset. The link opens `/login/?two-step-recovery=<token>`.
+- **Passkeys** (#1439) are Better Auth's passkey plugin, with no client
+  library: `client/passkeys.js` uses the browser's WebAuthn JSON helpers,
+  and the passkey options are hidden where they're missing. The relying party is
+  `climbinglogbook.com` (`passkeyRpId`), so one passkey works on the apex,
+  `my.` and `beta.`. A passkey sign-in skips the 2FA code, so the device check
+  (fingerprint, face or PIN) is required at registration and enforced on the
+  server at sign-in (`requireUserVerified`). The login page offers a button
+  and, where supported, autofill on the email field. Adding or removing a
+  passkey emails the owner.
 - **Already logged in:** the apex home and login page send a signed-in
   visitor straight to their log (`client/session-redirect.js`).
 - **Suspended and banned accounts** are enforced in Better Auth's database

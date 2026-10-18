@@ -23,6 +23,7 @@ document.getElementById("edit-account-link").href = `/${encodeURIComponent(USERN
 document.getElementById("import-link").href = `/${encodeURIComponent(USERNAME)}/account/import`;
 document.getElementById("places-link").href = `/${encodeURIComponent(USERNAME)}/account/places`;
 document.getElementById("two-step-link").href = `/${encodeURIComponent(USERNAME)}/account/2fa`;
+document.getElementById("passkeys-link").href = `/${encodeURIComponent(USERNAME)}/account/passkeys`;
 document.getElementById("tour-link").href = tourStartUrl(`/${encodeURIComponent(USERNAME)}/account`);
 document.getElementById("beta-row").href = `/${encodeURIComponent(USERNAME)}/account/beta`;
 document.getElementById("health-row").href = `/${encodeURIComponent(USERNAME)}/account/health`;

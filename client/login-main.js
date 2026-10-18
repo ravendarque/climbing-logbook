@@ -3,6 +3,7 @@ import { redirectIfLoggedIn } from "./session-redirect.js";
 import { SIGNED_IN_USER_KEY } from "./user-storage.js";
 import { resendVerificationEmail } from "./resend-verification.js";
 import { renderTurnstile } from "./turnstile.js";
+import { isCancelled, passkeyAutofillAvailable, passkeysSupported, signInWithPasskey } from "./passkeys.js";
 
 const RECOVERY_TOKEN = new URLSearchParams(window.location.search).get("two-step-recovery");
 if (!RECOVERY_TOKEN) redirectIfLoggedIn(document.getElementById("page-content"));
@@ -307,4 +308,43 @@ if (RECOVERY_TOKEN) {
   document.getElementById("recovery-start-btn").addEventListener("click", () => recoveryAction("start"));
   recoveryCancelBtn.addEventListener("click", () => recoveryAction("cancel"));
   recoveryAction("status");
+}
+
+const passkeyBtn = document.getElementById("passkey-login-btn");
+let passkeyAutofill = null;
+
+async function passkeyLogIn(autofill) {
+  try {
+    const user = await signInWithPasskey({ autofill, signal: passkeyAutofill?.signal });
+    await finishLogin(user);
+  } catch (err) {
+    // Autofill is only an offer; it fails quietly, and only a pressed button reports a problem.
+    if (autofill) return;
+    if (isCancelled(err)) {
+      infoEl.textContent =
+        "No passkey was used. If you haven't added one for Climbing Logbook yet, log in with your password, then add one in My account.";
+      infoEl.hidden = false;
+      return;
+    }
+    showError(err.message);
+  }
+}
+
+if (!RECOVERY_TOKEN && passkeysSupported()) {
+  passkeyBtn.hidden = false;
+  passkeyBtn.addEventListener("click", async () => {
+    passkeyAutofill?.abort();
+    passkeyAutofill = null;
+    errorEl.hidden = true;
+    infoEl.hidden = true;
+    passkeyBtn.disabled = true;
+    await passkeyLogIn(false);
+    passkeyBtn.disabled = false;
+  });
+  // On load, not on focus: browsers only attach passkey suggestions to a field once the request is already waiting.
+  passkeyAutofillAvailable().then(available => {
+    if (!available) return;
+    passkeyAutofill = new AbortController();
+    passkeyLogIn(true);
+  });
 }

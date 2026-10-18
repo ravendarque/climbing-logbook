@@ -69,6 +69,24 @@ export function createEmailSender(env, log) {
         note: "If you didn't ask for this, you can ignore this email. Your email address won't change.",
       });
     },
+    sendPasskeyAdded(to, url) {
+      return sendTemplated(to, "A passkey was added to your account", {
+        paragraphs: [
+          "Someone added a passkey to your Climbing Logbook account. A passkey lets you log in with your fingerprint, face or device PIN instead of your password and a code.",
+        ],
+        action: { label: "See your passkeys", url },
+        note: "If this wasn't you, remove the passkey and change your password straight away: someone has access to your account.",
+      });
+    },
+    sendPasskeyRemoved(to, url) {
+      return sendTemplated(to, "A passkey was removed from your account", {
+        paragraphs: [
+          "Someone removed a passkey from your Climbing Logbook account. It can't be used to log in any more.",
+        ],
+        action: { label: "See your passkeys", url },
+        note: "If this wasn't you, change your password straight away: someone has access to your account.",
+      });
+    },
     sendTwoStepRecoveryLink(to, url) {
       return sendTemplated(to, "Switch off 2FA?", {
         paragraphs: [

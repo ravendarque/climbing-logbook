@@ -65,3 +65,21 @@ it("turns away the sixth sign-in attempt in a minute on one account, whatever IP
     env.RATE_LIMITING_ENABLED = "false";
   }
 }, 60_000);
+
+it("limits the passkey sign-in options GET too, since each one writes a challenge (#1439)", async () => {
+  await startInFreshRateLimitWindow();
+  env.RATE_LIMITING_ENABLED = "true";
+  try {
+    const statuses = [];
+    for (let i = 0; i < 11; i++) {
+      const res = await jsonRequest("GET", "/-/api/auth/passkey/generate-authenticate-options", undefined, {
+        "cf-connecting-ip": "198.51.100.13",
+      });
+      statuses.push(res.status);
+    }
+    expect(statuses.slice(0, 10)).not.toContain(429);
+    expect(statuses[10]).toBe(429);
+  } finally {
+    env.RATE_LIMITING_ENABLED = "false";
+  }
+});

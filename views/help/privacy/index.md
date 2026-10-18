@@ -16,7 +16,7 @@ Climbing Logbook is an independent project run from the UK. Under data protectio
 
 ## What we keep
 
-- **Your account.** Your username, your email address and your password. We can't read your password, because it's hashed (scrambled in a way that can't be reversed). If you turn on [Two-Factor Authentication (2FA)](/help/two-factor-authentication/), we also keep its setup key and your backup codes, encrypted, until you turn it off or delete your account.
+- **Your account.** Your username, your email address and your password. We can't read your password, because it's hashed (scrambled in a way that can't be reversed). If you turn on [Two-Factor Authentication (2FA)](/help/two-factor-authentication/), we also keep its setup key and your backup codes, encrypted, until you turn it off or delete your account. If you add a [passkey](/help/passkeys/), we keep its public key, which is no use on its own, until you remove it or delete your account. Your fingerprint or face never leaves your device.
 - **Your logbook.** The climbs, places and settings you add.
 - **Health information**, only if you agree to the Health Data Agreement. See [Health information](#health-data).
 

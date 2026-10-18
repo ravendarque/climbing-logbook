@@ -24,7 +24,7 @@
         <label class="block text-sm text-muted mb-1" for="email">Email</label>
         <input
           class="text-input w-full mb-4"
-          type="email" id="email" name="email" required autocomplete="email">
+          type="email" id="email" name="email" required autocomplete="email webauthn">
 
         <label class="block text-sm text-muted mb-1" for="password">Password</label>
         <input
@@ -36,13 +36,14 @@
         </p>
         <div id="turnstile-widget"></div>
 
-        <p class="mb-4 error-message" id="login-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>
-        <p class="text-sm mb-4" id="login-resend" hidden>
+        <p class="mb-4 error-message w-0 min-w-full" id="login-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>
+        <p class="text-sm mb-4 w-0 min-w-full" id="login-resend" hidden>
           <button type="button" class="text-accent-ink underline underline-offset-2 bg-transparent border-0 p-0 cursor-pointer disabled:opacity-[.45] disabled:cursor-not-allowed" id="resend-verification-btn">Send the verification email again</button>
         </p>
-        <p class="text-sm text-muted mb-4" id="login-info" role="status" aria-live="polite" hidden></p>
+        <p class="text-sm text-muted mb-4 w-0 min-w-full" id="login-info" role="status" aria-live="polite" hidden></p>
 
         <button type="submit" class="btn btn-primary w-full disabled:opacity-[.45] disabled:cursor-not-allowed" id="login-submit-btn">Log in</button>
+        <button type="button" class="btn w-full mt-2 disabled:opacity-[.45] disabled:cursor-not-allowed" id="passkey-login-btn" hidden>Log in with a passkey</button>
 
         <p class="text-sm text-muted mt-4 text-center">
           Don't have an account? <a class="text-accent-ink underline underline-offset-2" href="/register/">Sign up</a>
@@ -60,8 +61,8 @@
           <span>Don't ask for a code on this device for 28 days</span>
         </label>
 
-        <p class="mb-4 error-message" id="code-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>
-        <p class="text-sm text-muted mb-4" id="code-info" role="status" aria-live="polite" hidden></p>
+        <p class="mb-4 error-message w-0 min-w-full" id="code-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>
+        <p class="text-sm text-muted mb-4 w-0 min-w-full" id="code-info" role="status" aria-live="polite" hidden></p>
 
         <button type="submit" class="btn btn-primary w-full disabled:opacity-[.45] disabled:cursor-not-allowed" id="code-submit-btn">Log in</button>
 
@@ -86,7 +87,7 @@
           <button type="button" class="btn btn-primary w-full mb-2" id="recovery-start-btn">Start the 7-day wait</button>
         </div>
         <button type="button" class="btn w-full" id="recovery-cancel-btn" hidden>This wasn't me: cancel it</button>
-        <p class="mt-4 error-message" id="recovery-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>
+        <p class="mt-4 error-message w-0 min-w-full" id="recovery-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>
       </section>
     </div>
   </main>

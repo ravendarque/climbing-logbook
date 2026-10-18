@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { twoFactor, username } from "better-auth/plugins";
+import { passkey } from "@better-auth/passkey";
 import { createBetaGateAfterHook } from "./beta-gate.js";
 import { createAccountStatusHooks } from "./account-status.js";
 import { createEmailSender } from "./email.js";
@@ -19,8 +20,7 @@ const APP_ORIGINS = [
 const LOCAL_ORIGINS = ["http://localhost:*", "http://my.localhost:*", "http://beta.localhost:*"];
 
 export function trustedOriginsFor(hostname) {
-  const isLocal = hostname === "localhost" || hostname?.endsWith(".localhost");
-  return isLocal ? [...APP_ORIGINS, ...LOCAL_ORIGINS] : APP_ORIGINS;
+  return isLocalHost(hostname) ? [...APP_ORIGINS, ...LOCAL_ORIGINS] : APP_ORIGINS;
 }
 
 const ALLOWED_HOSTS = [
@@ -37,10 +37,26 @@ const ALLOWED_HOSTS = [
   "example.com",
 ];
 
+const isRealDomain = hostname => hostname === "climbinglogbook.com" || hostname?.endsWith(".climbinglogbook.com");
+const isLocalHost = hostname => hostname === "localhost" || hostname?.endsWith(".localhost");
+
+// Owner pages live on my.; locally that's my.localhost on the same port.
+export function ownedPageUrl(requestUrl, username, path) {
+  const url = new URL(requestUrl);
+  let host = url.host;
+  if (isRealDomain(url.hostname)) host = "my.climbinglogbook.com";
+  else if (isLocalHost(url.hostname)) host = url.host.replace(/^(my\.|beta\.)?/, "my.");
+  return `${url.protocol}//${host}/${encodeURIComponent(username)}/${path}`;
+}
+
+// One passkey works on the apex, my. and beta; browsers won't accept "localhost" for my.localhost, so locally it's per host.
+export function passkeyRpId(hostname) {
+  return isRealDomain(hostname) ? "climbinglogbook.com" : hostname;
+}
+
 // Sign-in happens on the apex; the app reads the session on my. and beta.
 function crossSubDomainCookies(hostname) {
-  const isRealDomain = hostname === "climbinglogbook.com" || hostname?.endsWith(".climbinglogbook.com");
-  if (!isRealDomain) return undefined;
+  if (!isRealDomain(hostname)) return undefined;
   return { enabled: true, domain: "climbinglogbook.com" };
 }
 
@@ -66,6 +82,16 @@ async function refuseDemoDeletion(env, userId) {
 
 // Built per request, never cached: a shared instance carried one request's I/O into another (#1253).
 export const TRUST_DEVICE_DAYS = 28;
+
+// A passkey stands in for both the password and the code, so the device must have checked it's the owner.
+export function requireUserVerified({ verification }) {
+  if (!verification.authenticationInfo.userVerified) {
+    throw new APIError("UNAUTHORIZED", {
+      message: "Your device didn't confirm it's you. Use your fingerprint, face or PIN when it asks.",
+      code: "USER_VERIFICATION_REQUIRED",
+    });
+  }
+}
 
 export function createAuth(env, hostname, log) {
   const emailSender = createEmailSender(env, log);
@@ -126,6 +152,13 @@ export function createAuth(env, hostname, log) {
         backupCodeOptions: { storeBackupCodes: "encrypted" },
       }),
       twoStepRecovery({ env, emailSender }),
+      passkey({
+        rpID: passkeyRpId(hostname),
+        rpName: "Climbing Logbook",
+        origin: isRealDomain(hostname) ? APP_ORIGINS : null,
+        authenticatorSelection: { residentKey: "required", userVerification: "required" },
+        authentication: { afterVerification: requireUserVerified },
+      }),
     ],
     hooks: {
       before: createAuthMiddleware(async ctx => {
@@ -133,6 +166,14 @@ export function createAuth(env, hostname, log) {
         if (ctx.path !== "/sign-up/email") return;
         // Turnstile is checked before this, in server/lib/sign-up.js.
         requireTermsAgreement(ctx.body);
+      }),
+      after: createAuthMiddleware(async ctx => {
+        if (ctx.context.returned instanceof Error) return;
+        const user = ctx.context.session?.user;
+        if (!user?.email) return;
+        const passkeysUrl = ownedPageUrl(ctx.request?.url ?? ctx.context.baseURL, user.username, "account/passkeys");
+        if (ctx.path === "/passkey/verify-registration") await emailSender.sendPasskeyAdded(user.email, passkeysUrl);
+        if (ctx.path === "/passkey/delete-passkey") await emailSender.sendPasskeyRemoved(user.email, passkeysUrl);
       }),
     },
     databaseHooks: {

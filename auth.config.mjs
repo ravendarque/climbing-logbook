@@ -5,6 +5,7 @@
 //   pnpm remove @better-auth/cli better-sqlite3
 import { betterAuth } from "better-auth";
 import { twoFactor, username } from "better-auth/plugins";
+import { passkey } from "@better-auth/passkey";
 import Database from "better-sqlite3";
 
 export const auth = betterAuth({
@@ -14,5 +15,5 @@ export const auth = betterAuth({
   emailAndPassword: { enabled: true },
   // Mirrors server/lib/auth.js.
   rateLimit: { enabled: true, storage: "database" },
-  plugins: [username(), twoFactor()],
+  plugins: [username(), twoFactor(), passkey()],
 });

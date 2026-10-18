@@ -89,7 +89,7 @@ S spoofing, T tampering, R repudiation, I information disclosure, D denial of se
 
 | # | | Threat | Controls in place | Gap or issue |
 |---|---|---|---|---|
-| 1 | S | Credential stuffing against sign-in | Per-connection and per-account sign-in limits (`server/lib/auth-rate-limit.js`, #1049); hashed passwords; optional two-step sign-in with authenticator codes, lockout after failed codes (#1436) | No breached-password check, no Turnstile on sign-in: #1055. Passkeys: #1439 |
+| 1 | S | Credential stuffing against sign-in | Per-connection and per-account sign-in limits (`server/lib/auth-rate-limit.js`, #1049); hashed passwords; optional two-step sign-in with authenticator codes, lockout after failed codes (#1436); optional passkeys, which can't be phished, with the device check enforced on the server (#1439) | No breached-password check, no Turnstile on sign-in: #1055 |
 | 2 | S | Session theft (XSS, a stolen device) | `HttpOnly` cookies; escaped rendering (`escapeHtml`, `textContent`); CSP | CSP is still report-only until the soak ends: #1042. No "sign out everywhere": #1055 |
 | 3 | S | Account takeover by password reset or email change | Reset and change-of-email links by email; limits per address; Turnstile on reset | No alert email on password change: #1055 |
 | 4 | S | Forged admin access | Access in front of the admin host; the Worker checks the Access token's audience and refuses all when `ACCESS_AUD` is empty | — |
