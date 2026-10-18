@@ -12,6 +12,14 @@ resource "cloudflare_dns_record" "proton_verification" {
   content = "\"protonmail-verification=fe96490b1f1ddc48374942ffa3fef4aecdcdddcf\""
 }
 
+# Email Routing was disabled in the dashboard (#1444): forget its zone settings rather than call disable again.
+removed {
+  from = cloudflare_email_routing_dns.app
+  lifecycle {
+    destroy = false
+  }
+}
+
 # Only after Email Routing is off (#1444 phase 1): disabling it deletes the root MX and SPF, even edited ones.
 resource "cloudflare_dns_record" "proton_mx" {
   for_each = { "mail.protonmail.ch" = 10, "mailsec.protonmail.ch" = 20 }
