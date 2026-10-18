@@ -10,7 +10,7 @@ The record UK GDPR Art. 30 requires. The small-organisation exemption doesn't ap
 
 | Processor | What for | Where | Transfer safeguard |
 |---|---|---|---|
-| Cloudflare | Hosting (Workers), the database (D1), backups (D1 Time Travel), logs, visit statistics, bot checks (Turnstile), firewall | Global | To confirm in #1064 (Cloudflare's DPA, with the UK addendum or the UK extension to the EU-US Data Privacy Framework) |
+| Cloudflare | Hosting (Workers), the database (D1), backups (D1 Time Travel), logs, visit statistics, bot checks (Turnstile), firewall | Global | UK Extension to the EU-US Data Privacy Framework (the UK-US data bridge); if that certification lapses, the EU SCCs with the UK Addendum ([Cloudflare DPA](https://www.cloudflare.com/cloudflare-customer-dpa/) v6.4, §6.2(b), §6.4), part of the self-serve subscription agreement |
 | Resend | Sending account emails | US | UK Extension to the EU-US Data Privacy Framework (the UK-US data bridge), and the EU SCCs with the UK Addendum ([Resend DPA](https://resend.com/legal/dpa) §6.4, §11.1), accepted with Resend's terms |
 | GitHub | Source code and issue tracking only; no user data | US | Not applicable |
 | Discord | Alert and support-notification channel; carries no personal data or submitted text (`server/lib/support-notify.js`) | US | Not applicable |
@@ -38,7 +38,6 @@ The record UK GDPR Art. 30 requires. The small-organisation exemption doesn't ap
 ## Gaps to settle
 
 - **No retention limit on feedback, issue reports or the moderation audit log.** The audit log also keeps a deleted account's username and email. Each needs a period, and the cleanup cron needs to enforce it.
-- **Transfer safeguard** for Cloudflare is to be confirmed against its DPA (#1064).
 - **The DPIA** for health information is part of #1064.
 
 ## Security measures
