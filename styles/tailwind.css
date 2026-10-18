@@ -272,6 +272,11 @@
   margin-bottom: .5rem;
 }
 
+@utility danger-zone-heading {
+  @apply subsection-heading;
+  color: var(--color-accent-ink);
+}
+
 @utility sources-heading {
   @apply section-heading;
   margin-top: 1.75rem;
