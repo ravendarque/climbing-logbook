@@ -44,7 +44,7 @@ Everything provisionable, in `infra/`:
 | WAF custom rule blocking non-JSON `POST`s to `/-/api/` | `infra/waf.tf` |
 | Cache rules: bypass `/-/api/`, cache static assets | `infra/cache-rules.tf` |
 | CAA records: only Cloudflare's CAs may issue certificates for the zone (no reporting address: a published one gets scraped). A subdomain whose certificate comes from another CA needs that CA added to `cloudflare_cas`, unless it's a CNAME to the provider, whose own CAA records then apply (as with the Better Stack status page) | `infra/dns.tf` |
-| Email Routing: the apex MX and SPF records, and a rule forwarding `support@` to the address in the `TF_VAR_support_forward_email` secret; the DMARC record (`p=reject`, reports to Cloudflare) | `infra/email-routing.tf` |
+| Email Routing: the apex MX and SPF records, and a rule forwarding `support@` to the address in the `TF_VAR_support_forward_email` secret; the DMARC record (`p=reject`, reports to Cloudflare) | `infra/email.tf` |
 | Better Stack uptime monitors (home page, `my.` and `beta.` readiness, certificate and domain expiry), the status page at `status.`, its DNS record, and an incident webhook to Discord `#alerts` | `infra/uptime.tf` |
 | Cloudflare alert destinations for Discord `#alerts` and `#monitoring`, and the DDoS and certificate alerts to `#monitoring` | `infra/alerts.tf` |
 | Security headers on every proxied response: `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy` and `Reporting-Endpoints`. The CSP comes from the Worker instead (`server/lib/csp.js`): Cloudflare only adds its nonce to the bot-detection script it injects when the origin sends the CSP | `infra/security-headers.tf` |
