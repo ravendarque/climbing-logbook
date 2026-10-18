@@ -55,7 +55,7 @@ No risk is left high, so prior consultation with the ICO (Art. 36) isn't needed.
 
 ## Actions
 
-- **Risk 2:** offer a second factor (passkeys or TOTP) before public launch. Needs an issue.
+- **Risk 2:** offer two-step sign-in before public launch (#1436).
 - **Risk 3:** none beyond what's in place; accepted, because offline use at the crag is the app's core need and the controls are explained.
 - **Risk 9:** accepted for now. Revisit with the Age Appropriate Design Code review in #1064 if under-18s become a real share of users.
 - **Risk 11:** #915, the extended export schema, which the body-location model (#598) feeds.
@@ -69,4 +69,4 @@ No risk is left high, so prior consultation with the ICO (Art. 36) isn't needed.
 | Measures approved by | *Controller, date* |
 | Residual risks approved by | *Controller, date* |
 | DPO advice | Not applicable: no DPO is required (no large-scale core processing of special category data) |
-| Professional review | Still open in #1064 |
+| Professional review | Not planned: the controller decided against one (2026-10-18) |
