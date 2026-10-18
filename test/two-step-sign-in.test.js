@@ -285,8 +285,13 @@ describe("recovering without the device (#1436)", () => {
 describe("rotating the auth secret (#1440)", () => {
   const NEW_SECRET = "a-new-auth-secret-for-rotation-tests-0123456789";
   let legacy;
-  beforeEach(() => {
+  beforeEach(async () => {
     legacy = env.BETTER_AUTH_SECRET;
+    env.BETTER_AUTH_SECRET = "the-old-auth-secret-before-rotation-0123456789";
+    vi.unstubAllGlobals();
+    ({ cookie, userId } = await createAuthedSession());
+    ({ email } = await env.LOGBOOK_DB.prepare(`SELECT email FROM "user" WHERE id = ?`).bind(userId).first());
+    captureEmails();
   });
   afterEach(() => {
     env.BETTER_AUTH_SECRET = legacy;
