@@ -1,5 +1,5 @@
 import { DEV_USER } from "../scripts/lib/dev-session.mjs";
-import { ownedRouteUrl } from "./owned-route-url.js";
+import { OWNED_ORIGIN, ownedRouteUrl } from "./owned-route-url.js";
 import { expect, test } from "./owner.js";
 
 test("renders the shared chrome, no discipline picker, and the My account link/username", async ({ page, owner }) => {
@@ -127,4 +127,28 @@ test("Export shows an error message instead of a download when the data fetch fa
   await page.locator("#export-csv-btn").click();
   await expect(page.locator("#export-error")).toBeVisible();
   await expect(page.locator("#export-error")).toHaveText("Export failed -- check your connection and try again.");
+});
+
+test("deleting the account from its own card needs the password, then removes it and leaves for the home page (#310, #1447)", async ({
+  page,
+  owner,
+}) => {
+  await owner.seed({ entries: [{}] });
+  await page.goto(owner.url("/account"));
+  await expect(page.locator("#delete-account-row")).toHaveClass(/border-accent/);
+
+  await page.locator("#delete-account-edit-btn").click();
+  await expect(page.locator("#delete-account-form")).toBeVisible();
+  await page.locator("#delete-account-password").fill("not-my-password");
+  await page.locator("#delete-account-save-btn").click();
+  await expect(page.locator("#delete-account-error")).toBeVisible();
+  await expect(page.locator("#delete-account-form")).toBeVisible();
+
+  await page.locator("#delete-account-password").fill(owner.password);
+  await page.locator("#delete-account-save-btn").click();
+  await page.waitForURL(url => url.pathname === "/");
+  await expect(page.getByRole("link", { name: "Sign up" })).toBeVisible();
+
+  const session = await page.request.get(`${OWNED_ORIGIN}/-/api/auth/get-session`);
+  expect(await session.json()).toBeNull();
 });
