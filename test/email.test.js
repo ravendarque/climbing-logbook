@@ -265,3 +265,36 @@ describe("createEmailSender with delivery logged (#1357)", () => {
     expect(log.warn).toHaveBeenCalledWith("email.skipped", { reason: "log delivery outside development" });
   });
 });
+
+describe("two-step sign-in recovery emails (#1436)", () => {
+  const sender = () => createEmailSender(env);
+  const sent = () => resendCalls.at(-1).body;
+
+  it("explains the wait in the recovery link email", async () => {
+    await sender().sendTwoStepRecoveryLink("nix@example.com", "https://climbinglogbook.com/login/?two-step-recovery=t");
+    expect(sent().subject).toBe("Switch off two-step sign-in?");
+    expect(sent().text).toContain("7 days after you do");
+    expect(sent().html).toContain("two-step-recovery=t");
+  });
+
+  it("gives the switch-off date and a cancel link when the wait starts", async () => {
+    await sender().sendTwoStepRecoveryStarted(
+      "nix@example.com",
+      Date.UTC(2026, 9, 25),
+      "https://climbinglogbook.com/x",
+    );
+    expect(sent().text).toContain("Sunday, 25 October 2026");
+    expect(sent().html).toContain("This wasn&#39;t me: cancel it");
+  });
+
+  it("links to Help when it's cancelled or done", async () => {
+    await sender().sendTwoStepRecoveryCancelled(
+      "nix@example.com",
+      "https://climbinglogbook.com/help/two-step-sign-in/",
+    );
+    expect(sent().subject).toBe("Two-step sign-in stays on");
+    await sender().sendTwoStepSwitchedOff("nix@example.com", "https://climbinglogbook.com/help/two-step-sign-in/");
+    expect(sent().subject).toBe("Two-step sign-in is off");
+    expect(sent().html).toContain("/help/two-step-sign-in/");
+  });
+});

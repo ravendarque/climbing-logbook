@@ -3,7 +3,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { BASE_URL, createAuthedSession, fetchJson, jsonRequest as rawJsonRequest, resetAuthTables } from "./support.js";
 import { secretFromUri, totp } from "./totp.js";
 import { cleanUp } from "../server/lib/cleanup.js";
-import { completeDueRecoveries } from "../server/lib/two-step-recovery.js";
+import { apexOrigin, completeDueRecoveries } from "../server/lib/two-step-recovery.js";
 import { createLogger } from "../server/lib/log.js";
 
 const PASSWORD = "correct-horse-battery-staple";
@@ -226,6 +226,27 @@ describe("recovering without the device (#1436)", () => {
     await turnOn();
     expect(await completeDueRecoveries(env, { sendTwoStepSwitchedOff: vi.fn() }, effectiveAt)).toBe(0);
     expect(await enabledFlag()).toBe(1);
+  });
+
+  it("counts towards the address's email limit", async () => {
+    await turnOn();
+    const statuses = [];
+    env.RATE_LIMITING_ENABLED = "true";
+    try {
+      for (let i = 0; i < 4; i++) {
+        const { pending } = await signInWithPassword();
+        statuses.push((await authPost("/-/api/auth/two-factor/recovery/request", { Cookie: pending })).status);
+      }
+    } finally {
+      env.RATE_LIMITING_ENABLED = "false";
+    }
+    expect(statuses).toContain(429);
+  });
+
+  it("sends links to the main site, even when asked from the app host", () => {
+    expect(apexOrigin("https://my.climbinglogbook.com/-/api/auth/x")).toBe("https://climbinglogbook.com");
+    expect(apexOrigin("https://beta.climbinglogbook.com/-/api/auth/x")).toBe("https://climbinglogbook.com");
+    expect(apexOrigin("http://localhost:8787/-/api/auth/x")).toBe("http://localhost:8787");
   });
 
   it("won't start a second wait while one is running", async () => {
