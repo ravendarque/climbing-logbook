@@ -13,7 +13,7 @@ Health information is special category data (Art. 9). The ICO lists processing s
 
 | | |
 |---|---|
-| **What** | Pain and injury tags on a climb: limb, side, hold type, movement style, wall angle (`entry_pain_moves`). Planned: menstrual cycle phase, by phase only, never dates (#1409); energy and mood (#1410). Free-text notes can hold health information too, if the climber writes it there. |
+| **What** | Pain and injury tags on a climb: limb, side, hold type, movement style, wall angle (`entry_pain_moves`). Planned: menstrual cycle phase, by phase only, never dates (#1409); energy and mood (#1410). |
 | **Whose** | Account holders who agree to the Health Data Agreement: 16 or over, or with a parent or guardian's agreement (self-declared in the agreement statement). |
 | **Purpose** | Finding patterns in the climber's own performance, shown only in their own Performance insights (the Injury insights report). Nothing else. |
 | **Lawful basis** | Art. 6(1)(a) consent and Art. 9(2)(a) explicit consent, recorded in `consents` with the wording version and dates (`server/lib/health-consent.js`). |
@@ -21,7 +21,7 @@ Health information is special category data (Art. 9). The ICO lists processing s
 | **Where it's held** | The production database (D1), its backups (Time Travel, 7 days on the current plan), and a copy on each of the climber's devices for offline use. |
 | **Who sees it** | The climber. A site administrator, for support and moderation, through the read-only, audit-logged admin logbook view (#1433). Never public profiles, never other users. |
 | **Retention** | Until the climber withdraws consent (deleted at once, `handleWithdrawPainInjuryConsent`) or deletes their account. Out of backups within 30 days. Other devices drop it on their next sync. |
-| **Processors** | Hosting and database provider, under its DPA with the UK–US data bridge and the UK Addendum as fallback (see [data-protection.md](data-protection.md#processors)). The email provider that sends account emails never receives health information. The support mailbox (Proton Mail, Switzerland, #1444) could receive it only if someone writes about an injury in a message to `support@`. |
+| **Processors** | Hosting and database provider, under its DPA with the UK–US data bridge and the UK Addendum as fallback (see [data-protection.md](data-protection.md#processors)). The app never sends health information to an email provider. |
 
 ## Necessity and proportionality
 
@@ -45,11 +45,10 @@ Likelihood and severity are rated remote, possible or probable, and minimal, sig
 | 5 | A processor breach exposes the database | Remote | Severe | Processor DPA and security commitments; encryption at rest on the platform; the breach playbook covers the 72-hour ICO notification (`docs/runbooks/playbooks/security-breach.md`) | Low |
 | 6 | Health information lands in logs or alerts | Remote | Significant | Allowlist logger (#1027) never logs bodies or notes; alerts to the support channel carry no personal data | Low |
 | 7 | Health information is kept after the climber withdraws or leaves | Remote | Significant | Deleted at once on withdrawal and account deletion; backups age out within 30 days; devices drop it on sync | Low |
-| 8 | Health information written in free-text notes without consent | Probable | Minimal | The privacy notice and agreement point people to the tags instead; notes are never public unless the logbook is, and the climber chose that | Low (accepted) |
-| 9 | A child under 16 agrees without a parent or guardian | Possible | Significant | The agreement statement requires 16+ or parental agreement; the Terms require 13+. Both are self-declared | Medium (accepted) |
-| 10 | Health information is used beyond its purpose (function creep) | Remote | Significant | The single purpose is stated in the agreement and notice; cross-user figures are anonymised and combined only; no advertising, no sale, no AI training | Low |
-| 11 | The climber can't take their health information elsewhere | Probable | Minimal | None yet: the export leaves it out | Medium, until #915 |
-| 12 | Health information is lost (database loss) | Remote | Significant | Time Travel backups (7 days); off-platform backups planned for launch (#1068) | Low |
+| 8 | A child under 16 agrees without a parent or guardian | Possible | Significant | The agreement statement requires 16+ or parental agreement; the Terms require 13+. Both are self-declared | Medium (accepted) |
+| 9 | Health information is used beyond its purpose (function creep) | Remote | Significant | The single purpose is stated in the agreement and notice; cross-user figures are anonymised and combined only; no advertising, no sale, no AI training | Low |
+| 10 | The climber can't take their health information elsewhere | Probable | Minimal | None yet: the export leaves it out | Medium, until #915 |
+| 11 | Health information is lost (database loss) | Remote | Significant | Time Travel backups (7 days); off-platform backups planned for launch (#1068) | Low |
 
 No risk is left high, so prior consultation with the ICO (Art. 36) isn't needed.
 
@@ -57,8 +56,8 @@ No risk is left high, so prior consultation with the ICO (Art. 36) isn't needed.
 
 - **Risk 2:** Two-Factor Authentication shipped in v2.131.0 (#1436). Next, passkeys (#1439), which also resist phishing. 2FA stays optional: the residual risk for accounts without it is accepted.
 - **Risk 3:** none beyond what's in place; accepted, because offline use at the crag is the app's core need and the controls are explained.
-- **Risk 9:** accepted for now. Revisit with the Age Appropriate Design Code review in #1064 if under-18s become a real share of users.
-- **Risk 11:** #915, the extended export schema, which the body-location model (#598) feeds.
+- **Risk 8:** accepted for now. Revisit with the Age Appropriate Design Code review in #1064 if under-18s become a real share of users.
+- **Risk 10:** #915, the extended export schema, which the body-location model (#598) feeds.
 - **Before #1409 and #1410 ship:** update this DPIA for cycle phase and energy and mood.
 - **Threat model (#1031):** not written yet. When it is, cross-check risks 1, 2 and 5 against it.
 
