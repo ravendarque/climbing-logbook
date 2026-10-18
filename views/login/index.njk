@@ -24,7 +24,7 @@
         <label class="block text-sm text-muted mb-1" for="email">Email</label>
         <input
           class="text-input w-full mb-4"
-          type="email" id="email" name="email" required autocomplete="email">
+          type="email" id="email" name="email" required autocomplete="email webauthn">
 
         <label class="block text-sm text-muted mb-1" for="password">Password</label>
         <input
@@ -43,6 +43,7 @@
         <p class="text-sm text-muted mb-4" id="login-info" role="status" aria-live="polite" hidden></p>
 
         <button type="submit" class="btn btn-primary w-full disabled:opacity-[.45] disabled:cursor-not-allowed" id="login-submit-btn">Log in</button>
+        <button type="button" class="btn w-full mt-2 disabled:opacity-[.45] disabled:cursor-not-allowed" id="passkey-login-btn" hidden>Log in with a passkey</button>
 
         <p class="text-sm text-muted mt-4 text-center">
           Don't have an account? <a class="text-accent-ink underline underline-offset-2" href="/register/">Sign up</a>

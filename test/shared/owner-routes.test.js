@@ -10,6 +10,7 @@ const ADDED_SINCE_958 = [
   "account/health",
   "account/places",
   "account/2fa",
+  "account/passkeys",
   "welcome",
   "view",
   "view/map",

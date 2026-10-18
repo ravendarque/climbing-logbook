@@ -39,7 +39,7 @@ Likelihood and severity are rated remote, possible or probable, and minimal, sig
 | # | Risk to people | Likelihood | Severity | Measures in place | Residual |
 |---|---|---|---|---|---|
 | 1 | Another user reads someone's health information through an access-control bug | Remote | Severe | Per-user isolation on every query; the authorisation matrix test covers every route, including a differential check for leaks (#1070); health data is never in public responses (tested) | Low |
-| 2 | An attacker takes over an account and reads its health information | Possible | Significant | Hashed passwords; verified email; rate limits on sign-in; bot checks on sign-up; sessions expire. Optional Two-Factor Authentication (#1436): authenticator-app codes, encrypted backup codes, lockout after failed codes, and recovery that needs the password and the account's email, then waits 7 days with a warning email, with no admin reset | Low with 2FA on; Medium without it, since it's the climber's choice |
+| 2 | An attacker takes over an account and reads its health information | Possible | Significant | Hashed passwords; verified email; rate limits on sign-in; bot checks on sign-up; sessions expire. Optional Two-Factor Authentication (#1436): authenticator-app codes, encrypted backup codes, lockout after failed codes, and recovery that needs the password and the account's email, then waits 7 days with a warning email, with no admin reset; optional passkeys with the device check enforced (#1439) | Low with 2FA on; Medium without it, since it's the climber's choice |
 | 3 | Someone with access to a shared or lost device reads the on-device copy | Possible | Significant | The copy is kept per account, so another login can't see it in the app; *Clear device data* in My account; the privacy notice explains both | Medium |
 | 4 | An administrator looks without a reason | Remote | Significant | One administrator; access only behind Cloudflare Access on the admin host (ADR-0034); the logbook view is read-only and every look is audit-logged; the agreement says it's for support and moderation only | Low |
 | 5 | A processor breach exposes the database | Remote | Severe | Processor DPA and security commitments; encryption at rest on the platform; the breach playbook covers the 72-hour ICO notification (`docs/runbooks/playbooks/security-breach.md`) | Low |
@@ -54,7 +54,7 @@ No risk is left high, so prior consultation with the ICO (Art. 36) isn't needed.
 
 ## Actions
 
-- **Risk 2:** Two-Factor Authentication shipped in v2.131.0 (#1436). Next, passkeys (#1439), which also resist phishing. 2FA stays optional: the residual risk for accounts without it is accepted.
+- **Risk 2:** Two-Factor Authentication shipped in v2.131.0 (#1436), and passkeys, which also resist phishing, in #1439. 2FA stays optional: the residual risk for accounts without it is accepted.
 - **Risk 3:** none beyond what's in place; accepted, because offline use at the crag is the app's core need and the controls are explained.
 - **Risk 8:** accepted for now. Revisit with the Age Appropriate Design Code review in #1064 if under-18s become a real share of users.
 - **Risk 10:** #915, the extended export schema, which the body-location model (#598) feeds.

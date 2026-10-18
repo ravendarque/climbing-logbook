@@ -30,6 +30,7 @@ const OWNER_PAGES = [
   "/account/health",
   "/account/places",
   "/account/2fa",
+  "/account/passkeys",
 ];
 
 const PUBLIC_PAGES = [
