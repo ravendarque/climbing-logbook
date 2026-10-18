@@ -318,7 +318,8 @@ async function passkeyLogIn(autofill) {
     const user = await signInWithPasskey({ autofill, signal: passkeyAutofill?.signal });
     await finishLogin(user);
   } catch (err) {
-    if (isCancelled(err)) return;
+    // Autofill is only an offer; it fails quietly, and only a pressed button reports a problem.
+    if (autofill || isCancelled(err)) return;
     showError(err.message);
   }
 }
