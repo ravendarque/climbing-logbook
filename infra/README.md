@@ -94,7 +94,7 @@ dashboard or elsewhere, and why:
   undoes a dashboard change.
 - **DMARC Management** (Email → DMARC Management). No provider resource.
   The DMARC record itself, with its reports address, is in
-  `email-routing.tf`.
+  `email.tf`.
 - **The Workers Issues alert.** The provider has no alert type for it yet
   (`workers_observability_real_time_issue`).
 - **Credentials:** the four CI API tokens
