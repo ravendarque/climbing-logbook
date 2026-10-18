@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { twoFactor, username } from "better-auth/plugins";
+import { passkey } from "@better-auth/passkey";
 import { createBetaGateAfterHook } from "./beta-gate.js";
 import { createAccountStatusHooks } from "./account-status.js";
 import { createEmailSender } from "./email.js";
@@ -126,6 +127,7 @@ export function createAuth(env, hostname, log) {
         backupCodeOptions: { storeBackupCodes: "encrypted" },
       }),
       twoStepRecovery({ env, emailSender }),
+      passkey({ rpID: "climbinglogbook.com", rpName: "Climbing Logbook" }),
     ],
     hooks: {
       before: createAuthMiddleware(async ctx => {

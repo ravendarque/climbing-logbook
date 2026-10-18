@@ -55,6 +55,7 @@
     "wrangler": "^4.151.0"
   },
   "dependencies": {
+    "@better-auth/passkey": "1.7.10",
     "@floating-ui/dom": "^1.8.0",
     "better-auth": "^1.7.10",
     "obscenity": "0.4.6",
