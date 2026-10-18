@@ -1,6 +1,14 @@
 import { env, exports } from "cloudflare:workers";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { BASE_URL, createPublicSession, fetchJson, jsonRequest, resetAuthTables, seedPlace } from "./support.js";
+import {
+  BASE_URL,
+  createPublicSession,
+  fetchJson,
+  grantPainInjuryConsent,
+  jsonRequest,
+  resetAuthTables,
+  seedPlace,
+} from "./support.js";
 import { TERMS_VERSION } from "../shared/terms.js";
 
 const ADMIN = "https://admin.example.com";
@@ -226,6 +234,49 @@ describe("viewing a logbook (#1279)", () => {
     await admin(`/-/api/admin/users/${userId}/logbook`);
 
     expect((await auditActions()).filter(action => action === `view ${username}`)).toHaveLength(2);
+  });
+
+  it("shows every field of a climb, health data included (#1433)", async () => {
+    const { cookie, userId } = await newUser();
+    await grantPainInjuryConsent(cookie);
+    const placeId = await seedPlace(cookie);
+    const tag = { limb: "hand", side: "left", holdType: "crimp", movementStyle: "static", wallAngle: "overhang" };
+    const post = await jsonRequest(
+      "POST",
+      "/-/api/entries",
+      {
+        name: "Tagged",
+        grade: "7a",
+        placeId,
+        type: "sport",
+        status: "send",
+        sportStyle: "lead",
+        attemptsToSend: 3,
+        rpe: 80,
+        moves: [{ ...tag, difficulty: "hardest" }],
+        painMoves: [tag],
+      },
+      { Cookie: cookie },
+    );
+    expect(post.status).toBe(201);
+
+    const { entries } = await (await admin(`/-/api/admin/users/${userId}/logbook`)).json();
+    expect(entries).toEqual([
+      expect.objectContaining({
+        sportStyle: "lead",
+        attemptsToSend: 3,
+        rpe: 80,
+        gradeScale: "french",
+        moves: [expect.objectContaining({ ...tag, difficulty: "hardest" })],
+        painMoves: [expect.objectContaining(tag)],
+      }),
+    ]);
+
+    await env.LOGBOOK_DB.prepare(`UPDATE consents SET superseded_at = ? WHERE user_id = ?`)
+      .bind(Date.now(), userId)
+      .run();
+    const later = await (await admin(`/-/api/admin/users/${userId}/logbook`)).json();
+    expect(later.entries[0].painMoves).toEqual([expect.objectContaining(tag)]);
   });
 
   it("changes nothing, and has no way to", async () => {
