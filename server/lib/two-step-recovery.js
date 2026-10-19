@@ -1,5 +1,6 @@
 import { APIError, createAuthEndpoint, createAuthMiddleware, sessionMiddleware } from "better-auth/api";
 import { emailLimitResponse } from "./email-limit.js";
+import { apexOrigin } from "./hosts.js";
 
 export const RECOVERY_WAIT_DAYS = 7;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -43,13 +44,6 @@ async function pendingSignInUser(ctx) {
   const verification = await ctx.context.internalAdapter.findVerificationValue(identifier);
   if (!verification) return null;
   return ctx.context.internalAdapter.findUserById(verification.value);
-}
-
-const APP_HOSTS = new Set(["my.climbinglogbook.com", "beta.climbinglogbook.com"]);
-
-export function apexOrigin(requestUrl) {
-  const url = new URL(requestUrl);
-  return APP_HOSTS.has(url.hostname) ? "https://climbinglogbook.com" : url.origin;
 }
 
 const recoveryUrl = (origin, token) => `${origin}/login/?two-step-recovery=${encodeURIComponent(token)}`;

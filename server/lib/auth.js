@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
+import { verifyJWT } from "better-auth/crypto";
 import { twoFactor, username } from "better-auth/plugins";
 import { passkey } from "@better-auth/passkey";
 import { createBetaGateAfterHook } from "./beta-gate.js";
@@ -8,6 +9,7 @@ import { createEmailSender } from "./email.js";
 import { releaseInvites } from "./remove-account.js";
 import { requireTermsAgreement, stampTermsAgreement } from "./terms.js";
 import { twoStepRecovery } from "./two-step-recovery.js";
+import { apexOrigin, isLocalHost, isRealDomain, ownedPageUrl } from "./hosts.js";
 import { authSecretOptions } from "./auth-secrets.js";
 import { checkUsername, USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH } from "../../shared/username-policy.js";
 
@@ -36,18 +38,6 @@ const ALLOWED_HOSTS = [
   "beta.localhost:*",
   "example.com",
 ];
-
-const isRealDomain = hostname => hostname === "climbinglogbook.com" || hostname?.endsWith(".climbinglogbook.com");
-const isLocalHost = hostname => hostname === "localhost" || hostname?.endsWith(".localhost");
-
-// Owner pages live on my.; locally that's my.localhost on the same port.
-export function ownedPageUrl(requestUrl, username, path) {
-  const url = new URL(requestUrl);
-  let host = url.host;
-  if (isRealDomain(url.hostname)) host = "my.climbinglogbook.com";
-  else if (isLocalHost(url.hostname)) host = url.host.replace(/^(my\.|beta\.)?/, "my.");
-  return `${url.protocol}//${host}/${encodeURIComponent(username)}/${path}`;
-}
 
 // One passkey works on the apex, my. and beta; browsers won't accept "localhost" for my.localhost, so locally it's per host.
 export function passkeyRpId(hostname) {
@@ -82,6 +72,47 @@ async function refuseDemoDeletion(env, userId) {
 
 // Built per request, never cached: a shared instance carried one request's I/O into another (#1253).
 export const TRUST_DEVICE_DAYS = 28;
+
+const NOTICE_FOR_PATH = {
+  "/passkey/verify-registration": { kind: "passkeyAdded", page: "account/passkeys" },
+  "/passkey/delete-passkey": { kind: "passkeyRemoved", page: "account/passkeys" },
+  "/change-password": { kind: "passwordChanged", page: "account/edit" },
+  "/two-factor/disable": { kind: "twoFactorOff", page: "account/2fa" },
+  "/two-factor/generate-backup-codes": { kind: "backupCodesRenewed", page: "account/2fa" },
+  "/delete-user": { kind: "accountDeleted", page: null },
+};
+
+// Better Auth has already applied the change by now; the token is checked again rather than trusted, as it names the address to email.
+async function changeEmailToken(token, secret) {
+  const payload = await verifyJWT(token, secret);
+  return payload?.requestType === "change-email-verification" ? payload : null;
+}
+
+// The old address hears about the change, because the new one has just confirmed it.
+async function noticeEmailChanged(ctx, env, emailSender) {
+  const change = typeof ctx.query?.token === "string" && (await changeEmailToken(ctx.query.token, ctx.context.secret));
+  if (!change?.email || !change.updateTo) return;
+  const user = await env.LOGBOOK_DB.prepare(`SELECT username FROM "user" WHERE email = ?`)
+    .bind(change.updateTo)
+    .first();
+  if (!user) return;
+  const url = ownedPageUrl(ctx.request?.url ?? ctx.context.baseURL, user.username, "account/edit");
+  await emailSender.sendAccountNotice(change.email, "emailChanged", { url, newEmail: change.updateTo });
+}
+
+// The account change an auth request made, if any, and which page shows it (#1456).
+export function accountNoticeFor(ctx, user) {
+  if (ctx.path === "/update-user") {
+    const username = typeof ctx.body?.username === "string" ? ctx.body.username.trim().toLowerCase() : "";
+    return username && username !== user.username ? { kind: "usernameChanged", page: "account/edit", username } : null;
+  }
+  // verify-totp also completes a 2FA login, which has no session yet; with one, it's turning 2FA on.
+  if (ctx.path === "/two-factor/verify-totp") {
+    return user.twoFactorEnabled ? null : { kind: "twoFactorOn", page: "account/2fa", username: user.username };
+  }
+  const notice = NOTICE_FOR_PATH[ctx.path];
+  return notice ? { ...notice, username: user.username } : null;
+}
 
 // A passkey stands in for both the password and the code, so the device must have checked it's the owner.
 export function requireUserVerified({ verification }) {
@@ -169,11 +200,13 @@ export function createAuth(env, hostname, log) {
       }),
       after: createAuthMiddleware(async ctx => {
         if (ctx.context.returned instanceof Error) return;
+        if (ctx.path === "/verify-email") return noticeEmailChanged(ctx, env, emailSender);
         const user = ctx.context.session?.user;
-        if (!user?.email) return;
-        const passkeysUrl = ownedPageUrl(ctx.request?.url ?? ctx.context.baseURL, user.username, "account/passkeys");
-        if (ctx.path === "/passkey/verify-registration") await emailSender.sendPasskeyAdded(user.email, passkeysUrl);
-        if (ctx.path === "/passkey/delete-passkey") await emailSender.sendPasskeyRemoved(user.email, passkeysUrl);
+        const notice = user?.email && accountNoticeFor(ctx, user);
+        if (!notice) return;
+        const requestUrl = ctx.request?.url ?? ctx.context.baseURL;
+        const url = notice.page ? ownedPageUrl(requestUrl, notice.username, notice.page) : `${apexOrigin(requestUrl)}/`;
+        await emailSender.sendAccountNotice(user.email, notice.kind, { url, username: notice.username });
       }),
     },
     databaseHooks: {

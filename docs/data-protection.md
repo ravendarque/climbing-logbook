@@ -32,7 +32,7 @@ The record UK GDPR Art. 30 requires. The small-organisation exemption doesn't ap
 | Rate limiting | Stop abuse | Legitimate interests | IP-derived keys, user id | Seconds to minutes | `server/lib/rate-limits.js` |
 | Bot checks | Stop automated sign-ups | Legitimate interests | Whatever Turnstile collects in the browser | Turnstile's own | `server/lib/turnstile.js` |
 | Visit statistics | See which pages are used | Legitimate interests | Cookieless page views (no profile of the visitor) | Web Analytics' own | Cloudflare Web Analytics |
-| Account emails | Verification, password reset, email change | Contract | Email address, username | Resend's own sending logs | `server/lib/email.js` |
+| Account emails | Verification, password reset, email change, and a notice for every account change that changes data (username, password, email, 2FA, passkeys, health data, account deletion; #1456) | Contract | Email address, username | Resend's own sending logs | `server/lib/email.js` |
 | Backups | Recover from data loss | Legitimate interests | A full copy of the database | 7 days on the current plan (30 on Workers Paid) | D1 Time Travel; off-platform backups in #1068 |
 | Usage counters | Enforce per-account limits | Contract | Entry and import counts per user | With the account | `account_usage`, `import_runs` |
 
