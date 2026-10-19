@@ -25,4 +25,4 @@ overrides:
   brace-expansion@1: '^1.1.21'
 
 patchedDependencies:
-  '@cloudflare/vitest-plugin@1.4.3': patches/@cloudflare__vitest-plugin@1.4.3.patch
+  '@cloudflare/vitest-plugin@1.4.4': patches/@cloudflare__vitest-plugin@1.4.4.patch
