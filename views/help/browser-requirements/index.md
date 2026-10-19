@@ -16,11 +16,12 @@ You need one of these, or newer:
 
 - **Firefox** 128.
 - **Safari** 16.4.
-- **A browser built on Chromium**, such as Brave or Vivaldi: Chromium 111.
+- **Chrome** or **Edge** 111.
+- **Other browsers built on Chromium**, such as Brave or Vivaldi: Chromium 111.
 
 On an iPhone or iPad, browsers use Safari's engine unless they say otherwise, so it's your iOS or iPadOS version that counts: 16.4 or newer.
 
-To find your version, open your browser's *About* page. Browsers built on Chromium list a Chromium version there as well as their own, and it's the Chromium one that counts.
+To find your version, open your browser's *About* page. Other browsers built on Chromium list a Chromium version there as well as their own, and it's the Chromium one that counts.
 
 ## Settings it needs
 
@@ -30,7 +31,7 @@ To find your version, open your browser's *About* page. Browsers built on Chromi
 
 ## Optional extras
 
-- **Passkeys** need Safari 18.4 or Chromium 129, or newer, or iOS or iPadOS 18.4 on an iPhone or iPad. Any Firefox that runs Climbing Logbook has them. On an older browser you won't see the option, and you log in with your password instead. See [Passkeys](/help/passkeys/).
+- **Passkeys** need a newer browser: Safari 18.4, Chrome or Edge 129 (Chromium 129 in other browsers built on it), or iOS or iPadOS 18.4 on an iPhone or iPad. Any Firefox that runs Climbing Logbook has them. On an older browser you won't see the option, and you log in with your password instead. See [Passkeys](/help/passkeys/).
 - **Two-Factor Authentication (2FA)** needs an authenticator app on your phone. See [Two-Factor Authentication (2FA)](/help/two-factor-authentication/).
 
 ## On an older browser
