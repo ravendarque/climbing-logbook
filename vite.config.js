@@ -19,6 +19,8 @@ function devEntryRewrite(entries) {
   };
 }
 
+// public/ is the production and test build's; sharing it let each overwrite the other's pages.
 export default defineConfig({
+  publicDir: "public-dev",
   plugins: [cloudflare(), devEntryRewrite(CLIENT_ENTRIES)],
 });

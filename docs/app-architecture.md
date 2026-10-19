@@ -108,8 +108,9 @@ lists can't be probed rule by rule.
 `pnpm run html:build`, then `tailwind:build`, then `deploy:build`, in that
 order (see `package.json` and `.github/workflows/deploy.yml`):
 
-1. **11ty** (`.eleventy.js`) renders `views/` into `public/` and copies
-   `static/` alongside. Stable-named assets get a `?v=` version in the
+1. **11ty** (`.eleventy.js`) empties `public/` (`scripts/clean-dir.mjs`), so
+   a page deleted from `views/` can't linger, then renders `views/` into it
+   and copies `static/` alongside. Stable-named assets get a `?v=` version in the
    templates. In real builds (not `--watch`) it then minifies the copied
    `static/` scripts (`scripts/minify-static.mjs`) and indexes `/help` with
    Pagefind.
@@ -623,7 +624,10 @@ it for the isolate's lifetime.
 ## Local development
 
 `pnpm dev` runs Vite's dev server with `@cloudflare/vite-plugin`, plus the
-Tailwind and 11ty watchers, at `http://localhost:5173`. Owner pages need the
+Tailwind and 11ty watchers, at `http://localhost:5173`. They write to
+`public-dev/` (Vite's `publicDir` in `vite.config.js`), not `public/`, so a
+test run or `html:build` while it's running can't replace its pages with
+production ones. Owner pages need the
 `my.` host: `http://my.localhost:5173/<username>/log`. `pnpm run seed`
 creates a dev user and data. There's no service worker and no minification
 in dev. The admin pages are at `http://admin.localhost:5173/reports` once

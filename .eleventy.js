@@ -1,6 +1,7 @@
 // One ?v= per build for stable-named assets; production builds rewrite it to each file's content hash afterwards.
 import eleventyNavigationPlugin from "@11ty/eleventy-navigation";
 import { execFileSync } from "node:child_process";
+import { join } from "node:path";
 import { minifyStaticScripts } from "./scripts/minify-static.mjs";
 import { gradeScaleMatrixHtml, gradeScaleSourcesHtml } from "./client/grade-scale-matrix.js";
 import { TERMS_HISTORY, TERMS_VERSION } from "./shared/terms.js";
@@ -34,14 +35,29 @@ export default function (eleventyConfig) {
   eleventyConfig.addShortcode("loadingSpinner", label => loadingSpinnerHtml(label));
   eleventyConfig.addShortcode("gradeScaleSources", gradeScaleSourcesHtml);
 
-  // Pagefind indexes /help after a real build; skipped under --watch, where it would run on every save.
-  eleventyConfig.on("eleventy.after", () => {
-    if (process.env.ELEVENTY_RUN_MODE === "watch") return;
-    const { before, after } = minifyStaticScripts("static", "public");
-    console.log(`[minify-static] static/ scripts: ${before} -> ${after} bytes`);
-    execFileSync("npx", ["pagefind", "--site", "public/help", "--output-path", "public/help/pagefind"], {
-      stdio: "inherit",
-    });
+  // Under --watch, Pagefind indexes /help on the first build only: on every save it would slow each rebuild.
+  let indexed = false;
+  eleventyConfig.on("eleventy.after", ({ directories }) => {
+    const watching = process.env.ELEVENTY_RUN_MODE === "watch";
+    if (!watching) {
+      const { before, after } = minifyStaticScripts("static", directories.output);
+      console.log(`[minify-static] static/ scripts: ${before} -> ${after} bytes`);
+    }
+    if (watching && indexed) return;
+    execFileSync(
+      "npx",
+      [
+        "pagefind",
+        "--site",
+        join(directories.output, "help"),
+        "--output-path",
+        join(directories.output, "help", "pagefind"),
+      ],
+      {
+        stdio: "inherit",
+      },
+    );
+    indexed = true;
   });
 
   // Gates the Vite HMR client to dev: in production its 404 reads as a blocked module in Firefox.

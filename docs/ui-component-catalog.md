@@ -24,13 +24,13 @@ snippet — the actual classes in use, not an abstracted approximation, so
 it's always syntactically correct to start from.
 
 Every screenshot in `docs/ui-component-catalog/` was captured against the
-real, currently-compiled `public/-/tailwind.css`, which carries the
+real, currently-compiled `/-/tailwind.css` served by `pnpm dev`, which carries the
 design tokens (not a hand-copied approximation) — see that directory's own generation script for exactly how,
 next time these need regenerating after a real visual change.
 
 **Source of truth for the custom component classes below:**
 `styles/tailwind.css`'s `@utility` blocks (not the compiled
-`public/-/tailwind.css` — that's generated build output, never
+`/-/tailwind.css` in `public/` or `public-dev/` — that's generated build output, never
 hand-edited). Regular Tailwind utility classes composed inline are not
 cataloged individually here; only the custom, named, reused-across-pages
 utilities are.
