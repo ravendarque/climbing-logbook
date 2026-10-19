@@ -161,7 +161,7 @@ export function createOfflineSync({
     if (!queue.length) return false;
 
     const confirmed = { entries: [], places: [], locations: [] };
-    const moves = [];
+    let cascaded = false;
     let serverFailing = false;
     let anyRejected = false;
     for (const item of queue) {
@@ -197,9 +197,8 @@ export function createOfflineSync({
       }
 
       let remap = null;
-      if (item.op === "delete" && item.record.moveTo && (item.kind === "location" || item.kind === "place")) {
-        moves.push({ [`${item.kind}Id`]: item.record.id, toPlaceId: item.record.moveTo });
-      }
+      // The server also moved this place's climbs and deleted a location's areas, which no confirmed row carries.
+      if (item.op === "delete" && (item.kind === "location" || item.kind === "place")) cascaded = true;
       if (item.kind === "location") {
         confirmed.locations.push(item.op === "delete" ? { id: item.record.id, deleted: true } : data.location);
         // A location item's own id is what later place items reference.
@@ -229,11 +228,11 @@ export function createOfflineSync({
     else retryDelay = FIRST_RETRY_MS;
 
     // A rejected item still shows as pending until the view is rebuilt from the stored data.
-    for (const move of moves) await store.moveConfirmedEntries(move);
     const tables = Object.keys(confirmed).filter(table => anyRejected || confirmed[table].length);
     for (const table of tables) store.mergeConfirmed(table, confirmed[table]);
     // Re-apply what's still queued on top of the confirmed data.
-    if (tables.length || moves.length) store.applyPendingQueue(getQueue());
+    if (tables.length) store.applyPendingQueue(getQueue());
+    if (cascaded) await pullDeltas();
     return serverFailing;
   }
 
