@@ -1,6 +1,8 @@
 import { PAIN_INJURY, PAIN_INJURY_OLDEST_VALID_VERSION } from "../../shared/health-consent.js";
 import { nextCursorSql } from "./d1-resource.js";
 import { json, parseJsonBody } from "./json.js";
+import { createEmailSender } from "./email.js";
+import { ownedPageUrl } from "./hosts.js";
 
 export const CURRENT = "superseded_at IS NULL AND withdrawn_at IS NULL";
 
@@ -63,7 +65,7 @@ export async function handleGrantPainInjuryConsent(request, env, userId, log) {
   }
   const now = new Date().toISOString();
   const { purpose, version } = PAIN_INJURY;
-  await env.LOGBOOK_DB.batch([
+  const [, granted] = await env.LOGBOOK_DB.batch([
     env.LOGBOOK_DB.prepare(
       `UPDATE consents SET superseded_at = ? WHERE user_id = ? AND purpose = ? AND ${CURRENT} AND wording_version != ?`,
     ).bind(now, userId, purpose, version),
@@ -73,12 +75,20 @@ export async function handleGrantPainInjuryConsent(request, env, userId, log) {
     ).bind(crypto.randomUUID(), userId, purpose, version, now, userId, purpose),
   ]);
   log?.info("consent.pain_injury.granted", { userId });
+  if (granted.meta.changes > 0) await noticeHealthData(request, env, userId, log, "healthDataOn");
   return new Response(null, { status: 204 });
 }
 
+async function noticeHealthData(request, env, userId, log, kind) {
+  const user = await env.LOGBOOK_DB.prepare(`SELECT email, username FROM "user" WHERE id = ?`).bind(userId).first();
+  if (!user) return;
+  const url = ownedPageUrl(request.url, user.username, "account/health");
+  await createEmailSender(env, log).sendAccountNotice(user.email, kind, { url });
+}
+
 // Withdrawal deletes the data it covered, and bumps each entry's cursor so other devices drop their copy.
-export async function handleWithdrawPainInjuryConsent(_request, env, userId, log) {
-  const [touched] = await env.LOGBOOK_DB.batch([
+export async function handleWithdrawPainInjuryConsent(request, env, userId, log) {
+  const [touched, , withdrawn] = await env.LOGBOOK_DB.batch([
     env.LOGBOOK_DB.prepare(
       `UPDATE entries SET sync_cursor = ${nextCursorSql("entries")}, updated_at = datetime('now')
        WHERE user_id = ? AND id IN (${ENTRIES_WITH_PAIN})`,
@@ -92,5 +102,6 @@ export async function handleWithdrawPainInjuryConsent(_request, env, userId, log
   ]);
   const deleted = touched.meta.changes;
   log?.info("consent.pain_injury.withdrawn", { userId, count: deleted });
+  if (withdrawn.meta.changes > 0) await noticeHealthData(request, env, userId, log, "healthDataOff");
   return json({ deleted });
 }

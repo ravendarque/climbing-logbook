@@ -3,7 +3,8 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { BASE_URL, createAuthedSession, fetchJson, jsonRequest as rawJsonRequest, resetAuthTables } from "./support.js";
 import { secretFromUri, totp } from "./totp.js";
 import { cleanUp } from "../server/lib/cleanup.js";
-import { apexOrigin, completeDueRecoveries } from "../server/lib/two-step-recovery.js";
+import { completeDueRecoveries } from "../server/lib/two-step-recovery.js";
+import { apexOrigin } from "../server/lib/hosts.js";
 import { createLogger } from "../server/lib/log.js";
 import { parseAuthSecrets, reencryptTwoStepData } from "../server/lib/auth-secrets.js";
 
@@ -156,7 +157,7 @@ describe("recovering without the device (#1436)", () => {
     await turnOn();
     const res = await authPost("/-/api/auth/two-factor/recovery/request");
     expect(res.status).toBe(401);
-    expect(emails).toHaveLength(0);
+    expect(emails.map(e => e.subject)).not.toContain("Switch off 2FA?");
   });
 
   it("emails a link; using it starts a 7-day wait, after which 2FA is off", async () => {

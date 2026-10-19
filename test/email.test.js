@@ -304,10 +304,9 @@ describe("2FA recovery emails (#1436)", () => {
 
 describe("passkey emails (#1439)", () => {
   it("tells the owner when a passkey is added, with a link to their passkeys", async () => {
-    await createEmailSender(env).sendPasskeyAdded(
-      "nix@example.com",
-      "https://my.climbinglogbook.com/nix/account/authentication",
-    );
+    await createEmailSender(env).sendAccountNotice("nix@example.com", "passkeyAdded", {
+      url: "https://my.climbinglogbook.com/nix/account/authentication",
+    });
     const { subject, html } = resendCalls.at(-1).body;
     expect(subject).toBe("A passkey was added to your account");
     expect(html).toContain("https://my.climbinglogbook.com/nix/account/authentication");
