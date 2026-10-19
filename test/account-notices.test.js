@@ -3,6 +3,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { BASE_URL, createAuthedSession, fetchJson, jsonRequest as rawJsonRequest, resetAuthTables } from "./support.js";
 import { secretFromUri, totp } from "./totp.js";
 import { PAIN_INJURY } from "../shared/health-consent.js";
+import { accountNoticeFor } from "../server/lib/auth.js";
 
 const PASSWORD = "correct-horse-battery-staple";
 const ORIGIN = { Origin: BASE_URL };
@@ -165,5 +166,27 @@ describe("health data (#1456)", () => {
   it("doesn't email when health data is turned off but was never on", async () => {
     await jsonRequest("DELETE", "/-/api/consent/pain-injury", undefined, { Cookie: cookie });
     expect(subjectsTo(email)).toEqual([]);
+  });
+});
+
+describe("accountNoticeFor (#1456)", () => {
+  const user = { username: "nix", twoFactorEnabled: true };
+
+  it("has nothing to say about an update that doesn't touch the username", () => {
+    expect(accountNoticeFor({ path: "/update-user", body: { name: "Nix" } }, user)).toBeNull();
+    expect(accountNoticeFor({ path: "/update-user", body: { username: " NIX " } }, user)).toBeNull();
+  });
+
+  it("treats a code check with 2FA already on as a login, not turning it on", () => {
+    expect(accountNoticeFor({ path: "/two-factor/verify-totp" }, user)).toBeNull();
+    expect(accountNoticeFor({ path: "/two-factor/verify-totp" }, { ...user, twoFactorEnabled: false })).toEqual({
+      kind: "twoFactorOn",
+      page: expect.any(String),
+      username: "nix",
+    });
+  });
+
+  it("has nothing to say about a request that changes nothing", () => {
+    expect(accountNoticeFor({ path: "/get-session" }, user)).toBeNull();
   });
 });
