@@ -63,3 +63,15 @@ third no longer describes the suite, and the gap hides bugs (#1095):
   is tested at the right layer.
 - Until the migration finishes, the suite has both styles. New page tests
   use real routes.
+
+## Update, 2026-10-19 (#1461)
+
+- Coverage now uses V8, which `@cloudflare/vitest-plugin` 1.4.3 supports
+  inside workerd. Istanbul's instrumented modules made the pool's warm-module
+  message overflow workerd's 32 MiB limit (#1459). With V8, the largest
+  message is 31,457,035 bytes, 2 MiB under the limit, so the local patch
+  that caps the inlining stays until upstream fixes it. The floors were set again from a V8 run: server
+  97/94/99/98 and shared 97/91/99/98 (statements, branches, functions,
+  lines).
+- Tests that need no binding, D1 or Worker run in a plain Node project, so
+  they don't start workerd. The `workers` project keeps everything else.
