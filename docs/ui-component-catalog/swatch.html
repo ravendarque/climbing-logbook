@@ -40,9 +40,12 @@
 <div class="swatch" id="s-row-card-nav">
   <div class="swatch-label">row-card — nav-link variant</div>
   <div class="swatch-body">
-    <a class="row-card flex items-center justify-between row-card-title hover:border-accent" href="#">
-      Edit account details
-      <svg class="w-4 h-4 stroke-muted fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+    <a class="row-card flex items-center gap-3 hover:border-accent" href="#">
+      <div class="flex-1 min-w-0">
+        <span class="row-card-title">Account and authentication</span>
+        <p class="text-sm text-muted mt-2">Change your username, email address or password, and set up Two-Factor Authentication (2FA) or passkeys.</p>
+      </div>
+      <svg class="w-4 h-4 stroke-muted fill-none shrink-0" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
     </a>
   </div>
 </div>
@@ -53,7 +56,7 @@
     <div class="row-card flex items-center gap-3">
       <div class="flex-1 min-w-0">
         <span class="row-card-title">Athlete Mode</span>
-        <p class="text-[.82rem] text-muted mt-2">Unlocks performance insights on your Performance page, visible only to you.</p>
+        <p class="text-sm text-muted mt-2">Unlocks performance insights on your Performance page, visible only to you.</p>
       </div>
       <button type="button" class="group inline-flex items-center bg-transparent border border-transparent cursor-pointer shrink-0" role="switch" aria-checked="true">
         <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
@@ -67,10 +70,10 @@
   <div class="swatch-body">
     <div class="row-card flex items-center gap-3">
       <div class="flex-1 min-w-0">
-        <span class="row-card-title">Check our beta</span>
-        <p class="text-[.82rem] text-muted mt-2">Opt in to get early access to new features before they're released.</p>
+        <span class="row-card-title">Delete account</span>
+        <p class="text-sm text-muted mt-2">Deletes your account and everything in it, on every device. It can't be undone.</p>
       </div>
-      <button type="button" class="btn shrink-0">Manage</button>
+      <button type="button" class="btn btn-danger shrink-0">Delete</button>
     </div>
   </div>
 </div>
@@ -88,11 +91,12 @@
 </div>
 
 <div class="swatch" id="s-btn">
-  <div class="swatch-label">btn / btn-primary</div>
-  <div class="swatch-body">
+  <div class="swatch-label">btn / btn-primary / btn-danger</div>
+  <div class="swatch-body flex flex-col gap-3">
     <div class="flex gap-2">
-      <button type="button" class="btn">CSV</button>
-      <button type="button" class="btn btn-primary">Add</button>
+      <button type="button" class="btn">Set up 2FA</button>
+      <button type="button" class="btn btn-primary">Save</button>
+      <button type="button" class="btn btn-danger">Turn off</button>
     </div>
   </div>
 </div>
@@ -115,6 +119,74 @@
   <div class="swatch-label">card-section-heading</div>
   <div class="swatch-body">
     <h2 class="card-section-heading">Settings</h2>
+  </div>
+</div>
+
+<div class="swatch" id="s-subsection-heading">
+  <div class="swatch-label">subsection-heading / card-subsection-heading / danger-zone-heading</div>
+  <div class="swatch-body">
+    <h2 class="subsection-heading">Account details</h2>
+    <h2 class="card-subsection-heading">Settings</h2>
+    <h2 class="danger-zone-heading">Danger zone</h2>
+  </div>
+</div>
+
+<div class="swatch" id="s-row-card-editable">
+  <div class="swatch-label">editable values — one card, one row editing</div>
+  <div class="swatch-body">
+    <div class="bg-surface border border-border rounded-app divide-y divide-border">
+      <div class="px-4 py-3 flex flex-col gap-3">
+        <form class="flex flex-col gap-3">
+          <label class="text-sm" for="swatch-username">New username</label>
+          <input class="text-input w-full" id="swatch-username" type="text" value="boulder-bea">
+          <div class="flex flex-wrap gap-2">
+            <button type="button" class="btn btn-primary">Save</button>
+            <button type="button" class="btn">Cancel</button>
+          </div>
+        </form>
+      </div>
+      <div class="px-4 py-3 flex flex-col gap-3">
+        <div class="flex items-center gap-3">
+          <div class="flex-1 min-w-0">
+            <span class="row-card-title">Password</span>
+            <p class="text-sm text-muted mt-1 break-words">••••••••••</p>
+          </div>
+          <button type="button" class="btn shrink-0 w-(--field-h) px-0" aria-label="Change password"><svg class="w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="swatch" id="s-form-card">
+  <div class="swatch-label">row-card — form card</div>
+  <div class="swatch-body">
+    <form class="row-card flex flex-wrap items-center gap-3">
+      <label class="group flex flex-1 min-w-[14rem] items-center gap-2 cursor-pointer">
+        <input class="sr-only" type="file">
+        <span class="flex-1 min-w-0 h-(--field-h) flex items-center px-3 bg-background border border-field-border rounded-app text-sm text-muted truncate group-hover:border-accent">No file chosen</span>
+        <span class="btn shrink-0 w-(--field-h) px-0 group-hover:border-accent group-has-[:focus-visible]:outline-2 group-has-[:focus-visible]:outline-offset-2 group-has-[:focus-visible]:outline-foreground" aria-hidden="true"><svg class="w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"></path></svg></span>
+      </label>
+      <button type="button" class="btn btn-primary shrink-0">Import</button>
+    </form>
+  </div>
+</div>
+
+<div class="swatch" id="s-tone-cards">
+  <div class="swatch-label">tone-positive / tone-neutral / tone-negative (status cards)</div>
+  <div class="swatch-body flex flex-col gap-3">
+    <div class="flex gap-3 px-4 py-[14px] rounded-app border tone-positive">
+      <svg class="w-[1.2rem] h-[1.2rem] stroke-current fill-none mt-[2px] shrink-0" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m8.5 12.5 2.5 2.5 5-5"></path></svg>
+      <div class="min-w-0"><p class="text-sm leading-[1.5] font-semibold text-foreground">2FA is on</p><div class="text-sm leading-[1.5] text-foreground mt-1">You'll be asked for a code when you log in on a new device.</div></div>
+    </div>
+    <div class="flex gap-3 px-4 py-[14px] rounded-app border tone-neutral">
+      <svg class="w-[1.2rem] h-[1.2rem] stroke-current fill-none mt-[2px] shrink-0" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+      <div class="min-w-0"><p class="text-sm leading-[1.5] font-semibold text-foreground">2FA is off</p><div class="text-sm leading-[1.5] text-foreground mt-1">You'll need an authenticator app.</div></div>
+    </div>
+    <div class="flex gap-3 px-4 py-[14px] rounded-app border tone-negative">
+      <svg class="w-[1.2rem] h-[1.2rem] stroke-current fill-none mt-[2px] shrink-0" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+      <div class="min-w-0"><p class="text-sm leading-[1.5] font-semibold text-foreground">2FA is switching off</p><div class="text-sm leading-[1.5] text-foreground mt-1">If that wasn't you, cancel it and change your password.</div></div>
+    </div>
   </div>
 </div>
 

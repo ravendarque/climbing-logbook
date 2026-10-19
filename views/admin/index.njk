@@ -39,7 +39,7 @@ bundle: admin
       <div class="flex flex-wrap gap-2">
         <button type="button" class="btn" id="toggle-read"></button>
         <button type="button" class="btn" id="toggle-archived"></button>
-        <button type="button" class="btn ml-auto text-accent-ink border-accent" id="delete-btn">Delete</button>
+        <button type="button" class="btn btn-danger ml-auto" id="delete-btn">Delete</button>
       </div>
       <p class="error-message" id="detail-error" role="alert" hidden></p>
     </article>
@@ -51,7 +51,7 @@ bundle: admin
       <p class="text-sm text-muted">It's removed for good. Archive it instead if you might want it again.</p>
       <div class="flex justify-end gap-2 pt-1">
         <button type="submit" class="btn" value="cancel" autofocus>Cancel</button>
-        <button type="submit" class="btn btn-primary" value="delete">Delete</button>
+        <button type="submit" class="btn btn-danger" value="delete">Delete</button>
       </div>
     </form>
   </dialog>
@@ -75,8 +75,8 @@ bundle: admin
       <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm" id="user-fields"></dl>
       <div class="flex flex-wrap gap-2" id="user-actions">
         <button type="button" class="btn" id="toggle-suspend"></button>
-        <button type="button" class="btn ml-auto text-accent-ink border-accent" id="user-delete">Delete</button>
-        <button type="button" class="btn text-accent-ink border-accent" id="user-ban">Ban</button>
+        <button type="button" class="btn btn-danger ml-auto" id="user-delete">Delete</button>
+        <button type="button" class="btn btn-danger" id="user-ban">Ban</button>
       </div>
       <p class="text-sm text-muted" id="user-demo-note" hidden>A demo account. It can't be changed here.</p>
       <p class="error-message" id="user-error" role="alert" hidden></p>
@@ -102,7 +102,7 @@ bundle: admin
       </label>
       <div class="flex justify-end gap-2 pt-1">
         <button type="submit" class="btn" value="cancel">Cancel</button>
-        <button type="submit" class="btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed" value="confirm" id="user-dialog-confirm" disabled></button>
+        <button type="submit" class="btn btn-danger disabled:opacity-50 disabled:cursor-not-allowed" value="confirm" id="user-dialog-confirm" disabled></button>
       </div>
     </form>
   </dialog>

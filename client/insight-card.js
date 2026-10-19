@@ -4,15 +4,15 @@ import { haikuHtml } from "./haiku.js";
 // Emerald for good news, amber for a problem worth acting on, neutral for everything else (#1375).
 const TONES = {
   positive: {
-    card: "bg-[color-mix(in_srgb,var(--insight-positive)_8%,var(--color-surface))] border-[color-mix(in_srgb,var(--insight-positive)_30%,transparent)] text-insight-positive",
+    card: "tone-positive",
     icon: `<circle cx="12" cy="12" r="10"></circle><path d="m8.5 12.5 2.5 2.5 5-5"></path>`,
   },
   negative: {
-    card: "bg-[color-mix(in_srgb,var(--color-tier-heuristic)_8%,var(--color-surface))] border-[color-mix(in_srgb,var(--color-tier-heuristic)_30%,transparent)] text-tier-heuristic",
+    card: "tone-negative",
     icon: `<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path>`,
   },
   neutral: {
-    card: "bg-surface border-border text-muted",
+    card: "tone-neutral",
     icon: `<circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path>`,
   },
 };

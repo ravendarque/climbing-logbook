@@ -4,72 +4,71 @@ title: Account and authentication – Climbing Logbook
 bundle: account-authentication
 headerClass: mb-6
 ---
+{% from "status-card.njk" import statusCard %}
 <div class="max-w-[960px] mx-auto">
   <a class="back-link mt-4 mb-5" id="back-to-account-link" href="#">
     <svg class="w-[.9rem] h-[.9rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
     My Account
   </a>
 
-  <h1 class="page-title">Account and authentication</h1>
+  <h1 class="section-heading">Account and authentication</h1>
 
   <div class="max-w-[520px]">
     <section aria-labelledby="details-heading">
-      <h2 class="section-heading mt-7" id="details-heading">Account details</h2>
-      <div class="flex flex-col gap-2" id="account-fields">
-        <div class="row-card" id="username-row">
-          <div class="row-card-title mb-1">Username</div>
-          <div class="flex items-center gap-2" id="username-view">
-            <div class="flex-1 min-w-0 border border-transparent px-3 py-2 text-foreground text-base leading-normal truncate" id="username-value"></div>
-            <button type="button" class="btn shrink-0" id="username-edit-btn">Change</button>
+      <h2 class="subsection-heading" id="details-heading">Account details</h2>
+      <div class="bg-surface border border-border rounded-app divide-y divide-border" id="account-fields">
+        <div class="px-4 py-3 flex flex-col gap-3" id="username-row">
+          <div class="flex items-center gap-3" id="username-view">
+            <div class="flex-1 min-w-0">
+              <span class="row-card-title">Username</span>
+              <p class="text-sm text-muted mt-1 break-words" id="username-value"></p>
+            </div>
+            <button type="button" class="btn shrink-0 w-(--field-h) px-0" id="username-edit-btn" aria-label="Change username"><svg class="w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg></button>
           </div>
-          <form class="flex items-center gap-2" id="username-form" hidden>
-            <input class="flex-1 min-w-0 bg-background border border-field-border rounded-app px-3 py-2 text-foreground text-base leading-normal" id="username-input" name="username" type="text" required>
-            <button type="submit" class="btn btn-primary shrink-0 max-[480px]:w-9 max-[480px]:px-0 max-[480px]:justify-center" id="username-save-btn" aria-label="Save">
-              <span class="max-[480px]:hidden">Save</span>
-              <svg class="hidden max-[480px]:block w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
-            </button>
-            <button type="button" class="btn shrink-0 max-[480px]:w-9 max-[480px]:px-0 max-[480px]:justify-center" id="username-cancel-btn" aria-label="Cancel">
-              <span class="max-[480px]:hidden">Cancel</span>
-              <svg class="hidden max-[480px]:block w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>
-            </button>
+          <form class="flex flex-col gap-3" id="username-form" hidden>
+            <label class="text-sm" for="username-input">New username</label>
+            <input class="text-input w-full" id="username-input" name="username" type="text" autocomplete="username" required>
+            <p class="error-message" id="username-error" role="alert" hidden></p>
+            <div class="flex flex-wrap gap-2">
+              <button type="submit" class="btn btn-primary" id="username-save-btn">Save</button>
+              <button type="button" class="btn" id="username-cancel-btn">Cancel</button>
+            </div>
           </form>
-          <p class="text-sm text-accent-ink mt-2" id="username-error" hidden></p>
         </div>
-
-        <div class="row-card" id="email-row">
-          <div class="row-card-title mb-1">Email</div>
-          <div class="flex items-center gap-2" id="email-view">
-            <div class="flex-1 min-w-0 border border-transparent px-3 py-2 text-foreground text-base leading-normal truncate" id="email-value"></div>
-            <button type="button" class="btn shrink-0" id="email-edit-btn">Change</button>
+        <div class="px-4 py-3 flex flex-col gap-3" id="email-row">
+          <div class="flex items-center gap-3" id="email-view">
+            <div class="flex-1 min-w-0">
+              <span class="row-card-title">Email</span>
+              <p class="text-sm text-muted mt-1 break-words" id="email-value"></p>
+            </div>
+            <button type="button" class="btn shrink-0 w-(--field-h) px-0" id="email-edit-btn" aria-label="Change email address"><svg class="w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg></button>
           </div>
-          <form class="flex items-center gap-2" id="email-form" hidden>
-            <input class="flex-1 min-w-0 bg-background border border-field-border rounded-app px-3 py-2 text-foreground text-base leading-normal" id="email-input" name="email" type="email" required>
-            <button type="submit" class="btn btn-primary shrink-0 max-[480px]:w-9 max-[480px]:px-0 max-[480px]:justify-center" id="email-save-btn" aria-label="Save">
-              <span class="max-[480px]:hidden">Save</span>
-              <svg class="hidden max-[480px]:block w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
-            </button>
-            <button type="button" class="btn shrink-0 max-[480px]:w-9 max-[480px]:px-0 max-[480px]:justify-center" id="email-cancel-btn" aria-label="Cancel">
-              <span class="max-[480px]:hidden">Cancel</span>
-              <svg class="hidden max-[480px]:block w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>
-            </button>
+          <form class="flex flex-col gap-3" id="email-form" hidden>
+            <label class="text-sm" for="email-input">New email address</label>
+            <input class="text-input w-full" id="email-input" name="email" type="email" autocomplete="email" required>
+            <p class="error-message" id="email-error" role="alert" hidden></p>
+            <div class="flex flex-wrap gap-2">
+              <button type="submit" class="btn btn-primary" id="email-save-btn">Save</button>
+              <button type="button" class="btn" id="email-cancel-btn">Cancel</button>
+            </div>
           </form>
-          <p class="text-sm text-accent-ink mt-2" id="email-error" hidden></p>
-          <p class="text-sm text-foreground bg-background border border-border rounded-app px-3 py-2 mt-2" id="email-pending" hidden></p>
+          <p class="text-sm" id="email-pending" role="status" hidden></p>
         </div>
-
-        <div class="row-card" id="password-row">
-          <div class="row-card-title mb-1">Password</div>
-          <div class="flex items-center gap-2" id="password-view">
-            <div class="flex-1 min-w-0 border border-transparent px-3 py-2 text-foreground text-base leading-normal" id="password-value">••••••••••</div>
-            <button type="button" class="btn shrink-0" id="password-edit-btn">Change</button>
+        <div class="px-4 py-3 flex flex-col gap-3" id="password-row">
+          <div class="flex items-center gap-3" id="password-view">
+            <div class="flex-1 min-w-0">
+              <span class="row-card-title">Password</span>
+              <p class="text-sm text-muted mt-1 break-words" id="password-value">••••••••••</p>
+            </div>
+            <button type="button" class="btn shrink-0 w-(--field-h) px-0" id="password-edit-btn" aria-label="Change password"><svg class="w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg></button>
           </div>
-          <form class="mt-2" id="password-form" hidden>
-            <label class="text-xs text-muted font-semibold uppercase tracking-wide" for="current-password-input">Current password</label>
-            <input class="w-full mt-1 mb-2 bg-background border border-field-border rounded-app px-3 py-2 text-foreground text-base leading-normal" id="current-password-input" name="currentPassword" type="password" autocomplete="current-password" required>
-            <label class="text-xs text-muted font-semibold uppercase tracking-wide" for="new-password-input">New password</label>
-            <input class="w-full mt-1 mb-2 bg-background border border-field-border rounded-app px-3 py-2 text-foreground text-base leading-normal" id="new-password-input" name="newPassword" type="password" autocomplete="new-password" minlength="8" required>
-            <p class="text-sm text-accent-ink mb-2" id="password-error" hidden></p>
-            <div class="flex gap-2">
+          <form class="flex flex-col gap-3" id="password-form" hidden>
+            <label class="text-sm" for="current-password-input">Current password</label>
+            <input class="text-input w-full" id="current-password-input" name="currentPassword" type="password" autocomplete="current-password" required>
+            <label class="text-sm" for="new-password-input">New password</label>
+            <input class="text-input w-full" id="new-password-input" name="newPassword" type="password" autocomplete="new-password" minlength="8" required>
+            <p class="error-message" id="password-error" role="alert" hidden></p>
+            <div class="flex flex-wrap gap-2">
               <button type="submit" class="btn btn-primary" id="password-save-btn">Save</button>
               <button type="button" class="btn" id="password-cancel-btn">Cancel</button>
             </div>
@@ -79,29 +78,27 @@ headerClass: mb-6
     </section>
 
     <section aria-labelledby="two-step-heading">
-      <h2 class="section-heading mt-7" id="two-step-heading">Two-Factor Authentication (2FA)</h2>
+      <h2 class="subsection-heading" id="two-step-heading">Two-Factor Authentication (2FA)</h2>
       <div class="flex flex-col gap-4">
         <p class="text-sm text-muted">After your password, you enter a code from an authenticator app on your phone. Someone who learns your password still can't get in without your phone. It's up to you whether to use it. <a class="text-accent-ink underline underline-offset-2" href="/help/two-factor-authentication/">How it works</a></p>
 
         <p class="text-sm text-muted" id="two-step-loading">Loading…</p>
 
-        <div class="row-card border-accent" id="recovery-pending" hidden>
-          <p class="font-semibold mb-1">2FA is switching off</p>
-          <p class="text-sm mb-3" id="recovery-pending-text"></p>
+        {% call statusCard("negative", "2FA is switching off", "recovery-pending", true) %}
+          <p class="mb-3" id="recovery-pending-text"></p>
           <button type="button" class="btn btn-primary" id="recovery-cancel-btn">This wasn't me: cancel it</button>
-        </div>
+        {% endcall %}
 
         <section class="flex flex-col gap-3" id="two-step-off" hidden>
-          <p><strong>2FA is off.</strong></p>
-          <p class="text-sm text-muted">You'll need an authenticator app. We really like <a class="text-accent-ink underline underline-offset-2" href="https://proton.me/authenticator">Proton Authenticator</a> and <a class="text-accent-ink underline underline-offset-2" href="https://ente.com/auth/">Ente Auth</a>, but you can use any authenticator app.</p>
-          <div><button type="button" class="btn btn-primary" id="setup-start-btn">Set up 2FA</button></div>
+          {% call statusCard("neutral", "2FA is off") %}You'll need an authenticator app. We really like <a class="text-accent-ink underline underline-offset-2" href="https://proton.me/authenticator">Proton Authenticator</a> and <a class="text-accent-ink underline underline-offset-2" href="https://ente.com/auth/">Ente Auth</a>, but you can use any authenticator app.{% endcall %}
+          <div><button type="button" class="btn" id="setup-start-btn">Set up 2FA</button></div>
         </section>
 
         <section class="flex flex-col gap-3" id="two-step-on" hidden>
-          <p><strong>2FA is on.</strong> You'll be asked for a code when you log in on a new device.</p>
+          {% call statusCard("positive", "2FA is on") %}You'll be asked for a code when you log in on a new device.{% endcall %}
           <div class="flex flex-wrap gap-2">
             <button type="button" class="btn" id="new-codes-btn">Get new backup codes</button>
-            <button type="button" class="btn" id="turn-off-btn">Turn off</button>
+            <button type="button" class="btn btn-danger" id="turn-off-btn">Turn off</button>
           </div>
         </section>
 
@@ -134,7 +131,7 @@ headerClass: mb-6
           <ul class="grid grid-cols-2 gap-x-4 gap-y-1 list-none p-0 font-mono tabular-nums text-sm" id="backup-codes-list"></ul>
           <div class="flex flex-wrap gap-2">
             <button type="button" class="btn" id="copy-codes-btn">Copy codes</button>
-            <button type="button" class="btn btn-primary" id="codes-done-btn">I've saved them</button>
+            <button type="button" class="btn" id="codes-done-btn">I've saved them</button>
           </div>
         </section>
 
@@ -144,7 +141,7 @@ headerClass: mb-6
     </section>
 
     <section aria-labelledby="passkeys-heading">
-      <h2 class="section-heading mt-7" id="passkeys-heading">Passkeys</h2>
+      <h2 class="subsection-heading" id="passkeys-heading">Passkeys</h2>
       <div class="flex flex-col gap-4">
         <p class="text-sm text-muted">A passkey lets you log in with your fingerprint, face or device PIN instead of your password and a code. Your phone or computer can keep it, or a password manager such as <a class="text-accent-ink underline underline-offset-2" href="https://proton.me/pass">Proton Pass</a>. Your fingerprint or face never leaves your device. <a class="text-accent-ink underline underline-offset-2" href="/help/passkeys/">How it works</a></p>
 
@@ -156,13 +153,19 @@ headerClass: mb-6
 
         <div class="row-card flex flex-col gap-3" id="passkeys-reauth" hidden>
           <p class="text-sm">To add a passkey, log in again first. It's been more than a day since you last did, and a fresh login makes sure it's really you adding it.</p>
-          <div><button type="button" class="btn btn-primary" id="passkeys-reauth-btn">Log in again</button></div>
+          <div><button type="button" class="btn" id="passkeys-reauth-btn">Log in again</button></div>
         </div>
 
+        <div><button type="button" class="btn" id="add-passkey-start-btn" hidden>Add a passkey</button></div>
+
         <form class="row-card flex flex-col gap-3" id="add-passkey-form" hidden novalidate>
+          <p class="font-semibold">Add a passkey</p>
           <label class="text-sm" for="passkey-name">Name it, so you can tell your passkeys apart</label>
-          <input class="text-input w-full" type="text" id="passkey-name" maxlength="50" placeholder="My phone" required>
-          <div><button type="submit" class="btn btn-primary" id="add-passkey-btn">Add a passkey</button></div>
+          <input class="text-input w-full" type="text" id="passkey-name" maxlength="50" required>
+          <div class="flex flex-wrap gap-2">
+            <button type="submit" class="btn btn-primary" id="add-passkey-btn">Add</button>
+            <button type="button" class="btn" id="add-passkey-cancel-btn">Cancel</button>
+          </div>
         </form>
 
         <p class="error-message" id="passkeys-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>

@@ -1,3 +1,4 @@
+import { deviceName } from "./device-name.js";
 import { addPasskey, isCancelled, listPasskeys, passkeysSupported, removePasskey, renamePasskey } from "./passkeys.js";
 
 const addedOn = value =>
@@ -12,6 +13,9 @@ export function createPasskeysSection() {
   const empty = $("passkeys-empty");
   const form = $("add-passkey-form");
   const nameInput = $("passkey-name");
+  const startBtn = $("add-passkey-start-btn");
+  const reauth = $("passkeys-reauth");
+  let fresh = false;
   const errorEl = $("passkeys-error");
   const infoEl = $("passkeys-info");
 
@@ -126,24 +130,43 @@ export function createPasskeysSection() {
     $("add-passkey-btn").disabled = true;
     try {
       await addPasskey(name);
-      nameInput.value = "";
+      showAdding(false);
       showInfo(`Added ${name}. Next time, choose "Log in with a passkey".`);
       await render();
     } catch (err) {
       if (err.code === "SESSION_NOT_FRESH") {
         form.hidden = true;
-        $("passkeys-reauth").hidden = false;
+        reauth.hidden = false;
       } else if (!isCancelled(err)) showError(err.message);
     } finally {
       $("add-passkey-btn").disabled = false;
     }
   });
 
-  function showAddOrReauth(session) {
-    const fresh = Date.now() - new Date(session?.session?.createdAt ?? 0).getTime() < FRESH_MS;
-    form.hidden = !fresh;
-    $("passkeys-reauth").hidden = fresh;
+  function showAdding(adding) {
+    form.hidden = !adding;
+    startBtn.hidden = adding;
+    if (!adding) return;
+    errorEl.hidden = true;
+    showInfo("");
+    nameInput.value = deviceName({
+      userAgent: navigator.userAgent,
+      maxTouchPoints: navigator.maxTouchPoints,
+      brave: "brave" in navigator,
+    });
+    nameInput.focus();
+    nameInput.select();
   }
+
+  startBtn.addEventListener("click", () => {
+    if (fresh) return showAdding(true);
+    startBtn.hidden = true;
+    reauth.hidden = false;
+  });
+  $("add-passkey-cancel-btn").addEventListener("click", () => {
+    errorEl.hidden = true;
+    showAdding(false);
+  });
 
   $("passkeys-reauth-btn").addEventListener("click", async () => {
     await fetch("/-/api/auth/sign-out", {
@@ -159,8 +182,10 @@ export function createPasskeysSection() {
       try {
         const [session] = await Promise.all([sessionRequest, render()]);
         $("passkeys-loading").hidden = true;
-        if (passkeysSupported()) showAddOrReauth(session);
-        else $("passkeys-unsupported").hidden = false;
+        if (passkeysSupported()) {
+          fresh = Date.now() - new Date(session?.session?.createdAt ?? 0).getTime() < FRESH_MS;
+          startBtn.hidden = false;
+        } else $("passkeys-unsupported").hidden = false;
       } catch {
         $("passkeys-loading").textContent = "Couldn't load your passkeys. Check your connection and try again.";
       }

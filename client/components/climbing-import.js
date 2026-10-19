@@ -10,6 +10,8 @@ const IMPORT_URL = "/-/api/entries/import";
 class ClimbingImport extends HTMLElement {
   #form;
   #fileInput;
+  #fileName;
+  #noFile;
   #submitBtn;
   #status;
   #errors;
@@ -21,6 +23,9 @@ class ClimbingImport extends HTMLElement {
     if (this.#form) return;
     this.#form = this.querySelector("#import-form");
     this.#fileInput = this.querySelector("#import-file-input");
+    this.#fileName = this.querySelector("#import-file-name");
+    this.#noFile = this.#fileName.textContent;
+    this.#fileInput.addEventListener("change", () => this.#showFileName());
     this.#submitBtn = this.querySelector("#import-submit-btn");
     this.#status = this.querySelector("#import-status");
     this.#errors = this.querySelector("#import-errors");
@@ -35,6 +40,12 @@ class ClimbingImport extends HTMLElement {
       e.preventDefault();
       this.#submit();
     });
+  }
+
+  #showFileName() {
+    this.#fileName.textContent = this.#fileInput.files[0]?.name ?? this.#noFile;
+    this.#fileName.classList.toggle("text-foreground", this.#fileInput.files.length > 0);
+    this.#fileName.classList.toggle("text-muted", this.#fileInput.files.length === 0);
   }
 
   #reset() {
@@ -90,6 +101,7 @@ class ClimbingImport extends HTMLElement {
       this.#successMessage.textContent = `Imported ${data.imported} ${data.imported === 1 ? "entry" : "entries"}.`;
       this.#success.hidden = false;
       this.#form.reset();
+      this.#showFileName();
       this.dispatchEvent(new CustomEvent("import-complete", { bubbles: true, detail: { imported: data.imported } }));
     } catch {
       this.#status.hidden = true;

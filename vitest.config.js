@@ -49,6 +49,7 @@ const NODE_TESTS = [
   "test/client/api-fetch.test.js",
   "test/client/combo-chart.test.js",
   "test/client/delta-merge.test.js",
+  "test/client/device-name.test.js",
   "test/client/demo-mode.test.js",
   "test/client/entries.test.js",
   "test/client/escape-html.test.js",

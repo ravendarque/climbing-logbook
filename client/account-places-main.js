@@ -83,16 +83,17 @@ const climbsPhrase = n => `${n} ${n === 1 ? "climb" : "climbs"}`;
 function render() {
   const locations = store.getLocations().toSorted((x, y) => x.name.localeCompare(y.name));
   emptyEl.hidden = locations.length > 0;
+  listEl.hidden = locations.length === 0;
   listEl.innerHTML = locations
     .map(location => {
       const areas = areasOf(location.id);
       const country = COUNTRY_BY_NAME[location.country];
-      return `<div class="row-card flex items-center gap-3" data-location-id="${escapeHtml(location.id)}">
+      return `<div class="px-4 py-3 flex items-center gap-3" data-location-id="${escapeHtml(location.id)}">
         <div class="flex-1 min-w-0">
           <span class="row-card-title">${escapeHtml(location.name)}</span>
           <p class="text-sm text-muted mt-1">${country ? `${escapeHtml(country.flag)} ${escapeHtml(country.name)} · ` : ""}${areas.length} ${areas.length === 1 ? "area" : "areas"} · ${climbsPhrase(climbsAt(areas.map(area => area.id)))}</p>
         </div>
-        <button type="button" class="btn shrink-0" data-edit="${escapeHtml(location.id)}">Edit</button>
+        <button type="button" class="btn shrink-0 w-(--field-h) px-0" data-edit="${escapeHtml(location.id)}" aria-label="Edit ${escapeHtml(location.name)}"><svg class="w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg></button>
       </div>`;
     })
     .join("");
@@ -151,7 +152,7 @@ function openEditor(locationId) {
       area => `<div class="flex items-center gap-2">
         <input type="text" class="text-input flex-1 min-w-0" maxlength="50" value="${escapeHtml(area.area)}" placeholder="No area" aria-label="Area name" data-area-id="${escapeHtml(area.id)}">
         <span class="text-xs text-muted shrink-0 tabular-nums">${climbsAt([area.id])}</span>
-        <button type="button" class="btn shrink-0" data-delete-area="${escapeHtml(area.id)}">Delete</button>
+        <button type="button" class="btn btn-danger shrink-0" data-delete-area="${escapeHtml(area.id)}">Delete</button>
       </div>`,
     )
     .join("");

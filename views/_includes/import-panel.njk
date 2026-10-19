@@ -1,15 +1,19 @@
 <climbing-import class="flex flex-col gap-4">
   <div>
-    <{{ importStepTag or "h3" }} class="text-lg font-bold text-foreground mb-1">1. Download the CSV template</{{ importStepTag or "h3" }}>
+    <{{ importStepTag or "h3" }} class="font-display font-normal uppercase tracking-[.025em] text-base text-foreground mb-1">Step 1: Download the CSV template</{{ importStepTag or "h3" }}>
     <p class="text-sm text-muted mb-3">The CSV template has the columns the import expects. Each row is one entry. If you have a JSON export from this app, just go straight to the import.</p>
     <button type="button" class="btn" id="download-template-btn">Download CSV template</button>
   </div>
 
   <div>
-    <{{ importStepTag or "h3" }} class="text-lg font-bold text-foreground mb-1" id="import-file-label">2. Upload your file</{{ importStepTag or "h3" }}>
+    <{{ importStepTag or "h3" }} class="font-display font-normal uppercase tracking-[.025em] text-base text-foreground mb-1" id="import-file-label">Step 2: Upload your file</{{ importStepTag or "h3" }}>
     <p class="text-sm text-muted mb-3">Upload your completed CSV template or your JSON export. Nothing is imported until every entry in the file is valid. Any errors will be listed here so you can fix them and try again.</p>
-    <form class="flex flex-wrap items-center gap-2" id="import-form">
-      <input class="flex-1 min-w-0 text-sm" id="import-file-input" aria-labelledby="import-file-label" name="file" type="file" accept=".csv,.json,text/csv,application/json" required>
+    <form class="row-card flex flex-wrap items-center gap-3" id="import-form">
+      <label class="group flex flex-1 min-w-[14rem] items-center gap-2 cursor-pointer">
+        <input class="sr-only" id="import-file-input" aria-labelledby="import-file-label" name="file" type="file" accept=".csv,.json,text/csv,application/json" required>
+        <span class="flex-1 min-w-0 h-(--field-h) flex items-center px-3 bg-background border border-field-border rounded-app text-sm text-muted truncate group-hover:border-accent" id="import-file-name">No file chosen</span>
+        <span class="btn shrink-0 w-(--field-h) px-0 group-hover:border-accent group-has-[:focus-visible]:outline-2 group-has-[:focus-visible]:outline-offset-2 group-has-[:focus-visible]:outline-foreground" aria-hidden="true"><svg class="w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"></path></svg></span>
+      </label>
       <button type="submit" class="btn btn-primary shrink-0" id="import-submit-btn">Import</button>
     </form>
   </div>

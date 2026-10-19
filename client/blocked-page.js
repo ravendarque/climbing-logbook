@@ -15,7 +15,7 @@ export function renderBlockedPage(doc, { id, heading, text, link }) {
   section.append(h, p);
   if (link) {
     const a = doc.createElement("a");
-    a.className = "btn btn-primary self-start";
+    a.className = "btn self-start";
     a.href = link.href;
     a.textContent = link.label;
     section.append(a);
