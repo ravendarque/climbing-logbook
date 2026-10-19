@@ -180,7 +180,11 @@ label, such as "New username".
 ```
 
 (`views/account/authentication/index.njk`, wired by `wireEditableRow` in
-`client/account-details.js`.)
+`client/account-details.js`.) The Places list (`client/account-places-main.js`)
+uses the same card and pencil, named "Edit Fontainebleau" and so on. Its
+pencil opens the place editor modal rather than editing in place, because
+that editor has too much in it (name, country, every area, the delete
+step) for a list row.
 
 ### Variant: form card
 
