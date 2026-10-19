@@ -72,20 +72,24 @@ setting with its own control.
 
 ### Variant: nav-link row
 
-Title text plus a trailing chevron, the whole row a clickable `<a>`.
+Title and description, with a trailing chevron; the whole row is a
+clickable `<a>`.
 
 | Dark | Light |
 |---|---|
 | ![row-card nav-link variant](ui-component-catalog/row-card-nav-dark.png) | ![row-card nav-link variant](ui-component-catalog/row-card-nav-light.png) |
 
 ```html
-<a class="row-card flex items-center justify-between row-card-title hover:border-accent" id="edit-account-link" href="#">
-  Edit account details
-  <svg class="w-4 h-4 stroke-muted fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+<a class="row-card flex items-center gap-3 hover:border-accent" id="authentication-link" href="#">
+  <div class="flex-1 min-w-0">
+    <span class="row-card-title">Account and authentication</span>
+    <p class="text-sm text-muted mt-2">Change your username, email address or password, and set up Two-Factor Authentication (2FA) or passkeys.</p>
+  </div>
+  <svg class="w-4 h-4 stroke-muted fill-none shrink-0" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
 </a>
 ```
 
-(`public/account/index.html`)
+(`views/account/index.njk`)
 
 ### Variant: settings-row (two-column)
 
@@ -108,7 +112,7 @@ block down, creating dead space the two-column shape doesn't have).
 <div class="row-card flex items-center gap-3" id="athlete-mode-row">
   <div class="flex-1 min-w-0">
     <span class="row-card-title">Athlete Mode</span>
-    <p class="text-[.82rem] text-muted mt-2">Unlocks performance insights on your Performance page, visible only to you.</p>
+    <p class="text-sm text-muted mt-2">Unlocks performance insights on your Performance page, visible only to you.</p>
   </div>
   <button type="button" class="group inline-flex items-center bg-transparent border border-transparent cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shrink-0" id="athlete-mode-toggle" role="switch" aria-checked="false">
     <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
@@ -116,55 +120,115 @@ block down, creating dead space the two-column shape doesn't have).
 </div>
 ```
 
-A button-triggered variant of the same shape (used when the control is a
-real flow/modal, not an instant toggle):
+A button-triggered variant of the same shape, for a control that opens a
+flow rather than toggling straight away, such as the Danger zone's
+*Delete account*:
 
 | Dark | Light |
 |---|---|
 | ![row-card settings-row variant with a button control](ui-component-catalog/row-card-settings-button-dark.png) | ![row-card settings-row variant with a button control](ui-component-catalog/row-card-settings-button-light.png) |
 
 ```html
-<div class="row-card flex items-center gap-3" id="example-row">
+<div class="row-card flex items-center gap-3" id="delete-account-row">
   <div class="flex-1 min-w-0">
-    <span class="row-card-title">Setting name</span>
-    <p class="text-[.82rem] text-muted mt-2">What the setting does.</p>
+    <span class="row-card-title">Delete account</span>
+    <p class="text-sm text-muted mt-2">Deletes your account and everything in it, on every device. It can't be undone.</p>
   </div>
-  <button type="button" class="btn shrink-0" id="example-manage-btn">Manage</button>
+  <button type="button" class="btn btn-danger shrink-0">Delete</button>
 </div>
 ```
 
-(The screenshots show the account page's former beta opt-in row. #953
-replaced that with a link to its own sub-page, `beta-row`: the same
-two-column shape with a chevron in place of the button.)
+(`views/account/index.njk`.) `client/row-card.js` builds the same shape
+for the Performance hub; keep the two in sync.
 
-(`public/account/index.html`) — same shape is also built programmatically
-by `client/row-card.js` for the Performance hub; keep both in sync if
-either changes (see that file's own header comment).
+### Variant: editable value
 
-## `btn` / `btn-primary`
-
-**Definition:** `styles/tailwind.css`. `btn` is a plain bordered button
-(surface background, border, `var(--radius-app)`, `.82rem` bold text);
-`btn-primary` overrides background/border/text to the accent color for
-the one primary action in a group. Named `btn`, not `admin-btn` (#459) —
-despite the app-wide session gate, this is the app's general button
-style, used well outside any admin/owner-only context (the always-
-logged-out login form and apex marketing page both use it too).
-
-**When to use:** any action button outside a full modal-form context —
-export buttons, a "Manage" trigger, add/sync actions, the login form's
-own submit button.
+A value shown as muted text with a grey *Change*. *Change* swaps the view
+for a form in the same card: plain labels, `text-input`s, an
+`error-message`, a red *Save* and a grey *Cancel*. Used for the username,
+email and password on Account and authentication.
 
 | Dark | Light |
 |---|---|
-| ![btn and btn-primary](ui-component-catalog/btn-dark.png) | ![btn and btn-primary](ui-component-catalog/btn-light.png) |
+| ![row-card editable value, viewing and editing](ui-component-catalog/row-card-editable-dark.png) | ![row-card editable value, viewing and editing](ui-component-catalog/row-card-editable-light.png) |
 
 ```html
-<button type="button" class="btn" id="export-csv-btn">CSV</button>
-<button type="button" class="btn btn-primary min-w-24 justify-center" id="add-btn">Add</button>
+<div class="row-card flex flex-col gap-3" id="username-row">
+  <div class="flex flex-wrap items-center gap-3" id="username-view">
+    <div class="flex-1 min-w-[12rem]">
+      <span class="row-card-title">Username</span>
+      <p class="text-sm text-muted mt-1 break-words" id="username-value"></p>
+    </div>
+    <button type="button" class="btn shrink-0" id="username-edit-btn">Change</button>
+  </div>
+  <form class="flex flex-col gap-3" id="username-form" hidden>
+    <label class="text-sm" for="username-input">New username</label>
+    <input class="text-input w-full" id="username-input" name="username" type="text" required>
+    <p class="error-message" id="username-error" role="alert" hidden></p>
+    <div class="flex flex-wrap gap-2">
+      <button type="submit" class="btn btn-primary" id="username-save-btn">Save</button>
+      <button type="button" class="btn" id="username-cancel-btn">Cancel</button>
+    </div>
+  </form>
+</div>
 ```
 
-(`public/account/index.html`, `public/log/index.html`)
+(`views/account/authentication/index.njk`, wired by `wireEditableRow` in
+`client/account-details.js`.)
+
+### Variant: form card
+
+Any form with inputs sits in a card, with a red submit and a grey
+*Cancel* (`docs/coding-standards.md`, Buttons and forms). Modals and
+whole-page forms are already their own container, so they don't get one.
+
+| Dark | Light |
+|---|---|
+| ![row-card form card with a file input](ui-component-catalog/form-card-dark.png) | ![row-card form card with a file input](ui-component-catalog/form-card-light.png) |
+
+```html
+<form class="row-card flex flex-wrap items-center gap-3" id="import-form">
+  <input class="flex-1 min-w-[14rem] text-sm text-muted file:btn file:mr-3 file:cursor-pointer" id="import-file-input" type="file" required>
+  <button type="submit" class="btn btn-primary shrink-0" id="import-submit-btn">Import</button>
+</form>
+```
+
+(`views/_includes/import-panel.njk`.) Others: adding a passkey, the 2FA
+password and setup forms, and the health data agreement.
+
+## `btn` / `btn-primary` / `btn-danger`
+
+**Definition:** `styles/tailwind.css`. `btn` is a bordered surface
+button with `text-sm` bold text. `btn-primary` fills it with the accent
+colour; `btn-danger` turns its text red.
+
+**When to use** (`docs/coding-standards.md`, Buttons and forms, #1467):
+
+- **`btn-primary`:** anything that is, or reads as, a submit: a form's
+  submit, or a one-click action that changes something (*Clear device
+  data*, *Join the beta*). Exceptions: the log's *Add*, the landing page's
+  *Sign up*, and the welcome wizard's and tour's *Next*.
+- **`btn`:** anything that opens a form, shows something, downloads,
+  copies, navigates or dismisses (*Set up 2FA*, *Change*, *CSV*).
+- **`btn-danger`:** deleting, removing, discarding, banning, and anything
+  that makes the account less secure (*Turn off* 2FA). It's used even when
+  the button only opens a confirmation.
+
+A file input styles its own button as `btn`, through Tailwind's `file:`
+variant.
+
+| Dark | Light |
+|---|---|
+| ![btn, btn-primary, btn-danger and a file input](ui-component-catalog/btn-dark.png) | ![btn, btn-primary, btn-danger and a file input](ui-component-catalog/btn-light.png) |
+
+```html
+<button type="button" class="btn" id="setup-start-btn">Set up 2FA</button>
+<button type="submit" class="btn btn-primary" id="password-save-btn">Save</button>
+<button type="button" class="btn btn-danger" id="turn-off-btn">Turn off</button>
+<input class="text-sm text-muted file:btn file:mr-3 file:cursor-pointer" type="file">
+```
+
+(`views/account/authentication/index.njk`, `views/_includes/import-panel.njk`)
 
 ## Switch control (`switch-track` / `switch-thumb`)
 
@@ -201,9 +265,10 @@ brand-style heading matching `<climbing-header>`'s own `<h1>` treatment
 (`font-display`, uppercase, letter-spacing), no indent. `card-section-
 heading`, `sources-heading` and `page-title` all derive from it via `@apply`.
 
-**When to use `page-title`:** the title of a whole page -- Performance
-Insights report pages, /help pages (via `help-article`'s own `h1` rule).
-Same as `section-heading`, bigger (`1.8rem`).
+**When to use `page-title`:** the title of a whole page: Performance
+Insights reports, Help pages (through `help-article`'s `h1` rule), and
+account pages split into sections (Account and authentication, Import
+and export entries). Same as `section-heading`, bigger (`text-3xl`).
 
 | Dark | Light |
 |---|---|
@@ -214,8 +279,12 @@ Same as `section-heading`, bigger (`1.8rem`).
 ```
 
 **When to use `section-heading`:** a section within a page, sitting
-directly above its own content, not aligned against a `row-card` list --
-sections inside a /help page (via `help-article`'s own `h2` rule).
+directly above its own content rather than over a `row-card` list: Help
+page sections (through `help-article`'s `h2` rule), and the sections of
+Account and authentication and Import and export entries (with `mt-7`, as
+in Help). Below it, a step or sub-section heading is plain bold text
+(`text-lg font-bold`), as Help's `h3`s are. Also the `h1` of single-topic
+account pages (Places, Health data, Check our beta).
 
 | Dark | Light |
 |---|---|
@@ -225,17 +294,30 @@ sections inside a /help page (via `help-article`'s own `h2` rule).
 <h2 class="section-heading">How to read the tables</h2>
 ```
 
-**When to use `card-section-heading`:** the top-level heading for a
-grouped section of `row-card`s ("My account", "Settings") -- adds the
-`padding-left: 1rem` that aligns the heading text with `row-card`'s own
-inner text below it.
+**When to use `card-section-heading`:** the title of a page made of
+`row-card` groups, such as My account's "My account". Adds the
+`padding-left: 1rem` that lines the heading up with the cards' text.
 
 | Dark | Light |
 |---|---|
 | ![card-section-heading](ui-component-catalog/card-section-heading-dark.png) | ![card-section-heading](ui-component-catalog/card-section-heading-light.png) |
 
 ```html
-<h2 class="card-section-heading">Settings</h2>
+<h1 class="card-section-heading">My account</h1>
+```
+
+**When to use `subsection-heading` / `danger-zone-heading`:** the heading
+over each group of `row-card`s on such a page (My account's Account,
+Settings, Data). `danger-zone-heading` is the same in red, for the Danger
+zone.
+
+| Dark | Light |
+|---|---|
+| ![subsection-heading and danger-zone-heading](ui-component-catalog/subsection-heading-dark.png) | ![subsection-heading and danger-zone-heading](ui-component-catalog/subsection-heading-light.png) |
+
+```html
+<h2 class="subsection-heading">Settings</h2>
+<h2 class="danger-zone-heading">Danger zone</h2>
 ```
 
 **When to use `sources-heading`:** a page's "Sources" heading -- adds a
@@ -251,6 +333,35 @@ help page.
 ```html
 <h2 class="sources-heading">Sources</h2>
 ```
+
+## Status cards (`tone-positive` / `tone-neutral` / `tone-negative`)
+
+**Definition:** `styles/tailwind.css` (`@utility tone-*`) sets a card's
+tint, border and icon colour: green for good news, amber for a problem
+worth acting on, neutral for everything else.
+`client/insight-card.js` builds them for Performance Insights. The
+`statusCard` macro in `views/_includes/status-card.njk` builds them in
+templates, with the right icon for each tone.
+
+**When to use:** a status or finding with a short title and a line of
+explanation: report insights, and 2FA's on, off and switching-off states.
+Not for errors (use `error-message`) or plain help text.
+
+| Dark | Light |
+|---|---|
+| ![positive, neutral and negative status cards](ui-component-catalog/tone-cards-dark.png) | ![positive, neutral and negative status cards](ui-component-catalog/tone-cards-light.png) |
+
+```njk
+{% from "status-card.njk" import statusCard %}
+{% call statusCard("positive", "2FA is on") %}You'll be asked for a code when you log in on a new device.{% endcall %}
+{% call statusCard("negative", "2FA is switching off", "recovery-pending", true) %}
+  <p class="mb-3" id="recovery-pending-text"></p>
+  <button type="button" class="btn btn-primary" id="recovery-cancel-btn">This wasn't me: cancel it</button>
+{% endcall %}
+```
+
+The arguments are tone, title, and optionally the card's `id` and
+whether it starts `hidden`.
 
 ## Modal / overlay shape
 
