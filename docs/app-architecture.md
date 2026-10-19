@@ -98,7 +98,7 @@ lists can't be probed rule by rule.
 | `migrations/` | D1 schema migrations, applied on every release ([expand and contract](versioning.md)) |
 | `infra/` | Terraform for every Cloudflare resource ([infra/README.md](../infra/README.md), [infra-architecture.md](infra-architecture.md)) |
 | `scripts/` | Build steps, seeding and one-off tools |
-| `test/` | Vitest: `workers` project (real Workers runtime, real D1) and `client-dom` project (DOM and filesystem tests) |
+| `test/` | Vitest: `workers` project (real Workers runtime, real D1), `client-dom` project (DOM tests) and `node` project (pure logic and repo checks) |
 | `e2e/` | Playwright, run against the production build |
 
 `public/` and `dist/` are build output and gitignored.
@@ -610,11 +610,13 @@ Access.
 
 ## Testing
 
-- `pnpm test` runs Vitest's `workers` project (the real Workers runtime and
-  D1, for the API and server logic) and its `client-dom` project (client
-  modules, build scripts and repo checks such as dead path references and
-  migration safety).
-- `pnpm test:coverage` runs the same with an Istanbul coverage report in
+- `pnpm test` runs three Vitest projects: `workers` (the real Workers
+  runtime and D1, for the API and server logic), `client-dom` (client
+  modules that need a document, in happy-dom) and `node` (pure logic, build
+  scripts and repo checks such as dead path references and migration
+  safety). A test goes in `workers` only if it needs a binding, D1 or the
+  Worker.
+- `pnpm test:coverage` runs the same with a V8 coverage report in
   `coverage/`. CI runs it, publishes the report and enforces a floor on
   `server/` and `shared/` (`vitest.config.js`).
 - `pnpm run test:e2e` runs Playwright against the production build served
