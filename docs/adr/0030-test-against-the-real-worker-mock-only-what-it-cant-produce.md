@@ -69,8 +69,8 @@ third no longer describes the suite, and the gap hides bugs (#1095):
 - Coverage now uses V8, which `@cloudflare/vitest-plugin` 1.4.3 supports
   inside workerd. Istanbul's instrumented modules made the pool's warm-module
   message overflow workerd's 32 MiB limit (#1459). With V8, the largest
-  message is 31.5 MB, so the local patch that caps the inlining stays until
-  upstream fixes it. The floors were set again from a V8 run: server
+  message is 31,457,035 bytes, 2 MiB under the limit, so the local patch
+  that caps the inlining stays until upstream fixes it. The floors were set again from a V8 run: server
   97/94/99/98 and shared 97/91/99/98 (statements, branches, functions,
   lines).
 - Tests that need no binding, D1 or Worker run in a plain Node project, so
