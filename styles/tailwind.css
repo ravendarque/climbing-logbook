@@ -266,19 +266,14 @@
 }
 
 @utility subsection-heading {
-  @apply section-heading;
+  @apply card-section-heading;
   font-size: var(--text-lg);
   margin-top: 1.5rem;
   margin-bottom: .5rem;
 }
 
-@utility card-subsection-heading {
-  @apply subsection-heading;
-  padding-left: 1rem;
-}
-
 @utility danger-zone-heading {
-  @apply card-subsection-heading;
+  @apply subsection-heading;
   color: var(--color-accent-ink);
 }
 
