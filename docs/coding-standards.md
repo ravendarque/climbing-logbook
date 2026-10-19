@@ -320,8 +320,10 @@ decision and why it's an ongoing constraint, not a single shipped feature.
   something, download, copy, navigate or dismiss are grey (`btn`).
   Exceptions: the log's *Add*, the landing page's *Sign up*, and the
   welcome wizard's and tour's *Next* (#1467).
-- **`btn-danger` (red text) is for destructive commits**, so they don't
-  read as a normal submit: deleting, removing, discarding, banning.
+- **`btn-danger` (red text) is for destructive actions**: deleting,
+  removing, discarding, banning. They read as a high-risk submit, so
+  they're red even when they only open a confirmation, and the red text
+  sets them apart from a normal submit.
 - **A form with inputs sits in a card** (`row-card`), with a red submit
   and a grey *Cancel*. Modals and whole-page forms are already their own
   container, so they get no card.

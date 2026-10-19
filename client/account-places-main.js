@@ -151,7 +151,7 @@ function openEditor(locationId) {
       area => `<div class="flex items-center gap-2">
         <input type="text" class="text-input flex-1 min-w-0" maxlength="50" value="${escapeHtml(area.area)}" placeholder="No area" aria-label="Area name" data-area-id="${escapeHtml(area.id)}">
         <span class="text-xs text-muted shrink-0 tabular-nums">${climbsAt([area.id])}</span>
-        <button type="button" class="btn shrink-0" data-delete-area="${escapeHtml(area.id)}">Delete</button>
+        <button type="button" class="btn btn-danger shrink-0" data-delete-area="${escapeHtml(area.id)}">Delete</button>
       </div>`,
     )
     .join("");
