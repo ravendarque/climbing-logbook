@@ -20,16 +20,9 @@ node_modules/
 !.claude/launch.json
 !.claude/skills/
 
-# public/ (#877) -- 100% generated: 11ty's own page-shell HTML output
-# (`html:build`/`html:watch` from views/*.njk), the static/ assets it
-# passes through unchanged (icons, manifest, service worker, custom-
-# element components, world maps, _headers, the auth-shell pages' own
-# scripts -- see .eleventy.js's addPassthroughCopy), Tailwind's built
-# CSS (`tailwind:build`/`tailwind:watch`), and Pagefind's /help search
-# index (.eleventy.js's eleventy.after hook). Nothing under public/ is
-# committed -- the directory is safe to delete and regenerate from
-# nothing at any time.
+# Generated: Eleventy, Tailwind and Pagefind output. public/ for production and test builds, public-dev/ for pnpm dev.
 public/
+public-dev/
 
 # Production/preview/beta build output (#774, #761 Part 2) -- `pnpm run
 # deploy:build`/`pnpm run preview` (vite build/vite preview,
