@@ -8,8 +8,8 @@
   <div>
     <{{ importStepTag or "h3" }} class="text-lg font-bold text-foreground mb-1" id="import-file-label">2. Upload your file</{{ importStepTag or "h3" }}>
     <p class="text-sm text-muted mb-3">Upload your completed CSV template or your JSON export. Nothing is imported until every entry in the file is valid. Any errors will be listed here so you can fix them and try again.</p>
-    <form class="flex flex-wrap items-center gap-2" id="import-form">
-      <input class="flex-1 min-w-0 text-sm" id="import-file-input" aria-labelledby="import-file-label" name="file" type="file" accept=".csv,.json,text/csv,application/json" required>
+    <form class="row-card flex flex-wrap items-center gap-3" id="import-form">
+      <input class="flex-1 min-w-[14rem] text-sm text-muted file:btn file:mr-3 file:cursor-pointer" id="import-file-input" aria-labelledby="import-file-label" name="file" type="file" accept=".csv,.json,text/csv,application/json" required>
       <button type="submit" class="btn btn-primary shrink-0" id="import-submit-btn">Import</button>
     </form>
   </div>

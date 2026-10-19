@@ -60,7 +60,7 @@ export function createFailedWritesBanner({ el, onEdit, onDiscard }) {
         return `<li class="flex flex-wrap items-center gap-2">
         <span class="grow">Couldn't save ${escapeHtml(describe(item))}: ${escapeHtml(item.reason)}</span>
         ${editable ? `<button type="button" class="btn" data-action="edit" data-qid="${escapeHtml(item.qid)}">Edit</button>` : ""}
-        <button type="button" class="btn" data-action="discard" data-qid="${escapeHtml(item.qid)}">Discard</button>
+        <button type="button" class="btn btn-danger" data-action="discard" data-qid="${escapeHtml(item.qid)}">Discard</button>
       </li>`;
       })
       .join("");

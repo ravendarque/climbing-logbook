@@ -313,6 +313,21 @@ decision and why it's an ongoing constraint, not a single shipped feature.
 - Don't reuse alarming "error" styling for a non-error empty state (e.g. "no
   results match your filters") — it reads as something being broken.
 
+### Buttons and forms
+- **Red (`btn-primary`) is for anything that is, or reads as, a submit**:
+  a form's submit, or a one-click action that changes something (*Clear
+  device data*, *Join the beta*). Buttons that open a form, show
+  something, download, copy, navigate or dismiss are grey (`btn`).
+  Exceptions: the log's *Add*, the landing page's *Sign up*, and the
+  welcome wizard's and tour's *Next* (#1467).
+- **`btn-danger` (red text) is for destructive commits**, so they don't
+  read as a normal submit: deleting, removing, discarding, banning.
+- **A form with inputs sits in a card** (`row-card`), with a red submit
+  and a grey *Cancel*. Modals and whole-page forms are already their own
+  container, so they get no card.
+- **File inputs style their button as `btn`**: `file:btn file:mr-3
+  file:cursor-pointer` on the `<input type="file">`.
+
 ### Verification
 
 See [ADR-0030](adr/0030-test-against-the-real-worker-mock-only-what-it-cant-produce.md)

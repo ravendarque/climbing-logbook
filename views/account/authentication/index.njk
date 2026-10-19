@@ -16,60 +16,58 @@ headerClass: mb-6
     <section aria-labelledby="details-heading">
       <h2 class="section-heading mt-7" id="details-heading">Account details</h2>
       <div class="flex flex-col gap-2" id="account-fields">
-        <div class="row-card" id="username-row">
-          <div class="row-card-title mb-1">Username</div>
-          <div class="flex items-center gap-2" id="username-view">
-            <div class="flex-1 min-w-0 border border-transparent px-3 py-2 text-foreground text-base leading-normal truncate" id="username-value"></div>
+        <div class="row-card flex flex-col gap-3" id="username-row">
+          <div class="flex flex-wrap items-center gap-3" id="username-view">
+            <div class="flex-1 min-w-[12rem]">
+              <span class="row-card-title">Username</span>
+              <p class="text-sm text-muted mt-1 break-words" id="username-value"></p>
+            </div>
             <button type="button" class="btn shrink-0" id="username-edit-btn">Change</button>
           </div>
-          <form class="flex items-center gap-2" id="username-form" hidden>
-            <input class="flex-1 min-w-0 bg-background border border-field-border rounded-app px-3 py-2 text-foreground text-base leading-normal" id="username-input" name="username" type="text" required>
-            <button type="submit" class="btn btn-primary shrink-0 max-[480px]:w-9 max-[480px]:px-0 max-[480px]:justify-center" id="username-save-btn" aria-label="Save">
-              <span class="max-[480px]:hidden">Save</span>
-              <svg class="hidden max-[480px]:block w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
-            </button>
-            <button type="button" class="btn shrink-0 max-[480px]:w-9 max-[480px]:px-0 max-[480px]:justify-center" id="username-cancel-btn" aria-label="Cancel">
-              <span class="max-[480px]:hidden">Cancel</span>
-              <svg class="hidden max-[480px]:block w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>
-            </button>
+          <form class="flex flex-col gap-3" id="username-form" hidden>
+            <label class="text-sm" for="username-input">New username</label>
+            <input class="text-input w-full" id="username-input" name="username" type="text" autocomplete="username" required>
+            <p class="error-message" id="username-error" role="alert" hidden></p>
+            <div class="flex flex-wrap gap-2">
+              <button type="submit" class="btn btn-primary" id="username-save-btn">Save</button>
+              <button type="button" class="btn" id="username-cancel-btn">Cancel</button>
+            </div>
           </form>
-          <p class="text-sm text-accent-ink mt-2" id="username-error" hidden></p>
         </div>
-
-        <div class="row-card" id="email-row">
-          <div class="row-card-title mb-1">Email</div>
-          <div class="flex items-center gap-2" id="email-view">
-            <div class="flex-1 min-w-0 border border-transparent px-3 py-2 text-foreground text-base leading-normal truncate" id="email-value"></div>
+        <div class="row-card flex flex-col gap-3" id="email-row">
+          <div class="flex flex-wrap items-center gap-3" id="email-view">
+            <div class="flex-1 min-w-[12rem]">
+              <span class="row-card-title">Email</span>
+              <p class="text-sm text-muted mt-1 break-words" id="email-value"></p>
+            </div>
             <button type="button" class="btn shrink-0" id="email-edit-btn">Change</button>
           </div>
-          <form class="flex items-center gap-2" id="email-form" hidden>
-            <input class="flex-1 min-w-0 bg-background border border-field-border rounded-app px-3 py-2 text-foreground text-base leading-normal" id="email-input" name="email" type="email" required>
-            <button type="submit" class="btn btn-primary shrink-0 max-[480px]:w-9 max-[480px]:px-0 max-[480px]:justify-center" id="email-save-btn" aria-label="Save">
-              <span class="max-[480px]:hidden">Save</span>
-              <svg class="hidden max-[480px]:block w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
-            </button>
-            <button type="button" class="btn shrink-0 max-[480px]:w-9 max-[480px]:px-0 max-[480px]:justify-center" id="email-cancel-btn" aria-label="Cancel">
-              <span class="max-[480px]:hidden">Cancel</span>
-              <svg class="hidden max-[480px]:block w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>
-            </button>
+          <form class="flex flex-col gap-3" id="email-form" hidden>
+            <label class="text-sm" for="email-input">New email address</label>
+            <input class="text-input w-full" id="email-input" name="email" type="email" autocomplete="email" required>
+            <p class="error-message" id="email-error" role="alert" hidden></p>
+            <div class="flex flex-wrap gap-2">
+              <button type="submit" class="btn btn-primary" id="email-save-btn">Save</button>
+              <button type="button" class="btn" id="email-cancel-btn">Cancel</button>
+            </div>
           </form>
-          <p class="text-sm text-accent-ink mt-2" id="email-error" hidden></p>
-          <p class="text-sm text-foreground bg-background border border-border rounded-app px-3 py-2 mt-2" id="email-pending" hidden></p>
+          <p class="text-sm" id="email-pending" role="status" hidden></p>
         </div>
-
-        <div class="row-card" id="password-row">
-          <div class="row-card-title mb-1">Password</div>
-          <div class="flex items-center gap-2" id="password-view">
-            <div class="flex-1 min-w-0 border border-transparent px-3 py-2 text-foreground text-base leading-normal" id="password-value">••••••••••</div>
+        <div class="row-card flex flex-col gap-3" id="password-row">
+          <div class="flex flex-wrap items-center gap-3" id="password-view">
+            <div class="flex-1 min-w-[12rem]">
+              <span class="row-card-title">Password</span>
+              <p class="text-sm text-muted mt-1 break-words" id="password-value">••••••••••</p>
+            </div>
             <button type="button" class="btn shrink-0" id="password-edit-btn">Change</button>
           </div>
-          <form class="mt-2" id="password-form" hidden>
-            <label class="text-xs text-muted font-semibold uppercase tracking-wide" for="current-password-input">Current password</label>
-            <input class="w-full mt-1 mb-2 bg-background border border-field-border rounded-app px-3 py-2 text-foreground text-base leading-normal" id="current-password-input" name="currentPassword" type="password" autocomplete="current-password" required>
-            <label class="text-xs text-muted font-semibold uppercase tracking-wide" for="new-password-input">New password</label>
-            <input class="w-full mt-1 mb-2 bg-background border border-field-border rounded-app px-3 py-2 text-foreground text-base leading-normal" id="new-password-input" name="newPassword" type="password" autocomplete="new-password" minlength="8" required>
-            <p class="text-sm text-accent-ink mb-2" id="password-error" hidden></p>
-            <div class="flex gap-2">
+          <form class="flex flex-col gap-3" id="password-form" hidden>
+            <label class="text-sm" for="current-password-input">Current password</label>
+            <input class="text-input w-full" id="current-password-input" name="currentPassword" type="password" autocomplete="current-password" required>
+            <label class="text-sm" for="new-password-input">New password</label>
+            <input class="text-input w-full" id="new-password-input" name="newPassword" type="password" autocomplete="new-password" minlength="8" required>
+            <p class="error-message" id="password-error" role="alert" hidden></p>
+            <div class="flex flex-wrap gap-2">
               <button type="submit" class="btn btn-primary" id="password-save-btn">Save</button>
               <button type="button" class="btn" id="password-cancel-btn">Cancel</button>
             </div>
@@ -94,7 +92,7 @@ headerClass: mb-6
         <section class="flex flex-col gap-3" id="two-step-off" hidden>
           <p><strong>2FA is off.</strong></p>
           <p class="text-sm text-muted">You'll need an authenticator app. We really like <a class="text-accent-ink underline underline-offset-2" href="https://proton.me/authenticator">Proton Authenticator</a> and <a class="text-accent-ink underline underline-offset-2" href="https://ente.com/auth/">Ente Auth</a>, but you can use any authenticator app.</p>
-          <div><button type="button" class="btn btn-primary" id="setup-start-btn">Set up 2FA</button></div>
+          <div><button type="button" class="btn" id="setup-start-btn">Set up 2FA</button></div>
         </section>
 
         <section class="flex flex-col gap-3" id="two-step-on" hidden>
@@ -134,7 +132,7 @@ headerClass: mb-6
           <ul class="grid grid-cols-2 gap-x-4 gap-y-1 list-none p-0 font-mono tabular-nums text-sm" id="backup-codes-list"></ul>
           <div class="flex flex-wrap gap-2">
             <button type="button" class="btn" id="copy-codes-btn">Copy codes</button>
-            <button type="button" class="btn btn-primary" id="codes-done-btn">I've saved them</button>
+            <button type="button" class="btn" id="codes-done-btn">I've saved them</button>
           </div>
         </section>
 
@@ -156,7 +154,7 @@ headerClass: mb-6
 
         <div class="row-card flex flex-col gap-3" id="passkeys-reauth" hidden>
           <p class="text-sm">To add a passkey, log in again first. It's been more than a day since you last did, and a fresh login makes sure it's really you adding it.</p>
-          <div><button type="button" class="btn btn-primary" id="passkeys-reauth-btn">Log in again</button></div>
+          <div><button type="button" class="btn" id="passkeys-reauth-btn">Log in again</button></div>
         </div>
 
         <form class="row-card flex flex-col gap-3" id="add-passkey-form" hidden novalidate>
