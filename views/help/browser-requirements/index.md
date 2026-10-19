@@ -18,13 +18,13 @@ You need one of these, or newer:
 - **Safari** 16.4.
 - **A browser built on Chromium**, such as Brave or Vivaldi: Chromium 111.
 
-On an iPhone or iPad, every browser uses Safari's engine, so it's your iOS or iPadOS version that counts: 16.4 or newer.
+On an iPhone or iPad, browsers use Safari's engine unless they say otherwise, so it's your iOS or iPadOS version that counts: 16.4 or newer.
 
-To find your version, open your browser's *About* page. Browsers built on Chromium show their Chromium version there.
+To find your version, open your browser's *About* page. Browsers built on Chromium list a Chromium version there as well as their own, and it's the Chromium one that counts.
 
 ## Settings it needs
 
-- **JavaScript** turned on. Nothing works without it.
+- **JavaScript** turned on. The app doesn't work without it.
 - **Cookies** allowed. We use one cookie, and it keeps you logged in (see [Privacy](/help/privacy/)).
 - **Site storage** allowed, so your logbook works with no signal. Without it, Climbing Logbook still works online, but it downloads your logbook every time you open it (see [Troubleshooting](/help/troubleshooting/)).
 
