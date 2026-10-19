@@ -141,35 +141,41 @@ flow rather than toggling straight away, such as the Danger zone's
 (`views/account/index.njk`.) `client/row-card.js` builds the same shape
 for the Performance hub; keep the two in sync.
 
-### Variant: editable value
+### Variant: editable values
 
-A value shown as muted text with a grey *Change*. *Change* swaps the view
-for a form in the same card: plain labels, `text-input`s, an
-`error-message`, a red *Save* and a grey *Cancel*. Used for the username,
-email and password on Account and authentication.
+A short list of values, such as the username, email and password on
+Account and authentication, sits in one card with dividers. Each row shows
+its value as muted text, with a grey pencil button that has an accessible
+name (`aria-label="Change username"`). The pencil swaps the row for its
+form in place: plain labels, `text-input`s, an `error-message`, a red
+*Save* and a grey *Cancel*. The row's own title is replaced by the form's
+label, such as "New username".
 
 | Dark | Light |
 |---|---|
-| ![row-card editable value, viewing and editing](ui-component-catalog/row-card-editable-dark.png) | ![row-card editable value, viewing and editing](ui-component-catalog/row-card-editable-light.png) |
+| ![editable values in one card, one row editing](ui-component-catalog/row-card-editable-dark.png) | ![editable values in one card, one row editing](ui-component-catalog/row-card-editable-light.png) |
 
 ```html
-<div class="row-card flex flex-col gap-3" id="username-row">
-  <div class="flex flex-wrap items-center gap-3" id="username-view">
-    <div class="flex-1 min-w-[12rem]">
-      <span class="row-card-title">Username</span>
-      <p class="text-sm text-muted mt-1 break-words" id="username-value"></p>
+<div class="bg-surface border border-border rounded-app divide-y divide-border" id="account-fields">
+  <div class="px-4 py-3 flex flex-col gap-3" id="username-row">
+    <div class="flex items-center gap-3" id="username-view">
+      <div class="flex-1 min-w-0">
+        <span class="row-card-title">Username</span>
+        <p class="text-sm text-muted mt-1 break-words" id="username-value"></p>
+      </div>
+      <button type="button" class="btn shrink-0 w-(--field-h) px-0" id="username-edit-btn" aria-label="Change username"><svg class="w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg></button>
     </div>
-    <button type="button" class="btn shrink-0" id="username-edit-btn">Change</button>
+    <form class="flex flex-col gap-3" id="username-form" hidden>
+      <label class="text-sm" for="username-input">New username</label>
+      <input class="text-input w-full" id="username-input" name="username" type="text" required>
+      <p class="error-message" id="username-error" role="alert" hidden></p>
+      <div class="flex flex-wrap gap-2">
+        <button type="submit" class="btn btn-primary" id="username-save-btn">Save</button>
+        <button type="button" class="btn" id="username-cancel-btn">Cancel</button>
+      </div>
+    </form>
   </div>
-  <form class="flex flex-col gap-3" id="username-form" hidden>
-    <label class="text-sm" for="username-input">New username</label>
-    <input class="text-input w-full" id="username-input" name="username" type="text" required>
-    <p class="error-message" id="username-error" role="alert" hidden></p>
-    <div class="flex flex-wrap gap-2">
-      <button type="submit" class="btn btn-primary" id="username-save-btn">Save</button>
-      <button type="button" class="btn" id="username-cancel-btn">Cancel</button>
-    </div>
-  </form>
+  <!-- email-row, password-row: the same shape -->
 </div>
 ```
 

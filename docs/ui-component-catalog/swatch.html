@@ -132,26 +132,28 @@
 </div>
 
 <div class="swatch" id="s-row-card-editable">
-  <div class="swatch-label">row-card — editable value (view, then editing)</div>
-  <div class="swatch-body flex flex-col gap-2">
-    <div class="row-card flex flex-col gap-3">
-      <div class="flex flex-wrap items-center gap-3">
-        <div class="flex-1 min-w-[12rem]">
-          <span class="row-card-title">Username</span>
-          <p class="text-sm text-muted mt-1 break-words">devuser</p>
-        </div>
-        <button type="button" class="btn shrink-0">Change</button>
+  <div class="swatch-label">editable values — one card, one row editing</div>
+  <div class="swatch-body">
+    <div class="bg-surface border border-border rounded-app divide-y divide-border">
+      <div class="px-4 py-3 flex flex-col gap-3">
+        <form class="flex flex-col gap-3">
+          <label class="text-sm" for="swatch-username">New username</label>
+          <input class="text-input w-full" id="swatch-username" type="text" value="boulder-bea">
+          <div class="flex flex-wrap gap-2">
+            <button type="button" class="btn btn-primary">Save</button>
+            <button type="button" class="btn">Cancel</button>
+          </div>
+        </form>
       </div>
-    </div>
-    <div class="row-card flex flex-col gap-3">
-      <form class="flex flex-col gap-3">
-        <label class="text-sm" for="swatch-username">New username</label>
-        <input class="text-input w-full" id="swatch-username" type="text" value="boulder-bea">
-        <div class="flex flex-wrap gap-2">
-          <button type="button" class="btn btn-primary">Save</button>
-          <button type="button" class="btn">Cancel</button>
+      <div class="px-4 py-3 flex flex-col gap-3">
+        <div class="flex items-center gap-3">
+          <div class="flex-1 min-w-0">
+            <span class="row-card-title">Password</span>
+            <p class="text-sm text-muted mt-1 break-words">••••••••••</p>
+          </div>
+          <button type="button" class="btn shrink-0 w-(--field-h) px-0" aria-label="Change password"><svg class="w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg></button>
         </div>
-      </form>
+      </div>
     </div>
   </div>
 </div>
