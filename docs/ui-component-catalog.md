@@ -276,28 +276,21 @@ brand-style heading matching `<climbing-header>`'s own `<h1>` treatment
 heading`, `sources-heading` and `page-title` all derive from it via `@apply`.
 
 **When to use `page-title`:** the title of a whole page: Performance
-Insights reports, Help pages (through `help-article`'s `h1` rule), and
-account pages split into sections (Account and authentication, Import
-and export entries). Same as `section-heading`, bigger (`text-3xl`).
+Insights reports and Help pages (through `help-article`'s `h1` rule).
+Same as `section-heading`, bigger (`text-3xl`). Account pages use the
+smaller `section-heading` for their title, to match My account.
 
-| Dark | Light |
-|---|---|
 | ![page-title](ui-component-catalog/page-title-dark.png) | ![page-title](ui-component-catalog/page-title-light.png) |
 
 ```html
 <h1 class="page-title">Send / Flash Gap</h1>
 ```
 
-**When to use `section-heading`:** a section within a page, sitting
-directly above its own content rather than over a `row-card` list: Help
-page sections (through `help-article`'s `h2` rule), and the sections of
-Account and authentication and Import and export entries (with `mt-7`, as
-in Help). Below it, a step or sub-section heading is plain bold text
-(`text-lg font-bold`), as Help's `h3`s are. Also the `h1` of single-topic
-account pages (Places, Health data, Check our beta).
+**When to use `section-heading`:** a section within a Help page (through
+`help-article`'s `h2` rule), and the title of an account page (Account and
+authentication, Import and export entries, Places, Health data, Check
+our beta).
 
-| Dark | Light |
-|---|---|
 | ![section-heading](ui-component-catalog/section-heading-dark.png) | ![section-heading](ui-component-catalog/section-heading-light.png) |
 
 ```html
@@ -316,17 +309,23 @@ account pages (Places, Health data, Check our beta).
 <h1 class="card-section-heading">My account</h1>
 ```
 
-**When to use `subsection-heading` / `danger-zone-heading`:** the heading
-over each group of `row-card`s on such a page (My account's Account,
-Settings, Data). `danger-zone-heading` is the same in red, for the Danger
-zone.
+**When to use `subsection-heading` / `card-subsection-heading` /
+`danger-zone-heading`:** the headings for sections within a page.
+- **`subsection-heading`:** sections that mix text and cards, such as
+  Account and authentication's Account details, 2FA and Passkeys, and
+  Import and export's Import and Export.
+- **`card-subsection-heading`:** the same heading, indented to line up
+  with a group of `row-card`s, as on My account (Account, Settings, Data).
+- **`danger-zone-heading`:** the indented one in red, for the Danger zone.
 
-| Dark | Light |
-|---|---|
+A step heading under one of these is plain bold text (`text-base
+font-bold`), such as the import steps.
+
 | ![subsection-heading and danger-zone-heading](ui-component-catalog/subsection-heading-dark.png) | ![subsection-heading and danger-zone-heading](ui-component-catalog/subsection-heading-light.png) |
 
 ```html
-<h2 class="subsection-heading">Settings</h2>
+<h2 class="subsection-heading">Account details</h2>
+<h2 class="card-subsection-heading">Settings</h2>
 <h2 class="danger-zone-heading">Danger zone</h2>
 ```
 
