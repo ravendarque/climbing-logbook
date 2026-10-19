@@ -104,11 +104,15 @@ async function noticeEmailChanged(ctx, env, emailSender) {
 export function accountNoticeFor(ctx, user) {
   if (ctx.path === "/update-user") {
     const username = typeof ctx.body?.username === "string" ? ctx.body.username.trim().toLowerCase() : "";
-    return username && username !== user.username ? { kind: "usernameChanged", page: "account/authentication", username } : null;
+    return username && username !== user.username
+      ? { kind: "usernameChanged", page: "account/authentication", username }
+      : null;
   }
   // verify-totp also completes a 2FA login, which has no session yet; with one, it's turning 2FA on.
   if (ctx.path === "/two-factor/verify-totp") {
-    return user.twoFactorEnabled ? null : { kind: "twoFactorOn", page: "account/authentication", username: user.username };
+    return user.twoFactorEnabled
+      ? null
+      : { kind: "twoFactorOn", page: "account/authentication", username: user.username };
   }
   const notice = NOTICE_FOR_PATH[ctx.path];
   return notice ? { ...notice, username: user.username } : null;
