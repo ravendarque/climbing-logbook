@@ -35,19 +35,15 @@
   Cache-Control: public, max-age=31556952, immutable
 /-/account-app.js
   Cache-Control: public, max-age=31556952, immutable
-/-/account-edit-app.js
+/-/account-authentication-app.js
   Cache-Control: public, max-age=31556952, immutable
-/-/account-import-app.js
+/-/account-import-export-app.js
   Cache-Control: public, max-age=31556952, immutable
 /-/account-beta-app.js
   Cache-Control: public, max-age=31556952, immutable
 /-/account-health-app.js
   Cache-Control: public, max-age=31556952, immutable
 /-/account-places-app.js
-  Cache-Control: public, max-age=31556952, immutable
-/-/account-two-step-app.js
-  Cache-Control: public, max-age=31556952, immutable
-/-/account-passkeys-app.js
   Cache-Control: public, max-age=31556952, immutable
 /-/welcome-app.js
   Cache-Control: public, max-age=31556952, immutable

@@ -20,7 +20,7 @@ test("a recovery link starts the 7-day wait, and can cancel it (#1436)", async (
   await page.locator("#recovery-start-btn").click();
   await expect(page.locator("#recovery-status")).toContainText("2FA switches off on");
 
-  await page.goto(owner.url("/account/2fa"));
+  await page.goto(owner.url("/account/authentication"));
   await expect(page.locator("#recovery-pending")).toBeVisible();
 
   await page.goto(`/login/?two-step-recovery=${token}`);

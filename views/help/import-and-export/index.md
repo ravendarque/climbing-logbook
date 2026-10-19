@@ -12,7 +12,7 @@ You can bring climbs in from a spreadsheet and take your logbook out as a file. 
 
 ## Import climbs
 
-1. Go to **My account**, then **Import entries**.
+1. Go to **My account**, then **Import and export entries**.
 2. Press **Download CSV template**, or use a JSON file you exported earlier.
 3. Fill it in. Keep the column headings exactly as they are, in the same order.
 4. Choose your CSV or JSON file and press **Import**.
@@ -51,7 +51,7 @@ An import is all or nothing. If any row has a problem, nothing is imported and y
 
 ## Export your logbook
 
-Go to **My account**, find **Export entries**, and press **CSV** or **JSON**. You'll get a file called climbing-logbook-export.csv or climbing-logbook-export.json.
+Go to **My account**, then **Import and export entries**, and under **Export** press **CSV** or **JSON**. You'll get a file called climbing-logbook-export.csv or climbing-logbook-export.json.
 
 Each climb includes:
 

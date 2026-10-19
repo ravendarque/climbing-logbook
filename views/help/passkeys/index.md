@@ -29,7 +29,7 @@ Your phone or computer can keep it. So can a password manager, which also makes 
 
 ## Adding a passkey
 
-1. Go to My account, then *Passkeys*.
+1. Go to My account, then *Account and authentication*.
 2. Give it a name, such as the device it's on, so you can tell your passkeys apart.
 3. Choose *Add a passkey*, and follow what your device asks.
 
@@ -41,7 +41,7 @@ On the login page, choose *Log in with a passkey*, or pick your passkey when you
 
 ## Removing a passkey
 
-Go to My account, then *Passkeys*, and choose *Remove* next to it. If you've lost a device that holds one, remove it straight away, then change your password.
+Go to My account, then *Account and authentication*, and choose *Remove* next to it under *Passkeys*. If you've lost a device that holds one, remove it straight away, then change your password.
 
 ## If your browser doesn't offer passkeys
 

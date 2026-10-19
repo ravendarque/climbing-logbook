@@ -22,7 +22,7 @@ To get into your account, someone needs both. If someone finds out your password
 
 You'll need an authenticator app. We really like [Proton Authenticator](https://proton.me/authenticator) and [Ente Auth](https://ente.com/auth/), but you can use any authenticator app.
 
-1. Go to My account, then *Two-Factor Authentication (2FA)*, and choose *Set up 2FA*.
+1. Go to My account, then *Account and authentication*, and choose *Set up 2FA*.
 2. Enter your password.
 3. Scan the QR code with your authenticator app. If you can't scan it, type the setup key into the app instead.
 4. Enter the code the app shows, to check it's working.
@@ -59,7 +59,7 @@ When someone asks us for help, all we can see is a message and an email address.
 
 ## Turning it off
 
-Go to My account, then *Two-Factor Authentication (2FA)*, and choose *Turn off*. You'll need your password. After that you log in with just your password.
+Go to My account, then *Account and authentication*, and choose *Turn off* under *Two-Factor Authentication (2FA)*. You'll need your password. After that you log in with just your password.
 
 ## New backup codes
 

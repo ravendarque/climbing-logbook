@@ -121,7 +121,7 @@ export function createEmailSender(env, log) {
       return sendTemplated(to, "2FA is off", {
         paragraphs: [
           "The 7-day wait has ended, and 2FA is now off on your Climbing Logbook account. You'll log in with just your password.",
-          "To turn it back on, go to My account, then Two-Factor Authentication (2FA).",
+          "To turn it back on, go to My account, then Account and authentication.",
         ],
         action: { label: "How 2FA works", url: helpUrl },
         note: "If you didn't ask for this, change your password straight away, then turn 2FA back on.",

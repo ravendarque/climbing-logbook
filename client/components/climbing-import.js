@@ -1,4 +1,5 @@
 import { buildTemplateCsv } from "../../shared/csv-import.js";
+import { downloadFile } from "../download-file.js";
 import { apiFetch, isUnauthorized } from "../api-fetch.js";
 import { loginPageUrl } from "../login-url.js";
 import { BACKGROUND_FETCH_TIMEOUT_MS } from "../sync-status-icon.js";
@@ -27,20 +28,13 @@ class ClimbingImport extends HTMLElement {
     this.#success = this.querySelector("#import-success");
     this.#successMessage = this.querySelector("#import-success-message");
 
-    this.querySelector("#download-template-btn").addEventListener("click", () => this.#downloadTemplate());
+    this.querySelector("#download-template-btn").addEventListener("click", () =>
+      downloadFile("climbing-logbook-import-template.csv", buildTemplateCsv(), "text/csv"),
+    );
     this.#form.addEventListener("submit", e => {
       e.preventDefault();
       this.#submit();
     });
-  }
-
-  #downloadTemplate() {
-    const url = URL.createObjectURL(new Blob([buildTemplateCsv()], { type: "text/csv" }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "climbing-logbook-import-template.csv";
-    a.click();
-    URL.revokeObjectURL(url);
   }
 
   #reset() {

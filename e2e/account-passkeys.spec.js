@@ -19,7 +19,7 @@ async function virtualAuthenticator(page, { userVerified = true } = {}) {
 }
 
 async function addPasskey(page, owner, name = "Test laptop") {
-  await page.goto(owner.url("/account/passkeys"));
+  await page.goto(owner.url("/account/authentication"));
   await expect(page.locator("#passkeys-empty")).toBeVisible();
   await page.locator("#passkey-name").fill(name);
   await page.locator("#add-passkey-btn").click();
@@ -45,7 +45,10 @@ test("adds a passkey from My account, then logs in with it (#1439)", async ({ pa
   await withoutAutofill(page);
   await virtualAuthenticator(page);
   await page.goto(owner.url("/account"));
-  await expect(page.locator("#passkeys-link")).toHaveAttribute("href", `/${owner.username}/account/passkeys`);
+  await expect(page.locator("#authentication-link")).toHaveAttribute(
+    "href",
+    `/${owner.username}/account/authentication`,
+  );
   await addPasskey(page, owner);
   await logInWithPasskey(page, context, owner);
 });
@@ -53,10 +56,10 @@ test("adds a passkey from My account, then logs in with it (#1439)", async ({ pa
 test("a passkey logs in without asking for a 2FA code (#1439)", async ({ page, context, owner }) => {
   await withoutAutofill(page);
   await virtualAuthenticator(page);
-  await page.goto(owner.url("/account/2fa"));
+  await page.goto(owner.url("/account/authentication"));
   await page.locator("#setup-start-btn").click();
   await page.locator("#two-step-password").fill(owner.password);
-  await page.locator("#password-submit-btn").click();
+  await page.locator("#two-step-password-submit-btn").click();
   await expect(page.locator("#qr-code svg")).toBeVisible();
   const secret = (await page.locator("#setup-key").textContent()).trim();
   await page.locator("#setup-code").fill(await totp(secret));
@@ -105,12 +108,13 @@ test("a session over a day old is asked to log in again before adding a passkey 
     if (body?.session) body.session.createdAt = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
     await route.fulfill({ response: res, json: body });
   });
-  await page.goto(owner.url("/account/passkeys"));
+  await page.goto(owner.url("/account/authentication"));
   await expect(page.locator("#passkeys-reauth")).toBeVisible();
   await expect(page.locator("#add-passkey-form")).toBeHidden();
   await page.locator("#passkeys-reauth-btn").click();
   await page.waitForURL(
-    url => url.pathname === "/-/login/" && url.searchParams.get("returnTo") === `/${owner.username}/account/passkeys`,
+    url =>
+      url.pathname === "/-/login/" && url.searchParams.get("returnTo") === `/${owner.username}/account/authentication`,
   );
   await page.unrouteAll({ behavior: "ignoreErrors" });
 });
@@ -121,7 +125,7 @@ test("if the server says the session isn't fresh, the page asks to log in again 
   await page.route("**/-/api/auth/passkey/generate-register-options*", route =>
     route.fulfill({ status: 403, json: { code: "SESSION_NOT_FRESH", message: "Session is not fresh" } }),
   );
-  await page.goto(owner.url("/account/passkeys"));
+  await page.goto(owner.url("/account/authentication"));
   await page.locator("#passkey-name").fill("Phone");
   await page.locator("#add-passkey-btn").click();
   await expect(page.locator("#passkeys-reauth")).toBeVisible();

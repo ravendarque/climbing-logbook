@@ -2,11 +2,11 @@ import { expect, test } from "./owner.js";
 import { totp } from "../test/totp.js";
 
 async function turnOnInPage(page, owner) {
-  await page.goto(owner.url("/account/2fa"));
+  await page.goto(owner.url("/account/authentication"));
   await expect(page.locator("#two-step-off")).toBeVisible();
   await page.locator("#setup-start-btn").click();
   await page.locator("#two-step-password").fill(owner.password);
-  await page.locator("#password-submit-btn").click();
+  await page.locator("#two-step-password-submit-btn").click();
   await expect(page.locator("#qr-code svg")).toBeVisible();
   const secret = (await page.locator("#setup-key").textContent()).trim();
   await page.locator("#setup-code").fill(await totp(secret));
@@ -29,7 +29,10 @@ async function logInWithPassword(page, context, owner) {
 
 test("sets up 2FA from My account, then logging in asks for a code (#1436)", async ({ page, context, owner }) => {
   await page.goto(owner.url("/account"));
-  await expect(page.locator("#two-step-link")).toHaveAttribute("href", `/${owner.username}/account/2fa`);
+  await expect(page.locator("#authentication-link")).toHaveAttribute(
+    "href",
+    `/${owner.username}/account/authentication`,
+  );
   const { secret } = await turnOnInPage(page, owner);
 
   await logInWithPassword(page, context, owner);
@@ -68,7 +71,7 @@ test("turns 2FA off with the password (#1436)", async ({ page, context, owner })
   await turnOnInPage(page, owner);
   await page.locator("#turn-off-btn").click();
   await page.locator("#two-step-password").fill(owner.password);
-  await page.locator("#password-submit-btn").click();
+  await page.locator("#two-step-password-submit-btn").click();
   await expect(page.locator("#two-step-off")).toBeVisible();
 
   await context.clearCookies();

@@ -1,7 +1,7 @@
 import { expect, test } from "./owner.js";
 
 test("shows the current username/email, and each row is independently editable", async ({ page, owner }) => {
-  await page.goto(owner.url("/account/edit"));
+  await page.goto(owner.url("/account/authentication"));
 
   await expect(page.locator("#username-value")).toHaveText(owner.username);
   await expect(page.locator("#email-value")).toHaveText(owner.email);
@@ -18,7 +18,7 @@ test("shows the current username/email, and each row is independently editable",
 });
 
 test("username row: saving posts only { username }, and the server takes the new name", async ({ page, owner }) => {
-  await page.goto(owner.url("/account/edit"));
+  await page.goto(owner.url("/account/authentication"));
   const newName = `${owner.username}x`;
 
   const updateUserResponse = page.waitForResponse(
@@ -38,7 +38,7 @@ test("email row: saving shows the pending-confirmation state, doesn't change the
   page,
   owner,
 }) => {
-  await page.goto(owner.url("/account/edit"));
+  await page.goto(owner.url("/account/authentication"));
   const newEmail = `${owner.username}-new@climbinglogbook.local`;
 
   await page.locator("#email-edit-btn").click();
@@ -52,7 +52,7 @@ test("email row: saving shows the pending-confirmation state, doesn't change the
 });
 
 test("password row: saving succeeds and closes the form, without touching username/email", async ({ page, owner }) => {
-  await page.goto(owner.url("/account/edit"));
+  await page.goto(owner.url("/account/authentication"));
 
   await page.locator("#password-edit-btn").click();
   await page.locator("#current-password-input").fill(owner.password);
@@ -66,7 +66,7 @@ test("password row: saving succeeds and closes the form, without touching userna
 });
 
 test("shows the server's own error message and keeps the form open on failure", async ({ page, owner }) => {
-  await page.goto(owner.url("/account/edit"));
+  await page.goto(owner.url("/account/authentication"));
 
   await page.locator("#password-edit-btn").click();
   await page.locator("#current-password-input").fill("wrong-password");

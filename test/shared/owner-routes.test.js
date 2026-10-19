@@ -9,13 +9,13 @@ const ADDED_SINCE_958 = [
   "account/beta",
   "account/health",
   "account/places",
-  "account/2fa",
-  "account/passkeys",
+  "account/authentication",
+  "account/import-export",
   "welcome",
   "view",
   "view/map",
 ];
-const REMOVED_SINCE_958 = ["map"];
+const REMOVED_SINCE_958 = ["map", "account/edit", "account/import"];
 
 describe("matchOwnerRoute (#958)", () => {
   it("matches every owner page, with and without one trailing slash", () => {
@@ -65,6 +65,7 @@ describe("matchOwnerRoute (#958)", () => {
     const suffixes = [
       ...pre958Pages,
       ...pre958Pages.map(p => `${p}/`),
+      ...REMOVED_SINCE_958,
       "",
       "/",
       "performance/grades",

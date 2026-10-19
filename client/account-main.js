@@ -1,16 +1,10 @@
 // Not header-chrome.js: it requires the discipline picker, which this page doesn't have.
 import { createAccountShell } from "./account-shell.js";
-import { loadResource } from "./fetch-json.js";
-import { buildEntriesCsv, resolveExportRows } from "../shared/csv-import.js";
 import { startPage } from "./boot-gate.js";
 import { removeDeviceData, unsyncedChangeCount } from "./device-data.js";
 import { LOGIN_PATH } from "./login-url.js";
 import { tourStartUrl } from "./tour/tour-url.js";
 import { resolveApexUrl } from "./resolve-cross-hostname-url.js";
-
-const DATA_URL = "/-/api/entries";
-const PLACES_URL = "/-/api/places";
-const LOCATIONS_URL = "/-/api/locations";
 
 const {
   username: USERNAME,
@@ -19,11 +13,9 @@ const {
   updateAdminBar,
 } = createAccountShell({ onAdminBarUpdate: () => syncSettingsToggles() });
 
-document.getElementById("edit-account-link").href = `/${encodeURIComponent(USERNAME)}/account/edit`;
-document.getElementById("import-link").href = `/${encodeURIComponent(USERNAME)}/account/import`;
+document.getElementById("authentication-link").href = `/${encodeURIComponent(USERNAME)}/account/authentication`;
+document.getElementById("import-export-link").href = `/${encodeURIComponent(USERNAME)}/account/import-export`;
 document.getElementById("places-link").href = `/${encodeURIComponent(USERNAME)}/account/places`;
-document.getElementById("two-step-link").href = `/${encodeURIComponent(USERNAME)}/account/2fa`;
-document.getElementById("passkeys-link").href = `/${encodeURIComponent(USERNAME)}/account/passkeys`;
 document.getElementById("tour-link").href = tourStartUrl(`/${encodeURIComponent(USERNAME)}/account`);
 document.getElementById("beta-row").href = `/${encodeURIComponent(USERNAME)}/account/beta`;
 document.getElementById("health-row").href = `/${encodeURIComponent(USERNAME)}/account/health`;
@@ -121,42 +113,6 @@ async function removeDataAndLogOut() {
 updateRemoveDataWarning();
 window.addEventListener("storage", updateRemoveDataWarning);
 removeDataBtn.addEventListener("click", removeDataAndLogOut);
-
-// Fetched on click: most visits never export.
-const exportError = document.getElementById("export-error");
-
-function downloadFile(filename, content, mimeType) {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-async function exportEntries(format) {
-  exportError.hidden = true;
-  try {
-    const [entries, places, locations] = await Promise.all([
-      loadResource(DATA_URL, "entries"),
-      loadResource(PLACES_URL, "places"),
-      loadResource(LOCATIONS_URL, "locations"),
-    ]);
-    const rows = resolveExportRows(entries, places, locations);
-    if (format === "csv") {
-      downloadFile("climbing-logbook-export.csv", buildEntriesCsv(rows), "text/csv");
-    } else {
-      downloadFile("climbing-logbook-export.json", JSON.stringify(rows, null, 2), "application/json");
-    }
-  } catch {
-    exportError.textContent = "Export failed -- check your connection and try again.";
-    exportError.hidden = false;
-  }
-}
-
-document.getElementById("export-csv-btn").addEventListener("click", () => exportEntries("csv"));
-document.getElementById("export-json-btn").addEventListener("click", () => exportEntries("json"));
 
 const deleteView = document.getElementById("delete-account-view");
 const deleteForm = document.getElementById("delete-account-form");

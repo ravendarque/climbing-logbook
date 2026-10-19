@@ -171,7 +171,11 @@ export function createAuth(env, hostname, log) {
         if (ctx.context.returned instanceof Error) return;
         const user = ctx.context.session?.user;
         if (!user?.email) return;
-        const passkeysUrl = ownedPageUrl(ctx.request?.url ?? ctx.context.baseURL, user.username, "account/passkeys");
+        const passkeysUrl = ownedPageUrl(
+          ctx.request?.url ?? ctx.context.baseURL,
+          user.username,
+          "account/authentication",
+        );
         if (ctx.path === "/passkey/verify-registration") await emailSender.sendPasskeyAdded(user.email, passkeysUrl);
         if (ctx.path === "/passkey/delete-passkey") await emailSender.sendPasskeyRemoved(user.email, passkeysUrl);
       }),

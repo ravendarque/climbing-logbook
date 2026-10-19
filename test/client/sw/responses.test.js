@@ -32,8 +32,8 @@ describe("isCacheableShell (#947, #959)", () => {
     expect(shellCacheKey("log", "https://my.climbinglogbook.com")).toBe(
       "https://my.climbinglogbook.com/log/index.html",
     );
-    expect(shellCacheKey("account/import", "https://beta.climbinglogbook.com")).toBe(
-      "https://beta.climbinglogbook.com/account/import/index.html",
+    expect(shellCacheKey("account/import-export", "https://beta.climbinglogbook.com")).toBe(
+      "https://beta.climbinglogbook.com/account/import-export/index.html",
     );
   });
 });

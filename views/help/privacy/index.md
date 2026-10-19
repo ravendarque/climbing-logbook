@@ -99,7 +99,7 @@ They only use your data to provide their service to us. Some of them process dat
 
 You can:
 
-- **see and download your logbook**: My account, then *Export entries* (see [Import and export](/help/import-and-export/));
+- **see and download your logbook**: My account, then *Import and export entries* (see [Import and export](/help/import-and-export/));
 - **correct it**: [edit any climb](/help/editing-an-entry/), or your details in My account;
 - **delete it**: My account, then *Delete account*. That deletes your account and everything in it;
 - **withdraw your health data agreement**: My account, then *Health data*;
