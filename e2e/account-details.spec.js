@@ -76,3 +76,20 @@ test("shows the server's own error message and keeps the form open on failure", 
   await expect(page.locator("#password-error")).toHaveText("Invalid password");
   await expect(page.locator("#password-form")).toBeVisible();
 });
+
+test("each section's password form opens on its own (#1457)", async ({ page, owner }) => {
+  await page.goto(owner.url("/account/authentication"));
+  await expect(page.locator("#two-step-off")).toBeVisible();
+
+  await page.locator("#password-edit-btn").click();
+  await expect(page.locator("#password-form")).toBeVisible();
+  await expect(page.locator("#two-step-password-form")).toBeHidden();
+  await page.locator("#password-cancel-btn").click();
+
+  await page.locator("#setup-start-btn").click();
+  await expect(page.locator("#two-step-password-form")).toBeVisible();
+  await expect(page.locator("#password-form")).toBeHidden();
+  await page.locator("#two-step-password-cancel-btn").click();
+  await expect(page.locator("#two-step-off")).toBeVisible();
+  await expect(page.locator("#password-view")).toBeVisible();
+});

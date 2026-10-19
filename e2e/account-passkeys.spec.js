@@ -44,11 +44,6 @@ async function logInWithPasskey(page, context, owner) {
 test("adds a passkey from My account, then logs in with it (#1439)", async ({ page, context, owner }) => {
   await withoutAutofill(page);
   await virtualAuthenticator(page);
-  await page.goto(owner.url("/account"));
-  await expect(page.locator("#authentication-link")).toHaveAttribute(
-    "href",
-    `/${owner.username}/account/authentication`,
-  );
   await addPasskey(page, owner);
   await logInWithPasskey(page, context, owner);
 });

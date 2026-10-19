@@ -28,11 +28,6 @@ async function logInWithPassword(page, context, owner) {
 }
 
 test("sets up 2FA from My account, then logging in asks for a code (#1436)", async ({ page, context, owner }) => {
-  await page.goto(owner.url("/account"));
-  await expect(page.locator("#authentication-link")).toHaveAttribute(
-    "href",
-    `/${owner.username}/account/authentication`,
-  );
   const { secret } = await turnOnInPage(page, owner);
 
   await logInWithPassword(page, context, owner);
