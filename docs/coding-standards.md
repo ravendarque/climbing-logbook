@@ -328,8 +328,10 @@ decision and why it's an ongoing constraint, not a single shipped feature.
 - **A form with inputs sits in a card** (`row-card`), with a red submit
   and a grey *Cancel*. Modals and whole-page forms are already their own
   container, so they get no card.
-- **File inputs style their button as `btn`**: `file:btn file:mr-3
-  file:cursor-pointer` on the `<input type="file">`.
+- **File inputs** are a box showing the file's name with a folder button
+  on its right, and the real input visually hidden inside a `<label>`
+  (`views/_includes/import-panel.njk`). The browser's own file button
+  can't be placed or given an icon.
 
 ### Verification
 

@@ -29,6 +29,14 @@ afterEach(() => {
 });
 
 describe("ClimbingImport", () => {
+  it("shows the chosen file's name in place of 'No file chosen' (#1467)", () => {
+    const name = el.querySelector("#import-file-name");
+    expect(name.textContent).toBe("No file chosen");
+    chooseFile("log.csv", "name\n");
+    el.querySelector("#import-file-input").dispatchEvent(new Event("change"));
+    expect(name.textContent).toBe("log.csv");
+  });
+
   it("fires import-complete with the count after a successful import", async () => {
     vi.stubGlobal(
       "fetch",

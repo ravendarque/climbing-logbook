@@ -91,14 +91,13 @@
 </div>
 
 <div class="swatch" id="s-btn">
-  <div class="swatch-label">btn / btn-primary / btn-danger, and a file input</div>
+  <div class="swatch-label">btn / btn-primary / btn-danger</div>
   <div class="swatch-body flex flex-col gap-3">
     <div class="flex gap-2">
       <button type="button" class="btn">Set up 2FA</button>
       <button type="button" class="btn btn-primary">Save</button>
       <button type="button" class="btn btn-danger">Turn off</button>
     </div>
-    <input class="text-sm text-muted file:btn file:mr-3 file:cursor-pointer" type="file">
   </div>
 </div>
 
@@ -163,7 +162,11 @@
   <div class="swatch-label">row-card — form card</div>
   <div class="swatch-body">
     <form class="row-card flex flex-wrap items-center gap-3">
-      <input class="flex-1 min-w-[14rem] text-sm text-muted file:btn file:mr-3 file:cursor-pointer" type="file">
+      <label class="group flex flex-1 min-w-[14rem] items-center gap-2 cursor-pointer">
+        <input class="sr-only" type="file">
+        <span class="flex-1 min-w-0 h-(--field-h) flex items-center px-3 bg-background border border-field-border rounded-app text-sm text-muted truncate group-hover:border-accent">No file chosen</span>
+        <span class="btn shrink-0 w-(--field-h) px-0 group-hover:border-accent group-has-[:focus-visible]:outline-2 group-has-[:focus-visible]:outline-offset-2 group-has-[:focus-visible]:outline-foreground" aria-hidden="true"><svg class="w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"></path></svg></span>
+      </label>
       <button type="button" class="btn btn-primary shrink-0">Import</button>
     </form>
   </div>

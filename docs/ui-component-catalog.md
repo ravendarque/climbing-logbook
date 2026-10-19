@@ -198,12 +198,21 @@ whole-page forms are already their own container, so they don't get one.
 
 ```html
 <form class="row-card flex flex-wrap items-center gap-3" id="import-form">
-  <input class="flex-1 min-w-[14rem] text-sm text-muted file:btn file:mr-3 file:cursor-pointer" id="import-file-input" type="file" required>
+  <label class="group flex flex-1 min-w-[14rem] items-center gap-2 cursor-pointer">
+    <input class="sr-only" id="import-file-input" aria-labelledby="import-file-label" name="file" type="file" required>
+    <span class="flex-1 min-w-0 h-(--field-h) flex items-center px-3 bg-background border border-field-border rounded-app text-sm text-muted truncate group-hover:border-accent" id="import-file-name">No file chosen</span>
+    <span class="btn shrink-0 w-(--field-h) px-0 group-hover:border-accent group-has-[:focus-visible]:outline-2 group-has-[:focus-visible]:outline-offset-2 group-has-[:focus-visible]:outline-foreground" aria-hidden="true"><!-- folder icon --></span>
+  </label>
   <button type="submit" class="btn btn-primary shrink-0" id="import-submit-btn">Import</button>
 </form>
 ```
 
-(`views/_includes/import-panel.njk`.) Others: adding a passkey, the 2FA
+(`views/_includes/import-panel.njk`.) The file picker is a box showing the
+chosen file's name, with a folder button on its right. The real
+`<input type="file">` is visually hidden inside the `<label>`, so clicking
+either part opens the picker. The input keeps keyboard focus and its
+accessible name, and the folder button shows the focus ring.
+`climbing-import.js` puts the file's name in the box. Others: adding a passkey, the 2FA
 password and setup forms, and the health data agreement.
 
 ## `btn` / `btn-primary` / `btn-danger`
@@ -224,21 +233,20 @@ colour; `btn-danger` turns its text red.
   that makes the account less secure (*Turn off* 2FA). It's used even when
   the button only opens a confirmation.
 
-A file input styles its own button as `btn`, through Tailwind's `file:`
-variant.
+A file input doesn't use the browser's own button, which can't be moved
+or given an icon. See the form card variant.
 
 | Dark | Light |
 |---|---|
-| ![btn, btn-primary, btn-danger and a file input](ui-component-catalog/btn-dark.png) | ![btn, btn-primary, btn-danger and a file input](ui-component-catalog/btn-light.png) |
+| ![btn, btn-primary and btn-danger](ui-component-catalog/btn-dark.png) | ![btn, btn-primary and btn-danger](ui-component-catalog/btn-light.png) |
 
 ```html
 <button type="button" class="btn" id="setup-start-btn">Set up 2FA</button>
 <button type="submit" class="btn btn-primary" id="password-save-btn">Save</button>
 <button type="button" class="btn btn-danger" id="turn-off-btn">Turn off</button>
-<input class="text-sm text-muted file:btn file:mr-3 file:cursor-pointer" type="file">
 ```
 
-(`views/account/authentication/index.njk`, `views/_includes/import-panel.njk`)
+(`views/account/authentication/index.njk`)
 
 ## Switch control (`switch-track` / `switch-thumb`)
 
