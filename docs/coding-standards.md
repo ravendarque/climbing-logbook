@@ -321,7 +321,8 @@ decision and why it's an ongoing constraint, not a single shipped feature.
   Exceptions: the log's *Add*, the landing page's *Sign up*, and the
   welcome wizard's and tour's *Next* (#1467).
 - **`btn-danger` (red text) is for destructive actions**: deleting,
-  removing, discarding, banning. They read as a high-risk submit, so
+  removing, discarding, banning, and anything that makes the account less
+  secure, such as turning off 2FA. They read as a high-risk submit, so
   they're red even when they only open a confirmation, and the red text
   sets them apart from a normal submit.
 - **A form with inputs sits in a card** (`row-card`), with a red submit
