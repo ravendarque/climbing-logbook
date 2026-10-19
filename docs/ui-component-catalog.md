@@ -318,8 +318,9 @@ our beta).
   with a group of `row-card`s, as on My account (Account, Settings, Data).
 - **`danger-zone-heading`:** the indented one in red, for the Danger zone.
 
-A step heading under one of these is plain bold text (`text-base
-font-bold`), such as the import steps.
+A step heading under one of these uses the same display font at 16px
+(`font-display font-normal uppercase tracking-[.025em] text-base`), such
+as the import steps ("Step 1: Download the CSV template").
 
 | ![subsection-heading and danger-zone-heading](ui-component-catalog/subsection-heading-dark.png) | ![subsection-heading and danger-zone-heading](ui-component-catalog/subsection-heading-light.png) |
 

@@ -1,12 +1,12 @@
 <climbing-import class="flex flex-col gap-4">
   <div>
-    <{{ importStepTag or "h3" }} class="text-base font-bold text-foreground mb-1">1. Download the CSV template</{{ importStepTag or "h3" }}>
+    <{{ importStepTag or "h3" }} class="font-display font-normal uppercase tracking-[.025em] text-base text-foreground mb-1">Step 1: Download the CSV template</{{ importStepTag or "h3" }}>
     <p class="text-sm text-muted mb-3">The CSV template has the columns the import expects. Each row is one entry. If you have a JSON export from this app, just go straight to the import.</p>
     <button type="button" class="btn" id="download-template-btn">Download CSV template</button>
   </div>
 
   <div>
-    <{{ importStepTag or "h3" }} class="text-base font-bold text-foreground mb-1" id="import-file-label">2. Upload your file</{{ importStepTag or "h3" }}>
+    <{{ importStepTag or "h3" }} class="font-display font-normal uppercase tracking-[.025em] text-base text-foreground mb-1" id="import-file-label">Step 2: Upload your file</{{ importStepTag or "h3" }}>
     <p class="text-sm text-muted mb-3">Upload your completed CSV template or your JSON export. Nothing is imported until every entry in the file is valid. Any errors will be listed here so you can fix them and try again.</p>
     <form class="row-card flex flex-wrap items-center gap-3" id="import-form">
       <input class="flex-1 min-w-[14rem] text-sm text-muted file:btn file:mr-3 file:cursor-pointer" id="import-file-input" aria-labelledby="import-file-label" name="file" type="file" accept=".csv,.json,text/csv,application/json" required>
