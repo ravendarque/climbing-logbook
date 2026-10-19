@@ -156,10 +156,16 @@ headerClass: mb-6
           <div><button type="button" class="btn" id="passkeys-reauth-btn">Log in again</button></div>
         </div>
 
+        <div><button type="button" class="btn" id="add-passkey-start-btn" hidden>Add a passkey</button></div>
+
         <form class="row-card flex flex-col gap-3" id="add-passkey-form" hidden novalidate>
+          <p class="font-semibold">Add a passkey</p>
           <label class="text-sm" for="passkey-name">Name it, so you can tell your passkeys apart</label>
-          <input class="text-input w-full" type="text" id="passkey-name" maxlength="50" placeholder="My phone" required>
-          <div><button type="submit" class="btn btn-primary" id="add-passkey-btn">Add a passkey</button></div>
+          <input class="text-input w-full" type="text" id="passkey-name" maxlength="50" required>
+          <div class="flex flex-wrap gap-2">
+            <button type="submit" class="btn btn-primary" id="add-passkey-btn">Add</button>
+            <button type="button" class="btn" id="add-passkey-cancel-btn">Cancel</button>
+          </div>
         </form>
 
         <p class="error-message" id="passkeys-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>

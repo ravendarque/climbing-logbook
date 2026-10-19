@@ -21,8 +21,12 @@ async function virtualAuthenticator(page, { userVerified = true } = {}) {
 async function addPasskey(page, owner, name = "Test laptop") {
   await page.goto(owner.url("/account/authentication"));
   await expect(page.locator("#passkeys-empty")).toBeVisible();
+  await page.locator("#add-passkey-start-btn").click();
+  await expect(page.locator("#passkey-name")).toHaveValue(/ on /);
   await page.locator("#passkey-name").fill(name);
   await page.locator("#add-passkey-btn").click();
+  await expect(page.locator("#add-passkey-form")).toBeHidden();
+  await expect(page.locator("#add-passkey-start-btn")).toBeVisible();
   await expect(page.locator("#passkeys-list li")).toHaveCount(1);
   await expect(page.locator("#passkeys-list li")).toContainText(name);
 }
@@ -104,6 +108,8 @@ test("a session over a day old is asked to log in again before adding a passkey 
     await route.fulfill({ response: res, json: body });
   });
   await page.goto(owner.url("/account/authentication"));
+  await expect(page.locator("#passkeys-reauth")).toBeHidden();
+  await page.locator("#add-passkey-start-btn").click();
   await expect(page.locator("#passkeys-reauth")).toBeVisible();
   await expect(page.locator("#add-passkey-form")).toBeHidden();
   await page.locator("#passkeys-reauth-btn").click();
@@ -121,6 +127,7 @@ test("if the server says the session isn't fresh, the page asks to log in again 
     route.fulfill({ status: 403, json: { code: "SESSION_NOT_FRESH", message: "Session is not fresh" } }),
   );
   await page.goto(owner.url("/account/authentication"));
+  await page.locator("#add-passkey-start-btn").click();
   await page.locator("#passkey-name").fill("Phone");
   await page.locator("#add-passkey-btn").click();
   await expect(page.locator("#passkeys-reauth")).toBeVisible();
@@ -144,4 +151,28 @@ test("cancelling the passkey prompt explains what to do, rather than saying noth
     "No passkey was used. If you haven't added one for Climbing Logbook yet, log in with your password, then add one in My account.",
   );
   await expect(page.locator("#login-error")).toBeHidden();
+});
+
+test.describe("on Firefox for Android", () => {
+  test.use({ userAgent: "Mozilla/5.0 (Android 15; Mobile; rv:131.0) Gecko/131.0 Firefox/131.0" });
+
+  test("the Add a passkey card opens from a neutral button, prefilled with this browser and device, and Cancel closes it (#1467)", async ({
+    page,
+    owner,
+  }) => {
+    await page.goto(owner.url("/account/authentication"));
+    const start = page.locator("#add-passkey-start-btn");
+    await expect(start).toBeVisible();
+    await expect(start).not.toHaveClass(/btn-primary/);
+    await expect(page.locator("#add-passkey-form")).toBeHidden();
+
+    await start.click();
+    await expect(page.locator("#add-passkey-form")).toBeVisible();
+    await expect(page.locator("#passkey-name")).toHaveValue("Firefox on Android");
+    await expect(page.locator("#passkey-name")).not.toHaveAttribute("placeholder");
+
+    await page.locator("#add-passkey-cancel-btn").click();
+    await expect(page.locator("#add-passkey-form")).toBeHidden();
+    await expect(start).toBeVisible();
+  });
 });
