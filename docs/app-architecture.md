@@ -162,6 +162,27 @@ their source changes:
   `MAP_VARIANT_SIZES`: the download progress bar needs them, and gzip hides
   `Content-Length`.
 
+### Browser support
+
+`/help/browser-requirements/` states the minimum versions, taking the
+highest floor of what the app depends on:
+
+- **JavaScript syntax:** Vite's default build target,
+  `baseline-widely-available` (Chrome 111, Firefox 114, Safari 16.4 in
+  Vite 8). It lowers syntax only, not APIs.
+- **CSS:** Tailwind v4 needs Chrome 111, Safari 16.4 and Firefox 128
+  (tailwindcss.com/docs/compatibility). This sets the Firefox floor.
+- **Web APIs** (`AbortSignal.timeout`, `toSorted`, `findLast`,
+  `crypto.randomUUID`, `navigator.locks`, IndexedDB, service workers) are
+  all older than those floors; `requestIdleCallback` and `navigator.locks`
+  are feature-checked.
+- **Passkeys** need the WebAuthn JSON helpers: Chrome 129, Firefox 119,
+  Safari 18.4 (MDN browser-compat-data). `client/passkeys.js` hides the
+  option without them.
+
+Check this again when Vite or Tailwind gets a major version, or when the
+client starts using a newer API, and update the help page with it.
+
 ## Request routing
 
 Workers Static Assets serves any request that matches a file under
