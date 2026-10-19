@@ -10,7 +10,7 @@ const BODY = url => `body of ${url}`;
 const LIST = {
   shells: [
     { page: "log", hash: hashOf(BODY("/raven/log")) },
-    { page: "account/import", hash: hashOf(BODY("/raven/account/import")) },
+    { page: "account/import-export", hash: hashOf(BODY("/raven/account/import-export")) },
   ],
   assets: [
     { url: "/-/chunks/store-abc123.js" },
@@ -84,9 +84,9 @@ describe("precacheItems", () => {
     expect(shells).toEqual([
       { key: `${ORIGIN}/log/index.html`, url: "/raven/log", page: "log", hash: LIST.shells[0].hash },
       {
-        key: `${ORIGIN}/account/import/index.html`,
-        url: "/raven/account/import",
-        page: "account/import",
+        key: `${ORIGIN}/account/import-export/index.html`,
+        url: "/raven/account/import-export",
+        page: "account/import-export",
         hash: LIST.shells[1].hash,
       },
     ]);
@@ -122,7 +122,7 @@ describe("fillPrecache", () => {
       abs("/-/launch/"),
       abs("/-/log-app.js?v=1234567890"),
       abs("/-/manifest.json"),
-      abs("/account/import/index.html"),
+      abs("/account/import-export/index.html"),
       abs("/log/index.html"),
     ]);
   });
@@ -154,7 +154,10 @@ describe("fillPrecache", () => {
     const cachesImpl = fakeCaches({
       [PREVIOUS]: {
         [abs("/log/index.html")]: response({ shell: "log", body: BODY("/raven/log") }),
-        [abs("/account/import/index.html")]: response({ shell: "account/import", body: "last build's import shell" }),
+        [abs("/account/import-export/index.html")]: response({
+          shell: "account/import-export",
+          body: "last build's import shell",
+        }),
         [abs("/-/launch/")]: response({ body: BODY("/-/launch/") }),
         [abs("/-/manifest.json")]: response({ body: "last build's manifest" }),
       },
@@ -166,7 +169,7 @@ describe("fillPrecache", () => {
       "/-/chunks/store-abc123.js",
       "/-/log-app.js?v=1234567890",
       "/-/manifest.json",
-      "/raven/account/import",
+      "/raven/account/import-export",
     ]);
     expect(result.missing).toEqual([]);
   });
@@ -194,11 +197,11 @@ describe("fillPrecache", () => {
       cachesImpl,
       server({
         "/raven/log": response({ redirected: true, shell: "log" }),
-        "/raven/account/import": response(),
+        "/raven/account/import-export": response(),
         "/-/manifest.json": response({ status: 503 }),
       }),
     );
-    expect(result.missing.sort()).toEqual(["/-/manifest.json", "/raven/account/import", "/raven/log"]);
+    expect(result.missing.sort()).toEqual(["/-/manifest.json", "/raven/account/import-export", "/raven/log"]);
     const stored = [...cachesImpl.stores.get(CURRENT).keys()];
     expect(stored).not.toContain(abs("/log/index.html"));
     expect(stored).not.toContain(abs("/-/manifest.json"));

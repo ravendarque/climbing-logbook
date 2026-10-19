@@ -52,7 +52,7 @@ describe("account details (#1456)", () => {
     const notice = emails.find(e => e.subject === "Your username was changed");
     expect(notice.to).toEqual(email);
     expect(notice.html).toContain(username);
-    expect(notice.html).toContain(`/${username}/account/edit`);
+    expect(notice.html).toContain(`/${username}/account/authentication`);
 
     emails.length = 0;
     await jsonRequest("POST", "/-/api/auth/update-user", { username }, { Cookie: cookie });
@@ -75,7 +75,7 @@ describe("account details (#1456)", () => {
     await jsonRequest(
       "POST",
       "/-/api/auth/change-email",
-      { newEmail, callbackURL: "/account/edit" },
+      { newEmail, callbackURL: "/account/authentication" },
       { Cookie: cookie },
     );
     const linkIn = subject => {

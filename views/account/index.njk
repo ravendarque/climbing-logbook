@@ -2,11 +2,6 @@
 layout: app-layout.njk
 title: My account – Climbing Logbook
 bundle: account
-staticShellNote: |-
-  Genuinely static shell (#348), same pattern as public/log/index.html
-         -- see that file's own comment for why every path below is absolute
-         and client/account-main.js reads the username from
-         location.pathname itself rather than this file being templated.
 headerClass: mb-6
 ---
 <div class="max-w-[960px] mx-auto">
@@ -15,31 +10,61 @@ headerClass: mb-6
     My Climbing Logbook
   </a>
 
+  <h1 class="card-section-heading">My account</h1>
+
   <div class="grid grid-cols-2 gap-x-8 max-[600px]:grid-cols-1" id="account-sections">
     <div>
-      <h1 class="card-section-heading">My account</h1>
+      <h2 class="subsection-heading">Account</h2>
       <div class="flex flex-col gap-2 max-w-[420px]" id="account-options">
-        <a class="row-card flex items-center gap-3 hover:border-accent" id="edit-account-link" href="#">
+        <a class="row-card flex items-center gap-3 hover:border-accent" id="authentication-link" href="#">
           <div class="flex-1 min-w-0">
-            <span class="row-card-title">Edit account details</span>
-            <p class="text-sm text-muted mt-2">Change your username, email address or password.</p>
+            <span class="row-card-title">Account and authentication</span>
+            <p class="text-sm text-muted mt-2">Change your username, email address or password, and set up Two-Factor Authentication (2FA) or passkeys.</p>
           </div>
           <svg class="w-4 h-4 stroke-muted fill-none shrink-0" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
         </a>
-        <a class="row-card flex items-center gap-3 hover:border-accent" id="two-step-link" href="#">
+        <a class="row-card flex items-center gap-3 hover:border-accent" id="tour-link" href="#">
           <div class="flex-1 min-w-0">
-            <span class="row-card-title">Two-Factor Authentication (2FA)</span>
-            <p class="text-sm text-muted mt-2">Enter a code from an authenticator app when you log in as an extra layer of security for your account</p>
+            <span class="row-card-title">Take the tour</span>
+            <p class="text-sm text-muted mt-2">A quick look at how Climbing Logbook works.</p>
           </div>
           <svg class="w-4 h-4 stroke-muted fill-none shrink-0" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
         </a>
-        <a class="row-card flex items-center gap-3 hover:border-accent" id="passkeys-link" href="#">
+      </div>
+      <h2 class="subsection-heading">Settings</h2>
+      <div class="flex flex-col gap-2 max-w-[420px]" id="account-settings">
+        <div class="row-card flex items-center gap-3" id="public-logbook-row" hidden>
           <div class="flex-1 min-w-0">
-            <span class="row-card-title">Passkeys</span>
-            <p class="text-sm text-muted mt-2">Log in with your fingerprint, face or device PIN instead of your password and a code.</p>
+            <span class="row-card-title" id="public-logbook-title">Public Logbook</span>
+            <p class="text-sm text-muted mt-2" id="public-logbook-description">When on, anyone can view your logbook and map at your public profile page. Turn off to keep them private -- only you can see them.</p>
+          </div>
+          <button type="button" class="group inline-flex items-center bg-transparent border border-transparent cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shrink-0" id="public-logbook-toggle" aria-labelledby="public-logbook-title" aria-describedby="public-logbook-description" role="switch" aria-checked="false">
+            <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
+          </button>
+        </div>
+        <div class="row-card flex items-center gap-3" id="athlete-mode-row" hidden>
+          <div class="flex-1 min-w-0">
+            <span class="row-card-title" id="athlete-mode-title">Athlete Mode</span>
+            <p class="text-sm text-muted mt-2" id="athlete-mode-description">Unlocks performance insights on your Performance page, visible only to you.</p>
+          </div>
+          <button type="button" class="group inline-flex items-center bg-transparent border border-transparent cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shrink-0" id="athlete-mode-toggle" aria-labelledby="athlete-mode-title" aria-describedby="athlete-mode-description" role="switch" aria-checked="false">
+            <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
+          </button>
+        </div>
+        <a class="row-card flex items-center gap-3 hover:border-accent" id="beta-row" href="#" hidden>
+          <div class="flex-1 min-w-0">
+            <span class="row-card-title">Check our beta</span>
+            <p class="text-sm text-muted mt-2">Get early access to new features before they're released.</p>
+            <p class="text-sm text-accent-ink mt-1" id="beta-status"></p>
           </div>
           <svg class="w-4 h-4 stroke-muted fill-none shrink-0" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
         </a>
+      </div>
+    </div>
+
+    <div class="max-[600px]:mt-8">
+      <h2 class="subsection-heading">Data</h2>
+      <div class="flex flex-col gap-2 max-w-[420px]" id="account-data">
         <a class="row-card flex items-center gap-3 hover:border-accent" id="places-link" href="#">
           <div class="flex-1 min-w-0">
             <span class="row-card-title">Manage places</span>
@@ -47,28 +72,18 @@ headerClass: mb-6
           </div>
           <svg class="w-4 h-4 stroke-muted fill-none shrink-0" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
         </a>
-        <a class="row-card flex items-center gap-3 hover:border-accent" id="import-link" href="#">
+        <a class="row-card flex items-center gap-3 hover:border-accent" id="import-export-link" href="#">
           <div class="flex-1 min-w-0">
-            <span class="row-card-title">Import entries</span>
-            <p class="text-sm text-muted mt-2">Add climbs in bulk from a spreadsheet (CSV), or our export format (JSON)</p>
+            <span class="row-card-title">Import and export entries</span>
+            <p class="text-sm text-muted mt-2">Add climbs in bulk from a spreadsheet (CSV) or our export format (JSON), or download your whole logbook.</p>
           </div>
           <svg class="w-4 h-4 stroke-muted fill-none shrink-0" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
         </a>
-        <div class="row-card flex flex-col gap-3 min-[480px]:flex-row min-[480px]:items-center">
+        <a class="row-card flex items-center gap-3 hover:border-accent" id="health-row" href="#" hidden>
           <div class="flex-1 min-w-0">
-            <span class="row-card-title">Export entries</span>
-            <p class="text-sm text-muted mt-2">Download your whole logbook as a spreadsheet (CSV) or a data file (JSON).</p>
-          </div>
-          <div class="flex gap-2 shrink-0">
-            <button type="button" class="btn" id="export-csv-btn">CSV</button>
-            <button type="button" class="btn" id="export-json-btn">JSON</button>
-          </div>
-        </div>
-        <p class="text-sm text-accent-ink" id="export-error" hidden></p>
-        <a class="row-card flex items-center gap-3 hover:border-accent" id="tour-link" href="#">
-          <div class="flex-1 min-w-0">
-            <span class="row-card-title">Take the tour</span>
-            <p class="text-sm text-muted mt-2">A quick look at how Climbing Logbook works.</p>
+            <span class="row-card-title">Health data</span>
+            <p class="text-sm text-muted mt-2">Log health information like pain and injuries, and see patterns in your Performance insights. It's off until you agree to the Health Data Agreement.</p>
+            <p class="text-sm text-accent-ink mt-1" id="health-status"></p>
           </div>
           <svg class="w-4 h-4 stroke-muted fill-none shrink-0" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
         </a>
@@ -102,46 +117,6 @@ headerClass: mb-6
             </div>
           </form>
         </div>
-      </div>
-    </div>
-
-    <div class="max-[600px]:mt-8">
-      <h2 class="card-section-heading">Settings</h2>
-      <div class="flex flex-col gap-2 max-w-[420px]" id="account-settings">
-        <div class="row-card flex items-center gap-3" id="public-logbook-row" hidden>
-          <div class="flex-1 min-w-0">
-            <span class="row-card-title" id="public-logbook-title">Public Logbook</span>
-            <p class="text-sm text-muted mt-2" id="public-logbook-description">When on, anyone can view your logbook and map at your public profile page. Turn off to keep them private -- only you can see them.</p>
-          </div>
-          <button type="button" class="group inline-flex items-center bg-transparent border border-transparent cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shrink-0" id="public-logbook-toggle" aria-labelledby="public-logbook-title" aria-describedby="public-logbook-description" role="switch" aria-checked="false">
-            <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
-          </button>
-        </div>
-        <div class="row-card flex items-center gap-3" id="athlete-mode-row" hidden>
-          <div class="flex-1 min-w-0">
-            <span class="row-card-title" id="athlete-mode-title">Athlete Mode</span>
-            <p class="text-sm text-muted mt-2" id="athlete-mode-description">Unlocks performance insights on your Performance page, visible only to you.</p>
-          </div>
-          <button type="button" class="group inline-flex items-center bg-transparent border border-transparent cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shrink-0" id="athlete-mode-toggle" aria-labelledby="athlete-mode-title" aria-describedby="athlete-mode-description" role="switch" aria-checked="false">
-            <span class="switch-track group-aria-checked:switch-track-on"><span class="switch-thumb group-aria-checked:switch-thumb-on"></span></span>
-          </button>
-        </div>
-        <a class="row-card flex items-center gap-3 hover:border-accent" id="health-row" href="#" hidden>
-          <div class="flex-1 min-w-0">
-            <span class="row-card-title">Health data</span>
-            <p class="text-sm text-muted mt-2">Log health information like pain and injuries, and see patterns in your Performance insights. It's off until you agree to the Health Data Agreement.</p>
-            <p class="text-sm text-accent-ink mt-1" id="health-status"></p>
-          </div>
-          <svg class="w-4 h-4 stroke-muted fill-none shrink-0" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
-        </a>
-        <a class="row-card flex items-center gap-3 hover:border-accent" id="beta-row" href="#" hidden>
-          <div class="flex-1 min-w-0">
-            <span class="row-card-title">Check our beta</span>
-            <p class="text-sm text-muted mt-2">Get early access to new features before they're released.</p>
-            <p class="text-sm text-accent-ink mt-1" id="beta-status"></p>
-          </div>
-          <svg class="w-4 h-4 stroke-muted fill-none shrink-0" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
-        </a>
       </div>
     </div>
   </div>

@@ -1,0 +1,34 @@
+---
+layout: app-layout.njk
+title: Import and export entries – Climbing Logbook
+bundle: account-import-export
+headerClass: mb-6
+---
+<div class="max-w-[960px] mx-auto">
+  <a class="back-link mt-4 mb-5" id="back-to-account-link" href="#">
+    <svg class="w-[.9rem] h-[.9rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
+    My Account
+  </a>
+
+  <h1 class="page-title">Import and export entries</h1>
+
+  <div class="max-w-[520px]">
+    <section aria-labelledby="import-heading">
+      <h2 class="section-heading mt-7" id="import-heading">Import</h2>
+      <p class="text-sm text-muted mb-4">Add climbs in bulk from a spreadsheet (CSV), or our export format (JSON).</p>
+      <div id="import-steps">
+        {% include "import-panel.njk" %}
+      </div>
+    </section>
+
+    <section aria-labelledby="export-heading">
+      <h2 class="section-heading mt-7" id="export-heading">Export</h2>
+      <p class="text-sm text-muted mb-3">Download your whole logbook as a spreadsheet (CSV) or a data file (JSON).</p>
+      <div class="flex gap-2">
+        <button type="button" class="btn" id="export-csv-btn">CSV</button>
+        <button type="button" class="btn" id="export-json-btn">JSON</button>
+      </div>
+      <p class="text-sm text-accent-ink mt-2" id="export-error" hidden></p>
+    </section>
+  </div>
+</div>

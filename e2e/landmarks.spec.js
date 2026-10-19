@@ -27,13 +27,11 @@ const OWNER_PAGES = [
   "/performance/strengths",
   "/performance/injury",
   "/account",
-  "/account/edit",
-  "/account/import",
+  "/account/authentication",
+  "/account/import-export",
   "/account/beta",
   "/account/health",
   "/account/places",
-  "/account/2fa",
-  "/account/passkeys",
 ];
 
 for (const path of OWNER_PAGES) {

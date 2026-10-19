@@ -13,8 +13,11 @@ test("renders the shared chrome, no discipline picker, and the My account link/u
   await expect(page.locator("#menu-username")).toHaveText(owner.username);
   await expect(page.locator("#my-account-link")).toHaveAttribute("href", `/${owner.username}/account`);
 
-  await expect(page.locator("#edit-account-link")).toHaveAttribute("href", `/${owner.username}/account/edit`);
-  await expect(page.locator("#import-link")).toHaveAttribute("href", `/${owner.username}/account/import`);
+  await expect(page.locator("#authentication-link")).toHaveAttribute(
+    "href",
+    `/${owner.username}/account/authentication`,
+  );
+  await expect(page.locator("#import-export-link")).toHaveAttribute("href", `/${owner.username}/account/import-export`);
   await expect(page.locator("#back-to-logbook-link")).toHaveAttribute("href", `/${owner.username}/log`);
 });
 
@@ -72,61 +75,22 @@ test("the Check our beta row links to its sub-page and shows the saved status", 
   await expect(page.locator("#beta-status")).toHaveText("You're enrolled in the beta.");
 });
 
-const EXPORT_FIXTURE = {
-  locations: [{ id: "l1", name: "Fontainebleau", country: "France" }],
-  places: [{ id: "p1", locationId: "l1", area: "Bas Cuvier" }],
-  entries: [{ name: "La Marie-Rose", grade: "6B", firstAttempt: true, date: "2026-07-30" }],
-};
-
-test("Export CSV downloads a file built from this user's own entries/places/locations", async ({ page, owner }) => {
-  await owner.seed(EXPORT_FIXTURE);
+test("groups the hub into Account and Settings, then Data and the Danger zone (#1457)", async ({ page, owner }) => {
   await page.goto(owner.url("/account"));
 
-  const [download] = await Promise.all([page.waitForEvent("download"), page.locator("#export-csv-btn").click()]);
-  expect(download.suggestedFilename()).toBe("climbing-logbook-export.csv");
-  const fs = await import("node:fs/promises");
-  const csv = await fs.readFile(await download.path(), "utf8");
-  expect(csv).toContain("name,grade,discipline,status,firstAttempt,date,location,area,country,video,notes");
-  expect(csv).toContain("La Marie-Rose,6B,boulder,send,true,2026-07-30,Fontainebleau,Bas Cuvier,France,,");
-});
-
-test("Export JSON downloads the resolved rows as JSON", async ({ page, owner }) => {
-  await owner.seed(EXPORT_FIXTURE);
-  await page.goto(owner.url("/account"));
-
-  const [download] = await Promise.all([page.waitForEvent("download"), page.locator("#export-json-btn").click()]);
-  expect(download.suggestedFilename()).toBe("climbing-logbook-export.json");
-  const fs = await import("node:fs/promises");
-  const json = JSON.parse(await fs.readFile(await download.path(), "utf8"));
-  expect(json).toEqual([
-    {
-      name: "La Marie-Rose",
-      grade: "6B",
-      discipline: "boulder",
-      status: "send",
-      firstAttempt: true,
-      date: "2026-07-30",
-      location: "Fontainebleau",
-      area: "Bas Cuvier",
-      country: "France",
-      video: "",
-      notes: "",
-      sportStyle: "",
-      attemptsToSend: "",
-      rpe: "",
-      gradeScale: "font-non-standard",
-    },
+  const columns = page.locator("#account-sections > div");
+  await expect(columns.nth(0).locator("h2")).toHaveText(["Account", "Settings"]);
+  await expect(columns.nth(1).locator("h2")).toHaveText(["Data", "Danger zone"]);
+  await expect(page.locator("#account-options .row-card-title")).toHaveText([
+    "Account and authentication",
+    "Take the tour",
   ]);
-});
-
-test("Export shows an error message instead of a download when the data fetch fails", async ({ page, owner }) => {
-  await owner.seed(EXPORT_FIXTURE);
-  await page.route("**/-/api/entries*", route => route.fulfill({ status: 500 }));
-  await page.goto(owner.url("/account"));
-
-  await page.locator("#export-csv-btn").click();
-  await expect(page.locator("#export-error")).toBeVisible();
-  await expect(page.locator("#export-error")).toHaveText("Export failed -- check your connection and try again.");
+  await expect(page.locator("#account-data .row-card-title")).toHaveText([
+    "Manage places",
+    "Import and export entries",
+    "Health data",
+    "Clear my data from this device",
+  ]);
 });
 
 test("deleting the account from its own card needs the password, then removes it and leaves for the home page (#310, #1447)", async ({

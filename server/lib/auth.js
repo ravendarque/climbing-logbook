@@ -74,11 +74,11 @@ async function refuseDemoDeletion(env, userId) {
 export const TRUST_DEVICE_DAYS = 28;
 
 const NOTICE_FOR_PATH = {
-  "/passkey/verify-registration": { kind: "passkeyAdded", page: "account/passkeys" },
-  "/passkey/delete-passkey": { kind: "passkeyRemoved", page: "account/passkeys" },
-  "/change-password": { kind: "passwordChanged", page: "account/edit" },
-  "/two-factor/disable": { kind: "twoFactorOff", page: "account/2fa" },
-  "/two-factor/generate-backup-codes": { kind: "backupCodesRenewed", page: "account/2fa" },
+  "/passkey/verify-registration": { kind: "passkeyAdded", page: "account/authentication" },
+  "/passkey/delete-passkey": { kind: "passkeyRemoved", page: "account/authentication" },
+  "/change-password": { kind: "passwordChanged", page: "account/authentication" },
+  "/two-factor/disable": { kind: "twoFactorOff", page: "account/authentication" },
+  "/two-factor/generate-backup-codes": { kind: "backupCodesRenewed", page: "account/authentication" },
   "/delete-user": { kind: "accountDeleted", page: null },
 };
 
@@ -96,7 +96,7 @@ async function noticeEmailChanged(ctx, env, emailSender) {
     .bind(change.updateTo)
     .first();
   if (!user) return;
-  const url = ownedPageUrl(ctx.request?.url ?? ctx.context.baseURL, user.username, "account/edit");
+  const url = ownedPageUrl(ctx.request?.url ?? ctx.context.baseURL, user.username, "account/authentication");
   await emailSender.sendAccountNotice(change.email, "emailChanged", { url, newEmail: change.updateTo });
 }
 
@@ -104,11 +104,15 @@ async function noticeEmailChanged(ctx, env, emailSender) {
 export function accountNoticeFor(ctx, user) {
   if (ctx.path === "/update-user") {
     const username = typeof ctx.body?.username === "string" ? ctx.body.username.trim().toLowerCase() : "";
-    return username && username !== user.username ? { kind: "usernameChanged", page: "account/edit", username } : null;
+    return username && username !== user.username
+      ? { kind: "usernameChanged", page: "account/authentication", username }
+      : null;
   }
   // verify-totp also completes a 2FA login, which has no session yet; with one, it's turning 2FA on.
   if (ctx.path === "/two-factor/verify-totp") {
-    return user.twoFactorEnabled ? null : { kind: "twoFactorOn", page: "account/2fa", username: user.username };
+    return user.twoFactorEnabled
+      ? null
+      : { kind: "twoFactorOn", page: "account/authentication", username: user.username };
   }
   const notice = NOTICE_FOR_PATH[ctx.path];
   return notice ? { ...notice, username: user.username } : null;

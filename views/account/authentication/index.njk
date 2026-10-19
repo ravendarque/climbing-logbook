@@ -1,0 +1,173 @@
+---
+layout: app-layout.njk
+title: Account and authentication – Climbing Logbook
+bundle: account-authentication
+headerClass: mb-6
+---
+<div class="max-w-[960px] mx-auto">
+  <a class="back-link mt-4 mb-5" id="back-to-account-link" href="#">
+    <svg class="w-[.9rem] h-[.9rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
+    My Account
+  </a>
+
+  <h1 class="page-title">Account and authentication</h1>
+
+  <div class="max-w-[520px]">
+    <section aria-labelledby="details-heading">
+      <h2 class="section-heading mt-7" id="details-heading">Account details</h2>
+      <div class="flex flex-col gap-2" id="account-fields">
+        <div class="row-card" id="username-row">
+          <div class="row-card-title mb-1">Username</div>
+          <div class="flex items-center gap-2" id="username-view">
+            <div class="flex-1 min-w-0 border border-transparent px-3 py-2 text-foreground text-base leading-normal truncate" id="username-value"></div>
+            <button type="button" class="btn shrink-0" id="username-edit-btn">Change</button>
+          </div>
+          <form class="flex items-center gap-2" id="username-form" hidden>
+            <input class="flex-1 min-w-0 bg-background border border-field-border rounded-app px-3 py-2 text-foreground text-base leading-normal" id="username-input" name="username" type="text" required>
+            <button type="submit" class="btn btn-primary shrink-0 max-[480px]:w-9 max-[480px]:px-0 max-[480px]:justify-center" id="username-save-btn" aria-label="Save">
+              <span class="max-[480px]:hidden">Save</span>
+              <svg class="hidden max-[480px]:block w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+            </button>
+            <button type="button" class="btn shrink-0 max-[480px]:w-9 max-[480px]:px-0 max-[480px]:justify-center" id="username-cancel-btn" aria-label="Cancel">
+              <span class="max-[480px]:hidden">Cancel</span>
+              <svg class="hidden max-[480px]:block w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>
+            </button>
+          </form>
+          <p class="text-sm text-accent-ink mt-2" id="username-error" hidden></p>
+        </div>
+
+        <div class="row-card" id="email-row">
+          <div class="row-card-title mb-1">Email</div>
+          <div class="flex items-center gap-2" id="email-view">
+            <div class="flex-1 min-w-0 border border-transparent px-3 py-2 text-foreground text-base leading-normal truncate" id="email-value"></div>
+            <button type="button" class="btn shrink-0" id="email-edit-btn">Change</button>
+          </div>
+          <form class="flex items-center gap-2" id="email-form" hidden>
+            <input class="flex-1 min-w-0 bg-background border border-field-border rounded-app px-3 py-2 text-foreground text-base leading-normal" id="email-input" name="email" type="email" required>
+            <button type="submit" class="btn btn-primary shrink-0 max-[480px]:w-9 max-[480px]:px-0 max-[480px]:justify-center" id="email-save-btn" aria-label="Save">
+              <span class="max-[480px]:hidden">Save</span>
+              <svg class="hidden max-[480px]:block w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+            </button>
+            <button type="button" class="btn shrink-0 max-[480px]:w-9 max-[480px]:px-0 max-[480px]:justify-center" id="email-cancel-btn" aria-label="Cancel">
+              <span class="max-[480px]:hidden">Cancel</span>
+              <svg class="hidden max-[480px]:block w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>
+            </button>
+          </form>
+          <p class="text-sm text-accent-ink mt-2" id="email-error" hidden></p>
+          <p class="text-sm text-foreground bg-background border border-border rounded-app px-3 py-2 mt-2" id="email-pending" hidden></p>
+        </div>
+
+        <div class="row-card" id="password-row">
+          <div class="row-card-title mb-1">Password</div>
+          <div class="flex items-center gap-2" id="password-view">
+            <div class="flex-1 min-w-0 border border-transparent px-3 py-2 text-foreground text-base leading-normal" id="password-value">••••••••••</div>
+            <button type="button" class="btn shrink-0" id="password-edit-btn">Change</button>
+          </div>
+          <form class="mt-2" id="password-form" hidden>
+            <label class="text-xs text-muted font-semibold uppercase tracking-wide" for="current-password-input">Current password</label>
+            <input class="w-full mt-1 mb-2 bg-background border border-field-border rounded-app px-3 py-2 text-foreground text-base leading-normal" id="current-password-input" name="currentPassword" type="password" autocomplete="current-password" required>
+            <label class="text-xs text-muted font-semibold uppercase tracking-wide" for="new-password-input">New password</label>
+            <input class="w-full mt-1 mb-2 bg-background border border-field-border rounded-app px-3 py-2 text-foreground text-base leading-normal" id="new-password-input" name="newPassword" type="password" autocomplete="new-password" minlength="8" required>
+            <p class="text-sm text-accent-ink mb-2" id="password-error" hidden></p>
+            <div class="flex gap-2">
+              <button type="submit" class="btn btn-primary" id="password-save-btn">Save</button>
+              <button type="button" class="btn" id="password-cancel-btn">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="two-step-heading">
+      <h2 class="section-heading mt-7" id="two-step-heading">Two-Factor Authentication (2FA)</h2>
+      <div class="flex flex-col gap-4">
+        <p class="text-sm text-muted">After your password, you enter a code from an authenticator app on your phone. Someone who learns your password still can't get in without your phone. It's up to you whether to use it. <a class="text-accent-ink underline underline-offset-2" href="/help/two-factor-authentication/">How it works</a></p>
+
+        <p class="text-sm text-muted" id="two-step-loading">Loading…</p>
+
+        <div class="row-card border-accent" id="recovery-pending" hidden>
+          <p class="font-semibold mb-1">2FA is switching off</p>
+          <p class="text-sm mb-3" id="recovery-pending-text"></p>
+          <button type="button" class="btn btn-primary" id="recovery-cancel-btn">This wasn't me: cancel it</button>
+        </div>
+
+        <section class="flex flex-col gap-3" id="two-step-off" hidden>
+          <p><strong>2FA is off.</strong></p>
+          <p class="text-sm text-muted">You'll need an authenticator app. We really like <a class="text-accent-ink underline underline-offset-2" href="https://proton.me/authenticator">Proton Authenticator</a> and <a class="text-accent-ink underline underline-offset-2" href="https://ente.com/auth/">Ente Auth</a>, but you can use any authenticator app.</p>
+          <div><button type="button" class="btn btn-primary" id="setup-start-btn">Set up 2FA</button></div>
+        </section>
+
+        <section class="flex flex-col gap-3" id="two-step-on" hidden>
+          <p><strong>2FA is on.</strong> You'll be asked for a code when you log in on a new device.</p>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" class="btn" id="new-codes-btn">Get new backup codes</button>
+            <button type="button" class="btn" id="turn-off-btn">Turn off</button>
+          </div>
+        </section>
+
+        <form class="row-card flex flex-col gap-3" id="two-step-password-form" hidden novalidate>
+          <label class="text-sm" for="two-step-password" id="two-step-password-prompt">Enter your password to continue.</label>
+          <input class="text-input w-full" type="password" id="two-step-password" autocomplete="current-password" required>
+          <div class="flex flex-wrap gap-2">
+            <button type="submit" class="btn btn-primary" id="two-step-password-submit-btn">Continue</button>
+            <button type="button" class="btn" id="two-step-password-cancel-btn">Cancel</button>
+          </div>
+        </form>
+
+        <form class="row-card flex flex-col gap-3" id="scan-form" hidden novalidate>
+          <p class="font-semibold">1. Add Climbing Logbook to your authenticator app</p>
+          <p class="text-sm text-muted">Scan this code with the app. If you can't scan it, choose to enter a setup key instead and type the key below.</p>
+          <div class="bg-white p-3 rounded-app self-start w-48 h-48" id="qr-code" role="img" aria-label="QR code for your authenticator app"></div>
+          <p class="text-sm">Setup key: <code class="break-all tabular-nums" id="setup-key"></code></p>
+          <p class="font-semibold">2. Enter the 6-digit code it shows</p>
+          <input class="text-input w-40 tabular-nums" type="text" id="setup-code" autocomplete="one-time-code" inputmode="numeric" maxlength="6" pattern="[0-9]*" aria-label="Code from your authenticator app" required>
+          <div class="flex flex-wrap gap-2">
+            <button type="submit" class="btn btn-primary" id="setup-verify-btn">Turn on</button>
+            <button type="button" class="btn" id="setup-cancel-btn">Cancel</button>
+          </div>
+        </form>
+
+        <section class="row-card flex flex-col gap-3" id="backup-codes" hidden>
+          <p class="font-semibold">Save your backup codes</p>
+          <p class="text-sm">If you lose your phone, each of these codes lets you log in once. They're as sensitive as a password, so don't keep them as plain text or in a notes app. Keep them in a secure password manager, such as <a class="text-accent-ink underline underline-offset-2" href="https://proton.me/pass">Proton Pass</a> or <a class="text-accent-ink underline underline-offset-2" href="https://ente.com/locker/">Ente Locker</a>.</p>
+          <p class="text-sm text-muted">Without your phone or these codes, the only way back in is to wait 7 days while we switch 2FA off. We can't do it for you any sooner, because we can't tell you apart from someone pretending to be you.</p>
+          <ul class="grid grid-cols-2 gap-x-4 gap-y-1 list-none p-0 font-mono tabular-nums text-sm" id="backup-codes-list"></ul>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" class="btn" id="copy-codes-btn">Copy codes</button>
+            <button type="button" class="btn btn-primary" id="codes-done-btn">I've saved them</button>
+          </div>
+        </section>
+
+        <p class="error-message" id="two-step-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>
+        <p class="text-sm text-muted" id="two-step-info" role="status" aria-live="polite" hidden></p>
+      </div>
+    </section>
+
+    <section aria-labelledby="passkeys-heading">
+      <h2 class="section-heading mt-7" id="passkeys-heading">Passkeys</h2>
+      <div class="flex flex-col gap-4">
+        <p class="text-sm text-muted">A passkey lets you log in with your fingerprint, face or device PIN instead of your password and a code. Your phone or computer can keep it, or a password manager such as <a class="text-accent-ink underline underline-offset-2" href="https://proton.me/pass">Proton Pass</a>. Your fingerprint or face never leaves your device. <a class="text-accent-ink underline underline-offset-2" href="/help/passkeys/">How it works</a></p>
+
+        <p class="text-sm text-muted" id="passkeys-loading">Loading…</p>
+        <p class="text-sm" id="passkeys-unsupported" hidden>This browser doesn't support passkeys. You can still log in with your password and, if you've turned it on, a code from your authenticator app.</p>
+
+        <ul class="flex flex-col gap-2 list-none p-0" id="passkeys-list" hidden></ul>
+        <p class="text-sm text-muted" id="passkeys-empty" hidden>You haven't added a passkey yet.</p>
+
+        <div class="row-card flex flex-col gap-3" id="passkeys-reauth" hidden>
+          <p class="text-sm">To add a passkey, log in again first. It's been more than a day since you last did, and a fresh login makes sure it's really you adding it.</p>
+          <div><button type="button" class="btn btn-primary" id="passkeys-reauth-btn">Log in again</button></div>
+        </div>
+
+        <form class="row-card flex flex-col gap-3" id="add-passkey-form" hidden novalidate>
+          <label class="text-sm" for="passkey-name">Name it, so you can tell your passkeys apart</label>
+          <input class="text-input w-full" type="text" id="passkey-name" maxlength="50" placeholder="My phone" required>
+          <div><button type="submit" class="btn btn-primary" id="add-passkey-btn">Add a passkey</button></div>
+        </form>
+
+        <p class="error-message" id="passkeys-error" role="alert" aria-live="assertive" tabindex="-1" hidden></p>
+        <p class="text-sm text-muted" id="passkeys-info" role="status" aria-live="polite" hidden></p>
+      </div>
+    </section>
+  </div>
+</div>

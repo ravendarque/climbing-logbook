@@ -23,14 +23,14 @@ describe("passkey settings (#1439)", () => {
   });
 
   it("links emails to the owner's page on my.", () => {
-    expect(ownedPageUrl("https://climbinglogbook.com/-/api/auth/x", "nix", "account/passkeys")).toBe(
-      "https://my.climbinglogbook.com/nix/account/passkeys",
+    expect(ownedPageUrl("https://climbinglogbook.com/-/api/auth/x", "nix", "account/authentication")).toBe(
+      "https://my.climbinglogbook.com/nix/account/authentication",
     );
-    expect(ownedPageUrl("http://localhost:8787/-/api/auth/x", "nix", "account/passkeys")).toBe(
-      "http://my.localhost:8787/nix/account/passkeys",
+    expect(ownedPageUrl("http://localhost:8787/-/api/auth/x", "nix", "account/authentication")).toBe(
+      "http://my.localhost:8787/nix/account/authentication",
     );
-    expect(ownedPageUrl("https://pr-1.example.workers.dev/-/api/auth/x", "nix", "account/passkeys")).toBe(
-      "https://pr-1.example.workers.dev/nix/account/passkeys",
+    expect(ownedPageUrl("https://pr-1.example.workers.dev/-/api/auth/x", "nix", "account/authentication")).toBe(
+      "https://pr-1.example.workers.dev/nix/account/authentication",
     );
   });
 
@@ -95,7 +95,7 @@ describe("managing passkeys (#1439)", () => {
     expect(removed.status).toBe(200);
     expect(await env.LOGBOOK_DB.prepare(`SELECT COUNT(*) AS n FROM "passkey"`).first("n")).toBe(0);
     expect(emails.at(-1).subject).toBe("A passkey was removed from your account");
-    expect(emails.at(-1).html).toContain("/account/passkeys");
+    expect(emails.at(-1).html).toContain("/account/authentication");
   });
 
   it("can't rename or remove another user's passkey", async () => {

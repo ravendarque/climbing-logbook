@@ -10,7 +10,7 @@ describe("classifyRequest (#962)", () => {
     ["/raven/log", "log"],
     ["/raven/log/", "log"],
     ["/raven/performance/rpe", "performance/rpe"],
-    ["/raven/account/import", "account/import"],
+    ["/raven/account/import-export", "account/import-export"],
     ["/raven/sync?returnTo=%2Fraven%2Flog", "sync"],
   ])("an owner-page navigation to %s is an owner shell for %s", (path, page) => {
     expect(req(path, { mode: "navigate" })).toEqual({ kind: "owner-shell", page });
