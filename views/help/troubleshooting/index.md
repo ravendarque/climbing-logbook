@@ -58,4 +58,8 @@ This shows when you save a climb with no signal and your device has no room left
 
 Your reports are normally worked out on your device, so they work with no signal. If a report asks you to connect, or the map shows no climbs offline, your browser isn't letting Climbing Logbook keep your logbook on the device, so they come from the server instead. The first section on this page explains why, and what to change.
 
+## Pages don't load, or look wrong
+
+Your browser may be too old for Climbing Logbook. [Browser requirements](/help/browser-requirements/) lists the versions it needs, and what to do on an older browser.
+
 Related: [Working offline](/help/working-offline/), [Installing the PWA](/help/install/), [Privacy](/help/privacy/).
