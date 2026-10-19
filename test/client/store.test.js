@@ -218,6 +218,32 @@ describe("mergeConfirmed", () => {
   });
 });
 
+describe("moveConfirmedEntries (#1471)", () => {
+  it("moves a deleted area's climbs in the confirmed copy, so a later merge keeps them where they went", async () => {
+    await store.setEntries(ENTRIES);
+    await store.moveConfirmedEntries({ placeId: "p1", toPlaceId: "p2" });
+    await store.mergeConfirmed("entries", []);
+    expect(store.getEntries().map(e => [e.id, e.placeId])).toEqual([
+      ["e1", "p2"],
+      ["e2", "p2"],
+    ]);
+    expect((await storedEntries()).find(e => e.id === "e1")).toEqual({ ...ENTRIES[0], placeId: "p2" });
+  });
+
+  it("moves the climbs from every area of a deleted location", async () => {
+    store.setPlaces([...PLACES, { id: "p3", locationId: "l1", area: "Apremont" }]);
+    await store.setEntries([...ENTRIES, { id: "e3", placeId: "p3", name: "Big Boss" }]);
+    await store.moveConfirmedEntries({ locationId: "l1", toPlaceId: "p2" });
+    expect(store.getEntries().map(e => e.placeId)).toEqual(["p2", "p2", "p2"]);
+  });
+
+  it("changes nothing when there's nothing to move", async () => {
+    await store.setEntries(ENTRIES);
+    expect(await store.moveConfirmedEntries({ placeId: "nowhere", toPlaceId: "p2" })).toBe(true);
+    expect(store.getEntries()).toEqual(ENTRIES);
+  });
+});
+
 describe("loadEntriesFromCache", () => {
   it("returns false, resets the cursor and doesn't notify when nothing was ever cached", async () => {
     storage.setItem("logbook_sync_cursors", JSON.stringify({ entries: 42 }));

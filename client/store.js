@@ -131,6 +131,18 @@ export function createStore({
     notify();
     return persistEntries(db => db.apply(rows));
   }
+  // The server moved these climbs when it confirmed the delete; without this, the next merge would put them back.
+  function moveConfirmedEntries({ locationId, placeId, toPlaceId }) {
+    const from = placeId
+      ? [placeId]
+      : readCached(PLACES_CACHE_KEY)
+          .filter(place => place.locationId === locationId)
+          .map(place => place.id);
+    const moved = confirmedEntries
+      .filter(entry => from.includes(entry.placeId))
+      .map(entry => ({ ...entry, placeId: toPlaceId }));
+    return moved.length ? mergeConfirmed("entries", moved) : Promise.resolve(true);
+  }
   function readCached(key) {
     try {
       return JSON.parse(storage.getItem(key)) ?? [];
@@ -222,6 +234,7 @@ export function createStore({
     getLocations: () => locations,
     setLocations,
     mergeConfirmed,
+    moveConfirmedEntries,
     loadEntriesFromCache,
     loadPlacesFromCache,
     loadLocationsFromCache,

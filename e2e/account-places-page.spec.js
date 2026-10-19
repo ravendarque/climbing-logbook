@@ -106,6 +106,43 @@ test("deletes a location, moving the climbs from all its areas to one place else
   expect(new Set(entries.map(e => e.placeId))).toEqual(new Set([owner.ownId("p3")]));
 });
 
+test("a pull that lands after the delete is confirmed keeps the moved climbs where they went (#1471)", async ({
+  page,
+  owner,
+}) => {
+  const isLocationDelete = res => res.request().method() === "DELETE" && res.url().includes("/-/api/locations");
+  let releaseHeldPull;
+  const deleteConfirmed = new Promise(resolve => {
+    releaseHeldPull = resolve;
+  });
+  page.on("response", res => {
+    if (isLocationDelete(res)) releaseHeldPull();
+  });
+
+  await owner.seed(SEED);
+  await gotoSyncedLog(page, owner);
+  let held = false;
+  await page.route("**/-/api/entries?since=*", async route => {
+    if (held) return route.continue();
+    held = true;
+    const response = await route.fetch();
+    await deleteConfirmed;
+    return route.fulfill({ response });
+  });
+  await page.goto(owner.url("/account/places"));
+  await expect(page.locator(`[data-location-id="${owner.ownId("l1")}"]`)).toContainText("3 climbs");
+
+  await page.locator(`[data-edit="${owner.ownId("l1")}"]`).click();
+  await page.locator("#place-delete-target").selectOption(owner.ownId("p3"));
+  const heldPullLanded = page.waitForResponse(res => res.url().includes("/-/api/entries?since="));
+  await page.locator("#place-delete-btn").click();
+  await page.waitForResponse(isLocationDelete);
+  await heldPullLanded;
+
+  await expect(page.locator(`[data-location-id="${owner.ownId("l2")}"]`)).toContainText("4 climbs");
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+});
+
 test("offline, a rename shows at once and syncs by itself once the connection is back (#159)", async ({
   page,
   context,
