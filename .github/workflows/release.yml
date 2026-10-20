@@ -35,39 +35,14 @@ permissions:
   contents: read
 
 jobs:
-  determine-bump:
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
-    outputs:
-      bump: ${{ steps.resolve.outputs.bump }}
-    steps:
-      - id: resolve
-        env:
-          BUMP_INPUT: ${{ inputs.bump }}
-          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
-        run: |
-          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
-            echo "bump=$BUMP_INPUT" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          labels="$LABELS"
-          if echo "$labels" | grep -q "release: major"; then
-            echo "bump=major" >> "$GITHUB_OUTPUT"
-          elif echo "$labels" | grep -q "release: minor"; then
-            echo "bump=minor" >> "$GITHUB_OUTPUT"
-          elif echo "$labels" | grep -q "release: patch"; then
-            echo "bump=patch" >> "$GITHUB_OUTPUT"
-          else
-            echo "bump=" >> "$GITHUB_OUTPUT"
-          fi
-
+  # Every merged PR runs this, labelled or not: a run tags every released PR since the latest tag, so a run GitHub
+  # cancelled while it waited (the concurrency group keeps only one waiting) loses nothing (#1512).
   release:
-    needs: determine-bump
-    if: needs.determine-bump.outputs.bump != ''
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: read
     steps:
       # The PR's own merge commit, not main's tip: a PR merged moments later would otherwise get this tag too (#1509).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -76,43 +51,41 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: ./.github/actions/setup-node-pnpm
-
-      - name: Calculate new version from latest tag
-        id: version
+      - name: Plan the tags
+        id: plan
         env:
-          BUMP: ${{ needs.determine-bump.outputs.bump }}
+          GH_TOKEN: ${{ github.token }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          BUMP_INPUT: ${{ inputs.bump }}
         run: |
-          CURRENT=$(git tag -l 'v*' --sort=-v:refname | head -1 | sed 's/^v//')
-          NEW=$(pnpm exec semver -i "$BUMP" "$CURRENT")
-          echo "new=$NEW" >> "$GITHUB_OUTPUT"
+          node scripts/plan-releases.mjs > "$RUNNER_TEMP/plan.json"
+          cat "$RUNNER_TEMP/plan.json"
+          echo "count=$(jq length "$RUNNER_TEMP/plan.json")" >> "$GITHUB_OUTPUT"
 
       # A tag pushed with the default GITHUB_TOKEN doesn't trigger deploy.yml (#197). The App's token does, so it's
-      # minted only now, after every dependency has installed, and handed to git push alone (#1069).
+      # minted only now and handed to git push alone (#1069).
       - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        if: steps.plan.outputs.count != '0'
         id: app-token
         with:
           client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
           permission-contents: write
 
-      - name: Create and push tag
+      - name: Create and push the tags, oldest first
+        if: steps.plan.outputs.count != '0'
         env:
-          VERSION: v${{ steps.version.outputs.new }}
-          PR_BODY: ${{ github.event.pull_request.body }}
           APP_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          node scripts/whats-new-tag-message.mjs > "$RUNNER_TEMP/tag-message"
-          git tag -a "$VERSION" --cleanup=whitespace -F "$RUNNER_TEMP/tag-message"
-          git push "https://x-access-token:${APP_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$VERSION"
-
-      - name: Create GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: v${{ steps.version.outputs.new }}
-        run: |
-          gh release create "$VERSION" \
-            --title "$VERSION" \
-            --generate-notes
+          jq -c '.[]' "$RUNNER_TEMP/plan.json" | while read -r release; do
+            version=$(jq -r .version <<< "$release")
+            jq -r .message <<< "$release" > "$RUNNER_TEMP/tag-message"
+            git tag -a "$version" --cleanup=whitespace -F "$RUNNER_TEMP/tag-message" "$(jq -r .sha <<< "$release")"
+            git push "https://x-access-token:${APP_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$version"
+            # Nothing reads GitHub Releases, so one that fails mustn't stop the remaining tags.
+            gh release create "$version" --repo "$GITHUB_REPOSITORY" --title "$version" --generate-notes \
+              || echo "::warning::Tag $version pushed, but its GitHub Release wasn't created."
+          done
