@@ -7,12 +7,17 @@ import { gradeScaleMatrixHtml, gradeScaleSourcesHtml } from "./client/grade-scal
 import { TERMS_HISTORY, TERMS_VERSION } from "./shared/terms.js";
 import { whatsNew, whatsNewReleases } from "./scripts/lib/whats-new.mjs";
 import { loadingSpinnerHtml } from "./client/loading-spinner.js";
+import { buildVersion } from "./scripts/lib/build-version.mjs";
+import { withAppVersion } from "./shared/app-version.js";
 
 const ASSET_VERSION = String(Date.now());
 
 export default function (eleventyConfig) {
   eleventyConfig.addGlobalData("assetVersion", ASSET_VERSION);
   eleventyConfig.addGlobalData("copyrightYear", new Date().getFullYear());
+  const appVersion = buildVersion();
+  eleventyConfig.addGlobalData("appVersion", appVersion);
+  eleventyConfig.addFilter("withAppVersion", url => withAppVersion(url, appVersion));
   const longDate = iso =>
     new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
   eleventyConfig.addGlobalData("termsUpdated", longDate(TERMS_VERSION));

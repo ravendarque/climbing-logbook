@@ -8,6 +8,7 @@ import { ACCOUNT_LIMITS } from "../shared/account-limits.js";
 import { createThemeToggle } from "./theme-toggle.js";
 import "./components/climbing-entries-table.js";
 import { resolveApexUrl } from "./resolve-cross-hostname-url.js";
+import { withAppVersion } from "../shared/app-version.js";
 
 const USERNAME = location.pathname.split("/").filter(Boolean)[0] || "";
 document.title = `${USERNAME} – Climbing Logbook`;
@@ -15,7 +16,11 @@ document.getElementById("profile-title").textContent = `${USERNAME}'s logbook`;
 
 const entriesTable = document.querySelector("climbing-entries-table");
 
-const reportUrl = new URL(resolveApexUrl(location.hostname, "/help/report-an-issue/"), location.origin);
+const pageVersion = document.querySelector('meta[name="app-version"]')?.content;
+const reportUrl = new URL(
+  resolveApexUrl(location.hostname, withAppVersion("/help/report-an-issue/", pageVersion)),
+  location.origin,
+);
 reportUrl.searchParams.set("logbook", USERNAME);
 document.getElementById("report-logbook-link").href = reportUrl.href;
 entriesTable.setAttribute("report-href", `${reportUrl.href}&climb={id}`);

@@ -85,6 +85,8 @@ export function startSubmissions(kind) {
     detailFields.replaceChildren();
     addField(detailFields, "Section", sectionLabel(submission.section));
     addField(detailFields, "Page", submission.sourcePage ?? "Not recorded");
+    addField(detailFields, "Environment", submission.environment ?? "Not recorded");
+    addField(detailFields, "Version", submission.appVersion ?? "Not recorded");
     addField(detailFields, "From", submission.username ?? "Not signed in");
     if (submission.contactEmail) {
       const mail = el("a", "underline underline-offset-2", submission.contactEmail);

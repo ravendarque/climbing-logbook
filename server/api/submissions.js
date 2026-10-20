@@ -1,3 +1,4 @@
+import { validAppVersion } from "../../shared/app-version.js";
 import * as v from "valibot";
 import { json } from "../lib/json.js";
 import { verifyTurnstile } from "../lib/turnstile.js";
@@ -67,6 +68,8 @@ function createSubmissionHandler({ table, rateLimitPrefix, tooManyMessage, empty
     reportedUsername: v.optional(v.pipe(v.string(), v.trim(), v.maxLength(64))),
     reportedEntryId: v.optional(v.pipe(v.string(), v.trim(), v.maxLength(64))),
     errorRef: v.optional(v.pipe(v.string(), v.regex(/^[A-Za-z0-9-]{1,64}$/))),
+    // From the address bar, so a tampered value is dropped rather than refusing the report.
+    appVersion: v.optional(v.pipe(v.unknown(), v.transform(validAppVersion))),
   });
 
   return async function handleSubmission(request, env, ctx, log) {
@@ -100,19 +103,20 @@ function createSubmissionHandler({ table, rateLimitPrefix, tooManyMessage, empty
       userId,
       result.output.sourcePage || null,
       result.output.section || null,
+      result.output.appVersion ?? null,
     ];
     const reported = acceptsReported ? await resolveReported(env, result.output) : null;
     if (reported) {
       await env.LOGBOOK_DB.prepare(
-        `INSERT INTO ${table} (id, message, contact_email, user_id, source_page, section, reported_user_id, reported_entry_id, error_ref, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+        `INSERT INTO ${table} (id, message, contact_email, user_id, source_page, section, app_version, reported_user_id, reported_entry_id, error_ref, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
       )
         .bind(...values, reported.userId, reported.entryId, result.output.errorRef ?? null)
         .run();
     } else {
       await env.LOGBOOK_DB.prepare(
-        `INSERT INTO ${table} (id, message, contact_email, user_id, source_page, section, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
+        `INSERT INTO ${table} (id, message, contact_email, user_id, source_page, section, app_version, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
       )
         .bind(...values)
         .run();

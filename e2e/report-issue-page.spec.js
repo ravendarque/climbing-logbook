@@ -37,3 +37,20 @@ test("shows an inline error, keeps the form, and re-enables the button when the 
   await expect(page.locator("#report-issue-success")).toBeHidden();
   await expect(page.locator("#report-issue-submit-btn")).toBeEnabled();
 });
+
+test("sends the version from the footer link, and drops one that isn't a version (#1500)", async ({ page }) => {
+  await mockTurnstile(page);
+  const sent = [];
+  await page.route("**/-/api/report-issue", route => {
+    sent.push(route.request().postDataJSON().appVersion);
+    return route.fulfill({ status: 201, json: { ok: true } });
+  });
+  for (const version of ["v2.139.1", "nonsense"]) {
+    await page.goto(`/help/report-an-issue/?version=${version}`);
+    await waitForTurnstile(page);
+    await page.locator("#report-issue-message").fill("Testing the version.");
+    await page.locator("#report-issue-submit-btn").click();
+    await expect(page.locator("#report-issue-success")).toBeVisible();
+  }
+  expect(sent).toEqual(["v2.139.1", undefined]);
+});

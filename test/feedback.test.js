@@ -68,6 +68,13 @@ describe("handleFeedback", () => {
     expect(results[0]).not.toHaveProperty("sharing_consent");
   });
 
+  it("stores the version the feedback came from (#1500)", async () => {
+    stubSiteverify(true);
+    expect((await postFeedback({ message: "Nice", turnstileToken: "t", appVersion: "dev" })).status).toBe(201);
+    const row = await env.LOGBOOK_DB.prepare(`SELECT app_version FROM feedback_submissions`).first();
+    expect(row.app_version).toBe("dev");
+  });
+
   it("rejects an empty message", async () => {
     stubSiteverify(true);
     const res = await postFeedback({ message: "", turnstileToken: "any-token" });

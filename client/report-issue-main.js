@@ -4,6 +4,7 @@ import { FIELD_LIMITS } from "../shared/field-limits.js";
 import { showCharactersLeft } from "./characters-left.js";
 import { createThemeToggle } from "./theme-toggle.js";
 import { renderTurnstile } from "./turnstile.js";
+import { validAppVersion } from "../shared/app-version.js";
 import { preselectSection } from "./preselect-section.js";
 
 createDisclosure(
@@ -45,6 +46,9 @@ preselectSection(document.getElementById("report-issue-section"), sourcePage);
 const params = new URLSearchParams(location.search);
 const reportedUsername = params.get("logbook") || undefined;
 const reportedEntryId = (reportedUsername && params.get("climb")) || undefined;
+
+// Passed by the footer link from the page someone came from (#1500).
+const appVersion = validAppVersion(params.get("version"));
 if (reportedUsername) {
   const about = document.getElementById("report-about");
   const name = document.createElement("strong");
@@ -92,6 +96,7 @@ form.addEventListener("submit", async event => {
         contactEmail: document.getElementById("report-issue-email").value || undefined,
         section: document.getElementById("report-issue-section").value || undefined,
         sourcePage,
+        appVersion,
         turnstileToken,
         reportedUsername,
         reportedEntryId,

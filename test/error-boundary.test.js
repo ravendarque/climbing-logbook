@@ -38,7 +38,7 @@ describe("the error boundary (#1032)", () => {
     const html = await res.text();
     expect(html).toContain("ray-456-LHR");
     expect(html).toContain(`${new URL(BASE_URL).protocol}//`);
-    expect(html).toContain("/help/report-an-issue/?ref=ray-456-LHR");
+    expect(html).toContain("/help/report-an-issue/?ref=ray-456-LHR&amp;version=dev");
     expect(html).toContain(`href="${BASE_URL}/-/test/throw"`);
   });
 

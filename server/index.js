@@ -23,7 +23,7 @@ import { refuseUntilTermsAgreed } from "./lib/terms.js";
 import { RESOURCE_ROUTES } from "./routes.js";
 import { json } from "./lib/json.js";
 import { errorResponse } from "./lib/error-response.js";
-import { createLogger } from "./lib/log.js";
+import { appVersion, createLogger } from "./lib/log.js";
 import { PUBLIC_DATA_PATH, routeTemplate } from "./lib/route-template.js";
 import { handlePerHostAsset, perHostAssetPath } from "./api/app-identity.js";
 import { handleAdminHost, isAdminHost } from "./api/admin.js";
@@ -165,7 +165,7 @@ export default {
     } catch (err) {
       const ref = request.headers.get("cf-ray") ?? crypto.randomUUID();
       log.error("request.unhandled", { err, ref, status: 500 });
-      return withContentSecurityPolicy(errorResponse(url, ref));
+      return withContentSecurityPolicy(errorResponse(url, ref, appVersion(env)));
     }
   },
 

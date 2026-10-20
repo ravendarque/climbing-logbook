@@ -15,7 +15,10 @@ test("a visitor reports a climb on a public logbook, the admin hides it, and onl
   await page.goto(owner.url(""));
   await page.locator("#header-menu-btn").click();
   const logbookLink = page.getByRole("link", { name: "Report this logbook" });
-  await expect(logbookLink).toHaveAttribute("href", new RegExp(`/help/report-an-issue/\\?logbook=${owner.username}$`));
+  const logbookHref = new URL(await logbookLink.getAttribute("href"), page.url());
+  expect(logbookHref.pathname).toBe("/help/report-an-issue/");
+  expect(logbookHref.searchParams.get("logbook")).toBe(owner.username);
+  expect(logbookHref.searchParams.get("version")).toMatch(/^(dev|v\d+\.\d+\.\d+)$/);
 
   await page.keyboard.press("Escape");
   await page.locator("#collapse-all-btn").click();
