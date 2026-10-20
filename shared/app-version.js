@@ -16,3 +16,13 @@ export function environmentOf(sourcePage) {
   if (host === "my.climbinglogbook.com" || host === "climbinglogbook.com") return "Production";
   return "Other";
 }
+
+// Every link to the report and feedback forms goes through this, so each report says which build it came from.
+export function withAppVersion(url, version) {
+  const valid = validAppVersion(version);
+  if (!valid) return url;
+  const [base, query = ""] = url.split("?");
+  const params = new URLSearchParams(query);
+  params.set("version", valid);
+  return `${base}?${params}`;
+}

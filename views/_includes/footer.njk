@@ -7,8 +7,8 @@
     <a class="text-foreground hover:text-accent-ink" data-apex-link href="/help/">Help</a>
     <a class="text-foreground hover:text-accent-ink" data-apex-link href="/help/ethics-and-sustainability/">Ethics &amp; sustainability</a>
     <a class="text-foreground hover:text-accent-ink" data-apex-link href="/help/terms/">Terms of use</a>
-    <a class="text-foreground hover:text-accent-ink" data-apex-link href="/help/report-an-issue/?version={{ appVersion }}" referrerpolicy="no-referrer-when-downgrade">Report an issue</a>
-    <a class="text-foreground hover:text-accent-ink" data-apex-link href="/help/feedback/?version={{ appVersion }}" referrerpolicy="no-referrer-when-downgrade">Tell us what you think</a>
+    <a class="text-foreground hover:text-accent-ink" data-apex-link href="{{ '/help/report-an-issue/' | withAppVersion }}" referrerpolicy="no-referrer-when-downgrade">Report an issue</a>
+    <a class="text-foreground hover:text-accent-ink" data-apex-link href="{{ '/help/feedback/' | withAppVersion }}" referrerpolicy="no-referrer-when-downgrade">Tell us what you think</a>
   </nav>
   <p class="text-sm text-muted">© {{ copyrightYear }} Nix Crabtree</p>
   <p class="text-xs text-muted tabular-nums -mt-2" id="app-version">{{ appVersion }}</p>

@@ -1,12 +1,13 @@
 import { escapeHtml } from "./html-escape.js";
 import { json } from "./json.js";
+import { validAppVersion, withAppVersion } from "../../shared/app-version.js";
 
-function reportUrl(url, ref) {
+function reportUrl(url, ref, version) {
   const apexHost = url.host.replace(/^(my|beta|admin)\./, "");
-  return `${url.protocol}//${apexHost}/help/report-an-issue/?ref=${encodeURIComponent(ref)}`;
+  return `${url.protocol}//${apexHost}${withAppVersion(`/help/report-an-issue/?ref=${encodeURIComponent(ref)}`, validAppVersion(version) ?? "dev")}`;
 }
 
-function errorPage(url, ref) {
+function errorPage(url, ref, version) {
   const safeRef = escapeHtml(ref);
   return `<!doctype html>
 <html lang="en-GB">
@@ -39,16 +40,16 @@ function errorPage(url, ref) {
   <p class="muted">If it keeps happening, report it and we'll use this reference to find out what happened: <code>${safeRef}</code></p>
   <div class="actions">
     <a class="button" href="${escapeHtml(url.origin + url.pathname + url.search)}">Try again</a>
-    <a class="button" href="${escapeHtml(reportUrl(url, ref))}">Report an issue</a>
+    <a class="button" href="${escapeHtml(reportUrl(url, ref, version))}">Report an issue</a>
   </div>
 </main>
 </body>
 </html>`;
 }
 
-export function errorResponse(url, ref) {
+export function errorResponse(url, ref, version) {
   if (url.pathname.startsWith("/-/api/")) return json({ error: "Something went wrong.", ref }, 500);
-  return new Response(errorPage(url, ref), {
+  return new Response(errorPage(url, ref, version), {
     status: 500,
     headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
   });
