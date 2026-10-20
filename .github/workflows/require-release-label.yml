@@ -3,6 +3,7 @@ name: Require release label
 # Blocks a PR from being mergeable until it carries a deliberate release
 # decision — one of the three release: major/minor/patch labels, or the
 # explicit no-bump opt-out release: none. See docs/versioning.md.
+# A PR that makes a release must also have a "What's new" section (#1504).
 #
 # This exists because "no label = no release" previously meant PRs could
 # (and did — see issue #173) merge silently unlabeled for weeks, bundling
@@ -18,7 +19,7 @@ name: Require release label
 # skipping it gives nothing away.
 on:
   pull_request:
-    types: [opened, reopened, labeled, unlabeled, synchronize, ready_for_review]
+    types: [opened, reopened, edited, labeled, unlabeled, synchronize, ready_for_review]
 
 permissions:
   pull-requests: read
@@ -28,6 +29,10 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
       # Live query, not `github.event.pull_request.labels` -- that's a
       # snapshot of the webhook payload at the moment the triggering event
       # fired, not the PR's actual state when this job runs. `gh pr create
@@ -86,3 +91,12 @@ jobs:
             exit 1
           fi
           echo "Every changed file is on the never-reaches-users allowlist."
+
+      # #1504 -- Help > What's new is built from this section, via the release tag.
+      - name: Verify a released PR has a What's new section
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # The script is the PR's own checkout, so it runs without the token.
+        run: |
+          PR_JSON=$(gh pr view "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --json body,labels)
+          env -u GH_TOKEN PR_JSON="$PR_JSON" node scripts/check-whats-new.mjs

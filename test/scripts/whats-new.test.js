@@ -1,10 +1,11 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   groupByMonth,
+  hasWhatsNewHeading,
   readHistory,
   readTaggedReleases,
   tagMessage,
@@ -114,5 +115,45 @@ describe("whatsNew", () => {
       expect(entry.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       expect(entry.changes.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("hasWhatsNewHeading (#1504)", () => {
+  it.each([
+    ["the template's heading", "Closes #1\n\n## What's new\n\n- A change\n"],
+    ["an empty section", "Closes #1\n\n## What's new\n\n## Definition of done\n"],
+    ["a curly apostrophe and Windows line ends", "Closes #1\r\n\r\n## What\u2019s new\r\n"],
+  ])("finds %s", (_, body) => {
+    expect(hasWhatsNewHeading(body)).toBe(true);
+  });
+
+  it.each([
+    ["no heading", "Closes #1\n\nSome text"],
+    ["an empty body", ""],
+  ])("misses %s", (_, body) => {
+    expect(hasWhatsNewHeading(body)).toBe(false);
+  });
+});
+
+describe("check-whats-new.mjs (#1504)", () => {
+  const run = (labels, body) =>
+    spawnSync(process.execPath, ["scripts/check-whats-new.mjs"], {
+      env: { ...process.env, PR_JSON: JSON.stringify({ body, labels: labels.split("\n").map(name => ({ name })) }) },
+      encoding: "utf8",
+    });
+  const withHeading = "Closes #1\n\n## What's new\n";
+
+  it.each(["release: patch", "release: minor", "release: major"])("fails %s with no heading", label => {
+    const result = run(`bug\n${label}`, "Closes #1");
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("## What's new");
+  });
+
+  it("passes a released PR with the heading, even left empty", () => {
+    expect(run("release: patch", withHeading).status).toBe(0);
+  });
+
+  it("doesn't check release: none", () => {
+    expect(run("release: none", "Closes #1").status).toBe(0);
   });
 });

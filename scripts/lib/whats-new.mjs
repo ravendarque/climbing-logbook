@@ -4,6 +4,10 @@ import historyFile from "./whats-new-history.json" with { type: "json" };
 const HEADING = /^##\s+What['’]s new\s*$/im;
 const MONTHS_SHOWN = 6;
 
+export function hasWhatsNewHeading(body = "") {
+  return HEADING.test(body.replace(/\r\n/g, "\n"));
+}
+
 // The lines under the PR template's "What's new" heading, one per change; none when left empty.
 export function whatsNewFromPrBody(body = "") {
   const text = body.replace(/\r\n/g, "\n");
