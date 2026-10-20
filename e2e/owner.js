@@ -5,7 +5,7 @@ import { PAIN_INJURY } from "../shared/health-consent.js";
 
 export const OWNER_POOL_PATH = "e2e/.auth/owners.json";
 const OWNER_NEXT_PATH = "e2e/.auth/owners-next";
-export const OWNER_POOL_SIZE = 300;
+export const OWNER_POOL_SIZE = 400;
 export const NEW_OWNER_POOL_PATH = "e2e/.auth/new-owners.json";
 const NEW_OWNER_NEXT_PATH = "e2e/.auth/new-owners-next";
 export const NEW_OWNER_POOL_SIZE = 10;
