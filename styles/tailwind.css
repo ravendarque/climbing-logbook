@@ -554,20 +554,6 @@ climbing-status-picker { display: block; }
   mask-image: linear-gradient(to right, transparent, black 2.5rem, black calc(100% - 2.5rem), transparent);
 }
 .status-picker-viewport:active { cursor: grabbing; }
-/* The second layer leaves the scrollbar (--scrollbar-h, set by the table) unfaded. */
-.table-scroll[data-more-left],
-.table-scroll[data-more-right] {
-  --fade-left: black;
-  --fade-right: black;
-  mask-image:
-    linear-gradient(to right, var(--fade-left), black 2rem, black calc(100% - 2rem), var(--fade-right)),
-    linear-gradient(black, black);
-  mask-size: 100% calc(100% - var(--scrollbar-h, 0px)), 100% var(--scrollbar-h, 0px);
-  mask-position: top, bottom;
-  mask-repeat: no-repeat;
-}
-.table-scroll[data-more-left] { --fade-left: transparent; }
-.table-scroll[data-more-right] { --fade-right: transparent; }
 .status-picker-track {
   display: flex;
   will-change: transform;

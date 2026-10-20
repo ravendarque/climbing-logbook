@@ -340,15 +340,6 @@ test("the climb's name opens its editor, by click or keyboard, and there's no se
   await page.keyboard.press("Enter");
   await expect(page.locator("#entry-name")).toHaveValue("Boulder Seed");
   await page.locator("#entry-close").click();
-
-  const scroller = page.locator(".table-scroll").first();
-  await scroller.evaluate(el => el.scrollTo({ left: 0 }));
-  await expect(scroller).toHaveAttribute("data-more-right", "");
-  await expect(scroller).not.toHaveAttribute("data-more-left");
-  expect(await scroller.evaluate(el => getComputedStyle(el).maskImage)).toContain("linear-gradient");
-  await scroller.evaluate(el => el.scrollTo({ left: el.scrollWidth }));
-  await expect(scroller).toHaveAttribute("data-more-left", "");
-  await expect(scroller).not.toHaveAttribute("data-more-right");
 });
 
 test("date picker: opens on the field's current month, navigates, selects a day, and re-syncs on reopen", async ({

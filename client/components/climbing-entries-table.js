@@ -253,17 +253,6 @@ export class ClimbingEntriesTable extends HTMLElement {
   }
 
   #wire() {
-    this.addEventListener(
-      "scroll",
-      e => e.target.classList?.contains("table-scroll") && markScrollEdges(e.target),
-      true,
-    );
-    let width = 0;
-    new ResizeObserver(([{ contentRect }]) => {
-      if (contentRect.width === width) return;
-      width = contentRect.width;
-      this.querySelectorAll(".table-scroll").forEach(markScrollEdges);
-    }).observe(this);
     const searchInput = this.querySelector("#search");
     const filterBtn = this.querySelector("#filter-btn");
     const filterPanel = this.querySelector("#filter-panel");
@@ -579,15 +568,7 @@ export class ClimbingEntriesTable extends HTMLElement {
     }
 
     container.innerHTML = sections.map(section => this.#renderLocationSection(section)).join("");
-    container.querySelectorAll(".table-scroll").forEach(markScrollEdges);
   }
-}
-
-function markScrollEdges(el) {
-  const more = el.scrollWidth - el.clientWidth;
-  el.toggleAttribute("data-more-left", el.scrollLeft > 1);
-  el.toggleAttribute("data-more-right", more - el.scrollLeft > 1);
-  el.style.setProperty("--scrollbar-h", `${el.offsetHeight - el.clientHeight}px`);
 }
 
 customElements.define("climbing-entries-table", ClimbingEntriesTable);
