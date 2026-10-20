@@ -9,7 +9,6 @@ import {
   resolveScaleId,
   DEFAULT_SCALE_BY_TYPE,
 } from "../shared/grade-data.js";
-import { gradeDisplayLabelForScale } from "../shared/volume-stats.js";
 import { flashLabel, sendLabel, nameLabel, hydrateStatusIcons } from "./status.js";
 import { createPlacePicker } from "./place-picker.js";
 import { createMoveRowList } from "./move-tagging.js";
@@ -292,18 +291,10 @@ export function createEntryForm({
     gradeNsFields.hidden = !nonStandard;
   }
 
-  function gradeOptionLabel(label, scaleId, type) {
-    const boulder = type === "boulder";
-    const vLabel = boulder && scaleId !== "v-scale" ? gradeDisplayLabelForScale(label, scaleId, type) : null;
-    const hint = vLabel ? `/${vLabel}` : "";
-    return `${label}${hint}`;
-  }
   gradeValuePicker.setRender(() => {
-    const type = store.getActiveType();
-    const scaleId = currentGradeScaleId();
-    renderOptionList(document.getElementById("grade-value-listbox"), SCALES[scaleId].labels, {
+    renderOptionList(document.getElementById("grade-value-listbox"), SCALES[currentGradeScaleId()].labels, {
       getKey: g => g,
-      getLabel: g => gradeOptionLabel(g, scaleId, type),
+      getLabel: g => g,
       isSelected: g => g === selectedGrade,
     });
   });
@@ -317,7 +308,7 @@ export function createEntryForm({
     const wrapped = ((index % labels.length) + labels.length) % labels.length;
     const g = labels[wrapped];
     selectedGrade = g;
-    gradeValuePicker.trigger.textContent = gradeOptionLabel(g, currentGradeScaleId(), store.getActiveType());
+    gradeValuePicker.trigger.textContent = g;
     gradeValuePicker.trigger.style.backgroundColor = gradeColorForScale(
       g,
       currentGradeScaleId(),
