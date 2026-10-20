@@ -428,6 +428,13 @@ export function createEntryForm({
     },
   });
 
+  let activePage = entryPage1;
+  const pageResize = new ResizeObserver(() => {
+    if (entryPagesViewport.style.height) entryPagesViewport.style.height = `${activePage.scrollHeight}px`;
+  });
+  pageResize.observe(entryPage1);
+  pageResize.observe(entryPage2);
+
   function showPage(pageNum) {
     const fromHeight = entryPagesViewport.getBoundingClientRect().height;
     entryPagesViewport.style.height = `${fromHeight}px`;
@@ -436,6 +443,7 @@ export function createEntryForm({
     // Next frame, so the old height paints before the transition to the new one.
     requestAnimationFrame(() => {
       const target = pageNum === 2 ? entryPage2 : entryPage1;
+      activePage = target;
       entryPagesTrack.style.transform = pageNum === 2 ? "translateX(-100%)" : "translateX(0)";
       entryPagesViewport.style.height = `${target.scrollHeight}px`;
       // preventScroll: a native scroll fought the slide.
@@ -456,6 +464,7 @@ export function createEntryForm({
     // Always opens on page 1: performance data is a deliberate second step.
     entryPagesTrack.style.transform = "translateX(0)";
     entryPagesViewport.style.height = "";
+    activePage = entryPage1;
     entryPage1.inert = false;
     entryPage2.inert = true;
 
