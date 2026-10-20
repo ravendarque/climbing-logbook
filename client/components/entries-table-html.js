@@ -164,7 +164,7 @@ function nameCell(e, pendingBadge, editable) {
     ? `<span class="block text-xs text-accent-ink ${editable ? "px-[.65rem] pb-[.35rem]" : ""}" title="Hidden from your public logbook">Hidden (<a class="underline underline-offset-2" data-apex-link href="${escapeHtml(resolveApexUrl(location.hostname, "/help/terms/#hidden-climbs"))}" aria-label="Why is this hidden from my public logbook?">Why?</a>)</span>`
     : "";
   if (!editable) return `<td class="${TD_BASE} overflow-hidden">${name}${hidden}</td>`;
-  return `<td class="p-0 overflow-hidden align-middle"><button type="button" class="edit-btn ${TD_BASE} block w-full text-left bg-transparent border-0 text-inherit cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-[-2px]" data-edit-id="${escapeHtml(e.id)}" aria-label="Edit ${escapeHtml(e.name)}">${name}</button>${hidden}</td>`;
+  return `<td class="p-0 overflow-hidden align-middle"><button type="button" class="edit-btn ${TD_BASE} block w-full text-left bg-transparent border-0 text-inherit cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-[-2px]" data-edit-id="${escapeHtml(e.id)}"><span class="sr-only">Edit </span>${name}</button>${hidden}</td>`;
 }
 
 export function renderLocationSectionHtml(
@@ -195,9 +195,9 @@ export function renderLocationSectionHtml(
           ? "bg-[color-mix(in_srgb,var(--color-accent)_6%,var(--color-surface))]"
           : "hover:bg-[color-mix(in_srgb,var(--color-accent)_4%,var(--color-surface))]";
       const pendingBadge = e._pendingDelete
-        ? `<span class="text-red-400" title="Pending delete"> ${PENDING_ICON}</span>`
+        ? `<span class="text-red-400" title="Pending delete"> ${PENDING_ICON}<span class="sr-only">Pending delete</span></span>`
         : e._pending
-          ? `<span class="text-accent-ink" title="Pending sync"> ${PENDING_ICON}</span>`
+          ? `<span class="text-accent-ink" title="Pending sync"> ${PENDING_ICON}<span class="sr-only">Pending sync</span></span>`
           : "";
       return `
     <tr class="border-b border-[color-mix(in_srgb,var(--color-border)_40%,transparent)] last:border-b-0 ${rowBg}">

@@ -582,6 +582,7 @@ function markScrollEdges(el) {
   const more = el.scrollWidth - el.clientWidth;
   el.toggleAttribute("data-more-left", el.scrollLeft > 1);
   el.toggleAttribute("data-more-right", more - el.scrollLeft > 1);
+  el.style.setProperty("--scrollbar-h", `${el.offsetHeight - el.clientHeight}px`);
 }
 
 customElements.define("climbing-entries-table", ClimbingEntriesTable);

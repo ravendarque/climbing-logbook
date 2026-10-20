@@ -328,7 +328,7 @@ test("the climb's name opens its editor, by click or keyboard, and there's no se
   await page.locator("#collapse-all-btn").click();
 
   const nameButton = page.getByRole("button", { name: "Edit Boulder Seed" });
-  await expect(nameButton).toHaveText("Boulder Seed");
+  await expect(nameButton.locator(".font-medium")).toHaveText("Boulder Seed");
   await expect(page.locator("th", { hasText: "Edit" })).toHaveCount(0);
 
   await nameButton.click();
@@ -345,6 +345,7 @@ test("the climb's name opens its editor, by click or keyboard, and there's no se
   await scroller.evaluate(el => el.scrollTo({ left: 0 }));
   await expect(scroller).toHaveAttribute("data-more-right", "");
   await expect(scroller).not.toHaveAttribute("data-more-left");
+  expect(await scroller.evaluate(el => getComputedStyle(el).maskImage)).toContain("linear-gradient");
   await scroller.evaluate(el => el.scrollTo({ left: el.scrollWidth }));
   await expect(scroller).toHaveAttribute("data-more-left", "");
   await expect(scroller).not.toHaveAttribute("data-more-right");
