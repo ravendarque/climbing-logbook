@@ -14,6 +14,7 @@ const RUN_WORKER_FIRST_PATHS = runWorkerFirstMatch
 
 // Only files that need a real document.
 const DOM_TESTS = [
+  "test/client/preselect-section.test.js",
   "test/client/delta-pull.test.js",
   "test/client/move-tagging.test.js",
   "test/client/characters-left.test.js",

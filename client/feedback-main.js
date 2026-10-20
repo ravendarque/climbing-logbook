@@ -4,6 +4,7 @@ import { FIELD_LIMITS } from "../shared/field-limits.js";
 import { showCharactersLeft } from "./characters-left.js";
 import { createThemeToggle } from "./theme-toggle.js";
 import { renderTurnstile } from "./turnstile.js";
+import { preselectSection } from "./preselect-section.js";
 
 createDisclosure(
   document.getElementById("header-menu-btn"),
@@ -37,6 +38,7 @@ function showError(message) {
 const turnstile = renderTurnstile("#turnstile-widget");
 
 const sourcePage = document.referrer || undefined;
+preselectSection(document.getElementById("feedback-section"), sourcePage);
 
 form.addEventListener("submit", async event => {
   event.preventDefault();
