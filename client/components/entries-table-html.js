@@ -120,7 +120,7 @@ export function shellHtml(allDisciplines) {
         <h2 class="text-lg font-bold text-accent-ink" id="notes-modal-title">Notes</h2>
         <button type="button" class="border-none bg-transparent cursor-pointer text-muted text-lg leading-none p-[.2rem] hover:text-foreground" id="notes-close" aria-label="Close">✕</button>
       </div>
-      <p class="text-foreground text-base whitespace-pre-wrap" id="notes-modal-text"></p>
+      <p class="text-foreground text-base whitespace-pre-wrap break-words" id="notes-modal-text"></p>
       <a class="inline-block mt-4 text-sm text-muted underline underline-offset-2 hover:text-accent-ink" id="notes-report-link" data-apex-link href="#" hidden>Report this entry</a>
     </div>
   </div>
