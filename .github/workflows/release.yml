@@ -85,5 +85,7 @@ jobs:
             jq -r .message <<< "$release" > "$RUNNER_TEMP/tag-message"
             git tag -a "$version" --cleanup=whitespace -F "$RUNNER_TEMP/tag-message" "$(jq -r .sha <<< "$release")"
             git push "https://x-access-token:${APP_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$version"
-            gh release create "$version" --repo "$GITHUB_REPOSITORY" --title "$version" --generate-notes
+            # Nothing reads GitHub Releases, so one that fails mustn't stop the remaining tags.
+            gh release create "$version" --repo "$GITHUB_REPOSITORY" --title "$version" --generate-notes \
+              || echo "::warning::Tag $version pushed, but its GitHub Release wasn't created."
           done

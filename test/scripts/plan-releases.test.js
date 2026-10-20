@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bumpOf, nextVersion, planReleases } from "../../scripts/lib/plan-releases.mjs";
+import { bumpOf, nextVersion, planFromRepo, planReleases } from "../../scripts/lib/plan-releases.mjs";
 
 const PRS = {
   a: { number: 1, labels: ["release: patch"], body: "## What's new\n\n- Fix one." },
@@ -44,5 +44,43 @@ describe("bumpOf and nextVersion", () => {
     ["patch", "v2.9.6"],
   ])("bumps %s", (bump, next) => {
     expect(nextVersion("v2.9.5", bump)).toBe(next);
+  });
+});
+
+describe("planFromRepo (#1512)", () => {
+  function fakeGit({ ancestor = true } = {}) {
+    const calls = [];
+    const git = args => {
+      calls.push(args.join(" "));
+      if (args[0] === "tag" && args[1] === "-l") return "v2.9.5\nv2.9.4";
+      if (args[0] === "merge-base") {
+        if (!ancestor) throw new Error("not an ancestor");
+        return "";
+      }
+      if (args[0] === "rev-list") return "a\nb";
+      if (args[0] === "rev-parse") return "tip";
+      if (args[0] === "tag" && args[1] === "--points-at") return "";
+      throw new Error(`unexpected git ${args.join(" ")}`);
+    };
+    return { git, calls };
+  }
+
+  it("plans from the latest tag up to the merge commit, first-parent and oldest first", () => {
+    const { git, calls } = fakeGit();
+    const plan = planFromRepo({ git, prFor: sha => PRS[sha] ?? null, mergeSha: "b" });
+    expect(plan.map(r => r.version)).toEqual(["v2.9.6", "v2.10.0"]);
+    expect(calls).toContain("rev-list --reverse --first-parent v2.9.5..b");
+  });
+
+  it("refuses to plan when the latest tag isn't in the merge commit's history", () => {
+    const { git } = fakeGit({ ancestor: false });
+    expect(() => planFromRepo({ git, prFor: () => null, mergeSha: "b" })).toThrow(/no safe range/);
+  });
+
+  it("releases main's tip with the given bump on a manual run", () => {
+    const { git } = fakeGit();
+    expect(planFromRepo({ git, prFor: () => null, bumpInput: "minor" })).toEqual([
+      { sha: "tip", version: "v2.10.0", pr: null, message: "v2.10.0\n" },
+    ]);
   });
 });

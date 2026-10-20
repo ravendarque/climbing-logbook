@@ -27,3 +27,34 @@ export function planReleases({ commits, latestVersion, isTagged, prFor }) {
   }
   return plan;
 }
+
+// git(args) returns trimmed stdout. A latest tag that isn't on this commit's history would make the range
+// reach back to the merge-base and re-tag old releases, so that stops the run instead.
+export function planFromRepo({ git, prFor, mergeSha, bumpInput }) {
+  const latestTag = git(["tag", "-l", "v*", "--sort=-v:refname"]).split("\n")[0];
+  if (bumpInput) {
+    const version = nextVersion(latestTag, bumpInput);
+    return [{ sha: git(["rev-parse", "HEAD"]), version, pr: null, message: tagMessage(version, []) }];
+  }
+  if (!isAncestor(git, latestTag, mergeSha)) {
+    throw new Error(`${latestTag} isn't in ${mergeSha}'s history, so there's no safe range to release from`);
+  }
+  const commits = git(["rev-list", "--reverse", "--first-parent", `${latestTag}..${mergeSha}`])
+    .split("\n")
+    .filter(Boolean);
+  return planReleases({
+    commits,
+    latestVersion: latestTag,
+    isTagged: sha => git(["tag", "--points-at", sha]) !== "",
+    prFor,
+  });
+}
+
+function isAncestor(git, ancestor, descendant) {
+  try {
+    git(["merge-base", "--is-ancestor", ancestor, descendant]);
+    return true;
+  } catch {
+    return false;
+  }
+}
