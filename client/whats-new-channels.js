@@ -67,5 +67,5 @@ export async function showChannels(container, hostname = location.hostname) {
 // Without both lists, the page keeps the list it was built with.
 export function enhanceWhatsNew(doc = document) {
   const container = doc.getElementById("whats-new-list");
-  if (container) showChannels(container).catch(() => {});
+  if (container) showChannels(container).catch(err => console.warn("What's new: kept the built list", err));
 }
