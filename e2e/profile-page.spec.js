@@ -280,6 +280,20 @@ test("a table loads every page of its climbs, not just the first (#1498)", async
   expect(offsets).toEqual([0, 200]);
 });
 
+test("Expand all loads the whole logbook in one go, not a request per table (#1498)", async ({ page, owner }) => {
+  const requests = [];
+  page.on("request", req => {
+    if (req.url().includes("/-/api/public/") && req.url().includes("/entries?")) requests.push(new URL(req.url()));
+  });
+  await visitProfile(page, owner, MIXED_SEED);
+
+  await page.locator("#collapse-all-btn").click();
+  await expect(page.getByText("Boulder Seed")).toBeVisible();
+  await expect(page.getByText("Sport Seed")).toBeVisible();
+  expect(requests).toHaveLength(1);
+  expect(requests[0].searchParams.has("locationId")).toBe(false);
+});
+
 test("a table whose load fails can be retried by collapsing and expanding it (#1498)", async ({ page, owner }) => {
   let failNext = true;
   await page.route("**/-/api/public/*/entries?*", route => {
@@ -291,7 +305,7 @@ test("a table whose load fails can be retried by collapsing and expanding it (#1
   const boulder = page.locator(".place-header").first();
 
   await boulder.click();
-  await expect(page.locator("#sections")).not.toContainText("Loading this location");
+  await expect(page.locator("#sections")).toContainText("Couldn't load these climbs");
   await expect(page.getByText("Boulder Seed")).toHaveCount(0);
 
   await boulder.click();

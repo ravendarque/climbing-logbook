@@ -23,6 +23,7 @@ export class ClimbingEntriesTable extends HTMLElement {
   #locations = [];
   #locationCounts = {};
   #loadingSections = new Set();
+  #failedSections = new Set();
   #revealedCounts = new Map();
   #search = "";
   #statusFilters = new Set(DEFAULT_STATUS_FILTERS);
@@ -224,17 +225,24 @@ export class ClimbingEntriesTable extends HTMLElement {
     );
   }
 
-  #maybeExpandShell(section) {
-    if (!this.lazy || section.items !== null) return;
-    if (this.#loadingSections.has(section.key)) return;
-    this.#loadingSections.add(section.key);
-    const { key, locationId, discipline } = section;
-    this.dispatchEvent(new CustomEvent("location-expand", { detail: { key, locationId, discipline }, bubbles: true }));
+  // One event per user action, so the page can load many tables in one go rather than a request each.
+  #requestShells(sections) {
+    if (!this.lazy) return;
+    const wanted = sections.filter(s => s.items === null && !this.#loadingSections.has(s.key));
+    if (wanted.length === 0) return;
+    for (const { key } of wanted) {
+      this.#loadingSections.add(key);
+      this.#failedSections.delete(key);
+    }
+    const detail = { sections: wanted.map(({ key, locationId, discipline }) => ({ key, locationId, discipline })) };
+    this.dispatchEvent(new CustomEvent("sections-expand", { detail, bubbles: true }));
   }
 
-  // Called by the page once a section's request ends, loaded or not, so a failed one can be tried again.
-  sectionLoadSettled(key) {
+  // Called by the page once a request ends, so a failed table says so and can be tried again.
+  sectionLoadSettled(key, { failed = false } = {}) {
     this.#loadingSections.delete(key);
+    if (failed) this.#failedSections.add(key);
+    else this.#failedSections.delete(key);
     this.#update();
   }
 
@@ -291,12 +299,11 @@ export class ClimbingEntriesTable extends HTMLElement {
         const sections = this.#visibleSections();
         const keys = sections.map(s => s.key);
         const allCollapsed = keys.length > 0 && keys.every(k => this.#collapsed.has(k));
-        sections.forEach(s => {
-          if (allCollapsed) {
-            this.#collapsed.delete(s.key);
-            this.#maybeExpandShell(s);
-          } else this.#collapsed.add(s.key);
-        });
+        for (const { key } of sections) {
+          if (allCollapsed) this.#collapsed.delete(key);
+          else this.#collapsed.add(key);
+        }
+        if (allCollapsed) this.#requestShells(sections);
         this.#update();
         return;
       }
@@ -328,7 +335,7 @@ export class ClimbingEntriesTable extends HTMLElement {
         wasCollapsed ? this.#collapsed.delete(id) : this.#collapsed.add(id);
         if (wasCollapsed) {
           const section = this.#visibleSections().find(s => s.key === id);
-          if (section) this.#maybeExpandShell(section);
+          if (section) this.#requestShells([section]);
         }
         this.#update();
       }
@@ -382,7 +389,7 @@ export class ClimbingEntriesTable extends HTMLElement {
         wasCollapsed ? this.#collapsed.delete(id) : this.#collapsed.add(id);
         if (wasCollapsed) {
           const section = this.#visibleSections().find(s => s.key === id);
-          if (section) this.#maybeExpandShell(section);
+          if (section) this.#requestShells([section]);
         }
         this.#update();
       }
@@ -551,6 +558,7 @@ export class ClimbingEntriesTable extends HTMLElement {
       locations: this.#locations,
       collapsed: this.#collapsed,
       loadingSections: this.#loadingSections,
+      failedSections: this.#failedSections,
     });
   }
 

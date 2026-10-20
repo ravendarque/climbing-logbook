@@ -131,7 +131,7 @@ const locationHeaderName = (location, discipline) =>
 
 export function renderShellSectionHtml(
   { key, locationId, discipline, shellCount },
-  { locations, collapsed, loadingSections },
+  { locations, collapsed, loadingSections, failedSections },
 ) {
   const location = locations.find(l => l.id === locationId) ?? { name: "", country: "" };
   const isCollapsed = collapsed.has(key);
@@ -153,7 +153,7 @@ export function renderShellSectionHtml(
         <span class="inline-flex items-center justify-center min-w-[1.4rem] h-[1.4rem] px-1 rounded-full bg-[color-mix(in_srgb,var(--color-text)_12%,transparent)] text-muted text-xs font-semibold shrink-0" aria-label="${shellCount} ${shellCount === 1 ? "entry" : "entries"}">${shellCount}</span>
         <span class="text-muted text-sm transition-transform duration-200 shrink-0 ${isCollapsed ? "-rotate-90" : ""}">▾</span>
       </div>
-      ${isCollapsed ? "" : `<div class="px-[.9rem] py-4">${isLoading ? loadingSpinnerHtml("Loading this location's climbs", { compact: true }) : ""}</div>`}
+      ${isCollapsed ? "" : `<div class="px-[.9rem] py-4">${isLoading ? loadingSpinnerHtml("Loading this location's climbs", { compact: true }) : failedSections.has(key) ? `<p class="text-sm text-muted text-center">Couldn't load these climbs. Check your connection, then close and open this table to try again.</p>` : ""}</div>`}
     </div>`;
 }
 

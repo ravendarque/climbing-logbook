@@ -4,6 +4,7 @@ import { createStore } from "./store.js";
 import { createMapView } from "./map-view.js";
 import { createDisclosure } from "./modal-utils.js";
 import { loadResource } from "./fetch-json.js";
+import { ACCOUNT_LIMITS } from "../shared/account-limits.js";
 import { createThemeToggle } from "./theme-toggle.js";
 import "./components/climbing-entries-table.js";
 import { resolveApexUrl } from "./resolve-cross-hostname-url.js";
@@ -57,30 +58,52 @@ createDisclosure(
 createThemeToggle();
 
 const PAGE_SIZE = 200;
+const ALL_PAGE_SIZE = 1000;
+// No account holds more, so a server that kept sending full pages can't keep this looping.
+const MAX_PAGES = Math.ceil(ACCOUNT_LIMITS.entries.max / PAGE_SIZE);
+const entriesUrl = query => `/-/api/public/${encodeURIComponent(USERNAME)}/entries?${query}`;
 
-// Every page before any is shown: a section that's partly loaded would look complete.
-async function loadSection(locationId, discipline) {
+// Every page before any is shown: a table that's partly loaded would look complete.
+async function loadSection({ locationId, discipline }) {
   const query = new URLSearchParams({ locationId, limit: String(PAGE_SIZE) });
   if (discipline) query.set("discipline", discipline);
   const rows = [];
-  for (let offset = 0; ; offset += PAGE_SIZE) {
-    query.set("offset", String(offset));
-    const page = await loadResource(`/-/api/public/${encodeURIComponent(USERNAME)}/entries?${query}`, "entries");
-    rows.push(...page);
-    if (page.length < PAGE_SIZE) return rows;
+  for (let page = 0; page < MAX_PAGES; page++) {
+    query.set("offset", String(page * PAGE_SIZE));
+    const entries = await loadResource(entriesUrl(query), "entries");
+    rows.push(...entries);
+    if (entries.length < PAGE_SIZE) return rows;
   }
+  throw new Error("Too many pages");
 }
 
-entriesTable.addEventListener("location-expand", async e => {
-  const { key, locationId, discipline } = e.detail;
+// Many tables at once (Expand all): the whole logbook in a few large pages, not a request per table.
+async function loadAll() {
+  const rows = [];
+  const query = new URLSearchParams({ limit: String(ALL_PAGE_SIZE) });
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const res = await fetch(entriesUrl(query));
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { entries, next } = await res.json();
+    rows.push(...entries);
+    if (!next) return rows;
+    query.set("afterCreatedAt", next.createdAt);
+    query.set("afterId", next.id);
+  }
+  throw new Error("Too many pages");
+}
+
+entriesTable.addEventListener("sections-expand", async e => {
+  const { sections } = e.detail;
+  let failed = false;
   try {
-    const loaded = await loadSection(locationId, discipline);
+    const loaded = sections.length === 1 ? await loadSection(sections[0]) : await loadAll();
     const held = new Set(entriesTable.entries.map(entry => entry.id));
     entriesTable.entries = [...entriesTable.entries, ...loaded.filter(entry => !held.has(entry.id))];
   } catch {
-    // Collapsing and expanding again retries.
+    failed = true;
   } finally {
-    entriesTable.sectionLoadSettled(key);
+    for (const { key } of sections) entriesTable.sectionLoadSettled(key, { failed });
   }
 });
 

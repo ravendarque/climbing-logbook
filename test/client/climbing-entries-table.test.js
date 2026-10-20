@@ -182,3 +182,53 @@ describe("Expand all while the table has nothing to expand (#1184)", () => {
     expect(el.querySelector("#collapse-all-btn").disabled).toBe(false);
   });
 });
+
+describe("lazy tables on the public logbook (#1498)", () => {
+  async function lazyTable() {
+    el.toggleAttribute("lazy", true);
+    el.toggleAttribute("all-disciplines", true);
+    el.places = [{ id: "p1", locationId: "loc1", area: "" }];
+    el.locations = [{ id: "loc1", name: "Fontainebleau", country: "France" }];
+    el.locationCounts = { loc1: { boulder: 1, sport: 1 } };
+    el.loading = false;
+    await Promise.resolve();
+  }
+  const headers = () => [...el.querySelectorAll(".place-header")].map(h => h.dataset.locationId);
+
+  it("draws a placeholder per discipline, and asks for one table on its own", async () => {
+    await lazyTable();
+    expect(headers()).toEqual(["loc1:boulder", "loc1:sport"]);
+    const requests = [];
+    el.addEventListener("sections-expand", e => requests.push(e.detail.sections.map(s => s.key)));
+    el.querySelector('.place-header[data-location-id="loc1:sport"]').click();
+    expect(requests).toEqual([["loc1:sport"]]);
+  });
+
+  it("asks for every table in one request on Expand all", async () => {
+    await lazyTable();
+    const requests = [];
+    el.addEventListener("sections-expand", e => requests.push(e.detail.sections.map(s => s.key)));
+    el.querySelector("#collapse-all-btn").click();
+    expect(requests).toEqual([["loc1:boulder", "loc1:sport"]]);
+  });
+
+  it("keeps a loaded table loaded when a filter hides all its climbs", async () => {
+    await lazyTable();
+    el.entries = [entry({ name: "Sleepwalker" })];
+    el.sectionLoadSettled("loc1:boulder");
+    await Promise.resolve();
+    const search = el.querySelector("#search");
+    search.value = "no such climb";
+    search.dispatchEvent(new Event("input", { bubbles: true }));
+    await Promise.resolve();
+    expect(headers()).toEqual(["loc1:sport"]);
+  });
+
+  it("says so when a table's climbs couldn't load", async () => {
+    await lazyTable();
+    el.querySelector('.place-header[data-location-id="loc1:sport"]').click();
+    el.sectionLoadSettled("loc1:sport", { failed: true });
+    await Promise.resolve();
+    expect(el.textContent).toContain("Couldn't load these climbs");
+  });
+});
