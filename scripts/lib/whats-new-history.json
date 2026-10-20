@@ -1,5 +1,40 @@
 [
   {
+    "version": "v2.138.0",
+    "date": "2026-10-20",
+    "changes": ["Tap a climb's name in your logbook to edit it. The separate edit column has gone."]
+  },
+  {
+    "version": "v2.137.1",
+    "date": "2026-10-20",
+    "changes": ["With the Font scale chosen, the grade picker shows Font grades only."]
+  },
+  {
+    "version": "v2.137.0",
+    "date": "2026-10-20",
+    "changes": ["Report an issue and Tell us what you think now pick the part of the app you came from for you."]
+  },
+  {
+    "version": "v2.136.8",
+    "date": "2026-10-20",
+    "changes": ["Long links in a climb's notes now wrap instead of running off the screen."]
+  },
+  {
+    "version": "v2.136.7",
+    "date": "2026-10-20",
+    "changes": ["On a public logbook, each location's tables say which discipline they're for before you open them."]
+  },
+  {
+    "version": "v2.136.6",
+    "date": "2026-10-20",
+    "changes": ["The menu shows Offline whenever a sync can't reach the server, not only after a long wait."]
+  },
+  {
+    "version": "v2.136.5",
+    "date": "2026-10-20",
+    "changes": ["On a phone, the entry form's second page now grows as you add moves, so Save stays within reach."]
+  },
+  {
     "version": "v2.116.0",
     "date": "2026-10-11",
     "changes": ["When the terms of use change, you're asked to agree to the new version. Anything you save meanwhile waits on your device until you do."]

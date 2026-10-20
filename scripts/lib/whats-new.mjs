@@ -116,8 +116,16 @@ export function groupByMonth(releases) {
 }
 
 // A tag's own lines win over the hand-written history for the same version.
+const byVersionNumber = (a, b) => a.localeCompare(b, "en", { numeric: true });
+
+// History is ignored past the newest tag in this build, so a build can't list a release it doesn't have.
 export function whatsNew({ tagged = readTaggedReleases(), history = readHistory() } = {}) {
-  const byVersion = new Map(history.map(release => [release.version, release]));
+  const newest = tagged
+    .map(release => release.version)
+    .sort(byVersionNumber)
+    .at(-1);
+  const shipped = newest ? history.filter(release => byVersionNumber(release.version, newest) <= 0) : history;
+  const byVersion = new Map(shipped.map(release => [release.version, release]));
   for (const release of tagged) if (release.changes.length > 0) byVersion.set(release.version, release);
   return groupByMonth([...byVersion.values()]);
 }
