@@ -138,7 +138,7 @@ describe("hasWhatsNewHeading (#1504)", () => {
 describe("check-whats-new.mjs (#1504)", () => {
   const run = (labels, body) =>
     spawnSync(process.execPath, ["scripts/check-whats-new.mjs"], {
-      env: { ...process.env, LABELS: labels, PR_BODY: body },
+      env: { ...process.env, PR_JSON: JSON.stringify({ body, labels: labels.split("\n").map(name => ({ name })) }) },
       encoding: "utf8",
     });
   const withHeading = "Closes #1\n\n## What's new\n";
