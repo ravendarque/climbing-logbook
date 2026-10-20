@@ -661,7 +661,11 @@ test("Boulder defaults to the Font scale (button + popover), and the picker list
 
   await expect(page.locator("#grade-value-btn")).toBeVisible();
   await expect(page.locator("#grade-ns-fields")).toBeHidden();
-  await expect(page.locator("#grade-value-btn")).toHaveText("3/VB");
+  await expect(page.locator("#grade-value-btn")).toHaveText("3");
+  await page.locator("#grade-value-btn").click();
+  await expect(page.locator('#grade-value-listbox [role="option"][data-key="6A"]')).toHaveText("6A");
+  await page.locator("#grade-value-btn").click();
+  await expect(page.locator("#grade-value-listbox")).toBeHidden();
 
   await page.locator("#grade-scale-btn").click();
   await expect(page.locator('#grade-scale-listbox [role="option"]')).toHaveText([
