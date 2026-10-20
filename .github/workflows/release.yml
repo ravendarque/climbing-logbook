@@ -69,9 +69,10 @@ jobs:
     permissions:
       contents: write
     steps:
+      # The PR's own merge commit, not main's tip: a PR merged moments later would otherwise get this tag too (#1509).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: main
+          ref: ${{ github.event.pull_request.merge_commit_sha || 'main' }}
           fetch-depth: 0
           persist-credentials: false
 
