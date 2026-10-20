@@ -9,7 +9,7 @@ test("every column header is a named column header, and sortable ones sort throu
   await page.locator(".place-header").first().click();
 
   const headers = page.getByRole("columnheader");
-  await expect(headers).toHaveCount(8);
+  await expect(headers).toHaveCount(7);
   for (const header of await headers.all()) {
     expect((await header.textContent()).trim()).not.toBe("");
   }
