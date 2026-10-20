@@ -22,7 +22,7 @@ export class ClimbingEntriesTable extends HTMLElement {
   #places = [];
   #locations = [];
   #locationCounts = {};
-  #loadingLocations = new Set();
+  #loadingSections = new Set();
   #revealedCounts = new Map();
   #search = "";
   #statusFilters = new Set(DEFAULT_STATUS_FILTERS);
@@ -203,23 +203,39 @@ export class ClimbingEntriesTable extends HTMLElement {
     }));
   }
 
-  #mergeShellSections(real) {
-    const realLocationIds = new Set(real.map(s => s.locationId));
-    for (const id of realLocationIds) this.#loadingLocations.delete(id);
+  // From every entry held, not the filtered view, so a filter that empties a section doesn't bring its shell back.
+  #loadedKeys() {
+    const locationOf = new Map(this.#places.map(p => [p.id, p.locationId]));
+    return new Set(
+      this.#entries.map(e => this.#sectionKey(locationOf.get(e.placeId), this.allDisciplines ? e.type : null)),
+    );
+  }
 
-    const shells = this.#locations.filter(l => !realLocationIds.has(l.id)).flatMap(l => this.#shellSections(l.id));
+  #mergeShellSections(real) {
+    const loaded = this.#loadedKeys();
+    for (const key of loaded) this.#loadingSections.delete(key);
+
+    const shells = this.#locations.flatMap(l => this.#shellSections(l.id)).filter(s => !loaded.has(s.key));
 
     const order = new Map(this.#locations.map((l, i) => [l.id, i]));
-    return [...real, ...shells].sort((a, b) => (order.get(a.locationId) ?? 0) - (order.get(b.locationId) ?? 0));
+    const rank = s => DISCIPLINE_ORDER.indexOf(s.discipline);
+    return [...real, ...shells].sort(
+      (a, b) => (order.get(a.locationId) ?? 0) - (order.get(b.locationId) ?? 0) || rank(a) - rank(b),
+    );
   }
 
   #maybeExpandShell(section) {
     if (!this.lazy || section.items !== null) return;
-    if (this.#loadingLocations.has(section.locationId)) return;
-    this.#loadingLocations.add(section.locationId);
-    this.dispatchEvent(
-      new CustomEvent("location-expand", { detail: { locationId: section.locationId }, bubbles: true }),
-    );
+    if (this.#loadingSections.has(section.key)) return;
+    this.#loadingSections.add(section.key);
+    const { key, locationId, discipline } = section;
+    this.dispatchEvent(new CustomEvent("location-expand", { detail: { key, locationId, discipline }, bubbles: true }));
+  }
+
+  // Called by the page once a section's request ends, loaded or not, so a failed one can be tried again.
+  sectionLoadSettled(key) {
+    this.#loadingSections.delete(key);
+    this.#update();
   }
 
   #getSort(locationId) {
@@ -534,7 +550,7 @@ export class ClimbingEntriesTable extends HTMLElement {
     return renderShellSectionHtml(section, {
       locations: this.#locations,
       collapsed: this.#collapsed,
-      loadingLocations: this.#loadingLocations,
+      loadingSections: this.#loadingSections,
     });
   }
 

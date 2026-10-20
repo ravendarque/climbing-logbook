@@ -17,6 +17,7 @@ const READ_PARAMS = new Set([
   "limit",
   "offset",
   "locationId",
+  "discipline",
   "afterCreatedAt",
   "afterId",
   "boulderScale",

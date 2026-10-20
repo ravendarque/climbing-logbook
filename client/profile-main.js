@@ -56,19 +56,31 @@ createDisclosure(
 
 createThemeToggle();
 
-// Merged, not replaced, so earlier locations keep their rows.
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 200;
+
+// Every page before any is shown: a section that's partly loaded would look complete.
+async function loadSection(locationId, discipline) {
+  const query = new URLSearchParams({ locationId, limit: String(PAGE_SIZE) });
+  if (discipline) query.set("discipline", discipline);
+  const rows = [];
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    query.set("offset", String(offset));
+    const page = await loadResource(`/-/api/public/${encodeURIComponent(USERNAME)}/entries?${query}`, "entries");
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) return rows;
+  }
+}
+
 entriesTable.addEventListener("location-expand", async e => {
-  const { locationId } = e.detail;
-  const base = `/-/api/public/${encodeURIComponent(USERNAME)}`;
+  const { key, locationId, discipline } = e.detail;
   try {
-    const loaded = await loadResource(
-      `${base}/entries?locationId=${encodeURIComponent(locationId)}&limit=${PAGE_SIZE}`,
-      "entries",
-    );
-    entriesTable.entries = [...entriesTable.entries, ...loaded];
+    const loaded = await loadSection(locationId, discipline);
+    const held = new Set(entriesTable.entries.map(entry => entry.id));
+    entriesTable.entries = [...entriesTable.entries, ...loaded.filter(entry => !held.has(entry.id))];
   } catch {
-    // No automatic retry: collapsing and re-expanding re-fires the request.
+    // Collapsing and expanding again retries.
+  } finally {
+    entriesTable.sectionLoadSettled(key);
   }
 });
 

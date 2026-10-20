@@ -131,11 +131,11 @@ const locationHeaderName = (location, discipline) =>
 
 export function renderShellSectionHtml(
   { key, locationId, discipline, shellCount },
-  { locations, collapsed, loadingLocations },
+  { locations, collapsed, loadingSections },
 ) {
   const location = locations.find(l => l.id === locationId) ?? { name: "", country: "" };
   const isCollapsed = collapsed.has(key);
-  const isLoading = loadingLocations.has(locationId);
+  const isLoading = loadingSections.has(key);
   const locationCountry = COUNTRY_BY_NAME[location.country];
 
   return `
