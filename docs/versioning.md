@@ -138,7 +138,7 @@ finds the latest existing `vX.Y.Z` tag, calculates the new version with the
 no push to `main`) and creates a GitHub Release with auto-generated notes —
 no manual step required. Because it never pushes to `main`, this never
 interacts with branch protection on `main` — tags aren't covered by it.
-The tag goes on the merged PR's own merge commit, not the tip of `main`, so two PRs merged moments apart each get their own tag (#1509).
+The tag goes on the merged PR's own merge commit, not the tip of `main`, so two PRs merged moments apart each get their own tag (#1509). Every merged PR's run tags each released PR since the latest tag, oldest first, so a run that GitHub cancels while it waits (the `release` concurrency group keeps only one waiting) loses nothing: the next run tags that PR too (#1512).
 That tag push is what triggers `deploy.yml`. It authenticates with a
 short-lived token from the release GitHub App (`RELEASE_APP_CLIENT_ID`
 variable, `RELEASE_APP_PRIVATE_KEY` secret; Contents: write on this repo
@@ -155,7 +155,7 @@ doesn't fit the normal PR-merge flow.
 Help → What's new lists the last six months of changes, from the release
 tags. The release workflow writes the merged PR's "What's new" lines into
 the annotated tag's message, under the version
-(`scripts/whats-new-tag-message.mjs`), and the help build reads them back
+(`scripts/plan-releases.mjs`), and the help build reads them back
 from git (`scripts/lib/whats-new.mjs`). A release with no lines isn't
 listed. The required release-label check also fails a PR labelled patch,
 minor or major whose description has no "What's new" heading
