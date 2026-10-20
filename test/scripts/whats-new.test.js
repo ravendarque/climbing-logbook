@@ -109,6 +109,17 @@ describe("whatsNew", () => {
     expect(month.releases.map(r => r.changes)).toEqual([["From the tag."], ["Old change."]]);
   });
 
+  it("leaves out history for releases newer than the build's newest tag (#1505)", () => {
+    const [month] = whatsNew({
+      tagged: [{ version: "v2.9.0", date: "2026-10-12", changes: [] }],
+      history: [
+        { version: "v2.10.0", date: "2026-10-13", changes: ["Not in this build."] },
+        { version: "v2.9.0", date: "2026-10-12", changes: ["In this build."] },
+      ],
+    });
+    expect(month.releases.map(r => r.version)).toEqual(["v2.9.0"]);
+  });
+
   it("has history entries with a version, a date and at least one change", () => {
     for (const entry of readHistory()) {
       expect(entry.version).toMatch(/^v\d+\.\d+\.\d+$/);

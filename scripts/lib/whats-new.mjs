@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import historyFile from "./whats-new-history.json" with { type: "json" };
-import { groupByMonth, recentReleases } from "../../shared/whats-new-months.js";
+import { compareVersions, groupByMonth, recentReleases } from "../../shared/whats-new-months.js";
 
 const HEADING = /^##\s+What['’]s new\s*$/im;
 
@@ -75,8 +75,14 @@ export function readHistory() {
 }
 
 // A tag's own lines win over the hand-written history for the same version. Also published as /-/releases.json.
+// History is ignored past the newest tag in this build, so a build can't list a release it doesn't have.
 export function whatsNewReleases({ tagged = readTaggedReleases(), history = readHistory() } = {}) {
-  const byVersion = new Map(history.map(release => [release.version, release]));
+  const newest = tagged
+    .map(release => release.version)
+    .sort(compareVersions)
+    .at(-1);
+  const shipped = newest ? history.filter(release => compareVersions(release.version, newest) <= 0) : history;
+  const byVersion = new Map(shipped.map(release => [release.version, release]));
   for (const release of tagged) if (release.changes.length > 0) byVersion.set(release.version, release);
   return recentReleases([...byVersion.values()]);
 }

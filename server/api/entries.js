@@ -9,7 +9,7 @@ import {
   listForUser,
   nextCursorSql,
 } from "../lib/d1-resource.js";
-import { validateEntryShape } from "../../shared/entry-schema.js";
+import { VALID_TYPES, validateEntryShape } from "../../shared/entry-schema.js";
 import { intParam } from "../lib/params.js";
 import {
   CONSENT_REQUIRED,
@@ -261,12 +261,17 @@ async function handleByLocation(locationId, url, env, userId, { shapeRow, includ
   // No account holds more climbs than this, so a larger offset only makes D1 scan rows it then skips.
   const offset = intParam(url, "offset", { max: ACCOUNT_LIMITS.entries.max, fallback: 0 });
   if (offset.response) return offset.response;
+  const discipline = url.searchParams.get("discipline");
+  if (discipline !== null && !VALID_TYPES.includes(discipline)) {
+    return json({ error: `discipline must be one of: ${VALID_TYPES.join(", ")}` }, 400);
+  }
   const { results } = await env.LOGBOOK_DB.prepare(`
       SELECT e.* FROM entries e JOIN places p ON e.place_id = p.id
       WHERE e.user_id = ? AND p.location_id = ? AND e.deleted_at IS NULL${publicOnly ? " AND e.hidden_at IS NULL" : ""}
-      ORDER BY e.created_at LIMIT ? OFFSET ?
+        ${discipline ? "AND e.discipline_id = ?" : ""}
+      ORDER BY e.created_at, e.id LIMIT ? OFFSET ?
     `)
-    .bind(userId, locationId, limit.value, offset.value)
+    .bind(userId, locationId, ...(discipline ? [discipline] : []), limit.value, offset.value)
     .all();
 
   const shaped = results.map(shapeRow);
