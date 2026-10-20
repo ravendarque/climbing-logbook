@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { minifyStaticScripts } from "./scripts/minify-static.mjs";
 import { gradeScaleMatrixHtml, gradeScaleSourcesHtml } from "./client/grade-scale-matrix.js";
 import { TERMS_HISTORY, TERMS_VERSION } from "./shared/terms.js";
-import { whatsNew } from "./scripts/lib/whats-new.mjs";
+import { whatsNew, whatsNewReleases } from "./scripts/lib/whats-new.mjs";
 import { loadingSpinnerHtml } from "./client/loading-spinner.js";
 
 const ASSET_VERSION = String(Date.now());
@@ -26,13 +26,14 @@ export default function (eleventyConfig) {
   );
 
   eleventyConfig.addGlobalData("whatsNew", () => whatsNew());
+  eleventyConfig.addGlobalData("whatsNewReleases", () => whatsNewReleases());
 
   eleventyConfig.addPassthroughCopy({ static: "." });
 
   eleventyConfig.addPlugin(eleventyNavigationPlugin);
 
   eleventyConfig.addShortcode("gradeScaleMatrix", gradeScaleMatrixHtml);
-  eleventyConfig.addShortcode("loadingSpinner", label => loadingSpinnerHtml(label));
+  eleventyConfig.addShortcode("loadingSpinner", (label, compact = false) => loadingSpinnerHtml(label, { compact }));
   eleventyConfig.addShortcode("gradeScaleSources", gradeScaleSourcesHtml);
 
   // Under --watch, Pagefind indexes /help on the first build only: on every save it would slow each rebuild.

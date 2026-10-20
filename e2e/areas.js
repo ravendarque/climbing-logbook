@@ -44,5 +44,5 @@ export const AREAS = {
   tour: ["tour", "welcome", "demo-visit"],
   admin: ["admin"],
   reports: ["report-and-hide", "report-issue-page", "feedback-page"],
-  chrome: ["climbing-header", "landmarks", "accessibility", "apex-links"],
+  chrome: ["climbing-header", "landmarks", "accessibility", "apex-links", "whats-new"],
 };

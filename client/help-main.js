@@ -1,6 +1,7 @@
 // A real bundle, because the shared menu and theme code only exist as Vite chunks in production.
 import { createDisclosure } from "./modal-utils.js";
 import { createThemeToggle } from "./theme-toggle.js";
+import { enhanceWhatsNew } from "./whats-new-channels.js";
 
 createDisclosure(
   document.getElementById("header-menu-btn"),
@@ -15,3 +16,5 @@ helpNavBtn?.addEventListener("click", () => {
   const open = helpNav.toggleAttribute("data-open");
   helpNavBtn.setAttribute("aria-expanded", String(open));
 });
+
+enhanceWhatsNew();

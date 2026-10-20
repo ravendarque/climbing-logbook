@@ -4,7 +4,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  groupByMonth,
   hasWhatsNewHeading,
   readHistory,
   readTaggedReleases,
@@ -12,6 +11,7 @@ import {
   whatsNew,
   whatsNewFromPrBody,
 } from "../../scripts/lib/whats-new.mjs";
+import { groupByMonth } from "../../shared/whats-new-months.js";
 
 const PR_BODY = `Closes #917
 

@@ -67,3 +67,8 @@
   Cache-Control: public, max-age=31556952, immutable
 /-/reset-password-app.js
   Cache-Control: public, max-age=31556952, immutable
+
+# Read by Help > What's new on the main site, to show what's on the beta channel (#1506).
+/-/releases.json
+  Access-Control-Allow-Origin: https://climbinglogbook.com
+  Cache-Control: no-cache

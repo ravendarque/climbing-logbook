@@ -4,7 +4,8 @@ export function contentSecurityPolicy(nonce) {
     `script-src 'self' 'nonce-${nonce}' https://challenges.cloudflare.com`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
-    "connect-src 'self'",
+    // Help > What's new reads beta's release list (#1506).
+    "connect-src 'self' https://beta.climbinglogbook.com",
     "frame-src https://challenges.cloudflare.com",
     "object-src 'none'",
     "base-uri 'self'",
