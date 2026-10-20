@@ -14,7 +14,7 @@ function fakeStore({ cached }) {
   };
 }
 
-const syncStatusIcon = { track: promise => promise, reportTimeout: () => {} };
+const syncStatusIcon = { track: promise => promise, reportFailure: () => {} };
 const build = (entries, params) => ({ ids: entries.map(e => e.id), params });
 
 beforeEach(() => {

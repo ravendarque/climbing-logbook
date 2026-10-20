@@ -44,7 +44,7 @@ export function createReportData({
 
   async function refresh() {
     if (!local) return;
-    const pull = (url, table) => pullDelta({ store, url, table, onTimeout: syncStatusIcon.reportTimeout });
+    const pull = (url, table) => pullDelta({ store, url, table, onFailure: syncStatusIcon.reportFailure });
     if (withPlaces) {
       await syncStatusIcon.track(Promise.all([pull(PLACES_URL, "places"), pull(LOCATIONS_URL, "locations")]));
     }

@@ -187,19 +187,27 @@ export class ClimbingEntriesTable extends HTMLElement {
     return sections;
   }
 
+  // Split by discipline as the loaded sections are, so a header doesn't change when its rows arrive.
+  #shellSections(locationId) {
+    const byDiscipline = this.#locationCounts[locationId] ?? {};
+    if (!this.allDisciplines) {
+      const shellCount = Object.values(byDiscipline).reduce((sum, n) => sum + n, 0);
+      return shellCount > 0 ? [{ key: locationId, locationId, discipline: null, items: null, shellCount }] : [];
+    }
+    return DISCIPLINE_ORDER.filter(d => byDiscipline[d] > 0 && this.#disciplineFilters.has(d)).map(discipline => ({
+      key: this.#sectionKey(locationId, discipline),
+      locationId,
+      discipline,
+      items: null,
+      shellCount: byDiscipline[discipline],
+    }));
+  }
+
   #mergeShellSections(real) {
     const realLocationIds = new Set(real.map(s => s.locationId));
     for (const id of realLocationIds) this.#loadingLocations.delete(id);
 
-    const shells = this.#locations
-      .filter(l => !realLocationIds.has(l.id) && (this.#locationCounts[l.id] ?? 0) > 0)
-      .map(l => ({
-        key: l.id,
-        locationId: l.id,
-        discipline: null,
-        items: null,
-        shellCount: this.#locationCounts[l.id],
-      }));
+    const shells = this.#locations.filter(l => !realLocationIds.has(l.id)).flatMap(l => this.#shellSections(l.id));
 
     const order = new Map(this.#locations.map((l, i) => [l.id, i]));
     return [...real, ...shells].sort((a, b) => (order.get(a.locationId) ?? 0) - (order.get(b.locationId) ?? 0));
@@ -458,7 +466,9 @@ export class ClimbingEntriesTable extends HTMLElement {
     if (this.#collapseInitialized) return;
     if (this.lazy) {
       if (this.#locations.length === 0 || Object.keys(this.#locationCounts).length === 0) return;
-      this.#collapsed = new Set(Object.keys(this.#locationCounts).filter(id => this.#locationCounts[id] > 0));
+      this.#collapsed = new Set(
+        Object.keys(this.#locationCounts).flatMap(id => this.#shellSections(id).map(s => s.key)),
+      );
       this.#collapseInitialized = true;
       return;
     }

@@ -85,7 +85,7 @@ describe("createSyncStatusIcon", () => {
     expect(() => createSyncStatusIcon()).not.toThrow();
   });
 
-  it("reports offline once every tracked call settles if any of them called reportTimeout()", async () => {
+  it("reports offline once every tracked call settles if any of them called reportFailure()", async () => {
     const icon = createSyncStatusIcon();
     let resolveA, resolveB;
     const a = new Promise(r => {
@@ -97,7 +97,7 @@ describe("createSyncStatusIcon", () => {
     icon.track(a);
     icon.track(b);
 
-    icon.reportTimeout();
+    icon.reportFailure();
     resolveB();
     await b;
     await Promise.resolve();
@@ -109,9 +109,9 @@ describe("createSyncStatusIcon", () => {
     expect(setSyncState).toHaveBeenLastCalledWith("offline");
   });
 
-  it("clears back to idle on the next fully-successful tracked call after a reported timeout", async () => {
+  it("clears back to idle on the next fully-successful tracked call after a reported failure", async () => {
     const icon = createSyncStatusIcon();
-    icon.reportTimeout();
+    icon.reportFailure();
     icon.track(Promise.resolve());
     await Promise.resolve();
     await Promise.resolve();

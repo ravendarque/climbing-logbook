@@ -38,7 +38,7 @@ export function createAppShell({
     apiFetch,
     settingsUrl: SETTINGS_URL,
     updateAdminBar,
-    onFetchTimeout: syncStatusIcon.reportTimeout,
+    onFetchFailure: syncStatusIcon.reportFailure,
   });
   const headerChrome = createHeaderChrome({ store, apiFetch, settingsUrl: SETTINGS_URL, username, showing });
 
