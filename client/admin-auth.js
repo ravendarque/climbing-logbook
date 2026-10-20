@@ -1,4 +1,4 @@
-import { BACKGROUND_FETCH_TIMEOUT_MS } from "./sync-status-icon.js";
+import { BACKGROUND_FETCH_TIMEOUT_MS, isUnload } from "./sync-status-icon.js";
 import { LOGIN_PATH, loginPageUrl } from "./login-url.js";
 import { clearSignedInUser, ownerOfPath, writeSignedInUser } from "./user-storage.js";
 import { pullSettings, readSettingsCache, validDiscipline, writeSettingsCache } from "./settings-cache.js";
@@ -159,9 +159,9 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
     let res;
     try {
       res = await apiFetch(AUTH_SESSION_URL, { signal: AbortSignal.timeout(BACKGROUND_FETCH_TIMEOUT_MS) });
-    } catch {
+    } catch (err) {
       // No response: the optimistic hint stands.
-      onFetchFailure();
+      if (!isUnload(err)) onFetchFailure();
       return;
     }
     try {

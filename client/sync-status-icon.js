@@ -1,6 +1,9 @@
 // Background reads only, not page content or queued writes. No cap on "working": a slow link can
-// really take minutes. The fetches themselves time out, and report it here.
+// really take minutes. The fetches time out, and report any request that gets no response here.
 export const BACKGROUND_FETCH_TIMEOUT_MS = 120000;
+
+// The page going away, not the link: our own timeout is a TimeoutError.
+export const isUnload = err => err?.name === "AbortError";
 
 export function createSyncStatusIcon() {
   let inFlight = 0;

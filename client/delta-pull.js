@@ -1,5 +1,5 @@
 import { getCursor, setCursor } from "./sync-cursors.js";
-import { BACKGROUND_FETCH_TIMEOUT_MS } from "./sync-status-icon.js";
+import { BACKGROUND_FETCH_TIMEOUT_MS, isUnload } from "./sync-status-icon.js";
 import { forgetSync } from "./sync-status.js";
 
 // No response at all is reported, since onLine can read true on a dead link.
@@ -10,8 +10,8 @@ export async function pullDelta({ store, url, table, onFailure }) {
     res = await fetch(`${url}?since=${getCursor(table)}`, {
       signal: AbortSignal.timeout(BACKGROUND_FETCH_TIMEOUT_MS),
     });
-  } catch {
-    onFailure();
+  } catch (err) {
+    if (!isUnload(err)) onFailure();
     return false;
   }
   try {

@@ -1,5 +1,5 @@
 import { VALID_TYPES } from "../shared/entry-schema.js";
-import { BACKGROUND_FETCH_TIMEOUT_MS } from "./sync-status-icon.js";
+import { BACKGROUND_FETCH_TIMEOUT_MS, isUnload } from "./sync-status-icon.js";
 import { userKey } from "./user-storage.js";
 
 export const SETTINGS_CACHE_KEY = userKey("logbook_settings_cache");
@@ -43,8 +43,8 @@ export async function pullSettings({ onFailure = () => {} } = {}) {
   let res;
   try {
     res = await fetch(SETTINGS_URL, { signal: AbortSignal.timeout(BACKGROUND_FETCH_TIMEOUT_MS) });
-  } catch {
-    onFailure();
+  } catch (err) {
+    if (!isUnload(err)) onFailure();
     return null;
   }
   try {
