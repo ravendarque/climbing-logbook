@@ -8,7 +8,6 @@ import { disciplineLabel, statusBadge } from "../status.js";
 import { COUNTRY_BY_NAME } from "../../shared/countries.js";
 import { resolveApexUrl } from "../resolve-cross-hostname-url.js";
 
-const EDIT_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"></path></svg>`;
 const PENDING_ICON = `<svg class="inline-block w-[.8rem] h-[.8rem] align-[-1px] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
 
 const TH_BASE =
@@ -158,6 +157,16 @@ export function renderShellSectionHtml(
     </div>`;
 }
 
+// The whole cell opens the editor, padded as a cell so it doesn't read as a link; "Why?" stays outside it.
+function nameCell(e, pendingBadge, editable) {
+  const name = `<span class="font-medium truncate inline-block max-w-full align-bottom ${e._pendingDelete ? "line-through text-muted" : ""}">${escapeHtml(e.name)}</span>${pendingBadge}`;
+  const hidden = e.hidden
+    ? `<span class="block text-xs text-accent-ink ${editable ? `${TD_BASE} pt-0` : ""}" title="Hidden from your public logbook">Hidden (<a class="underline underline-offset-2" data-apex-link href="${escapeHtml(resolveApexUrl(location.hostname, "/help/terms/#hidden-climbs"))}" aria-label="Why is this hidden from my public logbook?">Why?</a>)</span>`
+    : "";
+  if (!editable) return `<td class="${TD_BASE} overflow-hidden">${name}${hidden}</td>`;
+  return `<td class="p-0 overflow-hidden align-middle"><button type="button" class="edit-btn ${TD_BASE} block w-full text-left bg-transparent border-0 text-inherit cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-[-2px]" data-edit-id="${escapeHtml(e.id)}"><span class="sr-only">Edit </span>${name}</button>${hidden}</td>`;
+}
+
 export function renderLocationSectionHtml(
   section,
   { locations, places, collapsed, editable, activeDiscipline, sort, revealed },
@@ -186,24 +195,19 @@ export function renderLocationSectionHtml(
           ? "bg-[color-mix(in_srgb,var(--color-accent)_6%,var(--color-surface))]"
           : "hover:bg-[color-mix(in_srgb,var(--color-accent)_4%,var(--color-surface))]";
       const pendingBadge = e._pendingDelete
-        ? `<span class="text-red-400" title="Pending delete"> ${PENDING_ICON}</span>`
+        ? `<span class="text-red-400" title="Pending delete"> ${PENDING_ICON}<span class="sr-only">Pending delete</span></span>`
         : e._pending
-          ? `<span class="text-accent-ink" title="Pending sync"> ${PENDING_ICON}</span>`
+          ? `<span class="text-accent-ink" title="Pending sync"> ${PENDING_ICON}<span class="sr-only">Pending sync</span></span>`
           : "";
       return `
     <tr class="border-b border-[color-mix(in_srgb,var(--color-border)_40%,transparent)] last:border-b-0 ${rowBg}">
       <td class="${TD_BASE} text-center">${statusBadge(e)}</td>
       <td class="${TD_BASE}"><span class="grade-badge" style="background:${gradeColor(e.grade, e.type)}">${escapeHtml(e.grade)}</span></td>
-      <td class="${TD_BASE} overflow-hidden">
-        <span class="font-medium truncate inline-block max-w-full align-bottom ${e._pendingDelete ? "line-through text-muted" : ""}">${escapeHtml(e.name)}</span>
-        ${pendingBadge}
-        ${e.hidden ? `<span class="block text-xs text-accent-ink" title="Hidden from your public logbook">Hidden (<a class="underline underline-offset-2" data-apex-link href="${escapeHtml(resolveApexUrl(location.hostname, "/help/terms/#hidden-climbs"))}" aria-label="Why is this hidden from my public logbook?">Why?</a>)</span>` : ""}
-      </td>
+      ${nameCell(e, pendingBadge, editable)}
       <td class="${TD_BASE} text-muted text-sm truncate">${escapeHtml(placeOf(e, places).area)}</td>
       <td class="${TD_BASE} text-muted text-sm whitespace-nowrap">${escapeHtml(formatDate(e.date))}</td>
       <td class="${TD_BASE} text-center">${e.notes ? `<button type="button" class="notes-btn border-0 bg-transparent cursor-pointer text-muted inline-flex align-middle p-[.2rem] hover:text-accent-ink" data-notes-id="${escapeHtml(e.id)}" aria-label="View notes"><svg class="w-[.95rem] h-[.95rem] stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg></button>` : ""}</td>
       <td class="${TD_BASE} text-center">${e.video ? `<a class="inline-flex align-middle p-[.2rem] text-muted hover:text-accent-ink" href="${escapeHtml(e.video)}" target="_blank" rel="nofollow ugc noopener noreferrer" title="Watch video" aria-label="Watch video"><svg class="w-[.95rem] h-[.95rem] fill-current" viewBox="0 0 24 24"><path d="M6 4.5v15l14-7.5z"></path></svg></a>` : ""}</td>
-      <td class="${TD_BASE} text-center">${editable ? `<button type="button" class="edit-btn border-0 bg-transparent cursor-pointer text-muted inline-flex p-[.2rem] hover:text-accent-ink [&_svg]:w-[.95rem] [&_svg]:h-[.95rem] [&_svg]:stroke-current [&_svg]:fill-none" data-edit-id="${escapeHtml(e.id)}" aria-label="Edit">${EDIT_ICON}</button>` : ""}</td>
     </tr>
   `;
     })
@@ -227,14 +231,13 @@ export function renderLocationSectionHtml(
         <span class="text-muted text-sm transition-transform duration-200 shrink-0 ${isCollapsed ? "-rotate-90" : ""}">▾</span>
       </div>
       <div class="relative overflow-x-auto ${isCollapsed ? "hidden" : ""}">
-        <table class="w-full border-collapse text-sm min-w-[42.5rem]" style="table-layout:fixed">
+        <table class="w-full border-collapse text-sm min-w-[40rem]" style="table-layout:fixed">
           <colgroup>
             <col style="width:2.5rem">
             <col style="width:3.75rem">
             <col>
             <col style="width:7.5rem">
             <col style="width:5.75rem">
-            <col style="width:2.65rem">
             <col style="width:2.65rem">
             <col style="width:2.65rem">
           </colgroup>
@@ -255,11 +258,10 @@ export function renderLocationSectionHtml(
               </th>
               <th class="${TH_BASE}"><span class="sr-only">Notes</span></th>
               <th class="${TH_BASE}"><span class="sr-only">Video</span></th>
-              <th class="${TH_BASE}"><span class="sr-only">Edit</span></th>
             </tr>
           </thead>
           <tbody>
-            ${rows || `<tr><td class="text-center text-muted p-8 text-sm" colspan="8">No problems match.</td></tr>`}
+            ${rows || `<tr><td class="text-center text-muted p-8 text-sm" colspan="7">No problems match.</td></tr>`}
           </tbody>
         </table>
         ${

@@ -319,6 +319,29 @@ test("adds and then deletes an entry via the Add/Edit modal", async ({ page, own
   await expect(page.locator("#sections")).not.toContainText(entryName);
 });
 
+test("the climb's name opens its editor, by click or keyboard, and there's no separate edit column (#1491)", async ({
+  page,
+  owner,
+}) => {
+  await page.setViewportSize({ width: 312, height: 700 });
+  await gotoLog(page, owner);
+  await page.locator("#collapse-all-btn").click();
+
+  const nameButton = page.getByRole("button", { name: "Edit Boulder Seed" });
+  await expect(nameButton.locator(".font-medium")).toHaveText("Boulder Seed");
+  await expect(page.locator("th", { hasText: "Edit" })).toHaveCount(0);
+
+  await nameButton.click();
+  await expect(page.locator("#entry-overlay")).toBeVisible();
+  await expect(page.locator("#entry-name")).toHaveValue("Boulder Seed");
+  await page.locator("#entry-close").click();
+
+  await nameButton.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#entry-name")).toHaveValue("Boulder Seed");
+  await page.locator("#entry-close").click();
+});
+
 test("date picker: opens on the field's current month, navigates, selects a day, and re-syncs on reopen", async ({
   page,
   owner,
