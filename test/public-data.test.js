@@ -120,7 +120,7 @@ describe("public data API", () => {
   });
 
   describe("entries/counts (#494)", () => {
-    it("returns per-location counts of live entries, plus locations/places, for a public user", async () => {
+    it("returns per-location, per-discipline counts of live entries, plus locations/places, for a public user", async () => {
       const { cookie } = await createPublicSession({ username: "countsuser" });
       const placeIdA = await seedPlace(cookie, { locationName: "Fontainebleau", country: "France" });
       const placeIdB = await seedPlace(cookie, { locationName: "Magic Wood", country: "Switzerland" });
@@ -142,6 +142,12 @@ describe("public data API", () => {
         { placeId: placeIdB, name: "Practice Boy", grade: "6A", type: "boulder", status: "send" },
         { Cookie: cookie },
       );
+      await jsonRequest(
+        "POST",
+        "/-/api/entries",
+        { placeId: placeIdA, name: "Bleau Sport", grade: "6a", type: "sport", sportStyle: "lead", status: "send" },
+        { Cookie: cookie },
+      );
 
       const res = await fetchPublic("countsuser", "entries/counts");
       expect(res.status).toBe(200);
@@ -152,8 +158,8 @@ describe("public data API", () => {
 
       const fontainebleauId = locations.find(l => l.name === "Fontainebleau").id;
       const magicWoodId = locations.find(l => l.name === "Magic Wood").id;
-      expect(counts[fontainebleauId]).toBe(2);
-      expect(counts[magicWoodId]).toBe(1);
+      expect(counts[fontainebleauId]).toEqual({ boulder: 2, sport: 1 });
+      expect(counts[magicWoodId]).toEqual({ boulder: 1 });
     });
 
     it("excludes a soft-deleted entry from its location's count", async () => {
