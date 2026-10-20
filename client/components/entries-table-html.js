@@ -127,7 +127,13 @@ export function shellHtml(allDisciplines) {
 `;
 }
 
-export function renderShellSectionHtml({ key, locationId, shellCount }, { locations, collapsed, loadingLocations }) {
+const locationHeaderName = (location, discipline) =>
+  discipline ? `${location.name} (${disciplineLabel(discipline)})` : location.name;
+
+export function renderShellSectionHtml(
+  { key, locationId, discipline, shellCount },
+  { locations, collapsed, loadingLocations },
+) {
   const location = locations.find(l => l.id === locationId) ?? { name: "", country: "" };
   const isCollapsed = collapsed.has(key);
   const isLoading = loadingLocations.has(locationId);
@@ -136,7 +142,7 @@ export function renderShellSectionHtml({ key, locationId, shellCount }, { locati
   return `
     <div class="bg-surface border border-border rounded-app mb-3 overflow-hidden" data-location-id="${escapeHtml(key)}">
       <div class="place-header flex items-center gap-[.5rem] px-[.9rem] py-[.6rem] ${isCollapsed ? "" : "border-b border-border"} bg-[color-mix(in_srgb,var(--color-surface)_60%,var(--color-bg))] cursor-pointer select-none hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,var(--color-surface))]" data-location-id="${escapeHtml(key)}" role="button" tabindex="0" aria-expanded="${!isCollapsed}">
-        <span class="font-semibold text-base truncate min-w-0 flex-1">${escapeHtml(location.name)}</span>
+        <span class="font-semibold text-base truncate min-w-0 flex-1">${escapeHtml(locationHeaderName(location, discipline))}</span>
         ${
           locationCountry
             ? `<span class="inline-flex items-center gap-[.3rem] shrink-0">
@@ -204,7 +210,7 @@ export function renderLocationSectionHtml(
     .join("");
 
   const locationCountry = COUNTRY_BY_NAME[location.country];
-  const headerName = discipline ? `${location.name} (${disciplineLabel(discipline)})` : location.name;
+  const headerName = locationHeaderName(location, discipline);
   return `
     <div class="bg-surface border border-border rounded-app mb-3 overflow-hidden" data-location-id="${escapeHtml(key)}">
       <div class="place-header flex items-center gap-[.5rem] px-[.9rem] py-[.6rem] border-b border-border bg-[color-mix(in_srgb,var(--color-surface)_60%,var(--color-bg))] cursor-pointer select-none hover:bg-[color-mix(in_srgb,var(--color-accent)_6%,var(--color-surface))]" data-location-id="${escapeHtml(key)}" role="button" tabindex="0" aria-expanded="${!isCollapsed}">

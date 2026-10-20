@@ -11,10 +11,10 @@ export async function handleGetProfileCounts(_request, env, userId) {
     listForUser(env, "locations", userId, locationsRowToJson, { excludeDeleted: true }),
     listForUser(env, "places", userId, placesRowToJson, { excludeDeleted: true }),
     env.LOGBOOK_DB.prepare(`
-      SELECT p.location_id AS location_id, COUNT(*) AS count
+      SELECT p.location_id AS location_id, e.discipline_id AS discipline, COUNT(*) AS count
       FROM entries e JOIN places p ON e.place_id = p.id
       WHERE e.user_id = ? AND e.deleted_at IS NULL AND e.hidden_at IS NULL
-      GROUP BY p.location_id
+      GROUP BY p.location_id, e.discipline_id
     `)
       .bind(userId)
       .all()
@@ -22,7 +22,7 @@ export async function handleGetProfileCounts(_request, env, userId) {
   ]);
 
   const counts = {};
-  for (const row of countRows) counts[row.location_id] = row.count;
+  for (const row of countRows) counts[row.location_id] = { ...counts[row.location_id], [row.discipline]: row.count };
 
   return json({ locations, places, counts }, 200, { "Cache-Control": "no-store" });
 }

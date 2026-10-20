@@ -216,6 +216,20 @@ test("shell-then-expand: collapsed with a count badge by default, expands to rea
   expect(entriesRequests).toHaveLength(1);
 });
 
+test("collapsed headers already name their discipline, and keep the same name once their rows load (#1487)", async ({
+  page,
+  owner,
+}) => {
+  await visitProfile(page, owner, MIXED_SEED);
+  const headers = page.locator(".place-header");
+  await expect(headers).toHaveText([/Test Crag \(Boulder\)/, /Test Crag \(Sport\)/]);
+
+  await headers.first().click();
+  await expect(page.locator("#sections")).toContainText("Boulder Seed");
+  await expect(headers).toHaveText([/Test Crag \(Boulder\)/, /Test Crag \(Sport\)/]);
+  await expect(page.getByText("Sport Seed")).toBeHidden();
+});
+
 test("shows the entries table's own empty state when the target user has no data", async ({ page, owner }) => {
   await visitProfile(page, owner);
   await expect(page.locator("#sections")).toContainText("Nothing to show here");

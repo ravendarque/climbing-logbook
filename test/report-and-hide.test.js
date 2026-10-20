@@ -112,7 +112,7 @@ describe("hiding a climb", () => {
     expect(await publicNames(owner.username)).toEqual(["Kept"]);
     expect(await publicNames(owner.username, "entries?limit=50")).toEqual(["Kept"]);
     const counts = await (await fetchJson(`/-/api/public/${owner.username}/entries/counts`)).json();
-    expect(Object.values(counts.counts)).toEqual([1]);
+    expect(Object.values(counts.counts)).toEqual([{ boulder: 1 }]);
     const map = await (await fetchJson(`/-/api/public/${owner.username}/map/counts`)).json();
     expect(Object.values(map)[0].boulder.total).toBe(1);
 
