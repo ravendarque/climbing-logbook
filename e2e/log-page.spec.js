@@ -610,6 +610,30 @@ test("Performance -> and <- Log entry slide between the form's two pages", async
   await expect(page.locator("#entry-page-2")).toHaveJSProperty("inert", true);
 });
 
+test("page 2 grows with the moves added to it, so its end stays reachable on a phone (#1482)", async ({
+  page,
+  owner,
+}) => {
+  await page.setViewportSize({ width: 312, height: 700 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await gotoLog(page, owner, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
+  await page.locator("#add-btn").click();
+  await page.locator("#entry-nav-forward").click();
+  await expect(page.locator("#entry-page-2")).toHaveJSProperty("inert", false);
+
+  for (let i = 0; i < 4; i++) await page.locator("#hardest-moves-add").click();
+
+  const heights = () =>
+    page.evaluate(() => ({
+      viewport: Math.round(document.getElementById("entry-pages-viewport").getBoundingClientRect().height),
+      page: document.getElementById("entry-page-2").scrollHeight,
+    }));
+  await expect.poll(async () => {
+    const { viewport, page: pageHeight } = await heights();
+    return Math.abs(viewport - pageHeight) <= 1;
+  }).toBe(true);
+});
+
 test("reopening the form after navigating to page 2 starts back on page 1", async ({ page, owner }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await gotoLog(page, owner, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
