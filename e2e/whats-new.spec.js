@@ -38,10 +38,31 @@ test("says so when the beta channel has nothing the main app doesn't (#1506)", a
   );
 });
 
-test("keeps the list it was built with when production's version can't be read (#1506)", async ({ page }) => {
-  await page.route("**/-/api/health", route => route.abort());
+test("shows a spinner in the Beta channel section while it checks (#1506)", async ({ page }) => {
+  let release;
+  const held = new Promise(resolve => {
+    release = resolve;
+  });
+  await page.route("**/-/api/health", async route => {
+    await held;
+    return route.fulfill({ json: { ok: true, version: "v9.1.0" } });
+  });
+  await page.route("**/-/releases.json", route => route.fulfill({ json: RELEASES }));
   await page.goto("/help/whats-new/");
-  const list = page.locator("#whats-new-list");
-  await expect(list.getByRole("heading", { level: 2 }).first()).toBeVisible();
-  await expect(list.getByRole("heading", { name: "Beta channel" })).toHaveCount(0);
+
+  const beta = page.locator("#whats-new-beta");
+  await expect(beta.getByRole("status")).toHaveText("Checking the beta channel");
+  release();
+  await expect(beta).toContainText("A beta-only change.");
+  await expect(beta.getByRole("status")).toHaveCount(0);
+});
+
+test("keeps the built list, and says so in the Beta channel section, when the beta channel can't be read (#1506)", async ({
+  page,
+}) => {
+  await page.route("**/-/releases.json", route => route.abort());
+  await page.goto("/help/whats-new/");
+
+  await expect(page.locator("#whats-new-beta")).toContainText("Couldn't check the beta channel just now.");
+  await expect(page.locator("#whats-new-main").getByRole("listitem").first()).toBeVisible();
 });

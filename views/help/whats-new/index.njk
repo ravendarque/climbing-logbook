@@ -12,8 +12,15 @@ eleventyNavigation:
 <p>We release each new feature and fix to the <a href="/help/beta-channel/">beta channel</a> as soon as it's ready, so every change gets its own version. The main app gets them in batches, once they've settled in on the beta channel.</p>
 
 <div id="whats-new-list">
+<noscript><style>#whats-new-beta-status { display: none; }</style></noscript>
+<h2>Beta channel</h2>
+<div id="whats-new-beta">
+<div id="whats-new-beta-status">{% loadingSpinner "Checking the beta channel", true %}</div>
+</div>
+<h2>Main channel</h2>
+<div id="whats-new-main">
 {% for month in whatsNew %}
-<h2>{{ month.month }}</h2>
+<h3>{{ month.month }}</h3>
 <ul>
   {%- for release in month.releases %}{% for change in release.changes %}
   <li>{{ change }} <span class="block text-sm text-muted tabular-nums">{{ release.day }} · {{ release.version }}</span></li>
@@ -22,4 +29,5 @@ eleventyNavigation:
 {% else %}
 <p>Nothing to show yet.</p>
 {% endfor %}
+</div>
 </div>

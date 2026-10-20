@@ -33,7 +33,7 @@ export default function (eleventyConfig) {
   eleventyConfig.addPlugin(eleventyNavigationPlugin);
 
   eleventyConfig.addShortcode("gradeScaleMatrix", gradeScaleMatrixHtml);
-  eleventyConfig.addShortcode("loadingSpinner", label => loadingSpinnerHtml(label));
+  eleventyConfig.addShortcode("loadingSpinner", (label, compact = false) => loadingSpinnerHtml(label, { compact }));
   eleventyConfig.addShortcode("gradeScaleSources", gradeScaleSourcesHtml);
 
   // Under --watch, Pagefind indexes /help on the first build only: on every save it would slow each rebuild.

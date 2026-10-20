@@ -50,22 +50,22 @@ function betaIntro(hasReleases) {
   return intro;
 }
 
-export async function showChannels(container, hostname = location.hostname) {
+export async function showChannels(list, hostname = location.hostname) {
   const [{ version }, releases] = await Promise.all([getJson("/-/api/health"), getJson(betaReleasesUrl(hostname))]);
-  if (!TAG.test(version ?? "") || !Array.isArray(releases)) return false;
+  if (!TAG.test(version ?? "") || !Array.isArray(releases)) throw new Error(`No release version (${version})`);
   const { beta, main } = splitByChannel(releases, version);
-  container.replaceChildren(
-    el("h2", "Beta channel"),
-    betaIntro(beta.length > 0),
-    ...monthNodes(beta),
-    el("h2", "Main channel"),
-    ...monthNodes(main),
-  );
-  return true;
+  list.querySelector("#whats-new-beta").replaceChildren(betaIntro(beta.length > 0), ...monthNodes(beta));
+  list.querySelector("#whats-new-main").replaceChildren(...monthNodes(main));
 }
 
-// Without both lists, the page keeps the list it was built with.
+// The built list is production's own, so on failure it stays, and only the beta channel says it couldn't be read.
 export function enhanceWhatsNew(doc = document) {
-  const container = doc.getElementById("whats-new-list");
-  if (container) showChannels(container).catch(err => console.warn("What's new: kept the built list", err));
+  const list = doc.getElementById("whats-new-list");
+  if (!list) return;
+  showChannels(list).catch(err => {
+    console.warn("What's new: couldn't read the beta channel", err);
+    list
+      .querySelector("#whats-new-beta")
+      .replaceChildren(el("p", "Couldn't check the beta channel just now. Try again later.", "text-muted"));
+  });
 }
