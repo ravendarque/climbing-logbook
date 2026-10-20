@@ -167,60 +167,31 @@ describe("settings cache", () => {
   });
 });
 
-describe("onFetchTimeout", () => {
-  it("fetchSettings() calls onFetchTimeout() on a genuine timeout, not on a generic network error", async () => {
-    const onFetchTimeout = vi.fn();
-    global.fetch = vi.fn().mockRejectedValue(new DOMException("The operation timed out.", "TimeoutError"));
-    const adminAuth = createAdminAuth({
+describe("onFetchFailure", () => {
+  const auth = onFetchFailure =>
+    createAdminAuth({
       store: makeStore(),
       apiFetch: fetch,
       settingsUrl: "/x",
       updateAdminBar: () => {},
-      onFetchTimeout,
+      onFetchFailure,
     });
-    await adminAuth.fetchSettings();
-    expect(onFetchTimeout).toHaveBeenCalledOnce();
 
-    onFetchTimeout.mockClear();
-    global.fetch = vi.fn().mockRejectedValue(new Error("offline"));
-    const adminAuth2 = createAdminAuth({
-      store: makeStore(),
-      apiFetch: fetch,
-      settingsUrl: "/x",
-      updateAdminBar: () => {},
-      onFetchTimeout,
-    });
-    await adminAuth2.fetchSettings();
-    expect(onFetchTimeout).not.toHaveBeenCalled();
+  it.each([
+    ["a timeout", new DOMException("The operation timed out.", "TimeoutError")],
+    ["a network error", new TypeError("Failed to fetch")],
+  ])("fetchSettings() and checkSession() call onFetchFailure() on %s", async (_, error) => {
+    const onFetchFailure = vi.fn();
+    global.fetch = vi.fn().mockRejectedValue(error);
+    await auth(onFetchFailure).fetchSettings();
+    expect(onFetchFailure).toHaveBeenCalledOnce();
+
+    onFetchFailure.mockClear();
+    await auth(onFetchFailure).checkSession();
+    expect(onFetchFailure).toHaveBeenCalledOnce();
   });
 
-  it("checkSession() calls onFetchTimeout() on a genuine timeout, not on a generic network error", async () => {
-    const onFetchTimeout = vi.fn();
-    global.fetch = vi.fn().mockRejectedValue(new DOMException("The operation timed out.", "TimeoutError"));
-    const adminAuth = createAdminAuth({
-      store: makeStore(),
-      apiFetch: fetch,
-      settingsUrl: "/x",
-      updateAdminBar: () => {},
-      onFetchTimeout,
-    });
-    await adminAuth.checkSession();
-    expect(onFetchTimeout).toHaveBeenCalledOnce();
-
-    onFetchTimeout.mockClear();
-    global.fetch = vi.fn().mockRejectedValue(new Error("offline"));
-    const adminAuth2 = createAdminAuth({
-      store: makeStore(),
-      apiFetch: fetch,
-      settingsUrl: "/x",
-      updateAdminBar: () => {},
-      onFetchTimeout,
-    });
-    await adminAuth2.checkSession();
-    expect(onFetchTimeout).not.toHaveBeenCalled();
-  });
-
-  it("defaults to a no-op when onFetchTimeout isn't provided at all", async () => {
+  it("defaults to a no-op when onFetchFailure isn't provided at all", async () => {
     global.fetch = vi.fn().mockRejectedValue(new DOMException("The operation timed out.", "TimeoutError"));
     const adminAuth = createAdminAuth({
       store: makeStore(),

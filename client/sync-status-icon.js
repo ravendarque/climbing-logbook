@@ -37,7 +37,7 @@ export function createSyncStatusIcon() {
   }
 
   // Only sets the flag: onLine can read true on a dead link, and "offline" waits until every call settles.
-  function reportTimeout() {
+  function reportFailure() {
     hadFailure = true;
   }
 
@@ -45,5 +45,5 @@ export function createSyncStatusIcon() {
   window.addEventListener("offline", report);
   report();
 
-  return { track, reportTimeout };
+  return { track, reportFailure };
 }

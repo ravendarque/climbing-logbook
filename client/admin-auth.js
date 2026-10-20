@@ -18,7 +18,7 @@ async function clearWorkerCaches() {
   }
 }
 
-export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, onFetchTimeout = () => {} }) {
+export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, onFetchFailure = () => {} }) {
   const AUTH_SESSION_URL = "/-/api/auth/get-session";
   const AUTH_SIGN_OUT_URL = "/-/api/auth/sign-out";
   const LOGIN_HINT_KEY = "logbook_logged_in_hint";
@@ -54,7 +54,7 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
   }
 
   async function fetchSettings() {
-    const settings = await pullSettings({ onTimeout: onFetchTimeout });
+    const settings = await pullSettings({ onFailure: onFetchFailure });
     if (!settings) return;
     athleteMode = settings.athleteMode;
     persistedDiscipline = settings.activeDiscipline;
@@ -159,9 +159,9 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
     let res;
     try {
       res = await apiFetch(AUTH_SESSION_URL, { signal: AbortSignal.timeout(BACKGROUND_FETCH_TIMEOUT_MS) });
-    } catch (err) {
-      // Offline or timed out: the optimistic hint stands.
-      if (err.name === "TimeoutError") onFetchTimeout();
+    } catch {
+      // No response: the optimistic hint stands.
+      onFetchFailure();
       return;
     }
     try {
