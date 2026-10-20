@@ -85,7 +85,7 @@ export function createOfflineSync({
   }
 
   function pullDelta(url, table) {
-    return pullTableDelta({ store, url, table, onTimeout: syncStatusIcon.reportTimeout });
+    return pullTableDelta({ store, url, table, onFailure: syncStatusIcon.reportFailure });
   }
 
   async function pullDeltas() {

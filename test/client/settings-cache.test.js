@@ -78,28 +78,29 @@ describe("pullSettings (#1177)", () => {
     expect(readSettingsCache()).toEqual(SERVER);
   });
 
-  it("returns null rather than throwing when the network fails, and says nothing about it", async () => {
+  it.each([
+    ["a network error", new TypeError("Failed to fetch")],
+    ["a timeout", new DOMException("The operation timed out", "TimeoutError")],
+  ])("returns null on %s and reports it, so the sync indicator can flag a dead link", async (_, error) => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => {
-        throw new TypeError("Failed to fetch");
+        throw error;
       }),
     );
-    const onTimeout = vi.fn();
-    expect(await pullSettings({ onTimeout })).toBeNull();
-    expect(onTimeout).not.toHaveBeenCalled();
+    const onFailure = vi.fn();
+    expect(await pullSettings({ onFailure })).toBeNull();
+    expect(onFailure).toHaveBeenCalledTimes(1);
   });
 
-  it("reports a real timeout, so the sync indicator can flag a dead link", async () => {
+  it("doesn't report a server error as a failure to connect", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => {
-        throw new DOMException("The operation timed out", "TimeoutError");
-      }),
+      vi.fn(async () => new Response("{}", { status: 500 })),
     );
-    const onTimeout = vi.fn();
-    expect(await pullSettings({ onTimeout })).toBeNull();
-    expect(onTimeout).toHaveBeenCalledTimes(1);
+    const onFailure = vi.fn();
+    expect(await pullSettings({ onFailure })).toBeNull();
+    expect(onFailure).not.toHaveBeenCalled();
   });
 
   it("still returns the fetched settings when the device has no room to cache them", async () => {

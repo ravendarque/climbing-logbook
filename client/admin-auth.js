@@ -1,4 +1,4 @@
-import { BACKGROUND_FETCH_TIMEOUT_MS } from "./sync-status-icon.js";
+import { BACKGROUND_FETCH_TIMEOUT_MS, isUnload } from "./sync-status-icon.js";
 import { LOGIN_PATH, loginPageUrl } from "./login-url.js";
 import { clearSignedInUser, ownerOfPath, writeSignedInUser } from "./user-storage.js";
 import { pullSettings, readSettingsCache, validDiscipline, writeSettingsCache } from "./settings-cache.js";
@@ -18,7 +18,7 @@ async function clearWorkerCaches() {
   }
 }
 
-export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, onFetchTimeout = () => {} }) {
+export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, onFetchFailure = () => {} }) {
   const AUTH_SESSION_URL = "/-/api/auth/get-session";
   const AUTH_SIGN_OUT_URL = "/-/api/auth/sign-out";
   const LOGIN_HINT_KEY = "logbook_logged_in_hint";
@@ -54,7 +54,7 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
   }
 
   async function fetchSettings() {
-    const settings = await pullSettings({ onTimeout: onFetchTimeout });
+    const settings = await pullSettings({ onFailure: onFetchFailure });
     if (!settings) return;
     athleteMode = settings.athleteMode;
     persistedDiscipline = settings.activeDiscipline;
@@ -160,8 +160,8 @@ export function createAdminAuth({ store, apiFetch, settingsUrl, updateAdminBar, 
     try {
       res = await apiFetch(AUTH_SESSION_URL, { signal: AbortSignal.timeout(BACKGROUND_FETCH_TIMEOUT_MS) });
     } catch (err) {
-      // Offline or timed out: the optimistic hint stands.
-      if (err.name === "TimeoutError") onFetchTimeout();
+      // No response: the optimistic hint stands.
+      if (!isUnload(err)) onFetchFailure();
       return;
     }
     try {

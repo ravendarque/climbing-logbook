@@ -1,5 +1,5 @@
 import { VALID_TYPES } from "../shared/entry-schema.js";
-import { BACKGROUND_FETCH_TIMEOUT_MS } from "./sync-status-icon.js";
+import { BACKGROUND_FETCH_TIMEOUT_MS, isUnload } from "./sync-status-icon.js";
 import { userKey } from "./user-storage.js";
 
 export const SETTINGS_CACHE_KEY = userKey("logbook_settings_cache");
@@ -39,9 +39,15 @@ export function needsOnboarding(storage = localStorage) {
   return readSettingsCache(storage)?.onboardingCompleted === false;
 }
 
-export async function pullSettings({ onTimeout = () => {} } = {}) {
+export async function pullSettings({ onFailure = () => {} } = {}) {
+  let res;
   try {
-    const res = await fetch(SETTINGS_URL, { signal: AbortSignal.timeout(BACKGROUND_FETCH_TIMEOUT_MS) });
+    res = await fetch(SETTINGS_URL, { signal: AbortSignal.timeout(BACKGROUND_FETCH_TIMEOUT_MS) });
+  } catch (err) {
+    if (!isUnload(err)) onFailure();
+    return null;
+  }
+  try {
     const data = await res.json();
     if (!res.ok) return null;
     const settings = {
@@ -62,8 +68,7 @@ export async function pullSettings({ onTimeout = () => {} } = {}) {
       terms: data.terms ?? null,
       painInjuryConsentUpdate: data.healthConsent?.painInjuryUpdate ?? null,
     };
-  } catch (err) {
-    if (err.name === "TimeoutError") onTimeout();
+  } catch {
     return null;
   }
 }

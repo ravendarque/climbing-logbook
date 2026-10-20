@@ -1509,6 +1509,27 @@ test("#847 -- going offline turns the burger menu ring solid red and updates the
   }
 });
 
+test("a dead link that reads as online shows Offline, keeps it through the next failed sync, and clears once the server answers (#1486)", async ({
+  page,
+  owner,
+}) => {
+  await gotoLog(page, owner);
+  const menuButton = page.locator("#header-menu-btn");
+  await page.route("**/-/api/**", route => route.abort("internetdisconnected"));
+
+  await page.reload();
+  expect(await page.evaluate(() => navigator.onLine)).toBe(true);
+  await expect(menuButton).toHaveAttribute("data-sync-state", "offline");
+
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
+  await page.waitForLoadState("networkidle");
+  await expect(menuButton).toHaveAttribute("data-sync-state", "offline");
+
+  await page.unroute("**/-/api/**");
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
+  await expect(menuButton).not.toHaveAttribute("data-sync-state");
+});
+
 // Routes are held open by deferred promises, not timers, so the ordering is guaranteed.
 test("#893 -- the live region doesn't re-announce while already syncing", async ({ page, owner }) => {
   let releaseSession, releaseSettings;
