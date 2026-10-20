@@ -554,6 +554,11 @@ climbing-status-picker { display: block; }
   mask-image: linear-gradient(to right, transparent, black 2.5rem, black calc(100% - 2.5rem), transparent);
 }
 .status-picker-viewport:active { cursor: grabbing; }
+.table-scroll[data-more-left] { mask-image: linear-gradient(to right, transparent, black 2rem); }
+.table-scroll[data-more-right] { mask-image: linear-gradient(to left, transparent, black 2rem); }
+.table-scroll[data-more-left][data-more-right] {
+  mask-image: linear-gradient(to right, transparent, black 2rem, black calc(100% - 2rem), transparent);
+}
 .status-picker-track {
   display: flex;
   will-change: transform;
