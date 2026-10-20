@@ -8,7 +8,7 @@ eleventyNavigation:
 
 # Ethics and sustainability
 
-It is, however, hard to do this completely in the tech world. This page aims to provide transparency about the tech used to build this app, and the impact of it, so that you can make a conscious choice about using it. Many of the big tech companies' tools and services are ubiquitous, so even if using them directly can be avoided, they will be used in secondary or tertiary systems. It's also difficult to claim true sustainability in tech, given the demand on power and cooling. There is even a significant social impact of major tech hubs where the cost of buying or renting property soars as tech talent moves to where the jobs are, pricing locals out of the market and directly increasing homelessness and rough sleeping.
+We try to build Climbing Logbook ethically and sustainably, but that's hard to do completely in the tech world. This page aims to provide transparency about the tech used to build this app, and the impact of it, so that you can make a conscious choice about using it. Many of the big tech companies' tools and services are ubiquitous, so even if using them directly can be avoided, they will be used in secondary or tertiary systems. It's also difficult to claim true sustainability in tech, given the demand on power and cooling. There is even a significant social impact of major tech hubs where the cost of buying or renting property soars as tech talent moves to where the jobs are, pricing locals out of the market and directly increasing homelessness and rough sleeping.
 
 ## Sustainability
 
