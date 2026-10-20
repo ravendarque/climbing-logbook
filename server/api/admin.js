@@ -2,6 +2,7 @@ import { json, parseJsonBody } from "../lib/json.js";
 import { verifyAccessRequest } from "../lib/access.js";
 import { actOnUser, listAuditLog, listUsers, setEntryHidden, viewLogbook } from "./admin-users.js";
 import { handleUsage } from "./admin-usage.js";
+import { environmentOf } from "../../shared/app-version.js";
 
 const TABLES = { reports: "issue_reports", feedback: "feedback_submissions" };
 const PAGES = new Set(["/reports", "/feedback", "/users", "/usage", "/activity"]);
@@ -34,6 +35,8 @@ function toSubmission(row) {
     message: row.message,
     contactEmail: row.contact_email,
     sourcePage: row.source_page,
+    environment: environmentOf(row.source_page),
+    appVersion: row.app_version ?? null,
     section: row.section,
     errorRef: row.error_ref ?? null,
     username: row.username,

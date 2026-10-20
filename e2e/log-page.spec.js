@@ -1656,3 +1656,16 @@ test.describe("Safari in a tab (#1083)", () => {
     await expect(nudge.getByRole("link", { name: "Install the app" })).toHaveAttribute("href", /\/help\/install\/$/);
   });
 });
+
+test("the footer shows the build's version, and its report and feedback links carry it (#1500)", async ({
+  page,
+  owner,
+}) => {
+  await gotoLog(page, owner);
+  const version = (await page.locator("#app-version").textContent()).trim();
+  expect(version).toMatch(/^(dev|v\d+\.\d+\.\d+)$/);
+  for (const name of ["Report an issue", "Tell us what you think"]) {
+    const href = await page.locator("footer").getByRole("link", { name }).getAttribute("href");
+    expect(new URL(href, page.url()).searchParams.get("version")).toBe(version);
+  }
+});

@@ -187,7 +187,8 @@ describe("submissions", () => {
       id: "r2",
       message: "Newer",
       contact_email: "climber@example.com",
-      source_page: "/log",
+      source_page: "https://beta.climbinglogbook.com/raven/log",
+      app_version: "v2.139.1",
       created_at: "2026-10-05 10:00:00",
     });
     await insert("issue_reports", {
@@ -205,7 +206,9 @@ describe("submissions", () => {
     expect(active.submissions[0]).toMatchObject({
       message: "Newer",
       contactEmail: "climber@example.com",
-      sourcePage: "/log",
+      sourcePage: "https://beta.climbinglogbook.com/raven/log",
+      environment: "Beta",
+      appVersion: "v2.139.1",
       readAt: null,
       archivedAt: null,
       username: null,

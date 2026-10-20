@@ -67,6 +67,14 @@ describe("handleReportIssue", () => {
     });
   });
 
+  it("stores the version the report came from, and drops one that isn't a version rather than refusing the report (#1500)", async () => {
+    stubSiteverify(true);
+    expect((await postReport({ message: "It broke.", turnstileToken: "t", appVersion: "v2.139.1" })).status).toBe(201);
+    expect((await postReport({ message: "It broke.", turnstileToken: "t", appVersion: "<script>" })).status).toBe(201);
+    const { results } = await env.LOGBOOK_DB.prepare(`SELECT app_version FROM issue_reports ORDER BY rowid`).all();
+    expect(results.map(r => r.app_version)).toEqual(["v2.139.1", null]);
+  });
+
   it("stores the error reference a report was sent from, and refuses one that isn't a reference (#1032)", async () => {
     stubSiteverify(true);
     const ok = await postReport({ message: "It broke.", turnstileToken: "t", errorRef: "8a1b2c3d4e5f-LHR" });

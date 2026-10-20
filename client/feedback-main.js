@@ -4,6 +4,7 @@ import { FIELD_LIMITS } from "../shared/field-limits.js";
 import { showCharactersLeft } from "./characters-left.js";
 import { createThemeToggle } from "./theme-toggle.js";
 import { renderTurnstile } from "./turnstile.js";
+import { validAppVersion } from "../shared/app-version.js";
 import { preselectSection } from "./preselect-section.js";
 
 createDisclosure(
@@ -38,6 +39,8 @@ function showError(message) {
 const turnstile = renderTurnstile("#turnstile-widget");
 
 const sourcePage = document.referrer || undefined;
+// Passed by the footer link from the page someone came from (#1500).
+const appVersion = validAppVersion(new URLSearchParams(location.search).get("version"));
 preselectSection(document.getElementById("feedback-section"), sourcePage);
 
 form.addEventListener("submit", async event => {
@@ -67,6 +70,7 @@ form.addEventListener("submit", async event => {
         contactEmail: document.getElementById("feedback-email").value || undefined,
         section: document.getElementById("feedback-section").value || undefined,
         sourcePage,
+        appVersion,
         turnstileToken,
       }),
     });
