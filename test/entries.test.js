@@ -274,6 +274,22 @@ describe("handleGet (locationId -- #111 per-table pagination)", () => {
     expect(entries).toHaveLength(20);
   });
 
+  it("narrows to one discipline with ?discipline=", async () => {
+    await post({ ...validEntry(), id: "b1", name: "A Boulder" });
+    await post({ ...validEntry(), id: "s1", name: "A Sport Route", type: "sport", grade: "6a", sportStyle: "lead" });
+
+    const boulders = await (await getLocation(locationId, { discipline: "boulder" })).json();
+    expect(boulders.entries.map(e => e.name)).toEqual(["A Boulder"]);
+    const sport = await (await getLocation(locationId, { discipline: "sport" })).json();
+    expect(sport.entries.map(e => e.name)).toEqual(["A Sport Route"]);
+  });
+
+  it("400s an unknown discipline", async () => {
+    const res = await getLocation(locationId, { discipline: "trad" });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/^discipline must be one of/);
+  });
+
   it("excludes a soft-deleted entry", async () => {
     const created = await (await post(validEntry())).json();
     await del(created.entry.id);
