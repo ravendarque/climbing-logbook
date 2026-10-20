@@ -4,6 +4,7 @@ import { FIELD_LIMITS } from "../shared/field-limits.js";
 import { showCharactersLeft } from "./characters-left.js";
 import { createThemeToggle } from "./theme-toggle.js";
 import { renderTurnstile } from "./turnstile.js";
+import { preselectSection } from "./preselect-section.js";
 
 createDisclosure(
   document.getElementById("header-menu-btn"),
@@ -38,6 +39,7 @@ const turnstile = renderTurnstile("#turnstile-widget");
 
 // undefined, not "", so JSON.stringify omits it and the server sees it as absent.
 const sourcePage = document.referrer || undefined;
+preselectSection(document.getElementById("report-issue-section"), sourcePage);
 
 // Set by "Report this logbook" and "Report this entry" on a public logbook.
 const params = new URLSearchParams(location.search);
