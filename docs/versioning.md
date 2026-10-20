@@ -156,7 +156,9 @@ tags. The release workflow writes the merged PR's "What's new" lines into
 the annotated tag's message, under the version
 (`scripts/whats-new-tag-message.mjs`), and the help build reads them back
 from git (`scripts/lib/whats-new.mjs`). A release with no lines isn't
-listed. Each site is built from its own tag, so beta lists everything and
+listed. The required release-label check also fails a PR labelled patch,
+minor or major whose description has no "What's new" heading
+(`scripts/check-whats-new.mjs`, #1504). Each site is built from its own tag, so beta lists everything and
 production only what's been promoted. Releases from before #917 are in
 `scripts/lib/whats-new-history.json`.
 
