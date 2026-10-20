@@ -1,8 +1,8 @@
 import { execFileSync } from "node:child_process";
 import historyFile from "./whats-new-history.json" with { type: "json" };
+import { groupByMonth, recentReleases } from "../../shared/whats-new-months.js";
 
 const HEADING = /^##\s+What['’]s new\s*$/im;
-const MONTHS_SHOWN = 6;
 
 export function hasWhatsNewHeading(body = "") {
   return HEADING.test(body.replace(/\r\n/g, "\n"));
@@ -74,50 +74,13 @@ export function readHistory() {
   return historyFile;
 }
 
-const monthOf = date => date.slice(0, 7);
-
-function monthsBefore(month, n) {
-  const [year, m] = month.split("-").map(Number);
-  const d = new Date(Date.UTC(year, m - 1 - n, 1));
-  return d.toISOString().slice(0, 7);
-}
-
-// Newest first, one group per month, covering the six months up to the latest release with changes.
-export function groupByMonth(releases) {
-  const listed = releases
-    .filter(release => release.changes.length > 0)
-    .sort((a, b) => b.date.localeCompare(a.date) || b.version.localeCompare(a.version, "en", { numeric: true }));
-  if (listed.length === 0) return [];
-  const oldest = monthsBefore(monthOf(listed[0].date), MONTHS_SHOWN - 1);
-  const months = new Map();
-  for (const release of listed) {
-    const month = monthOf(release.date);
-    if (month < oldest) break;
-    if (!months.has(month)) months.set(month, []);
-    months.get(month).push(release);
-  }
-  return [...months].map(([month, monthReleases]) => ({
-    month: new Date(`${month}-01T00:00:00Z`).toLocaleDateString("en-GB", {
-      month: "long",
-      year: "numeric",
-      timeZone: "UTC",
-    }),
-    releases: monthReleases.map(({ version, date, changes }) => ({
-      version,
-      date,
-      day: new Date(`${date}T00:00:00Z`).toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "long",
-        timeZone: "UTC",
-      }),
-      changes,
-    })),
-  }));
-}
-
-// A tag's own lines win over the hand-written history for the same version.
-export function whatsNew({ tagged = readTaggedReleases(), history = readHistory() } = {}) {
+// A tag's own lines win over the hand-written history for the same version. Also published as /-/releases.json.
+export function whatsNewReleases({ tagged = readTaggedReleases(), history = readHistory() } = {}) {
   const byVersion = new Map(history.map(release => [release.version, release]));
   for (const release of tagged) if (release.changes.length > 0) byVersion.set(release.version, release);
-  return groupByMonth([...byVersion.values()]);
+  return recentReleases([...byVersion.values()]);
+}
+
+export function whatsNew(sources) {
+  return groupByMonth(whatsNewReleases(sources));
 }

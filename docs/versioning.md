@@ -158,8 +158,15 @@ the annotated tag's message, under the version
 from git (`scripts/lib/whats-new.mjs`). A release with no lines isn't
 listed. The required release-label check also fails a PR labelled patch,
 minor or major whose description has no "What's new" heading
-(`scripts/check-whats-new.mjs`, #1504). Each site is built from its own tag, so beta lists everything and
-production only what's been promoted. Releases from before #917 are in
+(`scripts/check-whats-new.mjs`, #1504).
+
+Each build also publishes the same list as `/-/releases.json`. The page
+lives on the main site only (the app hosts redirect help pages there).
+When it opens, it reads beta's `/-/releases.json` (allowed cross-origin by
+`static/_headers`) and production's version (`/-/api/health`), then shows
+releases newer than production under **Beta channel** and the rest under
+**Main channel** (`client/whats-new-channels.js`, #1506). If either read
+fails, it keeps the list its own build rendered. Releases from before #917 are in
 `scripts/lib/whats-new-history.json`.
 
 ## Database migrations: expand and contract
