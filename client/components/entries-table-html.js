@@ -161,7 +161,7 @@ export function renderShellSectionHtml(
 function nameCell(e, pendingBadge, editable) {
   const name = `<span class="font-medium truncate inline-block max-w-full align-bottom ${e._pendingDelete ? "line-through text-muted" : ""}">${escapeHtml(e.name)}</span>${pendingBadge}`;
   const hidden = e.hidden
-    ? `<span class="block text-xs text-accent-ink ${editable ? "px-[.65rem] pb-[.35rem]" : ""}" title="Hidden from your public logbook">Hidden (<a class="underline underline-offset-2" data-apex-link href="${escapeHtml(resolveApexUrl(location.hostname, "/help/terms/#hidden-climbs"))}" aria-label="Why is this hidden from my public logbook?">Why?</a>)</span>`
+    ? `<span class="block text-xs text-accent-ink ${editable ? `${TD_BASE} pt-0` : ""}" title="Hidden from your public logbook">Hidden (<a class="underline underline-offset-2" data-apex-link href="${escapeHtml(resolveApexUrl(location.hostname, "/help/terms/#hidden-climbs"))}" aria-label="Why is this hidden from my public logbook?">Why?</a>)</span>`
     : "";
   if (!editable) return `<td class="${TD_BASE} overflow-hidden">${name}${hidden}</td>`;
   return `<td class="p-0 overflow-hidden align-middle"><button type="button" class="edit-btn ${TD_BASE} block w-full text-left bg-transparent border-0 text-inherit cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-[-2px]" data-edit-id="${escapeHtml(e.id)}"><span class="sr-only">Edit </span>${name}</button>${hidden}</td>`;

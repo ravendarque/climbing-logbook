@@ -258,7 +258,12 @@ export class ClimbingEntriesTable extends HTMLElement {
       e => e.target.classList?.contains("table-scroll") && markScrollEdges(e.target),
       true,
     );
-    new ResizeObserver(() => this.querySelectorAll(".table-scroll").forEach(markScrollEdges)).observe(this);
+    let width = 0;
+    new ResizeObserver(([{ contentRect }]) => {
+      if (contentRect.width === width) return;
+      width = contentRect.width;
+      this.querySelectorAll(".table-scroll").forEach(markScrollEdges);
+    }).observe(this);
     const searchInput = this.querySelector("#search");
     const filterBtn = this.querySelector("#filter-btn");
     const filterPanel = this.querySelector("#filter-panel");
