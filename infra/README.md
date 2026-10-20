@@ -56,6 +56,12 @@ The only thing *not* managed here, by design: the logbook's actual data
       and variables → Actions): `SYNTHETIC_USER_EMAIL`,
       `SYNTHETIC_USER_PASSWORD` — same "set it yourself" reasoning as
       every other credential in this file.
+   5. Mark it as internal, so the admin usage stats leave it out
+      (#1514). In your own terminal, with its username:
+
+      ```bash
+      pnpm exec wrangler d1 execute climbing-logbook --remote --command "INSERT INTO settings (user_id, is_internal) SELECT id, 1 FROM \"user\" WHERE username = '<monitor username, lowercase>' ON CONFLICT(user_id) DO UPDATE SET is_internal = 1"
+      ```
 
 6. **DNSSEC DS record at the domain registrar** (#527) — `infra/
    tls-hardening.tf` enables DNSSEC on the zone

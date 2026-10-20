@@ -2,8 +2,9 @@ import { json } from "../lib/json.js";
 
 const RECENT_DAYS = 30;
 
-// Demo accounts are left out of every figure: they're seeded, not real use.
-const REAL_USERS = `SELECT u.id FROM "user" u LEFT JOIN settings s ON s.user_id = u.id WHERE COALESCE(s.is_demo, 0) = 0`;
+// Demo and internal accounts (the synthetic monitor) are left out of every figure: neither is real use.
+const REAL_USERS = `SELECT u.id FROM "user" u LEFT JOIN settings s ON s.user_id = u.id
+  WHERE COALESCE(s.is_demo, 0) = 0 AND COALESCE(s.is_internal, 0) = 0`;
 const LIVE_ENTRIES = `SELECT * FROM entries WHERE deleted_at IS NULL AND user_id IN (${REAL_USERS})`;
 
 // Better Auth writes ISO timestamps; the app's own tables use datetime('now').

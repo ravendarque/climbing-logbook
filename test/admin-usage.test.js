@@ -103,6 +103,27 @@ describe("usage figures", () => {
     ]);
   });
 
+  it("leaves out an internal account, such as the synthetic monitor, from every figure (#1514)", async () => {
+    const { userId: real } = await createAuthedSession();
+    const { userId: monitor } = await createAuthedSession();
+    await run(`INSERT INTO settings (user_id, is_internal, athlete_mode) VALUES (?, 1, 1)`, monitor);
+    await place(real, "r-p1", { location: "Peak District", country: "United Kingdom" });
+    await entry(real, "r1", "r-p1");
+    await place(monitor, "m-p1", { location: "Monitor Crag", country: "France" });
+    await entry(monitor, "m1", "m-p1");
+    await run(`INSERT INTO import_runs (id, user_id, entries) VALUES ('mi', ?, 2)`, monitor);
+
+    expect(await usage()).toMatchObject({
+      users: 1,
+      climbs: 1,
+      activeUsers: 1,
+      places: 1,
+      countryCount: 1,
+      athleteMode: 0,
+      importUsers: 0,
+    });
+  });
+
   it("is all zeros with nobody signed up", async () => {
     expect(await usage()).toMatchObject({
       users: 0,
