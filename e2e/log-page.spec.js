@@ -623,15 +623,19 @@ test("page 2 grows with the moves added to it, so its end stays reachable on a p
 
   for (let i = 0; i < 4; i++) await page.locator("#hardest-moves-add").click();
 
-  const heights = () =>
-    page.evaluate(() => ({
-      viewport: Math.round(document.getElementById("entry-pages-viewport").getBoundingClientRect().height),
-      page: document.getElementById("entry-page-2").scrollHeight,
-    }));
-  await expect.poll(async () => {
-    const { viewport, page: pageHeight } = await heights();
-    return Math.abs(viewport - pageHeight) <= 1;
-  }).toBe(true);
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        Math.abs(
+          document.getElementById("entry-pages-viewport").getBoundingClientRect().height -
+            document.getElementById("entry-page-2").scrollHeight,
+        ),
+      ),
+    )
+    .toBeLessThanOrEqual(1);
+  const save = page.locator("#entry-submit-btn-2");
+  await save.scrollIntoViewIfNeeded();
+  await expect(save).toBeInViewport();
 });
 
 test("reopening the form after navigating to page 2 starts back on page 1", async ({ page, owner }) => {
