@@ -138,6 +138,7 @@ finds the latest existing `vX.Y.Z` tag, calculates the new version with the
 no push to `main`) and creates a GitHub Release with auto-generated notes —
 no manual step required. Because it never pushes to `main`, this never
 interacts with branch protection on `main` — tags aren't covered by it.
+The tag goes on the merged PR's own merge commit, not the tip of `main`, so two PRs merged moments apart each get their own tag (#1509).
 That tag push is what triggers `deploy.yml`. It authenticates with a
 short-lived token from the release GitHub App (`RELEASE_APP_CLIENT_ID`
 variable, `RELEASE_APP_PRIVATE_KEY` secret; Contents: write on this repo
