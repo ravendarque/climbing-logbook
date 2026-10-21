@@ -15,6 +15,7 @@ function toUser(row) {
     climbs: row.climbs,
     logbookPublic: !!row.logbook_public,
     isDemo: !!row.is_demo,
+    isInternal: !!row.is_internal,
     suspended: !!row.suspended,
   };
 }
@@ -22,7 +23,7 @@ function toUser(row) {
 const USER_COLUMNS = `u.id, u.displayUsername AS username, u.email, u.createdAt,
   (SELECT max(updatedAt) FROM session WHERE userId = u.id) AS lastSeenAt,
   (SELECT count(*) FROM entries WHERE user_id = u.id AND deleted_at IS NULL) AS climbs,
-  st.logbook_public, st.is_demo, (sus.user_id IS NOT NULL) AS suspended`;
+  st.logbook_public, st.is_demo, st.is_internal, (sus.user_id IS NOT NULL) AS suspended`;
 const USER_JOINS = `FROM "user" u LEFT JOIN settings st ON st.user_id = u.id
   LEFT JOIN account_suspensions sus ON sus.user_id = u.id`;
 

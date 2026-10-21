@@ -155,6 +155,15 @@ test("the admin pages and API don't exist on the app's own hosts", async ({ page
   expect(home.status()).toBe(200);
 });
 
+test("the user list labels a demo account as internal (#1519)", async ({ page }) => {
+  await page.goto(`${ADMIN}/users`);
+  await page.locator("#user-search").fill("advanceddemo");
+  const row = page.locator("#user-list a", { hasText: "advanceddemo" });
+  await expect(row).toHaveCount(1);
+  await expect(row.getByText("Internal", { exact: true })).toBeVisible();
+  await expect(row.getByText("Demo", { exact: true })).toHaveCount(0);
+});
+
 test("a user is found, suspended, unsuspended and deleted, and each step is in the activity log", async ({
   page,
   owner,

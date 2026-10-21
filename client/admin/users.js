@@ -113,7 +113,7 @@ export function startUsers() {
         const top = el("span", "flex items-center gap-2");
         top.append(el("span", "text-sm font-bold break-all", user.username));
         if (user.suspended) top.append(el("span", "ml-auto text-xs font-semibold text-accent-ink", "Suspended"));
-        if (user.isDemo) top.append(el("span", "ml-auto text-xs text-muted", "Demo"));
+        if (user.isInternal) top.append(el("span", "ml-auto text-xs text-muted", "Internal"));
         link.append(
           top,
           el("span", "text-sm text-muted break-all", user.email),

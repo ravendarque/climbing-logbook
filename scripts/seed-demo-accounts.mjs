@@ -109,7 +109,7 @@ function buildPersonaSql(persona) {
   );
 
   statements.push(
-    `INSERT OR REPLACE INTO settings (user_id, athlete_mode, active_discipline, logbook_public, is_demo, created_at, updated_at) VALUES (${sqlStr(userId)}, 1, 'boulder', 1, 1, ${now}, ${now});`,
+    `INSERT OR REPLACE INTO settings (user_id, athlete_mode, active_discipline, logbook_public, is_demo, is_internal, created_at, updated_at) VALUES (${sqlStr(userId)}, 1, 'boulder', 1, 1, 1, ${now}, ${now});`,
   );
   // Synthetic data about fictional people, so their demo injury pages work (#1120).
   statements.push(
