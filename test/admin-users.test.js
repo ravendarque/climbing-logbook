@@ -134,9 +134,7 @@ describe("the user list", () => {
     await env.LOGBOOK_DB.prepare(`INSERT INTO settings (user_id, is_demo) VALUES (?, 1)`).bind(inserted.userId).run();
     await env.LOGBOOK_DB.prepare(`UPDATE settings SET is_demo = 1 WHERE user_id = ?`).bind(updated.userId).run();
     await env.LOGBOOK_DB.prepare(`UPDATE settings SET is_internal = 0 WHERE user_id = ?`).bind(inserted.userId).run();
-    const { results } = await env.LOGBOOK_DB.prepare(
-      `SELECT is_internal FROM settings WHERE user_id IN (?, ?)`,
-    )
+    const { results } = await env.LOGBOOK_DB.prepare(`SELECT is_internal FROM settings WHERE user_id IN (?, ?)`)
       .bind(inserted.userId, updated.userId)
       .all();
     expect(results).toEqual([{ is_internal: 1 }, { is_internal: 1 }]);
