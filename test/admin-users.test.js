@@ -105,6 +105,7 @@ describe("the user list", () => {
       climbs: 0,
       logbookPublic: true,
       isDemo: false,
+      isInternal: false,
       suspended: false,
     });
     expect(users[1].lastSeenAt).toEqual(expect.any(String));
@@ -113,6 +114,30 @@ describe("the user list", () => {
     expect(found.users.map(user => user.id)).toEqual([first.userId]);
     const none = await (await admin("/-/api/admin/users?q=%25")).json();
     expect(none.users).toEqual([]);
+  });
+
+  it("marks an internal account as internal", async () => {
+    const user = await newUser();
+    await env.LOGBOOK_DB.prepare(
+      `INSERT INTO settings (user_id, is_internal) VALUES (?, 1) ON CONFLICT(user_id) DO UPDATE SET is_internal = 1`,
+    )
+      .bind(user.userId)
+      .run();
+    const { users } = await (await admin(`/-/api/admin/users?q=${user.username}`)).json();
+    expect(users).toMatchObject([{ id: user.userId, isInternal: true }]);
+  });
+
+  it("keeps a demo account internal, however it's written", async () => {
+    const inserted = await newUser();
+    const updated = await newUser();
+    await env.LOGBOOK_DB.prepare(`DELETE FROM settings WHERE user_id = ?`).bind(inserted.userId).run();
+    await env.LOGBOOK_DB.prepare(`INSERT INTO settings (user_id, is_demo) VALUES (?, 1)`).bind(inserted.userId).run();
+    await env.LOGBOOK_DB.prepare(`UPDATE settings SET is_demo = 1 WHERE user_id = ?`).bind(updated.userId).run();
+    await env.LOGBOOK_DB.prepare(`UPDATE settings SET is_internal = 0 WHERE user_id = ?`).bind(inserted.userId).run();
+    const { results } = await env.LOGBOOK_DB.prepare(`SELECT is_internal FROM settings WHERE user_id IN (?, ?)`)
+      .bind(inserted.userId, updated.userId)
+      .all();
+    expect(results).toEqual([{ is_internal: 1 }, { is_internal: 1 }]);
   });
 });
 
