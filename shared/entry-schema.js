@@ -39,6 +39,8 @@ export function isVideoHost(hostname) {
 export const VALID_LIMBS = ["hand", "foot", "knee"];
 export const VALID_SIDES = ["left", "right"];
 export const VALID_WALL_ANGLES = ["slab", "vert", "overhang", "roof"];
+// Where the hardest move is: the base of the Strengths / Weaknesses report (#1523).
+export const ENTRY_WALL_ANGLES = ["slab", "vert", "overhang", "roof", "chimney", "dihedral"];
 
 export const HOLD_TYPES_BY_LIMB = {
   hand: ["crimp", "jug", "pocket", "sloper", "pinch", "edge"],
@@ -93,6 +95,7 @@ export const entrySchema = v.pipe(
     attemptsToSend: anyField,
     rpe: anyField,
     hardestBeta: anyField,
+    wallAngle: anyField,
     painMoves: anyField,
   }),
   v.rawCheck(({ dataset, addIssue }) => {
@@ -220,6 +223,12 @@ export const entrySchema = v.pipe(
       if (!Number.isInteger(entry.rpe) || entry.rpe < 0 || entry.rpe > 100 || entry.rpe % 10 !== 0) {
         addIssue({ message: "rpe must be a multiple of 10 between 0 and 100", path: fieldPath(entry, "rpe") });
       }
+    }
+    if (entry.wallAngle != null && !ENTRY_WALL_ANGLES.includes(entry.wallAngle)) {
+      addIssue({
+        message: `wallAngle must be one of: ${ENTRY_WALL_ANGLES.join(", ")}`,
+        path: fieldPath(entry, "wallAngle"),
+      });
     }
     if (entry.painMoves !== undefined && entry.painMoves !== null) {
       if (!Array.isArray(entry.painMoves)) {

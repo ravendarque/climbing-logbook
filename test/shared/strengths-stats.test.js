@@ -1,181 +1,100 @@
 import { describe, expect, it } from "vitest";
-import {
-  MIN_TAG_COUNT,
-  availableAnchors,
-  cellCounts,
-  describeWeakness,
-  rankedCells,
-  rankedForAnchor,
-  topWeakness,
-} from "../../shared/strengths-stats.js";
+import { strengthsFor } from "../../shared/strengths-stats.js";
+import { buildStrengthsReport } from "../../shared/reports.js";
 
-function entryWithMoves(moves = [], overrides = {}) {
-  return { id: "e1", name: "Test Route", moves, ...overrides };
-}
-function moveRow(overrides = {}) {
-  return {
-    difficulty: "hardest",
-    limb: "hand",
-    side: "left",
-    holdType: "crimp",
-    movementStyle: "static",
-    wallAngle: "overhang",
-    ...overrides,
-  };
-}
+let nextId = 0;
+const climb = (wallAngle, grade, hardestBeta = "", status = "send", type = "boulder") => ({
+  id: String(nextId++),
+  type,
+  grade,
+  gradeScale: type === "boulder" ? "font" : "french",
+  status,
+  wallAngle,
+  hardestBeta,
+});
+const angle = (report, name) => report.angles.find(a => a.angle === name);
 
-describe("cellCounts", () => {
-  it("returns an empty array for entries with no moves", () => {
-    expect(cellCounts([entryWithMoves()])).toEqual([]);
-  });
-
-  it("counts hardest and easiest separately within one cell", () => {
-    const cells = cellCounts([
-      entryWithMoves([moveRow({ difficulty: "hardest" }), moveRow({ difficulty: "easiest" })]),
+describe("strengthsFor (#1523)", () => {
+  it("sets the level on an angle from the median of the best five sends there", () => {
+    const report = strengthsFor("boulder", [
+      ...["7A+", "7A+", "7A", "7A", "6C+", "6A"].map(g => climb("overhang", g)),
+      climb("overhang", "7C", "", "project"),
     ]);
-    expect(cells).toHaveLength(1);
-    expect(cells[0]).toMatchObject({ hardestCount: 1, easiestCount: 1, total: 2, score: 0.5 });
+    expect(angle(report, "overhang")).toMatchObject({ climbs: 7, share: 100, level: "7A" });
   });
 
-  it("keeps different combinations as separate cells", () => {
-    const cells = cellCounts([
-      entryWithMoves([
-        moveRow(),
-        moveRow({ limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "slab" }),
-      ]),
+  it("needs three sends on an angle before it has a level", () => {
+    const report = strengthsFor("boulder", [climb("slab", "6A"), climb("slab", "6A"), climb("vert", "6B")]);
+    expect(angle(report, "slab").level).toBeNull();
+    expect(angle(report, "slab").share).toBe(67);
+  });
+
+  it("leaves out checkouts, climbs with no wall angle and the other discipline", () => {
+    const report = strengthsFor("boulder", [
+      climb("slab", "6A"),
+      climb("slab", "6A", "", "checkout"),
+      climb(null, "6A"),
+      climb("slab", "6a", "", "send", "sport"),
     ]);
-    expect(cells).toHaveLength(2);
+    expect(report.climbs).toBe(1);
   });
 
-  it("sums counts for the same combination across multiple entries", () => {
-    const cells = cellCounts([entryWithMoves([moveRow()], { id: "e1" }), entryWithMoves([moveRow()], { id: "e2" })]);
-    expect(cells).toHaveLength(1);
-    expect(cells[0].total).toBe(2);
-  });
-
-  it("does not count an out-of-vocabulary difficulty value as easiest", () => {
-    const cells = cellCounts([entryWithMoves([moveRow({ difficulty: "somethingelse" })])]);
-    expect(cells[0]).toMatchObject({ hardestCount: 0, easiestCount: 0, total: 0 });
-  });
-});
-
-describe("rankedCells / topWeakness", () => {
-  it("excludes cells below the confidence gate", () => {
-    const entries = [entryWithMoves([moveRow()])]; // total = 1
-    expect(rankedCells(entries)).toEqual([]);
-    expect(topWeakness(entries)).toBeNull();
-  });
-
-  it("includes and ranks cells at or above the gate, highest score first", () => {
-    const weak = Array.from({ length: MIN_TAG_COUNT }, () => moveRow({ difficulty: "hardest" })); // score 1.0
-    const strong = Array.from({ length: MIN_TAG_COUNT }, () => moveRow({ difficulty: "easiest", wallAngle: "slab" })); // score 0
-    const entries = [entryWithMoves([...weak, ...strong])];
-    const ranked = rankedCells(entries);
-    expect(ranked).toHaveLength(2);
-    expect(ranked[0].wallAngle).toBe("overhang");
-    expect(ranked[0].score).toBe(1);
-    expect(ranked[1].wallAngle).toBe("slab");
-  });
-
-  it("topWeakness returns the single highest-scoring cell", () => {
-    const weak = Array.from({ length: MIN_TAG_COUNT }, () => moveRow({ difficulty: "hardest" }));
-    const entries = [entryWithMoves(weak)];
-    expect(topWeakness(entries)).toMatchObject({ limb: "hand", side: "left", holdType: "crimp", score: 1 });
-  });
-
-  it("respects a custom minCount argument", () => {
-    const entries = [entryWithMoves([moveRow(), moveRow({ difficulty: "easiest" })])]; // total = 2
-    expect(rankedCells(entries, 2)).toHaveLength(1);
-    expect(rankedCells(entries, 3)).toHaveLength(0);
-  });
-});
-
-describe("availableAnchors", () => {
-  it("returns an empty array with no tagged moves", () => {
-    expect(availableAnchors([entryWithMoves()])).toEqual([]);
-  });
-
-  it("returns one anchor per dimension for a single tagged move, deduplicated across entries", () => {
-    const entries = [
-      entryWithMoves([moveRow()], { id: "e1" }),
-      entryWithMoves([moveRow()], { id: "e2" }), // same combination again
-    ];
-    const anchors = availableAnchors(entries);
-    expect(anchors).toHaveLength(4); // limbSide, holdType, movementStyle, wallAngle -- deduplicated
-    expect(anchors).toContainEqual({ dimension: "limbSide", value: "hand-left", label: "Left hand" });
-    expect(anchors).toContainEqual({ dimension: "holdType", value: "crimp", label: "Crimp" });
-    expect(anchors).toContainEqual({ dimension: "movementStyle", value: "static", label: "Static" });
-    expect(anchors).toContainEqual({ dimension: "wallAngle", value: "overhang", label: "Overhang" });
-  });
-
-  it("humanizes a hyphenated hold-type value into sentence case, not raw", () => {
-    const anchors = availableAnchors([
-      entryWithMoves([moveRow({ limb: "foot", side: "right", holdType: "toe-hook" })]),
+  it("counts a crux as below your level two or more grades under it, and at your limit otherwise", () => {
+    const sends = ["7A", "7A", "7A"].map(g => climb("overhang", g));
+    const report = strengthsFor("boulder", [
+      ...sends,
+      climb("overhang", "6B+", "cross to the sloper"),
+      climb("overhang", "6B", "paddle to the sloper"),
+      climb("overhang", "6C+", "deadpoint to the sloper"),
     ]);
-    expect(anchors).toContainEqual({ dimension: "holdType", value: "toe-hook", label: "Toe hook" });
-    expect(anchors).toContainEqual({ dimension: "limbSide", value: "foot-right", label: "Right foot" });
+    expect(report.items.find(i => i.id === "sloper")).toMatchObject({ below: 2, limit: 1 });
   });
 
-  it("never offers an anchor value that doesn't appear in the data", () => {
-    const anchors = availableAnchors([entryWithMoves([moveRow()])]);
-    expect(anchors.some(a => a.dimension === "holdType" && a.value === "jug")).toBe(false);
-  });
-});
-
-describe("rankedForAnchor", () => {
-  it("only includes cells matching the fixed dimension/value", () => {
-    const matching = Array.from({ length: MIN_TAG_COUNT }, () => moveRow({ holdType: "crimp" }));
-    const nonMatching = Array.from({ length: MIN_TAG_COUNT }, () =>
-      moveRow({ holdType: "jug", difficulty: "easiest" }),
-    );
-    const entries = [entryWithMoves([...matching, ...nonMatching])];
-    const ranked = rankedForAnchor(entries, "holdType", "crimp");
-    expect(ranked).toHaveLength(1);
-    expect(ranked[0].holdType).toBe("crimp");
+  it("only lists something once it's in the hardest move of three or more climbs", () => {
+    const report = strengthsFor("boulder", [
+      climb("vert", "6A", "dyno to the jug"),
+      climb("vert", "6A", "dyno to the jug"),
+      climb("vert", "6A", "crimp"),
+    ]);
+    expect(report.items.map(i => i.id)).toEqual([]);
+    expect(report.described).toBe(3);
   });
 
-  it("matches on the limbSide dimension using the combined limb-side value", () => {
-    const entries = [
-      entryWithMoves(Array.from({ length: MIN_TAG_COUNT }, () => moveRow({ limb: "foot", side: "right" }))),
-    ];
-    const ranked = rankedForAnchor(entries, "limbSide", "foot-right");
-    expect(ranked).toHaveLength(1);
+  it("counts the holds in each hardest move by wall angle", () => {
+    const report = strengthsFor("boulder", [
+      climb("slab", "6A", "mantle onto the sloper"),
+      climb("overhang", "6A", "deadpoint to the sloper"),
+      climb("overhang", "6A", "cross to the crimp"),
+    ]);
+    expect(report.heat.find(r => r.id === "sloper").counts).toEqual([1, 0, 1, 0, 0, 0]);
+    expect(report.heat.find(r => r.id === "crimp").counts).toEqual([0, 0, 1, 0, 0, 0]);
   });
 
-  it("still applies the confidence gate within the anchored subset", () => {
-    const entries = [entryWithMoves([moveRow({ holdType: "crimp" })])]; // total = 1, below gate
-    expect(rankedForAnchor(entries, "holdType", "crimp")).toEqual([]);
-  });
-});
-
-describe("describeWeakness", () => {
-  it("shows the evidence behind the weakness (#1389)", () => {
-    const cell = { limb: "hand", side: "left", holdType: "crimp", wallAngle: "overhang", hardestCount: 5, total: 6 };
-    expect(describeWeakness(cell)).toBe(
-      "Your left hand on overhanging crimps was the hardest move on 5 of the 6 sends you tagged it on, which makes it your clearest weakness.",
+  it("names the weak angle, what's hard below your level and what's only hard at your limit", () => {
+    const report = strengthsFor("boulder", [
+      ...["7A", "7A", "7A"].map(g => climb("overhang", g, "right heel hook on the lip, deadpoint to the crimp")),
+      ...["6A", "6A", "6A"].map(g => climb("slab", g)),
+      ...["6A", "6A", "6B"].map(g => climb("overhang", g, "paddle to the sloper", "project")),
+    ]);
+    expect(report.insights.map(i => [i.tone, i.title])).toEqual([
+      ["negative", "Slab is your weak angle"],
+      ["negative", "Paddle: hard below your level"],
+      ["positive", "Deadpoint: only at your limit"],
+    ]);
+    expect(report.insights[0].text).toBe(
+      "Your level on slab is 6A, against 7A on overhang. Climbing more slab is the quickest way up.",
     );
   });
 
-  it("uses the correct adjective for every wall angle", () => {
-    expect(
-      describeWeakness({
-        limb: "foot",
-        side: "left",
-        holdType: "toe-hook",
-        wallAngle: "slab",
-        hardestCount: 3,
-        total: 3,
-      }),
-    ).toContain("Your left foot on slab toe-hooks");
-    expect(
-      describeWeakness({
-        limb: "knee",
-        side: "right",
-        holdType: "kneebar",
-        wallAngle: "vert",
-        hardestCount: 3,
-        total: 4,
-      }),
-    ).toContain("Your right knee on vertical kneebars");
+  it("says nothing with no climbs", () => {
+    expect(strengthsFor("sport", [])).toMatchObject({ climbs: 0, items: [], heat: [], insights: [] });
+  });
+});
+
+describe("buildStrengthsReport", () => {
+  it("reports each discipline separately", () => {
+    const report = buildStrengthsReport([climb("slab", "6A"), climb("roof", "7a", "", "send", "sport")]);
+    expect(report.boulder.climbs).toBe(1);
+    expect(report.sport.climbs).toBe(1);
   });
 });

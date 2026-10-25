@@ -23,7 +23,7 @@ Go to **My account**, then **Settings**, and switch on **Athlete Mode**. Turn it
 
 - **Exertion.** How hard the climb felt, from 0 to 100 in steps of 10. Only for sends and flashes.
 - **Attempts.** How many goes it took. Setting a flash makes this 1.
-- **Hardest move/sequence for you.** Write it the way you'd describe it to a friend. As you type, it shows how each word was read, and asks about any word it isn't sure of.
+- **Hardest move/sequence for you.** Choose the wall angle where the hardest move is: slab, vert, overhang, roof, chimney or dihedral. Then describe the beta the way you'd describe it to a friend. As you type, it shows how each word was read, and asks about any word it isn't sure of.
 - **Pain or injury.** Add any move that hurt. For each one, choose the limb, hold type, movement and wall angle.
 
 You don't have to fill everything in. Each report only uses the details it needs, and tells you which.

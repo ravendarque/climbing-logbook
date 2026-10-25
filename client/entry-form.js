@@ -103,8 +103,12 @@ export function createEntryForm({
     hardestBetaInput,
     document.getElementById("entry-hardest-beta-count"),
   );
+  const wallAngleSelect = document.getElementById("entry-wall-angle");
+  const hardestMoveField = document.getElementById("hardest-move-field");
   const hardestBeta = createHardestBetaField({
     input: hardestBetaInput,
+    angleSelect: wallAngleSelect,
+    mismatch: document.getElementById("hardest-beta-angle-mismatch"),
     reading: document.getElementById("hardest-beta-reading"),
     readback: document.getElementById("hardest-beta-readback"),
     chips: document.getElementById("hardest-beta-chips"),
@@ -137,7 +141,7 @@ export function createEntryForm({
     document.getElementById("form-name-label").textContent = nameLabel(store.getActiveType());
     const type = store.getActiveType();
     document.getElementById("attempts-gap-hint").textContent =
-      `Feeds your ${flashLabel(type).toLowerCase()}/${sendLabel(type).toLowerCase()} gap view.`;
+      `Feeds your ${flashLabel(type).toLowerCase()}/${sendLabel(type).toLowerCase()} gap insights.`;
   }
 
   function isNonStandardScaleId(id) {
@@ -358,6 +362,7 @@ export function createEntryForm({
   // Exertion belongs to a send, so it's hidden, not disabled, otherwise.
   function updateExertionVisibility() {
     exertionField.hidden = selectedStatus !== "send";
+    hardestMoveField.hidden = selectedStatus === "checkout";
   }
 
   // 0 is unset: no climb takes zero effort.
@@ -490,6 +495,7 @@ export function createEntryForm({
     renderExertionValue();
     attemptsValue = entry?.attemptsToSend ?? 0;
     renderAttempts();
+    wallAngleSelect.value = entry?.wallAngle ?? "";
     hardestBeta.setValue(entry?.hardestBeta);
     updateHardestBetaLeft();
     painMoves.setRows(entry?.painMoves ?? []);
@@ -551,9 +557,18 @@ export function createEntryForm({
       video: withoutTrackingParams(videoInput.value.trim()) || null,
       rpe: selectedStatus === "send" ? Number(exertionSlider.value) : null,
       attemptsToSend: attemptsValue,
-      hardestBeta: hardestBeta.getValue(),
+      hardestBeta: selectedStatus === "checkout" ? null : hardestBeta.getValue(),
+      wallAngle: selectedStatus === "checkout" ? null : wallAngleSelect.value || null,
       painMoves: painInjuryConsentState() === "on" ? painMoves.getRows() : [],
     };
+
+    if (isAthleteMode() && selectedStatus !== "checkout" && !entry.wallAngle) {
+      showEntryError("Choose the wall angle on the Performance page.");
+      entrySubmitBtns.forEach(btn => {
+        btn.disabled = false;
+      });
+      return;
+    }
 
     // Checked before the network or queue: a shape error won't fix itself on retry.
     const shapeErr = validateEntryShape(entry);

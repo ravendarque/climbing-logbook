@@ -874,6 +874,14 @@ describe("hardest move beta and pain moves (#1522)", () => {
     expect(row.hardest_beta).toBeNull();
   });
 
+  it("writes and reads back the wall angle, and refuses one it doesn't know (#1523)", async () => {
+    const created = await (await post({ ...validEntry(), wallAngle: "dihedral" })).json();
+    expect(created.entry.wallAngle).toBe("dihedral");
+    const res = await post({ ...validEntry(), wallAngle: "cave" });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("wallAngle must be one of: slab, vert, overhang, roof, chimney, dihedral");
+  });
+
   it("rejects a hardest beta that isn't text with a 400", async () => {
     const res = await post({ ...validEntry(), hardestBeta: ["crimp"] });
     expect(res.status).toBe(400);

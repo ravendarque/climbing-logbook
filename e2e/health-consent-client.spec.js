@@ -133,6 +133,7 @@ test("a save refused because the cached state was out of date hides the pain sec
   await expect(page.locator("#pain-moves-on")).toBeVisible();
   await page.locator("#pain-moves-add").click();
   await page.locator('#pain-moves-list [data-field="limbSide"]').selectOption("foot-right");
+  await page.locator("#entry-wall-angle").selectOption("vert");
   stale = false;
 
   const [refused] = await Promise.all([

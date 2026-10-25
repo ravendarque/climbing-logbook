@@ -7,12 +7,15 @@ let parts;
 
 beforeEach(async () => {
   document.body.innerHTML = `
+    <select id="angle"><option value="">Choose…</option><option value="slab">Slab</option><option value="vert">Vert</option><option value="overhang">Overhang</option></select>
     <textarea id="beta"></textarea>
     <div id="reading" hidden>
-      <p id="readback"></p><div id="chips"></div><div id="panel" hidden></div><ol id="steps"></ol>
+      <p id="readback"></p><p id="mismatch" hidden></p><div id="chips"></div><div id="panel" hidden></div><ol id="steps"></ol>
     </div>`;
   input = document.getElementById("beta");
   parts = {
+    angleSelect: document.getElementById("angle"),
+    mismatch: document.getElementById("mismatch"),
     reading: document.getElementById("reading"),
     readback: document.getElementById("readback"),
     chips: document.getElementById("chips"),
@@ -87,6 +90,24 @@ describe("createHardestBetaField (#1522)", () => {
     answer("Keep as written");
     field.setValue("gubbins to the horn");
     expect(chipLabels()).toEqual(["gubbins?"]);
+  });
+
+  it("points out a wall angle in the beta that disagrees with the one chosen, without changing it", () => {
+    type("Steep. Heel hook the lip");
+    expect(parts.mismatch.hidden).toBe(true);
+
+    parts.angleSelect.value = "vert";
+    parts.angleSelect.dispatchEvent(new Event("change"));
+    expect(parts.mismatch.hidden).toBe(false);
+    expect(parts.mismatch.textContent).toBe(
+      "Your beta says “Steep” (overhang), but the wall angle is Vert. Check which is right.",
+    );
+    expect(parts.readback.querySelector("mark.beta-terrain").classList).toContain("beta-unknown");
+    expect(parts.angleSelect.value).toBe("vert");
+
+    parts.angleSelect.value = "overhang";
+    parts.angleSelect.dispatchEvent(new Event("change"));
+    expect(parts.mismatch.hidden).toBe(true);
   });
 
   it("saves trimmed text, or nothing when it's empty", () => {

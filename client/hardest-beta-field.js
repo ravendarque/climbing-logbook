@@ -25,6 +25,23 @@ function unambiguousWording(term) {
   return term.match.find(m => lexicon.get(norm(m))?.length === 1) ?? term.match[0];
 }
 
+const ANGLES_FOR_TERRAIN = {
+  slab: ["slab"],
+  vert: ["vert"],
+  overhang: ["overhang"],
+  roof: ["roof"],
+  "chimney-dihedral": ["chimney", "dihedral"],
+};
+
+// The first terrain word that disagrees with the chosen wall angle, which stays the user's call.
+function angleMismatch(text, result, angle) {
+  if (!angle) return null;
+  const span = result.spans.find(
+    s => s.term?.facets.includes("terrain") && !ANGLES_FOR_TERRAIN[s.term.id]?.includes(angle),
+  );
+  return span ? { span, word: text.slice(span.s, span.e) } : null;
+}
+
 function questionsFor(reading, dismissed) {
   const { norm } = interpreter;
   const questions = [];
@@ -58,11 +75,18 @@ function questionsFor(reading, dismissed) {
   return questions;
 }
 
-export function createHardestBetaField({ input, reading, readback, chips, panel, steps }) {
+export function createHardestBetaField({ input, angleSelect, mismatch, reading, readback, chips, panel, steps }) {
   let dismissed = new Set();
   let openKey = null;
 
-  function renderReadback(text, result) {
+  function renderMismatch(found) {
+    mismatch.hidden = !found;
+    if (!found) return;
+    const angleName = angleSelect.selectedOptions[0].textContent;
+    mismatch.textContent = `Your beta says “${found.word}” (${found.span.term.name.toLowerCase()}), but the wall angle is ${angleName}. Check which is right.`;
+  }
+
+  function renderReadback(text, result, flagged) {
     const unknownStarts = new Set(result.unknown.map(u => u.s));
     const spans = [...result.spans, ...result.unknown.map(u => ({ s: u.s, e: u.e, facet: "unknown" }))].sort(
       (a, b) => a.s - b.s,
@@ -76,7 +100,8 @@ export function createHardestBetaField({ input, reading, readback, chips, panel,
       if (span.facet === "unknown" && unknownStarts.has(span.s)) {
         nodes.push(el("span", "beta-unknown", word));
       } else {
-        const mark = el("mark", `beta-mark beta-${facetOfSpan(span)}${span.ambiguous ? " beta-unknown" : ""}`, word);
+        const unsure = span.ambiguous || span === flagged;
+        const mark = el("mark", `beta-mark beta-${facetOfSpan(span)}${unsure ? " beta-unknown" : ""}`, word);
         if (span.term) mark.title = span.term.name;
         nodes.push(mark);
       }
@@ -140,12 +165,15 @@ export function createHardestBetaField({ input, reading, readback, chips, panel,
     if (reading.hidden) return;
     if (!interpreter) return void loadInterpreter().then(render);
     const result = interpreter.parse(text);
-    renderReadback(text, result);
+    const found = angleMismatch(text, result, angleSelect.value);
+    renderReadback(text, result, found?.span);
+    renderMismatch(found);
     renderQuestions(questionsFor(result, dismissed));
     renderSteps(result);
   }
 
   input.addEventListener("input", render);
+  angleSelect.addEventListener("change", render);
 
   return {
     setValue(text) {

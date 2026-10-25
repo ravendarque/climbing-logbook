@@ -55,6 +55,7 @@ export function buildRow(entry, id, userId) {
     attempts_to_send: entry.attemptsToSend ?? null,
     rpe: entry.rpe ?? null,
     hardest_beta: entry.hardestBeta?.trim() || null,
+    wall_angle: entry.wallAngle ?? null,
   };
 }
 
@@ -75,6 +76,7 @@ export function rowToJson(row) {
     attemptsToSend: row.attempts_to_send,
     rpe: row.rpe,
     hardestBeta: row.hardest_beta,
+    wallAngle: row.wall_angle,
     hidden: !!row.hidden_at,
   };
 }

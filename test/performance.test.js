@@ -209,13 +209,39 @@ function getStrengths(params = {}, extraCookie = cookie) {
   return fetchJson(`${STRENGTHS_URL}${qs ? `?${qs}` : ""}`, { headers: { Cookie: extraCookie } });
 }
 
-describe("handleGetStrengthsWeaknesses", () => {
-  it("returns a null headline and empty anchors for a user with no tagged moves", async () => {
+describe("handleGetStrengthsWeaknesses (#1523)", () => {
+  const slabAndOverhang = async () => {
+    for (const grade of ["7A", "7A", "7A"])
+      await postEntry({ grade, wallAngle: "overhang", hardestBeta: "heel hook, deadpoint to the crimp" });
+    for (const grade of ["6A", "6A", "6A"]) await postEntry({ grade, wallAngle: "slab" });
+  };
+
+  it("says nothing for a user with no wall angles", async () => {
     await postEntry();
-    const res = await getStrengths();
-    const body = await res.json();
-    expect(body.headline).toBeNull();
-    expect(body.anchors).toEqual([]);
+    const { boulder } = await (await getStrengths()).json();
+    expect(boulder).toMatchObject({ climbs: 0, insights: [], items: [] });
+  });
+
+  it("finds the weak angle and what's only hard at the limit", async () => {
+    await slabAndOverhang();
+    const { boulder } = await (await getStrengths()).json();
+    expect(boulder.insights.map(i => i.title)).toEqual(["Slab is your weak angle", "Deadpoint: only at your limit"]);
+    expect(boulder.angles.find(a => a.angle === "slab")).toMatchObject({ level: "6A", climbs: 3, share: 50 });
+  });
+
+  it("leaves out a deleted climb", async () => {
+    await slabAndOverhang();
+    const extra = await (await postEntry({ grade: "6A", wallAngle: "roof" })).json();
+    await del(extra.entry.id);
+    const { boulder } = await (await getStrengths()).json();
+    expect(boulder.climbs).toBe(6);
+  });
+
+  it("a second user's report never reflects the first user's climbs", async () => {
+    await slabAndOverhang();
+    const userB = await createAuthedSession();
+    const { boulder } = await (await getStrengths({}, userB.cookie)).json();
+    expect(boulder.climbs).toBe(0);
   });
 
   it("401s an anonymous caller (#992)", async () => {

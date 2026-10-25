@@ -419,14 +419,14 @@ test("Attempts field's gap-view hint matches the active discipline's own status 
 
   await page.locator("#add-btn").click();
   await page.locator("#entry-nav-forward").click();
-  await expect(page.locator("#attempts-gap-hint")).toHaveText("Feeds your flash/send gap view.");
+  await expect(page.locator("#attempts-gap-hint")).toHaveText("Feeds your flash/send gap insights.");
   await page.locator("#entry-close").click();
 
   await page.locator("#discipline-btn").click();
   await page.locator('.discipline-option[data-discipline="sport"]').click();
   await page.locator("#add-btn").click();
   await page.locator("#entry-nav-forward").click();
-  await expect(page.locator("#attempts-gap-hint")).toHaveText("Feeds your onsight/redpoint gap view.");
+  await expect(page.locator("#attempts-gap-hint")).toHaveText("Feeds your onsight/redpoint gap insights.");
 });
 
 test("Style filter is hidden for Boulder, shown for Sport, and narrows the table", async ({ page, owner }) => {
@@ -556,6 +556,8 @@ test("the hardest move is read back as it's typed, and saved as written (#1522)"
   await page.locator("#hardest-beta-panel button", { hasText: "Use “jug”" }).click();
   await expect(page.locator("#hardest-beta-chips button")).toHaveCount(0);
 
+  await page.locator("#entry-wall-angle").selectOption("vert");
+  await expect(page.locator("#hardest-beta-angle-mismatch")).toBeHidden();
   await page.locator("#hardest-beta-reading summary").click();
   await expect(page.locator("#hardest-beta-steps li")).toHaveText([
     "Right foot: heel hook on a lip.",
@@ -573,7 +575,41 @@ test("the hardest move is read back as it's typed, and saved as written (#1522)"
   const submittedBody = post.request().postDataJSON();
   expect(submittedBody.name).toBe(entryName);
   expect(submittedBody.hardestBeta).toBe("Right heel hook on the lip, hand jam in the crack, then dyno to the jug");
+  expect(submittedBody.wallAngle).toBe("vert");
   expect(submittedBody).not.toHaveProperty("moves");
+});
+
+test("in Athlete Mode a climb needs its wall angle, except a Checkout, which has no hardest move (#1523)", async ({
+  page,
+  owner,
+}) => {
+  await gotoLog(page, owner, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
+  await page.locator("#add-btn").click();
+  await page.locator("#entry-name").fill(`E2E wall angle ${Date.now()}`);
+  await page.locator("#place-btn").click();
+  await page.locator(`#place-listbox li[data-key="${owner.ownId("p1")}"]`).click();
+
+  await page.locator("#entry-submit-btn").click();
+  await expect(page.locator("#entry-msg")).toContainText("Choose the wall angle on the Performance page.");
+  await expect(page.locator("#entry-overlay")).toBeVisible();
+
+  await page.locator("#entry-nav-forward").click();
+  await page.locator("#entry-hardest-beta").fill("Steep. Heel hook the lip");
+  await page.locator("#entry-wall-angle").selectOption("slab");
+  await expect(page.locator("#hardest-beta-angle-mismatch")).toHaveText(
+    "Your beta says “Steep” (overhang), but the wall angle is Slab. Check which is right.",
+  );
+  await expect(page.locator("#entry-wall-angle")).toHaveValue("slab");
+  await page.locator("#entry-nav-back").click();
+
+  await chooseStatus(page, "checkout");
+  await expect(page.locator("#hardest-move-field")).toBeHidden();
+  const [post] = await Promise.all([
+    page.waitForResponse(res => res.url().includes("/-/api/entries") && res.request().method() === "POST"),
+    page.locator("#entry-submit-btn").click(),
+  ]);
+  expect(post.status()).toBe(201);
+  expect(post.request().postDataJSON()).toMatchObject({ status: "checkout", wallAngle: null, hardestBeta: null });
 });
 
 test("editing an entry shows its hardest move and its pain moves", async ({ page, owner }) => {
@@ -591,6 +627,7 @@ test("editing an entry shows its hardest move and its pain moves", async ({ page
         grade: "6A",
         date: "2026-05-04",
         name: "Move Seed",
+        wallAngle: "slab",
         hardestBeta: "Rock over onto the right foot and lock off to the crimp",
         painMoves: [
           { limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "overhang" },
@@ -605,6 +642,7 @@ test("editing an entry shows its hardest move and its pain moves", async ({ page
   await expect(page.locator("#entry-overlay")).toBeVisible();
   await page.locator("#entry-nav-forward").click();
 
+  await expect(page.locator("#entry-wall-angle")).toHaveValue("slab");
   await expect(page.locator("#entry-hardest-beta")).toHaveValue(
     "Rock over onto the right foot and lock off to the crimp",
   );

@@ -60,6 +60,8 @@ const DOMINANT_MOVE_COMBO = {
   movementStyle: "static",
   wallAngle: "overhang",
 };
+// Weighted towards overhang, as most climbing is.
+const WALL_ANGLES = ["overhang", "overhang", "overhang", "vert", "vert", "slab", "roof", "dihedral", "chimney"];
 const HARDEST_BETAS = [
   "Steep cave. Right heel hook on the lip, cross left hand to a sidepull crimp, then deadpoint to the slopey pinch",
   "Rock over onto the right foot and lock off to the crimp",
@@ -146,7 +148,7 @@ function buildPersonaSql(persona) {
         `INSERT OR IGNORE INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id, first_attempt, date, video, notes, created_at, updated_at) VALUES (${sqlStr(entryId)}, ${sqlStr(userId)}, ${sqlStr(placeId)}, ${sqlStr(name)}, ${sqlStr(grade)}, ${sqlStr(type)}, ${sqlStr(status)}, ${sqlBool(firstAttempt)}, ${sqlStr(isoDateWeeksAgo(weeksAgo))}, NULL, NULL, ${now}, ${now});`,
       );
       statements.push(
-        `UPDATE entries SET attempts_to_send = ${attemptsToSend ?? "NULL"}, rpe = ${rpe ?? "NULL"}, sport_style = ${sportStyle ? sqlStr(sportStyle) : "NULL"} WHERE id = ${sqlStr(entryId)};`,
+        `UPDATE entries SET attempts_to_send = ${attemptsToSend ?? "NULL"}, rpe = ${rpe ?? "NULL"}, sport_style = ${sportStyle ? sqlStr(sportStyle) : "NULL"}, wall_angle = ${sqlStr(WALL_ANGLES[i % WALL_ANGLES.length])} WHERE id = ${sqlStr(entryId)};`,
       );
     }
   }

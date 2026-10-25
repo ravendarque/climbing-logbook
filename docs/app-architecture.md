@@ -356,7 +356,7 @@ Tables (see `migrations/` for columns and constraints):
 
 | Table | Holds |
 |---|---|
-| `entries` | One climb: name, grade and `grade_scale`, discipline, status, flash, date, video, notes, attempts, RPE, sport style, and the hardest move as free text (`hardest_beta`). Soft-deleted (`deleted_at`) and stamped with `sync_cursor` for delta sync. A delete strips the name, notes, video, date, hardest move and moves at once, leaving only the tombstone (#1051). |
+| `entries` | One climb: name, grade and `grade_scale`, discipline, status, flash, date, video, notes, attempts, RPE, sport style, and the hardest move as free text (`hardest_beta`) with the wall angle where it is (`wall_angle`). Soft-deleted (`deleted_at`) and stamped with `sync_cursor` for delta sync. A delete strips the name, notes, video, date, hardest move and moves at once, leaving only the tombstone (#1051). |
 | `entry_movements` | Movements (start state, transition, end state) the beta interpreter reads from an entry's `hardest_beta` text; rebuilt on every save |
 | `entry_pain_moves` | Per-move pain tags for the injury report |
 | `entry_moves` | Unused since #1522; dropped by #1523 |
