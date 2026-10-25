@@ -70,7 +70,7 @@ function radarHtml(angles) {
       return `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" class="stroke-border" stroke-width="1"/>`;
     })
     .join("");
-  const shape = angles.map((a, i) => point(i, a.level ? radius(a.step) : 0).join(",")).join(" ");
+  const shape = angles.flatMap((a, i) => (a.level ? [point(i, radius(a.step)).join(",")] : [])).join(" ");
   const dots = angles
     .map((a, i) => {
       if (!a.level) return "";
@@ -139,17 +139,17 @@ function divergingHtml(items) {
 
 function heatHtml(heat, angles) {
   const max = Math.max(...heat.flatMap(r => r.counts), 1);
-  const head = `<div></div>${angles.map(a => `<div class="text-xs text-muted font-semibold text-center py-1" role="columnheader">${escapeHtml(humanize(a.angle))}</div>`).join("")}`;
+  const head = `<div class="contents" role="row"><div></div>${angles.map(a => `<div class="text-xs text-muted font-semibold text-center py-1" role="columnheader">${escapeHtml(humanize(a.angle))}</div>`).join("")}</div>`;
   const rows = heat
     .map(
       row =>
-        `<div class="text-sm font-semibold self-center" role="rowheader">${escapeHtml(row.name)}</div>${row.counts
+        `<div class="contents" role="row"><div class="text-sm font-semibold self-center" role="rowheader">${escapeHtml(row.name)}</div>${row.counts
           .map((n, i) => {
             const strong = n / max > 0.5;
             const tint = n ? Math.round(18 + (n / max) * 82) : 0;
             return `<div class="rounded-[4px] text-center py-2 text-sm font-bold ${n ? (strong ? "text-white" : "text-foreground") : "text-muted font-normal"}" role="cell" style="background:${n ? `color-mix(in srgb, var(--color-accent) ${tint}%, var(--color-surface))` : "var(--color-surface)"}" title="${escapeHtml(`${row.name} on ${humanize(angles[i].angle).toLowerCase()}: ${plural(n, "climb")}`)}">${n || "–"}</div>`;
           })
-          .join("")}`,
+          .join("")}</div>`,
     )
     .join("");
   return `<div class="overflow-x-auto"><div class="grid gap-[3px] min-w-[420px]" style="grid-template-columns:4.6rem repeat(${angles.length},minmax(2.6rem,1fr))" role="table" aria-label="Where your cruxes are">${head}${rows}</div></div>`;
@@ -186,7 +186,7 @@ function renderStrengths(data) {
       ? sectionHtml(
           "strengths-items",
           "What makes climbs hard for you",
-          `Each climb counts once for each thing its hardest move names. Left: the climb was two or more grades under your level on that angle, so it's a weakness. Right: the climb was at your level, so it's just hard climbing. Only things on ${MIN_TAG_COUNT} or more climbs are shown.`,
+          `Each climb counts once for each thing its hardest move names. Left: the climb was two or more grades under your level on that angle, so it's a weakness. Right: the climb was within a grade of your level or harder, so it's just hard climbing. Only things on ${MIN_TAG_COUNT} or more climbs are shown.`,
           divergingHtml(data.items),
         )
       : "") +
