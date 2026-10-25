@@ -19,6 +19,7 @@ concurrency:
 
 permissions:
   contents: read
+  packages: read
 
 jobs:
   preview:
@@ -27,6 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: read
       # Comments the preview URL on the PR.
       pull-requests: write
     outputs:

@@ -1,5 +1,7 @@
 # Three days, not pnpm 11's default one: long enough for a compromised release to be caught and pulled (#1040).
 minimumReleaseAge: 4320
+minimumReleaseAgeExclude:
+  - "@ravendarque/*"
 
 allowBuilds:
   '@parcel/watcher': true
