@@ -12,32 +12,26 @@ beforeEach(() => {
 
 describe("createMoveRowList", () => {
   it("starts with zero rows", () => {
-    const widget = createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
+    const widget = createMoveRowList({ listEl, addBtnEl });
     expect(widget.getRows()).toEqual([]);
   });
 
   it("adds a row with sensible defaults when the add button is clicked", () => {
-    const widget = createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
+    const widget = createMoveRowList({ listEl, addBtnEl });
     addBtnEl.click();
     const rows = widget.getRows();
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ limb: "hand", side: "left", wallAngle: "slab" });
   });
 
-  it("carries a difficulty field when hasDifficulty + defaultDifficulty are set", () => {
-    const widget = createMoveRowList({ listEl, addBtnEl, hasDifficulty: true, defaultDifficulty: "hardest" });
+  it("adds rows without a difficulty", () => {
+    const widget = createMoveRowList({ listEl, addBtnEl });
     addBtnEl.click();
-    expect(widget.getRows()[0].difficulty).toBe("hardest");
-  });
-
-  it("omits difficulty entirely when hasDifficulty is false", () => {
-    const widget = createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
-    addBtnEl.click();
-    expect(widget.getRows()[0].difficulty).toBeUndefined();
+    expect(widget.getRows()[0]).not.toHaveProperty("difficulty");
   });
 
   it("removes a row when its remove button is clicked", () => {
-    const widget = createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
+    const widget = createMoveRowList({ listEl, addBtnEl });
     addBtnEl.click();
     addBtnEl.click();
     expect(widget.getRows()).toHaveLength(2);
@@ -47,7 +41,7 @@ describe("createMoveRowList", () => {
 
   describe("focus restoration after a re-render (#805)", () => {
     it("focuses the row that shifted into a removed row's position", () => {
-      const widget = createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
+      const widget = createMoveRowList({ listEl, addBtnEl });
       addBtnEl.click();
       addBtnEl.click();
       addBtnEl.click();
@@ -57,7 +51,7 @@ describe("createMoveRowList", () => {
     });
 
     it("focuses the previous row's remove button when removing the last row", () => {
-      const widget = createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
+      const widget = createMoveRowList({ listEl, addBtnEl });
       addBtnEl.click();
       addBtnEl.click();
       listEl.querySelectorAll("[data-remove-row]")[1].click();
@@ -66,14 +60,14 @@ describe("createMoveRowList", () => {
     });
 
     it("focuses the Add button when removing the only remaining row", () => {
-      createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
+      createMoveRowList({ listEl, addBtnEl });
       addBtnEl.click();
       listEl.querySelector("[data-remove-row]").click();
       expect(document.activeElement).toBe(addBtnEl);
     });
 
     it("re-focuses the limb select in its own row after a limb change re-renders the whole list", () => {
-      const widget = createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
+      const widget = createMoveRowList({ listEl, addBtnEl });
       addBtnEl.click();
       addBtnEl.click();
       const secondRowLimbSelect = listEl.children[1].querySelector('[data-field="limbSide"]');
@@ -86,7 +80,7 @@ describe("createMoveRowList", () => {
   });
 
   it("re-filters hold type and movement style options when limb changes, defaulting to the new limb's first option", () => {
-    const widget = createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
+    const widget = createMoveRowList({ listEl, addBtnEl });
     addBtnEl.click();
     const limbSelect = listEl.querySelector('[data-field="limbSide"]');
     limbSelect.value = "foot-right";
@@ -105,7 +99,6 @@ describe("createMoveRowList", () => {
     addBtnEl.click();
     widget.setRows([
       {
-        difficulty: "easiest",
         limb: "knee",
         side: "left",
         holdType: "kneebar",
@@ -116,7 +109,6 @@ describe("createMoveRowList", () => {
     const rows = widget.getRows();
     expect(rows).toHaveLength(1);
     expect(rows[0]).toEqual({
-      difficulty: "easiest",
       limb: "knee",
       side: "left",
       holdType: "kneebar",
@@ -126,7 +118,7 @@ describe("createMoveRowList", () => {
   });
 
   it("reset() clears to zero rows", () => {
-    const widget = createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
+    const widget = createMoveRowList({ listEl, addBtnEl });
     addBtnEl.click();
     addBtnEl.click();
     widget.reset();
@@ -134,7 +126,7 @@ describe("createMoveRowList", () => {
   });
 
   it("renders the Limb dropdown's options in sentence case", () => {
-    createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
+    createMoveRowList({ listEl, addBtnEl });
     addBtnEl.click();
     const limbOptionText = Array.from(listEl.querySelectorAll('[data-field="limbSide"] option')).map(
       o => o.textContent,
@@ -144,7 +136,7 @@ describe("createMoveRowList", () => {
   });
 
   it("renders raw hold-type/movement-style/wall-angle option text humanized, while keeping the raw value in the option's value attribute", () => {
-    createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
+    createMoveRowList({ listEl, addBtnEl });
     addBtnEl.click();
     const holdOption = listEl.querySelector('[data-field="holdType"] option[value="toe-hook"]');
     expect(holdOption).toBeNull(); // hand is the default limb -- toe-hook only appears once limb is foot
@@ -156,7 +148,7 @@ describe("createMoveRowList", () => {
   });
 
   it("every select in a row card has an explicit foreground text color (dark-mode readability, #597)", () => {
-    createMoveRowList({ listEl, addBtnEl, hasDifficulty: false });
+    createMoveRowList({ listEl, addBtnEl });
     addBtnEl.click();
     const selects = listEl.querySelectorAll("select");
     expect(selects.length).toBeGreaterThan(0);

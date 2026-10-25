@@ -52,18 +52,7 @@ const TIERS = {
   advanceddemo: { boulderRange: [6, 20], sportRange: [4, 14], entriesPerDiscipline: 120 },
 };
 
-const HOLD_TYPES_BY_LIMB = {
-  hand: ["crimp", "jug", "pocket", "sloper", "pinch", "edge"],
-  foot: ["toe-hook", "heel-hook"],
-  knee: ["kneebar"],
-};
-const MOVEMENT_STYLES_BY_LIMB = {
-  hand: ["static", "dynamic", "lockoff"],
-  foot: ["static", "dynamic"],
-  knee: ["static", "dynamic"],
-};
-const WALL_ANGLES = ["slab", "vert", "overhang", "roof"];
-// Tags cluster on one combination so the reports' confidence gate clears.
+// Pain tags cluster on one combination so the injury view's confidence gate clears.
 const DOMINANT_MOVE_COMBO = {
   limb: "hand",
   side: "right",
@@ -71,13 +60,13 @@ const DOMINANT_MOVE_COMBO = {
   movementStyle: "static",
   wallAngle: "overhang",
 };
-const SECONDARY_MOVE_COMBO = {
-  limb: "foot",
-  side: "left",
-  holdType: "heel-hook",
-  movementStyle: "dynamic",
-  wallAngle: "roof",
-};
+const HARDEST_BETAS = [
+  "Steep cave. Right heel hook on the lip, cross left hand to a sidepull crimp, then deadpoint to the slopey pinch",
+  "Rock over onto the right foot and lock off to the crimp",
+  "Left hand undercling, smear and stand up to the jug",
+  "Compression on the arête, toe hook right and paddle up the rail",
+  "Dyno from the two finger pocket to the jug",
+];
 
 function isoDateWeeksAgo(weeksAgo) {
   const d = new Date();
@@ -162,32 +151,11 @@ function buildPersonaSql(persona) {
     }
   }
 
-  const dominantCount = Math.max(8, Math.round(entryIds.length * 0.12));
-  const secondaryCount = Math.max(6, Math.round(entryIds.length * 0.08));
-  let moveIdx = 0;
-  for (let i = 0; i < dominantCount; i++) {
+  const betaCount = Math.max(8, Math.round(entryIds.length * 0.2));
+  for (let i = 0; i < betaCount; i++) {
     const entryId = entryIds[i % entryIds.length];
     statements.push(
-      `INSERT OR IGNORE INTO entry_moves (id, entry_id, difficulty, limb, side, hold_type, movement_style, wall_angle, created_at) VALUES (${sqlStr(`demo-${username}-move-${moveIdx++}`)}, ${sqlStr(entryId)}, 'hardest', ${sqlStr(DOMINANT_MOVE_COMBO.limb)}, ${sqlStr(DOMINANT_MOVE_COMBO.side)}, ${sqlStr(DOMINANT_MOVE_COMBO.holdType)}, ${sqlStr(DOMINANT_MOVE_COMBO.movementStyle)}, ${sqlStr(DOMINANT_MOVE_COMBO.wallAngle)}, ${now});`,
-    );
-  }
-  for (let i = 0; i < secondaryCount; i++) {
-    const entryId = entryIds[(i + dominantCount) % entryIds.length];
-    statements.push(
-      `INSERT OR IGNORE INTO entry_moves (id, entry_id, difficulty, limb, side, hold_type, movement_style, wall_angle, created_at) VALUES (${sqlStr(`demo-${username}-move-${moveIdx++}`)}, ${sqlStr(entryId)}, 'easiest', ${sqlStr(SECONDARY_MOVE_COMBO.limb)}, ${sqlStr(SECONDARY_MOVE_COMBO.side)}, ${sqlStr(SECONDARY_MOVE_COMBO.holdType)}, ${sqlStr(SECONDARY_MOVE_COMBO.movementStyle)}, ${sqlStr(SECONDARY_MOVE_COMBO.wallAngle)}, ${now});`,
-    );
-  }
-  const varietyCount = Math.min(10, Math.floor(entryIds.length / 4));
-  for (let i = 0; i < varietyCount; i++) {
-    const entryId = entryIds[(i + dominantCount + secondaryCount) % entryIds.length];
-    const limb = ["hand", "hand", "foot", "knee"][i % 4];
-    const side = i % 2 === 0 ? "left" : "right";
-    const holdType = HOLD_TYPES_BY_LIMB[limb][i % HOLD_TYPES_BY_LIMB[limb].length];
-    const movementStyle = MOVEMENT_STYLES_BY_LIMB[limb][i % MOVEMENT_STYLES_BY_LIMB[limb].length];
-    const wallAngle = WALL_ANGLES[i % WALL_ANGLES.length];
-    const difficulty = i % 2 === 0 ? "hardest" : "easiest";
-    statements.push(
-      `INSERT OR IGNORE INTO entry_moves (id, entry_id, difficulty, limb, side, hold_type, movement_style, wall_angle, created_at) VALUES (${sqlStr(`demo-${username}-move-${moveIdx++}`)}, ${sqlStr(entryId)}, ${sqlStr(difficulty)}, ${sqlStr(limb)}, ${sqlStr(side)}, ${sqlStr(holdType)}, ${sqlStr(movementStyle)}, ${sqlStr(wallAngle)}, ${now});`,
+      `UPDATE entries SET hardest_beta = ${sqlStr(HARDEST_BETAS[i % HARDEST_BETAS.length])} WHERE id = ${sqlStr(entryId)};`,
     );
   }
 

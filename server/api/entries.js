@@ -18,6 +18,7 @@ import {
   hasConsent,
 } from "../lib/health-consent.js";
 import { followMovedPlace } from "../lib/place-moves.js";
+import { VOCABULARY_VERSION, hardestBetaMovements } from "../lib/hardest-beta.js";
 
 // Must match migrations/0016_add_grade_scale.sql's backfill WHERE clause.
 const LEGACY_SPORT_NON_STANDARD_GRADES = new Set(["1", "1+", "2", "2+", "3", "3+"]);
@@ -53,6 +54,7 @@ export function buildRow(entry, id, userId) {
     notes: entry.notes || null,
     attempts_to_send: entry.attemptsToSend ?? null,
     rpe: entry.rpe ?? null,
+    hardest_beta: entry.hardestBeta?.trim() || null,
   };
 }
 
@@ -72,6 +74,7 @@ export function rowToJson(row) {
     notes: row.notes,
     attemptsToSend: row.attempts_to_send,
     rpe: row.rpe,
+    hardestBeta: row.hardest_beta,
     hidden: !!row.hidden_at,
   };
 }
@@ -98,16 +101,17 @@ function rowToJsonWithDeleted(row) {
   return { ...rowToJson(row), deleted: !!row.deleted_at };
 }
 
-function buildMoveRow(record, id, entryId) {
+function buildMovementRow(movement, id, entryId) {
   return {
     id,
     entry_id: entryId,
-    difficulty: record.difficulty,
-    limb: record.limb,
-    side: record.side,
-    hold_type: record.holdType,
-    movement_style: record.movementStyle,
-    wall_angle: record.wallAngle,
+    position: movement.position,
+    crux: movement.crux ? 1 : 0,
+    terrain: movement.terrain,
+    transition: movement.transition ? JSON.stringify(movement.transition) : null,
+    start_state: JSON.stringify(movement.start),
+    end_state: JSON.stringify(movement.end),
+    vocabulary_version: VOCABULARY_VERSION,
   };
 }
 function buildPainMoveRow(record, id, entryId) {
@@ -119,17 +123,6 @@ function buildPainMoveRow(record, id, entryId) {
     hold_type: record.holdType,
     movement_style: record.movementStyle,
     wall_angle: record.wallAngle,
-  };
-}
-function moveRowToJson(row) {
-  return {
-    id: row.id,
-    difficulty: row.difficulty,
-    limb: row.limb,
-    side: row.side,
-    holdType: row.hold_type,
-    movementStyle: row.movement_style,
-    wallAngle: row.wall_angle,
   };
 }
 function painMoveRowToJson(row) {
@@ -161,7 +154,13 @@ function replaceChildRowStatements(env, table, entryId, records, buildRow, guard
 function moveStatements(env, entryId, record) {
   const consented = { sql: ENTRY_OWNER_CONSENTED, binds: ENTRY_OWNER_CONSENTED_BINDS(entryId) };
   return [
-    ...replaceChildRowStatements(env, "entry_moves", entryId, record.moves ?? [], buildMoveRow),
+    ...replaceChildRowStatements(
+      env,
+      "entry_movements",
+      entryId,
+      hardestBetaMovements(record.hardestBeta),
+      buildMovementRow,
+    ),
     ...replaceChildRowStatements(env, "entry_pain_moves", entryId, record.painMoves ?? [], buildPainMoveRow, consented),
   ];
 }
@@ -191,17 +190,11 @@ async function fetchChildRowsChunked(env, table, ids) {
 export async function attachChildRows(rows, env, userId, { evenWithoutConsent = false } = {}) {
   if (rows.length === 0) return rows;
   const ids = rows.map(r => r.id);
-  const [movesRows, painRows] = await Promise.all([
-    fetchChildRowsChunked(env, "entry_moves", ids),
-    (evenWithoutConsent ? Promise.resolve(true) : hasConsent(env, userId)).then(show =>
-      show ? fetchChildRowsChunked(env, "entry_pain_moves", ids) : [],
-    ),
-  ]);
-  const movesByEntry = Object.groupBy(movesRows, row => row.entry_id);
+  const show = evenWithoutConsent || (await hasConsent(env, userId));
+  const painRows = show ? await fetchChildRowsChunked(env, "entry_pain_moves", ids) : [];
   const painByEntry = Object.groupBy(painRows, row => row.entry_id);
   return rows.map(row => ({
     ...row,
-    moves: (movesByEntry[row.id] ?? []).map(moveRowToJson),
     painMoves: (painByEntry[row.id] ?? []).map(painMoveRowToJson),
   }));
 }
@@ -380,7 +373,7 @@ export async function handleDelete(request, env, userId) {
       `UPDATE entries SET deleted_at = ?, ${STRIP_ENTRY_CONTENT}, sync_cursor = ${nextCursorSql("entries")}, updated_at = datetime('now') WHERE id = ? AND user_id = ?`,
     ).bind(Date.now(), userId, id, userId),
     env.LOGBOOK_DB.prepare(
-      `DELETE FROM entry_moves WHERE entry_id = ? AND entry_id IN (SELECT id FROM entries WHERE user_id = ?)`,
+      `DELETE FROM entry_movements WHERE entry_id = ? AND entry_id IN (SELECT id FROM entries WHERE user_id = ?)`,
     ).bind(id, userId),
     env.LOGBOOK_DB.prepare(
       `DELETE FROM entry_pain_moves WHERE entry_id = ? AND entry_id IN (SELECT id FROM entries WHERE user_id = ?)`,

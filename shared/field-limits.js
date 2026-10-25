@@ -5,7 +5,7 @@ export const FIELD_LIMITS = {
   placeArea: 50,
   notes: 5000,
   video: 300,
-  moves: 20,
+  hardestBeta: 500,
   painMoves: 20,
   message: 5000,
   contactEmail: 254,
@@ -28,6 +28,7 @@ const LABELS = {
   message: "Your message",
   contactEmail: "The email address",
   sourcePage: "The page address",
+  hardestBeta: "Hardest move / sequence",
 };
 
 export const tooLongMessage = field =>
@@ -39,7 +40,6 @@ export function lengthIssue(field, value) {
 }
 
 const COUNT_MESSAGES = {
-  moves: n => `Add up to ${n} moves.`,
   painMoves: n => `Add up to ${n} painful moves.`,
 };
 

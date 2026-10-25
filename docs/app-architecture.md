@@ -356,8 +356,10 @@ Tables (see `migrations/` for columns and constraints):
 
 | Table | Holds |
 |---|---|
-| `entries` | One climb: name, grade and `grade_scale`, discipline, status, flash, date, video, notes, attempts, RPE, sport style. Soft-deleted (`deleted_at`) and stamped with `sync_cursor` for delta sync. A delete strips the name, notes, video, date and moves at once, leaving only the tombstone (#1051). |
-| `entry_moves`, `entry_pain_moves` | Per-move tags for the strengths and injury reports |
+| `entries` | One climb: name, grade and `grade_scale`, discipline, status, flash, date, video, notes, attempts, RPE, sport style, and the hardest move as free text (`hardest_beta`). Soft-deleted (`deleted_at`) and stamped with `sync_cursor` for delta sync. A delete strips the name, notes, video, date, hardest move and moves at once, leaving only the tombstone (#1051). |
+| `entry_movements` | Movements (start state, transition, end state) the beta interpreter reads from an entry's `hardest_beta` text; rebuilt on every save |
+| `entry_pain_moves` | Per-move pain tags for the injury report |
+| `entry_moves` | Unused since #1522; dropped by #1523 |
 | `places`, `locations` | An area within a crag, and the crag with its country. Entries reference a place; a place references a location. A user's live location names, and live area names within a location, are unique ignoring case, and triggers stop a row from referencing another user's place or location. Soft-deleted (`deleted_at`) and stamped with `sync_cursor`, like entries. Deleting one first moves its climbs to another place, and a deleted place keeps that place in `moved_to`, so a climb saved later from another device follows them (#160). |
 | `settings` | One row per user: Athlete Mode, active discipline, public logbook, beta enrollment |
 | `disciplines`, `statuses` | Lookup tables ([ADR-0009](adr/0009-normalized-d1-schema-with-lookup-tables.md)) |

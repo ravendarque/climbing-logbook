@@ -192,15 +192,20 @@ staticShellNote: |-
         </div>
 
         <div class="mt-6">
-          <h3 class="section-heading">Move difficulty</h3>
-          <p class="text-xs text-muted mb-2">Feeds your Strengths / Weaknesses view.</p>
-          <div class="text-sm font-semibold text-foreground mb-1">Hardest moves for you</div>
-          <div id="hardest-moves-list"></div>
-          <button type="button" class="text-sm font-semibold text-accent-ink bg-transparent border-0 cursor-pointer p-0 mb-2" id="hardest-moves-add" aria-label="Add a hardest move">+ Add a move</button>
-
-          <div class="text-sm font-semibold text-foreground mb-1 mt-2">Easiest moves for you</div>
-          <div id="easiest-moves-list"></div>
-          <button type="button" class="text-sm font-semibold text-accent-ink bg-transparent border-0 cursor-pointer p-0" id="easiest-moves-add" aria-label="Add an easiest move">+ Add a move</button>
+          <h3 class="section-heading" id="hardest-beta-label">Hardest move/sequence for you</h3>
+          <p class="text-xs text-muted mb-2" id="hardest-beta-hint">Feeds your Strengths / Weaknesses view.</p>
+          <textarea class="bg-surface border border-field-border rounded-app px-[.85rem] py-[.65rem] text-foreground font-sans text-base outline-none focus:border-accent w-full resize-y min-h-[72px]" id="entry-hardest-beta" aria-labelledby="hardest-beta-label" placeholder="e.g. right heel hook on the lip, cross to the sidepull crimp"></textarea>
+          <div class="text-xs text-muted text-right mt-1" id="entry-hardest-beta-count"></div>
+          <div id="hardest-beta-reading" hidden>
+            <div class="text-xs font-semibold text-muted mb-1">How it was read</div>
+            <p class="text-sm leading-loose whitespace-pre-wrap break-words m-0" id="hardest-beta-readback"></p>
+            <div class="flex flex-wrap gap-2 mt-2" id="hardest-beta-chips"></div>
+            <div class="grid gap-2 mt-2 text-sm text-warning-ink bg-warning-bg border border-warning-border rounded-app px-3 py-2" id="hardest-beta-panel" role="region" aria-live="polite" aria-label="Check a word" hidden></div>
+            <details class="mt-2">
+              <summary class="text-sm font-semibold text-accent-ink cursor-pointer">Read as steps</summary>
+              <ol class="list-decimal pl-5 mt-1 text-sm grid gap-1" id="hardest-beta-steps"></ol>
+            </details>
+          </div>
         </div>
 
         <div class="mt-6">

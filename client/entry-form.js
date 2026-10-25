@@ -12,6 +12,7 @@ import {
 import { flashLabel, sendLabel, nameLabel, hydrateStatusIcons } from "./status.js";
 import { createPlacePicker } from "./place-picker.js";
 import { createMoveRowList } from "./move-tagging.js";
+import { createHardestBetaField } from "./hardest-beta-field.js";
 import { validateEntryShape } from "../shared/entry-schema.js";
 import { FIELD_LIMITS } from "../shared/field-limits.js";
 import { withoutTrackingParams } from "../shared/video-links.js";
@@ -96,24 +97,23 @@ export function createEntryForm({
     placesWriteUrl,
   });
 
-  const hardestMoves = createMoveRowList({
-    listEl: document.getElementById("hardest-moves-list"),
-    addBtnEl: document.getElementById("hardest-moves-add"),
-    hasDifficulty: true,
-    defaultDifficulty: "hardest",
-    listLabel: "hardest move",
-  });
-  const easiestMoves = createMoveRowList({
-    listEl: document.getElementById("easiest-moves-list"),
-    addBtnEl: document.getElementById("easiest-moves-add"),
-    hasDifficulty: true,
-    defaultDifficulty: "easiest",
-    listLabel: "easiest move",
+  const hardestBetaInput = document.getElementById("entry-hardest-beta");
+  hardestBetaInput.maxLength = FIELD_LIMITS.hardestBeta;
+  const updateHardestBetaLeft = showCharactersLeft(
+    hardestBetaInput,
+    document.getElementById("entry-hardest-beta-count"),
+  );
+  const hardestBeta = createHardestBetaField({
+    input: hardestBetaInput,
+    reading: document.getElementById("hardest-beta-reading"),
+    readback: document.getElementById("hardest-beta-readback"),
+    chips: document.getElementById("hardest-beta-chips"),
+    panel: document.getElementById("hardest-beta-panel"),
+    steps: document.getElementById("hardest-beta-steps"),
   });
   const painMoves = createMoveRowList({
     listEl: document.getElementById("pain-moves-list"),
     addBtnEl: document.getElementById("pain-moves-add"),
-    hasDifficulty: false,
     listLabel: "pain/injury move",
   });
 
@@ -490,8 +490,8 @@ export function createEntryForm({
     renderExertionValue();
     attemptsValue = entry?.attemptsToSend ?? 0;
     renderAttempts();
-    hardestMoves.setRows((entry?.moves ?? []).filter(m => m.difficulty === "hardest"));
-    easiestMoves.setRows((entry?.moves ?? []).filter(m => m.difficulty === "easiest"));
+    hardestBeta.setValue(entry?.hardestBeta);
+    updateHardestBetaLeft();
     painMoves.setRows(entry?.painMoves ?? []);
     renderPainConsent();
 
@@ -551,7 +551,7 @@ export function createEntryForm({
       video: withoutTrackingParams(videoInput.value.trim()) || null,
       rpe: selectedStatus === "send" ? Number(exertionSlider.value) : null,
       attemptsToSend: attemptsValue,
-      moves: [...hardestMoves.getRows(), ...easiestMoves.getRows()],
+      hardestBeta: hardestBeta.getValue(),
       painMoves: painInjuryConsentState() === "on" ? painMoves.getRows() : [],
     };
 

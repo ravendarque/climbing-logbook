@@ -59,20 +59,18 @@ function rowHtml(row, listLabel) {
   </div>`;
 }
 
-function defaultRow(hasDifficulty, defaultDifficulty) {
+function defaultRow() {
   const first = LIMB_SIDE_OPTIONS[0];
-  const row = {
+  return {
     limb: first.limb,
     side: first.side,
     holdType: HOLD_TYPES_BY_LIMB[first.limb][0],
     movementStyle: MOVEMENT_STYLES_BY_LIMB[first.limb][0],
     wallAngle: VALID_WALL_ANGLES[0],
   };
-  if (hasDifficulty) row.difficulty = defaultDifficulty;
-  return row;
 }
 
-export function createMoveRowList({ listEl, addBtnEl, hasDifficulty, defaultDifficulty, listLabel = "move" }) {
+export function createMoveRowList({ listEl, addBtnEl, listLabel = "move" }) {
   let rows = [];
 
   function render() {
@@ -124,7 +122,7 @@ export function createMoveRowList({ listEl, addBtnEl, hasDifficulty, defaultDiff
   });
 
   addBtnEl.addEventListener("click", () => {
-    rows.push(defaultRow(hasDifficulty, defaultDifficulty));
+    rows.push(defaultRow());
     render();
   });
 

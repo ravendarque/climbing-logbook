@@ -18,7 +18,7 @@ They follow the discipline you're on, Boulder or Sport. They're worked out on yo
 - **Volume / Intensity.** How many sends you log each period, with a line for the hardest grade you sent. Built from your sends.
 - **Send / Flash Gap** (Boulder) or **Redpoint / Onsight Gap** (Sport). How your best first-attempt grade compares with your best eventual send, and how many attempts each send takes. Built from Attempts and Flash.
 - **Effort / RPE Trend.** How hard your sends felt against how hard they were. Built from Exertion. It needs at least 5 sends in the period.
-- **Strengths / Weaknesses.** The limb, hold, movement and wall-angle combinations you find hardest. Built from Move difficulty. A combination needs at least 3 tagged moves before it shows.
+- **Strengths / Weaknesses.** The moves, holds and positions you find hardest. Built from the hardest move or sequence you write on each send.
 - **Injury / Pain Log.** Climbs where you flagged pain, newest first. Once a combination has at least 3 tags, it points out the pattern. It's for spotting patterns and isn't medical advice.
 
 ## Choose the period and grade scale

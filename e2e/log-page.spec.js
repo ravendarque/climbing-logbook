@@ -536,18 +536,32 @@ test("Attempts stepper increments/decrements and cannot go below 0", async ({ pa
   await expect(page.locator("#attempts-minus")).toBeEnabled();
 });
 
-test("adding a move and saving submits it in the entry payload", async ({ page, owner }) => {
+test("the hardest move is read back as it's typed, and saved as written (#1522)", async ({ page, owner }) => {
   await gotoLog(page, owner, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
 
-  const entryName = `E2E move payload ${Date.now()}`;
+  const entryName = `E2E hardest move ${Date.now()}`;
   await page.locator("#add-btn").click();
   await page.locator("#entry-name").fill(entryName);
   await page.locator("#place-btn").click();
   await page.locator(`#place-listbox li[data-key="${owner.ownId("p1")}"]`).click();
 
   await page.locator("#entry-nav-forward").click();
-  await page.locator("#hardest-moves-add").click();
-  await page.locator('#hardest-moves-list [data-field="limbSide"]').selectOption("foot-right");
+  await expect(page.locator("#hardest-beta-reading")).toBeHidden();
+  await page.locator("#entry-hardest-beta").fill("Right heel hook on the lip, jam in the crack, then dyno to the jugg");
+
+  await expect(page.locator("#hardest-beta-readback mark.beta-position").first()).toHaveText("heel hook");
+  await page.locator("#hardest-beta-chips button", { hasText: "jam?" }).click();
+  await page.locator("#hardest-beta-panel button", { hasText: "Jam (hand)" }).click();
+  await page.locator("#hardest-beta-chips button", { hasText: "jugg?" }).click();
+  await page.locator("#hardest-beta-panel button", { hasText: "Use “jug”" }).click();
+  await expect(page.locator("#hardest-beta-chips button")).toHaveCount(0);
+
+  await page.locator("#hardest-beta-reading summary").click();
+  await expect(page.locator("#hardest-beta-steps li")).toHaveText([
+    "Right foot: heel hook on a lip.",
+    "Jam (hand) on a crack.",
+    "Dyno to a jug.",
+  ]);
 
   const [post] = await Promise.all([
     page.waitForResponse(res => res.url().includes("/-/api/entries") && res.request().method() === "POST"),
@@ -558,11 +572,11 @@ test("adding a move and saving submits it in the entry payload", async ({ page, 
   expect(post.status()).toBe(201);
   const submittedBody = post.request().postDataJSON();
   expect(submittedBody.name).toBe(entryName);
-  expect(submittedBody.moves).toHaveLength(1);
-  expect(submittedBody.moves[0]).toMatchObject({ difficulty: "hardest", limb: "foot", side: "right" });
+  expect(submittedBody.hardestBeta).toBe("Right heel hook on the lip, hand jam in the crack, then dyno to the jug");
+  expect(submittedBody).not.toHaveProperty("moves");
 });
 
-test("editing an entry pre-populates its existing moves into the right list", async ({ page, owner }) => {
+test("editing an entry shows its hardest move and its pain moves", async ({ page, owner }) => {
   await owner.grantPainInjuryConsent();
   await gotoLog(page, owner, {
     ...SEED,
@@ -577,16 +591,7 @@ test("editing an entry pre-populates its existing moves into the right list", as
         grade: "6A",
         date: "2026-05-04",
         name: "Move Seed",
-        moves: [
-          {
-            limb: "hand",
-            side: "left",
-            holdType: "crimp",
-            movementStyle: "static",
-            wallAngle: "slab",
-            difficulty: "hardest",
-          },
-        ],
+        hardestBeta: "Rock over onto the right foot and lock off to the crimp",
         painMoves: [
           { limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "dynamic", wallAngle: "overhang" },
         ],
@@ -600,8 +605,12 @@ test("editing an entry pre-populates its existing moves into the right list", as
   await expect(page.locator("#entry-overlay")).toBeVisible();
   await page.locator("#entry-nav-forward").click();
 
-  await expect(page.locator("#hardest-moves-list [data-move-row]")).toHaveCount(1);
-  await expect(page.locator("#easiest-moves-list [data-move-row]")).toHaveCount(0);
+  await expect(page.locator("#entry-hardest-beta")).toHaveValue(
+    "Rock over onto the right foot and lock off to the crimp",
+  );
+  await expect(page.locator("#hardest-beta-readback")).toHaveText(
+    "Rock over onto the right foot and lock off to the crimp",
+  );
   await expect(page.locator("#pain-moves-list [data-move-row]")).toHaveCount(1);
 });
 
@@ -637,6 +646,7 @@ test("page 2 grows with the moves added to it, so its end stays reachable on a p
   page,
   owner,
 }) => {
+  await owner.grantPainInjuryConsent();
   await page.setViewportSize({ width: 312, height: 700 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await gotoLog(page, owner, { ...SEED, settings: { athleteMode: true, activeDiscipline: "boulder" } });
@@ -644,7 +654,7 @@ test("page 2 grows with the moves added to it, so its end stays reachable on a p
   await page.locator("#entry-nav-forward").click();
   await expect(page.locator("#entry-page-2")).toHaveJSProperty("inert", false);
 
-  for (let i = 0; i < 4; i++) await page.locator("#hardest-moves-add").click();
+  for (let i = 0; i < 4; i++) await page.locator("#pain-moves-add").click();
 
   await expect
     .poll(() =>

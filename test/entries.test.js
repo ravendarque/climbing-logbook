@@ -10,6 +10,7 @@ import {
 } from "./support.js";
 import { buildRow, handlePublicGet, publicRowToJson } from "../server/api/entries.js";
 import { buildInsertStatement } from "../server/lib/d1-resource.js";
+import { VOCABULARY_VERSION } from "../server/lib/hardest-beta.js";
 
 const ENTRIES_URL = "/-/api/entries";
 
@@ -784,17 +785,6 @@ describe("handleDelete", () => {
   });
 });
 
-function validMoveRow(overrides = {}) {
-  return {
-    difficulty: "hardest",
-    limb: "hand",
-    side: "left",
-    holdType: "crimp",
-    movementStyle: "static",
-    wallAngle: "overhang",
-    ...overrides,
-  };
-}
 function validPainRow(overrides = {}) {
   return {
     limb: "foot",
@@ -806,25 +796,38 @@ function validPainRow(overrides = {}) {
   };
 }
 
-describe("entry_moves / entry_pain_moves", () => {
-  it("defaults both to empty arrays when omitted", async () => {
+const HEEL_HOOK_CROSS = "Steep cave. Right heel hook on the lip, cross left hand to a sidepull crimp, crux";
+
+async function movementsOf(entryId) {
+  const { results } = await env.LOGBOOK_DB.prepare("SELECT * FROM entry_movements WHERE entry_id = ? ORDER BY position")
+    .bind(entryId)
+    .all();
+  return results;
+}
+
+describe("hardest move beta and pain moves (#1522)", () => {
+  it("defaults to no hardest beta and no pain moves when omitted", async () => {
     const created = await (await post(validEntry())).json();
-    expect(created.entry.moves).toEqual([]);
+    expect(created.entry.hardestBeta).toBeNull();
     expect(created.entry.painMoves).toEqual([]);
+    expect(created.entry).not.toHaveProperty("moves");
+    expect(await movementsOf(created.entry.id)).toEqual([]);
   });
 
-  it("writes and reads back moves on create", async () => {
-    const created = await (await post({ ...validEntry(), moves: [validMoveRow()] })).json();
-    expect(created.entry.moves).toHaveLength(1);
-    expect(created.entry.moves[0]).toMatchObject({
-      difficulty: "hardest",
-      limb: "hand",
-      side: "left",
-      holdType: "crimp",
-      movementStyle: "static",
-      wallAngle: "overhang",
+  it("writes and reads back the hardest beta, and stores the movements read from it", async () => {
+    const created = await (await post({ ...validEntry(), hardestBeta: HEEL_HOOK_CROSS })).json();
+    expect(created.entry.hardestBeta).toBe(HEEL_HOOK_CROSS);
+
+    const [movement, ...rest] = await movementsOf(created.entry.id);
+    expect(rest).toEqual([]);
+    expect(movement).toMatchObject({ position: 0, crux: 1, vocabulary_version: VOCABULARY_VERSION });
+    expect(JSON.parse(movement.terrain)).toEqual({ terrain: ["overhang"], features: [] });
+    expect(JSON.parse(movement.transition)).toMatchObject({ terms: ["crossover"], limbs: ["lh"] });
+    expect(JSON.parse(movement.start_state).limbs.rf).toMatchObject({
+      techniques: ["heel-hook"],
+      hold: { kinds: ["lip"] },
     });
-    expect(typeof created.entry.moves[0].id).toBe("string");
+    expect(JSON.parse(movement.end_state).limbs.lh).toMatchObject({ hold: { ori: "sidepull", kinds: ["crimp"] } });
   });
 
   it("writes and reads back painMoves on create", async () => {
@@ -840,79 +843,70 @@ describe("entry_moves / entry_pain_moves", () => {
     });
   });
 
-  it("returns moves/painMoves for every entry via a plain GET", async () => {
-    await post({ ...validEntry(), moves: [validMoveRow()] });
+  it("returns the hardest beta for every entry via a plain GET", async () => {
+    await post({ ...validEntry(), hardestBeta: HEEL_HOOK_CROSS });
     const { entries } = await (await get()).json();
-    expect(entries[0].moves).toHaveLength(1);
+    expect(entries[0].hardestBeta).toBe(HEEL_HOOK_CROSS);
   });
 
-  it("diffs-and-replaces moves on edit, not merges", async () => {
-    const created = await (await post({ ...validEntry(), moves: [validMoveRow()] })).json();
-    const updated = await (
-      await put({
-        ...created.entry,
-        moves: [
-          validMoveRow({
-            difficulty: "easiest",
-            limb: "knee",
-            side: "left",
-            holdType: "kneebar",
-            movementStyle: "static",
-          }),
-        ],
-      })
-    ).json();
-    expect(updated.entry.moves).toHaveLength(1);
-    expect(updated.entry.moves[0].difficulty).toBe("easiest");
-    expect(updated.entry.moves[0].limb).toBe("knee");
+  it("reads the beta again on edit, replacing the old movements", async () => {
+    const created = await (await post({ ...validEntry(), hardestBeta: HEEL_HOOK_CROSS })).json();
+    const updated = await (await put({ ...created.entry, hardestBeta: "Dyno to the jug" })).json();
+    expect(updated.entry.hardestBeta).toBe("Dyno to the jug");
+    const movements = await movementsOf(created.entry.id);
+    expect(movements).toHaveLength(1);
+    expect(JSON.parse(movements[0].transition).terms).toEqual(["dyno"]);
   });
 
-  it("clears moves on edit when the new list is empty", async () => {
-    const created = await (await post({ ...validEntry(), moves: [validMoveRow()] })).json();
-    const updated = await (await put({ ...created.entry, moves: [] })).json();
-    expect(updated.entry.moves).toEqual([]);
+  it("clears the beta and its movements on edit when it's emptied", async () => {
+    const created = await (await post({ ...validEntry(), hardestBeta: HEEL_HOOK_CROSS })).json();
+    const updated = await (await put({ ...created.entry, hardestBeta: "  " })).json();
+    expect(updated.entry.hardestBeta).toBeNull();
+    expect(await movementsOf(created.entry.id)).toEqual([]);
   });
 
-  it("removes an entry's moves when it's deleted, keeping only the tombstone row (#1051)", async () => {
-    const created = await (await post({ ...validEntry(), moves: [validMoveRow()] })).json();
+  it("removes an entry's beta and movements when it's deleted, keeping only the tombstone row (#1051)", async () => {
+    const created = await (await post({ ...validEntry(), hardestBeta: HEEL_HOOK_CROSS })).json();
     const id = created.entry.id;
     await del(id);
-    const { results } = await env.LOGBOOK_DB.prepare("SELECT * FROM entry_moves WHERE entry_id = ?").bind(id).all();
-    expect(results).toHaveLength(0);
+    expect(await movementsOf(id)).toEqual([]);
+    const row = await env.LOGBOOK_DB.prepare("SELECT hardest_beta FROM entries WHERE id = ?").bind(id).first();
+    expect(row.hardest_beta).toBeNull();
   });
 
-  it("rejects an invalid move row on create with a 400", async () => {
-    const res = await post({ ...validEntry(), moves: [validMoveRow({ wallAngle: "ceiling" })] });
+  it("rejects a hardest beta that isn't text with a 400", async () => {
+    const res = await post({ ...validEntry(), hardestBeta: ["crimp"] });
     expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.error).toBe("moves[0].wallAngle must be one of: slab, vert, overhang, roof");
+    expect((await res.json()).error).toBe("hardestBeta must be a string");
   });
 
-  async function withFailingMoveInserts(fn) {
+  async function withFailingMovementInserts(fn) {
     await env.LOGBOOK_DB.prepare(
-      "CREATE TRIGGER fail_moves BEFORE INSERT ON entry_moves BEGIN SELECT RAISE(ABORT, 'forced'); END",
+      "CREATE TRIGGER fail_movements BEFORE INSERT ON entry_movements BEGIN SELECT RAISE(ABORT, 'forced'); END",
     ).run();
     try {
       return await fn();
     } finally {
-      await env.LOGBOOK_DB.prepare("DROP TRIGGER fail_moves").run();
+      await env.LOGBOOK_DB.prepare("DROP TRIGGER fail_movements").run();
     }
   }
 
-  it("leaves an edited entry unchanged when writing its moves fails", async () => {
+  it("leaves an edited entry unchanged when writing its movements fails", async () => {
     const created = await (await post(validEntry())).json();
     const before = await env.LOGBOOK_DB.prepare("SELECT * FROM entries WHERE id = ?").bind(created.entry.id).first();
 
-    const res = await withFailingMoveInserts(() => put({ ...created.entry, name: "Renamed", moves: [validMoveRow()] }));
+    const res = await withFailingMovementInserts(() =>
+      put({ ...created.entry, name: "Renamed", hardestBeta: HEEL_HOOK_CROSS }),
+    );
     expect(res.status).toBe(500);
 
     const after = await env.LOGBOOK_DB.prepare("SELECT * FROM entries WHERE id = ?").bind(created.entry.id).first();
     expect(after).toEqual(before);
   });
 
-  it("creates no entry when writing its moves fails", async () => {
-    const res = await withFailingMoveInserts(() =>
-      post({ ...validEntry(), id: "half-written", moves: [validMoveRow()] }),
+  it("creates no entry when writing its movements fails", async () => {
+    const res = await withFailingMovementInserts(() =>
+      post({ ...validEntry(), id: "half-written", hardestBeta: HEEL_HOOK_CROSS }),
     );
     expect(res.status).toBe(500);
 
@@ -935,10 +929,7 @@ describe("entry_moves / entry_pain_moves", () => {
     expect(res.status).toBe(200);
     const { entries } = await res.json();
     expect(entries).toHaveLength(105);
-    for (const entry of entries) {
-      expect(entry.moves).toEqual([]);
-      expect(entry.painMoves).toEqual([]);
-    }
+    for (const entry of entries) expect(entry.painMoves).toEqual([]);
   });
 });
 
@@ -1019,16 +1010,22 @@ describe("publicRowToJson / handlePublicGet (Task 7 -- public profile exclusions
     expect(json).toMatchObject({ id: "e1", name: "Test", grade: "6B", placeId: "p1", type: "boulder", status: "send" });
   });
 
-  it("handlePublicGet's response has no rpe/attemptsToSend/moves/painMoves keys on any entry", async () => {
+  it("handlePublicGet's response has no rpe/attemptsToSend/hardestBeta/painMoves keys on any entry", async () => {
     await grantPainInjuryConsent(cookie);
-    await post({ ...validEntry(), rpe: 80, attemptsToSend: 5, moves: [validMoveRow()], painMoves: [validPainRow()] });
+    await post({
+      ...validEntry(),
+      rpe: 80,
+      attemptsToSend: 5,
+      hardestBeta: HEEL_HOOK_CROSS,
+      painMoves: [validPainRow()],
+    });
     const request = new Request("https://example.com/-/api/entries");
     const res = await handlePublicGet(request, env, userId);
     const { entries } = await res.json();
     expect(entries).toHaveLength(1);
     expect(entries[0]).not.toHaveProperty("rpe");
     expect(entries[0]).not.toHaveProperty("attemptsToSend");
-    expect(entries[0]).not.toHaveProperty("moves");
+    expect(entries[0]).not.toHaveProperty("hardestBeta");
     expect(entries[0]).not.toHaveProperty("painMoves");
     expect(entries[0].name).toBe(validEntry().name);
   });
