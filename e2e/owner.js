@@ -67,6 +67,7 @@ export function daysAgo(n) {
 
 const DEFAULT_LOCATION = { id: "l1", name: "Test Crag", country: "United Kingdom" };
 const DEFAULT_PLACE = { id: "p1", locationId: "l1", area: "" };
+const SEED_CONCURRENCY = 6;
 const ENTRY_DEFAULTS = { placeId: "p1", type: "boulder", status: "send", grade: "6A", date: daysAgo(1) };
 
 function createOwner(username, request) {
@@ -95,10 +96,14 @@ function createOwner(username, request) {
     }) {
       for (const l of locations) await api("POST", "locations", { ...l, id: ownId(l.id) });
       for (const p of places) await api("POST", "places", { ...p, id: ownId(p.id), locationId: ownId(p.locationId) });
-      for (const [i, e] of entries.entries()) {
+      const posts = entries.map((e, i) => {
         const entry = { ...ENTRY_DEFAULTS, id: `e${i}`, name: `Climb ${i + 1}`, ...e };
         if (entry.type === "sport") entry.sportStyle ??= "lead";
-        await api("POST", "entries", { ...entry, id: ownId(entry.id), placeId: ownId(entry.placeId) });
+        return () => api("POST", "entries", { ...entry, id: ownId(entry.id), placeId: ownId(entry.placeId) });
+      });
+      // A few at a time: one by one, a 130-climb seed can use most of a test's 30 seconds.
+      for (let i = 0; i < posts.length; i += SEED_CONCURRENCY) {
+        await Promise.all(posts.slice(i, i + SEED_CONCURRENCY).map(post => post()));
       }
     },
   };

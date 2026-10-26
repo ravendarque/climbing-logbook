@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { strengthsFor } from "../../shared/strengths-stats.js";
 import { buildStrengthsReport } from "../../shared/reports.js";
+import { hardestBetaMovements } from "../../server/lib/hardest-beta.js";
 
 let nextId = 0;
 const climb = (wallAngle, grade, hardestBeta = "", status = "send", type = "boulder") => ({
@@ -11,6 +12,7 @@ const climb = (wallAngle, grade, hardestBeta = "", status = "send", type = "boul
   status,
   wallAngle,
   hardestBeta,
+  movements: hardestBetaMovements(hardestBeta),
 });
 const angle = (report, name) => report.angles.find(a => a.angle === name);
 
@@ -84,6 +86,61 @@ describe("strengthsFor (#1523)", () => {
     expect(report.insights[0].text).toBe(
       "Your level on slab is 6A, against 7A on overhang. Climbing more slab is the quickest way up.",
     );
+  });
+
+  it("takes the middle two of an even number of sends", () => {
+    const report = strengthsFor(
+      "boulder",
+      ["7A", "7A", "6C", "6C"].map(g => climb("vert", g)),
+    );
+    expect(angle(report, "vert").level).toBe("6C+");
+  });
+
+  it("says when the weak angle is one you rarely climb", () => {
+    const report = strengthsFor("boulder", [
+      ...Array.from({ length: 13 }, () => climb("overhang", "7A")),
+      ...["6A", "6A", "6A"].map(g => climb("slab", g)),
+    ]);
+    expect(report.insights[0].text).toBe(
+      "Your level on slab is 6A, against 7A on overhang, and slab is only 19% of what you climb. Climbing more slab is the quickest way up.",
+    );
+  });
+
+  it("names a weakness starting with a vowel with 'an'", () => {
+    const report = strengthsFor("boulder", [
+      ...["7A", "7A", "7A"].map(g => climb("vert", g)),
+      ...["6A", "6A", "6A"].map(g => ({
+        ...climb("vert", g, "undercling", "project"),
+        movements: [
+          {
+            transition: null,
+            start: { limbs: {}, body: [], unplaced: [] },
+            end: { limbs: { lh: { techniques: ["undercling"] } }, body: [], unplaced: [] },
+          },
+        ],
+      })),
+    ]);
+    expect(report.insights.find(i => i.title.startsWith("Undercling"))?.text).toContain("had an undercling");
+  });
+
+  it("doesn't judge a climb whose grade it can't place, or a term it doesn't know", () => {
+    const unknownTerm = {
+      ...climb("vert", "6A", "crimp"),
+      movements: [
+        {
+          transition: { terms: ["no-such-term"] },
+          start: { limbs: {}, body: [], unplaced: [] },
+          end: { limbs: {}, body: [], unplaced: [] },
+        },
+      ],
+    };
+    const report = strengthsFor("boulder", [
+      ...["7A", "7A", "7A"].map(g => climb("vert", g)),
+      ...["??", "??", "??"].map(g => climb("vert", g, "dyno to the jug")),
+      unknownTerm,
+    ]);
+    expect(report.items).toEqual([]);
+    expect(report.described).toBe(4);
   });
 
   it("says nothing with no climbs", () => {

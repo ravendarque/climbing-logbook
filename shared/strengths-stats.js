@@ -1,4 +1,4 @@
-import { parse, toMovements } from "@ravendarque/beta-interpreter";
+import vocabulary from "@ravendarque/beta-interpreter/vocabulary/terms.json" with { type: "json" };
 import { DEFAULT_SCALE_BY_TYPE, SCALES, gradeOrdinal } from "./grade-data.js";
 import { ENTRY_WALL_ANGLES } from "./entry-schema.js";
 import { MIN_TAG_COUNT, humanize, pluralizeHoldType } from "./tag-stats-helpers.js";
@@ -10,40 +10,35 @@ const LEVEL_SAMPLE = 5;
 const BELOW_LEVEL_STEPS = 2;
 const HEAT_HOLDS = 6;
 
-function ordinalOf(entry) {
-  return gradeOrdinal(entry.grade, entry.gradeScale ?? DEFAULT_SCALE_BY_TYPE[entry.type]);
-}
-
-function labelOf(ordinal, type) {
-  return SCALES[DEFAULT_SCALE_BY_TYPE[type]].toLabel(ordinal);
-}
-
 const ladders = {};
-// Each grade's place on the discipline's standard scale, so a step is always one grade.
+// The discipline's standard scale as a list, so one step is always one grade.
 function ladder(type) {
   if (!ladders[type]) {
     const scale = SCALES[DEFAULT_SCALE_BY_TYPE[type]];
     const labels = [...new Set(Array.from({ length: 200 }, (_, o) => scale.toLabel(o)).filter(Boolean))];
-    ladders[type] = new Map(labels.map((label, i) => [label, i]));
+    ladders[type] = { labels, index: new Map(labels.map((label, i) => [label, i])) };
   }
   return ladders[type];
 }
 
-function stepOf(ordinal, type) {
-  return ladder(type).get(labelOf(ordinal, type));
+function stepOf(entry) {
+  const ordinal = gradeOrdinal(entry.grade, entry.gradeScale ?? DEFAULT_SCALE_BY_TYPE[entry.type]);
+  if (ordinal == null) return null;
+  return ladder(entry.type).index.get(SCALES[DEFAULT_SCALE_BY_TYPE[entry.type]].toLabel(ordinal)) ?? null;
 }
 
+// Rounded down between two grades, so a level is never flattered.
 function median(values) {
   const sorted = [...values].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+  return sorted.length % 2 ? sorted[mid] : Math.floor((sorted[mid - 1] + sorted[mid]) / 2);
 }
 
-function levelOrdinal(entries) {
+function levelStep(entries) {
   const sends = entries
     .filter(e => e.status === "send")
-    .map(ordinalOf)
-    .filter(o => o != null)
+    .map(stepOf)
+    .filter(step => step != null)
     .sort((a, b) => b - a);
   return sends.length >= MIN_TAG_COUNT ? median(sends.slice(0, LEVEL_SAMPLE)) : null;
 }
@@ -54,23 +49,26 @@ function kindOf(term) {
   return term.facets.includes("position") ? "position" : null;
 }
 
-// Every term the hardest move names once, whichever movement it's in.
-function cruxTerms(text) {
-  const terms = new Map();
-  const add = term => {
-    if (kindOf(term)) terms.set(term.id, term);
-  };
-  for (const movement of toMovements(parse(text)).movements) {
-    for (const term of movement.transition?.terms ?? []) add(term);
+const TERMS = new Map(vocabulary.terms.map(term => [term.id, term]));
+
+// Every term the stored movements name once, whichever movement it's in; the server read them from the beta on save.
+function cruxTerms(movements) {
+  const ids = new Set();
+  for (const movement of movements) {
+    for (const id of movement.transition?.terms ?? []) ids.add(id);
     for (const state of [movement.start, movement.end]) {
       for (const contact of [...Object.values(state.limbs), ...state.unplaced]) {
-        for (const term of contact.hold?.kinds ?? []) add(term);
-        for (const term of contact.techniques) add(term);
+        if (contact.hold?.ori) ids.add(contact.hold.ori);
+        for (const id of contact.hold?.kinds ?? []) ids.add(id);
+        for (const id of contact.techniques) ids.add(id);
       }
-      for (const term of state.body) add(term);
+      for (const id of state.body) ids.add(id);
     }
   }
-  return [...terms.values()];
+  return [...ids].flatMap(id => {
+    const term = TERMS.get(id);
+    return term && kindOf(term) ? [term] : [];
+  });
 }
 
 const article = word => (/^[aeiou]/i.test(word) ? "an" : "a");
@@ -119,13 +117,13 @@ export function strengthsFor(type, entries) {
 
   const angles = ENTRY_WALL_ANGLES.map(angle => {
     const onAngle = byAngle[angle] ?? [];
-    const level = levelOrdinal(onAngle);
+    const step = levelStep(onAngle);
     return {
       angle,
       climbs: onAngle.length,
       share: climbs.length ? Math.round((onAngle.length / climbs.length) * 100) : 0,
-      level: level == null ? null : labelOf(level, type),
-      step: level == null ? null : stepOf(level, type),
+      level: step == null ? null : ladder(type).labels[step],
+      step,
     };
   });
   const angleStep = Object.fromEntries(angles.map(a => [a.angle, a.step]));
@@ -136,13 +134,14 @@ export function strengthsFor(type, entries) {
   for (const climb of climbs) {
     if (!climb.hardestBeta?.trim()) continue;
     described++;
-    const terms = cruxTerms(climb.hardestBeta);
+    const terms = cruxTerms(climb.movements ?? []);
     const level = angleStep[climb.wallAngle];
-    const ordinal = ordinalOf(climb);
-    const below = level != null && ordinal != null && level - stepOf(ordinal, type) >= BELOW_LEVEL_STEPS;
+    const step = stepOf(climb);
+    const judged = level != null && step != null;
+    const below = judged && level - step >= BELOW_LEVEL_STEPS;
     for (const term of terms) {
       const item = itemsById.get(term.id) ?? { id: term.id, name: term.name, kind: kindOf(term), below: 0, limit: 0 };
-      if (level != null && ordinal != null) item[below ? "below" : "limit"]++;
+      if (judged) item[below ? "below" : "limit"]++;
       itemsById.set(term.id, item);
       if (term.facets.includes("hold")) {
         const row = heat.get(term.id) ?? { id: term.id, name: term.name, counts: ENTRY_WALL_ANGLES.map(() => 0) };

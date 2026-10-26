@@ -33,7 +33,7 @@ export async function handleGetInjuryLog(_request, env, userId) {
 }
 
 export async function handleGetStrengthsWeaknesses(_request, env, userId) {
-  return json(buildStrengthsReport(await listEntries(env, userId)), 200, NO_STORE);
+  return json(buildStrengthsReport(await listEntriesWithChildRows(env, userId)), 200, NO_STORE);
 }
 
 const DATE_SHAPE = /^\d{4}-\d{2}-\d{2}$/;

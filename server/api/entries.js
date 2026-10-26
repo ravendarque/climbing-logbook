@@ -127,6 +127,14 @@ function buildPainMoveRow(record, id, entryId) {
     wall_angle: record.wallAngle,
   };
 }
+function movementRowToJson(row) {
+  return {
+    crux: !!row.crux,
+    transition: row.transition ? JSON.parse(row.transition) : null,
+    start: JSON.parse(row.start_state),
+    end: JSON.parse(row.end_state),
+  };
+}
 function painMoveRowToJson(row) {
   return {
     id: row.id,
@@ -192,11 +200,17 @@ async function fetchChildRowsChunked(env, table, ids) {
 export async function attachChildRows(rows, env, userId, { evenWithoutConsent = false } = {}) {
   if (rows.length === 0) return rows;
   const ids = rows.map(r => r.id);
-  const show = evenWithoutConsent || (await hasConsent(env, userId));
-  const painRows = show ? await fetchChildRowsChunked(env, "entry_pain_moves", ids) : [];
+  const [movementRows, painRows] = await Promise.all([
+    fetchChildRowsChunked(env, "entry_movements", ids),
+    (evenWithoutConsent ? Promise.resolve(true) : hasConsent(env, userId)).then(show =>
+      show ? fetchChildRowsChunked(env, "entry_pain_moves", ids) : [],
+    ),
+  ]);
+  const movementsByEntry = Object.groupBy(movementRows, row => row.entry_id);
   const painByEntry = Object.groupBy(painRows, row => row.entry_id);
   return rows.map(row => ({
     ...row,
+    movements: (movementsByEntry[row.id] ?? []).sort((a, b) => a.position - b.position).map(movementRowToJson),
     painMoves: (painByEntry[row.id] ?? []).map(painMoveRowToJson),
   }));
 }

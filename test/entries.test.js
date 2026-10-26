@@ -847,6 +847,8 @@ describe("hardest move beta and pain moves (#1522)", () => {
     await post({ ...validEntry(), hardestBeta: HEEL_HOOK_CROSS });
     const { entries } = await (await get()).json();
     expect(entries[0].hardestBeta).toBe(HEEL_HOOK_CROSS);
+    expect(entries[0].movements).toHaveLength(1);
+    expect(entries[0].movements[0]).toMatchObject({ crux: true, transition: { terms: ["crossover"] } });
   });
 
   it("reads the beta again on edit, replacing the old movements", async () => {
