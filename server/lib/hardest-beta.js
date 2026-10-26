@@ -1,12 +1,8 @@
-import { parse, toMovements, vocabulary } from "@ravendarque/beta-interpreter";
+import { parse, toMovements } from "@ravendarque/beta-interpreter";
+import pkg from "../../package.json" with { type: "json" };
 
-function fnv1a(text) {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < text.length; i++) hash = Math.imul(hash ^ text.charCodeAt(i), 0x01000193) >>> 0;
-  return hash.toString(16).padStart(8, "0");
-}
-
-export const VOCABULARY_VERSION = fnv1a(JSON.stringify(vocabulary));
+// The pinned package version, so a stored movement shows how far behind the current vocabulary it is.
+export const VOCABULARY_VERSION = pkg.dependencies["@ravendarque/beta-interpreter"];
 
 const ids = terms => terms.map(t => t.id);
 
