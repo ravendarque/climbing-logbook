@@ -2,7 +2,7 @@ import { json } from "../lib/json.js";
 import { cachedPublic } from "../lib/public-cache.js";
 import { clientKey, rateLimited } from "../lib/rate-limits.js";
 import { resolvePublicUser } from "./public-profile.js";
-import { handlePublicGet } from "./entries.js";
+import { handleDemoGet, handlePublicGet } from "./entries.js";
 import { rowToJson as placeRowToJson } from "./places.js";
 import { rowToJson as locationRowToJson } from "./locations.js";
 import { handleGetMapCounts } from "./map.js";
@@ -91,5 +91,6 @@ export async function handlePublicResource(request, env, username, resource, ctx
     request = new Request(url, request);
   }
 
-  return cachedPublic(request, env, ctx, target.id, resource, () => HANDLERS[resource](request, env, target.id));
+  const handler = resource === "entries" && target.isDemo ? handleDemoGet : HANDLERS[resource];
+  return cachedPublic(request, env, ctx, target.id, resource, () => handler(request, env, target.id));
 }

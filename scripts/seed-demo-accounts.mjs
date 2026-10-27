@@ -2,9 +2,10 @@
 // Tags cluster so the Strengths and Injury reports have a real signal. Fixed IDs, so safe to re-run.
 //   node scripts/seed-demo-accounts.mjs [--remote] [--env preview]
 import { applyMigrations, d1ExecuteBatch } from "./lib/dev-session.mjs";
-import { BOULDER_GRADES, LEAD_GRADES } from "../shared/grade-data.js";
+import { BOULDER_GRADES, DEFAULT_SCALE_BY_TYPE, LEAD_GRADES, SCALES } from "../shared/grade-data.js";
 import { DEMO_PERSONAS } from "../shared/demo-personas.js";
 import { PAIN_INJURY } from "../shared/health-consent.js";
+import { hardestBetaMovements, movementRow } from "../server/lib/hardest-beta.js";
 
 const args = process.argv.slice(2);
 const remote = args.includes("--remote");
@@ -60,15 +61,40 @@ const DOMINANT_MOVE_COMBO = {
   movementStyle: "static",
   wallAngle: "overhang",
 };
-// Weighted towards overhang, as most climbing is.
-const WALL_ANGLES = ["overhang", "overhang", "overhang", "vert", "vert", "slab", "roof", "dihedral", "chimney"];
-const HARDEST_BETAS = [
-  "Steep cave. Right heel hook on the lip, cross left hand to a sidepull crimp, then deadpoint to the slopey pinch",
-  "Rock over onto the right foot and lock off to the crimp",
-  "Left hand undercling, smear and stand up to the jug",
-  "Compression on the arête, toe hook right and paddle up the rail",
-  "Dyno from the two finger pocket to the jug",
-];
+// The demo tells a story the Strengths report can find: strong on steep ground, weak on slab, slopers hard
+// even on easy climbs, and crimps and heel hooks only hard at the limit.
+const WALL_ANGLES_BY_BAND = {
+  hard: ["overhang", "roof", "overhang", "dihedral"],
+  middle: ["vert", "overhang", "vert", "chimney"],
+  easy: ["slab", "overhang", "slab", "vert"],
+};
+const HARDEST_BETAS_BY_BAND = {
+  hard: [
+    "Right heel hook on the lip, cross left hand to a sidepull crimp, then deadpoint to the pinch",
+    "Toe hook right, lock off on the half crimp and deadpoint left hand to the crimp",
+    "Gaston the crimp with the right hand, flag left and deadpoint to the edge",
+    "Left heel hook, squeeze the arête and deadpoint to the crimp",
+    "Drop knee left, lock off and deadpoint to the two finger pocket",
+  ],
+  middle: [
+    "Cross through to the jug, flag left and dyno to the jug",
+    "Step through onto the right foot, smear and stand up to the jug",
+    "Knee bar, hand jam and reach to the jug",
+    "Bicycle the jug, cut loose and campus to the rail",
+  ],
+  easy: [
+    "Mantle onto the sloper, palm down and rock over",
+    "Smear both feet, squeeze the slopers and match on the sloper",
+    "Smear, paddle left hand to the sloper and mantle",
+    "Paddle along the slopers to the lip, then mantle",
+    "Slopey sidepull, smear and rock over to the sloper",
+  ],
+};
+
+function band(gradeIndex, gradeCount) {
+  const position = gradeIndex / Math.max(1, gradeCount - 1);
+  return position >= 0.6 ? "hard" : position >= 0.3 ? "middle" : "easy";
+}
 
 function isoDateWeeksAgo(weeksAgo) {
   const d = new Date();
@@ -125,12 +151,22 @@ function buildPersonaSql(persona) {
 
   const entryIds = [];
   for (const type of ["boulder", "sport"]) {
-    const allGrades = type === "boulder" ? BOULDER_GRADES : LEAD_GRADES;
+    const scale = DEFAULT_SCALE_BY_TYPE[type];
+    // Standard grades only: the full lists start with non-standard ones, which would shift every tier's range down.
+    const allGrades = (type === "boulder" ? BOULDER_GRADES : LEAD_GRADES).filter(
+      ({ g }) => SCALES[scale].toOrdinal(g) != null,
+    );
     const [from, to] = type === "boulder" ? tier.boulderRange : tier.sportRange;
     const grades = allGrades.slice(from, to);
 
     for (let i = 0; i < tier.entriesPerDiscipline; i++) {
-      const grade = grades[weightedGradeIndex(grades.length, i)].g;
+      const gradeIndex = weightedGradeIndex(grades.length, i);
+      const grade = grades[gradeIndex].g;
+      const gradeBand = band(gradeIndex, grades.length);
+      const wallAngle = WALL_ANGLES_BY_BAND[gradeBand][i % 4];
+      const betas = HARDEST_BETAS_BY_BAND[gradeBand];
+      // Most climbs have beta, so the log shows plenty of the interpreter at work.
+      const hardestBeta = i % 4 === 3 ? null : betas[i % betas.length];
       const placeId = placeIds[i % placeIds.length];
       const entryId = `demo-${username}-entry-${type}-${i}`;
       entryIds.push(entryId);
@@ -148,17 +184,17 @@ function buildPersonaSql(persona) {
         `INSERT OR IGNORE INTO entries (id, user_id, place_id, name, grade, discipline_id, status_id, first_attempt, date, video, notes, created_at, updated_at) VALUES (${sqlStr(entryId)}, ${sqlStr(userId)}, ${sqlStr(placeId)}, ${sqlStr(name)}, ${sqlStr(grade)}, ${sqlStr(type)}, ${sqlStr(status)}, ${sqlBool(firstAttempt)}, ${sqlStr(isoDateWeeksAgo(weeksAgo))}, NULL, NULL, ${now}, ${now});`,
       );
       statements.push(
-        `UPDATE entries SET attempts_to_send = ${attemptsToSend ?? "NULL"}, rpe = ${rpe ?? "NULL"}, sport_style = ${sportStyle ? sqlStr(sportStyle) : "NULL"}, wall_angle = ${sqlStr(WALL_ANGLES[i % WALL_ANGLES.length])} WHERE id = ${sqlStr(entryId)};`,
+        `UPDATE entries SET attempts_to_send = ${attemptsToSend ?? "NULL"}, rpe = ${rpe ?? "NULL"}, sport_style = ${sportStyle ? sqlStr(sportStyle) : "NULL"}, grade = ${sqlStr(grade)}, grade_scale = ${sqlStr(scale)}, wall_angle = ${sqlStr(wallAngle)}, hardest_beta = ${hardestBeta ? sqlStr(hardestBeta) : "NULL"} WHERE id = ${sqlStr(entryId)};`,
       );
+      statements.push(`DELETE FROM entry_movements WHERE entry_id = ${sqlStr(entryId)};`);
+      hardestBetaMovements(hardestBeta).forEach((movement, n) => {
+        const row = movementRow(movement, `${entryId}-movement-${n}`, entryId);
+        const columns = Object.keys(row);
+        statements.push(
+          `INSERT INTO entry_movements (${columns.join(", ")}) VALUES (${columns.map(c => (row[c] == null ? "NULL" : typeof row[c] === "number" ? row[c] : sqlStr(row[c]))).join(", ")});`,
+        );
+      });
     }
-  }
-
-  const betaCount = Math.max(8, Math.round(entryIds.length * 0.2));
-  for (let i = 0; i < betaCount; i++) {
-    const entryId = entryIds[i % entryIds.length];
-    statements.push(
-      `UPDATE entries SET hardest_beta = ${sqlStr(HARDEST_BETAS[i % HARDEST_BETAS.length])} WHERE id = ${sqlStr(entryId)};`,
-    );
   }
 
   const painCount = Math.max(6, Math.round(entryIds.length * 0.05));
@@ -168,6 +204,11 @@ function buildPersonaSql(persona) {
       `INSERT OR IGNORE INTO entry_pain_moves (id, entry_id, limb, side, hold_type, movement_style, wall_angle, created_at) VALUES (${sqlStr(`demo-${username}-pain-${i}`)}, ${sqlStr(entryId)}, ${sqlStr(DOMINANT_MOVE_COMBO.limb)}, ${sqlStr(DOMINANT_MOVE_COMBO.side)}, ${sqlStr(DOMINANT_MOVE_COMBO.holdType)}, ${sqlStr(DOMINANT_MOVE_COMBO.movementStyle)}, ${sqlStr(DOMINANT_MOVE_COMBO.wallAngle)}, ${now});`,
     );
   }
+
+  // The public reports are cached under the newest sync_cursor, so a re-seed has to move it or they keep serving the old data.
+  statements.push(
+    `UPDATE entries SET sync_cursor = (SELECT COALESCE(MAX(sync_cursor), 0) + 1 FROM entries WHERE user_id = ${sqlStr(userId)}) WHERE id = ${sqlStr(entryIds[0])};`,
+  );
 
   return statements.join("\n");
 }

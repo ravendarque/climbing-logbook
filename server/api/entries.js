@@ -18,7 +18,7 @@ import {
   hasConsent,
 } from "../lib/health-consent.js";
 import { followMovedPlace } from "../lib/place-moves.js";
-import { VOCABULARY_VERSION, hardestBetaMovements } from "../lib/hardest-beta.js";
+import { hardestBetaMovements, movementRow } from "../lib/hardest-beta.js";
 
 // Must match migrations/0016_add_grade_scale.sql's backfill WHERE clause.
 const LEGACY_SPORT_NON_STANDARD_GRADES = new Set(["1", "1+", "2", "2+", "3", "3+"]);
@@ -103,19 +103,6 @@ function rowToJsonWithDeleted(row) {
   return { ...rowToJson(row), deleted: !!row.deleted_at };
 }
 
-function buildMovementRow(movement, id, entryId) {
-  return {
-    id,
-    entry_id: entryId,
-    position: movement.position,
-    crux: movement.crux ? 1 : 0,
-    terrain: movement.terrain,
-    transition: movement.transition ? JSON.stringify(movement.transition) : null,
-    start_state: JSON.stringify(movement.start),
-    end_state: JSON.stringify(movement.end),
-    vocabulary_version: VOCABULARY_VERSION,
-  };
-}
 function buildPainMoveRow(record, id, entryId) {
   return {
     id,
@@ -169,7 +156,7 @@ function moveStatements(env, entryId, record) {
       "entry_movements",
       entryId,
       hardestBetaMovements(record.hardestBeta),
-      buildMovementRow,
+      movementRow,
     ),
     ...replaceChildRowStatements(env, "entry_pain_moves", entryId, record.painMoves ?? [], buildPainMoveRow, consented),
   ];
@@ -351,6 +338,11 @@ export async function handleGet(
 
 export function handlePublicGet(request, env, userId) {
   return handleGet(request, env, userId, { shapeRow: publicRowToJson, includeChildRows: false, publicOnly: true });
+}
+
+// Demo accounts are fictional, so their climbs show everything the entry form can, hardest-move beta included.
+export function handleDemoGet(request, env, userId) {
+  return handleGet(request, env, userId, { shapeRow: rowToJson, includeChildRows: false, publicOnly: true });
 }
 
 export async function handlePut(request, env, userId) {

@@ -359,6 +359,44 @@ describe("public data API", () => {
       }
     });
 
+    it("shows a demo account's climbs in full, hardest move included, but never a real user's (#1523)", async () => {
+      const climb = {
+        name: "Beta shown",
+        grade: "6B",
+        type: "boulder",
+        status: "send",
+        rpe: 70,
+        wallAngle: "overhang",
+        hardestBeta: "Right heel hook on the lip, deadpoint to the crimp",
+      };
+      for (const [username, isDemo] of [
+        ["demowithbeta", true],
+        ["realwithbeta", false],
+      ]) {
+        const { cookie } = await createPublicSession({ username });
+        const placeId = await seedPlace(cookie, {
+          locationName: "Fontainebleau",
+          country: "France",
+          area: "Bas Cuvier",
+        });
+        await jsonRequest("POST", "/-/api/entries", { ...climb, placeId }, { Cookie: cookie });
+        if (isDemo) {
+          await env.LOGBOOK_DB.prepare(
+            `UPDATE settings SET is_demo = 1 WHERE user_id = (SELECT id FROM "user" WHERE username = ?)`,
+          )
+            .bind(username)
+            .run();
+        }
+      }
+
+      const [demo] = (await (await fetchPublic("demowithbeta", "entries")).json()).entries;
+      expect(demo).toMatchObject({ hardestBeta: climb.hardestBeta, wallAngle: "overhang", rpe: 70 });
+      const [real] = (await (await fetchPublic("realwithbeta", "entries")).json()).entries;
+      expect(real).not.toHaveProperty("hardestBeta");
+      expect(real).not.toHaveProperty("wallAngle");
+      expect(real).not.toHaveProperty("rpe");
+    });
+
     it("404s performance data for a nonexistent username, same anti-enumeration response as every other public resource", async () => {
       const res = await fetchPublic("nobody-by-this-name", "performance/pyramid");
       expect(res.status).toBe(404);

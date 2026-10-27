@@ -49,3 +49,18 @@ export function hardestBetaMovements(text) {
     end: compactState(movement.end),
   }));
 }
+
+// One entry_movements row, shared by saves and the demo seed so both store the same shape.
+export function movementRow(movement, id, entryId) {
+  return {
+    id,
+    entry_id: entryId,
+    position: movement.position,
+    crux: movement.crux ? 1 : 0,
+    terrain: movement.terrain,
+    transition: movement.transition ? JSON.stringify(movement.transition) : null,
+    start_state: JSON.stringify(movement.start),
+    end_state: JSON.stringify(movement.end),
+    vocabulary_version: VOCABULARY_VERSION,
+  };
+}

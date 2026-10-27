@@ -594,6 +594,7 @@ test("in Athlete Mode a climb needs its wall angle, except a Checkout, which has
   await expect(page.locator("#entry-overlay")).toBeVisible();
 
   await page.locator("#entry-nav-forward").click();
+  await expect(page.locator("#hardest-beta-help-link")).toHaveAttribute("href", /\/help\/describing-the-beta\/$/);
   await page.locator("#entry-hardest-beta").fill("Steep. Heel hook the lip");
   await page.locator("#entry-wall-angle").selectOption("slab");
   await expect(page.locator("#hardest-beta-angle-mismatch")).toHaveText(
