@@ -21,5 +21,9 @@ runs:
         # action opted into, so disabled to keep caching behavior exactly
         # as it was before the v4->v7 bump (#340).
         package-manager-cache: false
+        registry-url: https://npm.pkg.github.com
+        scope: '@ravendarque'
     - run: pnpm install --frozen-lockfile
       shell: bash
+      env:
+        NODE_AUTH_TOKEN: ${{ github.token }}

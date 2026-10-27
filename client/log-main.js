@@ -112,6 +112,10 @@ function showFailedWrites() {
 }
 
 document.getElementById("grade-scale-reference-link").href = resolveApexUrl(location.hostname, "/help/grade-scales/");
+document.getElementById("hardest-beta-help-link").href = resolveApexUrl(
+  location.hostname,
+  "/help/describing-the-beta/",
+);
 
 async function boot() {
   // An unsynced device goes to /sync first rather than render a partial table.

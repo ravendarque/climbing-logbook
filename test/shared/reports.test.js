@@ -66,10 +66,10 @@ describe("Performance report builders (#1100)", () => {
     );
   });
 
-  it("returns the strengths overview without an anchor, and the ranking with one", () => {
-    expect(Object.keys(buildStrengthsReport(ENTRIES, {}))).toEqual(["headline", "anchors"]);
-    expect(Object.keys(buildStrengthsReport(ENTRIES, { dimension: "holdType", value: "crimp" }))).toEqual(["ranked"]);
-    expect(Object.keys(buildStrengthsReport(ENTRIES, { dimension: "holdType" }))).toEqual(["headline", "anchors"]);
+  it("returns the strengths report for each discipline (#1523)", () => {
+    const report = buildStrengthsReport(ENTRIES);
+    expect(Object.keys(report)).toEqual(["boulder", "sport"]);
+    expect(Object.keys(report.boulder)).toEqual(["climbs", "described", "angles", "items", "heat", "insights"]);
   });
 
   it("returns the injury log and its top cluster", () => {

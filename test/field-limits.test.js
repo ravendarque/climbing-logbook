@@ -83,20 +83,21 @@ describe("climb fields (#1044)", () => {
     });
   }
 
-  for (const [field, message] of [
-    ["moves", "Add up to 20 moves."],
-    ["painMoves", "Add up to 20 painful moves."],
-  ]) {
-    it(`takes ${field} with 20 rows and refuses 21`, async () => {
-      const rows = n => Array.from({ length: n }, () => ({ ...MOVE, difficulty: "hardest" }));
-      const rowsFor = n => (field === "moves" ? rows(n) : rows(n).map(({ difficulty, ...row }) => row));
-      await grantPainInjuryConsent(cookie);
-      expect((await postEntry({ [field]: rowsFor(20) })).status).toBe(201);
-      const over = await postEntry({ [field]: rowsFor(21) });
-      expect(over.status).toBe(400);
-      expect((await over.json()).error).toBe(message);
-    });
-  }
+  it("takes painMoves with 20 rows and refuses 21", async () => {
+    const rows = n => Array.from({ length: n }, () => ({ ...MOVE }));
+    await grantPainInjuryConsent(cookie);
+    expect((await postEntry({ painMoves: rows(20) })).status).toBe(201);
+    const over = await postEntry({ painMoves: rows(21) });
+    expect(over.status).toBe(400);
+    expect((await over.json()).error).toBe("Add up to 20 painful moves.");
+  });
+
+  it("takes a hardest beta of 500 characters and refuses 501", async () => {
+    expect((await postEntry({ hardestBeta: "a".repeat(500) })).status).toBe(201);
+    const over = await postEntry({ hardestBeta: "a".repeat(501) });
+    expect(over.status).toBe(400);
+    expect((await over.json()).error).toBe("Hardest move / sequence can be up to 500 characters.");
+  });
 });
 
 describe("locations and areas (#1044)", () => {

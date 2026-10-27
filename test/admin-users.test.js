@@ -278,7 +278,7 @@ describe("viewing a logbook (#1279)", () => {
         sportStyle: "lead",
         attemptsToSend: 3,
         rpe: 80,
-        moves: [{ ...tag, difficulty: "hardest" }],
+        hardestBeta: "Heel hook the lip, cross to the crimp",
         painMoves: [tag],
       },
       { Cookie: cookie },
@@ -292,7 +292,7 @@ describe("viewing a logbook (#1279)", () => {
         attemptsToSend: 3,
         rpe: 80,
         gradeScale: "french",
-        moves: [expect.objectContaining({ ...tag, difficulty: "hardest" })],
+        hardestBeta: "Heel hook the lip, cross to the crimp",
         painMoves: [expect.objectContaining(tag)],
       }),
     ]);

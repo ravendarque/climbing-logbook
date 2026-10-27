@@ -239,3 +239,17 @@ describe("exported constants (for CSV template generation / future reuse)", () =
     );
   });
 });
+
+describe("wallAngle (#1523)", () => {
+  it("takes any of the six angles, or none", () => {
+    for (const wallAngle of ["slab", "vert", "overhang", "roof", "chimney", "dihedral", null, undefined]) {
+      expect(validateEntryShape(validEntry({ wallAngle }))).toBeNull();
+    }
+  });
+
+  it("refuses an angle it doesn't know", () => {
+    expect(validateEntryShape(validEntry({ wallAngle: "cave" }))).toBe(
+      "wallAngle must be one of: slab, vert, overhang, roof, chimney, dihedral",
+    );
+  });
+});

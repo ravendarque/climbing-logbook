@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
   # The paths filter lists a pull request's changed files.
   pull-requests: read
 

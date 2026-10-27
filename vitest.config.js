@@ -17,6 +17,7 @@ const DOM_TESTS = [
   "test/client/preselect-section.test.js",
   "test/client/delta-pull.test.js",
   "test/client/move-tagging.test.js",
+  "test/client/hardest-beta-field.test.js",
   "test/client/characters-left.test.js",
   "test/client/time-window.test.js",
   "test/client/climbing-tab-bar.test.js",

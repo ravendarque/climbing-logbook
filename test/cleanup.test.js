@@ -46,7 +46,7 @@ async function climbWithEverything(id) {
       date: "2026-10-01",
       notes: "Fell off the crux twice",
       video: "https://youtu.be/abc",
-      moves: [{ ...MOVE, difficulty: "hardest" }],
+      hardestBeta: "Heel hook the lip, cross to the crimp",
       painMoves: [MOVE],
     },
     { Cookie: cookie },
@@ -56,8 +56,8 @@ async function climbWithEverything(id) {
 const content = id =>
   db
     .prepare(
-      `SELECT name, notes, video, date, deleted_at IS NOT NULL AS deleted,
-         (SELECT count(*) FROM entry_moves WHERE entry_id = ?1) AS moves,
+      `SELECT name, notes, video, date, hardest_beta AS hardestBeta, deleted_at IS NOT NULL AS deleted,
+         (SELECT count(*) FROM entry_movements WHERE entry_id = ?1) AS movements,
          (SELECT count(*) FROM entry_pain_moves WHERE entry_id = ?1) AS painMoves
        FROM entries WHERE id = ?1`,
     )
@@ -74,8 +74,9 @@ describe("deleting a climb (#1051)", () => {
       notes: null,
       video: null,
       date: null,
+      hardestBeta: null,
       deleted: 1,
-      moves: 0,
+      movements: 0,
       painMoves: 0,
     });
   });
@@ -118,7 +119,13 @@ describe("the daily clean-up (#1051)", () => {
 
     await cleanUp(env, log);
 
-    expect(await content("old-tombstone")).toMatchObject({ name: "", notes: null, moves: 0, painMoves: 0 });
+    expect(await content("old-tombstone")).toMatchObject({
+      name: "",
+      notes: null,
+      hardestBeta: null,
+      movements: 0,
+      painMoves: 0,
+    });
     expect(log.info).toHaveBeenCalledWith("cleanup.done", { reason: "deleted-entry-content", count: 1 });
   });
 
@@ -128,7 +135,8 @@ describe("the daily clean-up (#1051)", () => {
     expect(await content("alive")).toMatchObject({
       name: "Private Project",
       notes: "Fell off the crux twice",
-      moves: 1,
+      hardestBeta: "Heel hook the lip, cross to the crimp",
+      movements: 1,
     });
   });
 });

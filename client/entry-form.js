@@ -12,6 +12,7 @@ import {
 import { flashLabel, sendLabel, nameLabel, hydrateStatusIcons } from "./status.js";
 import { createPlacePicker } from "./place-picker.js";
 import { createMoveRowList } from "./move-tagging.js";
+import { createHardestBetaField } from "./hardest-beta-field.js";
 import { validateEntryShape } from "../shared/entry-schema.js";
 import { FIELD_LIMITS } from "../shared/field-limits.js";
 import { withoutTrackingParams } from "../shared/video-links.js";
@@ -96,24 +97,27 @@ export function createEntryForm({
     placesWriteUrl,
   });
 
-  const hardestMoves = createMoveRowList({
-    listEl: document.getElementById("hardest-moves-list"),
-    addBtnEl: document.getElementById("hardest-moves-add"),
-    hasDifficulty: true,
-    defaultDifficulty: "hardest",
-    listLabel: "hardest move",
-  });
-  const easiestMoves = createMoveRowList({
-    listEl: document.getElementById("easiest-moves-list"),
-    addBtnEl: document.getElementById("easiest-moves-add"),
-    hasDifficulty: true,
-    defaultDifficulty: "easiest",
-    listLabel: "easiest move",
+  const hardestBetaInput = document.getElementById("entry-hardest-beta");
+  hardestBetaInput.maxLength = FIELD_LIMITS.hardestBeta;
+  const updateHardestBetaLeft = showCharactersLeft(
+    hardestBetaInput,
+    document.getElementById("entry-hardest-beta-count"),
+  );
+  const wallAngleSelect = document.getElementById("entry-wall-angle");
+  const hardestMoveField = document.getElementById("hardest-move-field");
+  const hardestBeta = createHardestBetaField({
+    input: hardestBetaInput,
+    angleSelect: wallAngleSelect,
+    mismatch: document.getElementById("hardest-beta-angle-mismatch"),
+    reading: document.getElementById("hardest-beta-reading"),
+    readback: document.getElementById("hardest-beta-readback"),
+    chips: document.getElementById("hardest-beta-chips"),
+    panel: document.getElementById("hardest-beta-panel"),
+    steps: document.getElementById("hardest-beta-steps"),
   });
   const painMoves = createMoveRowList({
     listEl: document.getElementById("pain-moves-list"),
     addBtnEl: document.getElementById("pain-moves-add"),
-    hasDifficulty: false,
     listLabel: "pain/injury move",
   });
 
@@ -137,7 +141,7 @@ export function createEntryForm({
     document.getElementById("form-name-label").textContent = nameLabel(store.getActiveType());
     const type = store.getActiveType();
     document.getElementById("attempts-gap-hint").textContent =
-      `Feeds your ${flashLabel(type).toLowerCase()}/${sendLabel(type).toLowerCase()} gap view.`;
+      `Feeds your ${flashLabel(type).toLowerCase()}/${sendLabel(type).toLowerCase()} gap insights.`;
   }
 
   function isNonStandardScaleId(id) {
@@ -358,6 +362,7 @@ export function createEntryForm({
   // Exertion belongs to a send, so it's hidden, not disabled, otherwise.
   function updateExertionVisibility() {
     exertionField.hidden = selectedStatus !== "send";
+    hardestMoveField.hidden = selectedStatus === "checkout";
   }
 
   // 0 is unset: no climb takes zero effort.
@@ -490,8 +495,9 @@ export function createEntryForm({
     renderExertionValue();
     attemptsValue = entry?.attemptsToSend ?? 0;
     renderAttempts();
-    hardestMoves.setRows((entry?.moves ?? []).filter(m => m.difficulty === "hardest"));
-    easiestMoves.setRows((entry?.moves ?? []).filter(m => m.difficulty === "easiest"));
+    wallAngleSelect.value = entry?.wallAngle ?? "";
+    hardestBeta.setValue(entry?.hardestBeta);
+    updateHardestBetaLeft();
     painMoves.setRows(entry?.painMoves ?? []);
     renderPainConsent();
 
@@ -551,9 +557,18 @@ export function createEntryForm({
       video: withoutTrackingParams(videoInput.value.trim()) || null,
       rpe: selectedStatus === "send" ? Number(exertionSlider.value) : null,
       attemptsToSend: attemptsValue,
-      moves: [...hardestMoves.getRows(), ...easiestMoves.getRows()],
+      hardestBeta: selectedStatus === "checkout" ? null : hardestBeta.getValue(),
+      wallAngle: selectedStatus === "checkout" ? null : wallAngleSelect.value || null,
       painMoves: painInjuryConsentState() === "on" ? painMoves.getRows() : [],
     };
+
+    if (isAthleteMode() && selectedStatus !== "checkout" && !entry.wallAngle) {
+      showEntryError("Choose the wall angle on the Performance page.");
+      entrySubmitBtns.forEach(btn => {
+        btn.disabled = false;
+      });
+      return;
+    }
 
     // Checked before the network or queue: a shape error won't fix itself on retry.
     const shapeErr = validateEntryShape(entry);

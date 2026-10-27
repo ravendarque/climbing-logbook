@@ -175,14 +175,14 @@ staticShellNote: |-
       <div class="w-full shrink-0" id="entry-page-2" tabindex="-1">
         <div class="mt-2" id="exertion-field" hidden>
           <h3 class="section-heading" id="exertion-field-label">Exertion</h3>
-          <p class="text-xs text-muted mb-2">Feeds your Effort / RPE Trend view.</p>
+          <p class="text-xs text-muted mb-2">Feeds your Effort / RPE Trend insights.</p>
           <input type="range" class="w-full accent-accent" id="exertion-slider" min="0" max="100" step="10" value="0" aria-labelledby="exertion-field-label" aria-describedby="exertion-value">
           <div class="text-center text-sm text-foreground mt-1" id="exertion-value">Not set</div>
         </div>
 
         <div class="mt-6">
           <h3 class="section-heading">Attempts</h3>
-          <p class="text-xs text-muted mb-2" id="attempts-gap-hint">Feeds your flash/send gap view.</p>
+          <p class="text-xs text-muted mb-2" id="attempts-gap-hint">Feeds your flash/send gap insights.</p>
           <div class="flex items-center justify-start gap-3">
             <button type="button" class="flex-[0_0_var(--field-h)] h-[var(--field-h)] flex items-center justify-center border border-border rounded-app bg-surface text-foreground text-lg cursor-pointer hover:border-accent active:scale-[.94] disabled:opacity-[.45] disabled:cursor-not-allowed" id="attempts-minus" aria-label="Decrease attempts">−</button>
             {# No pattern: the unset value shows a dash, which would block native validation. #}
@@ -191,16 +191,33 @@ staticShellNote: |-
           </div>
         </div>
 
-        <div class="mt-6">
-          <h3 class="section-heading">Move difficulty</h3>
-          <p class="text-xs text-muted mb-2">Feeds your Strengths / Weaknesses view.</p>
-          <div class="text-sm font-semibold text-foreground mb-1">Hardest moves for you</div>
-          <div id="hardest-moves-list"></div>
-          <button type="button" class="text-sm font-semibold text-accent-ink bg-transparent border-0 cursor-pointer p-0 mb-2" id="hardest-moves-add" aria-label="Add a hardest move">+ Add a move</button>
-
-          <div class="text-sm font-semibold text-foreground mb-1 mt-2">Easiest moves for you</div>
-          <div id="easiest-moves-list"></div>
-          <button type="button" class="text-sm font-semibold text-accent-ink bg-transparent border-0 cursor-pointer p-0" id="easiest-moves-add" aria-label="Add an easiest move">+ Add a move</button>
+        <div class="mt-6" id="hardest-move-field">
+          <h3 class="section-heading" id="hardest-beta-label">Hardest move/sequence for you</h3>
+          <p class="text-xs text-muted mb-2" id="hardest-beta-hint">Feeds your Strengths / Weaknesses insights. <a class="text-accent-ink underline underline-offset-2" id="hardest-beta-help-link" data-apex-link href="#">How to describe the beta</a></p>
+          <label class="block text-xs font-semibold uppercase tracking-[.07em] text-muted mb-2" for="entry-wall-angle">Wall angle</label>
+          <select class="text-input w-full" id="entry-wall-angle" aria-describedby="hardest-beta-hint">
+            <option value="">Choose…</option>
+            <option value="slab">Slab</option>
+            <option value="vert">Vert</option>
+            <option value="overhang">Overhang</option>
+            <option value="roof">Roof</option>
+            <option value="chimney">Chimney</option>
+            <option value="dihedral">Dihedral</option>
+          </select>
+          <label class="block text-xs font-semibold uppercase tracking-[.07em] text-muted mb-2 mt-[1.1rem]" for="entry-hardest-beta">Describe the beta</label>
+          <textarea class="bg-surface border border-field-border rounded-app px-[.85rem] py-[.65rem] text-foreground font-sans text-base outline-none focus:border-accent w-full resize-y min-h-[72px]" id="entry-hardest-beta" placeholder="e.g. right heel hook on the lip, cross to the sidepull crimp"></textarea>
+          <div class="text-xs text-muted text-right mt-1" id="entry-hardest-beta-count"></div>
+          <div id="hardest-beta-reading" hidden>
+            <div class="text-xs font-semibold text-muted mb-1">How it was read</div>
+            <p class="text-sm leading-loose whitespace-pre-wrap break-words m-0" id="hardest-beta-readback"></p>
+            <p class="mt-2 text-sm text-warning-ink bg-warning-bg border border-warning-border rounded-app px-3 py-2" id="hardest-beta-angle-mismatch" hidden></p>
+            <div class="flex flex-wrap gap-2 mt-2" id="hardest-beta-chips"></div>
+            <div class="grid gap-2 mt-2 text-sm text-warning-ink bg-warning-bg border border-warning-border rounded-app px-3 py-2" id="hardest-beta-panel" role="region" aria-live="polite" aria-label="Check a word" hidden></div>
+            <details class="mt-2">
+              <summary class="text-sm font-semibold text-accent-ink cursor-pointer">Read as steps</summary>
+              <ol class="list-decimal pl-5 mt-1 text-sm grid gap-1" id="hardest-beta-steps"></ol>
+            </details>
+          </div>
         </div>
 
         <div class="mt-6">

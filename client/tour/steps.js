@@ -64,7 +64,7 @@ const STEPS = [
     state: "add-form",
     target: "#entry-nav-forward",
     title: "Log more detail",
-    body: "With Athlete Mode on, the form's second page records your exertion, attempts, how hard each move felt and any pain. That's what your reports are built from.",
+    body: "With Athlete Mode on, the form's second page records your exertion, attempts, the wall angle and beta of the hardest move, and any pain. That's what your reports are built from.",
   },
   {
     page: "performance",

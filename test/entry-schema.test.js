@@ -98,17 +98,6 @@ describe("rpe", () => {
   });
 });
 
-function validMoveRow(overrides = {}) {
-  return {
-    difficulty: "hardest",
-    limb: "hand",
-    side: "left",
-    holdType: "crimp",
-    movementStyle: "static",
-    wallAngle: "overhang",
-    ...overrides,
-  };
-}
 function validPainRow(overrides = {}) {
   return {
     limb: "foot",
@@ -120,94 +109,21 @@ function validPainRow(overrides = {}) {
   };
 }
 
-describe("moves", () => {
-  it("accepts an entry with no moves", () => {
+describe("hardestBeta (#1522)", () => {
+  it("accepts an entry with no hardest beta, or with some", () => {
     expect(validateEntryShape(validEntry())).toBeNull();
+    expect(validateEntryShape(validEntry({ hardestBeta: "Heel hook the lip, cross to the crimp" }))).toBeNull();
   });
 
-  it("accepts an empty moves array", () => {
-    expect(validateEntryShape(validEntry({ moves: [] }))).toBeNull();
+  it("rejects a hardest beta that isn't text", () => {
+    expect(validateEntryShape(validEntry({ hardestBeta: 3 }))).toBe("hardestBeta must be a string");
   });
 
-  it("accepts a valid hardest move", () => {
-    expect(validateEntryShape(validEntry({ moves: [validMoveRow()] }))).toBeNull();
-  });
-
-  it("accepts a valid easiest move", () => {
-    expect(validateEntryShape(validEntry({ moves: [validMoveRow({ difficulty: "easiest" })] }))).toBeNull();
-  });
-
-  it("accepts multiple valid moves", () => {
-    expect(
-      validateEntryShape(
-        validEntry({
-          moves: [
-            validMoveRow(),
-            validMoveRow({
-              difficulty: "easiest",
-              limb: "foot",
-              side: "right",
-              holdType: "heel-hook",
-              movementStyle: "dynamic",
-            }),
-          ],
-        }),
-      ),
-    ).toBeNull();
-  });
-
-  it("accepts a valid lockoff move (hand only)", () => {
-    expect(validateEntryShape(validEntry({ moves: [validMoveRow({ movementStyle: "lockoff" })] }))).toBeNull();
-  });
-
-  it("rejects an invalid difficulty", () => {
-    expect(validateEntryShape(validEntry({ moves: [validMoveRow({ difficulty: "medium" })] }))).toBe(
-      "moves[0].difficulty must be one of: hardest, easiest",
+  it("takes 500 characters and refuses 501", () => {
+    expect(validateEntryShape(validEntry({ hardestBeta: "a".repeat(500) }))).toBeNull();
+    expect(validateEntryShape(validEntry({ hardestBeta: "a".repeat(501) }))).toBe(
+      "Hardest move / sequence can be up to 500 characters.",
     );
-  });
-
-  it("rejects an invalid limb", () => {
-    expect(validateEntryShape(validEntry({ moves: [validMoveRow({ limb: "elbow" })] }))).toBe(
-      "moves[0].limb must be one of: hand, foot, knee",
-    );
-  });
-
-  it("rejects an invalid side", () => {
-    expect(validateEntryShape(validEntry({ moves: [validMoveRow({ side: "middle" })] }))).toBe(
-      "moves[0].side must be one of: left, right",
-    );
-  });
-
-  it("rejects a hold type not valid for the given limb", () => {
-    expect(
-      validateEntryShape(validEntry({ moves: [validMoveRow({ limb: "foot", side: "right", holdType: "crimp" })] })),
-    ).toBe("moves[0].holdType must be one of: toe-hook, heel-hook");
-  });
-
-  it("rejects lockoff for a non-hand limb", () => {
-    expect(
-      validateEntryShape(
-        validEntry({
-          moves: [validMoveRow({ limb: "foot", side: "right", holdType: "toe-hook", movementStyle: "lockoff" })],
-        }),
-      ),
-    ).toBe("moves[0].movementStyle must be one of: static, dynamic");
-  });
-
-  it("rejects an invalid wall angle", () => {
-    expect(validateEntryShape(validEntry({ moves: [validMoveRow({ wallAngle: "ceiling" })] }))).toBe(
-      "moves[0].wallAngle must be one of: slab, vert, overhang, roof",
-    );
-  });
-
-  it("reports the correct index for the second row", () => {
-    expect(validateEntryShape(validEntry({ moves: [validMoveRow(), validMoveRow({ wallAngle: "ceiling" })] }))).toBe(
-      "moves[1].wallAngle must be one of: slab, vert, overhang, roof",
-    );
-  });
-
-  it("rejects moves that isn't an array", () => {
-    expect(validateEntryShape(validEntry({ moves: "not-an-array" }))).toBe("moves must be an array");
   });
 });
 

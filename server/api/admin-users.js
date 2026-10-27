@@ -122,7 +122,7 @@ export async function viewLogbook(env, id) {
     env.LOGBOOK_DB.prepare(
       `SELECT e.id, e.date, e.name, e.grade, e.grade_scale AS gradeScale, e.discipline_id AS discipline,
               e.status_id AS status, e.first_attempt AS firstAttempt, e.sport_style AS sportStyle,
-              e.attempts_to_send AS attemptsToSend, e.rpe, e.notes, e.video, e.hidden_at IS NOT NULL AS hidden,
+              e.attempts_to_send AS attemptsToSend, e.rpe, e.notes, e.hardest_beta AS hardestBeta, e.video, e.hidden_at IS NOT NULL AS hidden,
               l.name AS location, l.country, p.area
        FROM entries e JOIN places p ON p.id = e.place_id JOIN locations l ON l.id = p.location_id
        WHERE e.user_id = ? AND e.deleted_at IS NULL

@@ -39,6 +39,8 @@ export function isVideoHost(hostname) {
 export const VALID_LIMBS = ["hand", "foot", "knee"];
 export const VALID_SIDES = ["left", "right"];
 export const VALID_WALL_ANGLES = ["slab", "vert", "overhang", "roof"];
+// Where the hardest move is: the base of the Strengths / Weaknesses report (#1523).
+export const ENTRY_WALL_ANGLES = ["slab", "vert", "overhang", "roof", "chimney", "dihedral"];
 
 export const HOLD_TYPES_BY_LIMB = {
   hand: ["crimp", "jug", "pocket", "sloper", "pinch", "edge"],
@@ -46,7 +48,7 @@ export const HOLD_TYPES_BY_LIMB = {
   knee: ["kneebar"],
 };
 
-// Mirrors migrations/0007_add_entry_moves.sql's CHECK constraint.
+// Mirrors migrations/0010_add_entry_pain_moves.sql's CHECK constraint.
 export const MOVEMENT_STYLES_BY_LIMB = {
   hand: ["static", "dynamic", "lockoff"],
   foot: ["static", "dynamic"],
@@ -76,8 +78,6 @@ function moveRowError(row, fieldPrefix) {
   return null;
 }
 
-const VALID_MOVE_DIFFICULTIES = ["hardest", "easiest"];
-
 export const entrySchema = v.pipe(
   v.object({
     id: anyField,
@@ -94,7 +94,8 @@ export const entrySchema = v.pipe(
     notes: anyField,
     attemptsToSend: anyField,
     rpe: anyField,
-    moves: anyField,
+    hardestBeta: anyField,
+    wallAngle: anyField,
     painMoves: anyField,
   }),
   v.rawCheck(({ dataset, addIssue }) => {
@@ -191,19 +192,22 @@ export const entrySchema = v.pipe(
         addIssue({ message: "video must be a valid URL", path: fieldPath(entry, "video") });
       }
     }
-    if (entry.notes && typeof entry.notes !== "string") {
-      addIssue({ message: "notes must be a string", path: fieldPath(entry, "notes") });
+    for (const key of ["notes", "hardestBeta"]) {
+      if (entry[key] && typeof entry[key] !== "string") {
+        addIssue({ message: `${key} must be a string`, path: fieldPath(entry, key) });
+      }
     }
     for (const [field, key] of [
       ["entryName", "name"],
       ["notes", "notes"],
       ["video", "video"],
+      ["hardestBeta", "hardestBeta"],
     ]) {
       // A link is stored cleaned, so it's the cleaned link that has to fit.
       const issue = lengthIssue(field, key === "video" ? withoutTrackingParams(entry[key]) : entry[key]);
       if (issue) addIssue({ message: issue, path: fieldPath(entry, key) });
     }
-    for (const field of ["moves", "painMoves"]) {
+    for (const field of ["painMoves"]) {
       const issue = countIssue(field, entry[field]);
       if (issue) addIssue({ message: issue, path: fieldPath(entry, field) });
     }
@@ -220,26 +224,11 @@ export const entrySchema = v.pipe(
         addIssue({ message: "rpe must be a multiple of 10 between 0 and 100", path: fieldPath(entry, "rpe") });
       }
     }
-    if (entry.moves !== undefined && entry.moves !== null) {
-      if (!Array.isArray(entry.moves)) {
-        addIssue({ message: "moves must be an array", path: fieldPath(entry, "moves") });
-      } else {
-        for (let i = 0; i < entry.moves.length; i++) {
-          const row = entry.moves[i];
-          if (typeof row === "object" && row !== null && !VALID_MOVE_DIFFICULTIES.includes(row.difficulty)) {
-            addIssue({
-              message: `moves[${i}].difficulty must be one of: ${VALID_MOVE_DIFFICULTIES.join(", ")}`,
-              path: fieldPath(entry, "moves"),
-            });
-            return;
-          }
-          const rowErr = moveRowError(row, `moves[${i}]`);
-          if (rowErr) {
-            addIssue({ message: rowErr, path: fieldPath(entry, "moves") });
-            return;
-          }
-        }
-      }
+    if (entry.wallAngle != null && !ENTRY_WALL_ANGLES.includes(entry.wallAngle)) {
+      addIssue({
+        message: `wallAngle must be one of: ${ENTRY_WALL_ANGLES.join(", ")}`,
+        path: fieldPath(entry, "wallAngle"),
+      });
     }
     if (entry.painMoves !== undefined && entry.painMoves !== null) {
       if (!Array.isArray(entry.painMoves)) {

@@ -61,4 +61,4 @@ Each climb includes:
 - Video, notes and sport style
 - Attempts to send and exertion (RPE)
 
-It doesn't include your move tagging -- the strengths/weaknesses (hardest/easiest moves) or pain/injury details.
+It doesn't include your hardest moves or your pain/injury details.

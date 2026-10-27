@@ -44,7 +44,7 @@ function logbookItem(entry) {
     entry.gradeScale,
   ].filter(Boolean);
   if (details.length) item.append(el("span", "text-xs text-muted", details.join(" · ")));
-  if (entry.moves?.length) item.append(el("span", "text-xs", `Moves: ${entry.moves.map(describeTag).join("; ")}`));
+  if (entry.hardestBeta) item.append(el("span", "text-xs", `Hardest move: ${entry.hardestBeta}`));
   if (entry.painMoves?.length)
     item.append(el("span", "text-xs", `Pain or injury: ${entry.painMoves.map(describeTag).join("; ")}`));
   if (entry.notes) item.append(el("p", "text-sm whitespace-pre-wrap break-words", entry.notes));

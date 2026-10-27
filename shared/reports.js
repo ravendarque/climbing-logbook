@@ -1,7 +1,7 @@
 import { pyramidSplitRows, ROW_SCALE_BY_TYPE } from "./pyramid-stats.js";
 import { DEFAULT_SCALE_BY_TYPE, resolveScaleId, STANDARD_SCALES_BY_DISCIPLINE } from "./grade-data.js";
 import { painLogEntries, topPainCluster } from "./injury-stats.js";
-import { availableAnchors, describeWeakness, rankedForAnchor, topWeakness } from "./strengths-stats.js";
+import { strengthsFor } from "./strengths-stats.js";
 import { volumeByBucket, volumeTrend, weekBuckets, weekBucketLabel } from "./volume-stats.js";
 import { gapByBucket, gapHeadline } from "./gap-stats.js";
 import { effortByBucket, effortInsight, effortRead } from "./effort-stats.js";
@@ -26,13 +26,8 @@ export function buildInjuryReport(entries) {
   return { log: painLogEntries(entries), cluster: topPainCluster(entries) };
 }
 
-export function buildStrengthsReport(entries, { dimension, value }) {
-  if (dimension && value) return { ranked: rankedForAnchor(entries, dimension, value) };
-  const weakest = topWeakness(entries);
-  return {
-    headline: weakest ? { cell: weakest, text: describeWeakness(weakest) } : null,
-    anchors: availableAnchors(entries),
-  };
+export function buildStrengthsReport(entries) {
+  return byDiscipline(type => strengthsFor(type, entries));
 }
 
 export function buildVolumeReport(entries, { start, end }) {

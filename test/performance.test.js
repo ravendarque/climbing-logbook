@@ -209,120 +209,44 @@ function getStrengths(params = {}, extraCookie = cookie) {
   return fetchJson(`${STRENGTHS_URL}${qs ? `?${qs}` : ""}`, { headers: { Cookie: extraCookie } });
 }
 
-describe("handleGetStrengthsWeaknesses", () => {
-  it("returns a null headline and empty anchors for a user with no tagged moves", async () => {
+describe("handleGetStrengthsWeaknesses (#1523)", () => {
+  const slabAndOverhang = async () => {
+    for (const grade of ["7A", "7A", "7A"])
+      await postEntry({ grade, wallAngle: "overhang", hardestBeta: "heel hook, deadpoint to the crimp" });
+    for (const grade of ["6A", "6A", "6A"]) await postEntry({ grade, wallAngle: "slab" });
+  };
+
+  it("says nothing for a user with no wall angles", async () => {
     await postEntry();
-    const res = await getStrengths();
-    const body = await res.json();
-    expect(body.headline).toBeNull();
-    expect(body.anchors).toEqual([]);
+    const { boulder } = await (await getStrengths()).json();
+    expect(boulder).toMatchObject({ climbs: 0, insights: [], items: [] });
   });
 
-  it("surfaces a headline once 5 matching hardest tags exist across entries", async () => {
-    for (let i = 0; i < 5; i++) {
-      await postEntry({
-        name: `Route ${i}`,
-        moves: [
-          {
-            difficulty: "hardest",
-            limb: "hand",
-            side: "left",
-            holdType: "crimp",
-            movementStyle: "static",
-            wallAngle: "overhang",
-          },
-        ],
-      });
-    }
-    const res = await getStrengths();
-    const { headline } = await res.json();
-    expect(headline.text).toBe(
-      "Your left hand on overhanging crimps was the hardest move on 5 of the 5 sends you tagged it on, which makes it your clearest weakness.",
-    );
-    expect(headline.cell).toMatchObject({ limb: "hand", side: "left", holdType: "crimp", score: 1 });
+  it("finds the weak angle and what's only hard at the limit", async () => {
+    await slabAndOverhang();
+    const { boulder } = await (await getStrengths()).json();
+    expect(boulder.insights.map(i => i.title)).toEqual(["Slab is your weak angle", "Deadpoint: only at your limit"]);
+    expect(boulder.angles.find(a => a.angle === "slab")).toMatchObject({ level: "6A", climbs: 3, share: 50 });
   });
 
-  it("lists available anchors once moves are tagged", async () => {
-    await postEntry({
-      moves: [
-        {
-          difficulty: "hardest",
-          limb: "foot",
-          side: "right",
-          holdType: "toe-hook",
-          movementStyle: "dynamic",
-          wallAngle: "slab",
-        },
-      ],
-    });
-    const { anchors } = await (await getStrengths()).json();
-    expect(anchors).toContainEqual({ dimension: "holdType", value: "toe-hook", label: "Toe hook" });
-    expect(anchors).toContainEqual({ dimension: "limbSide", value: "foot-right", label: "Right foot" });
+  it("leaves out a deleted climb", async () => {
+    await slabAndOverhang();
+    const extra = await (await postEntry({ grade: "6A", wallAngle: "roof" })).json();
+    await del(extra.entry.id);
+    const { boulder } = await (await getStrengths()).json();
+    expect(boulder.climbs).toBe(6);
   });
 
-  it("returns a ranked drill-down for a fixed anchor", async () => {
-    for (let i = 0; i < 5; i++) {
-      await postEntry({
-        name: `Route ${i}`,
-        moves: [
-          {
-            difficulty: "hardest",
-            limb: "hand",
-            side: "left",
-            holdType: "crimp",
-            movementStyle: "static",
-            wallAngle: "overhang",
-          },
-        ],
-      });
-    }
-    const { ranked } = await (await getStrengths({ dimension: "holdType", value: "crimp" })).json();
-    expect(ranked).toHaveLength(1);
-    expect(ranked[0]).toMatchObject({ holdType: "crimp", score: 1, total: 5 });
-  });
-
-  it("excludes a soft-deleted entry's moves from both the headline and the anchor list", async () => {
-    const created = await (
-      await postEntry({
-        moves: [
-          {
-            difficulty: "hardest",
-            limb: "hand",
-            side: "left",
-            holdType: "crimp",
-            movementStyle: "static",
-            wallAngle: "overhang",
-          },
-        ],
-      })
-    ).json();
-    await del(created.entry.id);
-    const body = await (await getStrengths()).json();
-    expect(body.headline).toBeNull();
-    expect(body.anchors).toEqual([]);
+  it("a second user's report never reflects the first user's climbs", async () => {
+    await slabAndOverhang();
+    const userB = await createAuthedSession();
+    const { boulder } = await (await getStrengths({}, userB.cookie)).json();
+    expect(boulder.climbs).toBe(0);
   });
 
   it("401s an anonymous caller (#992)", async () => {
     const res = await fetchJson(STRENGTHS_URL);
     expect(res.status).toBe(401);
-  });
-
-  it("a second user's own request never reflects the first user's tagged moves", async () => {
-    await postEntry({
-      moves: [
-        {
-          difficulty: "hardest",
-          limb: "hand",
-          side: "left",
-          holdType: "crimp",
-          movementStyle: "static",
-          wallAngle: "overhang",
-        },
-      ],
-    });
-    const userB = await createAuthedSession();
-    const body = await (await getStrengths({}, userB.cookie)).json();
-    expect(body).toEqual({ headline: null, anchors: [] });
   });
 });
 

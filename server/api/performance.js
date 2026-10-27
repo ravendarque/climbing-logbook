@@ -32,10 +32,8 @@ export async function handleGetInjuryLog(_request, env, userId) {
   return json({ ...buildInjuryReport(await listEntriesWithChildRows(env, userId)), consent: true }, 200, NO_STORE);
 }
 
-export async function handleGetStrengthsWeaknesses(request, env, userId) {
-  const url = new URL(request.url);
-  const anchor = { dimension: url.searchParams.get("dimension"), value: url.searchParams.get("value") };
-  return json(buildStrengthsReport(await listEntriesWithChildRows(env, userId), anchor), 200, NO_STORE);
+export async function handleGetStrengthsWeaknesses(_request, env, userId) {
+  return json(buildStrengthsReport(await listEntriesWithChildRows(env, userId)), 200, NO_STORE);
 }
 
 const DATE_SHAPE = /^\d{4}-\d{2}-\d{2}$/;
