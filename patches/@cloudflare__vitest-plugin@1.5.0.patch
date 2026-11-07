@@ -1,8 +1,8 @@
 diff --git a/dist/pool/index.mjs b/dist/pool/index.mjs
-index 476ad1f1d9b303a5f9b481b2b10aa7e3ab99ad54..dbb2a8484040ff1ce3324b99ed9cfade66b1a4d3 100644
+index 39fc3b0..b443c2e 100644
 --- a/dist/pool/index.mjs
 +++ b/dist/pool/index.mjs
-@@ -69783,9 +69783,17 @@ function inlineCachedModules(response) {
+@@ -70422,9 +70422,17 @@ function inlineCachedModules(response) {
  	}
  	if (inlined !== response || response === null || typeof response !== "object" || Array.isArray(response)) return inlined;
  	let hasCachedModules = false;
